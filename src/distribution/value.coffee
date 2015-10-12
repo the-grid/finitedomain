@@ -25,7 +25,7 @@ module.exports = (FD) ->
 
   {
     distribution_markov_sampleNextFromDomain
-  } = FD.distribute.Markov
+  } = FD.distribution.Markov
 
   {
     fdvar_constrain
@@ -321,7 +321,7 @@ module.exports = (FD) ->
     else # if cycle is 1
       return distribution_value_by_max S, var_name
 
-  return FD.distribute.Value = {
+  return FD.distribution.Value = {
     distribution_value_by_list
     distribution_value_by_markov
     distribution_value_by_max

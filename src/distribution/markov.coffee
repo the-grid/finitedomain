@@ -129,7 +129,7 @@ module.exports = (FD) ->
     #console.log "======>", buildValueList([.5,2,.1])
     return list
 
-  FD.distribute.Markov = {
+  FD.distribution.Markov = {
     distribution_markov_sampleNextFromDomain
     distribution_markov_sampleIndexLookupList # unused
   }

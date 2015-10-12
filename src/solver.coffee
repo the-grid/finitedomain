@@ -289,7 +289,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distributor_options ?= @distribute
-      FD.distribute.create_fixed_distributor(distributor_options)(@S, _.es(vars))
+      FD.distribution.create_fixed_distributor(distributor_options)(@S, _.es(vars))
 
       search ?= @search
       searchMethod = FD.search[search]

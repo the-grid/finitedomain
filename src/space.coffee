@@ -62,7 +62,7 @@ module.exports = (FD) ->
       # fdvars object. This gets us copy on modify semantics.
       @vars = {}
       @_propagators = []
-      get_value_distributor = -> # set from distribute/index... for now.
+      get_value_distributor = -> # set from distribution/distribute... for now.
         throw new Error 'Space#get_value_distributor(); override me'
 
       @memory = {}
@@ -75,7 +75,7 @@ module.exports = (FD) ->
       j = undefined
       p = undefined
 
-      @get_value_distributor = S.get_value_distributor # copy the search strategy set from Distribute initially
+      @get_value_distributor = S.get_value_distributor # copy the search strategy set from Distribution initially
 
       # keep memory
       @memory = S.memory if S.memory

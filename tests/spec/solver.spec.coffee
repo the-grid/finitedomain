@@ -83,7 +83,7 @@ describe "FD", ->
         'BsyncD'
       )
 
-      FD.distribute.fail_first(S, pathVars)
+      FD.distribution.fail_first(S, pathVars)
 
       search = FD.search.depth_first
 

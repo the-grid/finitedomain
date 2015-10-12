@@ -11,7 +11,7 @@ module.exports = (FD) ->
 
   {
     distribution_presets
-  } = FD.distribute
+  } = FD.distribution
 
   {
     distribution_value_by_list
@@ -22,14 +22,14 @@ module.exports = (FD) ->
     distribution_value_by_mid
     distribution_value_by_split_max
     distribution_value_by_split_min
-  } = FD.distribute.Value
+  } = FD.distribution.Value
 
   {
     distribution_var_max
     distribution_var_min
     distribution_var_naive
     distribution_var_size
-  } = FD.distribute.Var
+  } = FD.distribution.Var
 
   {
     fdvar_is_rejected
@@ -130,7 +130,7 @@ module.exports = (FD) ->
     varsById = root_space.solver?.vars?.byId
 
     # This is the actual search strategy being applied by Space root_space
-    # Should return something from FD.distribute.Value
+    # Should return something from FD.distribution.Value
     # TODO: we may want to move this function to Space directly? I'm not sure we use any others, regardless of intent
 
     root_space.get_value_distributor = (current_space) ->
@@ -154,14 +154,14 @@ module.exports = (FD) ->
     return
 
   # TOFIX: to improve later
-  distribute = FD.distribute
-  distribute.create_fixed_distributor = create_fixed_distributor
+  distribution = FD.distribution
+  distribution.create_fixed_distributor = create_fixed_distributor
   # for fd.js API compat:
-  distribute.naive = create_fixed_distributor('naive')
-  distribute.fail_first = create_fixed_distributor('fail_first')
-  distribute.split = create_fixed_distributor('split')
+  distribution.naive = create_fixed_distributor('naive')
+  distribution.fail_first = create_fixed_distributor('fail_first')
+  distribution.split = create_fixed_distributor('split')
 
   # for testing only
-  distribute._create_custom_distributor = create_custom_distributor
+  distribution._create_custom_distributor = create_custom_distributor
 
   return

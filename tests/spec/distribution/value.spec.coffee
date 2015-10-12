@@ -10,20 +10,20 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'FD.distribute.Value', ->
+describe 'FD.distribution.Value', ->
 
-  describe 'distribute_value_by_min', ->
-    {distribute_value_by_min} = FD.distribute.Value
+  describe 'distribution_value_by_min', ->
+    {distribution_value_by_min} = FD.distribution.Value
 
     it 'should exist', ->
 
-      expect(distribute_value_by_min?).to.be.true
+      expect(distribution_value_by_min?).to.be.true
 
     describe 'factory', ->
 
       it 'should return a function', ->
 
-        expect(distribute_value_by_min()).to.be.a 'function'
+        expect(distribution_value_by_min()).to.be.a 'function'
 
     describe 'distribution', ->
 
@@ -33,10 +33,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_min` so call it with FIRST_CHOICE
@@ -51,10 +51,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_min` so call it with SECOND_CHOICE
@@ -70,10 +70,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_zero()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_min` so call it and it should throw because A is already solved
@@ -86,10 +86,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
         get_next_value = space.get_value_distributor space
 
         # now clear the var before calling next
@@ -100,20 +100,20 @@ describe 'FD.distribute.Value', ->
 
       it 'should do nothing if choice is >2', ->
 
-        expect(distribute_value_by_min()(null, 2)).to.be.undefined
+        expect(distribution_value_by_min()(null, 2)).to.be.undefined
 
-  describe 'distribute_value_by_max', ->
-    {distribute_value_by_max} = FD.distribute.Value
+  describe 'distribution_value_by_max', ->
+    {distribution_value_by_max} = FD.distribution.Value
 
     it 'should exist', ->
 
-      expect(distribute_value_by_max?).to.be.true
+      expect(distribution_value_by_max?).to.be.true
 
     describe 'factory', ->
 
       it 'should return a function', ->
 
-        expect(distribute_value_by_max()).to.be.a 'function'
+        expect(distribution_value_by_max()).to.be.a 'function'
 
     describe 'distribution', ->
 
@@ -123,10 +123,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
@@ -141,10 +141,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
@@ -160,10 +160,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', spec_d_create_zero()
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
         get_next_value = space.get_value_distributor space
 
         # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
@@ -176,10 +176,10 @@ describe 'FD.distribute.Value', ->
         space = new FD.space
         space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
 
-        # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
-        # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
         get_next_value = space.get_value_distributor space
 
         # now clear the var before calling next
@@ -190,4 +190,4 @@ describe 'FD.distribute.Value', ->
 
       it 'should do nothing if choice is >2', ->
 
-        expect(distribute_value_by_max()(null, 2)).to.be.undefined
+        expect(distribution_value_by_max()(null, 2)).to.be.undefined

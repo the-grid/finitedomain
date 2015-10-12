@@ -64,7 +64,7 @@ module.exports = (FD) ->
 
     return distribute_setup_choicer
 
-  generate_and_setup_distributor = (space, var_names, options) ->
+  create_custom_distributor = (space, var_names, options) ->
     return create_fixed_distributor(options) space, var_names
 
   get_value_func = (name) ->
@@ -160,6 +160,6 @@ module.exports = (FD) ->
   distribute.split = create_fixed_distributor('split')
 
   # for testing only
-  distribute._generate_and_setup_distributor = generate_and_setup_distributor
+  distribute._create_custom_distributor = create_custom_distributor
 
   return

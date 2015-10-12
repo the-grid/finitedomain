@@ -34,7 +34,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_bool()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'min'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
         get_next_value = space.distribuate space
@@ -52,7 +52,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_bool()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'min'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
         get_next_value = space.distribuate space
@@ -71,7 +71,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_zero()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'min'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
         get_next_value = space.distribuate space
@@ -87,7 +87,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_min
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'min'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
         get_next_value = space.distribuate space
@@ -124,7 +124,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_bool()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'max'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
         get_next_value = space.distribuate space
@@ -142,7 +142,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_bool()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'max'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
         get_next_value = space.distribuate space
@@ -161,7 +161,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', spec_d_create_zero()
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'max'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
         get_next_value = space.distribuate space
@@ -177,7 +177,7 @@ describe 'FD.distribute.Value', ->
         space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
 
         # setup the space distributors such that all vars are used and value uses distribute_value_by_max
-        FD.distribute._generate_and_setup_distributor space, ['A'], {var: 'naive', val: 'min'}
+        FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
         get_next_value = space.distribuate space

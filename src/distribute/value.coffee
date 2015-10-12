@@ -155,18 +155,18 @@ module.exports = (FD) ->
       fdvar = space.vars[var_name]
       low = fdvar_lower_bound fdvar
 
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved"'
+      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
 
       switch current_choice_index
         when FIRST_CHOICE
           # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-          # TOFIX: cannot reject unless domain was already empty; just force update the domain?
+          # TOFIX: switch to fdvar_set_value_inline once we resolve reference sharing issues
           fdvar_constrain_to_value fdvar, low
 
         when SECOND_CHOICE
           # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-          # (because low can only be SUP if the domain is solved)
-          # TOFIX: cannot reject; just force update the domain?
+          # (because low can only be SUP if the domain is solved which we assert it cannot be)
+          # TOFIX: switch to fdvar_set_range_inline once we resolve reference sharing issues
           # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
           fdvar_constrain fdvar, domain_create_range(low + 1, fdvar_upper_bound fdvar)
 

@@ -34,19 +34,18 @@ module.exports = (FD) ->
   # branch_and_bound search strategies.
 
   next_choice = (space, state) ->
-    distribute_setup_choicer = space.distribute_setup_choicer
-    unless distribute_setup_choicer
-      # The distribuate call returns a choice that constrains a chosen
-      # variable to a domain indexed by a choice number.
-      distribute_setup_choicer = space.distribuate space
+    value_distributor = space.current_value_distributor
+    unless value_distributor
+      # The get_value_distributor call returns a function that when
+      # called with a choice index will constrains a chosen variable
+      # to a domain indexed by its value function.
+      value_distributor = space.get_value_distributor space
 
-      space.distribute_setup_choicer = distribute_setup_choicer
-      space.next_distribute_choice = 0
+      space.current_value_distributor = value_distributor
+      space.next_distribution_choice = 0
 
-    if distribute_setup_choicer
-      # Clone the given space and commit it to the next available choice.
-      # Returned the commited cloned space.
-      return distribute_setup_choicer space, space.next_distribute_choice++
+    if value_distributor # see distribute/value.coffee
+      return value_distributor space, space.next_distribution_choice++
 
   Search.solve_for_variables = (var_names) ->
     if var_names

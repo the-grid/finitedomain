@@ -25,7 +25,7 @@ describe 'FD.distribute.Value', ->
 
         expect(distribute_value_by_min()).to.be.a 'function'
 
-    describe 'choicer', ->
+    describe 'distribution', ->
 
       it 'should set var to lo for first choice', ->
 
@@ -37,9 +37,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_min` so call it with FIRST_CHOICE
+        # now we have `value_distribution_by_min` so call it with FIRST_CHOICE
         new_space = get_next_value space, 0
 
         # since 0 was the lowest value in original value, expecting var to be set to that now
@@ -55,9 +55,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_min` so call it with SECOND_CHOICE
+        # now we have `value_distribution_by_min` so call it with SECOND_CHOICE
         new_space = get_next_value space, 1
 
         # since 0 was the lowest value in original value, expecting var to be set to that now
@@ -74,9 +74,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_min` so call it and it should throw because A is already solved
+        # now we have `value_distribution_by_min` so call it and it should throw because A is already solved
         expect(-> get_next_value space, 0).to.throw
 
       it 'should reject a "rejected" var', ->
@@ -90,12 +90,12 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_min` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
         # now clear the var before calling next
         FD.Var.fdvar_set_domain space.vars.A, []
 
-        # now we have `value_choicer_by_min` so call it and it should throw because A is already rejected
+        # now we have `value_distribution_by_min` so call it and it should throw because A is already rejected
         expect(-> get_next_value space, 0).to.throw
 
       it 'should do nothing if choice is >2', ->
@@ -115,7 +115,7 @@ describe 'FD.distribute.Value', ->
 
         expect(distribute_value_by_max()).to.be.a 'function'
 
-    describe 'choicer', ->
+    describe 'distribution', ->
 
       it 'should set var to hi for first choice', ->
 
@@ -127,9 +127,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_min` so call it with FIRST_CHOICE
+        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
         new_space = get_next_value space, 0
 
         # since 1 was the highest value in original value, expecting var to be set to that now
@@ -145,9 +145,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_min` so call it with SECOND_CHOICE
+        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
         new_space = get_next_value space, 1
 
         # since 1 was the highest value in original value, expecting var to be set to the inv
@@ -164,9 +164,9 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
-        # now we have `value_choicer_by_max` so call it and it should throw because A is already solved
+        # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
         expect(-> get_next_value space, 0).to.throw
 
       it 'should reject a "rejected" var', ->
@@ -180,12 +180,12 @@ describe 'FD.distribute.Value', ->
         FD.distribute._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
 
         # create a function that walks the space. note that we're calling a `distribute_value_by_max` here
-        get_next_value = space.distribuate space
+        get_next_value = space.get_value_distributor space
 
         # now clear the var before calling next
         FD.Var.fdvar_set_domain space.vars.A, []
 
-        # now we have `value_choicer_by_max` so call it and it should throw because A is already rejected
+        # now we have `value_distribution_by_max` so call it and it should throw because A is already rejected
         expect(-> get_next_value space, 0).to.throw
 
       it 'should do nothing if choice is >2', ->

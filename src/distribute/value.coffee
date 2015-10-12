@@ -54,7 +54,7 @@ module.exports = (FD) ->
 
     isDynamic = typeof list is 'function'
 
-    value_choicer_by_list = (parent_space, current_choice_index) ->
+    value_distribution_by_list = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -84,7 +84,7 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_list
+    return value_distribution_by_list
 
   # If a row is not boolean, return it.
   # If a row is boolean and 1, return it.
@@ -113,7 +113,7 @@ module.exports = (FD) ->
 
     # see Solver.addVar for setup...
 
-    value_choicer_by_markov = (parent_space, current_choice_index) ->
+    value_distribution_by_markov = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -139,7 +139,7 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_markov
+    return value_distribution_by_markov
 
   # Min
   # -----------------------------------------------------------------
@@ -147,7 +147,7 @@ module.exports = (FD) ->
   # Searches through a var's values from min to max.
 
   distribute_value_by_min = (S, var_name) ->
-    value_choicer_by_min = (parent_space, current_choice_index) ->
+    value_distribution_by_min = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -175,7 +175,7 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_min
+    return value_distribution_by_min
 
   # Max
   # -----------------------------------------------------------------
@@ -183,7 +183,7 @@ module.exports = (FD) ->
   # Searches through a var's values from max to min.
 
   distribute_value_by_max = (S, var_name) ->
-    value_choicer_by_max = (parent_space, current_choice_index) ->
+    value_distribution_by_max = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -209,13 +209,13 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_max
+    return value_distribution_by_max
 
   # Mid
   # -----------------------------------------------------------------
 
   distribute_value_by_mid = (S, var_name) ->
-    value_choicer_by_mid = (parent_space, current_choice_index) ->
+    value_distribution_by_mid = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -244,14 +244,14 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_mid
+    return value_distribution_by_mid
 
 
   # splitMin
   # -----------------------------------------------------------------
 
   distribute_value_by_split_min = (S, var_name) ->
-    value_choicer_by_split_min = (parent_space, current_choice_index) ->
+    value_distribution_by_split_min = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -276,13 +276,13 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_split_min
+    return value_distribution_by_split_min
 
   # splitMax
   # -----------------------------------------------------------------
 
   distribute_value_by_split_max = (S, var_name) ->
-    value_choicer_by_split_max = (parent_space, current_choice_index) ->
+    value_distribution_by_split_max = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -307,7 +307,7 @@ module.exports = (FD) ->
 
       return space
 
-    return value_choicer_by_split_max
+    return value_distribution_by_split_max
 
 
   # WIP...

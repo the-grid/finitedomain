@@ -191,18 +191,18 @@ module.exports = (FD) ->
       fdvar = space.vars[var_name]
       hi = fdvar_upper_bound fdvar
 
+      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
+
       switch current_choice_index
         when FIRST_CHOICE
-          # TOFIX: propagate REJECT
+          # Note: this is not determined so the operation cannot fail
+          # TOFIX: change constrain to something faster
           fdvar_constrain_to_value fdvar, hi
 
         when SECOND_CHOICE
-          # TOFIX: propagate REJECT
-          # TOFIX: add test for when hi===0 because that would break
-          fdvar_constrain fdvar, domain_create_range(
-            fdvar_lower_bound fdvar
-            hi - 1
-          )
+          # Note: this is not determined so the operation cannot fail
+          # TOFIX: change constrain to something faster
+          fdvar_constrain fdvar, domain_create_range(fdvar_lower_bound(fdvar), hi - 1)
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"

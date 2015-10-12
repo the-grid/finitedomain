@@ -6,17 +6,17 @@ module.exports = (FD) ->
 
   # Create propagator with 2 vars
 
-  propagator_create_2x = (space, var_name_a, var_name_b, stepper) ->
-    return propagator_create space, [var_name_a, var_name_b], stepper
+  propagator_create_2x = (space, var_name_a, var_name_b, stepper, name) ->
+    return propagator_create space, [var_name_a, var_name_b], stepper, name
 
   # Create propagator with 3 vars
 
-  propagator_create_3x = (space, var_name_a, var_name_b, var_name_c, stepper) ->
-    return propagator_create space, [var_name_a, var_name_b, var_name_c], stepper
+  propagator_create_3x = (space, var_name_a, var_name_b, var_name_c, stepper, name) ->
+    return propagator_create space, [var_name_a, var_name_b, var_name_c], stepper, name
 
   # Create propagator with an unknown number of vars
 
-  propagator_create = (space, target_var_names, stepper) ->
+  propagator_create = (space, target_var_names, stepper, name) ->
     space_vars = space.vars
     propdata = [space]
     for pvar in target_var_names
@@ -24,6 +24,8 @@ module.exports = (FD) ->
 
     return {
       _class: 'propagator'
+      _name: name
+
       target_var_names
       stepper
       last_upid: -1 # cache control

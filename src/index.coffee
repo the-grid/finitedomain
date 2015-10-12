@@ -29,7 +29,7 @@ require('./distribute')(FD)
 require('./search')(FD)
 # high level API
 require('./solver')(FD)
-require('./pathSolver')(FD)
-require('./pathBinarySolver')(FD)
+require('./path_solver')(FD)
+require('./path_binary_solver')(FD)
 
 module.exports = FD

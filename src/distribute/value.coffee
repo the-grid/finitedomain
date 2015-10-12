@@ -313,9 +313,6 @@ module.exports = (FD) ->
   # WIP...
   # -----------------------------------------------------------------
 
-  distribute_value_by_random = (S, var_name) ->
-    return valDistribution.minMaxCycle(S, var_name)
-
   distribute_value_by_min_max_cycle = (S, var_name) ->
     vars = S.solver.vars
     cycle = vars.all.indexOf(vars.byId[var_name]) % 2
@@ -331,7 +328,6 @@ module.exports = (FD) ->
     distribute_value_by_min
     distribute_value_by_min_max_cycle
     distribute_value_by_mid
-    distribute_value_by_random
     distribute_value_by_split_max
     distribute_value_by_split_min
   }

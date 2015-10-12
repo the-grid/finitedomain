@@ -20,7 +20,6 @@ module.exports = (FD) ->
     distribute_value_by_min
     distribute_value_by_min_max_cycle
     distribute_value_by_mid
-    distribute_value_by_random
     distribute_value_by_split_max
     distribute_value_by_split_min
   } = FD.distribute.Value
@@ -85,8 +84,6 @@ module.exports = (FD) ->
         return distribute_value_by_min_max_cycle
       when 'mid'
         return distribute_value_by_mid
-      when 'random'
-        return distribute_value_by_random
       when 'splitMax'
         return distribute_value_by_split_max
       when 'splitMin'

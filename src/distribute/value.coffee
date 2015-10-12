@@ -5,12 +5,16 @@ module.exports = (FD) ->
 
   {
     NO_SUCH_VALUE
+
+    ASSERT
   } = FD.helpers
 
   {
     domain_create_range
     domain_create_ranges
     domain_create_value
+    domain_is_rejected
+    domain_is_determined
     domain_is_value
     domain_max
     domain_min
@@ -151,18 +155,20 @@ module.exports = (FD) ->
       fdvar = space.vars[var_name]
       low = fdvar_lower_bound fdvar
 
+      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved"'
+
       switch current_choice_index
         when FIRST_CHOICE
-          # TOFIX: propagate REJECT
+          # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
+          # TOFIX: cannot reject unless domain was already empty; just force update the domain?
           fdvar_constrain_to_value fdvar, low
 
         when SECOND_CHOICE
-          # TOFIX: propagate REJECT
-          # TOFIX: add test for when low===SUP because that would break
-          fdvar_constrain fdvar, domain_create_range(
-            low + 1
-            fdvar_upper_bound fdvar
-          )
+          # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
+          # (because low can only be SUP if the domain is solved)
+          # TOFIX: cannot reject; just force update the domain?
+          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
+          fdvar_constrain fdvar, domain_create_range(low + 1, fdvar_upper_bound fdvar)
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"

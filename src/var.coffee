@@ -10,6 +10,8 @@ module.exports = (FD) ->
     domain_intersection
     domain_equal
     domain_is_determined
+    domain_is_rejected
+    domain_is_solved
     domain_max
     domain_middle_element
     domain_min
@@ -30,11 +32,23 @@ module.exports = (FD) ->
       vupid # "var update id", caching mechanism, used to be called `step`
     }
 
+  # A var is undetermined when it is neither rejected nor solved.
+  # Basically that means that the domain contains more than one range
+  # or that the only range spans at least two elements.
+
   fdvar_is_undetermined = (fdvar) ->
     return !domain_is_determined fdvar.dom
 
+  # A var is solved if it has only one range that spans only one value.
+
   fdvar_is_solved = (fdvar) ->
-    return domain_is_determined fdvar.dom
+    return domain_is_solved fdvar.dom
+
+  # A var is rejected if its domain is empty. This means none of the
+  # possible values for this var could satisfy all the constraints.
+
+  fdvar_is_rejected = (fdvar) ->
+    return domain_is_rejected fdvar.dom
 
   fdvar_clone = (fdvar) ->
     return fdvar_new fdvar.id, fdvar.dom, fdvar.vupid
@@ -81,6 +95,7 @@ module.exports = (FD) ->
     fdvar_create
     fdvar_create_wide
     fdvar_is_undetermined
+    fdvar_is_rejected
     fdvar_is_solved
     fdvar_upper_bound
     fdvar_middle_element

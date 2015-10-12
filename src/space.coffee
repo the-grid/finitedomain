@@ -12,7 +12,7 @@ module.exports = (FD) ->
     domain_create_value
     domain_create_zero
     domain_intersection
-    domain_is_determined
+    domain_is_solved
     domain_min
     domain_plus
     domain_times
@@ -186,7 +186,7 @@ module.exports = (FD) ->
         d = vars[key].dom
         if d.length is 0
           result[key] = false
-        else if domain_is_determined d
+        else if domain_is_solved d
           result[key] = domain_min d
         else
           result[key] = d
@@ -203,7 +203,7 @@ module.exports = (FD) ->
         d = fdvar.dom
         if d.length is 0
           value = undefined
-        else if domain_is_determined d
+        else if domain_is_solved d
           value = domain_min d
         else
           value = d

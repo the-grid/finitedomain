@@ -1090,3 +1090,96 @@ describe "FD - Domain", ->
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       expect(domain_divby a, b).to.eql spec_d_create_ranges([0, SUP])
 
+  describe 'domain_is_solved', ->
+
+    {SUP} = FD.helpers
+    {domain_is_solved} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_solved?).to.be.true
+
+    it 'should return true if a domain covers exactly one value', ->
+
+      expect(domain_is_solved spec_d_create_value 0).to.be.true
+      expect(domain_is_solved spec_d_create_value 1).to.be.true
+      expect(domain_is_solved spec_d_create_value 18).to.be.true
+      expect(domain_is_solved spec_d_create_value SUP).to.be.true
+
+    it 'should return false if a domain is empty', ->
+
+      expect(domain_is_solved []).to.be.false
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_solved spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_solved spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_solved spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_solved spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+
+  describe 'domain_is_rejected', ->
+
+    {SUP} = FD.helpers
+    {domain_is_rejected} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_rejected?).to.be.true
+
+    it 'should return true if a domain is empty', ->
+
+      expect(domain_is_rejected []).to.be.true
+
+    it 'should return false if a domain covers exactly one value', ->
+
+      expect(domain_is_rejected spec_d_create_value 0).to.be.false
+      expect(domain_is_rejected spec_d_create_value 1).to.be.false
+      expect(domain_is_rejected spec_d_create_value 18).to.be.false
+      expect(domain_is_rejected spec_d_create_value SUP).to.be.false
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_rejected spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_rejected spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_rejected spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_rejected spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+
+  describe 'domain_is_determined', ->
+
+    {SUP} = FD.helpers
+    {domain_is_determined} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_determined?).to.be.true
+
+    it 'should return true if a domain is empty', ->
+
+      expect(domain_is_determined []).to.be.true
+
+    it 'should return true if a domain covers exactly one value', ->
+
+      expect(domain_is_determined spec_d_create_value 0).to.be.true
+      expect(domain_is_determined spec_d_create_value 1).to.be.true
+      expect(domain_is_determined spec_d_create_value 18).to.be.true
+      expect(domain_is_determined spec_d_create_value SUP).to.be.true
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_determined spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_determined spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_determined spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_determined spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+

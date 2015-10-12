@@ -5,6 +5,9 @@ module.exports = (FD) ->
   # Variable & Value Distribution Strategies
   # -----------------------------------------------------------------
 
+  {
+    ASSERT
+  } = FD.helpers
 
   {
     distribute_presets
@@ -30,38 +33,43 @@ module.exports = (FD) ->
   } = FD.distribute.Var
 
   {
-    fdvar_is_undetermined
+    fdvar_is_rejected
+    fdvar_is_solved
   } = FD.Var
 
   distribute_get_undetermined_var_names = (S, var_names) ->
     undetermined_names = []
     for var_name in var_names
-      if fdvar_is_undetermined S.vars[var_name] # if we do the lookup anyways, why not just return fdvars instead?
+      ASSERT !fdvar_is_rejected(S.vars[var_name]), 'fdvar should not be rejected at this point, but may be solved'
+      unless fdvar_is_solved S.vars[var_name] # if we do the lookup anyways, why not just return fdvars instead?
         undetermined_names.push var_name
     return undetermined_names
 
   # Distribute
   # -----------------------------------------------------------------
 
-  FD.distribute = distribute = (options) ->
+  create_distributor_options = (options) ->
     if typeof options is 'string'
-      options = distribute_presets[options]
-    else if !options?
-      options = distribute_presets.default
-    else
-      # apply defaults
-      for key, val of distribute_presets.default
-        options[key] ?= val
+      return distribute_presets[options]
+    if !options?
+      return distribute_presets.default
+
+    # apply defaults
+    for key, val of distribute_presets.default
+      options[key] ?= val
+
+    return options
+
+  generate_distributer = (options) ->
+    options = create_distributor_options options
 
     distribute_setup_choicer = (S, varnames) ->
       return setup_choice_func S, varnames, options
 
     return distribute_setup_choicer
 
-  # for fd.js API compat:
-  distribute.naive = distribute('naive')
-  distribute.fail_first = distribute('fail_first')
-  distribute.split = distribute('split')
+  generate_and_setup_distributor = (space, var_names, options) ->
+    return generate_distributer(options) space, var_names
 
   get_value_func = (name) ->
     switch name
@@ -147,6 +155,17 @@ module.exports = (FD) ->
           return get_next_value current_space, var_name
       return false
 
-    root_space
+    return
 
-  return FD
+  # TOFIX: to improve later
+  distribute = FD.distribute
+  distribute.generate_distributer = generate_distributer
+  # for fd.js API compat:
+  distribute.naive = generate_distributer('naive')
+  distribute.fail_first = generate_distributer('fail_first')
+  distribute.split = generate_distributer('split')
+
+  # for testing only
+  distribute._generate_and_setup_distributor = generate_and_setup_distributor
+
+  return

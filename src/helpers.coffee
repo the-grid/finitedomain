@@ -18,7 +18,8 @@ module.exports = (FD) ->
       console.error 'Assertion fail: ' + msg
       if args
         console.log 'Error args:', args
-      process.exit() # uncomment for quick error access :)
+#      console.trace()
+#      process.exit() # uncomment for quick error access :)
       throw new Error 'Assertion fail: ' + msg
     return
 

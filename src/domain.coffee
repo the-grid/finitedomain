@@ -571,9 +571,26 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     return domain[domain.length - 1]
 
-  domain_is_determined = (domain) ->
+  # A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
+
+  domain_is_solved = (domain) ->
     ASSERT_DOMAIN domain
     return domain.length is 2 and domain_first_range_is_determined domain
+
+  # A domain is "determined" if it's either one value (solved) or none at all (rejected)
+
+  domain_is_determined = (domain) ->
+    ASSERT_DOMAIN domain
+    len = domain.length
+    if len is 0
+      return true
+    return len is 2 and domain_first_range_is_determined domain
+
+  # A domain is "rejected" if it covers no values. This means every given
+  # value would break at least one constraint so none could be used.
+
+  domain_is_rejected = (domain) ->
+    return domain.length is 0
 
   domain_first_range_is_determined = (domain) ->
     ASSERT_DOMAIN domain
@@ -619,6 +636,8 @@ module.exports = (FD) ->
     domain_intersect_bounds_into
     domain_intersection
     domain_is_determined
+    domain_is_rejected
+    domain_is_solved
     domain_is_value
     domain_max
     domain_middle_element

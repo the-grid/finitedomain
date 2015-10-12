@@ -1,7 +1,7 @@
 module.exports = (FD) ->
 
   {
-    fdvar_is_undetermined
+    fdvar_is_solved
   } = FD.Var
 
   # Create propagator with 2 vars
@@ -43,7 +43,7 @@ module.exports = (FD) ->
     unless p.solved
       for fdvar, i in p.propdata
         if i > 0
-          if fdvar_is_undetermined fdvar
+          unless fdvar_is_solved fdvar
             return false
     return true
 

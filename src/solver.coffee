@@ -289,7 +289,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distribute ?= @distribute
-      FD.distribute(distribute)(@S, _.es(vars))
+      FD.distribute.generate_distributer(distribute)(@S, _.es(vars))
 
       search ?= @search
       searchMethod = FD.search[search]

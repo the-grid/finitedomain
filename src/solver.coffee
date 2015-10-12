@@ -283,13 +283,13 @@ module.exports = (FD) ->
       @
 
     solve: (o={}) ->
-      {max, log, vars, search, distribute} = o
+      {max, log, vars, search, distribute:distributor_options} = o
       log ?= 0 # 1, 2
       max ?= 1000
       vars ?= @vars.all
 
-      distribute ?= @distribute
-      FD.distribute.generate_distributer(distribute)(@S, _.es(vars))
+      distributor_options ?= @distribute
+      FD.distribute.create_fixed_distributor(distributor_options)(@S, _.es(vars))
 
       search ?= @search
       searchMethod = FD.search[search]

@@ -44,9 +44,6 @@ module.exports = (FD) ->
         undetermined_names.push var_name
     return undetermined_names
 
-  # Distribute
-  # -----------------------------------------------------------------
-
   create_distributor_options = (options) ->
     if typeof options is 'string'
       return distribute_presets[options]
@@ -59,7 +56,7 @@ module.exports = (FD) ->
 
     return options
 
-  generate_distributer = (options) ->
+  create_fixed_distributor = (options) ->
     options = create_distributor_options options
 
     distribute_setup_choicer = (S, varnames) ->
@@ -68,7 +65,7 @@ module.exports = (FD) ->
     return distribute_setup_choicer
 
   generate_and_setup_distributor = (space, var_names, options) ->
-    return generate_distributer(options) space, var_names
+    return create_fixed_distributor(options) space, var_names
 
   get_value_func = (name) ->
     switch name
@@ -156,11 +153,11 @@ module.exports = (FD) ->
 
   # TOFIX: to improve later
   distribute = FD.distribute
-  distribute.generate_distributer = generate_distributer
+  distribute.create_fixed_distributor = create_fixed_distributor
   # for fd.js API compat:
-  distribute.naive = generate_distributer('naive')
-  distribute.fail_first = generate_distributer('fail_first')
-  distribute.split = generate_distributer('split')
+  distribute.naive = create_fixed_distributor('naive')
+  distribute.fail_first = create_fixed_distributor('fail_first')
+  distribute.split = create_fixed_distributor('split')
 
   # for testing only
   distribute._generate_and_setup_distributor = generate_and_setup_distributor

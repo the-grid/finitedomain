@@ -13,6 +13,14 @@ _ =
 
 module.exports = (FD) ->
 
+  {
+    ASSERT_SPACE
+  } = FD.helpers
+
+  {
+    domain_create_bool
+  } = FD.Domain
+
   class FD.Solver
 
     constructor: (o={}) ->
@@ -22,7 +30,7 @@ module.exports = (FD) ->
 
       @distribute ?= 'naive'
 
-      @defaultDomain ?= [[0,1]]
+      @defaultDomain ?= domain_create_bool()
 
       @S = new FD.space()
       @S.solver = @
@@ -292,9 +300,10 @@ module.exports = (FD) ->
 
       solutions = @solutions
 
+      ASSERT_SPACE state.space
+
       if log >= 1
         console.time '      - FD Solver Time'
-
       while state.more and count < max
         state = searchMethod state
         break if state.status is 'end'

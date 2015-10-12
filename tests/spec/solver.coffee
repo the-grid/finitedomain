@@ -1,6 +1,12 @@
 if typeof require is 'function'
-  finitedomain = require('../../src/index')
+  finitedomain = require '../../src/index'
   chai = require 'chai'
+
+  {
+    spec_d_create_bool
+    spec_d_create_range
+    spec_d_create_ranges
+  } = require '../fixtures/domain'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -32,12 +38,12 @@ describe "FD", ->
 
       # branch vars
       branchVars = ['A','C','B','D']
-      S.decl(branchVars, [[0,1]])
+      S.decl(branchVars, spec_d_create_bool())
 
       # constants
       one = S.konst(1)
       zero = S.konst(0)
-      booleanDomain = [[0,1]]
+      booleanDomain = spec_d_create_bool()
 
       # path vars
       Avars = ['A1','A2','A3']
@@ -117,7 +123,7 @@ describe "FD", ->
               3
       ###
 
-      S = new FD.Solver {defaultDomain:[[0,1]]}
+      S = new FD.Solver {defaultDomain:spec_d_create_bool()}
 
       # branch vars
       branchVars = S.addVars ['A','C','B','D']
@@ -184,7 +190,7 @@ describe "FD", ->
             3
     ###
 
-    S = new FD.Solver {defaultDomain:[[0,1]]}
+    S = new FD.Solver {defaultDomain:spec_d_create_bool()}
 
     branches =
       A:3
@@ -250,12 +256,12 @@ describe "FD", ->
             3
     ###
 
-    S = new FD.Solver {defaultDomain:[[0,1]]}
+    S = new FD.Solver {defaultDomain:spec_d_create_bool()}
 
-    S.addVar {id:'A',domain:[[0,3]]}
-    S.addVar {id:'B',domain:[[0,3]]}
-    S.addVar {id:'C',domain:[[0,3]]}
-    S.addVar {id:'D',domain:[[0,3]]}
+    S.addVar {id:'A',domain:spec_d_create_range(0,3)}
+    S.addVar {id:'B',domain:spec_d_create_range(0,3)}
+    S.addVar {id:'C',domain:spec_d_create_range(0,3)}
+    S.addVar {id:'D',domain:spec_d_create_range(0,3)}
 
     # constants
     zero = S.constant 0
@@ -297,12 +303,11 @@ describe "FD", ->
 
       S = new FD.Solver {}
 
-
-      S.decl 'item1', [[1,5]]
-      S.decl 'item2', [[2,2],[3,5]]
-      S.decl 'item3', [[1,5]]
-      S.decl 'item4', [[4,4]]
-      S.decl 'item5', [[1,5]]
+      S.decl 'item1', spec_d_create_range(1, 5)
+      S.decl 'item2', spec_d_create_ranges([2, 2],[4,5])
+      S.decl 'item3', spec_d_create_range(1, 5)
+      S.decl 'item4', spec_d_create_range(4, 4)
+      S.decl 'item5', spec_d_create_range(1, 5)
 
       #S['=='] 'item1', S.constant(1)
       #S['=='] 'item2', S.constant(2)
@@ -314,7 +319,6 @@ describe "FD", ->
       S['<'] 'item2', 'item3'
       S['<'] 'item3', 'item4'
       S['<'] 'item4', 'item5'
-
 
       solutions = S.solve()
 

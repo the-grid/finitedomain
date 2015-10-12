@@ -4,6 +4,10 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    domain_create_value
+  } = FD.Domain
+
+  {
     propagator_create
     propagator_create_3x
     propagator_is_solved
@@ -14,8 +18,6 @@ module.exports = (FD) ->
   } = FD.Var
 
   FIRST_RANGE = 0
-  LO_BOUND = 0
-  HI_BOUND = 1
 
   prop_stepper_or_constrain = (bool_var, pos_or_neg_propagator, c) ->
     # Check if given propagator holds. If not, update the bool domain
@@ -30,7 +32,7 @@ module.exports = (FD) ->
     if pos_or_neg_propagator.stepper() is REJECTED
       # this search must now pass the other operator until the
       # search goes back up the current step in search tree
-      change = fdvar_constrain bool_var, [[c, c]]
+      change = fdvar_constrain bool_var, domain_create_value(c)
 
       if change is REJECTED
         # note: it may (only) fail here if the var was passed on
@@ -49,8 +51,8 @@ module.exports = (FD) ->
   # that we want to check. The `negative_propagator` is its opposite.
   #
 
-  propagator_create_reified = (space, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator) ->
-    return propagator_create_3x space, left_var_name, right_var_name, bool_name, ->
+  propagator_create_reified = (space, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, _opname) ->
+    create_reified_prop = ->
       [S, v1, v2, bool_var] = @propdata
       current_upid = v1.vupid + v2.vupid + bool_var.vupid
       last_upid = @last_upid
@@ -59,12 +61,12 @@ module.exports = (FD) ->
 
       unless @pos_propagator
         # S is only needed to get the S.vars... which I think are static throughout a Space, so perhaps we can just re-use the deps instead?
-        @pos_propagator = propagator_create S, positive_propagator.target_var_names, positive_propagator.stepper
-        @neg_propagator = propagator_create S, negative_propagator.target_var_names, negative_propagator.stepper
+        @pos_propagator = propagator_create S, positive_propagator.target_var_names, positive_propagator.stepper, 'reipos'
+        @neg_propagator = propagator_create S, negative_propagator.target_var_names, negative_propagator.stepper, 'reineg'
       pos_propagator = @pos_propagator
       neg_propagator = @neg_propagator
 
-      [lo, hi] = bool_var.dom[FIRST_RANGE]
+      [lo, hi] = bool_var.dom
       while lo < hi and current_upid > last_upid
         # The boolean represents the relation of the two vars to an op
         # For example; v1 < v2. At first the bool starts with [0,1], meaning
@@ -90,13 +92,13 @@ module.exports = (FD) ->
           delta = prop_stepper_or_constrain bool_var, pos_propagator, 0
           if delta is REJECTED
             return REJECTED
-          [lo, hi] = bool_var.dom[FIRST_RANGE] # updated with new ref. should fix that.
+          [lo, hi] = bool_var.dom # updated with new ref. should fix that.
 
         if lo < hi
           delta = prop_stepper_or_constrain bool_var, neg_propagator, 1
           if delta is REJECTED
             return REJECTED
-          [lo, hi] = bool_var.dom[FIRST_RANGE] # updated with new ref. should fix that.
+          [lo, hi] = bool_var.dom # updated with new ref. should fix that.
 
         last_upid = current_upid
         current_upid = v1.vupid + v2.vupid + bool_var.vupid
@@ -127,6 +129,7 @@ module.exports = (FD) ->
       # That's the case if the last two checks changed anything
       # (Changes in the loop are irrelevant here)
       return @last_upid - current_upid
+    return propagator_create_3x space, left_var_name, right_var_name, bool_name, create_reified_prop, 'reified:'+_opname
 
   push_vars = (propagator) ->
     domains = []

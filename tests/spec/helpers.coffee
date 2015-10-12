@@ -1,5 +1,5 @@
 if typeof require is 'function'
-  finitedomain = require('../../src/index')
+  finitedomain = require '../../src/index'
   chai = require 'chai'
 
 {expect, assert} = chai

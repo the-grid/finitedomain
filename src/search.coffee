@@ -1,8 +1,16 @@
 
 module.exports = (FD) ->
   {
+    ASSERT_SPACE
+  } = FD.helpers
+
+  {
     propagator_is_solved
   } = FD.Propagator
+
+  {
+    fdvar_is_solved
+  } = FD.Var
 
   Search = FD.search = {}
 
@@ -26,41 +34,29 @@ module.exports = (FD) ->
   # branch_and_bound search strategies.
 
   next_choice = (space, state) ->
-    if !space.commit
-
+    distribute_setup_choicer = space.distribute_setup_choicer
+    unless distribute_setup_choicer
       # The distribuate call returns a choice that constrains a chosen
       # variable to a domain indexed by a choice number.
-      space.commit = space.distribuate space
-      if space.commit
-        space.commit.nextChoice = 0
-    if space.commit and space.commit.nextChoice < space.commit.numChoices
+      distribute_setup_choicer = space.distribuate space
+
+      space.distribute_setup_choicer = distribute_setup_choicer
+      space.next_distribute_choice = 0
+
+    if distribute_setup_choicer
       # Clone the given space and commit it to the next available choice.
       # Returned the commited cloned space.
-      space.commit space.clone(), space.commit.nextChoice++
-    else
-      null
+      return distribute_setup_choicer space, space.next_distribute_choice++
 
-  Search.solve_for_variables = (varnames) ->
-    if varnames
-      (S) ->
-        i = undefined
-        N = undefined
-        v = undefined
-        i = 0
-        N = varnames.length
-        while i < N
-          v = S.vars[varnames[i]]
-          if v.dom.length == 1
-            if v.dom[0][0] != v.dom[0][1]
-              return false
-            else
-              # Singleton domain
-          else
+  Search.solve_for_variables = (var_names) ->
+    if var_names
+      return (S) ->
+        for var_name in var_names
+          unless fdvar_is_solved S.vars[var_name]
             return false
-          ++i
-        true
+        return true
     else
-      (S) ->
+      return (S) ->
         S.is_solved()
 
   # @public (this func is used outside of multiverse)
@@ -85,6 +81,7 @@ module.exports = (FD) ->
 
   init_state_for_depth_first = (state) ->
     if !state.stack or state.stack.length == 0
+      ASSERT_SPACE state.space
       # If no stack argument, then search begins with state.space
       state.stack = [state.space]
 
@@ -125,6 +122,7 @@ module.exports = (FD) ->
       space = stack[stack.length - 1]
       # Wait for stability. Could throw a 'fail', in which case
       # this becomes a failed space.
+      ASSERT_SPACE space
       unless space.propagate()
         # Some propagators failed so this is now a failed space and we need
         # to pop the stack and continue from above. This is a failed space.
@@ -144,7 +142,7 @@ module.exports = (FD) ->
 
       # Now this space is neither solved nor failed,
       # therefore it is stable. (WARNING: Is this correct?)
-      next_space = choose_next_space(space, state)
+      next_space = choose_next_space space, state
       if next_space
         # Push on to the stack and explore further.
         stack.push next_space
@@ -273,6 +271,7 @@ module.exports = (FD) ->
         # We have no more branches to explore.
         # Return the best solution found so far.
         return state
+
       # Now this space is neither solved nor failed,
       # therefore it is stable. (WARNING: Is this correct?)
       next_space = choose_next_space(space, state)

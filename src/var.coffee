@@ -2,25 +2,25 @@ module.exports = (FD) ->
 
   {
     REJECTED
-    SUP
   } = FD.helpers
 
   {
+    domain_create_all
+    domain_create_value
     domain_intersection
     domain_equal
+    domain_is_determined
+    domain_max
     domain_middle_element
+    domain_min
     domain_size
   } = FD.Domain
-
-  FIRST_RANGE = 0
-  LO_BOUND = 0
-  HI_BOUND = 1
 
   fdvar_create = (id, dom) ->
     return fdvar_new id, dom, 0
 
   fdvar_create_wide = (id) ->
-    return fdvar_new id, [[0, SUP]], 0
+    return fdvar_new id, domain_create_all(), 0
 
   fdvar_new = (id, dom, vupid) ->
     return {
@@ -31,8 +31,10 @@ module.exports = (FD) ->
     }
 
   fdvar_is_undetermined = (fdvar) ->
-    domain = fdvar.dom
-    return domain.length > 1 or domain[FIRST_RANGE][LO_BOUND] < domain[FIRST_RANGE][HI_BOUND]
+    return !domain_is_determined fdvar.dom
+
+  fdvar_is_solved = (fdvar) ->
+    return domain_is_determined fdvar.dom
 
   fdvar_clone = (fdvar) ->
     return fdvar_new fdvar.id, fdvar.dom, fdvar.vupid
@@ -51,6 +53,9 @@ module.exports = (FD) ->
     fdvar_set_domain fdvar, domain
     return fdvar.vupid - before
 
+  fdvar_constrain_to_value = (fdvar, value) ->
+    return fdvar_constrain fdvar, domain_create_value(value)
+
   fdvar_size = (fdvar) ->
     # TODO: Can be cached using the 'vupid' member which
     # keeps track of the number of times the domain was
@@ -58,15 +63,10 @@ module.exports = (FD) ->
     return domain_size fdvar.dom
 
   fdvar_lower_bound = (fdvar) ->
-    return fdvar.dom[FIRST_RANGE][LO_BOUND]
+    return domain_min fdvar.dom
 
   fdvar_upper_bound = (fdvar) ->
-    return fdvar.dom[fdvar.dom.length - 1][HI_BOUND]
-
-#  fdvar_rough_mid: ->
-#    midDomIx = Math.floor(@dom.length / 2)
-#    midDom = @dom[midDomIx]
-#    Math.round (midDom[0] + midDom[1]) / 2
+    return domain_max fdvar.dom
 
   # Get the exact middle value from all values covered by var
   # Middle here means the middle index, not hi-lo/2
@@ -77,9 +77,11 @@ module.exports = (FD) ->
   FD.Var = {
     fdvar_clone
     fdvar_constrain
+    fdvar_constrain_to_value
     fdvar_create
     fdvar_create_wide
     fdvar_is_undetermined
+    fdvar_is_solved
     fdvar_upper_bound
     fdvar_middle_element
     fdvar_lower_bound

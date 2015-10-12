@@ -15,35 +15,36 @@ module.exports = (FD) ->
     fdvar_set_domain
   } = FD.Var
 
+  FLOOR = Math.floor
+
   scale_div_stepper = ->
-    v = @propdata[1]
+    fdvar = @propdata[1]
     prod = @propdata[2]
 
-    begin_upid = v.vupid + prod.vupid
+    begin_upid = fdvar.vupid + prod.vupid
     if begin_upid <= @last_upid # or @solved
       return 0
 
-    unless v.dom.length
+    domain = prod.dom
+    unless domain.length
       return REJECTED
 
     # We div only the interval bounds.
     dbyk = []
-    for [lo, hi] in prod.dom
-      dbyk.push [
-        Math.floor lo / factor
-        Math.floor hi / factor
-      ]
+    for lo, index in domain by 2
+      hi = domain[index+1]
+      dbyk.push FLOOR(lo / factor), FLOOR(hi / factor) # TODO: factor doesnt exist. this should throw an error. unused?
 
-    d = domain_intersection dbyk, v.dom
+    d = domain_intersection dbyk, domain
     unless d.length
       return REJECTED
-    fdvar_set_domain v, d
+    fdvar_set_domain fdvar, d
 
-    current_upid = v.vupid + prod.vupid
+    current_upid = fdvar.vupid + prod.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 
   propagator_create_scale_div = (space, left_var_name, right_var_name) ->
-    propagator_create_2x space, left_var_name, right_var_name, scale_div_stepper
+    propagator_create_2x space, left_var_name, right_var_name, scale_div_stepper, 'div'
 
   FD.propagators.propagator_create_scale_div = propagator_create_scale_div

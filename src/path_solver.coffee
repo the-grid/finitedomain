@@ -11,9 +11,15 @@
 # Adds FD.PathSolver to FD.js
 {mergePathMeta} = require './merge'
 
+MAX = Math.max
+
 module.exports = (FD) ->
 
-  {domain_from_list} = FD.Domain
+  {
+    domain_create_range
+    domain_create_zero
+    domain_from_list
+  } = FD.Domain
 
   class FD.PathSolver extends FD.Solver
 
@@ -170,17 +176,17 @@ module.exports = (FD) ->
       @bindingCount ?= 0
       binder = "__bind#{@bindingCount}__"
 
-      minDomain = 0
+      minDomain = 0 # TOFIX: this is always 0. is that correct?
       maxDomain = -99
       for v in vars
         domain = v.domain
         if domain
-          for d in domain
-            #minDomain = Math.min(d[0],minDomain)
-            maxDomain = Math.max(d[1],maxDomain)
+          for index in [0...domain.length] by 2
+            hi = domain[index+1]
+            maxDomain = MAX hi, maxDomain
       if maxDomain is -99
         throw new Error "{}~= Cant find domain for binding"
-      @S.decl binder, [[minDomain, maxDomain]]
+      @S.decl binder, domain_create_range(minDomain, maxDomain)
 
       @['=='](
         @['==?'](binder,@off),
@@ -264,6 +270,7 @@ module.exports = (FD) ->
 
 
       branchVar = {
+        _class: 'branchvar'
         id:id,
         branchId:branchId
         required: required,
@@ -328,7 +335,7 @@ module.exports = (FD) ->
         domain = domain_from_list possibleValues
       else
         throw new Error "PathSolver: no possible values???"
-        domain = [[0]]
+        domain = domain_create_zero()
       branchVar.domain = domain
 
       if depth is 0

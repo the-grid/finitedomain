@@ -1,6 +1,13 @@
 if typeof require is 'function'
-  finitedomain = require('../../src/index')
+  finitedomain = require '../../src/index'
   chai = require 'chai'
+
+  {
+    spec_d_create_one
+    spec_d_create_range
+    spec_d_create_ranges
+    spec_d_create_zero
+  } = require '../fixtures/domain'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -35,19 +42,23 @@ describe "FD - Propagator", ->
 
     it 'should return false if at least one var is undetermined', ->
 
-      expect(propagator_is_solved {propdata: [0, {dom: [[0,0]]}]}).to.be.true
+      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_range(0, 1)}]}).to.be.false
+
+    it 'should return false even if a var has multiple "single" ranges', ->
+
+      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_ranges([0,0],[2,2])}]}).to.be.false
 
     it 'should return true if no var is undetermined', ->
 
-      expect(propagator_is_solved {propdata: [0, {dom: [[0,0],[1,1]]}]}).to.be.false
+      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_zero()}, {dom: spec_d_create_ranges([10,10])}]}).to.be.true
 
     it 'should loop through all vars', ->
 
       expect(propagator_is_solved {
         propdata: [
           0, # "space"... for now.
-          {dom: [[0,0]]}
-          {dom: [[0,0],[1,1]]}
-          {dom: [[0,0]]}
+          {dom: spec_d_create_zero()}
+          {dom: spec_d_create_ranges([0,0],[10,10])} # causes false
+          {dom: spec_d_create_one()}
         ]
       }).to.be.false

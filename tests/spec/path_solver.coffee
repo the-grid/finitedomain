@@ -1,15 +1,17 @@
 if typeof require is 'function'
-  finitedomain = require('../../src/index')
+  finitedomain = require '../../src/index'
   chai = require 'chai'
+
+  {
+    spec_d_create_range
+  } = require '../fixtures/domain'
 
 {expect, assert} = chai
 FD = finitedomain
 
-
 PathSolver = FD.PathSolver
 
-it 'crashes and should not crash', ->
-#describe "PathSolver", ->
+describe "PathSolver", ->
 
   describe 'searchPriority', ->
     json =
@@ -232,7 +234,7 @@ it 'crashes and should not crash', ->
       S = new PathSolver m
       vars = S.vars.byName
       S['~='] vars['A'], S.constant(2)
-      S.S.decl 'BBinder', [[0,3]]
+      S.S.decl 'BBinder', spec_d_create_range(0, 3)
       S['~='] vars['B'], 'BBinder'
       expect(S).to.be.ok
       samples = S.solve()
@@ -259,7 +261,7 @@ it 'crashes and should not crash', ->
     it "ex) 4", ->
       S = new PathSolver m
       vars = S.vars.byName
-      S.S.decl 'BBinder', [[0,3]]
+      S.S.decl 'BBinder', spec_d_create_range(0, 3)
       #S['~='] vars['B'], 'BBinder'
 
       S['=='](

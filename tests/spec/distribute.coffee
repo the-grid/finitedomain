@@ -1,6 +1,11 @@
 if typeof require is 'function'
-  finitedomain = require('../../src/index')
+  finitedomain = require '../../src/index'
   chai = require 'chai'
+  {
+    spec_d_create_bool
+    spec_d_create_range
+    spec_d_create_value
+  } = require '../fixtures/domain'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -12,62 +17,62 @@ describe "FD -", ->
     describe "value distribution -", ->
       itDistributes = (o, solutionMap) ->
         o ?= {}
-        it "o = #{JSON.stringify(o)}", ->
+        it "itDistributes(o = #{JSON.stringify(o)})", ->
           S = new FD.Solver o
           S.addVars [
-            {id:'Hello', domain:[[0,99]]}
-            {id:'World', domain:[[-1,-1]]}
+            {id:'Hello', domain: spec_d_create_range 1, 99}
+            {id:'World', domain: spec_d_create_value 0}
           ]
           S['>'] 'Hello', 'World'
           solutions = S.solve()
-          expect(solutions.length, 'all solutions').to.equal(100)
+          expect(solutions.length, 'all solutions').to.equal(99)
           for n, val of solutionMap
             expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
 
       # min
       describe "min", ->
-        itDistributes {}                                            , {0:0,         99:99}
-        itDistributes {distribute:'naive'}                          , {0:0,         99:99}
-        itDistributes {distribute:'fail_first'}                     , {0:0,         99:99}
-        itDistributes {distribute:'split'}                          , {0:0,         99:99}
-        itDistributes {distribute:{var:'naive'}}                    , {0:0,         99:99}
-        itDistributes {distribute:{val:'min'}}                      , {0:0,         99:99}
-        itDistributes {distribute:{val:'min',var:'naive'}}          , {0:0,         99:99}
-        itDistributes {distribute:{val:'min',var:'size'}}           , {0:0,         99:99}
-        itDistributes {distribute:{val:'min',var:'min'}}            , {0:0,         99:99}
-        itDistributes {distribute:{val:'min',var:'max'}}            , {0:0,         99:99}
+        itDistributes {}                                            , {0:1,         98:99}
+        itDistributes {distribute:'naive'}                          , {0:1,         98:99}
+        itDistributes {distribute:'fail_first'}                     , {0:1,         98:99}
+        itDistributes {distribute:'split'}                          , {0:1,         98:99}
+        itDistributes {distribute:{var:'naive'}}                    , {0:1,         98:99}
+        itDistributes {distribute:{val:'min'}}                      , {0:1,         98:99}
+        itDistributes {distribute:{val:'min',var:'naive'}}          , {0:1,         98:99}
+        itDistributes {distribute:{val:'min',var:'size'}}           , {0:1,         98:99}
+        itDistributes {distribute:{val:'min',var:'min'}}            , {0:1,         98:99}
+        itDistributes {distribute:{val:'min',var:'max'}}            , {0:1,         98:99}
 
       # max
       describe "max", ->
-        itDistributes {distribute:{val:'max'}}                      , {0:99,        99:0 }
-        itDistributes {distribute:{val:'max',var:'naive'}}          , {0:99,        99:0 }
-        itDistributes {distribute:{val:'max',var:'size'}}           , {0:99,        99:0 }
-        itDistributes {distribute:{val:'max',var:'min'}}            , {0:99,        99:0 }
-        itDistributes {distribute:{val:'max',var:'max'}}            , {0:99,        99:0 }
+        itDistributes {distribute:{val:'max'}}                      , {0:99,        98:1 }
+        itDistributes {distribute:{val:'max',var:'naive'}}          , {0:99,        98:1 }
+        itDistributes {distribute:{val:'max',var:'size'}}           , {0:99,        98:1 }
+        itDistributes {distribute:{val:'max',var:'min'}}            , {0:99,        98:1 }
+        itDistributes {distribute:{val:'max',var:'max'}}            , {0:99,        98:1 }
 
       # mid
       describe 'mid', ->
-        itDistributes {distribute:{val:'mid'}}                      , {0:50, 98:99, 99:0 }
-        itDistributes {distribute:{val:'mid',var:'naive'}}          , {0:50, 98:99, 99:0 }
-        itDistributes {distribute:{val:'mid',var:'size'}}           , {0:50, 98:99, 99:0 }
-        itDistributes {distribute:{val:'mid',var:'min'}}            , {0:50, 98:99, 99:0 }
-        itDistributes {distribute:{val:'mid',var:'max'}}            , {0:50, 98:99, 99:0 }
+        itDistributes {distribute:{val:'mid'}}                      , {0:50, 97:99, 98:1 }
+        itDistributes {distribute:{val:'mid',var:'naive'}}          , {0:50, 97:99, 98:1 }
+        itDistributes {distribute:{val:'mid',var:'size'}}           , {0:50, 97:99, 98:1 }
+        itDistributes {distribute:{val:'mid',var:'min'}}            , {0:50, 97:99, 98:1 }
+        itDistributes {distribute:{val:'mid',var:'max'}}            , {0:50, 97:99, 98:1 }
 
       # splitMin
       describe 'splitMin', ->
-        itDistributes {distribute:{val:'splitMin'}}                 , {0:0,  98:98, 99:99}
-        itDistributes {distribute:{val:'splitMin',var:'naive'}}     , {0:0,  98:98, 99:99}
-        itDistributes {distribute:{val:'splitMin',var:'size'}}      , {0:0,  98:98, 99:99}
-        itDistributes {distribute:{val:'splitMin',var:'min'}}       , {0:0,  98:98, 99:99}
-        itDistributes {distribute:{val:'splitMin',var:'max'}}       , {0:0,  98:98, 99:99}
+        itDistributes {distribute:{val:'splitMin'}}                 , {0:1,  97:98, 98:99}
+        itDistributes {distribute:{val:'splitMin',var:'naive'}}     , {0:1,  97:98, 98:99}
+        itDistributes {distribute:{val:'splitMin',var:'size'}}      , {0:1,  97:98, 98:99}
+        itDistributes {distribute:{val:'splitMin',var:'min'}}       , {0:1,  97:98, 98:99}
+        itDistributes {distribute:{val:'splitMin',var:'max'}}       , {0:1,  97:98, 98:99}
 
       # splitMax
       describe 'splitMax', ->
-        itDistributes {distribute:{val:'splitMax'}}                 , {0:99, 98:1, 99:0}
-        itDistributes {distribute:{val:'splitMax',var:'naive'}}     , {0:99, 98:1, 99:0}
-        itDistributes {distribute:{val:'splitMax',var:'size'}}      , {0:99, 98:1, 99:0}
-        itDistributes {distribute:{val:'splitMax',var:'min'}}       , {0:99, 98:1, 99:0}
-        itDistributes {distribute:{val:'splitMax',var:'max'}}       , {0:99, 98:1, 99:0}
+        itDistributes {distribute:{val:'splitMax'}}                 , {0:99, 97:2, 98:1}
+        itDistributes {distribute:{val:'splitMax',var:'naive'}}     , {0:99, 97:2, 98:1}
+        itDistributes {distribute:{val:'splitMax',var:'size'}}      , {0:99, 97:2, 98:1}
+        itDistributes {distribute:{val:'splitMax',var:'min'}}       , {0:99, 97:2, 98:1}
+        itDistributes {distribute:{val:'splitMax',var:'max'}}       , {0:99, 97:2, 98:1}
 
       # dynamic methods
 
@@ -75,8 +80,8 @@ describe "FD -", ->
         o = {distribute:{val:'minMaxCycle'}}
         S = new FD.Solver o
         S.addVars [
-          {id:'V1', domain:[[1,4]]}
-          {id:'V2', domain:[[1,4]]}
+          {id:'V1', domain: spec_d_create_range 1, 4}
+          {id:'V2', domain: spec_d_create_range 1, 4}
         ]
         S['>'] 'V1', S.constant(0)
         S['>'] 'V2', S.constant(0)
@@ -106,8 +111,8 @@ describe "FD -", ->
         o = {distribute:{val:'mid'}} # doesnt actually matter
         S = new FD.Solver o
         S.addVars [
-          {id:'V1', domain:[[1,4]], distribute:'min'}
-          {id:'V2', domain:[[1,4]], distribute:'max'}
+          {id:'V1', domain: spec_d_create_range(1, 4), distribute:'min'}
+          {id:'V2', domain: spec_d_create_range(1, 4), distribute:'max'}
         ]
         S['>'] 'V1', S.constant(0)
         S['>'] 'V2', S.constant(0)
@@ -137,8 +142,8 @@ describe "FD -", ->
         o = {distribute:{val:'mid'}} # doesnt actually matter
         S = new FD.Solver o
         S.addVars [
-          {id:'V1', domain:[[1,4]], distribute:'list', distributeOptions:{list:[2,4,3,1]}, }
-          {id:'V2', domain:[[1,4]], distribute:'list', distributeOptions:{list:[3,1,4,2]}, }
+          {id:'V1', domain: spec_d_create_range(1, 4), distribute:'list', distributeOptions:{list:[2,4,3,1]}, }
+          {id:'V2', domain: spec_d_create_range(1, 4), distribute:'list', distributeOptions:{list:[3,1,4,2]}, }
         ]
         S['>'] 'V1', S.constant(0)
         S['>'] 'V2', S.constant(0)
@@ -183,10 +188,10 @@ describe "FD -", ->
           return [1,2,3,4]
 
         S.addVars [
-          {id:'STATE', domain:[[0,10]]}
-          {id:'V1', domain:[[1,4]], distribute:'list', distributeOptions:{list:listCallback} }
-          {id:'V2', domain:[[1,4]], distribute:'list', distributeOptions:{list:listCallback} }
-          # {id:'STATE2', domain:[[0,10]]}
+          {id:'STATE', domain: spec_d_create_range(0, 10)}
+          {id:'V1', domain: spec_d_create_range(1, 4), distribute:'list', distributeOptions:{list:listCallback} }
+          {id:'V2', domain: spec_d_create_range(1, 4), distribute:'list', distributeOptions:{list:listCallback} }
+          # {id:'STATE2', domain: spec_d_create_range(0, 10)}
         ]
 
         S['=='] 'STATE', S.constant(5)
@@ -229,10 +234,10 @@ describe "FD -", ->
             S = new FD.Solver o
 
             S.addVars [
-              {id:'STATE', domain:[[0,10]]}
+              {id:'STATE', domain: spec_d_create_range 0, 10}
               {
                 id:'V1',
-                domain:[[0,1]],
+                domain: spec_d_create_bool(),
                 distribute:'markov',
                 distributeOptions:{
                   legend: [0,1]
@@ -247,7 +252,7 @@ describe "FD -", ->
               }
               {
                 id:'V2',
-                domain:[[0,1]],
+                domain: spec_d_create_bool(),
                 distribute:'markov',
                 distributeOptions:{
                   legend: [0,1]
@@ -316,10 +321,10 @@ describe "FD -", ->
             S = new FD.Solver o
 
             S.addVars [
-              {id:'STATE', domain:[[0,10]]}
+              {id:'STATE', domain: spec_d_create_range 0, 10}
               {
                 id:'V1',
-                domain:[[0,100]],
+                domain: spec_d_create_range(0, 100),
                 distribute:'markov',
                 distributeOptions:{
                   legend: [10,100]
@@ -334,7 +339,7 @@ describe "FD -", ->
               }
               {
                 id:'V2',
-                domain:[[0,100]],
+                domain: spec_d_create_range(0, 100),
                 distribute:'markov',
                 distributeOptions:{
                   legend: [10,100]

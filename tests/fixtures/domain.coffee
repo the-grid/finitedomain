@@ -1,26 +1,25 @@
 SUP = 100000
 
 spec_d_create_range = (lo, hi) ->
-  return [[lo, hi]]
+  return [lo, hi]
 spec_d_create_ranges = (ranges...) ->
-  return ranges.map (range) -> range.slice 0
+  arr = []
+  ranges.forEach (range) -> arr.push range[0], range[1]
+  return arr
 spec_d_create_value = (value) ->
-  return [[value, value]]
+  return [value, value]
 spec_d_create_list = (list) ->
-  return list.map (value) -> [value, value]
+  arr = []
+  list.forEach (value) -> arr.push value, value
+  return arr
 spec_d_create_zero = ->
-  return [[0, 0]]
+  return [0, 0]
 spec_d_create_one = ->
-  return [[1, 1]]
+  return [1, 1]
 spec_d_create_full = ->
-  return [[0, SUP]]
+  return [0, SUP]
 spec_d_create_bool = ->
-  return [[0, 1]]
-
-
-
-
-
+  return [0, 1]
 
 module.exports = {
   spec_d_create_range

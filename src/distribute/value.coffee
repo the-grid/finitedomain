@@ -1,40 +1,37 @@
 # Value Distributions
 # ======================================================================
 
-# The interface contract for "values" functions is that
-# they take a variable name and return a function that will
-# impose a sequence of choices on the variable into a given
-# space. The returned function (S, n) will commit the given
-# space S to a choice for the originally specified variable.
-# The returned function's "numChoices" property tells you
-# how many choices are available, and the choices are numbered
-# from 0 to numChoices-1.
-#
-# Note that this change of interface has resulted in a noticeable
-# performance degradation. My guess is that the degradation is due
-# to the computations outside the switch blocks having to execute
-# for every choice, whereas in the earlier implementation there
-# were only executed once per space.
-
 module.exports = (FD) ->
 
   {
-    domain_collapsed_value
+    domain_create_range
+    domain_create_ranges
+    domain_create_value
+    domain_is_value
+    domain_max
+    domain_min
     domain_remove_value
     domain_remove_next_from_list
-    domain_equal_next_from_list
+    domain_get_value_of_first_contained_value_in_list
   } = FD.Domain
 
   {
+    distribute_markov_sampleNextFromDomain
+  } = FD.distribute.Markov
+
+  {
     fdvar_constrain
+    fdvar_constrain_to_value
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_set_domain
     fdvar_upper_bound
   } = FD.Var
 
-  # Markov Helper
-  {Markov} = FD.distribute
+  FIRST_CHOICE = 0
+  SECOND_CHOICE = 1
+
+  TWO_CHOICES = 2
 
   # List
   # -----------------------------------------------------------------
@@ -42,285 +39,289 @@ module.exports = (FD) ->
   # Searches through a variable's values in order specified in a list.
   # Similar to the "naive" variable distribution, but for values.
 
-  distribute_value_by_list = (S, v, o) ->
-    list = o.list
+  distribute_value_by_list = (S, var_name, options) ->
+    list = options.list
     unless list
       throw new Error "list distribution requires SolverVar #{v} w/ distributeOptions:{list:[]}"
 
-    if typeof list is 'function'
-      isDynamic = true
-    else
-      isDynamic = false
+    isDynamic = typeof list is 'function'
 
-    options = (S, n) ->
-      vS = S.vars[v]
-      dom = vS.dom
+    value_choicer_by_list = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
+
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
       if isDynamic
-        _list = list S, v
+        _list = list space, var_name
       else
         _list = list
 
-      switch n
-        when 0
-          d = domain_equal_next_from_list dom, _list
-          unless d.length
-            return null # signifies end of search
-          fdvar_set_domain vS, d
+      switch current_choice_index
+        when FIRST_CHOICE
+          value = domain_get_value_of_first_contained_value_in_list fdvar.dom, _list
+          if value is undefined
+            return # signifies end of search
+          # TODO: would be more efficient to set the domain inline. but right now that causes issues with shared mem.
+          fdvar_set_domain fdvar, domain_create_value(value)
 
-        when 1
-          d = domain_remove_next_from_list dom, _list
-          unless d.length
-            return null # signifies end of search
-          fdvar_set_domain vS, d
+        when SECOND_CHOICE
+          new_domain = domain_remove_next_from_list fdvar.dom, _list
+          unless new_domain and new_domain.length
+            return # signifies end of search
+          fdvar_set_domain fdvar, new_domain
 
         else
-          throw new Error('Invalid choice')
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-      return S
+      return space
 
-    options.numChoices = 2
-    options
+    return value_choicer_by_list
 
+  # If a row is not boolean, return it.
+  # If a row is boolean and 1, return it.
+  # If no row meets these conditions, return the last row.
 
-    # Markov
-    # -----------------------------------------------------------------
+  get_next_row_to_solve = (space, matrix) ->
+    vars = space.vars
+    for row in matrix
+      is_bool_var = vars[row.booleanId]
+      unless is_bool_var
+        break
+      if domain_is_value is_bool_var.dom, 1
+        break
+    return row
 
-  distribute_value_by_markov = (S, v, o) ->
-    {matrix,legend} = o
+  # Markov
+  # -----------------------------------------------------------------
+
+  distribute_value_by_markov = (S, var_name, options) ->
+    {
+      matrix
+      legend
+    } = options
 
     S.memory.lastValueByVar ?= {}
 
     # see Solver.addVar for setup...
 
-    options = (S, n) ->
-      vS = S.vars[v]
-      dom = vS.dom
-      switch n
+    value_choicer_by_markov = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
 
-        when 0
-          i = 0
-          while i < matrix.length
-            row = matrix[i]
-            booleanVar = S.vars[row.booleanId]
-            if booleanVar
-              value = domain_collapsed_value booleanVar.dom
-            else
-              value = 1
-            if value is 1
-              break
-            i++
-          vector = row.vector
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      switch current_choice_index
+        when FIRST_CHOICE
+          row = get_next_row_to_solve space, matrix
+          value = distribute_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
+          unless value?
+            return # signifies end of search
+          space.memory.lastValueByVar[var_name] = value
+          fdvar_constrain_to_value fdvar, value
 
-          value = Markov.sampleNextFromDomain dom, vector, legend
-          if value?
-
-            S.memory.lastValueByVar[v] = value
-
-            fdvar_constrain vS, [ [
-              value
-              value
-            ] ]
-            return S
-
-          return null # signifies end of search
-
-        when 1
-          d = domain_remove_value dom, S.memory.lastValueByVar[v]
-          unless d.length
-            return null # signifies end of search
-          fdvar_set_domain vS, d
-          return S
+        when SECOND_CHOICE
+          new_domain = domain_remove_value fdvar.dom, space.memory.lastValueByVar[var_name]
+          unless new_domain and new_domain.length
+            return # signifies end of search
+          fdvar_set_domain fdvar, new_domain
 
         else
-          throw new Error('Invalid choice')
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-      return
-    options.numChoices = 2
-    options
+      return space
 
+    return value_choicer_by_markov
 
-    # Min
-    # -----------------------------------------------------------------
+  # Min
+  # -----------------------------------------------------------------
 
-    # Searches through a var's values from min to max.
+  # Searches through a var's values from min to max.
 
-  distribute_value_by_min = (S, v) ->
-    options = (S, n) ->
-      vS = S.vars[v]
-      d = fdvar_lower_bound vS
-      switch n
-        when 0
-          fdvar_constrain vS, [ [
-            d
-            d
-          ] ]
-          return S
-        when 1
-          fdvar_constrain vS, [ [
-            d + 1
-            fdvar_upper_bound vS
-          ] ]
-          return S
+  distribute_value_by_min = (S, var_name) ->
+    value_choicer_by_min = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
+
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      low = fdvar_lower_bound fdvar
+
+      switch current_choice_index
+        when FIRST_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain_to_value fdvar, low
+
+        when SECOND_CHOICE
+          # TOFIX: propagate REJECT
+          # TOFIX: add test for when low===SUP because that would break
+          fdvar_constrain fdvar, domain_create_range(
+            low + 1
+            fdvar_upper_bound fdvar
+          )
+
         else
-          throw new Error('Invalid choice')
-      return
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-    options.numChoices = 2
-    options
+      return space
 
+    return value_choicer_by_min
 
-    # Max
-    # -----------------------------------------------------------------
+  # Max
+  # -----------------------------------------------------------------
 
-    # Searches through a var's values from max to min.
+  # Searches through a var's values from max to min.
 
-  distribute_value_by_max = (S, v) ->
-    options = (S, n) ->
-      vS = S.vars[v]
-      d = fdvar_upper_bound vS
-      switch n
-        when 0
-          fdvar_constrain vS, [ [
-            d
-            d
-          ] ]
-          return S
-        when 1
-          fdvar_constrain vS, [ [
-            fdvar_lower_bound vS
-            d - 1
-          ] ]
-          return S
+  distribute_value_by_max = (S, var_name) ->
+    value_choicer_by_max = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
+
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      hi = fdvar_upper_bound fdvar
+
+      switch current_choice_index
+        when FIRST_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain_to_value fdvar, hi
+
+        when SECOND_CHOICE
+          # TOFIX: propagate REJECT
+          # TOFIX: add test for when hi===0 because that would break
+          fdvar_constrain fdvar, domain_create_range(
+            fdvar_lower_bound fdvar
+            hi - 1
+          )
+
         else
-          throw new Error('Invalid choice')
-      return
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-    options.numChoices = 2
-    options
+      return space
 
+    return value_choicer_by_max
 
-    # Mid
-    # -----------------------------------------------------------------
+  # Mid
+  # -----------------------------------------------------------------
 
-  distribute_value_by_mid = (S, v) ->
-    options = (S, n) ->
-      fv = S.vars[v]
-      d = fdvar_middle_element fv
-      if n == 0
-        fdvar_constrain fv, [ [
-          d
-          d
-        ] ]
-        return S
-      else if n == 1
-        if d > fdvar_lower_bound fv
-          fdvar_constrain fv, [
-            [
-              fdvar_lower_bound fv
-              d - 1
-            ]
-            [
-              d + 1
-              fdvar_upper_bound fv
-            ]
-          ]
-          return S
+  distribute_value_by_mid = (S, var_name) ->
+    value_choicer_by_mid = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
+
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      middle = fdvar_middle_element fdvar
+
+      switch current_choice_index
+        when FIRST_CHOICE
+          fdvar_constrain_to_value fdvar, middle
+
+        when SECOND_CHOICE
+          lob = fdvar_lower_bound fdvar
+          upb = fdvar_upper_bound(fdvar)
+          arr = []
+          if middle > lob
+            arr.push lob, middle - 1
+          if middle < upb
+            arr.push middle + 1, upb
+          # TOFIX: optimize temp array away
+          # TOFIX: (or at least) propagate REJECT
+          fdvar_constrain fdvar, arr
+
         else
-          fdvar_constrain fv, [ [
-            d + 1
-            fdvar_upper_bound fv
-          ] ]
-          return S
-      else
-        throw new Error('Invalid choice')
-      return
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-    options.numChoices = 2
-    options
+      return space
+
+    return value_choicer_by_mid
 
 
-    # splitMin
-    # -----------------------------------------------------------------
+  # splitMin
+  # -----------------------------------------------------------------
 
+  distribute_value_by_split_min = (S, var_name) ->
+    value_choicer_by_split_min = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
 
-  distribute_value_by_splitMin = (S, v) ->
-    options = (S, n) ->
-      vS = S.vars[v]
-      d = vS.dom
-      m = d[0][0] + d[d.length - 1][1] >> 1
-      switch n
-        when 0
-          fdvar_constrain vS, [ [
-            d[0][0]
-            m
-          ] ]
-          return S
-        when 1
-          fdvar_constrain vS, [ [
-            m + 1
-            d[d.length - 1][1]
-          ] ]
-          return S
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      domain = fdvar.dom
+      min = domain_min domain
+      max = domain_max domain
+      mmhalf = min + max >> 1
+
+      switch current_choice_index
+        when FIRST_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain fdvar, domain_create_range(min, mmhalf)
+
+        when SECOND_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain fdvar, domain_create_range(mmhalf + 1, max)
+
         else
-          throw new Error('Invalid choice')
-      return
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-    options.numChoices = 2
-    options
+      return space
 
+    return value_choicer_by_split_min
 
-    # splitMax
-    # -----------------------------------------------------------------
+  # splitMax
+  # -----------------------------------------------------------------
 
-  distribute_value_by_splitMax = (S, v) ->
-    options = (S, n) ->
-      vS = S.vars[v]
-      d = vS.dom
-      m = d[0][0] + d[d.length - 1][1] >> 1
-      switch n
-        when 0
-          fdvar_constrain vS, [ [
-            m + 1
-            d[d.length - 1][1]
-          ] ]
-          return S
-        when 1
-          fdvar_constrain vS, [ [
-            d[0][0]
-            m
-          ] ]
-          return S
+  distribute_value_by_split_max = (S, var_name) ->
+    value_choicer_by_split_max = (parent_space, current_choice_index) ->
+      if current_choice_index >= TWO_CHOICES
+        return
+
+      space = parent_space.clone()
+      fdvar = space.vars[var_name]
+      domain = fdvar.dom
+      min = domain_min domain
+      max = domain_max domain
+      mmhalf = min + max >> 1
+
+      switch current_choice_index
+        when FIRST_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain fdvar, domain_create_range(mmhalf + 1, max)
+
+        when SECOND_CHOICE
+          # TOFIX: propagate REJECT
+          fdvar_constrain fdvar, domain_create_range(min, mmhalf)
+
         else
-          throw new Error('Invalid choice')
-      return
+          throw new Error "Invalid choice value [#{current_choice_index}]"
 
-    options.numChoices = 2
-    options
+      return space
+
+    return value_choicer_by_split_max
 
 
-    # WIP...
-    # -----------------------------------------------------------------
+  # WIP...
+  # -----------------------------------------------------------------
 
-  distribute_value_by_random = (S, v) ->
-    valDistribution.minMaxCycle(S, v)
+  distribute_value_by_random = (S, var_name) ->
+    return valDistribution.minMaxCycle(S, var_name)
 
-  distribute_value_by_minMaxCycle = (S, v) ->
+  distribute_value_by_min_max_cycle = (S, var_name) ->
     vars = S.solver.vars
-    cycle = vars.all.indexOf(vars.byId[v]) % 2
+    cycle = vars.all.indexOf(vars.byId[var_name]) % 2
     if cycle is 0
-      method = distribute_value_by_min S, v
+      return distribute_value_by_min S, var_name
     else # if cycle is 1
-      method = distribute_value_by_max S, v
-    return method
+      return distribute_value_by_max S, var_name
 
   return FD.distribute.Value = {
     distribute_value_by_list
     distribute_value_by_markov
     distribute_value_by_max
     distribute_value_by_min
-    distribute_value_by_minMaxCycle
+    distribute_value_by_min_max_cycle
     distribute_value_by_mid
     distribute_value_by_random
-    distribute_value_by_splitMax
-    distribute_value_by_splitMin
+    distribute_value_by_split_max
+    distribute_value_by_split_min
   }

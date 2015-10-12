@@ -1,7 +1,6 @@
-
 FD = {
-  propagators: {}
   distribute: {}
+  propagators: {}
 }
 
 # FD = require './fd'

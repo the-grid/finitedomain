@@ -4,15 +4,60 @@ module.exports = (FD) ->
 
   SUP = 100000000
   REJECTED = -1
+  DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
 
-  ASSERT = (bool, msg='') ->
+  # For unit tests
+  # Should be removed in production. Obviously.
+
+  ASSERT = (bool, msg='', args...) ->
     unless !!bool
       console.error 'Assertion fail: ' + msg
+      if args
+        console.log 'Error args:', args
+      process.exit() # uncomment for quick error access :)
       throw new Error 'Assertion fail: ' + msg
+    return
+
+  # Simple function to completely validate a domain
+  # Should be removed in production. Obviously.
+
+  ASSERT_DOMAIN = (domain) ->
+    if DISABLED
+      return
+    ASSERT !!domain, 'domains should be an array', domain
+    ASSERT domain.length % 2 is 0, 'domains should contain pairs so len should be even', domain
+    phi = -2 # this means the lowest `lo` can be is 0, csis requires at least one value gap
+    for lo, index in domain by 2
+      hi = domain[index+1]
+      ASSERT lo >= 0, 'lo should be a positive number'+' ['+lo+']', domain
+      ASSERT hi >= 0, 'hi should be a positive number'+' ['+hi+']', domain
+      ASSERT hi <= SUP, 'hi should be max SUP'+' ['+hi+']', domain
+      ASSERT lo <= hi, 'pairs should be lo<=hi'+' '+lo+' <= '+hi, domain
+      ASSERT lo > phi+1, 'domains should be in csis form internally, end point apis should normalize input to this'+domain, domain
+      phi = hi
+    return
+
+  ASSERT_VARS = (vars) ->
+    if DISABLED
+      return
+    for name, fdvar of vars
+      ASSERT_DOMAIN fdvar.dom
+    return
+
+  ASSERT_SPACE = (space) ->
+    if DISABLED
+      return
+    # TBD: expand with other assertions...
+    ASSERT_VARS space.vars
+    return
+
 
   FD.helpers = {
     REJECTED
     SUP
 
     ASSERT
+    ASSERT_DOMAIN
+    ASSERT_SPACE
+    ASSERT_VARS
   }

@@ -1,6 +1,10 @@
 if typeof require is 'function'
-  finitedomain = require('../../../src/index')
+  finitedomain = require '../../../src/index'
   chai = require 'chai'
+  {
+    spec_d_create_range
+    spec_d_create_value
+  } = require '../../fixtures/domain'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -18,16 +22,17 @@ describe "FD - propagators - callback", ->
   describe 'integration tests', ->
 
     {space:Space} = FD
-    {domain_collapsed_value} = FD.Domain
+    {domain_get_value} = FD.Domain
+    NONE = -1
 
     it 'should accept a single var name', ->
 
       cb = ([r, g, b], space) ->
-        rv = domain_collapsed_value r.dom
-        gv = domain_collapsed_value g.dom
-        bv = domain_collapsed_value b.dom
+        rv = domain_get_value r.dom
+        gv = domain_get_value g.dom
+        bv = domain_get_value b.dom
 
-        if rv is undefined or gv is undefined or bv is undefined
+        if rv is NONE or gv is NONE or bv is NONE
           return true # at least one domain isnt a single value; keep searching
 
         # exact match now
@@ -38,10 +43,10 @@ describe "FD - propagators - callback", ->
       # some criteria to search for. callback will reject all but one.
       # (could also work with [0,255] but just takes longer...)
       [tr, tg, tb] = [2, 120, 201]
-      space.decl 'R', [[0, 3]]
-      space.decl 'G', [[119, 121]]
-      space.decl 'B', [[200, 203]]
-      space.decl 'T', [[tr + tg + tb, tr + tg + tb]]
+      space.decl 'R', spec_d_create_range 0, 3
+      space.decl 'G', spec_d_create_range 119, 121
+      space.decl 'B', spec_d_create_range 200, 203
+      space.decl 'T', spec_d_create_range tr + tg + tb, tr + tg + tb
       space.sum ['R', 'G', 'B'], 'T'
       space.callback ['R', 'G', 'B'], cb
 

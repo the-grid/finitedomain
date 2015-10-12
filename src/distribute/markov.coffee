@@ -5,7 +5,6 @@
 
 ###
 
-random = Math.random #new Multiverse.random "sjf20ru"
 
 ###
 
@@ -43,93 +42,94 @@ https://en.wikipedia.org/wiki/Markov_chain#Music
 
 module.exports = (FD) ->
 
+  RANDOM = Math.random #new Multiverse.random "sjf20ru"
+
   {
     domain_contains_value
   } = FD.Domain
 
-  FD.distribute.Markov =
-    sampleNextFromDomain: (domain, probVector, valLegend) ->
+  distribute_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
 
-      # this strategy is optimized for small domains,
-      # for large Domains likely better to use the sampleIndexLookupList...
+    # this strategy is optimized for small domains,
+    # for large Domains likely better to use the sampleIndexLookupList...
 
-      # make vector & legend for available values only
-      vector = []
-      legend = []
-      for prob, index in probVector
-        value = valLegend?[index]
+    # val_legend is a list of options to check for some fdvar currently being evaluated.
+    # The probability to use each option is 1:1 mapped to prob_vector. Since we don't
+    # know which options are still valid in this search space, we have to filter down
+    # the valid options first and then stochastically pick one from that result.
+
+    # make vector & legend for available values only
+    vector = []
+    legend = []
+    total = 0
+    for prob, index in prob_vector
+      if prob > 0
+        value = val_legend?[index]
         value ?= index # default legend is the indic
-        continue if prob is 0
-        continue unless domain_contains_value domain, value
-        vector.push prob
-        legend.push value
+        if value and domain_contains_value domain, value
+          total += prob
+          vector.push prob
+          legend.push value
 
+    # no more values left to search
+    if vector.length is 0
+      return undefined
 
-      # no more values left to search
-      if vector.length is 0
-        return undefined
+    # only one value left
+    if vector.length is 1
+      return legend[0]
 
+    # stochastically choose next value
+    prob_val = RANDOM() * total
 
-      # only one value left
-      else if vector.length is 1
-        return legend[0]
-
-      # stochastically choose next value
+    cursor = 0
+    closest_index = 0
+    prob_val = 0
+    for prob, index in vector
+      if prob_val >= cursor
+        closest_index = index
+        cursor += prob
       else
+        break
 
-        sum = 0
-        for prob in vector
-          sum += prob
+    return legend[closest_index]
 
-        probVal = random() * sum
-        cursor = 0
+  distribute_markov_sampleIndexLookupList = (propabilityRow) ->
 
-        for prob, probIndex in vector
-          if probIndex is 0
-            closest = prob
-            closest_index = probIndex
-          else if probVal >= cursor
-            closest = prob
-            closest_index = probIndex
+    unused = propabilityRow.slice()
+    propabilityRowIndices = [0...propabilityRow.length]
+    list = []
+
+    sum = 0
+    for y in propabilityRow
+      sum += y
+
+    i = 0
+    while i < propabilityRow.length
+      val = RANDOM() * sum
+      cursor = 0
+      if unused.length is 1
+        list.push propabilityRowIndices[0]
+      else
+        for x, j in unused
+          if j is 0
+            closest = x
+            closesti = j
+          else if val >= cursor
+            closest = x
+            closesti = j
           else
             break
-          cursor += prob
+          cursor += x
+        # console.log "val: #{val}, sum: #{sum}, closest: #{closest}, propabilityRow: #{propabilityRow}"
+        sum -= unused.splice(closesti,1)[0]
+        list.push propabilityRowIndices.splice(closesti,1)[0]
+      i++
 
-        return legend[closest_index]
+    #console.log "======>", buildValueList([.5,2,.1])
+    return list
 
-
-
-    sampleIndexLookupList: (propabilityRow) ->
-
-      unused = propabilityRow.slice()
-      propabilityRowIndices = [0...propabilityRow.length]
-      list = []
-
-      sum = 0
-      for y in propabilityRow
-        sum += y
-
-      i = 0
-      while i < propabilityRow.length
-        val = random() * sum
-        cursor = 0
-        if unused.length is 1
-          list.push propabilityRowIndices[0]
-        else
-          for x, j in unused
-            if j is 0
-              closest = x
-              closesti = j
-            else if val >= cursor
-              closest = x
-              closesti = j
-            else
-              break
-            cursor += x
-          # console.log "val: #{val}, sum: #{sum}, closest: #{closest}, propabilityRow: #{propabilityRow}"
-          sum -= unused.splice(closesti,1)[0]
-          list.push propabilityRowIndices.splice(closesti,1)[0]
-        i++
-
-      #console.log "======>", buildValueList([.5,2,.1])
-      return list
+  FD.distribute.Markov = {
+    distribute_markov_sampleNextFromDomain
+    distribute_markov_sampleIndexLookupList # unused
+  }

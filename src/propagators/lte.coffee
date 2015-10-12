@@ -4,7 +4,7 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    domain_intersection
+    domain_intersect_bounds_into
   } = FD.Domain
 
   {
@@ -16,10 +16,6 @@ module.exports = (FD) ->
     fdvar_set_domain
     fdvar_upper_bound
   } = FD.Var
-
-  FIRST_RANGE = 0
-  LO_BOUND = 0
-  HI_BOUND = 1
 
   lte_stepper = ->
     v1 = @propdata[1]
@@ -50,19 +46,21 @@ module.exports = (FD) ->
         # Need to change domain of v1.
         # TODO: this update step can be done more efficient... it's too "formal" right now.
         hi_1 = hi_2 # note: either get rid of the intersection (YES) or update hi_1 by ref after the fdvar_set_domain
-        d = domain_intersection v1.dom, [[lo_1, hi_1]]
-        unless d.length
+        new_domain = []
+        domain_intersect_bounds_into v1.dom, lo_1, hi_1, new_domain
+        unless new_domain.length
           return REJECTED
-        fdvar_set_domain v1, d
+        fdvar_set_domain v1, new_domain
 
       if lo_1 > lo_2
         # Need to change domain of v2.
         # TODO: this update step can be done more efficient... it's too "formal" right now.
         lo_2 = lo_1 # note: either get rid of the intersection (YES) or update lo_2 by ref after the fdvar_set_domain
-        d = domain_intersection v2.dom, [[lo_2, hi_2]]
-        unless d.length
+        new_domain = []
+        domain_intersect_bounds_into v2.dom, lo_2, hi_2, new_domain
+        unless new_domain.length
           return REJECTED
-        fdvar_set_domain v2, d
+        fdvar_set_domain v2, new_domain
 
       last_upid = current_upid
       current_upid = v1.vupid + v2.vupid
@@ -71,6 +69,6 @@ module.exports = (FD) ->
     return current_upid - begin_upid
 
   propagator_create_lte = (space, left_var_name, right_var_name) ->
-    propagator_create_2x space, left_var_name, right_var_name, lte_stepper
+    propagator_create_2x space, left_var_name, right_var_name, lte_stepper, 'lte'
 
   FD.propagators.propagator_create_lte = propagator_create_lte

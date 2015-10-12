@@ -8,7 +8,12 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    domain_create_bool
+    domain_create_value
+    domain_create_zero
     domain_intersection
+    domain_is_determined
+    domain_min
     domain_plus
     domain_times
     domain_minus
@@ -37,6 +42,7 @@ module.exports = (FD) ->
     fdvar_constrain
     fdvar_create
     fdvar_create_wide
+    fdvar_is_solved
     fdvar_set_domain
   } = FD.Var
 
@@ -84,7 +90,7 @@ module.exports = (FD) ->
       @_propagators = []
       for p in S._propagators
         unless propagator_is_solved p
-          @_propagators.push propagator_create @, p.target_var_names, p.stepper
+          @_propagators.push propagator_create @, p.target_var_names, p.stepper, p._name
 
       # TODO: Remove this reference. It might result in less
       # memory being used during searches. If we keep around the
@@ -156,37 +162,34 @@ module.exports = (FD) ->
   # that function.
 
   Space::is_solved = ->
-    i = undefined
-    v = undefined
-    for i of @vars
-      v = @vars[i]
-      if v.dom.length == 1
-        if v.dom[0][0] != v.dom[0][1]
-          return false
-        else
-          # Singleton domain
-      else
+    vars = @vars
+    for i of vars # TODO: get rid of this "for-in" loop. it's slow.
+      unless fdvar_is_solved vars[i]
         return false
-    true
+    return true
 
   # Returns an object whose field names are the fdvar names
   # and whose values are the solved values. The space *must*
   # be already in a solved state for this to work.
 
   Space::solution = ->
+    vars = @vars
     result = {}
-    i = undefined
-    v = undefined
-    d = undefined
-    for i of @vars
+    for key of vars
       # Don't include the temporary variables in the "solution".
       # Temporary variables take the form of a numeric property
       # of the object, so we test for the key to be a number and
       # don't include those variables in the result.
-      if /^[0-9]+$/.test(i) == false
-        v = @vars[i]
-        d = v.dom
-        result[i] = if d.length == 0 then false else if d.length > 1 or d[0][1] > d[0][0] then d else d[0][0]
+
+      c = key[0]
+      if c < '0' or c > '9'
+        d = vars[key].dom
+        if d.length is 0
+          result[key] = false
+        else if domain_is_determined d
+          result[key] = domain_min d
+        else
+          result[key] = d
     result
 
   Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
@@ -194,12 +197,16 @@ module.exports = (FD) ->
     result = {}
     for id in ids
 
-      v = @vars[id]
-      if !v?
-        value = undefined
-      else
-        d = v.dom
-        value = if d.length == 0 then undefined else if d.length > 1 or d[0][1] > d[0][0] then d else d[0][0]
+      fdvar = @vars[id]
+      value = undefined
+      if fdvar?
+        d = fdvar.dom
+        if d.length is 0
+          value = undefined
+        else if domain_is_determined d
+          value = domain_min d
+        else
+          value = d
 
       if complete and !value?
         result = false
@@ -255,12 +262,9 @@ module.exports = (FD) ->
   # instead. I'll keep the old name 'const' for compatibility.
 
   Space::konst = (val) ->
-    if val < 0 or val > SUP
-      throw new Error 'FD.space.konst: Value out of valid range'
-    @temp [ [
-      val
-      val
-    ] ]
+    if val >= 0 and val <= SUP # also catches NaN cases
+      return @temp domain_create_value val
+    throw new Error 'FD.space.konst: Value out of valid range'
 
   # Keep old name for compatibility.
   Space.prototype['const'] = Space::konst
@@ -286,7 +290,7 @@ module.exports = (FD) ->
   # start with a lower case letter, a clash can certainly
   # be avoided if you stick to that rule.
   #
-  # If the domain is not specified, it is taken to be [[0, SUP]].
+  # If the domain is not specified, it is taken to be [0, SUP].
   #
   # Returns the space. All methods, unless otherwise noted,
   # will return the current space so that other methods
@@ -300,17 +304,21 @@ module.exports = (FD) ->
       sumname = space.temp()
       retval = sumname
 
-    a = propagator_create_3x space, v1name, v2name, sumname, ->
+    ring_a = ->
       [_, v1, v2, sum] = @propdata
       return ring_prop_stepper @, plusop, v1, v2, sum
 
-    b = propagator_create_3x space, v1name, v2name, sumname, ->
+    ring_b = ->
       [_, v1, v2, sum] = @propdata
       return ring_prop_stepper @, minusop, sum, v2, v1
 
-    c = propagator_create_3x space, v1name, v2name, sumname, ->
+    ring_c = ->
       [_, v1, v2, sum] = @propdata
       return ring_prop_stepper @, minusop, sum, v1, v2
+
+    a = propagator_create_3x space, v1name, v2name, sumname, ring_a, 'ring_a'
+    b = propagator_create_3x space, v1name, v2name, sumname, ring_b, 'ring_b'
+    c = propagator_create_3x space, v1name, v2name, sumname, ring_c, 'ring_c'
 
     space._propagators.push a, b, c
 
@@ -342,10 +350,7 @@ module.exports = (FD) ->
   # that of a single number.
 
   Space::num = (name, n) ->
-    @decl name, [ [
-      n
-      n
-    ] ]
+    @decl name, domain_create_value(n)
 
   # Adds propagators which reify the given operator application
   # to the given boolean variable.
@@ -395,13 +400,13 @@ module.exports = (FD) ->
         throw new Error 'FD.space.reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
-      r = fdvar_constrain @vars[bool_name], [[0, 1]]
+      r = fdvar_constrain @vars[bool_name], domain_create_bool()
       if r is REJECTED
         return REJECTED
     else
-      bool_name = @temp([[0, 1]])
+      bool_name = @temp domain_create_bool()
 
-    @_propagators.push propagator_create_reified @, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator
+    @_propagators.push propagator_create_reified @, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, opname
 
     return bool_name
 
@@ -499,7 +504,7 @@ module.exports = (FD) ->
       return @eq vname, prodname
 
     if factor is 0
-      return @eq @temp([[0, 0]]), prodname
+      return @eq @temp(domain_create_zero()), prodname
 
     if factor < 0
       throw new Error 'scale: negative factors not supported.'
@@ -598,5 +603,3 @@ module.exports = (FD) ->
       temps.push t
     @sum temps, result_name
     return
-
-  Space::serialize = ->

@@ -8,7 +8,7 @@ if typeof require is 'function'
     spec_d_create_ranges
     spec_d_create_value
     spec_d_create_zero
-  } = require '../fixtures/domain'
+  } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
 FD = finitedomain

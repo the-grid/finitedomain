@@ -1183,3 +1183,38 @@ describe "FD - Domain", ->
       expect(domain_is_determined spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
       expect(domain_is_determined spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
 
+  describe 'domain_set_to_range_inline', ->
+
+    {SUP} = FD.helpers
+    {domain_set_to_range_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_set_to_range_inline?).to.be.true
+
+    it 'should update a domain to given range', ->
+
+      expect(domain_set_to_range_inline [], 0, 0).to.eql domain_set_to_range_inline(0, 1)
+      expect(domain_set_to_range_inline [], 0, 1).to.eql domain_set_to_range_inline(0, 1)
+      expect(domain_set_to_range_inline [], 50, 100).to.eql domain_set_to_range_inline(0, 1)
+      expect(domain_set_to_range_inline [], 0, SUP).to.eql domain_set_to_range_inline(0, 1)
+      expect(domain_set_to_range_inline [], 27, SUP).to.eql domain_set_to_range_inline(0, 1)
+      expect(domain_set_to_range_inline [], SUP, SUP).to.eql domain_set_to_range_inline(0, 1)
+
+    it 'should update the array inline', ->
+
+      arr = []
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+    it 'should clobber existing values', ->
+
+      arr = spec_d_create_range(50, 100)
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+    it 'should ensure the result is one range', ->
+
+      arr = spec_d_create_ranges([50, 100], [150, 200], [300, 500])
+      domain_set_to_range_inline arr, 110, 175
+      expect(arr).to.eql spec_d_create_range(110, 175)

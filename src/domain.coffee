@@ -571,6 +571,13 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     return domain[domain.length - 1]
 
+  domain_set_to_range_inline = (domain, lo, hi) ->
+    ASSERT_DOMAIN domain, 'should be sound domain'
+    domain[LO_BOUND] = lo
+    domain[HI_BOUND] = hi
+    domain.length = 2
+    return
+
   # A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
 
   domain_is_solved = (domain) ->
@@ -646,6 +653,7 @@ module.exports = (FD) ->
     domain_plus
     domain_remove_next_from_list
     domain_remove_value
+    domain_set_to_range_inline
     domain_simplify
     domain_size
     domain_times

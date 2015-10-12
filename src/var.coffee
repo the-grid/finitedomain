@@ -15,6 +15,7 @@ module.exports = (FD) ->
     domain_max
     domain_middle_element
     domain_min
+    domain_set_to_range_inline
     domain_size
   } = FD.Domain
 
@@ -59,6 +60,14 @@ module.exports = (FD) ->
       fdvar.vupid++
     return
 
+  fdvar_set_value_inline = (fdvar, value) ->
+    domain_set_to_range_inline fdvar.dom, value, value
+    return
+
+  fdvar_set_range_inline = (fdvar, lo, hi) ->
+    domain_set_to_range_inline fdvar.dom, lo, hi
+    return
+
   fdvar_constrain = (fdvar, domain) ->
     domain = domain_intersection fdvar.dom, domain
     unless domain.length
@@ -101,5 +110,7 @@ module.exports = (FD) ->
     fdvar_middle_element
     fdvar_lower_bound
     fdvar_set_domain
+    fdvar_set_range_inline
+    fdvar_set_value_inline
     fdvar_size
   }

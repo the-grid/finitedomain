@@ -4,6 +4,10 @@
 module.exports = (FD) ->
 
   {
+    NO_SUCH_VALUE
+  } = FD.helpers
+
+  {
     domain_create_range
     domain_create_ranges
     domain_create_value
@@ -60,7 +64,7 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           value = domain_get_value_of_first_contained_value_in_list fdvar.dom, _list
-          if value is undefined
+          if value is NO_SUCH_VALUE
             return # signifies end of search
           # TODO: would be more efficient to set the domain inline. but right now that causes issues with shared mem.
           fdvar_set_domain fdvar, domain_create_value(value)

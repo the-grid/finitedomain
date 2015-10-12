@@ -15,7 +15,13 @@ FD = finitedomain
 
 describe "FD - Domain", ->
 
-  {Domain} = FD
+  {
+    Domain
+  } = FD
+
+  {
+    NO_SUCH_VALUE
+  } = FD.helpers
 
   it 'should exist', ->
 
@@ -143,15 +149,15 @@ describe "FD - Domain", ->
       expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql 1
       expect( domain_get_value_of_first_contained_value_in_list(dom,[2]) ).to.eql 2
       expect( domain_get_value_of_first_contained_value_in_list(dom,[3]) ).to.eql 3
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,100]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,100]) ).to.eql NO_SUCH_VALUE
 
     it "2", ->
       dom = spec_d_create_zero()
       expect( domain_get_value_of_first_contained_value_in_list(dom,[0]) ).to.eql 0
       expect( domain_get_value_of_first_contained_value_in_list(dom,[0,10,11]) ).to.eql 0
       expect( domain_get_value_of_first_contained_value_in_list(dom,[10,11,0,12]) ).to.eql 0
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql undefined
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1,2,3,4,5]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql NO_SUCH_VALUE
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[1,2,3,4,5]) ).to.eql NO_SUCH_VALUE
 
     it "3", ->
       dom = spec_d_create_ranges([0,4],[10,14])
@@ -165,7 +171,7 @@ describe "FD - Domain", ->
     it "4", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])
       expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5,12,11]) ).to.eql 12
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5]) ).to.eql NO_SUCH_VALUE
 
     it "should throw for negative values", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])

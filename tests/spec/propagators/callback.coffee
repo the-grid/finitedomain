@@ -20,10 +20,17 @@ describe "FD - propagators - callback", ->
       expect(propagator_create_callback?).to.be.true
 
   describe 'integration tests', ->
+    {
+      space: Space
+    } = FD
 
-    {space:Space} = FD
-    {domain_get_value} = FD.Domain
-    NONE = -1
+    {
+      NO_SUCH_VALUE
+    } = FD.helpers
+
+    {
+      _domain_get_value: domain_get_value
+    } = FD.Domain
 
     it 'should accept a single var name', ->
 
@@ -32,7 +39,7 @@ describe "FD - propagators - callback", ->
         gv = domain_get_value g.dom
         bv = domain_get_value b.dom
 
-        if rv is NONE or gv is NONE or bv is NONE
+        if rv is NO_SUCH_VALUE or gv is NO_SUCH_VALUE or bv is NO_SUCH_VALUE
           return true # at least one domain isnt a single value; keep searching
 
         # exact match now

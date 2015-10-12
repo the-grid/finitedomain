@@ -4,6 +4,10 @@ module.exports = (FD) ->
 
   SUP = 100000000
   REJECTED = -1
+  NOT_FOUND = -1
+  # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
+  # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
+  NO_SUCH_VALUE = -1
   DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
 
   # For unit tests
@@ -55,6 +59,8 @@ module.exports = (FD) ->
   FD.helpers = {
     REJECTED
     SUP
+    NOT_FOUND
+    NO_SUCH_VALUE
 
     ASSERT
     ASSERT_DOMAIN

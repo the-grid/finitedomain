@@ -2,6 +2,7 @@ module.exports = (FD) ->
 
   {
     SUP
+    NO_SUCH_VALUE
 
     ASSERT
     ASSERT_DOMAIN
@@ -55,9 +56,7 @@ module.exports = (FD) ->
     [lo, hi] = domain
     if domain[LO_BOUND] is domain[HI_BOUND]
       return lo
-    # note: if we support negative numbers this constant will have to be something else
-    # TOFIX: add explicit test for this so prevent the above from regressing
-    return NOT_FOUND
+    return NO_SUCH_VALUE
 
   # list of possible values to domain
 
@@ -142,6 +141,7 @@ module.exports = (FD) ->
     for value in list
       if domain_contains_value domain, value
         return value
+    return NO_SUCH_VALUE
 
   # Add all values covered by domain to `list` that aren't already in `list`
 
@@ -615,7 +615,6 @@ module.exports = (FD) ->
     domain_equal
     domain_except_bounds
     domain_from_list
-    domain_get_value
     domain_get_value_of_first_contained_value_in_list
     domain_intersect_bounds_into
     domain_intersection
@@ -635,6 +634,7 @@ module.exports = (FD) ->
     domain_without
 
     # testing only:
+    _domain_get_value: domain_get_value
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline

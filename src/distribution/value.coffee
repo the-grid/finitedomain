@@ -24,7 +24,7 @@ module.exports = (FD) ->
   } = FD.Domain
 
   {
-    distribute_markov_sampleNextFromDomain
+    distribution_markov_sampleNextFromDomain
   } = FD.distribute.Markov
 
   {
@@ -47,7 +47,7 @@ module.exports = (FD) ->
   # Searches through a variable's values in order specified in a list.
   # Similar to the "naive" variable distribution, but for values.
 
-  distribute_value_by_list = (S, var_name, options) ->
+  distribution_value_by_list = (S, var_name, options) ->
     list = options.list
     unless list
       throw new Error "list distribution requires SolverVar #{v} w/ distributeOptions:{list:[]}"
@@ -103,7 +103,7 @@ module.exports = (FD) ->
   # Markov
   # -----------------------------------------------------------------
 
-  distribute_value_by_markov = (S, var_name, options) ->
+  distribution_value_by_markov = (S, var_name, options) ->
     {
       matrix
       legend
@@ -122,7 +122,7 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           row = get_next_row_to_solve space, matrix
-          value = distribute_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
+          value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
           unless value?
             return # signifies end of search
           space.memory.lastValueByVar[var_name] = value
@@ -146,7 +146,7 @@ module.exports = (FD) ->
 
   # Searches through a var's values from min to max.
 
-  distribute_value_by_min = (S, var_name) ->
+  distribution_value_by_min = (S, var_name) ->
     value_distribution_by_min = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
@@ -182,7 +182,7 @@ module.exports = (FD) ->
 
   # Searches through a var's values from max to min.
 
-  distribute_value_by_max = (S, var_name) ->
+  distribution_value_by_max = (S, var_name) ->
     value_distribution_by_max = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
@@ -214,7 +214,7 @@ module.exports = (FD) ->
   # Mid
   # -----------------------------------------------------------------
 
-  distribute_value_by_mid = (S, var_name) ->
+  distribution_value_by_mid = (S, var_name) ->
     value_distribution_by_mid = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
@@ -250,7 +250,7 @@ module.exports = (FD) ->
   # splitMin
   # -----------------------------------------------------------------
 
-  distribute_value_by_split_min = (S, var_name) ->
+  distribution_value_by_split_min = (S, var_name) ->
     value_distribution_by_split_min = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
@@ -281,7 +281,7 @@ module.exports = (FD) ->
   # splitMax
   # -----------------------------------------------------------------
 
-  distribute_value_by_split_max = (S, var_name) ->
+  distribution_value_by_split_max = (S, var_name) ->
     value_distribution_by_split_max = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
         return
@@ -313,21 +313,21 @@ module.exports = (FD) ->
   # WIP...
   # -----------------------------------------------------------------
 
-  distribute_value_by_min_max_cycle = (S, var_name) ->
+  distribution_value_by_min_max_cycle = (S, var_name) ->
     vars = S.solver.vars
     cycle = vars.all.indexOf(vars.byId[var_name]) % 2
     if cycle is 0
-      return distribute_value_by_min S, var_name
+      return distribution_value_by_min S, var_name
     else # if cycle is 1
-      return distribute_value_by_max S, var_name
+      return distribution_value_by_max S, var_name
 
   return FD.distribute.Value = {
-    distribute_value_by_list
-    distribute_value_by_markov
-    distribute_value_by_max
-    distribute_value_by_min
-    distribute_value_by_min_max_cycle
-    distribute_value_by_mid
-    distribute_value_by_split_max
-    distribute_value_by_split_min
+    distribution_value_by_list
+    distribution_value_by_markov
+    distribution_value_by_max
+    distribution_value_by_min
+    distribution_value_by_min_max_cycle
+    distribution_value_by_mid
+    distribution_value_by_split_max
+    distribution_value_by_split_min
   }

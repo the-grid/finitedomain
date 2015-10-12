@@ -10,25 +10,25 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    distribute_presets
+    distribution_presets
   } = FD.distribute
 
   {
-    distribute_value_by_list
-    distribute_value_by_markov
-    distribute_value_by_max
-    distribute_value_by_min
-    distribute_value_by_min_max_cycle
-    distribute_value_by_mid
-    distribute_value_by_split_max
-    distribute_value_by_split_min
+    distribution_value_by_list
+    distribution_value_by_markov
+    distribution_value_by_max
+    distribution_value_by_min
+    distribution_value_by_min_max_cycle
+    distribution_value_by_mid
+    distribution_value_by_split_max
+    distribution_value_by_split_min
   } = FD.distribute.Value
 
   {
-    distribute_var_max
-    distribute_var_min
-    distribute_var_naive
-    distribute_var_size
+    distribution_var_max
+    distribution_var_min
+    distribution_var_naive
+    distribution_var_size
   } = FD.distribute.Var
 
   {
@@ -36,7 +36,7 @@ module.exports = (FD) ->
     fdvar_is_solved
   } = FD.Var
 
-  distribute_get_undetermined_var_names = (S, var_names) ->
+  distribution_get_undetermined_var_names = (S, var_names) ->
     undetermined_names = []
     for var_name in var_names
       ASSERT !fdvar_is_rejected(S.vars[var_name]), 'fdvar should not be rejected at this point, but may be solved'
@@ -46,12 +46,12 @@ module.exports = (FD) ->
 
   create_distributor_options = (options) ->
     if typeof options is 'string'
-      return distribute_presets[options]
+      return distribution_presets[options]
     if !options?
-      return distribute_presets.default
+      return distribution_presets.default
 
     # apply defaults
-    for key, val of distribute_presets.default
+    for key, val of distribution_presets.default
       options[key] ?= val
 
     return options
@@ -60,10 +60,10 @@ module.exports = (FD) ->
     options = create_distributor_options options
 
     # partial application by proxy (-> closure)
-    distribute_create_distributor_on_space = (S, varnames) ->
+    distribution_create_distributor_on_space = (S, varnames) ->
       return create_distributor_on_space S, varnames, options
 
-    return distribute_create_distributor_on_space
+    return distribution_create_distributor_on_space
 
   create_custom_distributor = (space, var_names, options) ->
     return create_fixed_distributor(options) space, var_names
@@ -71,34 +71,34 @@ module.exports = (FD) ->
   get_distributor_value_func = (name) ->
     switch name
       when 'list'
-        return distribute_value_by_list
+        return distribution_value_by_list
       when 'markov'
-        return distribute_value_by_markov
+        return distribution_value_by_markov
       when 'max'
-        return distribute_value_by_max
+        return distribution_value_by_max
       when 'min'
-        return distribute_value_by_min
+        return distribution_value_by_min
       when 'minMaxCycle'
-        return distribute_value_by_min_max_cycle
+        return distribution_value_by_min_max_cycle
       when 'mid'
-        return distribute_value_by_mid
+        return distribution_value_by_mid
       when 'splitMax'
-        return distribute_value_by_split_max
+        return distribution_value_by_split_max
       when 'splitMin'
-        return distribute_value_by_split_min
+        return distribution_value_by_split_min
       else
         throw new Error 'unknown value order type ['+name+']'
 
   get_distributor_var_func = (name) ->
     switch name
       when 'naive'
-        return distribute_var_naive
+        return distribution_var_naive
       when 'size'
-        return distribute_var_size
+        return distribution_var_size
       when 'min'
-        return distribute_var_min
+        return distribution_var_min
       when 'max'
-        return distribute_var_max
+        return distribution_var_max
       else
         throw new Error 'unknown order func ['+name+']'
 
@@ -120,7 +120,7 @@ module.exports = (FD) ->
   # options: {filter:[Function], var:string|Function, val:string|Function}
 
   create_distributor_on_space = (root_space, initial_var_names, options) ->
-    get_target_vars = if typeof options.filter is 'function' then options.filter else distribute_get_undetermined_var_names
+    get_target_vars = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
     var_fitness_func = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
     get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
 

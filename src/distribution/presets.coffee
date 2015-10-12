@@ -1,6 +1,6 @@
 module.exports = (FD) ->
 
-  FD.distribute.distribute_presets =
+  FD.distribute.distribution_presets =
 
     'default':
       var: 'naive'

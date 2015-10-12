@@ -48,7 +48,7 @@ module.exports = (FD) ->
     domain_contains_value
   } = FD.Domain
 
-  distribute_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
+  distribution_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
 
     # this strategy is optimized for small domains,
     # for large Domains likely better to use the sampleIndexLookupList...
@@ -94,7 +94,7 @@ module.exports = (FD) ->
 
     return legend[closest_index]
 
-  distribute_markov_sampleIndexLookupList = (propabilityRow) ->
+  distribution_markov_sampleIndexLookupList = (propabilityRow) ->
 
     unused = propabilityRow.slice()
     propabilityRowIndices = [0...propabilityRow.length]
@@ -130,6 +130,6 @@ module.exports = (FD) ->
     return list
 
   FD.distribute.Markov = {
-    distribute_markov_sampleNextFromDomain
-    distribute_markov_sampleIndexLookupList # unused
+    distribution_markov_sampleNextFromDomain
+    distribution_markov_sampleIndexLookupList # unused
   }

@@ -121,10 +121,15 @@ module.exports = (FD) ->
   # Doing both at once because it is simply more efficient this way
 
   deep_clone_without_value = (domain, value, range_index) ->
-    # TODO: with a flat array we can now optimize this step by starting with a slice
-    #       we could even go further by trying to get as large a slice as possible
-    result = []
-    for lo, index in domain by 2
+    # we have the range offset that should contain the value. the clone wont
+    # affect ranges before or after. but we want to prevent a splice or shifts, so:
+    if range_index
+      result = domain.slice 0, range_index
+    else
+      result = []
+
+    for index in [range_index...domain.length] by 2
+      lo = domain[index]
       hi = domain[index+1]
       if index isnt range_index
         result.push lo, hi

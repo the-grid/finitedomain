@@ -42,9 +42,6 @@ module.exports = (FD) ->
 
   TWO_CHOICES = 2
 
-  # List
-  # -----------------------------------------------------------------
-
   # Searches through a variable's values in order specified in a list.
   # Similar to the "naive" variable distribution, but for values.
 
@@ -101,9 +98,6 @@ module.exports = (FD) ->
         break
     return row
 
-  # Markov
-  # -----------------------------------------------------------------
-
   distribution_value_by_markov = (S, var_name, options) ->
     {
       matrix
@@ -142,9 +136,6 @@ module.exports = (FD) ->
 
     return value_distribution_by_markov
 
-  # Min
-  # -----------------------------------------------------------------
-
   # Searches through a var's values from min to max.
 
   distribution_value_by_min = (S, var_name) ->
@@ -178,9 +169,6 @@ module.exports = (FD) ->
 
     return value_distribution_by_min
 
-  # Max
-  # -----------------------------------------------------------------
-
   # Searches through a var's values from max to min.
 
   distribution_value_by_max = (S, var_name) ->
@@ -211,9 +199,6 @@ module.exports = (FD) ->
       return space
 
     return value_distribution_by_max
-
-  # Mid
-  # -----------------------------------------------------------------
 
   distribution_value_by_mid = (S, var_name) ->
     value_distribution_by_mid = (parent_space, current_choice_index) ->
@@ -252,9 +237,6 @@ module.exports = (FD) ->
     return value_distribution_by_mid
 
 
-  # splitMin
-  # -----------------------------------------------------------------
-
   distribution_value_by_split_min = (S, var_name) ->
     value_distribution_by_split_min = (parent_space, current_choice_index) ->
       if current_choice_index >= TWO_CHOICES
@@ -287,9 +269,6 @@ module.exports = (FD) ->
       return space
 
     return value_distribution_by_split_min
-
-  # splitMax
-  # -----------------------------------------------------------------
 
   distribution_value_by_split_max = (S, var_name) ->
     value_distribution_by_split_max = (parent_space, current_choice_index) ->

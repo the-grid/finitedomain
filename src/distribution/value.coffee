@@ -223,20 +223,24 @@ module.exports = (FD) ->
       fdvar = space.vars[var_name]
       middle = fdvar_middle_element fdvar
 
+      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
+
       switch current_choice_index
         when FIRST_CHOICE
+          # Note: fdvar is not determined so the operation cannot fail
+          # TOFIX: change constrain to something faster
           fdvar_constrain_to_value fdvar, middle
 
         when SECOND_CHOICE
           lob = fdvar_lower_bound fdvar
-          upb = fdvar_upper_bound(fdvar)
+          upb = fdvar_upper_bound fdvar
           arr = []
           if middle > lob
             arr.push lob, middle - 1
           if middle < upb
             arr.push middle + 1, upb
-          # TOFIX: optimize temp array away
-          # TOFIX: (or at least) propagate REJECT
+          # Note: fdvar is not determined so the operation cannot fail
+          # TOFIX: change constrain to something faster
           fdvar_constrain fdvar, arr
 
         else

@@ -216,16 +216,38 @@ module.exports = (FD) ->
     return merge_overlapping_inline domain
 
   domain_sort_by_range = (domain) ->
-    # TODO: fix this asap and properly "manually" sort the ranges inline
-    arr = []
-    for i in [0...domain.length] by 2
-      arr.push [domain[i], domain[i+1]]
-    arr.sort (range1, range2) ->
-      return range1[LO_BOUND] - range2[LO_BOUND]
-    for [lo, hi], index in arr
-      domain[index*2] = lo
-      domain[index*2+1] = hi
-    # ASSERT_DOMAIN domain # Note: domain is in the process of being fixed so dont assert it here
+    len = domain.length
+    if len >= 4
+      quick_sort_inline domain, 0, domain.length-2
+    return
+
+  quick_sort_inline = (domain, first, last) ->
+    if first < last
+      pivot = partition domain, first, last
+      quick_sort_inline domain, first, pivot-2
+      quick_sort_inline domain, pivot+2, last
+    return
+
+  partition = (domain, first, last) ->
+    pivot_index = last
+    pivot = domain[pivot_index] # TODO: i think we'd be better off with a different pivot? middle probably performs better
+
+    index = first
+    for i in [first...last] by 2
+      if domain[i] <= pivot
+        swap_range_inline domain, index, i
+        index += 2
+    swap_range_inline domain, index, last
+    return index
+
+  swap_range_inline = (domain, A, B) ->
+    if A isnt B
+      x = domain[A]
+      y = domain[A+1]
+      domain[A] = domain[B]
+      domain[A+1] = domain[B+1]
+      domain[B] = x
+      domain[B+1] = y
     return
 
   # Check if given domain is in simplified, CSIS form
@@ -659,4 +681,5 @@ module.exports = (FD) ->
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline
+    _domain_sort_by_range: domain_sort_by_range
   }

@@ -262,6 +262,9 @@ module.exports = (FD) ->
 
       space = parent_space.clone()
       fdvar = space.vars[var_name]
+
+      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
+
       domain = fdvar.dom
       min = domain_min domain
       max = domain_max domain
@@ -269,12 +272,14 @@ module.exports = (FD) ->
 
       switch current_choice_index
         when FIRST_CHOICE
-          # TOFIX: propagate REJECT
-          fdvar_constrain fdvar, domain_create_range(min, mmhalf)
+          # Note: fdvar is not determined so the operation cannot fail
+          # Note: this must do some form of intersect, though maybe not constrain
+          fdvar_constrain_to_range fdvar, min, mmhalf
 
         when SECOND_CHOICE
-          # TOFIX: propagate REJECT
-          fdvar_constrain fdvar, domain_create_range(mmhalf + 1, max)
+          # Note: fdvar is not determined so the operation cannot fail
+          # Note: this must do some form of intersect, though maybe not constrain
+          fdvar_constrain_to_range fdvar, mmhalf + 1, max
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"

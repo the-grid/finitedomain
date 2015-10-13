@@ -29,6 +29,7 @@ module.exports = (FD) ->
 
   {
     fdvar_constrain
+    fdvar_constrain_to_range
     fdvar_constrain_to_value
     fdvar_lower_bound
     fdvar_middle_element
@@ -168,7 +169,7 @@ module.exports = (FD) ->
           # (because low can only be SUP if the domain is solved which we assert it cannot be)
           # TOFIX: switch to fdvar_set_range_inline once we resolve reference sharing issues
           # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
-          fdvar_constrain fdvar, domain_create_range(low + 1, fdvar_upper_bound fdvar)
+          fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"
@@ -202,7 +203,7 @@ module.exports = (FD) ->
         when SECOND_CHOICE
           # Note: this is not determined so the operation cannot fail
           # TOFIX: change constrain to something faster
-          fdvar_constrain fdvar, domain_create_range(fdvar_lower_bound(fdvar), hi - 1)
+          fdvar_constrain_to_range fdvar, fdvar_lower_bound(fdvar), hi - 1
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"
@@ -300,11 +301,11 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           # TOFIX: propagate REJECT
-          fdvar_constrain fdvar, domain_create_range(mmhalf + 1, max)
+          fdvar_constrain_to_range fdvar, mmhalf + 1, max
 
         when SECOND_CHOICE
           # TOFIX: propagate REJECT
-          fdvar_constrain fdvar, domain_create_range(min, mmhalf)
+          fdvar_constrain_to_range fdvar, min, mmhalf
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"

@@ -6,6 +6,7 @@ module.exports = (FD) ->
 
   {
     domain_create_all
+    domain_create_range
     domain_create_value
     domain_intersection
     domain_equal
@@ -76,6 +77,9 @@ module.exports = (FD) ->
     fdvar_set_domain fdvar, domain
     return fdvar.vupid - before
 
+  fdvar_constrain_to_range = (fdvar, lo, hi) ->
+    return fdvar_constrain fdvar, domain_create_range(lo, hi)
+
   fdvar_constrain_to_value = (fdvar, value) ->
     return fdvar_constrain fdvar, domain_create_value(value)
 
@@ -100,6 +104,7 @@ module.exports = (FD) ->
   FD.Var = {
     fdvar_clone
     fdvar_constrain
+    fdvar_constrain_to_range
     fdvar_constrain_to_value
     fdvar_create
     fdvar_create_wide

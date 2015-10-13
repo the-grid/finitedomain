@@ -178,19 +178,6 @@ describe "FD - Domain", ->
       expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1,12,11]) ).to.throw
       expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1]) ).to.throw
 
-  describe "domain_complete_list", ->
-
-    {domain_complete_list} = Domain
-
-    it "1", ->
-      dom = spec_d_create_range(0, 3)
-      expect( domain_complete_list(dom,[0]) ).to.eql [0,1,2,3]
-      expect( domain_complete_list(dom,[0,10,9,7]), "[0,10,9,7]").to.eql [0,10,9,7,1,2,3]
-      expect( domain_complete_list(dom,[1]) ).to.eql [1,0,2,3]
-      expect( domain_complete_list(dom,[2]) ).to.eql [2,0,1,3]
-      expect( domain_complete_list(dom,[3]) ).to.eql [3,0,1,2]
-      expect( domain_complete_list(dom,[99,100]) ).to.eql [99,100,0,1,2,3]
-
   describe 'domain_contains_value', ->
 
     {domain_contains_value} = Domain

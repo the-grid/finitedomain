@@ -148,16 +148,6 @@ module.exports = (FD) ->
         return value
     return NO_SUCH_VALUE
 
-  # Add all values covered by domain to `list` that aren't already in `list`
-
-  domain_complete_list = (domain, list) ->
-    ASSERT_DOMAIN domain
-    for lo, index in domain by 2
-      for value in [lo..domain[index+1]]
-        if list.indexOf(value) is NOT_FOUND
-          list.push value
-    return list # TODO: this is only returned for tests. should rewrite tests to improve minification
-
   domain_without = (value) ->
     return domain_except_bounds value, value
 
@@ -632,7 +622,6 @@ module.exports = (FD) ->
     PREV_CHANGED
 
     domain_complement
-    domain_complete_list
     domain_contains_value
     domain_create_all
     domain_create_bool

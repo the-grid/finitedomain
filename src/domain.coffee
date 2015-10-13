@@ -231,10 +231,12 @@ module.exports = (FD) ->
   partition = (domain, first, last) ->
     pivot_index = last
     pivot = domain[pivot_index] # TODO: i think we'd be better off with a different pivot? middle probably performs better
+    pivot_r = domain[pivot_index+1]
 
     index = first
     for i in [first...last] by 2
-      if domain[i] <= pivot
+      L = domain[i]
+      if L < pivot or (L is pivot and domain[i+1] < pivot_r)
         swap_range_inline domain, index, i
         index += 2
     swap_range_inline domain, index, last

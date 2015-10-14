@@ -16,23 +16,35 @@ module.exports = (FD) ->
     fdvar_set_domain
   } = FD.Var
 
-  # TODO: why doesnt this do the opposite of what neq does? this func is much simpler
+  # This eq propagator looks a lot different from neq because in
+  # eq we can prune early all values that are not covered by both.
+  # Any value that is not covered by both can not be a valid solution
+  # that holds this constraint. In neq that's different and we can
+  # only start pruning once at least one var has a solution.
+  # Basically eq is much more efficient compared to neq because we
+  # can potentially skip a lot of values early.
 
   eq_stepper = ->
     v1 = @propdata[1]
     v2 = @propdata[2]
+
     begin_upid = v1.vupid + v2.vupid
     if begin_upid <= @last_upid
       return 0
+
     dom1 = v1.dom
     dom2 = v2.dom
     if domain_equal dom1, dom2
       return 0
-    d = domain_intersection dom1, dom2
-    unless d.length
+
+    new_domain = domain_intersection dom1, dom2
+    unless new_domain.length
       return REJECTED
-    fdvar_set_domain v1, d
-    fdvar_set_domain v2, d
+
+    # note: both vars need different array refs! so clone it for one
+    fdvar_set_domain v1, new_domain
+    fdvar_set_domain v2, new_domain.slice 0
+
     @last_upid = v1.vupid + v2.vupid
     return @last_upid - begin_upid
 

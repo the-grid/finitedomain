@@ -104,7 +104,7 @@ module.exports = (FD) ->
     for value in list
       index = domain_range_index_of domain, value
       if index >= 0
-        return deep_clone_without_value domain, value, index
+        return _deep_clone_without_value domain, value, index
     return # return undefined to indicate end of search
 
   # Search for value in domain. If it exists, remove it and return
@@ -114,13 +114,24 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     index = domain_range_index_of domain, value
     if index >= 0
-      return deep_clone_without_value domain, value, index
+      return _deep_clone_without_value domain, value, index
     return # return undefined to indicate end of search
 
-  # Remove given value from given domain and return result as a deep cloned domain
-  # Doing both at once because it is simply more efficient this way
+  # Return a clone of given domain. If value is contained in domain, the clone
+  # will not contain it. This is an optimization to basically prevent splicing.
 
-  deep_clone_without_value = (domain, value, range_index) ->
+  domain_deep_clone_without_value = (domain, value) ->
+    ASSERT_DOMAIN domain
+    index = domain_range_index_of domain, value
+    if index >= 0
+      return _deep_clone_without_value domain, value, index
+    # regular slice > *
+    return domain.slice 0
+
+  # Same as domain_deep_clone_without_value but requires the first
+  # range_index whose lo is bigger than or equal to value
+
+  _deep_clone_without_value = (domain, value, range_index) ->
     # we have the range offset that should contain the value. the clone wont
     # affect ranges before or after. but we want to prevent a splice or shifts, so:
     if range_index
@@ -710,6 +721,7 @@ module.exports = (FD) ->
     domain_create_range
     domain_create_value
     domain_create_zero
+    domain_deep_clone_without_value
     domain_divby
     domain_equal
     domain_except_bounds

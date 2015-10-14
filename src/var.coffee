@@ -55,6 +55,9 @@ module.exports = (FD) ->
   fdvar_clone = (fdvar) ->
     return fdvar_new fdvar.id, fdvar.dom, fdvar.vupid
 
+  fdvar_is_equal = (fdvar1, fdvar2) ->
+    return domain_equal fdvar1.dom, fdvar2.dom
+
   fdvar_set_domain = (fdvar, domain) ->
     unless domain_equal fdvar.dom, domain
       fdvar.dom = domain
@@ -108,9 +111,10 @@ module.exports = (FD) ->
     fdvar_constrain_to_value
     fdvar_create
     fdvar_create_wide
-    fdvar_is_undetermined
+    fdvar_is_equal
     fdvar_is_rejected
     fdvar_is_solved
+    fdvar_is_undetermined
     fdvar_upper_bound
     fdvar_middle_element
     fdvar_lower_bound

@@ -721,9 +721,15 @@ describe "FD - Domain", ->
 
       expect(domain_equal spec_d_create_range(32, 84), spec_d_create_range(32, 84)).to.be.true
 
+    it 'should return true for same reference', ->
+
+      domain = spec_d_create_range(32, 84)
+      expect(domain_equal domain, domain).to.be.true
+
     it 'should reject if any bound is different', ->
 
       expect(domain_equal spec_d_create_range(1, 84), spec_d_create_range(32, 84)).to.be.false
+      expect(domain_equal spec_d_create_range(1, 84), spec_d_create_range(1, 34)).to.be.false
       expect(domain_equal spec_d_create_range(32, 100), spec_d_create_range(132, 184)).to.be.false
 
     it 'should be able to deep comparison accept', ->

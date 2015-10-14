@@ -1187,12 +1187,29 @@ describe "FD - Domain", ->
 
     it 'should update a domain to given range', ->
 
-      expect(domain_set_to_range_inline [], 0, 0).to.eql domain_set_to_range_inline(0, 1)
-      expect(domain_set_to_range_inline [], 0, 1).to.eql domain_set_to_range_inline(0, 1)
-      expect(domain_set_to_range_inline [], 50, 100).to.eql domain_set_to_range_inline(0, 1)
-      expect(domain_set_to_range_inline [], 0, SUP).to.eql domain_set_to_range_inline(0, 1)
-      expect(domain_set_to_range_inline [], 27, SUP).to.eql domain_set_to_range_inline(0, 1)
-      expect(domain_set_to_range_inline [], SUP, SUP).to.eql domain_set_to_range_inline(0, 1)
+      arr = []
+      domain_set_to_range_inline arr, 0, 0
+      expect(arr).to.eql spec_d_create_range(0, 0)
+
+      arr = []
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+      arr = []
+      domain_set_to_range_inline arr, 50, 100
+      expect(arr).to.eql spec_d_create_range(50, 100)
+
+      arr = []
+      domain_set_to_range_inline arr, 0, SUP
+      expect(arr).to.eql spec_d_create_range(0, SUP)
+
+      arr = []
+      domain_set_to_range_inline arr, 27, 0
+      expect(arr).to.eql spec_d_create_range(27, 0)
+
+      arr = []
+      domain_set_to_range_inline arr, SUP, SUP
+      expect(arr).to.eql spec_d_create_range(SUP, SUP)
 
     it 'should update the array inline', ->
 

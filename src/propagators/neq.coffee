@@ -1,11 +1,12 @@
 module.exports = (FD) ->
   {
     REJECTED
+
+    ASSERT
   } = FD.helpers
 
   {
-    domain_without
-    domain_intersection
+    domain_deep_clone_without_value
   } = FD.Domain
 
   {
@@ -13,63 +14,46 @@ module.exports = (FD) ->
   } = FD.Propagator
 
   {
+    fdvar_is_solved
     fdvar_lower_bound
     fdvar_set_domain
-    fdvar_upper_bound
   } = FD.Var
 
   neq_stepper = ->
     v1 = @propdata[1]
     v2 = @propdata[2]
 
-    last_upid = @last_upid
     begin_upid = v1.vupid + v2.vupid
-    if begin_upid <= last_upid # or @solved
+    if begin_upid <= @last_upid # or @solved
       return 0
 
     unless v1.dom.length and v2.dom.length
       return REJECTED
 
-    lo_1 = fdvar_lower_bound v1
-    hi_1 = fdvar_upper_bound v1
-    lo_2 = fdvar_lower_bound v2
-    hi_2 = fdvar_upper_bound v2
+    # Basically you need to ensure that once an fdvar is "solved", its
+    # value does not appear in the other fdvar. However, we can't simply
+    # remove all elements that appear in both domains from said domains
+    # because these value can validly appear in EITHER fdvar, just NOT BOTH.
+    # TODO: update the vars inline
 
-    # quick check
-    if lo_2 > hi_1 or hi_1 < lo_2 # :'(
-      # Condition already satisfied. No changes necessary.
-      @last_upid = begin_upid
-      @solved = true
-      return 0
+    if fdvar_is_solved v1
+      new_domain = domain_deep_clone_without_value v2.dom, fdvar_lower_bound v1
+      unless new_domain.length
+        return REJECTED
+      fdvar_set_domain v2, new_domain
 
-    # expensive but thorough check
-    # TODO: replace with a fail_fast comparison check that only returns a bool
-    v12 = domain_intersection v1.dom, v2.dom
-    unless v12.length
-      # Condition already satisfied.
-      @last_upid = begin_upid
-      @solved = true
-      return 0
+    # TODO: add test that fails if this block would be removed or remove this block
+    # I _think_ this `else` is fine? TODO: figure out a test that doesnt like the `else` here or remove this comment and keep the elseif
+    else if fdvar_is_solved v2
+      new_domain = domain_deep_clone_without_value v1.dom, fdvar_lower_bound v2
+      unless new_domain.length
+        return REJECTED
+      fdvar_set_domain v1, new_domain
 
-    current_upid = begin_upid
-    while current_upid > last_upid
-      # TODO: optimize this step. it's too formal. i think we can remove the loop and certainly the complement.
+    #    if fdvar_is_solved(v1) and fdvar_is_solved(v2) and fdvar_lower_bound(v1) is fdvar_lower_bound(v2)
+    #      @solved = true
 
-      if lo_1 is hi_1
-        d = domain_intersection v2.dom, domain_without lo_1
-        unless d.length
-          return REJECTED
-        fdvar_set_domain v2, d
-
-      if lo_2 is hi_2
-        d = domain_intersection v1.dom, domain_without lo_2
-        unless d.length
-          return REJECTED
-        fdvar_set_domain v1, d
-
-      last_upid = current_upid
-      current_upid = v1.vupid + v2.vupid
-
+    current_upid = v1.vupid + v2.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 

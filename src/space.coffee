@@ -127,7 +127,8 @@ module.exports = (FD) ->
     return
 
   # A monotonically increasing class-global counter for unique temporary variable names.
-  Space._temp_count = 1
+  _temp_count = 1
+
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
 
@@ -236,7 +237,7 @@ module.exports = (FD) ->
   # if you already know something about it.
 
   Space::temp = (dom) ->
-    t = ++Space._temp_count
+    t = ++_temp_count
     @decl t, dom
     t
 

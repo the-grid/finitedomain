@@ -1294,3 +1294,147 @@ describe "FD - Domain", ->
       domain_sort_by_range arr
       #console.log arr.filter((n,i)->i%2 is 0).join ', '
       expect(arr).to.eql [0,26,0,50,0,65,0,92,0,97,1,35,1,42,1,46,1,48,1,70,1,91,2,17,2,44,2,50,2,52,2,69,2,71,3,18,3,24,3,25,3,40,3,76,4,65,4,87,5,14,5,70,5,71,5,102,6,34,6,102,7,11,7,66,7,70,7,90,8,87,9,11,9,38,9,55,9,67,9,81,9,98,11,34,11,98,12,17,12,38,13,37,14,102,14,113,15,19,15,60,16,52,16,67,16,97,17,26,17,66,17,87,17,101,18,26,18,111,20,24,20,33,20,41,21,54,21,111,22,47,23,51,23,106,25,31,25,57,25,76,25,107,26,33,27,35,27,44,27,48,27,53,27,115,28,28,28,29,28,49,28,49,29,65,30,39,30,42,30,103,31,31,31,42,31,43,31,72,31,100,32,43,32,51,32,100,32,125,33,123,34,62,34,85,36,74,36,78,37,67,37,80,37,102,37,102,38,50,38,65,38,71,38,99,38,117,39,59,39,83,39,98,40,57,40,125,40,132,41,59,42,78,42,139,43,50,43,106,43,110,44,119,44,140,45,62,45,110,46,78,46,89,46,105,46,108,47,84,47,105,48,48,48,70,48,116,49,74,50,139,51,90,51,115,51,140,52,101,52,136,53,90,54,75,54,76,54,81,54,115,54,128,55,63,55,110,55,144,56,103,56,139,57,59,57,74,57,102,57,137,58,94,59,80,59,136,59,142,60,71,60,117,61,108,62,71,62,72,62,106,62,109,63,80,64,86,65,92,65,94,65,163,65,163,66,81,66,93,66,107,67,82,67,89,67,115,68,102,68,150,69,98,69,122,70,97,70,146,70,147,70,152,71,126,71,156,72,82,72,160,73,125,73,159,74,131,74,160,75,143,76,145,76,155,76,161,77,107,77,139,77,147,77,166,77,167,79,135,80,88,80,139,81,83,81,144,81,153,81,170,83,120,83,160,84,126,84,139,85,110,85,114,85,132,85,154,85,168,85,184,86,126,87,117,87,140,88,174,89,133,90,92,90,99,90,118,90,180,91,140,92,175,93,101,93,115,93,130,94,102,94,163,95,97,95,161,95,190,96,145,96,173,96,176,97,109,97,132,97,137,97,154,97,164,98,107,98,162,99,123]
+
+  describe 'domain_remove_gte_inline', ->
+
+    {domain_remove_gte_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_remove_gte_inline?).to.be.true
+
+    it 'should accept an empty domain', ->
+
+      expect(-> domain_remove_gte_inline [], 5).not.to.throw
+
+    it 'should return bool', ->
+
+      expect(domain_remove_gte_inline([], 5), 'empty').to.be.false
+      expect(domain_remove_gte_inline([0, 10], 5), 'range change').to.be.true
+      expect(domain_remove_gte_inline([50, 100], 5), 'range cut').to.be.true
+
+    it 'should trim domain until all values are lt to arg', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_gte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(100, 149)
+
+    it 'should remove excess ranges', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(100, 149)
+
+    it 'should not require a range to contain the value', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 250
+      expect(domain).to.eql spec_d_create_range(100, 200)
+
+    it 'should not require a domain to contain value at all', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 500
+      expect(domain).to.eql spec_d_create_ranges([100, 200], [300, 400])
+
+    it 'should be able to empty a single domain', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a multi domain', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value', ->
+
+      domain = spec_d_create_value 50
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value+1', ->
+
+      domain = spec_d_create_value 51
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should ignore a domain with only value-1', ->
+
+      domain = spec_d_create_value 49
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql spec_d_create_value 49
+
+  describe 'domain_remove_lte_inline', ->
+
+    {domain_remove_lte_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_remove_lte_inline?).to.be.true
+
+    it 'should accept an empty domain', ->
+
+      expect(-> domain_remove_lte_inline [], 5).not.to.throw
+
+    it 'should return bool', ->
+
+      expect(domain_remove_lte_inline([], 5), 'empty').to.be.false
+      expect(domain_remove_lte_inline([0, 10], 5), 'range change').to.be.true
+      expect(domain_remove_lte_inline([50, 100], 500), 'range cut').to.be.true
+
+    it 'should trim domain until all values are gt to arg', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_lte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(151, 200)
+
+    it 'should remove excess ranges', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 350
+      expect(domain).to.eql spec_d_create_range(351, 400)
+
+    it 'should not require a range to contain the value', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 250
+      expect(domain).to.eql spec_d_create_range(300, 400)
+
+    it 'should not require a domain to contain value at all', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql spec_d_create_ranges([100, 200], [300, 400])
+
+    it 'should be able to empty a single domain', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_lte_inline domain, 250
+      expect(domain).to.eql []
+
+    it 'should be able to empty a multi domain', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 450
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value', ->
+
+      domain = spec_d_create_value 50
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value-1', ->
+
+      domain = spec_d_create_value 49
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should ignore a domain with only value+1', ->
+
+      domain = spec_d_create_value 51
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql spec_d_create_value 51

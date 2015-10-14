@@ -622,6 +622,63 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     return domain[LO_BOUND] is domain[HI_BOUND]
 
+  # Remove any value from domain that is bigger than or equal to given value.
+  # Since domains are assumed to be in CSIS form, we can start from the back and
+  # search for the first range that is smaller or contains given value. Prune
+  # any range that follows it and trim the found range if it contains the value.
+  # Returns whether the domain was changed somehow
+
+  domain_remove_gte_inline = (domain, value) ->
+    ASSERT_DOMAIN domain, 'needs to be csis for this trick to work'
+
+    len = domain.length
+    i = len - 2
+    while i >= 0 and domain[i] >= value
+      i -= 2
+
+    if i < 0
+      domain.length = 0
+      return len isnt 0
+
+    domain.length = i+2
+    if domain[i+1] >= value
+      domain[i+1] = value-1 # we already know domain[i] < value so value-1 >= 0
+      return true
+
+    return len isnt i+2
+
+  # Remove any value from domain that is lesser than or equal to given value.
+  # Since domains are assumed to be in CSIS form, we can start from the front and
+  # search for the first range that is smaller or contains given value. Prune
+  # any range that preceeds it and trim the found range if it contains the value.
+  # Returns whether the domain was changed somehow
+
+  domain_remove_lte_inline = (domain, value) ->
+    ASSERT_DOMAIN domain, 'needs to be csis for this trick to work'
+
+    len = domain.length
+    i = 0
+    while i < len and domain[i+1] <= value
+      i += 2
+
+    if i >= len
+      domain.length = 0
+      return len isnt 0
+
+    # move all elements to the front
+    n = 0
+    for index in [i...len]
+      domain[n++] = domain[index]
+    # trim excess space. we just moved them
+    domain.length = n
+
+    # note: first range should be lt or lte to value now since we moved everything
+    if domain[0] <= value
+      domain[0] = value+1
+      return true
+
+    return len isnt n
+
   domain_create_zero = ->
     return [0, 0]
 
@@ -669,6 +726,8 @@ module.exports = (FD) ->
     domain_min
     domain_minus
     domain_plus
+    domain_remove_gte_inline
+    domain_remove_lte_inline
     domain_remove_next_from_list
     domain_remove_value
     domain_set_to_range_inline

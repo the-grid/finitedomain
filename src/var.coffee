@@ -87,9 +87,10 @@ module.exports = (FD) ->
     return fdvar_constrain fdvar, domain_create_value(value)
 
   fdvar_size = (fdvar) ->
-    # TODO: Can be cached using the 'vupid' member which
-    # keeps track of the number of times the domain was
-    # changed.
+    # We could cache this with the `vupid` property but that
+    # means another property on this var which is unused by
+    # most cases. Currently only `distribution_var_size` uses
+    # this and so maybe this size should be cached at caller?
     return domain_size fdvar.dom
 
   fdvar_lower_bound = (fdvar) ->

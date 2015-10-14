@@ -137,7 +137,7 @@ module.exports = (FD) ->
     propagators = @_propagators
     while changed
       changed = false
-      for i in [0...propagators.length] # TODO: if @_propagators never changes we can cache the length
+      for i in [0...propagators.length]
         # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
         n = propagators[i].stepper()
         if n > 0

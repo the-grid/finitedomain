@@ -2,6 +2,8 @@ module.exports = (FD) ->
 
   {
     REJECTED
+
+    ASSERT_UNUSED_DOMAIN
   } = FD.helpers
 
   {
@@ -27,6 +29,7 @@ module.exports = (FD) ->
     return fdvar_new id, domain_create_all(), 0
 
   fdvar_new = (id, dom, vupid) ->
+    ASSERT_UNUSED_DOMAIN dom
     return {
       _class: 'fdvar'
       id
@@ -59,6 +62,7 @@ module.exports = (FD) ->
     return domain_equal fdvar1.dom, fdvar2.dom
 
   fdvar_set_domain = (fdvar, domain) ->
+    ASSERT_UNUSED_DOMAIN domain
     unless domain_equal fdvar.dom, domain
       fdvar.dom = domain
       fdvar.vupid++

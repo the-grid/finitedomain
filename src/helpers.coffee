@@ -9,6 +9,7 @@ module.exports = (FD) ->
   # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
   NO_SUCH_VALUE = -1
   DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
+  DISABLE_DOMAIN_CHECK = true # also causes unrelated errors because mocha sees the expandos
 
   # For unit tests
   # Should be removed in production. Obviously.
@@ -42,6 +43,15 @@ module.exports = (FD) ->
       phi = hi
     return
 
+  # use this to verify that all domains set to an fdvar
+  # are "fresh", and at least not in use by any fdvar yet
+
+  ASSERT_UNUSED_DOMAIN = (domain) ->
+    unless DISABLE_DOMAIN_CHECK
+      ASSERT !domain._fdvar_in_use, 'domains should be unique and not shared'
+      domain._fdvar_in_use = true # asserted just so automatic removal strips this line as well
+    return
+
   ASSERT_VARS = (vars) ->
     if DISABLED
       return
@@ -66,5 +76,6 @@ module.exports = (FD) ->
     ASSERT
     ASSERT_DOMAIN
     ASSERT_SPACE
+    ASSERT_UNUSED_DOMAIN
     ASSERT_VARS
   }

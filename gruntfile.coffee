@@ -49,6 +49,7 @@ module.exports = ->
         options:
           #grep: "FD -"
           #grep: "Harmonics -"
+          # note: you can do `grunt test --grep FD` to grep from cli
           timeout: 6000
           reporter: 'spec'
 

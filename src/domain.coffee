@@ -2,6 +2,7 @@ module.exports = (FD) ->
 
   {
     SUP
+    NO_SUCH_VALUE
 
     ASSERT
     ASSERT_DOMAIN
@@ -55,9 +56,7 @@ module.exports = (FD) ->
     [lo, hi] = domain
     if domain[LO_BOUND] is domain[HI_BOUND]
       return lo
-    # note: if we support negative numbers this constant will have to be something else
-    # TOFIX: add explicit test for this so prevent the above from regressing
-    return NOT_FOUND
+    return NO_SUCH_VALUE
 
   # list of possible values to domain
 
@@ -105,7 +104,7 @@ module.exports = (FD) ->
     for value in list
       index = domain_range_index_of domain, value
       if index >= 0
-        return deep_clone_without_value domain, value, index
+        return _deep_clone_without_value domain, value, index
     return # return undefined to indicate end of search
 
   # Search for value in domain. If it exists, remove it and return
@@ -115,17 +114,33 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     index = domain_range_index_of domain, value
     if index >= 0
-      return deep_clone_without_value domain, value, index
+      return _deep_clone_without_value domain, value, index
     return # return undefined to indicate end of search
 
-  # Remove given value from given domain and return result as a deep cloned domain
-  # Doing both at once because it is simply more efficient this way
+  # Return a clone of given domain. If value is contained in domain, the clone
+  # will not contain it. This is an optimization to basically prevent splicing.
 
-  deep_clone_without_value = (domain, value, range_index) ->
-    # TODO: with a flat array we can now optimize this step by starting with a slice
-    #       we could even go further by trying to get as large a slice as possible
-    result = []
-    for lo, index in domain by 2
+  domain_deep_clone_without_value = (domain, value) ->
+    ASSERT_DOMAIN domain
+    index = domain_range_index_of domain, value
+    if index >= 0
+      return _deep_clone_without_value domain, value, index
+    # regular slice > *
+    return domain.slice 0
+
+  # Same as domain_deep_clone_without_value but requires the first
+  # range_index whose lo is bigger than or equal to value
+
+  _deep_clone_without_value = (domain, value, range_index) ->
+    # we have the range offset that should contain the value. the clone wont
+    # affect ranges before or after. but we want to prevent a splice or shifts, so:
+    if range_index
+      result = domain.slice 0, range_index
+    else
+      result = []
+
+    for index in [range_index...domain.length] by 2
+      lo = domain[index]
       hi = domain[index+1]
       if index isnt range_index
         result.push lo, hi
@@ -142,16 +157,7 @@ module.exports = (FD) ->
     for value in list
       if domain_contains_value domain, value
         return value
-
-  # Add all values covered by domain to `list` that aren't already in `list`
-
-  domain_complete_list = (domain, list) ->
-    ASSERT_DOMAIN domain
-    for lo, index in domain by 2
-      for value in [lo..domain[index+1]]
-        if list.indexOf(value) is NOT_FOUND
-          list.push value
-    return list # TODO: this is only returned for tests. should rewrite tests to improve minification
+    return NO_SUCH_VALUE
 
   domain_without = (value) ->
     return domain_except_bounds value, value
@@ -221,16 +227,40 @@ module.exports = (FD) ->
     return merge_overlapping_inline domain
 
   domain_sort_by_range = (domain) ->
-    # TODO: fix this asap and properly "manually" sort the ranges inline
-    arr = []
-    for i in [0...domain.length] by 2
-      arr.push [domain[i], domain[i+1]]
-    arr.sort (range1, range2) ->
-      return range1[LO_BOUND] - range2[LO_BOUND]
-    for [lo, hi], index in arr
-      domain[index*2] = lo
-      domain[index*2+1] = hi
-    # ASSERT_DOMAIN domain # Note: domain is in the process of being fixed so dont assert it here
+    len = domain.length
+    if len >= 4
+      quick_sort_inline domain, 0, domain.length-2
+    return
+
+  quick_sort_inline = (domain, first, last) ->
+    if first < last
+      pivot = partition domain, first, last
+      quick_sort_inline domain, first, pivot-2
+      quick_sort_inline domain, pivot+2, last
+    return
+
+  partition = (domain, first, last) ->
+    pivot_index = last
+    pivot = domain[pivot_index] # TODO: i think we'd be better off with a different pivot? middle probably performs better
+    pivot_r = domain[pivot_index+1]
+
+    index = first
+    for i in [first...last] by 2
+      L = domain[i]
+      if L < pivot or (L is pivot and domain[i+1] < pivot_r)
+        swap_range_inline domain, index, i
+        index += 2
+    swap_range_inline domain, index, last
+    return index
+
+  swap_range_inline = (domain, A, B) ->
+    if A isnt B
+      x = domain[A]
+      y = domain[A+1]
+      domain[A] = domain[B]
+      domain[A+1] = domain[B+1]
+      domain[B] = x
+      domain[B+1] = y
     return
 
   # Check if given domain is in simplified, CSIS form
@@ -571,13 +601,94 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     return domain[domain.length - 1]
 
-  domain_is_determined = (domain) ->
+  domain_set_to_range_inline = (domain, lo, hi) ->
+    ASSERT_DOMAIN domain, 'should be sound domain'
+    domain[LO_BOUND] = lo
+    domain[HI_BOUND] = hi
+    domain.length = 2
+    return
+
+  # A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
+
+  domain_is_solved = (domain) ->
     ASSERT_DOMAIN domain
     return domain.length is 2 and domain_first_range_is_determined domain
+
+  # A domain is "determined" if it's either one value (solved) or none at all (rejected)
+
+  domain_is_determined = (domain) ->
+    ASSERT_DOMAIN domain
+    len = domain.length
+    if len is 0
+      return true
+    return len is 2 and domain_first_range_is_determined domain
+
+  # A domain is "rejected" if it covers no values. This means every given
+  # value would break at least one constraint so none could be used.
+
+  domain_is_rejected = (domain) ->
+    return domain.length is 0
 
   domain_first_range_is_determined = (domain) ->
     ASSERT_DOMAIN domain
     return domain[LO_BOUND] is domain[HI_BOUND]
+
+  # Remove any value from domain that is bigger than or equal to given value.
+  # Since domains are assumed to be in CSIS form, we can start from the back and
+  # search for the first range that is smaller or contains given value. Prune
+  # any range that follows it and trim the found range if it contains the value.
+  # Returns whether the domain was changed somehow
+
+  domain_remove_gte_inline = (domain, value) ->
+    ASSERT_DOMAIN domain, 'needs to be csis for this trick to work'
+
+    len = domain.length
+    i = len - 2
+    while i >= 0 and domain[i] >= value
+      i -= 2
+
+    if i < 0
+      domain.length = 0
+      return len isnt 0
+
+    domain.length = i+2
+    if domain[i+1] >= value
+      domain[i+1] = value-1 # we already know domain[i] < value so value-1 >= 0
+      return true
+
+    return len isnt i+2
+
+  # Remove any value from domain that is lesser than or equal to given value.
+  # Since domains are assumed to be in CSIS form, we can start from the front and
+  # search for the first range that is smaller or contains given value. Prune
+  # any range that preceeds it and trim the found range if it contains the value.
+  # Returns whether the domain was changed somehow
+
+  domain_remove_lte_inline = (domain, value) ->
+    ASSERT_DOMAIN domain, 'needs to be csis for this trick to work'
+
+    len = domain.length
+    i = 0
+    while i < len and domain[i+1] <= value
+      i += 2
+
+    if i >= len
+      domain.length = 0
+      return len isnt 0
+
+    # move all elements to the front
+    n = 0
+    for index in [i...len]
+      domain[n++] = domain[index]
+    # trim excess space. we just moved them
+    domain.length = n
+
+    # note: first range should be lt or lte to value now since we moved everything
+    if domain[0] <= value
+      domain[0] = value+1
+      return true
+
+    return len isnt n
 
   domain_create_zero = ->
     return [0, 0]
@@ -603,7 +714,6 @@ module.exports = (FD) ->
     PREV_CHANGED
 
     domain_complement
-    domain_complete_list
     domain_contains_value
     domain_create_all
     domain_create_bool
@@ -611,23 +721,28 @@ module.exports = (FD) ->
     domain_create_range
     domain_create_value
     domain_create_zero
+    domain_deep_clone_without_value
     domain_divby
     domain_equal
     domain_except_bounds
     domain_from_list
-    domain_get_value
     domain_get_value_of_first_contained_value_in_list
     domain_intersect_bounds_into
     domain_intersection
     domain_is_determined
+    domain_is_rejected
+    domain_is_solved
     domain_is_value
     domain_max
     domain_middle_element
     domain_min
     domain_minus
     domain_plus
+    domain_remove_gte_inline
+    domain_remove_lte_inline
     domain_remove_next_from_list
     domain_remove_value
+    domain_set_to_range_inline
     domain_simplify
     domain_size
     domain_times
@@ -635,7 +750,9 @@ module.exports = (FD) ->
     domain_without
 
     # testing only:
+    _domain_get_value: domain_get_value
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline
+    _domain_sort_by_range: domain_sort_by_range
   }

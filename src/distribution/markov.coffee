@@ -48,8 +48,11 @@ module.exports = (FD) ->
     domain_contains_value
   } = FD.Domain
 
-  distribute_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
+  # domain is from an fdvar
+  # prob_vector is options.matrix.row for the first row that is unsolved
+  # val_legend is options.legend
 
+  distribution_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
     # this strategy is optimized for small domains,
     # for large Domains likely better to use the sampleIndexLookupList...
 
@@ -73,7 +76,7 @@ module.exports = (FD) ->
 
     # no more values left to search
     if vector.length is 0
-      return undefined
+      return
 
     # only one value left
     if vector.length is 1
@@ -94,7 +97,7 @@ module.exports = (FD) ->
 
     return legend[closest_index]
 
-  distribute_markov_sampleIndexLookupList = (propabilityRow) ->
+  distribution_markov_sampleIndexLookupList = (propabilityRow) ->
 
     unused = propabilityRow.slice()
     propabilityRowIndices = [0...propabilityRow.length]
@@ -129,7 +132,7 @@ module.exports = (FD) ->
     #console.log "======>", buildValueList([.5,2,.1])
     return list
 
-  FD.distribute.Markov = {
-    distribute_markov_sampleNextFromDomain
-    distribute_markov_sampleIndexLookupList # unused
+  FD.distribution.Markov = {
+    distribution_markov_sampleNextFromDomain
+    distribution_markov_sampleIndexLookupList # unused
   }

@@ -4,17 +4,13 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    domain_create_value
-  } = FD.Domain
-
-  {
     propagator_create
     propagator_create_3x
     propagator_is_solved
   } = FD.Propagator
 
   {
-    fdvar_constrain
+    fdvar_set_value_inline
   } = FD.Var
 
   FIRST_RANGE = 0
@@ -32,15 +28,21 @@ module.exports = (FD) ->
     if pos_or_neg_propagator.stepper() is REJECTED
       # this search must now pass the other operator until the
       # search goes back up the current step in search tree
-      change = fdvar_constrain bool_var, domain_create_value(c)
+      fdvar_set_value_inline bool_var, c
 
-      if change is REJECTED
-        # note: it may (only) fail here if the var was passed on
-        # externally and updated to values without 0 or 1
-        throw new Error 'did not expect constrain to fail here'
+      # TODO: change this to an ASSERT?
+      _throw_if_true bool_var.length is 0
 
     pop_vars pos_or_neg_propagator
     return
+
+  # throw is abstracted to prevent deopt
+
+  _throw_if_true = (v) ->
+    # note: it may (only) fail here if the var was passed on
+    # externally and updated to values without 0 or 1
+    if v
+      throw new Error 'did not expect constrain to fail here'
 
   # Represent a comparison operator over two given variables.
   # Each step call checks whether the constraint still holds or updates

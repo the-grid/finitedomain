@@ -1,10 +1,13 @@
 module.exports = (FD) ->
   {
     REJECTED
+
+    ASSERT_DOMAIN
   } = FD.helpers
 
   {
-    domain_intersect_bounds_into
+    domain_remove_gte_inline
+    domain_remove_lte_inline
   } = FD.Domain
 
   {
@@ -40,31 +43,30 @@ module.exports = (FD) ->
       @solved = true
       return 0
 
-    current_upid = begin_upid
-    while current_upid > last_upid
-      if hi_2 - 1 < hi_1
-        # Need to change domain of v1.
-        # TODO: this update step can be done more efficient... it's too "formal" right now.
-        hi_1 = hi_2 - 1 # note: either get rid of the intersection (YES) or update hi_1 by ref after the fdvar_set_domain
-        new_domain = []
-        domain_intersect_bounds_into v1.dom, lo_1, hi_1, new_domain
-        unless new_domain.length
-          return REJECTED
-        fdvar_set_domain v1, new_domain
+    ASSERT_DOMAIN v1.dom, 'v1 needs to be csis for this trick to work'
+    ASSERT_DOMAIN v2.dom, 'v2 needs to be csis for this trick to work'
 
-      if lo_1 + 1 > lo_2
-        # Need to change domain of v2.
-        # TODO: this update step can be done more efficient... it's too "formal" right now.
-        lo_2 = lo_1 + 1 # note: either get rid of the intersection (YES) or update lo_2 by ref after the fdvar_set_domain
-        new_domain = []
-        domain_intersect_bounds_into v2.dom, lo_2, hi_2, new_domain
-        unless new_domain.length
-          return REJECTED
-        fdvar_set_domain v2, new_domain
+    # every number in v1 can only be smaller than or equal to the biggest
+    # value in v2. bigger values will never satisfy lt so prune them.
+    if hi_1 >= hi_2
+      # TODO: make this an inline operation to fdvar, once that's possible
+      new_dom = v1.dom.slice 0
+      domain_remove_gte_inline new_dom, hi_2
+      if new_dom.length is 0
+        return REJECTED
+      fdvar_set_domain v1, new_dom
 
-      last_upid = current_upid
-      current_upid = v1.vupid + v2.vupid
+    # likewise; numbers in v2 that are smaller than or equal to the
+    # smallest value of v1 can never satisfy lt so prune them as well
+    if lo_1 >= lo_2
+      # TODO: make this an inline operation to fdvar, once that's possible
+      new_dom = v2.dom.slice 0
+      domain_remove_lte_inline new_dom, lo_1
+      if new_dom.length is 0
+        return REJECTED
+      fdvar_set_domain v2, new_dom
 
+    current_upid = v1.vupid + v2.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 

@@ -8,14 +8,20 @@ if typeof require is 'function'
     spec_d_create_ranges
     spec_d_create_value
     spec_d_create_zero
-  } = require '../fixtures/domain'
+  } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
 FD = finitedomain
 
 describe "FD - Domain", ->
 
-  {Domain} = FD
+  {
+    Domain
+  } = FD
+
+  {
+    NO_SUCH_VALUE
+  } = FD.helpers
 
   it 'should exist', ->
 
@@ -143,15 +149,15 @@ describe "FD - Domain", ->
       expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql 1
       expect( domain_get_value_of_first_contained_value_in_list(dom,[2]) ).to.eql 2
       expect( domain_get_value_of_first_contained_value_in_list(dom,[3]) ).to.eql 3
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,100]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,100]) ).to.eql NO_SUCH_VALUE
 
     it "2", ->
       dom = spec_d_create_zero()
       expect( domain_get_value_of_first_contained_value_in_list(dom,[0]) ).to.eql 0
       expect( domain_get_value_of_first_contained_value_in_list(dom,[0,10,11]) ).to.eql 0
       expect( domain_get_value_of_first_contained_value_in_list(dom,[10,11,0,12]) ).to.eql 0
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql undefined
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1,2,3,4,5]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql NO_SUCH_VALUE
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[1,2,3,4,5]) ).to.eql NO_SUCH_VALUE
 
     it "3", ->
       dom = spec_d_create_ranges([0,4],[10,14])
@@ -165,25 +171,12 @@ describe "FD - Domain", ->
     it "4", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])
       expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5,12,11]) ).to.eql 12
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5]) ).to.eql undefined
+      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5]) ).to.eql NO_SUCH_VALUE
 
     it "should throw for negative values", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])
       expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1,12,11]) ).to.throw
       expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1]) ).to.throw
-
-  describe "domain_complete_list", ->
-
-    {domain_complete_list} = Domain
-
-    it "1", ->
-      dom = spec_d_create_range(0, 3)
-      expect( domain_complete_list(dom,[0]) ).to.eql [0,1,2,3]
-      expect( domain_complete_list(dom,[0,10,9,7]), "[0,10,9,7]").to.eql [0,10,9,7,1,2,3]
-      expect( domain_complete_list(dom,[1]) ).to.eql [1,0,2,3]
-      expect( domain_complete_list(dom,[2]) ).to.eql [2,0,1,3]
-      expect( domain_complete_list(dom,[3]) ).to.eql [3,0,1,2]
-      expect( domain_complete_list(dom,[99,100]) ).to.eql [99,100,0,1,2,3]
 
   describe 'domain_contains_value', ->
 
@@ -728,9 +721,15 @@ describe "FD - Domain", ->
 
       expect(domain_equal spec_d_create_range(32, 84), spec_d_create_range(32, 84)).to.be.true
 
+    it 'should return true for same reference', ->
+
+      domain = spec_d_create_range(32, 84)
+      expect(domain_equal domain, domain).to.be.true
+
     it 'should reject if any bound is different', ->
 
       expect(domain_equal spec_d_create_range(1, 84), spec_d_create_range(32, 84)).to.be.false
+      expect(domain_equal spec_d_create_range(1, 84), spec_d_create_range(1, 34)).to.be.false
       expect(domain_equal spec_d_create_range(32, 100), spec_d_create_range(132, 184)).to.be.false
 
     it 'should be able to deep comparison accept', ->
@@ -1084,3 +1083,381 @@ describe "FD - Domain", ->
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       expect(domain_divby a, b).to.eql spec_d_create_ranges([0, SUP])
 
+  describe 'domain_is_solved', ->
+
+    {SUP} = FD.helpers
+    {domain_is_solved} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_solved?).to.be.true
+
+    it 'should return true if a domain covers exactly one value', ->
+
+      expect(domain_is_solved spec_d_create_value 0).to.be.true
+      expect(domain_is_solved spec_d_create_value 1).to.be.true
+      expect(domain_is_solved spec_d_create_value 18).to.be.true
+      expect(domain_is_solved spec_d_create_value SUP).to.be.true
+
+    it 'should return false if a domain is empty', ->
+
+      expect(domain_is_solved []).to.be.false
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_solved spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_solved spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_solved spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_solved spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_solved spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+
+  describe 'domain_is_rejected', ->
+
+    {SUP} = FD.helpers
+    {domain_is_rejected} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_rejected?).to.be.true
+
+    it 'should return true if a domain is empty', ->
+
+      expect(domain_is_rejected []).to.be.true
+
+    it 'should return false if a domain covers exactly one value', ->
+
+      expect(domain_is_rejected spec_d_create_value 0).to.be.false
+      expect(domain_is_rejected spec_d_create_value 1).to.be.false
+      expect(domain_is_rejected spec_d_create_value 18).to.be.false
+      expect(domain_is_rejected spec_d_create_value SUP).to.be.false
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_rejected spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_rejected spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_rejected spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_rejected spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_rejected spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+
+  describe 'domain_is_determined', ->
+
+    {SUP} = FD.helpers
+    {domain_is_determined} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_is_determined?).to.be.true
+
+    it 'should return true if a domain is empty', ->
+
+      expect(domain_is_determined []).to.be.true
+
+    it 'should return true if a domain covers exactly one value', ->
+
+      expect(domain_is_determined spec_d_create_value 0).to.be.true
+      expect(domain_is_determined spec_d_create_value 1).to.be.true
+      expect(domain_is_determined spec_d_create_value 18).to.be.true
+      expect(domain_is_determined spec_d_create_value SUP).to.be.true
+
+    it 'should return false if a domain covers more than one value', ->
+
+      expect(domain_is_determined spec_d_create_range 0, 1).to.be.false
+      expect(domain_is_determined spec_d_create_range 18, 20).to.be.false
+      expect(domain_is_determined spec_d_create_range 50, SUP).to.be.false
+      expect(domain_is_determined spec_d_create_range 0, SUP).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [0, 1], [5, 10]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [0, 1], [5, SUP]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [5, 8], [50, SUP]).to.be.false
+      expect(domain_is_determined spec_d_create_ranges [5, 8], [23, 34], [50, SUP]).to.be.false
+
+  describe 'domain_set_to_range_inline', ->
+
+    {SUP} = FD.helpers
+    {domain_set_to_range_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_set_to_range_inline?).to.be.true
+
+    it 'should update a domain to given range', ->
+
+      arr = []
+      domain_set_to_range_inline arr, 0, 0
+      expect(arr).to.eql spec_d_create_range(0, 0)
+
+      arr = []
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+      arr = []
+      domain_set_to_range_inline arr, 50, 100
+      expect(arr).to.eql spec_d_create_range(50, 100)
+
+      arr = []
+      domain_set_to_range_inline arr, 0, SUP
+      expect(arr).to.eql spec_d_create_range(0, SUP)
+
+      arr = []
+      domain_set_to_range_inline arr, 27, 0
+      expect(arr).to.eql spec_d_create_range(27, 0)
+
+      arr = []
+      domain_set_to_range_inline arr, SUP, SUP
+      expect(arr).to.eql spec_d_create_range(SUP, SUP)
+
+    it 'should update the array inline', ->
+
+      arr = []
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+    it 'should clobber existing values', ->
+
+      arr = spec_d_create_range(50, 100)
+      domain_set_to_range_inline arr, 0, 1
+      expect(arr).to.eql spec_d_create_range(0, 1)
+
+    it 'should ensure the result is one range', ->
+
+      arr = spec_d_create_ranges([50, 100], [150, 200], [300, 500])
+      domain_set_to_range_inline arr, 110, 175
+      expect(arr).to.eql spec_d_create_range(110, 175)
+
+  describe 'domain_sort_by_range', ->
+
+    {_domain_sort_by_range: domain_sort_by_range} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_sort_by_range?).to.be.true
+
+    it 'should throw for emtpy domains', ->
+
+      expect(-> domain_sort_by_range []).to.throw
+
+    it 'should return nothing', ->
+
+      expect(domain_sort_by_range [0, 1]).to.be.undefined
+
+    it 'should keep pairs sorted', ->
+
+      arr = [0, 1, 2, 3]
+      domain_sort_by_range arr
+      expect(arr).to.eql [0, 1, 2, 3]
+
+    it 'should sort range pairs by lo', ->
+
+      arr = [2, 3, 0, 1]
+      domain_sort_by_range arr
+      expect(arr).to.eql [0, 1, 2, 3]
+
+    it 'should sort range pairs by hi if lo is equal', ->
+
+      arr = [2, 3, 2, 1]
+      domain_sort_by_range arr
+      expect(arr).to.eql [2, 1, 2, 3]
+
+    it 'should not change domain if already sorted even when lo is equal', ->
+
+      arr = [2, 3, 2, 6]
+      domain_sort_by_range arr
+      expect(arr).to.eql [2, 3, 2, 6]
+
+    it 'should accept solved domains', ->
+
+      arr = [50, 50]
+      domain_sort_by_range arr
+      expect(arr).to.eql [50, 50]
+
+    it 'should allow single value ranges', ->
+
+      arr = [0, 1, 5, 10, 3, 3]
+      domain_sort_by_range arr
+      expect(arr).to.eql [0, 1, 3, 3, 5, 10]
+
+    it 'should work with 4 ranges', ->
+
+      arr = [20, 30, 0, 1, 5, 10, 3, 3]
+      domain_sort_by_range arr
+      expect(arr).to.eql [0, 1, 3, 3, 5, 10, 20, 30]
+
+    it 'should work with 5 ranges', ->
+
+      arr = [20, 30, 0, 1, 18, 19, 5, 10, 3, 3]
+      domain_sort_by_range arr
+      expect(arr).to.eql [0, 1, 3, 3, 5, 10, 18, 19, 20, 30]
+
+    it 'should work with 50 ranges', ->
+      # arr = []
+      # for i in [0...50]
+      #   arr.push (x=Mathf.floor(Math.random() * 100)), x + Math.floor(Math.random() * 100)
+
+      arr = [61, 104, 78, 130, 6, 92, 34, 51, 86, 109, 0, 32, 39, 62, 91, 96, 49, 134, 91, 163, 42, 105, 22, 78, 78, 133, 13, 111, 49, 141, 41, 134, 34, 57, 19, 27, 25, 64, 18, 75, 75, 151, 88, 127, 30, 74, 11, 59, 84, 107, 54, 91, 3, 85, 97, 167, 55, 103, 81, 174, 32, 55, 28, 87, 42, 69, 31, 118, 99, 137, 12, 94, 31, 98, 69, 162, 52, 89, 85, 126, 93, 160, 20, 53, 82, 88, 8, 46, 29, 75, 97, 146, 13, 35, 51, 125, 5, 18, 88, 178]
+      domain_sort_by_range arr
+      #console.log arr.filter((n,i)->i%2 is 0).join ', '
+      expect(arr).to.eql [0, 32, 3, 85, 5, 18, 6, 92, 8, 46, 11, 59, 12, 94, 13, 35, 13, 111, 18, 75, 19, 27, 20, 53, 22, 78, 25, 64, 28, 87, 29, 75, 30, 74, 31, 98, 31, 118, 32, 55, 34, 51, 34, 57, 39, 62, 41, 134, 42, 69, 42, 105, 49, 134, 49, 141, 51, 125, 52, 89, 54, 91, 55, 103, 61, 104, 69, 162, 75, 151, 78, 130, 78, 133, 81, 174, 82, 88, 84, 107, 85, 126, 86, 109, 88, 127, 88, 178, 91, 96, 91, 163, 93, 160, 97, 146, 97, 167, 99, 137]
+
+    it 'should work with 51 ranges', ->
+
+      arr = [4,13,67,101,38,70,99,144,65,126,45,110,86,183,73,134,84,112,64,83,63,90,18,64,52,116,87,134,35,125,13,94,23,30,97,117,64,82,77,134,61,72,63,76,38,111,33,96,5,98,5,50,52,121,18,30,70,155,8,56,4,15,21,98,95,166,83,148,33,62,0,72,57,107,60,133,66,163,48,130,90,163,56,123,14,26,90,92,9,64,4,4,17,22,9,78,25,66,87,95,64,145]
+      domain_sort_by_range arr
+      #console.log arr.filter((n,i)->i%2 is 0).join ', '
+      expect(arr).to.eql [0,72,4,4,4,13,4,15,5,50,5,98,8,56,9,64,9,78,13,94,14,26,17,22,18,30,18,64,21,98,23,30,25,66,33,62,33,96,35,125,38,70,38,111,45,110,48,130,52,116,52,121,56,123,57,107,60,133,61,72,63,76,63,90,64,82,64,83,64,145,65,126,66,163,67,101,70,155,73,134,77,134,83,148,84,112,86,183,87,95,87,134,90,92,90,163,95,166,97,117,99,144]
+
+    it 'should work with 250 ranges', ->
+      # this should be very fast.
+
+      arr = [56,103,54,76,81,144,30,103,38,50,3,25,37,80,2,44,67,82,80,88,37,67,25,76,47,105,16,97,46,78,21,111,14,113,47,84,55,63,15,19,54,75,40,57,34,85,62,71,16,52,70,152,1,42,86,126,97,109,9,38,91,140,27,48,54,115,3,18,1,35,17,66,38,65,33,123,7,70,68,150,64,86,77,167,73,159,0,97,76,155,2,50,48,116,52,136,31,43,65,163,20,41,70,146,83,120,79,135,9,98,16,67,55,144,0,26,70,97,9,67,39,98,14,102,67,89,44,140,97,132,90,99,61,108,71,126,31,72,17,26,98,162,32,125,51,115,96,176,39,83,77,147,20,24,18,26,12,17,45,110,57,74,28,49,7,11,32,43,43,50,5,70,42,139,81,83,20,33,77,107,52,101,36,78,49,74,90,118,36,74,4,87,62,109,15,60,11,34,85,184,27,115,2,52,37,102,40,132,87,117,94,163,48,70,50,139,97,137,31,31,42,78,28,29,70,147,8,87,87,140,59,142,43,110,3,76,39,59,57,137,54,128,72,82,66,81,30,39,69,122,5,102,81,170,94,102,25,31,95,190,66,107,1,48,54,81,60,117,2,69,31,42,90,92,13,37,58,94,83,160,96,145,59,80,27,35,60,71,57,102,93,115,43,106,62,72,74,131,93,101,32,51,80,139,17,87,9,11,2,71,57,59,38,71,81,153,59,136,65,94,23,106,77,139,1,91,27,44,96,173,56,139,44,119,85,132,26,33,63,80,73,125,69,98,6,34,27,53,74,160,46,108,88,174,97,154,7,90,89,133,1,46,76,161,85,110,31,100,97,164,66,93,71,156,1,70,99,123,84,126,2,17,65,163,68,102,5,71,95,97,28,49,34,62,22,47,76,145,0,65,38,117,95,161,46,105,93,130,48,48,90,180,67,115,21,54,18,111,98,107,12,38,0,92,7,66,25,57,29,65,9,81,5,14,3,40,6,102,65,92,17,101,11,98,55,110,85,168,51,90,38,99,75,143,84,139,85,114,41,59,9,55,77,166,25,107,40,125,72,160,53,90,0,50,28,28,51,140,3,24,85,154,30,42,62,106,46,89,4,65,45,62,92,175,23,51,32,100,37,102]
+      domain_sort_by_range arr
+      #console.log arr.filter((n,i)->i%2 is 0).join ', '
+      expect(arr).to.eql [0,26,0,50,0,65,0,92,0,97,1,35,1,42,1,46,1,48,1,70,1,91,2,17,2,44,2,50,2,52,2,69,2,71,3,18,3,24,3,25,3,40,3,76,4,65,4,87,5,14,5,70,5,71,5,102,6,34,6,102,7,11,7,66,7,70,7,90,8,87,9,11,9,38,9,55,9,67,9,81,9,98,11,34,11,98,12,17,12,38,13,37,14,102,14,113,15,19,15,60,16,52,16,67,16,97,17,26,17,66,17,87,17,101,18,26,18,111,20,24,20,33,20,41,21,54,21,111,22,47,23,51,23,106,25,31,25,57,25,76,25,107,26,33,27,35,27,44,27,48,27,53,27,115,28,28,28,29,28,49,28,49,29,65,30,39,30,42,30,103,31,31,31,42,31,43,31,72,31,100,32,43,32,51,32,100,32,125,33,123,34,62,34,85,36,74,36,78,37,67,37,80,37,102,37,102,38,50,38,65,38,71,38,99,38,117,39,59,39,83,39,98,40,57,40,125,40,132,41,59,42,78,42,139,43,50,43,106,43,110,44,119,44,140,45,62,45,110,46,78,46,89,46,105,46,108,47,84,47,105,48,48,48,70,48,116,49,74,50,139,51,90,51,115,51,140,52,101,52,136,53,90,54,75,54,76,54,81,54,115,54,128,55,63,55,110,55,144,56,103,56,139,57,59,57,74,57,102,57,137,58,94,59,80,59,136,59,142,60,71,60,117,61,108,62,71,62,72,62,106,62,109,63,80,64,86,65,92,65,94,65,163,65,163,66,81,66,93,66,107,67,82,67,89,67,115,68,102,68,150,69,98,69,122,70,97,70,146,70,147,70,152,71,126,71,156,72,82,72,160,73,125,73,159,74,131,74,160,75,143,76,145,76,155,76,161,77,107,77,139,77,147,77,166,77,167,79,135,80,88,80,139,81,83,81,144,81,153,81,170,83,120,83,160,84,126,84,139,85,110,85,114,85,132,85,154,85,168,85,184,86,126,87,117,87,140,88,174,89,133,90,92,90,99,90,118,90,180,91,140,92,175,93,101,93,115,93,130,94,102,94,163,95,97,95,161,95,190,96,145,96,173,96,176,97,109,97,132,97,137,97,154,97,164,98,107,98,162,99,123]
+
+  describe 'domain_remove_gte_inline', ->
+
+    {domain_remove_gte_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_remove_gte_inline?).to.be.true
+
+    it 'should accept an empty domain', ->
+
+      expect(-> domain_remove_gte_inline [], 5).not.to.throw
+
+    it 'should return bool', ->
+
+      expect(domain_remove_gte_inline([], 5), 'empty').to.be.false
+      expect(domain_remove_gte_inline([0, 10], 5), 'range change').to.be.true
+      expect(domain_remove_gte_inline([50, 100], 5), 'range cut').to.be.true
+
+    it 'should trim domain until all values are lt to arg', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_gte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(100, 149)
+
+    it 'should remove excess ranges', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(100, 149)
+
+    it 'should not require a range to contain the value', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 250
+      expect(domain).to.eql spec_d_create_range(100, 200)
+
+    it 'should not require a domain to contain value at all', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 500
+      expect(domain).to.eql spec_d_create_ranges([100, 200], [300, 400])
+
+    it 'should be able to empty a single domain', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a multi domain', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value', ->
+
+      domain = spec_d_create_value 50
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value+1', ->
+
+      domain = spec_d_create_value 51
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should ignore a domain with only value-1', ->
+
+      domain = spec_d_create_value 49
+      domain_remove_gte_inline domain, 50
+      expect(domain).to.eql spec_d_create_value 49
+
+  describe 'domain_remove_lte_inline', ->
+
+    {domain_remove_lte_inline} = FD.Domain
+
+    it 'should exist', ->
+
+      expect(domain_remove_lte_inline?).to.be.true
+
+    it 'should accept an empty domain', ->
+
+      expect(-> domain_remove_lte_inline [], 5).not.to.throw
+
+    it 'should return bool', ->
+
+      expect(domain_remove_lte_inline([], 5), 'empty').to.be.false
+      expect(domain_remove_lte_inline([0, 10], 5), 'range change').to.be.true
+      expect(domain_remove_lte_inline([50, 100], 500), 'range cut').to.be.true
+
+    it 'should trim domain until all values are gt to arg', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_lte_inline domain, 150
+      expect(domain).to.eql spec_d_create_range(151, 200)
+
+    it 'should remove excess ranges', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 350
+      expect(domain).to.eql spec_d_create_range(351, 400)
+
+    it 'should not require a range to contain the value', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 250
+      expect(domain).to.eql spec_d_create_range(300, 400)
+
+    it 'should not require a domain to contain value at all', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql spec_d_create_ranges([100, 200], [300, 400])
+
+    it 'should be able to empty a single domain', ->
+
+      domain = spec_d_create_range(100, 200)
+      domain_remove_lte_inline domain, 250
+      expect(domain).to.eql []
+
+    it 'should be able to empty a multi domain', ->
+
+      domain = spec_d_create_ranges([100, 200], [300, 400])
+      domain_remove_lte_inline domain, 450
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value', ->
+
+      domain = spec_d_create_value 50
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should be able to empty a domain containing only given value-1', ->
+
+      domain = spec_d_create_value 49
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql []
+
+    it 'should ignore a domain with only value+1', ->
+
+      domain = spec_d_create_value 51
+      domain_remove_lte_inline domain, 50
+      expect(domain).to.eql spec_d_create_value 51

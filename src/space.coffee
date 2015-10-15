@@ -12,7 +12,7 @@ module.exports = (FD) ->
     domain_create_value
     domain_create_zero
     domain_intersection
-    domain_is_determined
+    domain_is_solved
     domain_min
     domain_plus
     domain_times
@@ -62,8 +62,8 @@ module.exports = (FD) ->
       # fdvars object. This gets us copy on modify semantics.
       @vars = {}
       @_propagators = []
-      @distribuate = -> # set from Distribute... for now.
-        throw new Error 'Space#distribuate(); override me'
+      get_value_distributor = -> # set from distribution/distribute... for now.
+        throw new Error 'Space#get_value_distributor(); override me'
 
       @memory = {}
 
@@ -75,7 +75,7 @@ module.exports = (FD) ->
       j = undefined
       p = undefined
 
-      @distribuate = S.distribuate # copy the search strategy set from Distribute initially
+      @get_value_distributor = S.get_value_distributor # copy the search strategy set from Distribution initially
 
       # keep memory
       @memory = S.memory if S.memory
@@ -127,7 +127,8 @@ module.exports = (FD) ->
     return
 
   # A monotonically increasing class-global counter for unique temporary variable names.
-  Space._temp_count = 1
+  _temp_count = 1
+
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
 
@@ -136,7 +137,7 @@ module.exports = (FD) ->
     propagators = @_propagators
     while changed
       changed = false
-      for i in [0...propagators.length] # TODO: if @_propagators never changes we can cache the length
+      for i in [0...propagators.length]
         # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
         n = propagators[i].stepper()
         if n > 0
@@ -186,7 +187,7 @@ module.exports = (FD) ->
         d = vars[key].dom
         if d.length is 0
           result[key] = false
-        else if domain_is_determined d
+        else if domain_is_solved d
           result[key] = domain_min d
         else
           result[key] = d
@@ -203,7 +204,7 @@ module.exports = (FD) ->
         d = fdvar.dom
         if d.length is 0
           value = undefined
-        else if domain_is_determined d
+        else if domain_is_solved d
           value = domain_min d
         else
           value = d
@@ -236,7 +237,7 @@ module.exports = (FD) ->
   # if you already know something about it.
 
   Space::temp = (dom) ->
-    t = ++Space._temp_count
+    t = ++_temp_count
     @decl t, dom
     t
 
@@ -329,7 +330,7 @@ module.exports = (FD) ->
     if name_or_names instanceof Object or name_or_names instanceof Array
       # Recursively declare all variables in the structure given.
       for i of name_or_names
-        @decl name_or_names[i], dom
+        @decl name_or_names[i], dom.slice 0
       return this
     # A single variable is being declared.
     name = name_or_names

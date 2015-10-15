@@ -1,11 +1,11 @@
 if typeof require is 'function'
-  finitedomain = require '../../src/index'
+  finitedomain = require '../../../src/index'
   chai = require 'chai'
   {
     spec_d_create_bool
     spec_d_create_range
     spec_d_create_value
-  } = require '../fixtures/domain'
+  } = require '../../fixtures/domain.spec.coffee'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -286,8 +286,8 @@ describe "FD -", ->
                 V1_count[solution['V1']]++
                 V2_count[solution['V2']]++
 
-            console.log 'V1_count: ',V1_count
-            console.log 'V2_count: ',V2_count
+#            console.log 'V1_count: ',V1_count
+#            console.log 'V2_count: ',V2_count
 
             assert (V1_count[0] / V1_count[1]) - (1 / 10) < .15
             assert (V1_count[0] / V1_count[1]) - (1 / 1) < .15
@@ -307,8 +307,8 @@ describe "FD -", ->
                 V1_count[solution['V1']]++
                 V2_count[solution['V2']]++
 
-            console.log 'V1_count: ',V1_count
-            console.log 'V2_count: ',V2_count
+#            console.log 'V1_count: ',V1_count
+#            console.log 'V2_count: ',V2_count
 
             assert V1_count[0] is V1_count[1]
             assert V1_count[0] is V1_count[1]
@@ -321,7 +321,10 @@ describe "FD -", ->
             S = new FD.Solver o
 
             S.addVars [
-              {id:'STATE', domain: spec_d_create_range 0, 10}
+              {
+                id:'STATE',
+                domain: spec_d_create_range 0, 10
+              }
               {
                 id:'V1',
                 domain: spec_d_create_range(0, 100),

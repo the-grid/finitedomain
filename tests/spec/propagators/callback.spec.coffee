@@ -4,7 +4,7 @@ if typeof require is 'function'
   {
     spec_d_create_range
     spec_d_create_value
-  } = require '../../fixtures/domain'
+  } = require '../../fixtures/domain.spec'
 
 {expect, assert} = chai
 FD = finitedomain
@@ -20,10 +20,17 @@ describe "FD - propagators - callback", ->
       expect(propagator_create_callback?).to.be.true
 
   describe 'integration tests', ->
+    {
+      space: Space
+    } = FD
 
-    {space:Space} = FD
-    {domain_get_value} = FD.Domain
-    NONE = -1
+    {
+      NO_SUCH_VALUE
+    } = FD.helpers
+
+    {
+      _domain_get_value: domain_get_value
+    } = FD.Domain
 
     it 'should accept a single var name', ->
 
@@ -32,7 +39,7 @@ describe "FD - propagators - callback", ->
         gv = domain_get_value g.dom
         bv = domain_get_value b.dom
 
-        if rv is NONE or gv is NONE or bv is NONE
+        if rv is NO_SUCH_VALUE or gv is NO_SUCH_VALUE or bv is NO_SUCH_VALUE
           return true # at least one domain isnt a single value; keep searching
 
         # exact match now
@@ -50,7 +57,7 @@ describe "FD - propagators - callback", ->
       space.sum ['R', 'G', 'B'], 'T'
       space.callback ['R', 'G', 'B'], cb
 
-      FD.distribute.naive space, ['R', 'G', 'B']
+      FD.distribution.naive space, ['R', 'G', 'B']
 
       state = {space, more: true}
       count = 0

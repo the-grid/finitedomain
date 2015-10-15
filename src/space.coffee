@@ -47,49 +47,41 @@ module.exports = (FD) ->
     fdvar_set_domain
   } = FD.Var
 
+
+  throw_unless_overridden = ->
+    throw new Error 'Space#get_value_distributor(); override me'
+
+
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
   # D4:
-  # - added memory object Spaces share, required for things like markov-style probalisitic value distribution
+  # - added memory object Spaces share, required for things like markov-style probabilistic value distribution
 
-  Space = FD.space = (S) ->
+  Space = FD.space = (parent_space) ->
+    @_type = 'space'
 
-    # new instance
-    if !S
-      # The FDVARS are all named and accessed by name.
-      # When a space is cloned, the clone's fdvars objects
-      # all have their __proto__ fields set to the parent's
-      # fdvars object. This gets us copy on modify semantics.
-      @vars = {}
-      @_propagators = []
-      get_value_distributor = -> # set from distribution/distribute... for now.
-        throw new Error 'Space#get_value_distributor(); override me'
+    # The FDVARS are all named and accessed by name.
+    # When a space is cloned, the clone's fdvars objects
+    # all have their __proto__ fields set to the parent's
+    # fdvars object. This gets us copy on modify semantics.
+    @vars = {}
 
-      @memory = {}
+    @_propagators = []
 
-    # clone
-    else
+    # keep memory
+    @memory = parent_space and parent_space.memory or {}
 
-      # The given space is being cloned.
-      i = undefined
-      j = undefined
-      p = undefined
+    # copy the search strategy set from Distribution initially
+    @get_value_distributor = parent_space and parent_space.get_value_distributor or throw_unless_overridden # overridden from distribution/distribute... for now.
 
-      @get_value_distributor = S.get_value_distributor # copy the search strategy set from Distribution initially
-
-      # keep memory
-      @memory = S.memory if S.memory
-
-      # Bring the fdvars in using copy-on-write.
-      @vars = {}
-      for var_name of S.vars
-        @vars[var_name] = fdvar_clone S.vars[var_name]
+    if parent_space
+      for var_name of parent_space.vars
+        @vars[var_name] = fdvar_clone parent_space.vars[var_name]
 
       # Clone propagators that have not been solved yet into new space.
       # They will use @space so we'll need to update the clones with @.
-      @_propagators = []
-      for p in S._propagators
+      for p in parent_space._propagators
         unless propagator_is_solved p
           @_propagators.push propagator_create @, p.target_var_names, p.stepper, p._name
 
@@ -98,7 +90,8 @@ module.exports = (FD) ->
       # parent space like this, then we have to maintain all
       # spaces that we search in memory. For now, since I'm
       # still debugging, this is all right.
-      @clone_of = S
+      @parent_space = parent_space
+
     @succeeded_children = 0
     @failed_children = 0
     @stable_children = 0
@@ -109,22 +102,20 @@ module.exports = (FD) ->
     # D4:
     # - add ref to high level solver
     space.solver = @solver if @solver
-    space
-  #Space::clone = ->
-  #  new Space(this)
+    return space
 
   # When done with the space, call this to send success results
   # to the parent space from which it was cloned.
 
   Space::done = ->
-    if @clone_of
-      @clone_of.succeeded_children += @succeeded_children
-      @clone_of.failed_children += @failed_children
+    if @parent_space
+      @parent_space.succeeded_children += @succeeded_children
+      @parent_space.failed_children += @failed_children
       if @failed
-        @clone_of.failed_children++
+        @parent_space.failed_children++
       if @succeeded_children == 0 and @failed_children > 0
         @failed = true
-      @clone_of.stable_children += @stable_children
+      @parent_space.stable_children += @stable_children
     return
 
   # A monotonically increasing class-global counter for unique temporary variable names.

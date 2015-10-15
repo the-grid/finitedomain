@@ -190,17 +190,17 @@ module.exports = (FD) ->
     return result
 
   # Utility to easily print out the state of variables in the space.
+  # TOFIX: we should move this elsewhere so that we can more easily find usages of it. this is too implicit.
 
   Space::toString = ->
-    JSON.stringify @solution()
+    return JSON.stringify @solution()
 
-  # Injects the given proc into this space by calling
-  # the proc with a single argument which is the current space.
+  # Call given function with `this` as argument
+  # @deprecated (Silly construct... we should refactor call sites to eliminate usages)
 
-  Space::inject = (proc) ->
-    proc this
-    # duh!
-    this
+  Space::inject = (func) ->
+    func @
+    return @
 
   # Returns a new unique name usable for a temporary fdvar
   # for more complex calculations. Every call will yield

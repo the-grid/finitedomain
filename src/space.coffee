@@ -417,21 +417,11 @@ module.exports = (FD) ->
     @_propagators.push propagator_create_callback @, var_names, callback
     return
 
-
   # Domain equality propagator. Creates the propagator
   # in this space. The specified variables need not
   # exist at the time the propagator is created and
   # added, since the fdvars are all referenced by name.
-  #
-  # A convention for propagators is that the return
-  # value of a propagator is number unless
-  # the propagator has failed, in which case it throws
-  # an exception 'fail'. The returned number indicates
-  # the number of domains that were changed by this propagation
-  # step.
-  #
-  # The second optional argument indicates what you want the
-  # propagator to do.
+  # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   Space::eq = (v1name, v2name) ->
     # If v2name is not specified, then we're operating in functional syntax

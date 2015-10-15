@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
   } = FD.helpers
 
   {
@@ -30,12 +31,12 @@ module.exports = (FD) ->
 
     begin_upid = v1.vupid + v2.vupid
     if begin_upid <= @last_upid
-      return 0
+      return ZERO_CHANGES
 
     dom1 = v1.dom
     dom2 = v2.dom
     if domain_equal dom1, dom2
-      return 0
+      return ZERO_CHANGES
 
     new_domain = domain_intersection dom1, dom2
     unless new_domain.length

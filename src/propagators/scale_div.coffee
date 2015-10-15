@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
   } = FD.helpers
 
   {
@@ -16,6 +17,7 @@ module.exports = (FD) ->
   } = FD.Var
 
   FLOOR = Math.floor
+  PAIR_SIZE = 2
 
   scale_div_stepper = ->
     fdvar = @propdata[1]
@@ -23,7 +25,7 @@ module.exports = (FD) ->
 
     begin_upid = fdvar.vupid + prod.vupid
     if begin_upid <= @last_upid # or @solved
-      return 0
+      return ZERO_CHANGES
 
     domain = prod.dom
     unless domain.length
@@ -31,7 +33,7 @@ module.exports = (FD) ->
 
     # We div only the interval bounds.
     dbyk = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       dbyk.push FLOOR(lo / factor), FLOOR(hi / factor) # TODO: factor doesnt exist. this should throw an error. unused?
 

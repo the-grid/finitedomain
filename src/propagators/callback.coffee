@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
   } = FD.helpers
 
   {
@@ -16,7 +17,7 @@ module.exports = (FD) ->
     # (slice at 1 because first element is from_space)
     vars = propagator.propdata.slice 1
     if func vars, propagator.from_space
-      return 0 # "no change but keep searching"
+      return ZERO_CHANGES
     return REJECTED
 
   propagator_create_callback = (space, var_names, callback) ->

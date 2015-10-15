@@ -4,6 +4,7 @@ module.exports = (FD) ->
 
   {
     REJECTED
+    SUB
     SUP
   } = FD.helpers
 
@@ -263,7 +264,7 @@ module.exports = (FD) ->
   # instead. I'll keep the old name 'const' for compatibility.
 
   Space::konst = (val) ->
-    if val >= 0 and val <= SUP # also catches NaN cases
+    if val >= SUB and val <= SUP # also catches NaN cases
       return @temp domain_create_value val
     throw new Error 'FD.space.konst: Value out of valid range'
 
@@ -291,7 +292,7 @@ module.exports = (FD) ->
   # start with a lower case letter, a clash can certainly
   # be avoided if you stick to that rule.
   #
-  # If the domain is not specified, it is taken to be [0, SUP].
+  # If the domain is not specified, it is taken to be [SUB, SUP].
   #
   # Returns the space. All methods, unless otherwise noted,
   # will return the current space so that other methods

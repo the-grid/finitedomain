@@ -12,6 +12,7 @@
 {mergePathMeta} = require './merge'
 
 MAX = Math.max
+PAIR_SIZE = 2
 
 module.exports = (FD) ->
 
@@ -181,7 +182,7 @@ module.exports = (FD) ->
       for v in vars
         domain = v.domain
         if domain
-          for index in [0...domain.length] by 2
+          for index in [0...domain.length] by PAIR_SIZE
             hi = domain[index+1]
             maxDomain = MAX hi, maxDomain
       if maxDomain is -99

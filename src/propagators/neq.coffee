@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
 
     ASSERT
   } = FD.helpers
@@ -25,7 +26,7 @@ module.exports = (FD) ->
 
     begin_upid = v1.vupid + v2.vupid
     if begin_upid <= @last_upid # or @solved
-      return 0
+      return ZERO_CHANGES
 
     unless v1.dom.length and v2.dom.length
       return REJECTED

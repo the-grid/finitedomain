@@ -10,10 +10,7 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    domain_create_range
-    domain_create_ranges
-    domain_create_value
-    domain_is_rejected
+    domain_contains_value
     domain_is_determined
     domain_is_value
     domain_max
@@ -30,10 +27,10 @@ module.exports = (FD) ->
   {
     fdvar_constrain
     fdvar_constrain_to_range
-    fdvar_constrain_to_value
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_set_domain
+    fdvar_set_value_inline
     fdvar_upper_bound
   } = FD.Var
 
@@ -68,8 +65,7 @@ module.exports = (FD) ->
           value = domain_get_value_of_first_contained_value_in_list fdvar.dom, _list
           if value is NO_SUCH_VALUE
             return # signifies end of search
-          # TODO: would be more efficient to set the domain inline. but right now that causes issues with shared mem.
-          fdvar_set_domain fdvar, domain_create_value(value)
+          fdvar_set_value_inline fdvar, value
 
         when SECOND_CHOICE
           new_domain = domain_remove_next_from_list fdvar.dom, _list
@@ -98,13 +94,15 @@ module.exports = (FD) ->
         break
     return row
 
-  distribution_value_by_markov = (S, var_name, options) ->
+  # options is fdvar.distributeOptions for the fdvar with var_name in root_space
+
+  distribution_value_by_markov = (root_space, var_name, options) ->
     {
       matrix
       legend
     } = options
 
-    S.memory.lastValueByVar ?= {}
+    root_space.memory.lastValueByVar ?= {}
 
     # see Solver.addVar for setup...
 
@@ -114,14 +112,17 @@ module.exports = (FD) ->
 
       space = parent_space.clone()
       fdvar = space.vars[var_name]
+
       switch current_choice_index
         when FIRST_CHOICE
           row = get_next_row_to_solve space, matrix
           value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
           unless value?
             return # signifies end of search
+          ASSERT domain_contains_value(fdvar.dom, value), 'markov picks the value from the existing domain' # the update below assumes this (skips constrain for this assumption)
           space.memory.lastValueByVar[var_name] = value
-          fdvar_constrain_to_value fdvar, value
+          # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
+          fdvar_set_value_inline fdvar, value
 
         when SECOND_CHOICE
           new_domain = domain_remove_value fdvar.dom, space.memory.lastValueByVar[var_name]
@@ -152,14 +153,14 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-          # TOFIX: switch to fdvar_set_value_inline once we resolve reference sharing issues
-          fdvar_constrain_to_value fdvar, low
+          fdvar_set_value_inline fdvar, low
 
         when SECOND_CHOICE
           # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
           # (because low can only be SUP if the domain is solved which we assert it cannot be)
-          # TOFIX: switch to fdvar_set_range_inline once we resolve reference sharing issues
+          # note: must use some kind of intersect here (there's a test if you mess this up :)
           # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
+          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
           fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
 
         else
@@ -185,12 +186,13 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           # Note: this is not determined so the operation cannot fail
-          # TOFIX: change constrain to something faster
-          fdvar_constrain_to_value fdvar, hi
+          fdvar_set_value_inline fdvar, hi
 
         when SECOND_CHOICE
           # Note: this is not determined so the operation cannot fail
-          # TOFIX: change constrain to something faster
+          # note: must use some kind of intersect here (there's a test if you mess this up :)
+          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
+          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
           fdvar_constrain_to_range fdvar, fdvar_lower_bound(fdvar), hi - 1
 
         else
@@ -214,8 +216,7 @@ module.exports = (FD) ->
       switch current_choice_index
         when FIRST_CHOICE
           # Note: fdvar is not determined so the operation cannot fail
-          # TOFIX: change constrain to something faster
-          fdvar_constrain_to_value fdvar, middle
+          fdvar_set_value_inline fdvar, middle
 
         when SECOND_CHOICE
           lob = fdvar_lower_bound fdvar
@@ -226,7 +227,9 @@ module.exports = (FD) ->
           if middle < upb
             arr.push middle + 1, upb
           # Note: fdvar is not determined so the operation cannot fail
-          # TOFIX: change constrain to something faster
+          # note: must use some kind of intersect here (there's a test if you mess this up :)
+          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
+          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
           fdvar_constrain fdvar, arr
 
         else
@@ -259,8 +262,8 @@ module.exports = (FD) ->
           fdvar_constrain_to_range fdvar, min, mmhalf
 
         when SECOND_CHOICE
-        # Note: fdvar is not determined so the operation cannot fail
-        # Note: this must do some form of intersect, though maybe not constrain
+          # Note: fdvar is not determined so the operation cannot fail
+          # Note: this must do some form of intersect, though maybe not constrain
           fdvar_constrain_to_range fdvar, mmhalf + 1, max
 
         else

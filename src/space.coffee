@@ -330,7 +330,7 @@ module.exports = (FD) ->
     if name_or_names instanceof Object or name_or_names instanceof Array
       # Recursively declare all variables in the structure given.
       for i of name_or_names
-        @decl name_or_names[i], dom
+        @decl name_or_names[i], dom.slice 0
       return this
     # A single variable is being declared.
     name = name_or_names

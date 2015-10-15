@@ -56,7 +56,7 @@ module.exports = (FD) ->
     return domain_is_rejected fdvar.dom
 
   fdvar_clone = (fdvar) ->
-    return fdvar_new fdvar.id, fdvar.dom, fdvar.vupid
+    return fdvar_new fdvar.id, fdvar.dom.slice(0), fdvar.vupid
 
   fdvar_is_equal = (fdvar1, fdvar2) ->
     return domain_equal fdvar1.dom, fdvar2.dom
@@ -70,12 +70,15 @@ module.exports = (FD) ->
 
   fdvar_set_value_inline = (fdvar, value) ->
     domain_set_to_range_inline fdvar.dom, value, value
+    fdvar.vupid++
     return
 
   fdvar_set_range_inline = (fdvar, lo, hi) ->
     domain_set_to_range_inline fdvar.dom, lo, hi
+    fdvar.vupid++
     return
 
+  # TODO: rename to intersect for that's what it is.
   fdvar_constrain = (fdvar, domain) ->
     domain = domain_intersection fdvar.dom, domain
     unless domain.length

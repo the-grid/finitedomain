@@ -71,7 +71,7 @@ module.exports = (FD) ->
       vs
 
     decl: (id, domain) ->
-      domain ?= @defaultDomain
+      domain ?= @defaultDomain.slice 0
       v = @S.decl id, domain
       v.id = id
       v
@@ -82,7 +82,7 @@ module.exports = (FD) ->
       {id, domain, name, distribute} = v
       throw new Error "FD Var requires id " unless id?
       throw new Error "FDSpace var.id already added: #{id}" if @vars.byId[id]
-      domain ?= @defaultDomain
+      domain ?= @defaultDomain.slice 0
       @S.decl id, domain
       @vars.byId[id] = v
       @vars.all.push v

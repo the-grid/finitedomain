@@ -4,17 +4,13 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    domain_create_value
-  } = FD.Domain
-
-  {
     propagator_create
     propagator_create_3x
     propagator_is_solved
   } = FD.Propagator
 
   {
-    fdvar_constrain
+    fdvar_set_value_inline
   } = FD.Var
 
   FIRST_RANGE = 0
@@ -32,7 +28,7 @@ module.exports = (FD) ->
     if pos_or_neg_propagator.stepper() is REJECTED
       # this search must now pass the other operator until the
       # search goes back up the current step in search tree
-      change = fdvar_constrain bool_var, domain_create_value(c)
+      fdvar_set_value_inline bool_var, c
 
       # TODO: change this to an ASSERT?
       _throw_if_true bool_var.length is 0

@@ -28,7 +28,7 @@ describe 'FD.distribution.Value', ->
 
     describe 'distribution', ->
 
-      it 'should set var to lo for first choice', ->
+      it 'should set var to lo for FIRST_CHOICE', ->
 
         # create a space with one bool var
         space = new FD.space
@@ -46,7 +46,25 @@ describe 'FD.distribution.Value', ->
         # since 0 was the lowest value in original value, expecting var to be set to that now
         expect(new_space.vars.A.dom).to.eql spec_d_create_range 0, 0
 
-      it 'should set var to second value for second choice', ->
+      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `distribution_value_by_split_min` so call it with FIRST_CHOICE
+        new_space = get_next_value space, 0
+
+        # make sure 12 is not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_range(10, 10)
+
+      it 'should set var to second value for SECOND_CHOICE', ->
 
         # create a space with one bool var
         space = new FD.space
@@ -63,6 +81,24 @@ describe 'FD.distribution.Value', ->
 
         # since 0 was the lowest value in original value, expecting var to be set to that now
         expect(new_space.vars.A.dom).to.eql spec_d_create_range 1, 1
+
+      it 'should intersect and not use middle elements blindly for SECOND_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
+        new_space = get_next_value space, 1
+
+        # make sure 12 is still not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([11, 11], [13, 20])
 
       it 'should reject a "solved" var', ->
         # note: only rejects with ASSERTs
@@ -118,7 +154,7 @@ describe 'FD.distribution.Value', ->
 
     describe 'distribution', ->
 
-      it 'should set var to hi for first choice', ->
+      it 'should set var to hi for FIRST_CHOICE', ->
 
         # create a space with one bool var
         space = new FD.space
@@ -136,7 +172,25 @@ describe 'FD.distribution.Value', ->
         # since 1 was the highest value in original value, expecting var to be set to that now
         expect(new_space.vars.A.dom).to.eql spec_d_create_range 1, 1
 
-      it 'should set var to second value for second choice', ->
+      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+
+        # setup the space distributors such that all vars are used and value uses value_distribution_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
+        new_space = get_next_value space, 0
+
+        # make sure 12 is not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_range(20, 20)
+
+      it 'should set var to second value for SECOND_CHOICE', ->
 
         # create a space with one bool var
         space = new FD.space
@@ -153,6 +207,24 @@ describe 'FD.distribution.Value', ->
 
         # since 1 was the highest value in original value, expecting var to be set to the inv
         expect(new_space.vars.A.dom).to.eql spec_d_create_range 0, 0
+
+      it 'should intersect and not use middle values blindly for SECOND_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `distribution_value_by_max` so call it with SECOND_CHOICE
+        new_space = get_next_value space, 1
+
+        # make sure 12 is still not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 11], [13, 19])
 
       it 'should reject a "solved" var', ->
         # note: only rejects with ASSERTs
@@ -220,11 +292,29 @@ describe 'FD.distribution.Value', ->
         # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
         get_next_value = space.get_value_distributor space
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
+        # now we have `distribution_value_by_mid` so call it with FIRST_CHOICE
         new_space = get_next_value space, 0
 
         # since 15 was the middle value in original value, expecting var to be set to that now
         expect(new_space.vars.A.dom).to.eql spec_d_create_range 15, 15
+
+      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 12], [18, 20])
+
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `distribution_value_by_mid` so call it with FIRST_CHOICE
+        new_space = get_next_value space, 0
+
+        # make sure 12 is not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_range(18, 18) # should not be 15-ish
 
       it 'should set var to same range sans middle value for SECOND_CHOICE', ->
 
@@ -238,11 +328,29 @@ describe 'FD.distribution.Value', ->
         # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
         get_next_value = space.get_value_distributor space
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
+        # now we have `distribution_value_by_mid` so call it with SECOND_CHOICE
         new_space = get_next_value space, 1
 
         # should now be 10-20 sans the 15
         expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 14], [16, 20])
+
+      it 'should intersect and not use higher range blindly for SECOND_CHOICE', ->
+
+        # create a space with one bool var
+        space = new FD.space
+        space.decl 'A', spec_d_create_ranges([10, 12], [18, 20])
+
+        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
+        FD.distribution._create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
+
+        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
+        get_next_value = space.get_value_distributor space
+
+        # now we have `distribution_value_by_mid` so call it with SECOND_CHOICE
+        new_space = get_next_value space, 1
+
+        # make sure 12 is still not part of the result
+        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 12], [19, 20])
 
       it 'should reject a "solved" var', ->
         # note: only rejects with ASSERTs
@@ -257,7 +365,7 @@ describe 'FD.distribution.Value', ->
         # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
         get_next_value = space.get_value_distributor space
 
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
+        # now we have `distribution_value_by_mid` so call it and it should throw because A is already solved
         expect(-> get_next_value space, 0).to.throw
 
       it 'should reject a "rejected" var', ->
@@ -276,7 +384,7 @@ describe 'FD.distribution.Value', ->
         # now clear the var before calling next
         FD.Var.fdvar_set_domain space.vars.A, []
 
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already rejected
+        # now we have `distribution_value_by_mid` so call it and it should throw because A is already rejected
         expect(-> get_next_value space, 0).to.throw
 
       it 'should do nothing if choice is >2', ->
@@ -364,7 +472,7 @@ describe 'FD.distribution.Value', ->
         # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
         get_next_value = space.get_value_distributor space
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
+        # now we have `distribution_value_by_split_min` so call it with SECOND_CHOICE
         new_space = get_next_value space, 1
 
         # should now be 10-20 sans the 15
@@ -490,7 +598,7 @@ describe 'FD.distribution.Value', ->
         # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
         get_next_value = space.get_value_distributor space
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
+        # now we have `distribution_value_by_split_max` so call it with SECOND_CHOICE
         new_space = get_next_value space, 1
 
         # make sure 12 is still not part of the result

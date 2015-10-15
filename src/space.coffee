@@ -164,28 +164,30 @@ module.exports = (FD) ->
 
     return result
 
-  Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
+  # @param {string[]} ids List of var names to query the solution for
+  # @param {boolean} [space=false] Return false if at least one var could not be solved?
 
+  Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
     result = {}
     for id in ids
 
       fdvar = @vars[id]
       value = undefined
       if fdvar?
-        d = fdvar.dom
-        if d.length is 0
+        domain = fdvar.dom
+        if domain.length is 0
           value = undefined
-        else if domain_is_solved d
-          value = domain_min d
+        else if domain_is_solved domain
+          value = domain_min domain
         else
-          value = d
+          value = domain
 
       if complete and !value?
         result = false
         break
+
       result[id] = value
     return result
-
 
   # Utility to easily print out the state of variables in the space.
 

@@ -321,7 +321,10 @@ describe "FD -", ->
             S = new FD.Solver o
 
             S.addVars [
-              {id:'STATE', domain: spec_d_create_range 0, 10}
+              {
+                id:'STATE',
+                domain: spec_d_create_range 0, 10
+              }
               {
                 id:'V1',
                 domain: spec_d_create_range(0, 100),

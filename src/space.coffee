@@ -85,17 +85,7 @@ module.exports = (FD) ->
         unless propagator_is_solved p
           @_propagators.push propagator_create @, p.target_var_names, p.stepper, p._name
 
-      # TODO: Remove this reference. It might result in less
-      # memory being used during searches. If we keep around the
-      # parent space like this, then we have to maintain all
-      # spaces that we search in memory. For now, since I'm
-      # still debugging, this is all right.
-      @parent_space = parent_space
-
-    @succeeded_children = 0
-    @failed_children = 0
-    @stable_children = 0
-    this
+    return
 
   Space::clone = () ->
     space = new FD.space @
@@ -108,14 +98,6 @@ module.exports = (FD) ->
   # to the parent space from which it was cloned.
 
   Space::done = ->
-    if @parent_space
-      @parent_space.succeeded_children += @succeeded_children
-      @parent_space.failed_children += @failed_children
-      if @failed
-        @parent_space.failed_children++
-      if @succeeded_children == 0 and @failed_children > 0
-        @failed = true
-      @parent_space.stable_children += @stable_children
     return
 
   # A monotonically increasing class-global counter for unique temporary variable names.

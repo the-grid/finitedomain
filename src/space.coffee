@@ -66,6 +66,7 @@ module.exports = (FD) ->
     # all have their __proto__ fields set to the parent's
     # fdvars object. This gets us copy on modify semantics.
     @vars = {}
+    @var_names = []
 
     @_propagators = []
 
@@ -76,8 +77,9 @@ module.exports = (FD) ->
     @get_value_distributor = parent_space and parent_space.get_value_distributor or throw_unless_overridden # overridden from distribution/distribute... for now.
 
     if parent_space
-      for var_name of parent_space.vars
+      for var_name in parent_space.var_names
         @vars[var_name] = fdvar_clone parent_space.vars[var_name]
+        @var_names.push var_name
 
       # Clone propagators that have not been solved yet into new space.
       # They will use @space so we'll need to update the clones with @.
@@ -135,8 +137,9 @@ module.exports = (FD) ->
   # that function.
 
   Space::is_solved = ->
-    for var_name, fdvar of @vars # TODO: get rid of this "for-in" loop. it's slow.
-      unless fdvar_is_solved fdvar
+    vars = @vars
+    for var_name in @var_names
+      unless fdvar_is_solved vars[var_name]
         return false
     return true
 
@@ -146,7 +149,8 @@ module.exports = (FD) ->
 
   Space::solution = ->
     result = {}
-    for var_name, fdvar of @vars
+    vars = @vars
+    for var_name in @var_names
       # Don't include the temporary variables in the "solution".
       # Temporary variables take the form of a numeric property
       # of the object, so we test for the var_name to be a number and
@@ -154,7 +158,7 @@ module.exports = (FD) ->
 
       c = var_name[0]
       if c < '0' or c > '9'
-        domain = fdvar.dom
+        domain = vars[var_name].dom
         if domain.length is 0
           result[var_name] = false
         else if domain_is_solved domain
@@ -329,6 +333,7 @@ module.exports = (FD) ->
       vars[var_name] = fdvar_create var_name, dom
     else
       vars[var_name] = fdvar_create_wide var_name
+    @var_names.push var_name
 
     return @
 

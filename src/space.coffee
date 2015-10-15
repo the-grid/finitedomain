@@ -135,9 +135,8 @@ module.exports = (FD) ->
   # that function.
 
   Space::is_solved = ->
-    vars = @vars
-    for i of vars # TODO: get rid of this "for-in" loop. it's slow.
-      unless fdvar_is_solved vars[i]
+    for var_name, fdvar of @vars # TODO: get rid of this "for-in" loop. it's slow.
+      unless fdvar_is_solved fdvar
         return false
     return true
 

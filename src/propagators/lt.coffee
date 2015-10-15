@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
 
     ASSERT_DOMAIN
   } = FD.helpers
@@ -27,7 +28,7 @@ module.exports = (FD) ->
     last_upid = @last_upid
     begin_upid = v1.vupid + v2.vupid
     if begin_upid <= last_upid # or @solved
-      return 0
+      return ZERO_CHANGES
 
     unless v1.dom.length and v2.dom.length
       return REJECTED
@@ -41,7 +42,7 @@ module.exports = (FD) ->
       # Condition already satisfied. No changes necessary.
       @last_upid = begin_upid
       @solved = true
-      return 0
+      return ZERO_CHANGES
 
     ASSERT_DOMAIN v1.dom, 'v1 needs to be csis for this trick to work'
     ASSERT_DOMAIN v2.dom, 'v2 needs to be csis for this trick to work'

@@ -3,6 +3,7 @@
 module.exports = (FD) ->
 
   SUP = 100000000
+  ZERO_CHANGES = 0
   REJECTED = -1
   NOT_FOUND = -1
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
@@ -72,6 +73,7 @@ module.exports = (FD) ->
     SUP
     NOT_FOUND
     NO_SUCH_VALUE
+    ZERO_CHANGES
 
     ASSERT
     ASSERT_DOMAIN

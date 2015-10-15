@@ -2,6 +2,7 @@ module.exports = (FD) ->
   {
     REJECTED
     SUP
+    ZERO_CHANGES
   } = FD.helpers
 
   {
@@ -24,7 +25,7 @@ module.exports = (FD) ->
 
     begin_upid = fdvar.vupid + prod.vupid
     if begin_upid <= @last_upid # or @solved
-      return 0
+      return ZERO_CHANGES
 
     domain = fdvar.dom
     unless domain.length

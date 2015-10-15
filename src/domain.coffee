@@ -3,6 +3,7 @@ module.exports = (FD) ->
   {
     SUP
     NO_SUCH_VALUE
+    ZERO_CHANGES
 
     ASSERT
     ASSERT_DOMAIN
@@ -461,7 +462,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN dom1
     ASSERT_DOMAIN dom2
     loop
-      change = 0
+      change = ZERO_CHANGES
 
       domain = domain_close_gaps_fresh dom1, dom_smallest_interval_width dom2
       change += dom1.length - domain.length
@@ -471,7 +472,7 @@ module.exports = (FD) ->
       change += dom2.length - domain.length
       dom2 = domain
 
-      unless change > 0
+      if change is ZERO_CHANGES
         break
 
     return [

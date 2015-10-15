@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
   } = FD.helpers
 
   {
@@ -59,7 +60,7 @@ module.exports = (FD) ->
       current_upid = v1.vupid + v2.vupid + bool_var.vupid
       last_upid = @last_upid
       if current_upid <= last_upid
-        return 0
+        return ZERO_CHANGES
 
       unless @pos_propagator
         # S is only needed to get the S.vars... which I think are static throughout a Space, so perhaps we can just re-use the deps instead?

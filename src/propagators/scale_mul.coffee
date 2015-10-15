@@ -18,6 +18,7 @@ module.exports = (FD) ->
   } = FD.Var
 
   MIN = Math.min
+  PAIR_SIZE = 2
 
   scale_mul_stepper = ->
     fdvar = @propdata[1]
@@ -33,7 +34,7 @@ module.exports = (FD) ->
 
     # We multiply only the interval bounds.
     kd = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       # TODO: this is untested, so unused? (no error if SUP is not imported)
       # TODO: factor isnt defined so this should throw an error

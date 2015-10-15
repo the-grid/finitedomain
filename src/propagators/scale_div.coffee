@@ -17,6 +17,7 @@ module.exports = (FD) ->
   } = FD.Var
 
   FLOOR = Math.floor
+  PAIR_SIZE = 2
 
   scale_div_stepper = ->
     fdvar = @propdata[1]
@@ -32,7 +33,7 @@ module.exports = (FD) ->
 
     # We div only the interval bounds.
     dbyk = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       dbyk.push FLOOR(lo / factor), FLOOR(hi / factor) # TODO: factor doesnt exist. this should throw an error. unused?
 

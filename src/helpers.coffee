@@ -12,6 +12,7 @@ module.exports = (FD) ->
   NO_SUCH_VALUE = SUB-1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
   DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
   DISABLE_DOMAIN_CHECK = true # also causes unrelated errors because mocha sees the expandos
+  PAIR_SIZE = 2
 
   # For unit tests
   # Should be removed in production. Obviously.
@@ -33,9 +34,9 @@ module.exports = (FD) ->
     if DISABLED
       return
     ASSERT !!domain, 'domains should be an array', domain
-    ASSERT domain.length % 2 is 0, 'domains should contain pairs so len should be even', domain
+    ASSERT domain.length % PAIR_SIZE is 0, 'domains should contain pairs so len should be even', domain
     phi = SUB-2 # this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       ASSERT lo >= SUB, 'lo should be gte to SUB '+' ['+lo+']', domain
       ASSERT hi >= SUB, 'hi should be gte to SUB '+' ['+hi+']', domain

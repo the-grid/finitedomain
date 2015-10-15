@@ -43,20 +43,20 @@ module.exports = (FD) ->
 
   domain_range_index_of = (domain, value) ->
     ASSERT_DOMAIN domain
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       if value >= lo and value <= domain[index+1]
         return index
     return NOT_FOUND
 
   domain_is_value = (domain, value) ->
     ASSERT_DOMAIN domain
-    if domain.length isnt 2
+    if domain.length isnt PAIR_SIZE
       return false
     return domain[LO_BOUND] is value and domain[HI_BOUND] is value
 
   domain_get_value = (domain) ->
     ASSERT_DOMAIN domain
-    if domain.length isnt 2
+    if domain.length isnt PAIR_SIZE
       return NOT_FOUND
     [lo, hi] = domain
     if domain[LO_BOUND] is domain[HI_BOUND]
@@ -93,7 +93,7 @@ module.exports = (FD) ->
   domain_to_list = (domain) ->
     ASSERT_DOMAIN domain
     list = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       # note: the translation for `list.push.apply list, [0..domain[index+1]]` would do double the work
       for val in [lo..domain[index+1]]
         list.push val
@@ -144,7 +144,7 @@ module.exports = (FD) ->
     else
       result = []
 
-    for index in [range_index...domain.length] by 2
+    for index in [range_index...domain.length] by PAIR_SIZE
       lo = domain[index]
       hi = domain[index+1]
       if index isnt range_index
@@ -187,7 +187,7 @@ module.exports = (FD) ->
 
     end = SUB
     result = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       ASSERT !end or end < lo, 'domain is supposed to be csis, so ranges dont overlap nor touch'
       if lo > SUB # prevent [SUB,SUB] if first range starts at SUB; that'd be bad
         result.push end, lo - 1
@@ -234,14 +234,14 @@ module.exports = (FD) ->
   domain_sort_by_range = (domain) ->
     len = domain.length
     if len >= 4
-      quick_sort_inline domain, 0, domain.length-2
+      quick_sort_inline domain, 0, domain.length-PAIR_SIZE
     return
 
   quick_sort_inline = (domain, first, last) ->
     if first < last
       pivot = partition domain, first, last
-      quick_sort_inline domain, first, pivot-2
-      quick_sort_inline domain, pivot+2, last
+      quick_sort_inline domain, first, pivot-PAIR_SIZE
+      quick_sort_inline domain, pivot+PAIR_SIZE, last
     return
 
   partition = (domain, first, last) ->
@@ -250,11 +250,11 @@ module.exports = (FD) ->
     pivot_r = domain[pivot_index+1]
 
     index = first
-    for i in [first...last] by 2
+    for i in [first...last] by PAIR_SIZE
       L = domain[i]
       if L < pivot or (L is pivot and domain[i+1] < pivot_r)
         swap_range_inline domain, index, i
-        index += 2
+        index += PAIR_SIZE
     swap_range_inline domain, index, last
     return index
 
@@ -271,13 +271,13 @@ module.exports = (FD) ->
   # Check if given domain is in simplified, CSIS form
 
   is_simplified = (domain) ->
-    if domain.length <= 2
-      if domain.length is 2
+    if domain.length <= PAIR_SIZE
+      if domain.length is PAIR_SIZE
         ASSERT domain[FIRST_RANGE_LO] >= SUB, 'domains should not be sparse [0]'
         ASSERT domain[FIRST_RANGE_HI] >= SUB, 'domains should not be sparse [1]'
       return true
     phi = SUB
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       ASSERT lo >= SUB, 'domains should not be sparse [lo]'
       ASSERT hi >= SUB, 'domains should not be sparse [hi]'
@@ -295,7 +295,7 @@ module.exports = (FD) ->
     # assumes all ranges are "sound" (lo<=hi)
     prev_hi = SUB
     write_index = 0
-    for lo, read_index in domain by 2
+    for lo, read_index in domain by PAIR_SIZE
       hi = domain[read_index+1]
       ASSERT lo <= hi, 'ranges should be ascending'
 
@@ -311,7 +311,7 @@ module.exports = (FD) ->
         domain[write_index] = lo
         domain[write_index+1] = hi
         prev_hi_index = write_index + 1
-        write_index += 2
+        write_index += PAIR_SIZE
         prev_hi = hi
     domain.length = write_index # if `domain` was a larger at the start this ensures extra elements are dropped from it
     for test in domain
@@ -341,27 +341,27 @@ module.exports = (FD) ->
     len1 = dom1.length
     len2 = dom2.length
 
-    ASSERT len1 % 2 is 0, 'domains should have an even len'
-    ASSERT len2 % 2 is 0, 'domains should have an even len'
+    ASSERT len1 % PAIR_SIZE is 0, 'domains should have an even len'
+    ASSERT len2 % PAIR_SIZE is 0, 'domains should have an even len'
 
     if len1 is 0 or len2 is 0
       return
 
-    if len1 is 2
-      if len2 is 2
+    if len1 is PAIR_SIZE
+      if len2 is PAIR_SIZE
         intersect_range_bound dom1[LO_BOUND], dom1[HI_BOUND], dom2[LO_BOUND], dom2[HI_BOUND], result
       else
         _domain_intersection dom2, dom1, result
-    else if len2 == 2
+    else if len2 == PAIR_SIZE
       domain_intersect_bounds_into dom1, dom2[LO_BOUND], dom2[HI_BOUND], result
     else
       # Worst case. Both lengths are > 1. Divide and conquer.
       # Note: since the array contains pairs, make sure i and j are even.
       # but since they can only contain pairs, they must be even
-      i = ((len1/2) >> 1) *2
-      j = ((len2/2) >> 1) *2
-      ASSERT i%2 is 0, 'i should be even '+i
-      ASSERT j%2 is 0, 'j should be even '+j
+      i = ((len1/PAIR_SIZE) >> 1) *PAIR_SIZE
+      j = ((len2/PAIR_SIZE) >> 1) *PAIR_SIZE
+      ASSERT i%PAIR_SIZE is 0, 'i should be even '+i
+      ASSERT j%PAIR_SIZE is 0, 'j should be even '+j
       # TODO: get rid of this slicing, use index ranges instead
       d1 = dom1.slice(0, i)
       d2 = dom1.slice(i)
@@ -381,7 +381,7 @@ module.exports = (FD) ->
     return result
 
   domain_intersect_bounds_into = (domain, lo, hi, result) ->
-    for lo2, index in domain by 2
+    for lo2, index in domain by PAIR_SIZE
       hi2 = domain[index+1]
       if lo2 <= hi and hi2 >= lo
         result.push MAX(lo, lo2), MIN(hi, hi2)
@@ -417,7 +417,7 @@ module.exports = (FD) ->
       return domain
 
     result = []
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       if index is 0
         result.push lo, hi
@@ -433,7 +433,7 @@ module.exports = (FD) ->
 
   dom_smallest_interval_width = (domain) ->
     min_width = SUP
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       width = 1 + hi - lo
       if width < min_width
@@ -442,7 +442,7 @@ module.exports = (FD) ->
 
   dom_largest_interval_width = (domain) ->
     max_width = SUP
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       width = 1 + hi - lo
       if width > max_width
@@ -494,10 +494,10 @@ module.exports = (FD) ->
     [domain1, domain2] = dom_close_gaps2 domain1, domain2
 
     result = []
-    for loi, index in domain1 by 2
+    for loi, index in domain1 by PAIR_SIZE
       hii = domain1[index+1]
 
-      for loj, index2 in domain2 by 2
+      for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
         result.push MIN(SUP, loi + loj), MIN(SUP, hii + hij)
@@ -511,10 +511,10 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain2
 
     result = []
-    for loi, index in domain1 by 2
+    for loi, index in domain1 by PAIR_SIZE
       hii = domain1[index+1]
 
-      for loj, index2 in domain2 by 2
+      for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
         result.push MIN(SUP, loi * loj), MIN(SUP, hii * hij)
@@ -531,10 +531,10 @@ module.exports = (FD) ->
     [domain1, domain2] = dom_close_gaps2 domain1, domain2
 
     result = []
-    for loi, index in domain1 by 2
+    for loi, index in domain1 by PAIR_SIZE
       hii = domain1[index+1]
 
-      for loj, index2 in domain2 by 2
+      for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
         lo = loi - hij
@@ -551,10 +551,10 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain2
 
     result = []
-    for loi, index in domain1 by 2
+    for loi, index in domain1 by PAIR_SIZE
       hii = domain1[index+1]
 
-      for loj, index2 in domain2 by 2
+      for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
         ASSERT hij > SUB, 'expecting no empty or inverted ranges'
@@ -570,7 +570,7 @@ module.exports = (FD) ->
   domain_size = (domain) ->
     ASSERT_DOMAIN domain
     count = 0
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       count += 1 + domain[index+1] - lo # TODO: add test to confirm this still works fine if SUB is negative
     return count
 
@@ -581,7 +581,7 @@ module.exports = (FD) ->
     size = domain_size domain
     target_value = FLOOR size / 2
 
-    for lo, index in domain by 2
+    for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
 
       count =  1 + hi - lo
@@ -610,14 +610,14 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain, 'should be sound domain'
     domain[LO_BOUND] = lo
     domain[HI_BOUND] = hi
-    domain.length = 2
+    domain.length = PAIR_SIZE
     return
 
   # A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
 
   domain_is_solved = (domain) ->
     ASSERT_DOMAIN domain
-    return domain.length is 2 and domain_first_range_is_determined domain
+    return domain.length is PAIR_SIZE and domain_first_range_is_determined domain
 
   # A domain is "determined" if it's either one value (solved) or none at all (rejected)
 
@@ -626,7 +626,7 @@ module.exports = (FD) ->
     len = domain.length
     if len is 0
       return true
-    return len is 2 and domain_first_range_is_determined domain
+    return len is PAIR_SIZE and domain_first_range_is_determined domain
 
   # A domain is "rejected" if it covers no values. This means every given
   # value would break at least one constraint so none could be used.
@@ -648,20 +648,20 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain, 'needs to be csis for this trick to work'
 
     len = domain.length
-    i = len - 2
+    i = len - PAIR_SIZE
     while i >= 0 and domain[i] >= value
-      i -= 2
+      i -= PAIR_SIZE
 
     if i < 0
       domain.length = 0
       return len isnt 0
 
-    domain.length = i+2
+    domain.length = i+PAIR_SIZE
     if domain[i+1] >= value
       domain[i+1] = value-1 # we already know domain[i] < value so value-1 >= SUB
       return true
 
-    return len isnt i+2
+    return len isnt i+PAIR_SIZE
 
   # Remove any value from domain that is lesser than or equal to given value.
   # Since domains are assumed to be in CSIS form, we can start from the front and
@@ -675,7 +675,7 @@ module.exports = (FD) ->
     len = domain.length
     i = 0
     while i < len and domain[i+1] <= value
-      i += 2
+      i += PAIR_SIZE
 
     if i >= len
       domain.length = 0

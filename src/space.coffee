@@ -315,27 +315,39 @@ module.exports = (FD) ->
 
     retval
 
+  # Register one or more variables with specific names
+  # Note: if you want to register multiple names call Space#decls instead
+
   Space::decl = (name_or_names, dom) ->
-    i = undefined
+    # lets try to deprecate this path
     if name_or_names instanceof Object or name_or_names instanceof Array
-      # Recursively declare all variables in the structure given.
-      for i of name_or_names
-        @decl name_or_names[i], dom.slice 0
-      return this
+      return @decls name_or_names, dom
+
     # A single variable is being declared.
-    name = name_or_names
-    fs = @vars
-    f = fs[name]
-    if f
+    var_name = name_or_names
+    vars = @vars
+
+    fdvar = vars[var_name]
+    if fdvar
       # If it already exists, change the domain if necessary.
       if dom
-        fdvar_set_domain f, dom
-      return this
+        fdvar_set_domain fdvar, dom
+      return @
+
     if dom
-      fs[name] = fdvar_create name, dom
+      vars[var_name] = fdvar_create var_name, dom
     else
-      fs[name] = fdvar_create_wide name
-    this
+      vars[var_name] = fdvar_create_wide var_name
+
+    return @
+
+  # Register multiple vars. If you supply a domain the domain will be cloned for each.
+
+  Space::decls = (names, dom) ->
+    # Recursively declare all variables in the structure given.
+    for key, value of names
+      @decl value, dom.slice 0
+    return @
 
   # Same function as var, but the domain is
   # that of a single number.

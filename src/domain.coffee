@@ -19,8 +19,11 @@ module.exports = (FD) ->
   # ascending and no ranges overlap. We call this "simplified"
 
   FIRST_RANGE = 0
+  FIRST_RANGE_LO = 0
+  FIRST_RANGE_HI = 1
   LO_BOUND = 0
   HI_BOUND = 1
+  PAIR_SIZE = 2
 
   NOT_FOUND = -1
 
@@ -33,7 +36,7 @@ module.exports = (FD) ->
 
   domain_contains_value = (domain, value) ->
     ASSERT_DOMAIN domain
-    return (domain_range_index_of domain, value) >= 0
+    return (domain_range_index_of domain, value) isnt NOT_FOUND
 
   # return the range index in given domain that covers given
   # value, or if the domain does not cover it at all
@@ -270,8 +273,8 @@ module.exports = (FD) ->
   is_simplified = (domain) ->
     if domain.length <= 2
       if domain.length is 2
-        ASSERT domain[0] >= SUB, 'domains should not be sparse [0]'
-        ASSERT domain[1] >= SUB, 'domains should not be sparse [1]'
+        ASSERT domain[FIRST_RANGE_LO] >= SUB, 'domains should not be sparse [0]'
+        ASSERT domain[FIRST_RANGE_HI] >= SUB, 'domains should not be sparse [1]'
       return true
     phi = SUB
     for lo, index in domain by 2
@@ -686,8 +689,8 @@ module.exports = (FD) ->
     domain.length = n
 
     # note: first range should be lt or lte to value now since we moved everything
-    if domain[0] <= value
-      domain[0] = value+1
+    if domain[FIRST_RANGE_LO] <= value
+      domain[FIRST_RANGE_LO] = value+1
       return true
 
     return len isnt n

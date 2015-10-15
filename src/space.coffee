@@ -202,29 +202,35 @@ module.exports = (FD) ->
     func @
     return @
 
-  # Returns a new unique name usable for a temporary fdvar
-  # for more complex calculations. Every call will yield
-  # a different name that is unique across all spaces.
-  #
-  # You can optionally specify a domain for the temporary
-  # if you already know something about it.
+  # @deprecated Use @anon instead
 
   Space::temp = (dom) ->
-    t = ++_temp_count
-    @decl t, dom
-    t
+    return @anon dom
 
-  # Create N temporary FD variables and return their names
-  # in an array.
+  # @deprecated Use @anons instead
 
   Space::temps = (N, dom) ->
-    i = undefined
+    return @anons N, dom
+
+  # Returns a new unique name usable for an anonymous fdvar.
+  # Returns the name of the new var, which will be a unique
+  # number. You can optionally specify a domain, defaults
+  # to the full range (SUB-SUP).
+
+  Space::decl_anon = (dom) ->
+    t = ++_temp_count
+    @decl t, dom
+    return t
+
+  # Create N anonymous FD variables and return their names
+  # in an array. Optionally set them to given dom for all
+  # of them, defaults to full range (SUB-SUP).
+
+  Space::anons = (N, dom) ->
     result = []
-    i = 0
-    while i < N
-      result.push @temp(dom)
-      ++i
-    result
+    for [0...N]
+      result.push @anon dom
+    return result
 
   # Create a "constant". We have no optimizing support for
   # constants at the moment and just treat it as a temp FDVar

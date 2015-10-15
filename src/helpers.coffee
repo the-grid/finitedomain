@@ -9,7 +9,7 @@ module.exports = (FD) ->
   NOT_FOUND = -1
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
   # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
-  NO_SUCH_VALUE = -1
+  NO_SUCH_VALUE = SUB-1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
   DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
   DISABLE_DOMAIN_CHECK = true # also causes unrelated errors because mocha sees the expandos
 

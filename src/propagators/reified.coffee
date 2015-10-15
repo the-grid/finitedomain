@@ -34,13 +34,19 @@ module.exports = (FD) ->
       # search goes back up the current step in search tree
       change = fdvar_constrain bool_var, domain_create_value(c)
 
-      if change is REJECTED
-        # note: it may (only) fail here if the var was passed on
-        # externally and updated to values without 0 or 1
-        throw new Error 'did not expect constrain to fail here'
+      # TODO: change this to an ASSERT?
+      _throw_if_true bool_var.length is 0
 
     pop_vars pos_or_neg_propagator
     return
+
+  # throw is abstracted to prevent deopt
+
+  _throw_if_true = (v) ->
+    # note: it may (only) fail here if the var was passed on
+    # externally and updated to values without 0 or 1
+    if v
+      throw new Error 'did not expect constrain to fail here'
 
   # Represent a comparison operator over two given variables.
   # Each step call checks whether the constraint still holds or updates

@@ -45,6 +45,10 @@ module.exports = (FD) ->
   RANDOM = Math.random #new Multiverse.random "sjf20ru"
 
   {
+    ASSERT
+  } = FD.helpers
+
+  {
     domain_contains_value
   } = FD.Domain
 
@@ -70,7 +74,8 @@ module.exports = (FD) ->
         value = val_legend?[index]
         value ?= index # default legend is the indic
         if value and domain_contains_value domain, value
-          total += prob
+          ASSERT prob >= 0, 'addition below assumes values are positive or zero'
+          total += prob # TODO: confirm this keeps working when SUB becomes negative... probably have to normalize
           vector.push prob
           legend.push value
 

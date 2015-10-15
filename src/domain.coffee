@@ -1,6 +1,7 @@
 module.exports = (FD) ->
 
   {
+    SUB
     SUP
     NO_SUCH_VALUE
     ZERO_CHANGES
@@ -70,7 +71,7 @@ module.exports = (FD) ->
 
     domain = []
     for value, index in list
-      ASSERT value >= 0, 'fd values range 0~SUP'
+      ASSERT value >= SUB, 'fd values range SUB~SUP'
       if index is 0
         lo = value
         hi = value
@@ -165,27 +166,27 @@ module.exports = (FD) ->
 
   domain_except_bounds = (lo, hi) ->
     domain = []
-    if lo > 0
-      domain.push 0, lo-1
+    if lo > SUB
+      domain.push SUB, lo-1
     if hi < SUP
       domain.push hi+1, SUP
     ASSERT_DOMAIN domain
     return domain
 
-  # The complement of a domain is such that domain U domain' = [[0, SUP]].
+  # The complement of a domain is such that domain U domain' = [SUB, SUP].
   # Assumes domain is in CSIS form
-  # Returns a domain that covers any range in (0...SUP) that was not covered by given domain
+  # Returns a domain that covers any range in (SUB...SUP) that was not covered by given domain
 
   domain_complement = (domain) ->
     ASSERT_DOMAIN domain
     unless domain.length
       return domain_create_all()
 
-    end = 0
+    end = SUB
     result = []
     for lo, index in domain by 2
       ASSERT !end or end < lo, 'domain is supposed to be csis, so ranges dont overlap nor touch'
-      if lo > 0 # prevent [0,0] if first range starts at 0; that'd be bad
+      if lo > SUB # prevent [SUB,SUB] if first range starts at SUB; that'd be bad
         result.push end, lo - 1
       end = domain[index+1] + 1
 
@@ -269,14 +270,14 @@ module.exports = (FD) ->
   is_simplified = (domain) ->
     if domain.length <= 2
       if domain.length is 2
-        ASSERT domain[0] >= 0, 'domains should not be sparse [0]'
-        ASSERT domain[1] >= 0, 'domains should not be sparse [1]'
+        ASSERT domain[0] >= SUB, 'domains should not be sparse [0]'
+        ASSERT domain[1] >= SUB, 'domains should not be sparse [1]'
       return true
-    phi = 0
+    phi = SUB
     for lo, index in domain by 2
       hi = domain[index+1]
-      ASSERT lo >= 0, 'domains should not be sparse [lo]'
-      ASSERT hi >= 0, 'domains should not be sparse [hi]'
+      ASSERT lo >= SUB, 'domains should not be sparse [lo]'
+      ASSERT hi >= SUB, 'domains should not be sparse [hi]'
       ASSERT lo <= hi, 'ranges should be ascending'
       # we need to simplify if the lo of the next range goes before or touches the hi of the previous range
       # TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
@@ -289,7 +290,7 @@ module.exports = (FD) ->
   merge_overlapping_inline = (domain) ->
     # assumes domain is sorted
     # assumes all ranges are "sound" (lo<=hi)
-    prev_hi = 0
+    prev_hi = SUB
     write_index = 0
     for lo, read_index in domain by 2
       hi = domain[read_index+1]
@@ -311,7 +312,7 @@ module.exports = (FD) ->
         prev_hi = hi
     domain.length = write_index # if `domain` was a larger at the start this ensures extra elements are dropped from it
     for test in domain
-      ASSERT test >= 0, 'merge should not result in sparse array'
+      ASSERT test >= SUB, 'merge should not result in sparse array'
     return domain
 
   # CSIS form = Canonical Sorted Interval Sequeunce form.
@@ -535,8 +536,8 @@ module.exports = (FD) ->
 
         lo = loi - hij
         hi = hii - loj
-        if hi >= 0
-          result.push MAX(0, lo), hi
+        if hi >= SUB
+          result.push MAX(SUB, lo), hi
 
     return domain_simplify result, INLINE
 
@@ -553,11 +554,11 @@ module.exports = (FD) ->
       for loj, index2 in domain2 by 2
         hij = domain2[index2 + 1]
 
-        ASSERT hij > 0, 'expecting no empty or inverted ranges'
+        ASSERT hij > SUB, 'expecting no empty or inverted ranges'
         lo = loi / hij
-        hi = if loj > 0 then hii / loj else SUP
-        if hi >= 0
-          result.push MAX(0, lo), hi
+        hi = if loj > SUB then hii / loj else SUP
+        if hi >= SUB
+          result.push MAX(SUB, lo), hi
 
     return domain_simplify result, INLINE
 
@@ -567,7 +568,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN domain
     count = 0
     for lo, index in domain by 2
-      count += 1 + domain[index+1] - lo
+      count += 1 + domain[index+1] - lo # TODO: add test to confirm this still works fine if SUB is negative
     return count
 
   # Get the middle element of all elements in domain. Not hi-lo/2.
@@ -654,7 +655,7 @@ module.exports = (FD) ->
 
     domain.length = i+2
     if domain[i+1] >= value
-      domain[i+1] = value-1 # we already know domain[i] < value so value-1 >= 0
+      domain[i+1] = value-1 # we already know domain[i] < value so value-1 >= SUB
       return true
 
     return len isnt i+2
@@ -701,7 +702,13 @@ module.exports = (FD) ->
     return [0, 1]
 
   domain_create_all = ->
-    return [0, SUP]
+    return [SUB, SUP]
+
+  domain_create_sub = ->
+    return [SUB, SUB]
+
+  domain_create_sup = ->
+    return [SUP, SUP]
 
   domain_create_value = (value) ->
     return [value, value]
@@ -719,6 +726,8 @@ module.exports = (FD) ->
     domain_create_all
     domain_create_bool
     domain_create_one
+    domain_create_sub
+    domain_create_sup
     domain_create_range
     domain_create_value
     domain_create_zero

@@ -349,11 +349,11 @@ module.exports = (FD) ->
       @decl value, dom.slice 0
     return @
 
-  # Same function as var, but the domain is
-  # that of a single number.
+  # Same function as @decl_value but with explicit name
 
   Space::num = (name, n) ->
-    @decl name, domain_create_value(n)
+    @decl name, domain_create_value n
+    return @
 
   # Adds propagators which reify the given operator application
   # to the given boolean variable.

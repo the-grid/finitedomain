@@ -94,11 +94,9 @@ module.exports = (FD) ->
     space.solver = @solver if @solver
     return space
 
-  # When done with the space, call this to send success results
-  # to the parent space from which it was cloned.
+  # @obsolete Keeping it for non-breaking-api sake
 
   Space::done = ->
-    return
 
   # A monotonically increasing class-global counter for unique temporary variable names.
   _temp_count = 1
@@ -111,9 +109,9 @@ module.exports = (FD) ->
     propagators = @_propagators
     while changed
       changed = false
-      for i in [0...propagators.length]
+      for propagator in propagators
         # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
-        n = propagators[i].stepper()
+        n = propagator.stepper()
         if n > 0
           changed = true
         else if n is REJECTED

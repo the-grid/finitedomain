@@ -202,15 +202,15 @@ module.exports = (FD) ->
     func @
     return @
 
-  # @deprecated Use @anon instead
+  # @deprecated Use @decl_anon instead
 
   Space::temp = (dom) ->
-    return @anon dom
+    return @decl_anon dom
 
-  # @deprecated Use @anons instead
+  # @deprecated Use @decl_anons instead
 
   Space::temps = (N, dom) ->
-    return @anons N, dom
+    return @decl_anons N, dom
 
   # Returns a new unique name usable for an anonymous fdvar.
   # Returns the name of the new var, which will be a unique
@@ -222,11 +222,18 @@ module.exports = (FD) ->
     @decl t, dom
     return t
 
+  # Alias for @decl_anon [val, val]
+
+  Space::decl_value = (val) ->
+    if val >= SUB and val <= SUP # also catches NaN cases
+      return @decl_anon domain_create_value val
+    throw new Error 'FD.space.konst: Value out of valid range'
+
   # Create N anonymous FD variables and return their names
   # in an array. Optionally set them to given dom for all
   # of them, defaults to full range (SUB-SUP).
 
-  Space::anons = (N, dom) ->
+  Space::decl_anons = (N, dom) ->
     result = []
     for [0...N]
       result.push @anon dom
@@ -241,13 +248,17 @@ module.exports = (FD) ->
   # the closure compiler too. So I'm changing the name to 'konst'
   # instead. I'll keep the old name 'const' for compatibility.
 
+  # Const/Konst is misleading because it serves no optimization.
+  # @deprecated use @decl_value instead
+
   Space::konst = (val) ->
-    if val >= SUB and val <= SUP # also catches NaN cases
-      return @temp domain_create_value val
-    throw new Error 'FD.space.konst: Value out of valid range'
+    return @decl_value val
 
   # Keep old name for compatibility.
-  Space.prototype['const'] = Space::konst
+  # @deprecated use @decl_value instead
+
+  Space::const = (val) ->
+    return @decl_value val
 
   # Apply an operator func to var_left and var_right
   # Updates var_result to the intersection of the result and itself

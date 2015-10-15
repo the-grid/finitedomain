@@ -52,6 +52,11 @@ module.exports = ->
           # note: you can do `grunt test --grep FD` to grep from cli
           timeout: 6000
           reporter: 'spec'
+      perf:
+        src: ['tests/perf/perf.coffee']
+        options:
+          timeout: 20000
+          reporter: 'spec'
 
     # CoffeeScript compilation
     coffee:
@@ -63,6 +68,12 @@ module.exports = ->
         files: [
           'build/spec.js': 'tests/spec/**/*.coffee'
         ]
+      # to run perf/perf.html
+      perf:
+        cwd: './tests/perf'
+        src: ['**/*.coffee']
+        dest: 'build/perf'
+        ext: '.js'
       # for fun an profit
       spec:
         options:
@@ -82,6 +93,7 @@ module.exports = ->
         dest: 'build/src'
         ext: '.js'
 
+
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-browserify'
   @loadNpmTasks 'grunt-contrib-uglify'
@@ -95,5 +107,6 @@ module.exports = ->
   @registerTask 'lint', ['coffeelint']
   @registerTask 'build', ['coffeelint', 'browserify:dist', 'coffee:spec_joined']
   @registerTask 'test', ['coffeelint', 'browserify:dist', 'mochaTest:all']
+  @registerTask 'perf', ['browserify:dist', 'mochaTest:perf', 'coffee:perf']
   @registerTask 'dist', ['coffeelint', 'browserify:dist', 'uglify']
   @registerTask 'default', ['lint']

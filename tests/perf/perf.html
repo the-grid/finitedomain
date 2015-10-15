@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Fletcher in yo browser</title>
+    <link rel="stylesheet" href="../../node_modules/mocha/mocha.css">
+  </head>
+  <body>
+    <div id="mocha"></div>
+
+    <script src="../../node_modules/chai/chai.js"></script>
+    <script src="../../node_modules/mocha/mocha.js"></script>
+    <script>mocha.setup('bdd');</script>
+
+    <script src="../../dist/finitedomain.dev.js"></script>
+
+    <script src="../../build/perf/o1.js"></script>
+    <script src="../../build/perf/o2.js"></script>
+    <script src="../../build/perf/o3.js"></script>
+    <script src="../../build/perf/o4.js"></script>
+    <script src="../../build/perf/o5.js"></script>
+    <script src="../../build/perf/o6.js"></script>
+    <script src="../../build/perf/perf.js"></script>
+
+    <script>
+      if (window.mochaPhantomJS) {
+        mochaPhantomJS.run();
+      } else {
+        mocha.checkLeaks();
+        mocha.run();
+      }
+    </script>
+  </body>
+</html>

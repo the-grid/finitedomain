@@ -236,17 +236,8 @@ module.exports = (FD) ->
   Space::decl_anons = (N, dom) ->
     result = []
     for [0...N]
-      result.push @anon dom
+      result.push @decl_anon dom
     return result
-
-  # Create a "constant". We have no optimizing support for
-  # constants at the moment and just treat it as a temp FDVar
-  # whose domain is of size = 1.
-  #
-  # Fixing issue #1 - 'const' in the property position is not
-  # accepted by the IE8 parser. It is likely to be rejected by
-  # the closure compiler too. So I'm changing the name to 'konst'
-  # instead. I'll keep the old name 'const' for compatibility.
 
   # Const/Konst is misleading because it serves no optimization.
   # @deprecated use @decl_value instead
@@ -289,10 +280,10 @@ module.exports = (FD) ->
 
   ring = (space, plusop, minusop, v1name, v2name, sumname) ->
     retval = space
-    # If sumname is not specified, we need to create a temp
-    # for the result and return the name of that temp variable.
+    # If sumname is not specified, we need to create a anonymous
+    # for the result and return the name of that anon variable.
     unless sumname
-      sumname = space.temp()
+      sumname = space.decl_anon()
       retval = sumname
 
     ring_a = ->
@@ -313,7 +304,7 @@ module.exports = (FD) ->
 
     space._propagators.push a, b, c
 
-    retval
+    return retval
 
   # Register one or more variables with specific names
   # Note: if you want to register multiple names call Space#decls instead
@@ -407,7 +398,7 @@ module.exports = (FD) ->
       if r is REJECTED
         return REJECTED
     else
-      bool_name = @temp domain_create_bool()
+      bool_name = @decl_anon domain_create_bool()
 
     @_propagators.push propagator_create_reified @, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, opname
 
@@ -477,14 +468,16 @@ module.exports = (FD) ->
     return
 
   # Bidirectional addition propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    ring @, domain_plus, domain_minus, v1name, v2name, sumname
+    return ring @, domain_plus, domain_minus, v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    ring @, domain_times, domain_divby, v1name, v2name, prodname
+    return ring @, domain_times, domain_divby, v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -497,13 +490,13 @@ module.exports = (FD) ->
       return @eq vname, prodname
 
     if factor is 0
-      return @eq @temp(domain_create_zero()), prodname
+      return @eq @decl_anon(domain_create_zero()), prodname
 
     if factor < 0
       throw new Error 'scale: negative factors not supported.'
 
     unless prodname
-      prodname = @temp()
+      prodname = @decl_anon()
       retval = prodname
 
     a = propagator_create_scale_mul @, vname, prodname
@@ -515,16 +508,17 @@ module.exports = (FD) ->
   # TODO: Can be made more efficient.
 
   Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
-    @plus @scale(k1, v1name), @scale(k2, v2name), resultname
+    return @plus @scale(k1, v1name), @scale(k2, v2name), resultname
 
   # Sum of N fdvars = resultFDVar
-  # Creates as many temporaries as necessary.
+  # Creates as many anonymous vars as necessary.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::sum = (vars, result_var_name) ->
     retval = @
 
     unless result_var_name
-      result_var_name = @temp()
+      result_var_name = @decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -540,12 +534,12 @@ module.exports = (FD) ->
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @temp()
+          t1 = @decl_anon()
           @sum vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = @temp()
+        t2 = @decl_anon()
 
         @sum vars.slice(n), t2
         @plus t1, t2, result_var_name
@@ -553,13 +547,13 @@ module.exports = (FD) ->
     return retval
 
   # Product of N fdvars = resultFDvar.
-  # Create as many temporaries as necessary.
+  # Create as many anonymous vars as necessary.
 
   Space::product = (vars, result_var_name) ->
     retval = @
 
     unless result_var_name
-      result_var_name = @temp()
+      result_var_name = @decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -575,11 +569,11 @@ module.exports = (FD) ->
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @temp()
+          t1 = @decl_anon()
           @product vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = @temp()
+        t2 = @decl_anon()
 
         @product vars.slice(n), t2
         @times t1, t2, result_var_name
@@ -589,10 +583,10 @@ module.exports = (FD) ->
   # Weighted sum of fdvars where the weights are constants.
 
   Space::wsum = (kweights, vars, result_name) ->
-    temps = []
+    anons = []
     for var_i, i in vars
-      t = @temp()
+      t = @decl_anon()
       @scale kweights[i], var_i, t
-      temps.push t
-    @sum temps, result_name
+      anons.push t
+    @sum anons, result_name
     return

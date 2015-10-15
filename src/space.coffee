@@ -145,24 +145,24 @@ module.exports = (FD) ->
   # be already in a solved state for this to work.
 
   Space::solution = ->
-    vars = @vars
     result = {}
-    for key of vars
+    for var_name, fdvar of @vars
       # Don't include the temporary variables in the "solution".
       # Temporary variables take the form of a numeric property
-      # of the object, so we test for the key to be a number and
+      # of the object, so we test for the var_name to be a number and
       # don't include those variables in the result.
 
-      c = key[0]
+      c = var_name[0]
       if c < '0' or c > '9'
-        d = vars[key].dom
-        if d.length is 0
-          result[key] = false
-        else if domain_is_solved d
-          result[key] = domain_min d
+        domain = fdvar.dom
+        if domain.length is 0
+          result[var_name] = false
+        else if domain_is_solved domain
+          result[var_name] = domain_min domain
         else
-          result[key] = d
-    result
+          result[var_name] = domain
+
+    return result
 
   Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
 

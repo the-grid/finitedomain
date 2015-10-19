@@ -55,7 +55,7 @@ module.exports = (FD) ->
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (parent_space) ->
+  Space = FD.space = (get_value_distributor = throw_unless_overridden) ->
     @_type = 'space'
 
     # The FDVARS are all named and accessed by name.
@@ -67,24 +67,27 @@ module.exports = (FD) ->
 
     @_propagators = []
 
-    # copy the search strategy set from Distribution initially
-    @get_value_distributor = parent_space and parent_space.get_value_distributor or throw_unless_overridden # overridden from distribution/distribute... for now.
-
-    if parent_space
-      for var_name in parent_space.var_names
-        @vars[var_name] = fdvar_clone parent_space.vars[var_name]
-        @var_names.push var_name
-
-      # Clone propagators that have not been solved yet into new space.
-      # They will use @space so we'll need to update the clones with @.
-      for p in parent_space._propagators
-        unless propagator_is_solved p
-          @_propagators.push propagator_create @, p.target_var_names, p.stepper, p._name
+    # overridden from distribution/distribute... for now. and copied from parent space
+    @get_value_distributor = get_value_distributor
 
     return
 
   Space::clone = () ->
-    space = new FD.space @
+    space = new FD.space @get_value_distributor
+
+    parent_vars = @vars
+    child_vars = space.vars
+    child_var_names = space.var_names
+    for var_name in @var_names
+      child_vars[var_name] = fdvar_clone parent_vars[var_name]
+      child_var_names.push var_name
+
+    # Clone propagators that have not been solved yet into new space.
+    # They will use @space so we'll need to update the clones with @.
+    for p in @_propagators
+      unless propagator_is_solved p
+        space._propagators.push propagator_create space, p.target_var_names, p.stepper, p._name
+
     # D4:
     # - add ref to high level solver
     space.solver = @solver if @solver

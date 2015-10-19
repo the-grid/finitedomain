@@ -6,6 +6,8 @@ module.exports = (FD) ->
     REJECTED
     SUB
     SUP
+
+    ASSERT_DOMAIN
   } = FD.helpers
 
   {
@@ -309,6 +311,8 @@ module.exports = (FD) ->
   # Note: if you want to register multiple names call Space#decls instead
 
   Space::decl = (name_or_names, dom) ->
+    if dom
+      ASSERT_DOMAIN dom
     # lets try to deprecate this path
     if name_or_names instanceof Object or name_or_names instanceof Array
       return @decls name_or_names, dom

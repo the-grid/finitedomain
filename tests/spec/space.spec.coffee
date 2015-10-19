@@ -353,3 +353,49 @@ describe "FD", ->
 
         space = new Space()
         expect(-> space.decl_value FD.helpers.SUB - 100).to.throw
+
+    describe '#decl()', ->
+
+      it 'should create a new var', ->
+
+        space = new Space()
+        space.decl 'foo', spec_d_create_value 100
+        expect(space.var_names).to.eql ['foo']
+        expect(space.vars.foo?).to.be.true
+
+      it 'should set var to domain', ->
+
+        space = new Space()
+        space.decl 'foo', spec_d_create_value 100
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 100
+
+      it 'should set var to full domain if none given', ->
+
+        space = new Space()
+        space.decl 'foo'
+        expect(space.vars.foo.dom).to.eql spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+
+      it 'should just update domain if var already exists', ->
+        # this should throw an error instead. when would you _want_ to do this?
+
+        space = new Space()
+        space.decl 'foo', spec_d_create_value 100
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 100
+        space.decl 'foo', spec_d_create_value 200
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 200
+
+      it 'should ignore an update if no domain is given', ->
+        # this should throw an error instead. when would you _want_ to do this?
+
+        space = new Space()
+        space.decl 'foo', spec_d_create_value 100
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 100
+        space.decl 'foo'
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 100
+
+      it 'should return space', ->
+
+        space = new Space()
+        expect(space.decl 'foo', spec_d_create_value 100).to.equal space
+        # even if already exists
+        expect(space.decl 'foo', spec_d_create_value 200).to.equal space

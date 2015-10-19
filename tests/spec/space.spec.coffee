@@ -399,3 +399,41 @@ describe "FD", ->
         expect(space.decl 'foo', spec_d_create_value 100).to.equal space
         # even if already exists
         expect(space.decl 'foo', spec_d_create_value 200).to.equal space
+
+    describe '#decls()', ->
+
+      it 'should create some new vars', ->
+
+        space = new Space()
+        names = ['foo', 'bar', 'baz']
+        space.decls names, spec_d_create_value 100
+        expect(space.var_names).to.eql names
+        for name in names
+          expect(space.vars.foo?).to.be.true
+
+      it 'should set to given domain', ->
+
+        space = new Space()
+        names = ['foo', 'bar', 'baz']
+        domain = spec_d_create_value 100
+        space.decls names, domain
+        expect(space.var_names).to.eql names
+        for name in names
+          expect(space.vars[name]?).to.be.true
+          expect(space.vars[name].dom, 'domain should be cloned').not.to.equal domain
+          expect(space.vars[name].dom).to.eql domain
+          for name2 in names
+            expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]
+
+      it 'should be set to full domain if none given', ->
+
+        space = new Space()
+        names = ['foo', 'bar', 'baz']
+        domain = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+        space.decls names
+        expect(space.var_names).to.eql names
+        for name in names
+          expect(space.vars[name]?).to.be.true
+          expect(space.vars[name].dom).to.eql domain
+          for name2 in names
+            expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]

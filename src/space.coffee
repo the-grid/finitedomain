@@ -341,7 +341,7 @@ module.exports = (FD) ->
   Space::decls = (names, dom) ->
     # Recursively declare all variables in the structure given.
     for key, value of names
-      @decl value, dom.slice 0
+      @decl value, (dom and dom.slice 0)
     return @
 
   # Same function as @decl_value but with explicit name

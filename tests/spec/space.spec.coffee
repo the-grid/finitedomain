@@ -461,3 +461,21 @@ describe "FD", ->
         space = new Space()
         name = space.num 'foo', 100
         expect(space.vars.foo.dom).to.eql spec_d_create_value 100
+
+    # the propagator methods on Space are to be tested later, after I change them completely;
+    # reified
+    # callback
+    # eq
+    # lt
+    # gt
+    # lte
+    # gte
+    # neq
+    # distinct
+    # plus
+    # times
+    # scale
+    # times_plus
+    # sum
+    # product
+    # wsum

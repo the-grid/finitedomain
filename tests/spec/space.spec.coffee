@@ -84,3 +84,16 @@ describe "FD", ->
         s = new Space()
         s.solver = {}
         expect(s.clone().solver).to.equal s.solver
+
+    describe '#done()', ->
+
+      it 'should not do anything', ->
+
+        expect(new Space().done).not.to.throw
+
+      it 'should not modify the space', ->
+
+        space = new Space
+        clone = space.clone()
+        space.done()
+        expect(space).to.eql clone # since clone is a deep clone, we can do a deep eq check here

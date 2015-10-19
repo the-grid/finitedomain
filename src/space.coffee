@@ -56,7 +56,7 @@ module.exports = (FD) ->
   # Concept of a space that holds fdvars and propagators
 
   Space = FD.space = (get_value_distributor = throw_unless_overridden) ->
-    @_type = 'space'
+    @_class = 'space'
 
     # The FDVARS are all named and accessed by name.
     # When a space is cloned, the clone's fdvars objects

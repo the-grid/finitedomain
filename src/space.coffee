@@ -55,9 +55,6 @@ module.exports = (FD) ->
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  # D4:
-  # - added memory object Spaces share, required for things like markov-style probabilistic value distribution
-
   Space = FD.space = (parent_space) ->
     @_type = 'space'
 
@@ -69,9 +66,6 @@ module.exports = (FD) ->
     @var_names = []
 
     @_propagators = []
-
-    # keep memory
-    @memory = parent_space and parent_space.memory or {}
 
     # copy the search strategy set from Distribution initially
     @get_value_distributor = parent_space and parent_space.get_value_distributor or throw_unless_overridden # overridden from distribution/distribute... for now.

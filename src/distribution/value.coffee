@@ -102,7 +102,12 @@ module.exports = (FD) ->
       legend
     } = options
 
-    root_space.memory.lastValueByVar ?= {}
+    # TOFIX: are we going to want to set/access lastValueByVar externally? otherwise drop the `memory` struct
+    unless root_space.memory
+      root_space.memory = {}
+    unless root_space.memory.lastValueByVar
+      root_space.memory.lastValueByVar = {}
+    lastValueByVar = root_space.memory.lastValueByVar
 
     # see Solver.addVar for setup...
 
@@ -120,12 +125,12 @@ module.exports = (FD) ->
           unless value?
             return # signifies end of search
           ASSERT domain_contains_value(fdvar.dom, value), 'markov picks the value from the existing domain' # the update below assumes this (skips constrain for this assumption)
-          space.memory.lastValueByVar[var_name] = value
+          lastValueByVar[var_name] = value
           # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
           fdvar_set_value_inline fdvar, value
 
         when SECOND_CHOICE
-          new_domain = domain_remove_value fdvar.dom, space.memory.lastValueByVar[var_name]
+          new_domain = domain_remove_value fdvar.dom, lastValueByVar[var_name]
           unless new_domain and new_domain.length
             return # signifies end of search
           fdvar_set_domain fdvar, new_domain

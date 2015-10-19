@@ -217,7 +217,7 @@ module.exports = (FD) ->
   # to the full range (SUB-SUP).
 
   Space::decl_anon = (dom) ->
-    t = ++_temp_count
+    t = String(++_temp_count)
     @decl t, dom
     return t
 
@@ -235,7 +235,7 @@ module.exports = (FD) ->
   Space::decl_anons = (N, dom) ->
     result = []
     for [0...N]
-      result.push @decl_anon dom
+      result.push @decl_anon (dom and dom.slice 0)
     return result
 
   # Const/Konst is misleading because it serves no optimization.

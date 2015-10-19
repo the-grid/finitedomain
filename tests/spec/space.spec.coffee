@@ -242,3 +242,114 @@ describe "FD", ->
         clone = space.clone()
         space.inject ->
         expect(space).to.eql clone
+
+    describe '#decl_anon()', ->
+
+      it 'should create a new var', ->
+
+        space = new Space()
+        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        space.decl_anon 22
+        expect(space.var_names.length, 'after decl').to.eql 1
+
+      it 'should return the name of a var', ->
+
+        space = new Space()
+        name = space.decl_anon 50
+        expect(space.var_names.indexOf(name) > -1).to.be.true
+
+      it 'should create a var with given domain', ->
+
+        space = new Space()
+        name = space.decl_anon spec_d_create_range 100, 200
+        expect(space.vars[name].dom).to.eql spec_d_create_range 100, 200
+
+      it 'should create a full range var if no domain is given', ->
+
+        space = new Space()
+        name = space.decl_anon()
+        expect(space.vars[name].dom).to.eql spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+
+    describe '#decl_anons()', ->
+
+      it 'should create multiple vars', ->
+
+        space = new Space()
+        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        space.decl_anons 22
+        expect(space.var_names.length, 'after decl').to.eql 22
+
+      it 'should return a list of names of the new vars', ->
+
+        space = new Space()
+        names = space.decl_anons 50
+        for name in names
+          expect(space.var_names.indexOf(name) > -1).to.be.true
+
+      it 'should set the domain to full if no domain is given', ->
+
+        full_range = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+        space = new Space()
+        names = space.decl_anons 50
+        for name in names
+          expect(space.vars[name].dom).to.eql full_range
+
+      it 'should not use same reference for the new domains', ->
+
+        space = new Space()
+        names = space.decl_anons 5
+        for name1, i in names
+          for name2, j in names # yeah yeah you could start at `i`
+            if i isnt j
+              expect(space.vars[name1]).not.to.equal space.vars[name2]
+
+      it 'should set the domain to given domain', ->
+
+        domain = spec_d_create_range 10, 20
+        space = new Space()
+        names = space.decl_anons 5, domain
+        for name in names
+          expect(space.vars[name].dom).to.eql domain
+
+      it 'should init vars to a clone of the given domain', ->
+
+        domain = spec_d_create_range 10, 20
+        space = new Space()
+        names = space.decl_anons 5, domain
+        for name in names
+          expect(space.vars[name].dom).not.to.equal domain
+
+      it 'should not use same reference for the domains of new vars', ->
+
+        space = new Space()
+        names = space.decl_anons 5, spec_d_create_range 10, 20
+        for name1, i in names
+          for name2, j in names # yeah yeah you could start at `i`
+            if i isnt j
+              expect(space.vars[name1]).not.to.equal space.vars[name2]
+
+    describe '#decl_value()', ->
+
+      it 'should create a new var', ->
+
+        space = new Space()
+        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        space.decl_value 22
+        expect(space.var_names.length, 'after decl').to.eql 1
+
+      it 'should return the name of a var', ->
+
+        space = new Space()
+        name = space.decl_value 50
+        expect(space.var_names.indexOf(name) > -1).to.be.true
+
+      it 'should create a "solved" var with given value', ->
+
+        space = new Space()
+        name = space.decl_value 100
+        expect(space.vars[name].dom).to.eql spec_d_create_value 100
+
+      it 'should throw if value is OOB', ->
+
+        space = new Space()
+        expect(-> space.decl_value FD.helpers.SUB - 100).to.throw

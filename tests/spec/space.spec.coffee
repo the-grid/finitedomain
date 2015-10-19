@@ -172,17 +172,17 @@ describe "FD", ->
         space = new Space()
         space.decl 'single_range', spec_d_create_range 10, 20
         space.decl 'multi_range', spec_d_create_ranges [10, 20], [30, 40]
-        space.decl 'multi_range_with_solved', spec_d_create_ranges [10, 20], [15, 15], [30, 40]
+        space.decl 'multi_range_with_solved', spec_d_create_ranges [10, 20], [25, 25], [30, 40]
         expect(space.solution()).to.eql
           single_range: spec_d_create_range 10, 20
           multi_range: spec_d_create_ranges([10, 20], [30, 40])
-          multi_range_with_solved: spec_d_create_ranges([10, 20], [15, 15], [30, 40])
+          multi_range_with_solved: spec_d_create_ranges([10, 20], [25, 25], [30, 40])
 
       it 'should not add anonymous vars to the result', ->
 
         space = new Space()
         space.decl_value 15
-        space.decl 'addme', 20
+        space.decl 'addme', spec_d_create_value 20
         expect(space.solution()).to.eql {addme: 20}
 
     describe '#solutionFor()', ->
@@ -249,13 +249,13 @@ describe "FD", ->
 
         space = new Space()
         expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-        space.decl_anon 22
+        space.decl_anon spec_d_create_value 22
         expect(space.var_names.length, 'after decl').to.eql 1
 
       it 'should return the name of a var', ->
 
         space = new Space()
-        name = space.decl_anon 50
+        name = space.decl_anon spec_d_create_value 50
         expect(space.var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a var with given domain', ->

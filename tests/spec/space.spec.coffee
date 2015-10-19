@@ -97,3 +97,48 @@ describe "FD", ->
         clone = space.clone()
         space.done()
         expect(space).to.eql clone # since clone is a deep clone, we can do a deep eq check here
+
+    describe '#propagate()', ->
+
+      it 'should return true without any propagators', ->
+
+        expect(new Space().propagate()).to.be.true
+
+      it 'should return false if a prop rejects', ->
+
+        space = new Space
+        space._propagators.push { stepper: -> FD.helpers.REJECTED }
+        expect(space.propagate()).to.be.false
+
+      it 'should return true if no prop rejects', ->
+
+        space = new Space
+        space._propagators.push { stepper: -> FD.helpers.ZERO_CHANGES }, { stepper: -> FD.helpers.ZERO_CHANGES }
+        expect(space.propagate()).to.be.true
+
+    describe '#is_solved()', ->
+
+      it 'should return true if there are no vars', ->
+
+        expect(new Space().is_solved()).to.be.true
+
+      it 'should return true if all vars are solved', ->
+
+        space = new Space
+        space.decl_value 1
+        expect(space.is_solved(), 'only one solved var').to.be.true
+
+        space.decl_value 1
+        expect(space.is_solved(), 'two solved vars').to.be.true
+
+      it 'should return false if at least one var is not solved', ->
+
+        space = new Space
+        space.decl_anon spec_d_create_bool()
+        expect(space.is_solved(), 'only one unsolved var').to.be.false
+
+        space.decl_anon spec_d_create_bool()
+        expect(space.is_solved(), 'two unsolved vars').to.be.false
+
+        space.decl_value 1
+        expect(space.is_solved(), 'two unsolved vars and a solved var').to.be.false

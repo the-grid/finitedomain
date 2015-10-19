@@ -6,6 +6,8 @@ module.exports = (FD) ->
     REJECTED
     SUB
     SUP
+
+    ASSERT_DOMAIN
   } = FD.helpers
 
   {
@@ -47,85 +49,55 @@ module.exports = (FD) ->
     fdvar_set_domain
   } = FD.Var
 
+
+  throw_unless_overridden = ->
+    throw new Error 'Space#get_value_distributor(); override me'
+
+
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  # D4:
-  # - added memory object Spaces share, required for things like markov-style probalisitic value distribution
+  Space = FD.space = (get_value_distributor = throw_unless_overridden) ->
+    @_class = 'space'
 
-  Space = FD.space = (S) ->
+    # The FDVARS are all named and accessed by name.
+    # When a space is cloned, the clone's fdvars objects
+    # all have their __proto__ fields set to the parent's
+    # fdvars object. This gets us copy on modify semantics.
+    @vars = {}
+    @var_names = []
 
-    # new instance
-    if !S
-      # The FDVARS are all named and accessed by name.
-      # When a space is cloned, the clone's fdvars objects
-      # all have their __proto__ fields set to the parent's
-      # fdvars object. This gets us copy on modify semantics.
-      @vars = {}
-      @_propagators = []
-      get_value_distributor = -> # set from distribution/distribute... for now.
-        throw new Error 'Space#get_value_distributor(); override me'
+    @_propagators = []
 
-      @memory = {}
+    # overridden from distribution/distribute... for now. and copied from parent space
+    @get_value_distributor = get_value_distributor
 
-    # clone
-    else
-
-      # The given space is being cloned.
-      i = undefined
-      j = undefined
-      p = undefined
-
-      @get_value_distributor = S.get_value_distributor # copy the search strategy set from Distribution initially
-
-      # keep memory
-      @memory = S.memory if S.memory
-
-      # Bring the fdvars in using copy-on-write.
-      @vars = {}
-      for var_name of S.vars
-        @vars[var_name] = fdvar_clone S.vars[var_name]
-
-      # Clone propagators that have not been solved yet into new space.
-      # They will use @space so we'll need to update the clones with @.
-      @_propagators = []
-      for p in S._propagators
-        unless propagator_is_solved p
-          @_propagators.push propagator_create @, p.target_var_names, p.stepper, p._name
-
-      # TODO: Remove this reference. It might result in less
-      # memory being used during searches. If we keep around the
-      # parent space like this, then we have to maintain all
-      # spaces that we search in memory. For now, since I'm
-      # still debugging, this is all right.
-      @clone_of = S
-    @succeeded_children = 0
-    @failed_children = 0
-    @stable_children = 0
-    this
+    return
 
   Space::clone = () ->
-    space = new FD.space @
+    space = new FD.space @get_value_distributor
+
+    parent_vars = @vars
+    child_vars = space.vars
+    child_var_names = space.var_names
+    for var_name in @var_names
+      child_vars[var_name] = fdvar_clone parent_vars[var_name]
+      child_var_names.push var_name
+
+    # Clone propagators that have not been solved yet into new space.
+    # They will use @space so we'll need to update the clones with @.
+    for p in @_propagators
+      unless propagator_is_solved p
+        space._propagators.push propagator_create space, p.target_var_names, p.stepper, p._name
+
     # D4:
     # - add ref to high level solver
     space.solver = @solver if @solver
-    space
-  #Space::clone = ->
-  #  new Space(this)
+    return space
 
-  # When done with the space, call this to send success results
-  # to the parent space from which it was cloned.
+  # @obsolete Keeping it for non-breaking-api sake
 
   Space::done = ->
-    if @clone_of
-      @clone_of.succeeded_children += @succeeded_children
-      @clone_of.failed_children += @failed_children
-      if @failed
-        @clone_of.failed_children++
-      if @succeeded_children == 0 and @failed_children > 0
-        @failed = true
-      @clone_of.stable_children += @stable_children
-    return
 
   # A monotonically increasing class-global counter for unique temporary variable names.
   _temp_count = 1
@@ -138,9 +110,9 @@ module.exports = (FD) ->
     propagators = @_propagators
     while changed
       changed = false
-      for i in [0...propagators.length]
+      for propagator in propagators
         # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
-        n = propagators[i].stepper()
+        n = propagator.stepper()
         if n > 0
           changed = true
         else if n is REJECTED
@@ -165,8 +137,8 @@ module.exports = (FD) ->
 
   Space::is_solved = ->
     vars = @vars
-    for i of vars # TODO: get rid of this "for-in" loop. it's slow.
-      unless fdvar_is_solved vars[i]
+    for var_name in @var_names
+      unless fdvar_is_solved vars[var_name]
         return false
     return true
 
@@ -175,101 +147,111 @@ module.exports = (FD) ->
   # be already in a solved state for this to work.
 
   Space::solution = ->
+    result = {}
     vars = @vars
-    result = {}
-    for key of vars
-      # Don't include the temporary variables in the "solution".
-      # Temporary variables take the form of a numeric property
-      # of the object, so we test for the key to be a number and
-      # don't include those variables in the result.
-
-      c = key[0]
-      if c < '0' or c > '9'
-        d = vars[key].dom
-        if d.length is 0
-          result[key] = false
-        else if domain_is_solved d
-          result[key] = domain_min d
-        else
-          result[key] = d
-    result
-
-  Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
-
-    result = {}
-    for id in ids
-
-      fdvar = @vars[id]
-      value = undefined
-      if fdvar?
-        d = fdvar.dom
-        if d.length is 0
-          value = undefined
-        else if domain_is_solved d
-          value = domain_min d
-        else
-          value = d
-
-      if complete and !value?
-        result = false
-        break
-      result[id] = value
+    for var_name in @var_names
+      getset_var_solve_state var_name, vars, result
     return result
 
+  # @param {string[]} var_names List of var names to query the solution for
+  # @param {boolean} [complete=false] Return false if at least one var could not be solved?
+
+  Space::solutionFor = (var_names, complete = false) -> # todo implement memorize flag
+    vars = @vars
+    result = {}
+    for var_name in var_names
+      value = false
+      if vars[var_name]
+        value = getset_var_solve_state var_name, vars, result
+
+      if complete and value is false
+        return false
+
+      result[var_name] = value
+
+    return result
+
+  getset_var_solve_state = (var_name, vars, result) ->
+    value = undefined
+    # Don't include the temporary variables in the "solution".
+    # Temporary variables take the form of a numeric property
+    # of the object, so we test for the var_name to be a number and
+    # don't include those variables in the result.
+    c = var_name[0]
+    if c < '0' or c > '9'
+      domain = vars[var_name].dom
+      if domain.length is 0
+        value = false
+      else if domain_is_solved domain
+        value = domain_min domain
+      else
+        value = domain
+      result[var_name] = value
+
+    return value
 
   # Utility to easily print out the state of variables in the space.
+  # TOFIX: we should move this elsewhere so that we can more easily find usages of it. this is too implicit.
 
   Space::toString = ->
-    JSON.stringify @solution()
+    return JSON.stringify @solution()
 
-  # Injects the given proc into this space by calling
-  # the proc with a single argument which is the current space.
+  # Call given function with `this` as argument
+  # @deprecated (Silly construct... we should refactor call sites to eliminate usages)
 
-  Space::inject = (proc) ->
-    proc this
-    # duh!
-    this
+  Space::inject = (func) ->
+    func @
+    return @
 
-  # Returns a new unique name usable for a temporary fdvar
-  # for more complex calculations. Every call will yield
-  # a different name that is unique across all spaces.
-  #
-  # You can optionally specify a domain for the temporary
-  # if you already know something about it.
+  # @deprecated Use @decl_anon instead
 
   Space::temp = (dom) ->
-    t = ++_temp_count
-    @decl t, dom
-    t
+    return @decl_anon dom
 
-  # Create N temporary FD variables and return their names
-  # in an array.
+  # @deprecated Use @decl_anons instead
 
   Space::temps = (N, dom) ->
-    i = undefined
-    result = []
-    i = 0
-    while i < N
-      result.push @temp(dom)
-      ++i
-    result
+    return @decl_anons N, dom
 
-  # Create a "constant". We have no optimizing support for
-  # constants at the moment and just treat it as a temp FDVar
-  # whose domain is of size = 1.
-  #
-  # Fixing issue #1 - 'const' in the property position is not
-  # accepted by the IE8 parser. It is likely to be rejected by
-  # the closure compiler too. So I'm changing the name to 'konst'
-  # instead. I'll keep the old name 'const' for compatibility.
+  # Returns a new unique name usable for an anonymous fdvar.
+  # Returns the name of the new var, which will be a unique
+  # number. You can optionally specify a domain, defaults
+  # to the full range (SUB-SUP).
 
-  Space::konst = (val) ->
+  Space::decl_anon = (dom) ->
+    t = String(++_temp_count)
+    @decl t, dom
+    return t
+
+  # Alias for @decl_anon [val, val]
+  # Note: use #num() to give it a name. TODO: combine these funcs to a single func with optional name arg...
+
+  Space::decl_value = (val) ->
     if val >= SUB and val <= SUP # also catches NaN cases
-      return @temp domain_create_value val
+      return @decl_anon domain_create_value val
     throw new Error 'FD.space.konst: Value out of valid range'
 
+  # Create N anonymous FD variables and return their names
+  # in an array. Optionally set them to given dom for all
+  # of them, defaults to full range (SUB-SUP).
+
+  Space::decl_anons = (N, dom) ->
+    result = []
+    for [0...N]
+      result.push @decl_anon (dom and dom.slice 0)
+    return result
+
+  # Const/Konst is misleading because it serves no optimization.
+  # @deprecated use @decl_value instead
+
+  Space::konst = (val) ->
+    return @decl_value val
+
   # Keep old name for compatibility.
-  Space.prototype['const'] = Space::konst
+  # @deprecated use @decl_value instead
+
+  Space::const = (val) ->
+    return @decl_value val
 
   # Apply an operator func to var_left and var_right
   # Updates var_result to the intersection of the result and itself
@@ -300,10 +282,10 @@ module.exports = (FD) ->
 
   ring = (space, plusop, minusop, v1name, v2name, sumname) ->
     retval = space
-    # If sumname is not specified, we need to create a temp
-    # for the result and return the name of that temp variable.
+    # If sumname is not specified, we need to create a anonymous
+    # for the result and return the name of that anon variable.
     unless sumname
-      sumname = space.temp()
+      sumname = space.decl_anon()
       retval = sumname
 
     ring_a = ->
@@ -324,35 +306,50 @@ module.exports = (FD) ->
 
     space._propagators.push a, b, c
 
-    retval
+    return retval
+
+  # Register one or more variables with specific names
+  # Note: if you want to register multiple names call Space#decls instead
 
   Space::decl = (name_or_names, dom) ->
-    i = undefined
+    if dom
+      ASSERT_DOMAIN dom
+    # lets try to deprecate this path
     if name_or_names instanceof Object or name_or_names instanceof Array
-      # Recursively declare all variables in the structure given.
-      for i of name_or_names
-        @decl name_or_names[i], dom.slice 0
-      return this
+      return @decls name_or_names, dom
+
     # A single variable is being declared.
-    name = name_or_names
-    fs = @vars
-    f = fs[name]
-    if f
+    var_name = name_or_names
+    vars = @vars
+
+    fdvar = vars[var_name]
+    if fdvar
       # If it already exists, change the domain if necessary.
       if dom
-        fdvar_set_domain f, dom
-      return this
-    if dom
-      fs[name] = fdvar_create name, dom
-    else
-      fs[name] = fdvar_create_wide name
-    this
+        fdvar_set_domain fdvar, dom
+      return @
 
-  # Same function as var, but the domain is
-  # that of a single number.
+    if dom
+      vars[var_name] = fdvar_create var_name, dom
+    else
+      vars[var_name] = fdvar_create_wide var_name
+    @var_names.push var_name
+
+    return @
+
+  # Register multiple vars. If you supply a domain the domain will be cloned for each.
+
+  Space::decls = (names, dom) ->
+    # Recursively declare all variables in the structure given.
+    for key, value of names
+      @decl value, (dom and dom.slice 0)
+    return @
+
+  # Same function as @decl_value but with explicit name
 
   Space::num = (name, n) ->
-    @decl name, domain_create_value(n)
+    @decl name, domain_create_value n
+    return @
 
   # Adds propagators which reify the given operator application
   # to the given boolean variable.
@@ -406,7 +403,7 @@ module.exports = (FD) ->
       if r is REJECTED
         return REJECTED
     else
-      bool_name = @temp domain_create_bool()
+      bool_name = @decl_anon domain_create_bool()
 
     @_propagators.push propagator_create_reified @, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, opname
 
@@ -416,21 +413,11 @@ module.exports = (FD) ->
     @_propagators.push propagator_create_callback @, var_names, callback
     return
 
-
   # Domain equality propagator. Creates the propagator
   # in this space. The specified variables need not
   # exist at the time the propagator is created and
   # added, since the fdvars are all referenced by name.
-  #
-  # A convention for propagators is that the return
-  # value of a propagator is number unless
-  # the propagator has failed, in which case it throws
-  # an exception 'fail'. The returned number indicates
-  # the number of domains that were changed by this propagation
-  # step.
-  #
-  # The second optional argument indicates what you want the
-  # propagator to do.
+  # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   Space::eq = (v1name, v2name) ->
     # If v2name is not specified, then we're operating in functional syntax
@@ -486,14 +473,16 @@ module.exports = (FD) ->
     return
 
   # Bidirectional addition propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    ring @, domain_plus, domain_minus, v1name, v2name, sumname
+    return ring @, domain_plus, domain_minus, v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    ring @, domain_times, domain_divby, v1name, v2name, prodname
+    return ring @, domain_times, domain_divby, v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -506,13 +495,13 @@ module.exports = (FD) ->
       return @eq vname, prodname
 
     if factor is 0
-      return @eq @temp(domain_create_zero()), prodname
+      return @eq @decl_anon(domain_create_zero()), prodname
 
     if factor < 0
       throw new Error 'scale: negative factors not supported.'
 
     unless prodname
-      prodname = @temp()
+      prodname = @decl_anon()
       retval = prodname
 
     a = propagator_create_scale_mul @, vname, prodname
@@ -524,16 +513,17 @@ module.exports = (FD) ->
   # TODO: Can be made more efficient.
 
   Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
-    @plus @scale(k1, v1name), @scale(k2, v2name), resultname
+    return @plus @scale(k1, v1name), @scale(k2, v2name), resultname
 
   # Sum of N fdvars = resultFDVar
-  # Creates as many temporaries as necessary.
+  # Creates as many anonymous vars as necessary.
+  # Returns either @ or the anonymous var name if no sumname was given
 
   Space::sum = (vars, result_var_name) ->
     retval = @
 
     unless result_var_name
-      result_var_name = @temp()
+      result_var_name = @decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -549,12 +539,12 @@ module.exports = (FD) ->
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @temp()
+          t1 = @decl_anon()
           @sum vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = @temp()
+        t2 = @decl_anon()
 
         @sum vars.slice(n), t2
         @plus t1, t2, result_var_name
@@ -562,13 +552,13 @@ module.exports = (FD) ->
     return retval
 
   # Product of N fdvars = resultFDvar.
-  # Create as many temporaries as necessary.
+  # Create as many anonymous vars as necessary.
 
   Space::product = (vars, result_var_name) ->
     retval = @
 
     unless result_var_name
-      result_var_name = @temp()
+      result_var_name = @decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -584,11 +574,11 @@ module.exports = (FD) ->
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @temp()
+          t1 = @decl_anon()
           @product vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = @temp()
+        t2 = @decl_anon()
 
         @product vars.slice(n), t2
         @times t1, t2, result_var_name
@@ -598,10 +588,10 @@ module.exports = (FD) ->
   # Weighted sum of fdvars where the weights are constants.
 
   Space::wsum = (kweights, vars, result_name) ->
-    temps = []
+    anons = []
     for var_i, i in vars
-      t = @temp()
+      t = @decl_anon()
       @scale kweights[i], var_i, t
-      temps.push t
-    @sum temps, result_name
+      anons.push t
+    @sum anons, result_name
     return

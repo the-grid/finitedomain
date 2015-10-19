@@ -148,47 +148,45 @@ module.exports = (FD) ->
     result = {}
     vars = @vars
     for var_name in @var_names
-      # Don't include the temporary variables in the "solution".
-      # Temporary variables take the form of a numeric property
-      # of the object, so we test for the var_name to be a number and
-      # don't include those variables in the result.
-
-      c = var_name[0]
-      if c < '0' or c > '9'
-        domain = vars[var_name].dom
-        if domain.length is 0
-          result[var_name] = false
-        else if domain_is_solved domain
-          result[var_name] = domain_min domain
-        else
-          result[var_name] = domain
-
+      getset_var_solve_state var_name, vars, result
     return result
 
-  # @param {string[]} ids List of var names to query the solution for
-  # @param {boolean} [space=false] Return false if at least one var could not be solved?
+  # @param {string[]} var_names List of var names to query the solution for
+  # @param {boolean} [complete=false] Return false if at least one var could not be solved?
 
-  Space::solutionFor = (ids, complete = false) -> # todo implement memorize flag
+  Space::solutionFor = (var_names, complete = false) -> # todo implement memorize flag
+    vars = @vars
     result = {}
-    for id in ids
+    for var_name in var_names
+      value = false
+      if vars[var_name]
+        value = getset_var_solve_state var_name, vars, result
 
-      fdvar = @vars[id]
-      value = undefined
-      if fdvar?
-        domain = fdvar.dom
-        if domain.length is 0
-          value = undefined
-        else if domain_is_solved domain
-          value = domain_min domain
-        else
-          value = domain
+      if complete and value is false
+        return false
 
-      if complete and !value?
-        result = false
-        break
+      result[var_name] = value
 
-      result[id] = value
     return result
+
+  getset_var_solve_state = (var_name, vars, result) ->
+    value = undefined
+    # Don't include the temporary variables in the "solution".
+    # Temporary variables take the form of a numeric property
+    # of the object, so we test for the var_name to be a number and
+    # don't include those variables in the result.
+    c = var_name[0]
+    if c < '0' or c > '9'
+      domain = vars[var_name].dom
+      if domain.length is 0
+        value = false
+      else if domain_is_solved domain
+        value = domain_min domain
+      else
+        value = domain
+      result[var_name] = value
+
+    return value
 
   # Utility to easily print out the state of variables in the space.
   # TOFIX: we should move this elsewhere so that we can more easily find usages of it. this is too implicit.

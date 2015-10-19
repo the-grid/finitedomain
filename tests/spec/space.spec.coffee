@@ -5,6 +5,7 @@ if typeof require is 'function'
   {
     spec_d_create_bool
     spec_d_create_range
+    spec_d_create_value
     spec_d_create_ranges
   } = require '../fixtures/domain.spec'
 
@@ -142,3 +143,83 @@ describe "FD", ->
 
         space.decl_value 1
         expect(space.is_solved(), 'two unsolved vars and a solved var').to.be.false
+
+    describe '#solution()', ->
+
+      it 'should return an object, not array', ->
+
+        expect(new Space().solution()).to.be.an 'object'
+        expect(new Space().solution()).not.to.be.an 'array'
+
+      it 'should return an empty object if there are no vars', ->
+
+        expect(new Space().solution()).to.eql {}
+
+      it 'should return false if a var covers no (more) elements', ->
+
+        space = new Space()
+        space.decl 'test', []
+        expect(space.solution()).to.eql {test: false}
+
+      it 'should return the value of a var is solved', ->
+
+        space = new Space()
+        space.decl 'test', spec_d_create_value 5
+        expect(space.solution()).to.eql {test: 5}
+
+      it 'should return the domain of a var if not yet determined', ->
+
+        space = new Space()
+        space.decl 'single_range', spec_d_create_range 10, 20
+        space.decl 'multi_range', spec_d_create_ranges [10, 20], [30, 40]
+        space.decl 'multi_range_with_solved', spec_d_create_ranges [10, 20], [15, 15], [30, 40]
+        expect(space.solution()).to.eql
+          single_range: spec_d_create_range 10, 20
+          multi_range: spec_d_create_ranges([10, 20], [30, 40])
+          multi_range_with_solved: spec_d_create_ranges([10, 20], [15, 15], [30, 40])
+
+      it 'should not add anonymous vars to the result', ->
+
+        space = new Space()
+        space.decl_value 15
+        space.decl 'addme', 20
+        expect(space.solution()).to.eql {addme: 20}
+
+    describe '#solutionFor()', ->
+
+      it 'should only collect results for given var names', ->
+
+        space = new Space()
+        space.decl_value 10 # should be ignored
+        space.decl 'nope', spec_d_create_range 10, 20
+        space.decl 'yep10', spec_d_create_value 10
+        space.decl 'yep20', spec_d_create_value 20
+        space.decl 'yep30', spec_d_create_value 30
+        expect(space.solutionFor ['yep10', 'yep20', 'yep30']).to.eql {yep10: 10, yep20: 20, yep30: 30}
+
+      it 'should return normal even if a var is unsolved when complete=false', ->
+
+        space = new Space()
+        space.decl_value 10 # should be ignored
+        space.decl 'yep10', spec_d_create_value 10
+        space.decl 'oops20', []
+        space.decl 'yep30', spec_d_create_value 30
+        expect(space.solutionFor ['yep10', 'oops20', 'yep30']).to.eql {yep10: 10, oops20: false, yep30: 30}
+
+      it 'should return false if a var is unsolved when complete=true', ->
+
+        space = new Space()
+        space.decl_value 10 # should be ignored
+        space.decl 'yep10', spec_d_create_value 10
+        space.decl 'oops20', []
+        space.decl 'yep30', spec_d_create_value 30
+        expect(space.solutionFor ['yep10', 'oops20', 'yep30'], true).to.be.false
+
+      it 'should return true if a var is unsolved that was not requested when complete=true', ->
+
+        space = new Space()
+        space.decl_value 10 # should be ignored
+        space.decl 'yep10', spec_d_create_value 10
+        space.decl 'nope20', []
+        space.decl 'yep30', spec_d_create_value 30
+        expect(space.solutionFor ['yep10', 'yep30'], true).to.eql {yep10: 10, yep30: 30}

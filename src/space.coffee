@@ -224,6 +224,7 @@ module.exports = (FD) ->
     return t
 
   # Alias for @decl_anon [val, val]
+  # Note: use #num() to give it a name. TODO: combine these funcs to a single func with optional name arg...
 
   Space::decl_value = (val) ->
     if val >= SUB and val <= SUP # also catches NaN cases

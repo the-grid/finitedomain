@@ -363,6 +363,11 @@ describe "FD", ->
         expect(space.var_names).to.eql ['foo']
         expect(space.vars.foo?).to.be.true
 
+      it 'should return the space', ->
+
+        space = new Space()
+        expect(space.decl 'foo', spec_d_create_value 100).to.eql space
+
       it 'should set var to domain', ->
 
         space = new Space()
@@ -437,3 +442,22 @@ describe "FD", ->
           expect(space.vars[name].dom).to.eql domain
           for name2 in names
             expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]
+
+    describe '#num()', ->
+
+      it 'should create a new var', ->
+
+        space = new Space()
+        space.num 'foo', 22
+        expect(space.var_names).to.eql ['foo']
+
+      it 'should return the space', ->
+
+        space = new Space()
+        expect(space.num 'foo', 100).to.eql space
+
+      it 'should create a "solved" var with given value', ->
+
+        space = new Space()
+        name = space.num 'foo', 100
+        expect(space.vars.foo.dom).to.eql spec_d_create_value 100

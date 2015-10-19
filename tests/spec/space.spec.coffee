@@ -223,3 +223,22 @@ describe "FD", ->
         space.decl 'nope20', []
         space.decl 'yep30', spec_d_create_value 30
         expect(space.solutionFor ['yep10', 'yep30'], true).to.eql {yep10: 10, yep30: 30}
+
+    describe '#inject()', ->
+      # (this function is to be eliminated because it's super silly)
+
+      it 'should call its function with this', ->
+
+        x = false
+        new Space().inject -> x = true
+        expect(x).to.be.true
+
+      it 'should return its this', ->
+        space = new Space()
+        expect(space.inject ->).to.equal space
+
+      it 'should not modify its space', ->
+        space = new Space()
+        clone = space.clone()
+        space.inject ->
+        expect(space).to.eql clone

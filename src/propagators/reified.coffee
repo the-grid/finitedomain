@@ -8,6 +8,8 @@ module.exports = (FD) ->
     propagator_create
     propagator_create_3x
     propagator_is_solved
+    propagator_pop_vars
+    propagator_push_vars
   } = FD.Propagator
 
   {
@@ -24,7 +26,7 @@ module.exports = (FD) ->
     # The reified fdvar doesn't decide the condition, so
     # we now need to check whether the conditions constrain
     # the reified fdvar.
-    push_vars pos_or_neg_propagator
+    propagator_push_vars pos_or_neg_propagator
 
     if pos_or_neg_propagator.stepper() is REJECTED
       # this search must now pass the other operator until the
@@ -34,7 +36,7 @@ module.exports = (FD) ->
       # TODO: change this to an ASSERT?
       _throw_if_true bool_var.length is 0
 
-    pop_vars pos_or_neg_propagator
+    propagator_pop_vars pos_or_neg_propagator
     return
 
   # throw is abstracted to prevent deopt
@@ -137,39 +139,5 @@ module.exports = (FD) ->
       # (Changes in the loop are irrelevant here)
       return @last_upid - current_upid
     return propagator_create_3x space, left_var_name, right_var_name, bool_name, create_reified_prop, 'reified:'+_opname
-
-  push_vars = (propagator) ->
-    stash = [
-      propagator.fdvar1.dom.slice 0 # TODO: add test that fails when these slices dont happen
-      propagator.fdvar1.vupid
-      propagator.fdvar2.dom.slice 0
-      propagator.fdvar2.vupid
-      propagator.fdvar3?.dom?.slice 0
-      propagator.fdvar3?.vupid
-      propagator.last_upid
-      propagator.stepper
-    ]
-
-    var_state_stack = propagator.var_state_stack
-    if var_state_stack
-      var_state_stack.push stash
-    else
-      var_state_stack = propagator.var_state_stack = [stash]
-
-    return
-
-  pop_vars = (propagator) ->
-    [
-      propagator.fdvar1.dom
-      propagator.fdvar1.vupid
-      propagator.fdvar2.dom
-      propagator.fdvar2.vupid
-      propagator.fdvar3?.dom
-      propagator.fdvar3?.vupid
-      propagator.last_upid
-      propagator.stepper
-    ] = propagator.var_state_stack.pop()
-
-    return
 
   FD.propagators.propagator_create_reified = propagator_create_reified

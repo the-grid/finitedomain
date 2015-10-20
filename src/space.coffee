@@ -111,12 +111,13 @@ module.exports = (FD) ->
     while changed
       changed = false
       for propagator in propagators
-        # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
-        n = propagator.stepper()
-        if n > 0
-          changed = true
-        else if n is REJECTED
-          return false # solution impossible
+        unless propagator.solved
+          # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
+          n = propagator.stepper()
+          if n > 0
+            changed = true
+          else if n is REJECTED
+            return false # solution impossible
     # console.log(JSON.stringify(this.solution()));
     return true
 

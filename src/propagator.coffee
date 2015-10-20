@@ -34,6 +34,7 @@ module.exports = (FD) ->
 
       stepper # the func to determine next value to test per step
       last_upid: -1 # cache control. usually v1+v2[+v3]
+      solved: false
 
       from_space: space
       # cache first three var lookups, that's the most common case
@@ -41,6 +42,8 @@ module.exports = (FD) ->
       fdvar1: space_vars[var_name_1]
       fdvar2: space_vars[var_name_2]
       fdvar3: space_vars[var_name_3] # only some props use this, like reified
+
+      var_state_stack: undefined # for reified, to temporarily store state when "trying"
     }
 
   # A propagator is solved if all the target_var_names it affects and
@@ -58,9 +61,45 @@ module.exports = (FD) ->
         return false
     return true
 
+  propagator_push_vars = (propagator) ->
+    stash = [
+      propagator.fdvar1.dom.slice 0 # TODO: add test that fails when these slices dont happen
+      propagator.fdvar1.vupid
+      propagator.fdvar2.dom.slice 0
+      propagator.fdvar2.vupid
+      propagator.fdvar3?.dom?.slice 0
+      propagator.fdvar3?.vupid
+      propagator.last_upid
+      propagator.stepper
+    ]
+
+    var_state_stack = propagator.var_state_stack
+    if var_state_stack
+      var_state_stack.push stash
+    else
+      var_state_stack = propagator.var_state_stack = [stash]
+
+    return
+
+  propagator_pop_vars = (propagator) ->
+    [
+      propagator.fdvar1.dom,
+      propagator.fdvar1.vupid,
+      propagator.fdvar2.dom,
+      propagator.fdvar2.vupid,
+      propagator.fdvar3?.dom,
+      propagator.fdvar3?.vupid,
+      propagator.last_upid,
+      propagator.stepper,
+    ] = propagator.var_state_stack.pop()
+
+    return
+
   FD.Propagator = {
     propagator_create
     propagator_create_2x
     propagator_create_3x
     propagator_is_solved
+    propagator_pop_vars
+    propagator_push_vars
   }

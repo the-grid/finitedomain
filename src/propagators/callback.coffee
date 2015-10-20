@@ -15,8 +15,7 @@ module.exports = (FD) ->
   callback_stepper = (propagator, func) ->
     # the callback should return `false` if the state should be rejected, `true` otherwise
     # (slice at 1 because first element is from_space)
-    vars = propagator.propdata.slice 1
-    if func vars, propagator.from_space
+    if func propagator
       return ZERO_CHANGES
     return REJECTED
 

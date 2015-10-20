@@ -56,7 +56,11 @@ module.exports = (FD) ->
 
   propagator_create_reified = (space, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, _opname) ->
     create_reified_prop = ->
-      [S, v1, v2, bool_var] = @propdata
+      S = @from_space
+      v1 = @fdvar1
+      v2 = @fdvar2
+      bool_var = @fdvar3
+
       current_upid = v1.vupid + v2.vupid + bool_var.vupid
       last_upid = @last_upid
       if current_upid <= last_upid
@@ -135,37 +139,37 @@ module.exports = (FD) ->
     return propagator_create_3x space, left_var_name, right_var_name, bool_name, create_reified_prop, 'reified:'+_opname
 
   push_vars = (propagator) ->
-    domains = []
-    vupids = []
-
-    for {dom, vupid}, i in propagator.propdata
-      if i > 0 # propagator.propdata[0] is a Space, we only want Var here
-        domains.push dom # P.propdata[i].dom | fdvar.dom
-        vupids.push vupid # P.propdata[i].vupid | fdvar.vupid
-
-    var_state_stack = propagator.var_state_stack
-    unless var_state_stack
-      var_state_stack = propagator.var_state_stack = []
-    var_state_stack.push [
-      domains
-      vupids
+    stash = [
+      propagator.fdvar1.dom.slice 0 # TODO: add test that fails when these slices dont happen
+      propagator.fdvar1.vupid
+      propagator.fdvar2.dom.slice 0
+      propagator.fdvar2.vupid
+      propagator.fdvar3?.dom?.slice 0
+      propagator.fdvar3?.vupid
       propagator.last_upid
+      propagator.stepper
     ]
 
-    propagator.old_stepper = propagator.stepper
+    var_state_stack = propagator.var_state_stack
+    if var_state_stack
+      var_state_stack.push stash
+    else
+      var_state_stack = propagator.var_state_stack = [stash]
+
     return
 
   pop_vars = (propagator) ->
-    # P.propdata[i].dom .vupid .last_upid
-    [domains, vupids, last_upid] = propagator.var_state_stack.pop()
+    [
+      propagator.fdvar1.dom
+      propagator.fdvar1.vupid
+      propagator.fdvar2.dom
+      propagator.fdvar2.vupid
+      propagator.fdvar3?.dom
+      propagator.fdvar3?.vupid
+      propagator.last_upid
+      propagator.stepper
+    ] = propagator.var_state_stack.pop()
 
-    for fdvar, i in propagator.propdata
-      if i > 0 # propagator.propdata[0] is a Space, we only want Var here
-        fdvar.dom = domains[i - 1] # dont unshift. useless memory operation
-        fdvar.vupid = vupids[i - 1]
-
-    propagator.stepper = propagator.old_stepper
-    propagator.last_upid = last_upid
     return
 
   FD.propagators.propagator_create_reified = propagator_create_reified

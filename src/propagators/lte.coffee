@@ -22,8 +22,8 @@ module.exports = (FD) ->
   } = FD.Var
 
   lte_stepper = ->
-    v1 = @propdata[1]
-    v2 = @propdata[2]
+    v1 = @fdvar1
+    v2 = @fdvar2
 
     last_upid = @last_upid
     begin_upid = v1.vupid + v2.vupid

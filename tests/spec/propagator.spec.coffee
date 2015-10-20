@@ -6,6 +6,7 @@ if typeof require is 'function'
     spec_d_create_one
     spec_d_create_range
     spec_d_create_ranges
+    spec_d_create_value
     spec_d_create_zero
   } = require '../fixtures/domain.spec'
 
@@ -32,33 +33,34 @@ describe "FD - Propagator", ->
 
       expect(propagator_is_solved {solved: true}).to.be.true
 
-    it 'should pass true if propagator has no vars', ->
-
-      expect(propagator_is_solved {propdata: []}).to.be.true
-
-    it 'should skip the first elemenet', ->
-
-      expect(propagator_is_solved {propdata: [0]}).to.be.true
-
     it 'should return false if at least one var is undetermined', ->
 
-      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_range(0, 1)}]}).to.be.false
+      fake_prop =
+        fdvar1: {dom: spec_d_create_range(0, 1)}
+        fdvar2: {dom: spec_d_create_range(0, 1)}
+        fdvar3: {dom: spec_d_create_range(0, 1)}
+      expect(propagator_is_solved fake_prop).to.be.false
 
     it 'should return false even if a var has multiple "single" ranges', ->
 
-      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_ranges([0,0],[2,2])}]}).to.be.false
+      fake_prop =
+        fdvar1: {dom: spec_d_create_value 0}
+        fdvar3: {dom: spec_d_create_ranges([0, 0], [2, 2])}
+        fdvar2: {dom: spec_d_create_value 1}
+      expect(propagator_is_solved fake_prop).to.be.false
 
     it 'should return true if no var is undetermined', ->
 
-      expect(propagator_is_solved {propdata: [0, {dom: spec_d_create_zero()}, {dom: spec_d_create_ranges([10,10])}]}).to.be.true
+      fake_prop =
+        fdvar1: {dom: spec_d_create_value 0}
+        fdvar2: {dom: spec_d_create_value 1}
+        fdvar3: {dom: spec_d_create_value 20}
+      expect(propagator_is_solved fake_prop).to.be.true
 
     it 'should loop through all vars', ->
 
-      expect(propagator_is_solved {
-        propdata: [
-          0, # "space"... for now.
-          {dom: spec_d_create_zero()}
-          {dom: spec_d_create_ranges([0,0],[10,10])} # causes false
-          {dom: spec_d_create_one()}
-        ]
-      }).to.be.false
+      fake_prop =
+        fdvar1: {dom: spec_d_create_value 0}
+        fdvar2: {dom: spec_d_create_value 1}
+        fdvar3: {dom: spec_d_create_range 0, 1}
+      expect(propagator_is_solved fake_prop).to.be.false

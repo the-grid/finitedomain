@@ -20,8 +20,8 @@ module.exports = (FD) ->
   PAIR_SIZE = 2
 
   scale_div_stepper = ->
-    fdvar = @propdata[1]
-    prod = @propdata[2]
+    v1 = @fdvar1
+    v2 = @fdvar2
 
     begin_upid = fdvar.vupid + prod.vupid
     if begin_upid <= @last_upid # or @solved

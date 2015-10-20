@@ -21,8 +21,8 @@ module.exports = (FD) ->
   } = FD.Var
 
   neq_stepper = ->
-    v1 = @propdata[1]
-    v2 = @propdata[2]
+    v1 = @fdvar1
+    v2 = @fdvar2
 
     begin_upid = v1.vupid + v2.vupid
     if begin_upid <= @last_upid # or @solved

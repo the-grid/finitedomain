@@ -289,16 +289,13 @@ module.exports = (FD) ->
       retval = sumname
 
     ring_a = ->
-      [_, v1, v2, sum] = @propdata
-      return ring_prop_stepper @, plusop, v1, v2, sum
+      return ring_prop_stepper @, plusop, @fdvar1, @fdvar2, @fdvar3
 
     ring_b = ->
-      [_, v1, v2, sum] = @propdata
-      return ring_prop_stepper @, minusop, sum, v2, v1
+      return ring_prop_stepper @, minusop, @fdvar3, @fdvar2, @fdvar1
 
     ring_c = ->
-      [_, v1, v2, sum] = @propdata
-      return ring_prop_stepper @, minusop, sum, v1, v2
+      return ring_prop_stepper @, minusop, @fdvar3, @fdvar1, @fdvar2
 
     a = propagator_create_3x space, v1name, v2name, sumname, ring_a, 'ring_a'
     b = propagator_create_3x space, v1name, v2name, sumname, ring_b, 'ring_b'

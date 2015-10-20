@@ -1,6 +1,10 @@
 module.exports = (FD) ->
 
   {
+    ASSERT
+  } = FD.helpers
+
+  {
     fdvar_is_solved
   } = FD.Var
 
@@ -17,34 +21,41 @@ module.exports = (FD) ->
   # Create propagator with an unknown number of vars
 
   propagator_create = (space, target_var_names, stepper, name) ->
+    [var_name_1, var_name_2, var_name_3] = target_var_names
     space_vars = space.vars
-    propdata = [space]
-    for pvar in target_var_names
-      propdata.push space_vars[pvar]
 
     return {
       _class: 'propagator'
       _name: name
 
+      # store the names so we can clone the prop with a new space
+      # callback props may also depend on target_var_names
       target_var_names
-      stepper
-      last_upid: -1 # cache control
 
-      propdata: propdata # this used to be `.space`
+      stepper # the func to determine next value to test per step
+      last_upid: -1 # cache control. usually v1+v2[+v3]
+
       from_space: space
-
-      old_stepper: undefined # object footprint optimization. Used by reified.
+      # cache first three var lookups, that's the most common case
+      # if you want others you will have to do the lookup from the target_var_names array
+      fdvar1: space_vars[var_name_1]
+      fdvar2: space_vars[var_name_2]
+      fdvar3: space_vars[var_name_3] # only some props use this, like reified
     }
 
   # A propagator is solved if all the target_var_names it affects and
   # depends on have domains of size = 1.
 
   propagator_is_solved = (p) ->
-    unless p.solved
-      for fdvar, i in p.propdata
-        if i > 0
-          unless fdvar_is_solved fdvar
-            return false
+    if p.solved
+      return true
+    unless fdvar_is_solved p.fdvar1
+      return false
+    unless fdvar_is_solved p.fdvar2
+      return false
+    if p.fdvar3
+      unless fdvar_is_solved p.fdvar3
+        return false
     return true
 
   FD.Propagator = {

@@ -322,6 +322,6 @@ describe "FD", ->
 
       solutions = S.solve()
 
-      expect(solutions.length).to.equal(1)
-      expect(solutions[0].item1).to.equal(1)
-      expect(solutions[0].item2).to.equal(2)
+      expect(solutions.length, 'solution count').to.equal(1)
+      expect(solutions[0].item1, 'item1').to.equal(1)
+      expect(solutions[0].item2, 'item2').to.equal(2)

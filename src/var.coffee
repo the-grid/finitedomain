@@ -3,6 +3,7 @@ module.exports = (FD) ->
   {
     REJECTED
 
+    ASSERT
     ASSERT_UNUSED_DOMAIN
   } = FD.helpers
 
@@ -18,6 +19,8 @@ module.exports = (FD) ->
     domain_max
     domain_middle_element
     domain_min
+    domain_remove_gte_inline
+    domain_remove_lte_inline
     domain_set_to_range_inline
     domain_size
   } = FD.Domain
@@ -29,6 +32,8 @@ module.exports = (FD) ->
     return fdvar_new id, domain_create_all(), 0
 
   fdvar_new = (id, dom, vupid) ->
+    ASSERT !!dom, 'should init to a domain', [id, dom, vupid]
+    ASSERT vupid >= 0, 'should init var update id (vupid) to >=0', vupid
     ASSERT_UNUSED_DOMAIN dom
     return {
       _class: 'fdvar'
@@ -112,6 +117,16 @@ module.exports = (FD) ->
   fdvar_middle_element = (fdvar) ->
     return domain_middle_element fdvar.dom
 
+  fdvar_remove_gte_inline = (fdvar, value) ->
+    if domain_remove_gte_inline fdvar.dom, value
+      ++fdvar.vupid
+    return
+
+  fdvar_remove_lte_inline = (fdvar, value) ->
+    if domain_remove_lte_inline fdvar.dom, value
+      ++fdvar.vupid
+    return
+
   FD.Var = {
     fdvar_clone
     fdvar_constrain
@@ -126,6 +141,8 @@ module.exports = (FD) ->
     fdvar_upper_bound
     fdvar_middle_element
     fdvar_lower_bound
+    fdvar_remove_gte_inline
+    fdvar_remove_lte_inline
     fdvar_set_domain
     fdvar_set_range_inline
     fdvar_set_value_inline

@@ -61,6 +61,10 @@ module.exports = (FD) ->
     # overridden from distribution/distribute... for now. and copied from parent space
     @get_value_distributor = get_value_distributor
 
+    # used from Search
+    @next_distribution_choice = 0
+    @current_value_distributor = undefined
+
     return
 
   Space::clone = () ->

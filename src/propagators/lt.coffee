@@ -12,6 +12,7 @@ module.exports = (FD) ->
   } = FD.Domain
 
   {
+    fdvar_is_rejected
     fdvar_lower_bound
     fdvar_set_domain
     fdvar_upper_bound
@@ -20,7 +21,7 @@ module.exports = (FD) ->
   lt_step_bare = (fdvar1, fdvar2) ->
     begin_upid = fdvar1.vupid + fdvar2.vupid
 
-    unless fdvar1.dom.length and fdvar2.dom.length
+    if fdvar_is_rejected(fdvar1) or fdvar_is_rejected(fdvar2)
       return REJECTED
 
     lo_1 = fdvar_lower_bound fdvar1

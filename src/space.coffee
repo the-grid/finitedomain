@@ -254,58 +254,6 @@ module.exports = (FD) ->
   Space::const = (val) ->
     return @decl_value val
 
-  # Apply an operator func to var_left and var_right
-  # Updates var_result to the intersection of the result and itself
-
-  ring_prop_stepper = (propagator, op_func, var_left, var_right, var_result) ->
-    begin_upid = var_left.vupid + var_right.vupid + var_result.vupid
-    if begin_upid > propagator.last_upid
-      d = (domain_intersection(op_func(var_left.dom, var_right.dom), var_result.dom))
-      unless d.length
-        return REJECTED
-      fdvar_set_domain var_result, d
-      propagator.last_upid = var_left.vupid + var_right.vupid + var_result.vupid
-    return propagator.last_upid - begin_upid
-
-  # Once you create an fdvar in a space with the given
-  # name, it is available for accessing as a direct member
-  # of the space. Since this can cause a name clash, it is
-  # recommended that you start the names of fdvars with an
-  # upper case letter. Since all the declared member names
-  # start with a lower case letter, a clash can certainly
-  # be avoided if you stick to that rule.
-  #
-  # If the domain is not specified, it is taken to be [SUB, SUP].
-  #
-  # Returns the space. All methods, unless otherwise noted,
-  # will return the current space so that other methods
-  # can be invoked in sequence.
-
-  ring = (space, plusop, minusop, v1name, v2name, sumname) ->
-    retval = space
-    # If sumname is not specified, we need to create a anonymous
-    # for the result and return the name of that anon variable.
-    unless sumname
-      sumname = space.decl_anon()
-      retval = sumname
-
-    ring_a = ->
-      return ring_prop_stepper @, plusop, @fdvar1, @fdvar2, @fdvar3
-
-    ring_b = ->
-      return ring_prop_stepper @, minusop, @fdvar3, @fdvar2, @fdvar1
-
-    ring_c = ->
-      return ring_prop_stepper @, minusop, @fdvar3, @fdvar1, @fdvar2
-
-    a = propagator_create_3x space, v1name, v2name, sumname, ring_a, 'ring_a'
-    b = propagator_create_3x space, v1name, v2name, sumname, ring_b, 'ring_b'
-    c = propagator_create_3x space, v1name, v2name, sumname, ring_c, 'ring_c'
-
-    space._propagators.push a, b, c
-
-    return retval
-
   # Register one or more variables with specific names
   # Note: if you want to register multiple names call Space#decls instead
 
@@ -470,17 +418,56 @@ module.exports = (FD) ->
         @_propagators.push propagator_create_neq @, vars[i], vars[j]
     return
 
+  # Once you create an fdvar in a space with the given
+  # name, it is available for accessing as a direct member
+  # of the space. Since this can cause a name clash, it is
+  # recommended that you start the names of fdvars with an
+  # upper case letter. Since all the declared member names
+  # start with a lower case letter, a clash can certainly
+  # be avoided if you stick to that rule.
+  #
+  # If the domain is not specified, it is taken to be [SUB, SUP].
+  #
+  # Returns the space. All methods, unless otherwise noted,
+  # will return the current space so that other methods
+  # can be invoked in sequence.
+
+  plus_or_times = (space, plusop, minusop, v1name, v2name, sumname) ->
+    retval = space
+    # If sumname is not specified, we need to create a anonymous
+    # for the result and return the name of that anon variable.
+    unless sumname
+      sumname = space.decl_anon()
+      retval = sumname
+
+    ring_a = ->
+      return ring_prop_stepper @, plusop, @fdvar1, @fdvar2, @fdvar3
+
+    ring_b = ->
+      return ring_prop_stepper @, minusop, @fdvar3, @fdvar2, @fdvar1
+
+    ring_c = ->
+      return ring_prop_stepper @, minusop, @fdvar3, @fdvar1, @fdvar2
+
+    a = propagator_create_3x space, v1name, v2name, sumname, ring_a, 'ring_a'
+    b = propagator_create_3x space, v1name, v2name, sumname, ring_b, 'ring_b'
+    c = propagator_create_3x space, v1name, v2name, sumname, ring_c, 'ring_c'
+
+    space._propagators.push a, b, c
+
+    return retval
+
   # Bidirectional addition propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    return ring @, domain_plus, domain_minus, v1name, v2name, sumname
+    return plus_or_times @, domain_plus, domain_minus, v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    return ring @, domain_times, domain_divby, v1name, v2name, prodname
+    return plus_or_times @, domain_times, domain_divby, v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name

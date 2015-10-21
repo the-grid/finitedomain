@@ -71,7 +71,7 @@ describe "FD", ->
       it 'should clone certain props', ->
         expect(space.var_names).to.not.equal clone.var_names
         expect(space.var_names.join()).to.equal clone.var_names.join()
-        expect(space._propagators).to.not.equal clone._propagators
+        expect(space._propagators).to.equal clone._propagators
 
       it 'should copy the get value distributor', ->
 
@@ -98,24 +98,6 @@ describe "FD", ->
         clone = space.clone()
         space.done()
         expect(space).to.eql clone # since clone is a deep clone, we can do a deep eq check here
-
-    describe '#propagate()', ->
-
-      it 'should return true without any propagators', ->
-
-        expect(new Space().propagate()).to.be.true
-
-      it 'should return false if a prop rejects', ->
-
-        space = new Space
-        space._propagators.push { stepper: -> FD.helpers.REJECTED }
-        expect(space.propagate()).to.be.false
-
-      it 'should return true if no prop rejects', ->
-
-        space = new Space
-        space._propagators.push { stepper: -> FD.helpers.ZERO_CHANGES }, { stepper: -> FD.helpers.ZERO_CHANGES }
-        expect(space.propagate()).to.be.true
 
     describe '#is_solved()', ->
 

@@ -10,10 +10,6 @@ module.exports = (FD) ->
   } = FD.Domain
 
   {
-    propagator_create_2x
-  } = FD.Propagator
-
-  {
     fdvar_set_domain
   } = FD.Var
 
@@ -25,13 +21,8 @@ module.exports = (FD) ->
   # Basically eq is much more efficient compared to neq because we
   # can potentially skip a lot of values early.
 
-  eq_stepper = ->
-    fdvar1 = @fdvar1
-    fdvar2 = @fdvar2
-
+  eq_step_bare = (fdvar1, fdvar2) ->
     begin_upid = fdvar1.vupid + fdvar2.vupid
-    if begin_upid <= @last_upid
-      return ZERO_CHANGES
 
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
@@ -46,10 +37,7 @@ module.exports = (FD) ->
     fdvar_set_domain fdvar1, new_domain
     fdvar_set_domain fdvar2, new_domain.slice 0
 
-    @last_upid = fdvar1.vupid + fdvar2.vupid
-    return @last_upid - begin_upid
+    new_vupid = fdvar1.vupid + fdvar2.vupid
+    return new_vupid - begin_upid
 
-  propagator_create_eq = (space, left_var_name, right_var_name) ->
-    return propagator_create_2x space, left_var_name, right_var_name, eq_stepper, 'eq'
-
-  FD.propagators.propagator_create_eq = propagator_create_eq
+  FD.propagators.eq_step_bare = eq_step_bare

@@ -11,17 +11,18 @@ module.exports = (FD) ->
     fdvar_set_domain
   } = FD.Var
 
-  # Apply an operator func to var_left and var_right
-  # Updates var_result to the intersection of the result and itself
+  ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
+    # Apply an operator func to fdvar1 and fdvar2
+    # Updates fdvar_result to the intersection of the result and itself
 
-  ring_prop_stepper = (propagator, op_func, fdvar1, fdvar2, fdvar_result) ->
     begin_upid = fdvar1.vupid + fdvar2.vupid + fdvar_result.vupid
-    if begin_upid > propagator.last_upid
-      d = (domain_intersection(op_func(fdvar1.dom, fdvar2.dom), fdvar_result.dom))
-      unless d.length
-        return REJECTED
-      fdvar_set_domain fdvar_result, d
-      propagator.last_upid = fdvar1.vupid + fdvar2.vupid + fdvar_result.vupid
-    return propagator.last_upid - begin_upid
+    domain = domain_intersection op_func(fdvar1.dom, fdvar2.dom), fdvar_result.dom
+    unless domain.length
+      return REJECTED
+    fdvar_set_domain fdvar_result, domain
 
-  FD.propagators.ring_prop_stepper = ring_prop_stepper
+    new_upid = fdvar1.vupid + fdvar2.vupid + fdvar_result.vupid
+
+    return new_upid - begin_upid
+
+  FD.propagators.ring_step_bare = ring_step_bare

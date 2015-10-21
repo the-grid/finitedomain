@@ -7,14 +7,15 @@ module.exports = (FD) ->
     SUB
     SUP
 
+    ASSERT
     ASSERT_DOMAIN
+    ASSERT_PROPAGATORS
   } = FD.helpers
 
   {
     domain_create_bool
     domain_create_value
     domain_create_zero
-    domain_intersection
     domain_is_solved
     domain_min
     domain_plus
@@ -24,20 +25,7 @@ module.exports = (FD) ->
   } = FD.Domain
 
   {
-    propagator_is_solved
-    propagator_create
-    propagator_create_3x
-  } = FD.Propagator
-
-  {
-    propagator_create_eq
-    propagator_create_neq
-    propagator_create_lt
-    propagator_create_lte
-    propagator_create_reified
-    propagator_create_callback
-    propagator_create_scale_mul
-    propagator_create_scale_div
+    step_any
   } = FD.propagators
 
   {
@@ -57,7 +45,7 @@ module.exports = (FD) ->
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (get_value_distributor = throw_unless_overridden) ->
+  Space = FD.space = (get_value_distributor = throw_unless_overridden, propagator_data = []) ->
     @_class = 'space'
 
     # The FDVARS are all named and accessed by name.
@@ -67,7 +55,8 @@ module.exports = (FD) ->
     @vars = {}
     @var_names = []
 
-    @_propagators = []
+    # shared with root! should not change after initialization
+    @_propagators = propagator_data
 
     # overridden from distribution/distribute... for now. and copied from parent space
     @get_value_distributor = get_value_distributor
@@ -75,7 +64,7 @@ module.exports = (FD) ->
     return
 
   Space::clone = () ->
-    space = new FD.space @get_value_distributor
+    space = new FD.space @get_value_distributor, @_propagators
 
     parent_vars = @vars
     child_vars = space.vars
@@ -83,12 +72,6 @@ module.exports = (FD) ->
     for var_name in @var_names
       child_vars[var_name] = fdvar_clone parent_vars[var_name]
       child_var_names.push var_name
-
-    # Clone propagators that have not been solved yet into new space.
-    # They will use @space so we'll need to update the clones with @.
-    for p in @_propagators
-      unless propagator_is_solved p
-        space._propagators.push propagator_create space, p.target_var_names, p.stepper, p._name
 
     # D4:
     # - add ref to high level solver
@@ -108,16 +91,15 @@ module.exports = (FD) ->
   Space::propagate = ->
     changed = true # init (do-while)
     propagators = @_propagators
+    ASSERT_PROPAGATORS @_propagators
     while changed
       changed = false
-      for propagator in propagators
-        unless propagator.solved
-          # step currently returns the nums of changes. but we will change that to 'change','nochange','fail' soon
-          n = propagator.stepper()
-          if n > 0
-            changed = true
-          else if n is REJECTED
-            return false # solution impossible
+      for prop_details in propagators
+        n = step_any prop_details, @
+        if n > 0
+          changed = true
+        else if n is REJECTED
+          return false # solution impossible
     # console.log(JSON.stringify(this.solution()));
     return true
 
@@ -318,45 +300,40 @@ module.exports = (FD) ->
   Space::reified = (opname, left_var_name, right_var_name, bool_name) ->
     switch opname
       when 'eq'
-        positive_propagator = propagator_create_eq @, left_var_name, right_var_name
-        negative_propagator = propagator_create_neq @, left_var_name, right_var_name
+        nopname = 'neq'
 
       when 'neq'
-        positive_propagator = propagator_create_neq @, left_var_name, right_var_name
-        negative_propagator = propagator_create_eq @, left_var_name, right_var_name
+        nopname = 'eq'
 
       when 'lt'
-        positive_propagator = propagator_create_lt @, left_var_name, right_var_name
-        negative_propagator = propagator_create_lte @, right_var_name, left_var_name
+        nopname = 'gte'
 
       when 'gt'
-        positive_propagator = propagator_create_lt @, right_var_name, left_var_name
-        negative_propagator = propagator_create_lte @, left_var_name, right_var_name
+        nopname = 'lte'
 
       when 'lte'
-        positive_propagator = propagator_create_lte @, left_var_name, right_var_name
-        negative_propagator = propagator_create_lt @, right_var_name, left_var_name
+        nopname = 'gt'
 
       when 'gte'
-        positive_propagator = propagator_create_lte @, right_var_name, left_var_name
-        negative_propagator = propagator_create_lt @, left_var_name, right_var_name
+        nopname = 'lt'
 
       else
         throw new Error 'FD.space.reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
-      r = fdvar_constrain @vars[bool_name], domain_create_bool()
-      if r is REJECTED
+      if fdvar_constrain(@vars[bool_name], domain_create_bool()) is REJECTED
         return REJECTED
     else
       bool_name = @decl_anon domain_create_bool()
 
-    @_propagators.push propagator_create_reified @, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, opname
+    @_propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
+    ASSERT_PROPAGATORS @_propagators
 
     return bool_name
 
   Space::callback = (var_names, callback) ->
-    @_propagators.push propagator_create_callback @, var_names, callback
+    @_propagators.push ['callback', var_names, callback]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Domain equality propagator. Creates the propagator
@@ -372,27 +349,31 @@ module.exports = (FD) ->
     if !v2name
       return v1name
 
-    @_propagators.push propagator_create_eq @, v1name, v2name
+    @_propagators.push ['eq', [v1name, v2name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.
 
   Space::lt = (v1name, v2name) ->
-    @_propagators.push propagator_create_lt @, v1name, v2name
+    @_propagators.push ['lt', [v1name, v2name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Greater than propagator.
 
   Space::gt = (v1name, v2name) ->
     # _swap_ v1 and v2 because: a>b is b<=a
-    @_propagators.push propagator_create_lte @, v2name, v1name
+    @_propagators.push ['lte', [v2name, v1name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Less than or equal to propagator.
 
   Space::lte = (v1name, v2name) ->
-    @_propagators.push propagator_create_lte @, v1name, v2name
+    @_propagators.push ['lte', [v1name, v2name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Greater than or equal to.
@@ -400,13 +381,15 @@ module.exports = (FD) ->
   Space::gte = (v1name, v2name) ->
     # TODO: fix this as per https://github.com/srikumarks/FD.js/issues/6
     # _swap_ v1 and v2 because: a>=b is b<a
-    @_propagators.push propagator_create_lte @, v2name, v1name
+    @_propagators.push ['lte', [v2name, v1name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Ensures that the two variables take on different values.
 
   Space::neq = (v1name, v2name) ->
-    @_propagators.push propagator_create_neq @, v1name, v2name
+    @_propagators.push ['neq', [v1name, v2name]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Takes an arbitrary number of FD variables and adds propagators that
@@ -415,7 +398,8 @@ module.exports = (FD) ->
   Space::distinct = (vars) ->
     for var_i, i in vars
       for j in [0...i]
-        @_propagators.push propagator_create_neq @, vars[i], vars[j]
+        @_propagators.push ['neq', [vars[i], vars[j]]]
+    ASSERT_PROPAGATORS @_propagators
     return
 
   # Once you create an fdvar in a space with the given
@@ -440,20 +424,13 @@ module.exports = (FD) ->
       sumname = space.decl_anon()
       retval = sumname
 
-    ring_a = ->
-      return ring_prop_stepper @, plusop, @fdvar1, @fdvar2, @fdvar3
+    space._propagators.push(
+      ['ring', [v1name, v2name, sumname], plusop]
+      ['ring', [sumname, v1name, v2name], minusop]
+      ['ring', [sumname, v2name, v1name], minusop]
+    )
 
-    ring_b = ->
-      return ring_prop_stepper @, minusop, @fdvar3, @fdvar2, @fdvar1
-
-    ring_c = ->
-      return ring_prop_stepper @, minusop, @fdvar3, @fdvar1, @fdvar2
-
-    a = propagator_create_3x space, v1name, v2name, sumname, ring_a, 'ring_a'
-    b = propagator_create_3x space, v1name, v2name, sumname, ring_b, 'ring_b'
-    c = propagator_create_3x space, v1name, v2name, sumname, ring_c, 'ring_c'
-
-    space._propagators.push a, b, c
+    ASSERT_PROPAGATORS space._propagators
 
     return retval
 
@@ -489,9 +466,9 @@ module.exports = (FD) ->
       prodname = @decl_anon()
       retval = prodname
 
-    a = propagator_create_scale_mul @, vname, prodname
-    b = propagator_create_scale_div @, vname, prodname
-    @_propagators.push a, b
+    @_propagators.push ['mul', [vname, prodname]]
+    @_propagators.push ['div', [vname, prodname]]
+    ASSERT_PROPAGATORS @_propagators
 
     return retval
 

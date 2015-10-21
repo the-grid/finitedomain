@@ -10,7 +10,6 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_remove_gte_inline
     fdvar_remove_lte_inline
-    fdvar_set_domain
     fdvar_upper_bound
   } = FD.Var
 
@@ -40,6 +39,5 @@ module.exports = (FD) ->
 
     current_upid = fdvar1.vupid + fdvar2.vupid
     return current_upid - begin_upid
-
 
   FD.propagators.lt_step_bare = lt_step_bare

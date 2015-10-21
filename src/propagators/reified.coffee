@@ -59,11 +59,11 @@ module.exports = (FD) ->
   propagator_create_reified = (space, left_var_name, right_var_name, bool_name, positive_propagator, negative_propagator, _opname) ->
     create_reified_prop = ->
       S = @from_space
-      v1 = @fdvar1
-      v2 = @fdvar2
+      fdvar1 = @fdvar1
+      fdvar2 = @fdvar2
       bool_var = @fdvar3
 
-      current_upid = v1.vupid + v2.vupid + bool_var.vupid
+      current_upid = fdvar1.vupid + fdvar2.vupid + bool_var.vupid
       last_upid = @last_upid
       if current_upid <= last_upid
         return ZERO_CHANGES
@@ -110,7 +110,7 @@ module.exports = (FD) ->
           [lo, hi] = bool_var.dom # updated with new ref. should fix that.
 
         last_upid = current_upid
-        current_upid = v1.vupid + v2.vupid + bool_var.vupid
+        current_upid = fdvar1.vupid + fdvar2.vupid + bool_var.vupid
 
       # if lo=1 then hi must be 1 as well. confirm pos_propagator holds. else reject
       if lo is 1
@@ -132,7 +132,7 @@ module.exports = (FD) ->
       # are unique to this space, since pos_propagator and neg_propagator won't be
       # borrowed into cloned spaces, since they aren't in
       # the `S._propagators` array.
-      @last_upid = v1.vupid + v2.vupid + bool_var.vupid
+      @last_upid = fdvar1.vupid + fdvar2.vupid + bool_var.vupid
 
       # Reflect whether we decided one way or the other.
       # That's the case if the last two checks changed anything

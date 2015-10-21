@@ -20,14 +20,14 @@ module.exports = (FD) ->
   PAIR_SIZE = 2
 
   scale_div_stepper = ->
-    v1 = @fdvar1
-    v2 = @fdvar2
+    fdvar_val = @fdvar1
+    fdvar_prod = @fdvar2
 
-    begin_upid = fdvar.vupid + prod.vupid
+    begin_upid = fdvar_val.vupid + fdvar_prod.vupid
     if begin_upid <= @last_upid # or @solved
       return ZERO_CHANGES
 
-    domain = prod.dom
+    domain = fdvar_prod.dom
     unless domain.length
       return REJECTED
 
@@ -40,9 +40,9 @@ module.exports = (FD) ->
     d = domain_intersection dbyk, domain
     unless d.length
       return REJECTED
-    fdvar_set_domain fdvar, d
+    fdvar_set_domain fdvar_val, d
 
-    current_upid = fdvar.vupid + prod.vupid
+    current_upid = fdvar_val.vupid + fdvar_prod.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 

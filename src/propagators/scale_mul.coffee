@@ -21,14 +21,14 @@ module.exports = (FD) ->
   PAIR_SIZE = 2
 
   scale_mul_stepper = ->
-    v1 = @fdvar1
-    v2 = @fdvar2
+    fdvar_val = @fdvar1
+    fdvar_prod = @fdvar2
 
-    begin_upid = fdvar.vupid + prod.vupid
+    begin_upid = fdvar_val.vupid + fdvar_prod.vupid
     if begin_upid <= @last_upid # or @solved
       return ZERO_CHANGES
 
-    domain = fdvar.dom
+    domain = fdvar_val.dom
     unless domain.length
       return REJECTED
 
@@ -40,12 +40,12 @@ module.exports = (FD) ->
       # TODO: factor isnt defined so this should throw an error
       kd.push MIN(SUP, lo * factor),  MIN(SUP, hi * factor)
 
-    d = domain_intersection kd, prod.dom
+    d = domain_intersection kd, fdvar_prod.dom
     unless d.length
       return REJECTED
-    fdvar_set_domain prod, d
+    fdvar_set_domain fdvar_prod, d
 
-    current_upid = fdvar.vupid + prod.vupid
+    current_upid = fdvar_val.vupid + fdvar_prod.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 

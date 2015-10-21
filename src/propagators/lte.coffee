@@ -22,21 +22,21 @@ module.exports = (FD) ->
   } = FD.Var
 
   lte_stepper = ->
-    v1 = @fdvar1
-    v2 = @fdvar2
+    fdvar1 = @fdvar1
+    fdvar2 = @fdvar2
 
     last_upid = @last_upid
-    begin_upid = v1.vupid + v2.vupid
+    begin_upid = fdvar1.vupid + fdvar2.vupid
     if begin_upid <= last_upid # or @solved
       return ZERO_CHANGES
 
-    unless v1.dom.length and v2.dom.length
+    unless fdvar1.dom.length and fdvar2.dom.length
       return REJECTED
 
-    lo_1 = fdvar_lower_bound v1
-    hi_1 = fdvar_upper_bound v1
-    lo_2 = fdvar_lower_bound v2
-    hi_2 = fdvar_upper_bound v2
+    lo_1 = fdvar_lower_bound fdvar1
+    hi_1 = fdvar_upper_bound fdvar1
+    lo_2 = fdvar_lower_bound fdvar2
+    hi_2 = fdvar_upper_bound fdvar2
 
     if lo_2 >= hi_1 # :'(
       # Condition already satisfied. No changes necessary.
@@ -44,30 +44,30 @@ module.exports = (FD) ->
       @solved = true
       return ZERO_CHANGES
 
-    ASSERT_DOMAIN v1.dom, 'v1 needs to be csis for this trick to work'
-    ASSERT_DOMAIN v2.dom, 'v2 needs to be csis for this trick to work'
+    ASSERT_DOMAIN fdvar1.dom, 'v1 needs to be csis for this trick to work'
+    ASSERT_DOMAIN fdvar2.dom, 'v2 needs to be csis for this trick to work'
 
     # every number in v1 can only be smaller than or equal to the biggest
     # value in v2. bigger values will never satisfy lt so prune them.
     if hi_1 > hi_2
       # TODO: make this an inline operation to fdvar, once that's possible
-      new_dom = v1.dom.slice 0
+      new_dom = fdvar1.dom.slice 0
       domain_remove_gte_inline new_dom, hi_2+1
       if new_dom.length is 0
         return REJECTED
-      fdvar_set_domain v1, new_dom
+      fdvar_set_domain fdvar1, new_dom
 
     # likewise; numbers in v2 that are smaller than or equal to the
     # smallest value of v1 can never satisfy lt so prune them as well
     if lo_1 > lo_2
       # TODO: make this an inline operation to fdvar, once that's possible
-      new_dom = v2.dom.slice 0
+      new_dom = fdvar2.dom.slice 0
       domain_remove_lte_inline new_dom, lo_1-1
       if new_dom.length is 0
         return REJECTED
-      fdvar_set_domain v2, new_dom
+      fdvar_set_domain fdvar2, new_dom
 
-    current_upid = v1.vupid + v2.vupid
+    current_upid = fdvar1.vupid + fdvar2.vupid
     @last_upid = current_upid
     return current_upid - begin_upid
 

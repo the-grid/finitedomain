@@ -26,15 +26,15 @@ module.exports = (FD) ->
   # can potentially skip a lot of values early.
 
   eq_stepper = ->
-    v1 = @fdvar1
-    v2 = @fdvar2
+    fdvar1 = @fdvar1
+    fdvar2 = @fdvar2
 
-    begin_upid = v1.vupid + v2.vupid
+    begin_upid = fdvar1.vupid + fdvar2.vupid
     if begin_upid <= @last_upid
       return ZERO_CHANGES
 
-    dom1 = v1.dom
-    dom2 = v2.dom
+    dom1 = fdvar1.dom
+    dom2 = fdvar2.dom
     if domain_equal dom1, dom2
       return ZERO_CHANGES
 
@@ -43,10 +43,10 @@ module.exports = (FD) ->
       return REJECTED
 
     # note: both vars need different array refs! so clone it for one
-    fdvar_set_domain v1, new_domain
-    fdvar_set_domain v2, new_domain.slice 0
+    fdvar_set_domain fdvar1, new_domain
+    fdvar_set_domain fdvar2, new_domain.slice 0
 
-    @last_upid = v1.vupid + v2.vupid
+    @last_upid = fdvar1.vupid + fdvar2.vupid
     return @last_upid - begin_upid
 
   propagator_create_eq = (space, left_var_name, right_var_name) ->

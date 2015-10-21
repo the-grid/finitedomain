@@ -83,13 +83,22 @@ describe "FD - propagators - lt", ->
         v1 = fdvar_create 'x', spec_d_create_range lo1, hi1
         v2 = fdvar_create 'y', spec_d_create_range lo2, hi2
         r = lt_step_bare v1, v2
-        expect(v1.dom, 'v1 after').to.eql spec_d_create_range result_lo, result_hi
+        expect(v1.dom, 'v1 after').to.eql (result is REJECTED and []) or spec_d_create_range result_lo, result_hi
         expect(v2.dom, 'v2 after').to.eql spec_d_create_range lo2, hi2
         result? and expect(r).to.eql result
 
     test 0,20, 5,15, 0,14
     test 0,10, 5,15, 0,10, ZERO_CHANGES
-    test 10,10, 5,5, 10,10, REJECTED
+
+  it 'should reject when v1 and v2 are solved and v1>v2', ->
+
+    v1 = fdvar_create 'x', spec_d_create_range 10, 10
+    v2 = fdvar_create 'y', spec_d_create_range 5, 5
+    r = lt_step_bare v1, v2
+    # depending on implementation v1 and v2 may be cleared, one of them cleared, or not changed. but must reject regardless...
+    #expect(v1.dom, 'v1 after').to.eql []
+    #expect(v2.dom, 'v2 after').to.eql []
+    expect(r).to.eql REJECTED
 
   describe 'when min(v1) >= min(v2)', ->
 
@@ -99,12 +108,12 @@ describe "FD - propagators - lt", ->
         v2 = fdvar_create 'y', spec_d_create_range lo2, hi2
         r = lt_step_bare v1, v2
         expect(v1.dom, 'v1 after').to.eql spec_d_create_range lo1, hi1
-        expect(v2.dom, 'v2 after').to.eql spec_d_create_range result_lo, result_hi
+        expect(v2.dom, 'v2 after').to.eql (result is REJECTED and []) or spec_d_create_range result_lo, result_hi
         result? and expect(r).to.eql result
 
     test 5,14, 0,15, 6,15
     test 5,10, 7,15, 7,15, ZERO_CHANGES
-    test 10,10, 5,5, 5,5, REJECTED
+    #test 10,10, 5,5, 5,5, REJECTED # note: this is the same test as in v1>=v2 because v1 is checked first. so not possible here.
 
   describe 'when both min/max v1 >= min/max v2', ->
 

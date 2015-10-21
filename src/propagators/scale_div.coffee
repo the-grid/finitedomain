@@ -1,16 +1,11 @@
 module.exports = (FD) ->
   {
     REJECTED
-    ZERO_CHANGES
   } = FD.helpers
 
   {
     domain_intersection
   } = FD.Domain
-
-  {
-    propagator_create_2x
-  } = FD.Propagator
 
   {
     fdvar_set_domain
@@ -19,15 +14,10 @@ module.exports = (FD) ->
   FLOOR = Math.floor
   PAIR_SIZE = 2
 
-  scale_div_stepper = ->
-    fdvar = @propdata[1]
-    prod = @propdata[2]
+  div_step_bare = (fdvar_val, fdvar_prod) ->
+    begin_upid = fdvar_val.vupid + fdvar_prod.vupid
 
-    begin_upid = fdvar.vupid + prod.vupid
-    if begin_upid <= @last_upid # or @solved
-      return ZERO_CHANGES
-
-    domain = prod.dom
+    domain = fdvar_prod.dom
     unless domain.length
       return REJECTED
 
@@ -40,13 +30,9 @@ module.exports = (FD) ->
     d = domain_intersection dbyk, domain
     unless d.length
       return REJECTED
-    fdvar_set_domain fdvar, d
+    fdvar_set_domain fdvar_val, d
 
-    current_upid = fdvar.vupid + prod.vupid
-    @last_upid = current_upid
+    current_upid = fdvar_val.vupid + fdvar_prod.vupid
     return current_upid - begin_upid
 
-  propagator_create_scale_div = (space, left_var_name, right_var_name) ->
-    propagator_create_2x space, left_var_name, right_var_name, scale_div_stepper, 'div'
-
-  FD.propagators.propagator_create_scale_div = propagator_create_scale_div
+  FD.propagators.div_step_bare = div_step_bare

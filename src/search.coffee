@@ -1,12 +1,13 @@
 
 module.exports = (FD) ->
   {
+    ASSERT_PROPAGATOR
     ASSERT_SPACE
   } = FD.helpers
 
   {
-    propagator_is_solved
-  } = FD.Propagator
+    PROP_VAR_NAMES
+  } = FD.propagators
 
   {
     fdvar_is_solved
@@ -60,10 +61,12 @@ module.exports = (FD) ->
 
   # @public (this func is used outside of multiverse)
 
-  Search.solve_for_propagators = (S) ->
-    for p in S._propagators
-      unless propagator_is_solved p
-        return false
+  Search.solve_for_propagators = (space) ->
+    for prop_details in space._propagators
+      ASSERT_PROPAGATOR prop_details
+      for var_name in prop_details[PROP_VAR_NAMES]
+        unless fdvar_is_solved space.vars[var_name]
+          return false
     return true
 
   # Initialize the state object for depth first search

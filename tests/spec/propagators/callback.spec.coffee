@@ -2,6 +2,7 @@ if typeof require is 'function'
   finitedomain = require '../../../src/index'
   chai = require 'chai'
   {
+    spec_d_create_bool
     spec_d_create_range
     spec_d_create_value
   } = require '../../fixtures/domain.spec'
@@ -10,14 +11,6 @@ if typeof require is 'function'
 FD = finitedomain
 
 describe "FD - propagators - callback", ->
-
-  describe 'unit tests', ->
-
-    {propagator_create_callback} = FD.propagators
-
-    it 'should exist', ->
-
-      expect(propagator_create_callback?).to.be.true
 
   describe 'integration tests', ->
     {
@@ -32,12 +25,15 @@ describe "FD - propagators - callback", ->
       _domain_get_value: domain_get_value
     } = FD.Domain
 
-    it 'should accept a single var name', ->
+    it 'should be able to access the var names array', ->
 
-      cb = ([r, g, b], space) ->
-        rv = domain_get_value r.dom
-        gv = domain_get_value g.dom
-        bv = domain_get_value b.dom
+      cb = (space, var_names) ->
+
+        vars = space.vars
+
+        rv = domain_get_value vars[var_names[0]].dom
+        gv = domain_get_value vars[var_names[1]].dom
+        bv = domain_get_value vars[var_names[2]].dom
 
         if rv is NO_SUCH_VALUE or gv is NO_SUCH_VALUE or bv is NO_SUCH_VALUE
           return true # at least one domain isnt a single value; keep searching

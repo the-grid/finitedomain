@@ -69,6 +69,26 @@ module.exports = (FD) ->
     ASSERT_VARS space.vars
     return
 
+  ASSERT_PROPAGATORS = (propagators) ->
+    ASSERT !!propagators, 'propagators should exist', propagators
+    for p in propagators
+      ASSERT_PROPAGATOR p
+    return
+
+  ASSERT_PROPAGATOR = (propagator) ->
+    if DISABLED
+      return
+
+    ASSERT !!propagator, 'propagators should not be sparse', propagator
+    if propagator instanceof Array
+      ASSERT propagator.length >= 2, 'should at least have a name and vars', propagator
+      ASSERT typeof propagator[0] is 'string', 'name should be a string', propagator
+      ASSERT propagator[1] instanceof Array, 'second value should be a list of fdvar names', propagator
+      ASSERT propagator[1].filter((x) -> typeof x isnt 'string').length is 0, 'should all be strings', propagator
+    else
+      ASSERT false, 'propagator should be either a Propagator instance or an Array', propagator
+
+    return
 
   FD.helpers = {
     REJECTED
@@ -80,6 +100,8 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_DOMAIN
+    ASSERT_PROPAGATOR
+    ASSERT_PROPAGATORS
     ASSERT_SPACE
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS

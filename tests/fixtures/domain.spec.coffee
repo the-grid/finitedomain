@@ -1,25 +1,27 @@
 SUP = 100000
 
 spec_d_create_range = (lo, hi) ->
-  return [lo, hi]
+  return spec_d_create_ranges [lo, hi]
 spec_d_create_ranges = (ranges...) ->
   arr = []
   ranges.forEach (range) -> arr.push range[0], range[1]
+
+  # hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr
 spec_d_create_value = (value) ->
-  return [value, value]
+  return spec_d_create_ranges [value, value]
 spec_d_create_list = (list) ->
   arr = []
   list.forEach (value) -> arr.push value, value
   return arr
 spec_d_create_zero = ->
-  return [0, 0]
+  return spec_d_create_ranges [0, 0]
 spec_d_create_one = ->
-  return [1, 1]
+  return spec_d_create_ranges [1, 1]
 spec_d_create_full = ->
-  return [0, SUP]
+  return spec_d_create_ranges [0, SUP]
 spec_d_create_bool = ->
-  return [0, 1]
+  return spec_d_create_ranges [0, 1]
 
 module.exports = {
   spec_d_create_range

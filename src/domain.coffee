@@ -4,8 +4,8 @@ module.exports = (FD) ->
     SUB
     SUP
     NO_SUCH_VALUE
-    ONE_CHANGE
     REJECTED
+    SOMETHING_CHANGED
     ZERO_CHANGES
 
     ASSERT
@@ -27,7 +27,6 @@ module.exports = (FD) ->
   HI_BOUND = 1
   PAIR_SIZE = 2
   DOMAINS_NOT_CHANGED = 0
-  DOMAINS_UPDATED = 1
 
   NOT_FOUND = -1
 
@@ -767,7 +766,7 @@ module.exports = (FD) ->
     if index is 0
       return REJECTED
 
-    return DOMAINS_UPDATED
+    return SOMETHING_CHANGED
 
   domain_force_eq_inline = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
@@ -862,7 +861,7 @@ module.exports = (FD) ->
       if value >= lo and value <= hi
         _domain_remove_value_at domain, value, index, lo, hi
         ASSERT_DOMAIN domain
-        return ONE_CHANGE
+        return SOMETHING_CHANGED
     return ZERO_CHANGES
 
   # Check if every element in one domain not
@@ -907,7 +906,7 @@ module.exports = (FD) ->
     INLINE
     NOT_INLINE
     PREV_CHANGED
-    DOMAINS_UPDATED
+    SOMETHING_CHANGED
 
     domain_shares_no_elements
     domain_complement

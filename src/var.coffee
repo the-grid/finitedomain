@@ -2,6 +2,7 @@ module.exports = (FD) ->
 
   {
     REJECTED
+    SOMETHING_CHANGED
     ZERO_CHANGES
 
     ASSERT
@@ -9,8 +10,6 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    DOMAINS_UPDATED
-
     domain_create_all
     domain_create_range
     domain_create_value
@@ -36,15 +35,13 @@ module.exports = (FD) ->
   fdvar_create_wide = (id) ->
     return fdvar_new id, domain_create_all(), 0
 
-  fdvar_new = (id, dom, vupid) ->
-    ASSERT !!dom, 'should init to a domain', [id, dom, vupid]
-    ASSERT vupid >= 0, 'should init var update id (vupid) to >=0', vupid
+  fdvar_new = (id, dom) ->
+    ASSERT !!dom, 'should init to a domain', [id, dom]
     ASSERT_UNUSED_DOMAIN dom
     return {
       _class: 'fdvar'
       id
       dom
-      vupid # "var update id", caching mechanism, used to be called `step`
     }
 
   # A var is undetermined when it is neither rejected nor solved.
@@ -66,7 +63,7 @@ module.exports = (FD) ->
     return domain_is_rejected fdvar.dom
 
   fdvar_clone = (fdvar) ->
-    return fdvar_new fdvar.id, fdvar.dom.slice(0), fdvar.vupid
+    return fdvar_new fdvar.id, fdvar.dom.slice(0)
 
   fdvar_is_equal = (fdvar1, fdvar2) ->
     return domain_equal fdvar1.dom, fdvar2.dom
@@ -75,17 +72,11 @@ module.exports = (FD) ->
     ASSERT_UNUSED_DOMAIN domain
     unless domain_equal fdvar.dom, domain
       fdvar.dom = domain
-      fdvar.vupid++
-    return
+      return SOMETHING_CHANGED
+    return ZERO_CHANGES
 
   fdvar_set_value_inline = (fdvar, value) ->
     domain_set_to_range_inline fdvar.dom, value, value
-    fdvar.vupid++
-    return
-
-  fdvar_set_range_inline = (fdvar, lo, hi) ->
-    domain_set_to_range_inline fdvar.dom, lo, hi
-    fdvar.vupid++
     return
 
   # TODO: rename to intersect for that's what it is.
@@ -93,9 +84,7 @@ module.exports = (FD) ->
     domain = domain_intersection fdvar.dom, domain
     unless domain.length
       return REJECTED
-    before = fdvar.vupid
-    fdvar_set_domain fdvar, domain
-    return fdvar.vupid - before
+    return fdvar_set_domain fdvar, domain
 
   fdvar_constrain_to_range = (fdvar, lo, hi) ->
     return fdvar_constrain fdvar, domain_create_range(lo, hi)
@@ -104,10 +93,6 @@ module.exports = (FD) ->
     return fdvar_constrain fdvar, domain_create_value(value)
 
   fdvar_size = (fdvar) ->
-    # We could cache this with the `vupid` property but that
-    # means another property on this var which is unused by
-    # most cases. Currently only `distribution_var_size` uses
-    # this and so maybe this size should be cached at caller?
     return domain_size fdvar.dom
 
   fdvar_lower_bound = (fdvar) ->
@@ -124,18 +109,18 @@ module.exports = (FD) ->
 
   fdvar_remove_gte_inline = (fdvar, value) ->
     if domain_remove_gte_inline fdvar.dom, value
-      ++fdvar.vupid
-    return
+      return SOMETHING_CHANGED
+    return ZERO_CHANGES
 
   fdvar_remove_lte_inline = (fdvar, value) ->
     if domain_remove_lte_inline fdvar.dom, value
-      ++fdvar.vupid
-    return
+      return SOMETHING_CHANGED
+    return ZERO_CHANGES
 
   # for the eq propagator; makes sure all elements in either var
   # are also contained in the other. removes all others. operates
-  # inline on the var domains. returns whether it resulted in
-  # rejected domains
+  # inline on the var domains. returns REJECTED, ZERO_CHANGES, or
+  # SOMETHING_CHANGED
 
   fdvar_force_eq_inline = (fdvar1, fdvar2) ->
     change_state = domain_force_eq_inline fdvar1.dom, fdvar2.dom
@@ -144,14 +129,9 @@ module.exports = (FD) ->
     ASSERT change_state >= -1 and change_state <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', change_state
 
     if change_state is REJECTED
-      return false
+      return REJECTED
 
-    # TODO: check if more granular control here helps anything
-    if change_state is DOMAINS_UPDATED
-      ++fdvar1.vupid
-      ++fdvar2.vupid
-
-    return true
+    return change_state
 
   fdvar_force_neq_inline = (fdvar1, fdvar2) ->
     r = ZERO_CHANGES
@@ -159,16 +139,15 @@ module.exports = (FD) ->
     dom2 = fdvar2.dom
     if fdvar_is_solved fdvar1
       r = domain_remove_value_inline dom2, domain_min dom1
-      if r > ZERO_CHANGES
-        ++fdvar2.vupid
+      ASSERT r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!'
     else if fdvar_is_solved fdvar2
       r = domain_remove_value_inline dom1, domain_min dom2
-      if r > ZERO_CHANGES
-        ++fdvar1.vupid
+      ASSERT r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!'
     if domain_is_rejected(dom1) or domain_is_rejected dom2
       dom1.length = 0
       dom2.length = 0
-      return REJECTED
+      r = REJECTED
+    ASSERT r is REJECTED or r is ZERO_CHANGES or r is SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values'
     return r
 
   FD.Var = {
@@ -190,7 +169,6 @@ module.exports = (FD) ->
     fdvar_remove_gte_inline
     fdvar_remove_lte_inline
     fdvar_set_domain
-    fdvar_set_range_inline
     fdvar_set_value_inline
     fdvar_size
   }

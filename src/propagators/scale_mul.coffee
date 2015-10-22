@@ -18,8 +18,6 @@ module.exports = (FD) ->
   # TODO: write test that uses this. this is currently not tested at all.
 
   mul_step_bare = (fdvar, fdvar_prod) ->
-    begin_upid = fdvar.vupid + fdvar_prod.vupid
-
     domain = fdvar.dom
     unless domain.length
       return REJECTED
@@ -35,9 +33,7 @@ module.exports = (FD) ->
     d = domain_intersection kd, fdvar_prod.dom
     unless d.length
       return REJECTED
-    fdvar_set_domain fdvar_prod, d
 
-    current_upid = fdvar.vupid + fdvar_prod.vupid
-    return current_upid - begin_upid
+    return fdvar_set_domain fdvar_prod, d
 
   FD.propagators.mul_step_bare = mul_step_bare

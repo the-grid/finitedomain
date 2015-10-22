@@ -21,13 +21,7 @@ module.exports = (FD) ->
   # can potentially skip a lot of values early.
 
   eq_step_bare = (fdvar1, fdvar2) ->
-    begin_upid = fdvar1.vupid + fdvar2.vupid
-
-    unless fdvar_force_eq_inline fdvar1, fdvar2
-      return REJECTED
-
-    new_vupid = fdvar1.vupid + fdvar2.vupid
-    return new_vupid - begin_upid
+    return fdvar_force_eq_inline fdvar1, fdvar2
 
   # The eq step would reject if there all elements in one domain
   # do not occur in the other domain. Because then there's no

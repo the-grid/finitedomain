@@ -5,7 +5,7 @@ module.exports = (FD) ->
   SUB = 0 # WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
   SUP = 100000000
   ZERO_CHANGES = 0
-  ONE_CHANGE = 1
+  SOMETHING_CHANGED = 1
   REJECTED = -1
   NOT_FOUND = -1
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
@@ -97,7 +97,7 @@ module.exports = (FD) ->
     SUP
     NOT_FOUND
     NO_SUCH_VALUE
-    ONE_CHANGE
+    SOMETHING_CHANGED
     ZERO_CHANGES
 
     ASSERT

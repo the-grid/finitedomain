@@ -4,6 +4,7 @@ module.exports = (FD) ->
     SUB
     SUP
     NO_SUCH_VALUE
+    REJECTED
     ZERO_CHANGES
 
     ASSERT
@@ -24,6 +25,8 @@ module.exports = (FD) ->
   LO_BOUND = 0
   HI_BOUND = 1
   PAIR_SIZE = 2
+  DOMAINS_NOT_CHANGED = 0
+  DOMAINS_UPDATED = 1
 
   NOT_FOUND = -1
 
@@ -695,6 +698,108 @@ module.exports = (FD) ->
 
     return len isnt n
 
+  domain_find_diff_index = (domain1, domain2, len) ->
+    # first check whether the two are different at all
+    index = 0
+    while index < len
+      lo1 = domain1[index]
+      hi1 = domain1[index+1]
+      lo2 = domain2[index]
+      hi2 = domain2[index+1]
+      if lo1 isnt lo2 or hi1 isnt hi2
+        return index
+      index += PAIR_SIZE
+    return len
+
+  domain_apply_eq_inline_from = (index, domain1, domain2, len1, len2) ->
+    p1 = index
+    p2 = index
+
+    lo1 = domain1[p1]
+    hi1 = domain1[p1+1]
+    lo2 = domain2[p2]
+    hi2 = domain2[p2+1]
+
+    while p1 < len1 and p2 < len2
+      if hi1 < lo2 # R1 < R2 completely; drop R1
+        p1 += PAIR_SIZE
+        lo1 = domain1[p1]
+        hi1 = domain1[p1+1]
+
+      else if hi2 < lo1 # R2 < R1 completely; drop R1
+        p2 += PAIR_SIZE
+        lo2 = domain2[p2]
+        hi2 = domain2[p2+1]
+
+      # hi1 >= lo2 and hi2 >= lo1
+      else if lo1 < lo2 # R1 < R2 partial; update R1 lo to R2 lo
+        lo1 = lo2
+      else if lo2 < lo1 # R2 < R1 partial; update R2 lo to R1 lo
+        lo2 = lo1
+
+      else
+        # add a range with MIN hi1, hi2
+        # then move lo to that hi and drop a range on at least one side
+        ASSERT lo1 is lo2, 'the lows should be equal'
+        hi = MIN hi1, hi2
+        domain1[index] = domain2[index] = lo1
+        domain1[index+1] = domain2[index+1] = hi
+        index += PAIR_SIZE
+
+        # if the current range on either side was fully copied, move its pointer
+        # otherwise update its lo to the last hi+1 and continue
+
+        if hi is hi1
+          p1 += PAIR_SIZE
+          lo1 = domain1[p1]
+          hi1 = domain1[p1+1]
+        else
+          lo1 = hi+1
+
+        if hi is hi2
+          p2 += PAIR_SIZE
+          lo2 = domain2[p2]
+          hi2 = domain2[p2+1]
+        else
+          lo2 = hi+1
+
+    # note: a domain may shrink OR grow.
+    # and a domain that stays the same len may still have changed.
+    if len1 isnt index
+      domain1.length = index
+    if len2 isnt index
+      domain2.length = index
+
+    ASSERT_DOMAIN domain1
+    ASSERT_DOMAIN domain2
+
+    if index is 0
+      return REJECTED
+
+    return DOMAINS_UPDATED
+
+  domain_force_eq_inline = (domain1, domain2) ->
+    ASSERT_DOMAIN domain1
+    ASSERT_DOMAIN domain2
+
+    len1 = domain1.length
+    len2 = domain2.length
+    len = MIN len1, len2
+
+    if len is 0
+      domain1.length = 0
+      domain2.length = 0
+      return REJECTED
+
+    index = domain_find_diff_index domain1, domain2, len
+    ASSERT index >= 0 and index <= len, 'target index should be within the range of the array len+1'
+    ASSERT index % 2 is 0, 'target index should be even because it should find a range offset'
+
+    if index isnt len
+      return domain_apply_eq_inline_from index, domain1, domain2, len1, len2
+
+    return DOMAINS_NOT_CHANGED
+
   domain_create_zero = ->
     return [0, 0]
 
@@ -723,6 +828,7 @@ module.exports = (FD) ->
     INLINE
     NOT_INLINE
     PREV_CHANGED
+    DOMAINS_UPDATED
 
     domain_complement
     domain_contains_value
@@ -738,6 +844,7 @@ module.exports = (FD) ->
     domain_divby
     domain_equal
     domain_except_bounds
+    domain_force_eq_inline
     domain_from_list
     domain_get_value_of_first_contained_value_in_list
     domain_intersect_bounds_into

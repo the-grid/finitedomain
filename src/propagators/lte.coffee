@@ -6,6 +6,12 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    domain_is_rejected
+    domain_max
+    domain_min
+  } = FD.Domain
+
+  {
     fdvar_is_rejected
     fdvar_lower_bound
     fdvar_remove_gte_inline
@@ -40,4 +46,19 @@ module.exports = (FD) ->
     current_upid = fdvar1.vupid + fdvar2.vupid
     return current_upid - begin_upid
 
+  # lte would reject if all elements in the left var are bigger than the
+  # right var. And since everything is CSIS, we only have to check the
+  # lo bound of left to the high bound of right for that answer.
+  # Read-only check
+
+  lte_step_would_reject = (fdvar1, fdvar2) ->
+    dom1 = fdvar1.dom
+    dom2 = fdvar2.dom
+
+    if domain_is_rejected dom1 or domain_is_rejected dom2
+      return true
+
+    return domain_min(dom1) > domain_max(dom2)
+
   FD.propagators.lte_step_bare = lte_step_bare
+  FD.propagators.lte_step_would_reject = lte_step_would_reject

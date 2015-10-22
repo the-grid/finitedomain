@@ -4,6 +4,11 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    domain_is_rejected
+    domain_shares_no_elements
+  } = FD.Domain
+
+  {
     fdvar_force_eq_inline
   } = FD.Var
 
@@ -24,4 +29,20 @@ module.exports = (FD) ->
     new_vupid = fdvar1.vupid + fdvar2.vupid
     return new_vupid - begin_upid
 
+  # The eq step would reject if there all elements in one domain
+  # do not occur in the other domain. Because then there's no
+  # valid option to make sure A=B holds. So search for such value
+  # or return false.
+  # Read only check
+
+  eq_step_would_reject = (fdvar1, fdvar2) ->
+    dom1 = fdvar1.dom
+    dom2 = fdvar2.dom
+
+    if domain_is_rejected dom1 or domain_is_rejected dom2
+      return true
+
+    return domain_shares_no_elements dom1, dom2
+
   FD.propagators.eq_step_bare = eq_step_bare
+  FD.propagators.eq_step_would_reject = eq_step_would_reject

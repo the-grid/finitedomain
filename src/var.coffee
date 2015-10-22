@@ -8,11 +8,14 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    DOMAINS_UPDATED
+
     domain_create_all
     domain_create_range
     domain_create_value
     domain_intersection
     domain_equal
+    domain_force_eq_inline
     domain_is_determined
     domain_is_rejected
     domain_is_solved
@@ -127,6 +130,27 @@ module.exports = (FD) ->
       ++fdvar.vupid
     return
 
+  # for the eq propagator; makes sure all elements in either var
+  # are also contained in the other. removes all others. operates
+  # inline on the var domains. returns whether it resulted in
+  # rejected domains
+
+  fdvar_force_eq_inline = (fdvar1, fdvar2) ->
+    change_state = domain_force_eq_inline fdvar1.dom, fdvar2.dom
+
+    # if this assert fails, update the following checks accordingly!
+    ASSERT change_state >= -1 and change_state <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', change_state
+
+    if change_state is REJECTED
+      return false
+
+    # TODO: check if more granular control here helps anything
+    if change_state is DOMAINS_UPDATED
+      ++fdvar1.vupid
+      ++fdvar2.vupid
+
+    return true
+
   FD.Var = {
     fdvar_clone
     fdvar_constrain
@@ -134,6 +158,7 @@ module.exports = (FD) ->
     fdvar_constrain_to_value
     fdvar_create
     fdvar_create_wide
+    fdvar_force_eq_inline
     fdvar_is_equal
     fdvar_is_rejected
     fdvar_is_solved

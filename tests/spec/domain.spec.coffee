@@ -304,39 +304,35 @@ describe "FD - Domain", ->
       expect(-> domain_is_value([[50, 50], ['oops']])).to.throw
       expect(-> domain_is_value([[50, 50], ['oops']])).to.throw
 
-  describe 'domain_remove_value', ->
+  describe 'domain_remove_value_inline', ->
 
-    {domain_remove_value} = Domain
+    {domain_remove_value_inline} = Domain
 
     it 'should exist', ->
 
-      expect(domain_remove_value?).to.be.true
+      expect(domain_remove_value_inline?).to.be.true
 
     it 'should require a domain', ->
 
-      expect(-> domain_remove_value null, 15).to.throw
+      expect(-> domain_remove_value_inline null, 15).to.throw
 
     it 'should accept an empty domain', ->
 
-      expect(domain_remove_value [], 15).to.eql undefined
+      arr =  []
+      domain_remove_value_inline arr, 15
+      expect(arr).to.eql []
 
     it 'should return a domain without given value', ->
 
-      expect(domain_remove_value spec_d_create_range(0, 30), 15).to.eql spec_d_create_ranges([0, 14], [16, 30])
+      arr = spec_d_create_range 0, 30
+      domain_remove_value_inline arr, 15
+      expect(arr).to.eql spec_d_create_ranges([0, 14], [16, 30])
 
     it 'should keep unrelated ranges', ->
 
-      expect(domain_remove_value spec_d_create_ranges([0, 10], [12, 20], [22, 30]), 15).to.eql spec_d_create_ranges([0, 10], [12, 14], [16, 20], [22, 30])
-
-    it 'should return a deep clone when removing an element', ->
-
-      a = spec_d_create_ranges([0, 10], [12, 20], [22, 30])
-      expect(domain_remove_value a, 15).to.not.equal a
-
-    it 'should return undefined if element was not found at all', ->
-
-      # 14 is not part of the domain
-      expect(domain_remove_value spec_d_create_ranges([0, 10], [15, 20], [22, 30]), 14).to.eql undefined
+      arr = spec_d_create_ranges [0, 10], [12, 20], [22, 30]
+      domain_remove_value_inline arr, 15
+      expect(arr).to.eql spec_d_create_ranges([0, 10], [12, 14], [16, 20], [22, 30])
 
   describe 'is_simplified', ->
 

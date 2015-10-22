@@ -116,16 +116,6 @@ module.exports = (FD) ->
         return _deep_clone_without_value domain, value, index
     return # return undefined to indicate end of search
 
-  # Search for value in domain. If it exists, remove it and return
-  # a deep clone of the result. Otherwise return an empty domain.
-
-  domain_remove_value = (domain, value) ->
-    ASSERT_DOMAIN domain
-    index = domain_range_index_of domain, value
-    if index >= 0
-      return _deep_clone_without_value domain, value, index
-    return # return undefined to indicate end of search
-
   # Return a clone of given domain. If value is contained in domain, the clone
   # will not contain it. This is an optimization to basically prevent splicing.
 
@@ -936,7 +926,6 @@ module.exports = (FD) ->
     domain_remove_gte_inline
     domain_remove_lte_inline
     domain_remove_next_from_list
-    domain_remove_value
     domain_remove_value_inline
     domain_set_to_range_inline
     domain_simplify

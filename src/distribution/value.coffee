@@ -15,7 +15,7 @@ module.exports = (FD) ->
     domain_is_value
     domain_max
     domain_min
-    domain_remove_value
+    domain_remove_value_inline
     domain_remove_next_from_list
     domain_get_value_of_first_contained_value_in_list
   } = FD.Domain
@@ -130,10 +130,9 @@ module.exports = (FD) ->
           fdvar_set_value_inline fdvar, value
 
         when SECOND_CHOICE
-          new_domain = domain_remove_value fdvar.dom, lastValueByVar[var_name]
-          unless new_domain and new_domain.length
+          domain_remove_value_inline fdvar.dom, lastValueByVar[var_name]
+          unless fdvar.dom.length
             return # signifies end of search
-          fdvar_set_domain fdvar, new_domain
 
         else
           throw new Error "Invalid choice value [#{current_choice_index}]"

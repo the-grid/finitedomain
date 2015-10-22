@@ -865,6 +865,20 @@ module.exports = (FD) ->
         return ONE_CHANGE
     return ZERO_CHANGES
 
+  # Check if every element in one domain not
+  # occur in the other domain and vice versa
+
+  domain_shares_no_elements = (domain1, domain2) ->
+    for lo,i in domain1 by 2
+      hi = domain1[i+1]
+      for j in [i...domain2.length] by 2
+        # if range A is not before or after range B there is overlap
+        unless hi < domain2[j] or lo > domain2[j+1]
+          # if there is overlap both domains share at least one element
+          return false
+    # no range in domain1 proved to overlap with a range in domain2
+    return true
+
   domain_create_zero = ->
     return [0, 0]
 
@@ -895,6 +909,7 @@ module.exports = (FD) ->
     PREV_CHANGED
     DOMAINS_UPDATED
 
+    domain_shares_no_elements
     domain_complement
     domain_contains_value
     domain_create_all

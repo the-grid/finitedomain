@@ -8,6 +8,10 @@
 
 module.exports = (FD) ->
   {
+    lt_step_would_reject
+    lte_step_would_reject
+    eq_step_would_reject
+    neq_step_would_reject
     lt_step_bare
     lte_step_bare
     eq_step_bare
@@ -42,5 +46,33 @@ module.exports = (FD) ->
       else
         throw new Error 'unsupported propagator: [' + op_name + ']'
 
+  # Do a fast dry run of one of the comparison propagators. Only returns
+  # true when the step would result in REJECTED. Returns true otherwise.
+
+  step_would_reject = (op_name, fdvar1, fdvar2) ->
+    switch op_name
+      when 'lt'
+        return lt_step_would_reject fdvar1, fdvar2
+
+      when 'lte'
+        return lte_step_would_reject fdvar1, fdvar2
+
+      when 'gt'
+        # TOFIX: should go to lte
+        return lt_step_would_reject fdvar2, fdvar1 # swapped vars!
+
+      when 'gte'
+        return lte_step_would_reject fdvar2, fdvar1 # swapped vars!
+
+      when 'eq'
+        return eq_step_would_reject fdvar1, fdvar2
+
+      when 'neq'
+        return neq_step_would_reject fdvar1, fdvar2
+
+      else
+        throw new Error 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
+
   FD.propagators.step_comparison = stepper_step_comparison
+  FD.propagators.step_would_reject = step_would_reject
 

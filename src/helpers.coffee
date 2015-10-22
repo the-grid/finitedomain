@@ -25,7 +25,7 @@ module.exports = (FD) ->
         console.log 'Error args:', args
 #      console.trace()
 #      process.exit() # uncomment for quick error access :)
-      throw new Error 'Assertion fail: ' + msg
+      throw new Error 'Assertion fail: ' + msg + ((args.length and (' Args: '+args.slice(0))) or '')
     return
 
   # Simple function to completely validate a domain

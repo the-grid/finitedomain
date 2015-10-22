@@ -1,6 +1,7 @@
 module.exports = (FD) ->
   {
     REJECTED
+    ZERO_CHANGES
 
     ASSERT_DOMAIN
   } = FD.helpers
@@ -20,8 +21,6 @@ module.exports = (FD) ->
   } = FD.Var
 
   lte_step_bare = (fdvar1, fdvar2) ->
-    begin_upid = fdvar1.vupid + fdvar2.vupid
-
     lo_1 = fdvar_lower_bound fdvar1
     hi_1 = fdvar_upper_bound fdvar1
     lo_2 = fdvar_lower_bound fdvar2
@@ -33,18 +32,17 @@ module.exports = (FD) ->
     # every number in v1 can only be smaller than or equal to the biggest
     # value in v2. bigger values will never satisfy lt so prune them.
     if hi_1 > hi_2
-      fdvar_remove_gte_inline fdvar1, hi_2+1
+      left_changed = fdvar_remove_gte_inline fdvar1, hi_2+1
 
     # likewise; numbers in v2 that are smaller than or equal to the
     # smallest value of v1 can never satisfy lt so prune them as well
     if lo_1 > lo_2
-      fdvar_remove_lte_inline fdvar2, lo_1-1
+      right_changed = fdvar_remove_lte_inline fdvar2, lo_1-1
 
     if fdvar_is_rejected(fdvar1) or fdvar_is_rejected(fdvar2)
       return REJECTED
 
-    current_upid = fdvar1.vupid + fdvar2.vupid
-    return current_upid - begin_upid
+    return left_changed or right_changed or ZERO_CHANGES
 
   # lte would reject if all elements in the left var are bigger than the
   # right var. And since everything is CSIS, we only have to check the

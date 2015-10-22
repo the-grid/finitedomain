@@ -1,5 +1,6 @@
 module.exports = (FD) ->
   {
+    SOMETHING_CHANGED
     ZERO_CHANGES
 
     ASSERT
@@ -15,7 +16,6 @@ module.exports = (FD) ->
   } = FD.Var
 
   PAIR_SIZE = 2
-  ONE_CHANGE = 1
 
   # A boolean variable that represents whether a comparison
   # condition between two variables currently holds or not.
@@ -39,11 +39,11 @@ module.exports = (FD) ->
     if lo < hi
       if step_would_reject op_name, fdvar1, fdvar2
         fdvar_set_value_inline bool_var, 0
-        return ONE_CHANGE
+        return SOMETHING_CHANGED
 
       if step_would_reject inv_op_name, fdvar1, fdvar2
         fdvar_set_value_inline bool_var, 1
-        return ONE_CHANGE
+        return SOMETHING_CHANGED
 
       return ZERO_CHANGES
 

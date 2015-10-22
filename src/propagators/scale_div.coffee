@@ -15,8 +15,6 @@ module.exports = (FD) ->
   PAIR_SIZE = 2
 
   div_step_bare = (fdvar_val, fdvar_prod) ->
-    begin_upid = fdvar_val.vupid + fdvar_prod.vupid
-
     domain = fdvar_prod.dom
     unless domain.length
       return REJECTED
@@ -30,9 +28,7 @@ module.exports = (FD) ->
     d = domain_intersection dbyk, domain
     unless d.length
       return REJECTED
-    fdvar_set_domain fdvar_val, d
 
-    current_upid = fdvar_val.vupid + fdvar_prod.vupid
-    return current_upid - begin_upid
+    return fdvar_set_domain fdvar_val, d
 
   FD.propagators.div_step_bare = div_step_bare

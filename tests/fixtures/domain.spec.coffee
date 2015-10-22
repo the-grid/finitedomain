@@ -1,6 +1,10 @@
 SUP = 100000
 
 spec_d_create_range = (lo, hi) ->
+  if typeof lo isnt 'number'
+    throw new Error 'spec_d_create_value requires a number'
+  if typeof hi isnt 'number'
+    throw new Error 'spec_d_create_value requires a number'
   return spec_d_create_ranges [lo, hi]
 spec_d_create_ranges = (ranges...) ->
   arr = []
@@ -9,6 +13,8 @@ spec_d_create_ranges = (ranges...) ->
   # hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr
 spec_d_create_value = (value) ->
+  if typeof value isnt 'number'
+    throw new Error 'spec_d_create_value requires a number'
   return spec_d_create_ranges [value, value]
 spec_d_create_list = (list) ->
   arr = []

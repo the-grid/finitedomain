@@ -2,6 +2,7 @@ module.exports = (FD) ->
 
   {
     REJECTED
+    ZERO_CHANGES
 
     ASSERT
     ASSERT_UNUSED_DOMAIN
@@ -24,6 +25,7 @@ module.exports = (FD) ->
     domain_min
     domain_remove_gte_inline
     domain_remove_lte_inline
+    domain_remove_value_inline
     domain_set_to_range_inline
     domain_size
   } = FD.Domain
@@ -151,6 +153,24 @@ module.exports = (FD) ->
 
     return true
 
+  fdvar_force_neq_inline = (fdvar1, fdvar2) ->
+    r = ZERO_CHANGES
+    dom1 = fdvar1.dom
+    dom2 = fdvar2.dom
+    if fdvar_is_solved fdvar1
+      r = domain_remove_value_inline dom2, domain_min dom1
+      if r > ZERO_CHANGES
+        ++fdvar2.vupid
+    else if fdvar_is_solved fdvar2
+      r = domain_remove_value_inline dom1, domain_min dom2
+      if r > ZERO_CHANGES
+        ++fdvar1.vupid
+    if domain_is_rejected(dom1) or domain_is_rejected dom2
+      dom1.length = 0
+      dom2.length = 0
+      return REJECTED
+    return r
+
   FD.Var = {
     fdvar_clone
     fdvar_constrain
@@ -159,6 +179,7 @@ module.exports = (FD) ->
     fdvar_create
     fdvar_create_wide
     fdvar_force_eq_inline
+    fdvar_force_neq_inline
     fdvar_is_equal
     fdvar_is_rejected
     fdvar_is_solved

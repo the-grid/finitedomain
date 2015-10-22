@@ -4,6 +4,7 @@ module.exports = (FD) ->
     SUB
     SUP
     NO_SUCH_VALUE
+    ONE_CHANGE
     REJECTED
     ZERO_CHANGES
 
@@ -800,6 +801,80 @@ module.exports = (FD) ->
 
     return DOMAINS_NOT_CHANGED
 
+  # Remove one range at given index.
+  # Moves all ranges behind it back by one position (index-2)
+
+  domain_splice_out_range_at = (domain, index) ->
+    for i in [index...domain.length] by PAIR_SIZE
+      domain[i] = domain[i+PAIR_SIZE]
+      domain[i+1] = domain[i+PAIR_SIZE+1]
+    domain.length = i-PAIR_SIZE
+    return
+
+  domain_splice_in_range_at = (domain, index) ->
+    _domain_splice_in_range_at domain, index, domain[index], domain[index+1]
+    return
+
+  # Insert given range at given index, moving all other ranges up by one (index+2)
+
+  _domain_splice_in_range_at = (domain, index, p_lo, p_hi) ->
+    # from here on out we must first stash the cur range, then pop the prev range
+    for i in [index...domain.length] by PAIR_SIZE
+      lo = domain[i]
+      hi = domain[i+1]
+      domain[i] = p_lo
+      domain[i+1] = p_hi
+      p_lo = lo
+      p_hi = hi
+    # and one more time now at the end
+    domain[i] = p_lo
+    domain[i+1] = p_hi
+    domain.length = i+PAIR_SIZE
+    return
+
+  domain_remove_value_at = (domain, value, index) ->
+    return _domain_remove_value_at domain, value, index, domain[index], domain[index+1]
+
+  # assumes value was found in range at index
+  # note: make sure to reject at callsite if this results in an empty domain!
+
+  _domain_remove_value_at = (domain, value, index, lo, hi) ->
+    # four options:
+    # range is exactly value; remove it, stream rest, update len, return
+    # range starts or ends with value; update it, return
+    # value is inside range; split it, inject carefully, stream, return
+
+    if lo is value
+      if hi is value
+        domain_splice_out_range_at domain, index
+        return
+      domain[index] = value+1 # update lo
+      return
+    if hi is value
+      domain[index+1] = value-1 # update hi
+      return
+
+    # must be last case now: value is inside range
+    # split range. update current range with new hi
+    domain[index+1] = value - 1
+
+    # create a new range of value+1 to old hi, then splice it in
+    p_lo = value+1
+    p_hi = hi
+    ASSERT p_lo <= p_hi, 'value shouldve been below hi'
+
+    _domain_splice_in_range_at domain, index + PAIR_SIZE, p_lo, p_hi
+    return
+
+  domain_remove_value_inline = (domain, value) ->
+    for lo, index in domain by PAIR_SIZE
+      hi = domain[index+1]
+      if value >= lo and value <= hi
+        _domain_remove_value_at domain, value, index, lo, hi
+        ASSERT_DOMAIN domain
+        return ONE_CHANGE
+    return ZERO_CHANGES
+
   domain_create_zero = ->
     return [0, 0]
 
@@ -862,6 +937,7 @@ module.exports = (FD) ->
     domain_remove_lte_inline
     domain_remove_next_from_list
     domain_remove_value
+    domain_remove_value_inline
     domain_set_to_range_inline
     domain_simplify
     domain_size

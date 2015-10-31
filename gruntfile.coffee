@@ -70,7 +70,8 @@ module.exports = ->
         ]
       # to run perf/perf.html
       perf:
-        cwd: './tests/perf'
+        expand: true
+        cwd: 'tests/perf'
         src: ['**/*.coffee']
         dest: 'build/perf'
         ext: '.js'

@@ -3,6 +3,8 @@ w = {}
 if typeof window isnt 'undefined'
   w = window
 
+PROFILE = false # set to true to profile the slowest perf test here in a browser, devtools should auto-profile it here.
+
 if typeof require is 'function'
   finitedomain = require '../../src/index'
   chai = require 'chai'
@@ -25,82 +27,57 @@ if typeof require is 'function'
 else
   chai = window.chai
   finitedomain = window.finitedomain
+  PROFILE = location.href.indexOf('?profile') >= 0
 
 {expect, assert} = chai
-describe 'perf', ->
 
+test = (desc, data, profile) ->
+  it desc, (done) ->
+    @timeout 20000
+
+    new finitedomain.PathSolver({rawtree: data}).solve({log:1})
+    expect(true).to.be.true
+
+    done()
+
+if PROFILE
+
+  describe 'profile one case', ->
+    it 'starting one run, see console (profile tab too)', ->
+      expect(true).to.be.true
+
+  # for the browser
+  if console.profile
+    console.profile()
+    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1})
+    console.profileEnd()
+  else
+    console.log 'browser does not support console.profile, you\'ll need to work around it ;)'
+
+else
   describe 'pipeline stuff', ->
-    # these are the 16 main calls pipeline makes to FD. exported rawtree
+    # these are the main calls pipeline makes to FD. exported rawtree
     # from the PathSolver constructor as is and that's what you see here.
 
-    it '1', ->
-      m = {rawtree: w.o1}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '2', ->
-      m = {rawtree: w.o2}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '3', ->
-      m = {rawtree: w.o3}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '4', ->
-      m = {rawtree: w.o4}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '5', ->
-      m = {rawtree: w.o5}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '6', ->
-      m = {rawtree: w.o6}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '7', ->
-      m = {rawtree: w.o7}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '8', ->
-      m = {rawtree: w.o8}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '9', ->
-      m = {rawtree: w.o9}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '10', ->
-      m = {rawtree: w.o10}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '11', ->
-      m = {rawtree: w.o11}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '12', ->
-      m = {rawtree: w.o12}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
-
-    it '13', ->
-      m = {rawtree: w.o13}
-      new finitedomain.PathSolver(m).solve({log:1})
-      expect(true).to.be.true
+    test '1', w.o1
+    test '2', w.o2
+    test '3', w.o3
+    test '4', w.o4
+    test '5', w.o5
+    test '6', w.o6
+    test '7', w.o7
+    test '8', w.o8
+    test '9', w.o9
+    test '10', w.o10
+    test '11', w.o11
+    test '12', w.o12
+    test '13', w.o13
 
   describe 'repeat simple test', ->
 
-    it 'repeat simple test 10x', ->
+    it 'repeat simple test 10x', (done) ->
+      @timeout 60000 # 1min timeout
+
       # this data was exported from the "4.e) from-to - balanced h tracks" test in MultiverseJSON
       m = {rawtree: w.o15}
 
@@ -108,3 +85,5 @@ describe 'perf', ->
         new finitedomain.PathSolver(m).solve({log:1})
 
       expect(true).to.be.true
+
+      done()

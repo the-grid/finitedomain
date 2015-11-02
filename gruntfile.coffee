@@ -39,8 +39,12 @@ module.exports = ->
 
     # Automated recompilation and testing when developing
     watch:
-      files: ['**/*.coffee']
-      tasks: ['build']
+      all:
+        files: ['**/*.coffee']
+        tasks: ['build']
+      perf:
+        files: ['tests/perf/perf.coffee']
+        tasks: ['coffee:perf']
 
     # BDD tests on Node.js
     mochaTest:

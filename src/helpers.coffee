@@ -1,7 +1,19 @@
 # Finite-Domain Helpers
 
-module.exports = (FD) ->
+# Note: this file is post processed to remove the ASSERTs
+# A grunt cli (`grunt string-replace:perf`, which is also triggered
+# in `grunt perf`) will replace all lines that start with `ASSERT`
+# with a `1`, which acts as a noop to prevent syntax errors for
+# sub-statements (like condiditions). Additionally, there is a
+# macro `REMOVE_ASSERTS_START` and `REMOVE_ASSERTS_STOP` which act
+# like barriers. Anything in between is removed and replaced with
+# an `x` so the result is `x=1` (just easier than the clean version).
+# We need to wipe these lines because we won't use them and when we
+# strip the ASSERT lines, syntax errors would happen in this file.
+# The export is preserved so the constants are still exported but
+# the method exports are stripped with the ASSERT replacement...
 
+module.exports = (FD) ->
   SUB = 0 # WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
   SUP = 100000000
   ZERO_CHANGES = 0
@@ -14,6 +26,8 @@ module.exports = (FD) ->
   DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
   DISABLE_DOMAIN_CHECK = true # also causes unrelated errors because mocha sees the expandos
   PAIR_SIZE = 2
+
+  REMOVE_ASSERTS_START=1
 
   # For unit tests
   # Should be removed in production. Obviously.
@@ -90,6 +104,8 @@ module.exports = (FD) ->
       ASSERT false, 'propagator should be either a Propagator instance or an Array', propagator
 
     return
+
+  REMOVE_ASSERTS_STOP=1
 
   FD.helpers = {
     REJECTED

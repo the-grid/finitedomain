@@ -39,8 +39,12 @@ module.exports = ->
 
     # Automated recompilation and testing when developing
     watch:
-      files: ['**/*.coffee']
-      tasks: ['build']
+      all:
+        files: ['**/*.coffee']
+        tasks: ['build']
+      perf:
+        files: ['tests/perf/perf.coffee']
+        tasks: ['coffee:perf']
 
     # BDD tests on Node.js
     mochaTest:
@@ -94,6 +98,26 @@ module.exports = ->
         dest: 'build/src'
         ext: '.js'
 
+    'string-replace': # read helpers.coffee for why this is needed and how it works
+      perf:
+        files:
+          'dist/': ['dist/finitedomain.dev.js']
+        options:
+          replacements: [
+            { # first replace the asserts in an object literal... (exports in helper.coffee)
+              pattern: /ASSERT\w*\s*:\s*ASSERT\w*\s*,?/g,
+              replacement: ''
+            }
+            { # remove the ASSERT functions from helper.coffee
+              pattern: /^\s*REMOVE_ASSERTS_START(?:.|\n|\r)*REMOVE_ASSERTS_STOP/m,
+              replacement: 'var x'
+            }
+            { # now replace any line starting with ASSERT with a `1`, to be a noop while preserving sub-statements
+              pattern: /^\s*ASSERT.*$/mg,
+              replacement: '1'
+            }
+          ]
+
 
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-browserify'
@@ -104,10 +128,11 @@ module.exports = ->
   @loadNpmTasks 'grunt-mocha-test'
   @loadNpmTasks 'grunt-contrib-coffee'
   @loadNpmTasks 'grunt-contrib-watch'
+  @loadNpmTasks 'grunt-string-replace'
 
   @registerTask 'lint', ['coffeelint']
   @registerTask 'build', ['coffeelint', 'browserify:dist', 'coffee:spec_joined']
   @registerTask 'test', ['coffeelint', 'browserify:dist', 'mochaTest:all']
-  @registerTask 'perf', ['browserify:dist', 'mochaTest:perf', 'coffee:perf']
+  @registerTask 'perf', ['browserify:dist', 'mochaTest:perf', 'coffee:perf', 'string-replace:perf']
   @registerTask 'dist', ['coffeelint', 'browserify:dist', 'uglify']
   @registerTask 'default', ['lint']

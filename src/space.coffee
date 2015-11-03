@@ -64,6 +64,7 @@ module.exports = (FD) ->
     # used from Search
     @next_distribution_choice = 0
     @current_value_distributor = undefined
+    @solver = undefined # see clone
 
     return
 

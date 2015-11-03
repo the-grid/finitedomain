@@ -35,7 +35,7 @@ test = (desc, data, profile) ->
   it desc, (done) ->
     @timeout 20000
 
-    new finitedomain.PathSolver({rawtree: data}).solve({log:1})
+    new finitedomain.PathSolver({rawtree: data}).solve({log:1}, true)
     expect(true).to.be.true
 
     done()
@@ -49,7 +49,7 @@ if PROFILE
   # for the browser
   if console.profile
     console.profile()
-    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1})
+    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1}, true)
     console.profileEnd()
   else
     console.log 'browser does not support console.profile, you\'ll need to work around it ;)'
@@ -75,15 +75,15 @@ else
 
   describe 'repeat simple test', ->
 
-    it 'repeat simple test 10x', (done) ->
-      @timeout 60000 # 1min timeout
+    @timeout 60000 # 1min timeout
 
-      # this data was exported from the "4.e) from-to - balanced h tracks" test in MultiverseJSON
-      m = {rawtree: w.o15}
+    # this data was exported from the "4.e) from-to - balanced h tracks" test in MultiverseJSON
+    m = {rawtree: w.o15}
 
-      for [0...10]
-        new finitedomain.PathSolver(m).solve({log:1})
+    for i in [0...10]
+      it 'run', (done) ->
+        new finitedomain.PathSolver(m).solve({log:1}, true)
+        expect(true).to.be.true
+        done()
 
-      expect(true).to.be.true
 
-      done()

@@ -21,6 +21,10 @@ module.exports = (FD) ->
     domain_create_bool
   } = FD.Domain
 
+  {
+    create_custom_distributor
+  } = FD.distribution
+
   class FD.Solver
 
     constructor: (o={}) ->
@@ -291,7 +295,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distributor_options ?= @distribute
-      FD.distribution.create_custom_distributor @S, _.es(vars), distributor_options
+      create_custom_distributor @S, _.es(vars), distributor_options
 
       search ?= @search
       searchMethod = FD.search[search]

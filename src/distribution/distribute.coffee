@@ -66,7 +66,8 @@ module.exports = (FD) ->
     return distribution_create_distributor_on_space
 
   create_custom_distributor = (space, var_names, options) ->
-    return create_fixed_distributor(options) space, var_names
+    options = create_distributor_options options
+    return create_distributor_on_space space, var_names, options
 
   get_distributor_value_func = (name) ->
     switch name

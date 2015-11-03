@@ -156,7 +156,6 @@ module.exports = (FD) ->
 
   # TOFIX: to improve later
   distribution = FD.distribution
-  distribution.create_fixed_distributor = create_fixed_distributor
   # for fd.js API compat:
   distribution.naive = create_fixed_distributor('naive')
   distribution.fail_first = create_fixed_distributor('fail_first')

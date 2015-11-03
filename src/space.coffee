@@ -78,7 +78,7 @@ module.exports = (FD) ->
 
   Space::clone = () ->
     root = @root_space or @
-    space = new FD.space root, @get_value_distributor, @_propagators
+    space = new Space root, @get_value_distributor, @_propagators
 
     parent_vars = @vars
     child_vars = space.vars

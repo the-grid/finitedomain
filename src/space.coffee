@@ -66,6 +66,13 @@ module.exports = (FD) ->
     @current_value_distributor = undefined
     @solver = undefined # see clone
 
+    # stuff migrated from distribute. See create_distributor_on_space
+    @get_targeted_var_names = undefined
+    @get_var_fitness_function = undefined
+    @get_next_value = undefined
+    @initial_targeted_var_names = null # may be set from distributor
+    @markov_vars_by_id = null # cache for markov chains
+
     return
 
   Space::clone = () ->

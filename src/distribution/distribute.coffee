@@ -93,53 +93,61 @@ module.exports = (FD) ->
       else
         throw new Error 'unknown order func ['+name+']'
 
-  # Return best var according to some fitness function `is_better_var`
-  # Note that this function originates from `get_distributor_var_func()`
-
-  get_next_var = (space, vars, is_better_var) ->
-    if vars.length is 0
-      return null
-
-    for var_i, i in vars
-      if i is 0
-        first = var_i
-      else unless is_better_var space, first, var_i
-        first = var_i
-
-    return first
-
   # options: {filter:[Function], var:string|Function, val:string|Function}
 
-  create_distributor_on_space = (root_space, initial_var_names, options) ->
-    get_target_vars = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
-    var_fitness_func = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
-    get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
+  create_distributor_on_space = (root_space, initial_targeted_var_names, options) ->
+    ASSERT !root_space.get_targeted_var_names, 'should not be set'
+    ASSERT !root_space.get_var_fitness_function, 'should not be set'
+    ASSERT !root_space.get_next_value, 'should not be set'
 
-    unless get_target_vars and var_fitness_func and get_next_value
-      throw new Error "create_distributor_on_space: Invalid options - #{get_target_vars?}, #{var_fitness_func?}, #{get_next_value?}"
+    root_space.get_targeted_var_names = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
+    root_space.get_var_fitness_function = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
+    root_space.get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
+    root_space.initial_targeted_var_names = initial_targeted_var_names
+    root_space.markov_vars_by_id = root_space.solver?.vars?.byId
 
-    varsById = root_space.solver?.vars?.byId
+    ASSERT root_space.get_targeted_var_names, 'should be set'
+    ASSERT root_space.get_var_fitness_function, 'should be set'
+    ASSERT root_space.get_next_value, 'should be set'
+
+    # Return best var according to some fitness function `is_better_var`
+    # Note that this function originates from `get_distributor_var_func()`
+
+    get_next_var = (space, vars, is_better_var) ->
+      if vars.length is 0
+        return null
+
+      for var_i, i in vars
+        if i is 0
+          first = var_i
+        else unless is_better_var space, first, var_i
+          first = var_i
+
+      return first
 
     # This is the actual search strategy being applied by Space root_space
     # Should return something from FD.distribution.Value
     # TODO: we may want to move this function to Space directly? I'm not sure we use any others, regardless of intent
 
     root_space.get_value_distributor = (current_space) ->
-      var_names = get_target_vars current_space, initial_var_names
+      var_names = root_space.get_targeted_var_names current_space, root_space.initial_targeted_var_names
       if var_names.length > 0
-        var_name = get_next_var current_space, var_names, var_fitness_func
+
+
+        var_name = get_next_var current_space, var_names, root_space.get_var_fitness_function
+        vars_by_id = root_space.markov_vars_by_id
 
         # D4:
         # - now, each var can define it's own value distribution, regardless of default
-        if varsById
+        if vars_by_id
           # note: this is not the same as current_space.vars[var_name] because that wont have the distribute property
-          fdvar = varsById[var_name]
+          fdvar = vars_by_id[var_name]
           if fdvar
             value_distributor = fdvar.distribute
             if value_distributor
               return (get_distributor_value_func value_distributor) root_space, var_name, fdvar.distributeOptions
         if var_name
-          return get_next_value current_space, var_name
+          return root_space.get_next_value current_space, var_name
       return false
 
     return

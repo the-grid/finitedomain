@@ -56,18 +56,8 @@ module.exports = (FD) ->
 
     return options
 
-  create_fixed_distributor = (options) ->
-    options = create_distributor_options options
-
-    # partial application by proxy (-> closure)
-    distribution_create_distributor_on_space = (S, varnames) ->
-      return create_distributor_on_space S, varnames, options
-
-    return distribution_create_distributor_on_space
-
   create_custom_distributor = (space, var_names, options) ->
-    options = create_distributor_options options
-    return create_distributor_on_space space, var_names, options
+    return create_distributor_on_space space, var_names, create_distributor_options options
 
   get_distributor_value_func = (name) ->
     switch name
@@ -156,12 +146,10 @@ module.exports = (FD) ->
 
   # TOFIX: to improve later
   distribution = FD.distribution
-  # for fd.js API compat:
-  distribution.naive = create_fixed_distributor('naive')
-  distribution.fail_first = create_fixed_distributor('fail_first')
-  distribution.split = create_fixed_distributor('split')
-
-  # for testing only
   distribution.create_custom_distributor = create_custom_distributor
+  # for fd.js API compat:
+  distribution.naive = (space, var_names) -> return create_custom_distributor space, var_names, 'naive'
+  distribution.fail_first = (space, var_names) -> return create_custom_distributor space, var_names, 'fail_first'
+  distribution.split = (space, var_names) -> return create_custom_distributor space, var_names, 'split'
 
   return

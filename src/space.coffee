@@ -45,7 +45,7 @@ module.exports = (FD) ->
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (get_value_distributor = throw_unless_overridden, propagator_data = []) ->
+  Space = FD.space = (root_space = null, get_value_distributor = throw_unless_overridden, propagator_data = []) ->
     @_class = 'space'
 
     # The FDVARS are all named and accessed by name.
@@ -54,6 +54,7 @@ module.exports = (FD) ->
     # fdvars object. This gets us copy on modify semantics.
     @vars = {}
     @var_names = []
+    @root_space = root_space
 
     # shared with root! should not change after initialization
     @_propagators = propagator_data
@@ -76,7 +77,8 @@ module.exports = (FD) ->
     return
 
   Space::clone = () ->
-    space = new FD.space @get_value_distributor, @_propagators
+    root = @root_space or @
+    space = new FD.space root, @get_value_distributor, @_propagators
 
     parent_vars = @vars
     child_vars = space.vars

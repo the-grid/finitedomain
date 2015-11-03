@@ -38,12 +38,21 @@ describe "FD", ->
       it 'should set the value distributor to given function', ->
 
         f = ->
-        expect(new Space(f).get_value_distributor).to.equal f
+        expect(new Space(undefined, f).get_value_distributor).to.equal f
 
       it 'should init vars and var_names', ->
 
         expect(new Space().vars).to.be.an 'object'
         expect(new Space().var_names).to.be.an 'array'
+
+      it 'should set root_space to null unless given', ->
+
+        expect(new Space().root_space).to.be.null
+
+      it 'should set root_space to given root_space', ->
+
+        root = {}
+        expect(new Space(root).root_space).to.equal root
 
     describe '#clone()', ->
 
@@ -54,9 +63,18 @@ describe "FD", ->
 
         expect(clone).to.not.equal space
 
-      it 'should deep clone the space', ->
+      it 'should deep clone the space and set root_space', ->
 
-        expect(clone).to.eql space
+        lclone = space.clone() # local!
+        expect(lclone.root_space).to.equal space
+        expect(space.root_space).to.equal null
+        lclone.root_space = null # exception to the rule
+        expect(lclone, 'clone should be space').to.eql space
+
+      it 'should set root_space to cloned space if not yet set there', ->
+
+        expect(clone.root_space, 'clone.root_space').to.equal space
+        expect(clone.clone().root_space, 'clone.clone().root_space').to.equal space
 
       it 'should clone vars', ->
 
@@ -77,7 +95,7 @@ describe "FD", ->
 
         expect(space.get_value_distributor).to.equal clone.get_value_distributor
         g = ->
-        expect(new Space(g).clone().get_value_distributor).to.equal g
+        expect(new Space(undefined, g).clone().get_value_distributor).to.equal g
 
       it 'should copy the solver', ->
 
@@ -96,6 +114,7 @@ describe "FD", ->
 
         space = new Space
         clone = space.clone()
+        clone.root_space = null # since space is the root, it does not have itself as a root_space prop.
         space.done()
         expect(space).to.eql clone # since clone is a deep clone, we can do a deep eq check here
 
@@ -222,6 +241,7 @@ describe "FD", ->
       it 'should not modify its space', ->
         space = new Space()
         clone = space.clone()
+        clone.root_space = null # since space is the root, it does not have itself as a root_space prop.
         space.inject ->
         expect(space).to.eql clone
 

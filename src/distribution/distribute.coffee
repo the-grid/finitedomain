@@ -130,6 +130,9 @@ module.exports = (FD) ->
     # TODO: we may want to move this function to Space directly? I'm not sure we use any others, regardless of intent
 
     root_space.get_value_distributor = (current_space) ->
+
+      ASSERT current_space.root_space is root_space or current_space is root_space
+
       var_names = root_space.get_targeted_var_names current_space, root_space.initial_targeted_var_names
       if var_names.length > 0
 

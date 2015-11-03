@@ -282,7 +282,9 @@ module.exports = (FD) ->
       @state = {space:space, more:true}
       @
 
-    solve: (o={}) ->
+    # If squashed, dont get the actual solutions. They are irrelevant for perf tests.
+
+    solve: (o={}, squash) ->
       {max, log, vars, search, distribute:distributor_options} = o
       log ?= 0 # 1, 2
       max ?= 1000
@@ -308,8 +310,11 @@ module.exports = (FD) ->
         state = searchMethod state
         break if state.status is 'end'
         count++
-        solution = state.space.solution()
-        solutions.push solution
+        if squash
+          solutions.push true
+        else
+          solution = state.space.solution()
+          solutions.push solution
         if log >= 2
           console.log "      - FD solution() ::::::::::::::::::::::::::::"
           console.log JSON.stringify(solution)

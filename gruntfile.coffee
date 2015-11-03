@@ -134,5 +134,6 @@ module.exports = ->
   @registerTask 'build', ['coffeelint', 'browserify:dist', 'coffee:spec_joined']
   @registerTask 'test', ['coffeelint', 'browserify:dist', 'mochaTest:all']
   @registerTask 'perf', ['browserify:dist', 'mochaTest:perf', 'coffee:perf', 'string-replace:perf']
-  @registerTask 'dist', ['coffeelint', 'browserify:dist', 'uglify']
+  @registerTask 'bperf', ['browserify:dist', 'coffee:perf', 'string-replace:perf']
+  @registerTask 'dist', ['coffeelint', 'browserify:dist', 'string-replace:perf', 'uglify']
   @registerTask 'default', ['lint']

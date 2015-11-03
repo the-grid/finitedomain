@@ -116,6 +116,10 @@ module.exports = ->
               pattern: /^\s*ASSERT.*$/mg,
               replacement: '1'
             }
+            { # remove _class references. they should be for debugging only but increase the object footprints
+              pattern: /^.*_class.*$/mg, # should only remove initializations so remove the whole line...
+              replacement: ''
+            }
           ]
 
 

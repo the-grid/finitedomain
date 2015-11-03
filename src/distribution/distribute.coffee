@@ -144,12 +144,23 @@ module.exports = (FD) ->
 
     return
 
+  distribution_naive = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'naive'
+
+  distribution_fail_first = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'fail_first'
+
+  distribution_split = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'split'
+
   # TOFIX: to improve later
   distribution = FD.distribution
   distribution.create_custom_distributor = create_custom_distributor
-  # for fd.js API compat:
-  distribution.naive = (space, var_names) -> return create_custom_distributor space, var_names, 'naive'
-  distribution.fail_first = (space, var_names) -> return create_custom_distributor space, var_names, 'fail_first'
-  distribution.split = (space, var_names) -> return create_custom_distributor space, var_names, 'split'
+
+  # for fd.js API compat (should change this dynamic behavior
+  # to something we can trace and control more easily)
+  distribution.naive = distribution_naive
+  distribution.fail_first = distribution_fail_first
+  distribution.split = distribution_split
 
   return

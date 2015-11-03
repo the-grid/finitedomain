@@ -13,6 +13,10 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
+    get_distributor_value_func
+  } = FD.distribution
+
+  {
     domain_create_bool
     domain_create_value
     domain_create_zero
@@ -35,17 +39,13 @@ module.exports = (FD) ->
     fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
+    fdvar_is_equal
   } = FD.Var
-
-
-  throw_unless_overridden = ->
-    throw new Error 'Space#get_value_distributor(); override me'
-
 
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (root_space = null, get_value_distributor = throw_unless_overridden, propagator_data = []) ->
+  Space = FD.space = (root_space = null, propagator_data = []) ->
     @_class = 'space'
 
     # The FDVARS are all named and accessed by name.
@@ -59,9 +59,6 @@ module.exports = (FD) ->
     # shared with root! should not change after initialization
     @_propagators = propagator_data
 
-    # overridden from distribution/distribute... for now. and copied from parent space
-    @get_value_distributor = get_value_distributor
-
     # used from Search
     @next_distribution_choice = 0
     @current_value_distributor = undefined
@@ -69,7 +66,7 @@ module.exports = (FD) ->
 
     # stuff migrated from distribute. See create_distributor_on_space
     @get_targeted_var_names = undefined
-    @get_var_fitness_function = undefined
+    @get_var_fitness = undefined
     @get_next_value = undefined
     @initial_targeted_var_names = null # may be set from distributor
     @markov_vars_by_id = null # cache for markov chains
@@ -78,7 +75,7 @@ module.exports = (FD) ->
 
   Space::clone = () ->
     root = @root_space or @
-    space = new Space root, @get_value_distributor, @_propagators
+    space = new Space root, @_propagators
 
     parent_vars = @vars
     child_vars = space.vars
@@ -91,6 +88,50 @@ module.exports = (FD) ->
     # - add ref to high level solver
     space.solver = @solver if @solver
     return space
+
+  # Return best var according to some fitness function `is_better_var`
+  # Note that this function originates from `get_distributor_var_func()`
+
+  get_next_var = (space, vars, is_better_var) ->
+    if vars.length is 0
+      return null
+
+    for var_i, i in vars
+      if i is 0
+        first = var_i
+      else unless is_better_var space, first, var_i
+        first = var_i
+
+    return first
+
+  # This is the actual search strategy being applied by Space root_space
+  # Should return something from FD.distribution.Value
+
+  Space::get_value_distributor = ->
+    root_space = @root_space or @
+    # these are initialized in distribution/distribute.coffee
+    ASSERT root_space.get_targeted_var_names, 'should be set'
+    ASSERT root_space.get_var_fitness, 'should be set'
+    ASSERT root_space.get_next_value, 'should be set'
+
+    var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
+    if var_names.length > 0
+      var_name = get_next_var @, var_names, root_space.get_var_fitness
+      vars_by_id = root_space.markov_vars_by_id
+
+      # D4:
+      # - now, each var can define it's own value distribution, regardless of default
+      if vars_by_id
+        # note: this is not the same as @vars[var_name] because that wont have the distribute property
+        fdvar = vars_by_id[var_name]
+        if fdvar
+          value_distributor = fdvar.distribute
+          if value_distributor
+            value_distributor = get_distributor_value_func value_distributor
+            return value_distributor root_space, var_name, fdvar.distributeOptions
+      if var_name
+        return root_space.get_next_value @, var_name
+    return false
 
   # @obsolete Keeping it for non-breaking-api sake
 

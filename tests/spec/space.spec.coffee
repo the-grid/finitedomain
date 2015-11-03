@@ -31,15 +31,6 @@ describe "FD", ->
         # I dont want to test for instanceof... but i dont think we can change that due to ext. api.
         expect(new Space).to.be.a 'object'
 
-      it 'should set the value distributor to a thrower', ->
-
-        expect(-> new Space().get_value_distributor()).to.throw
-
-      it 'should set the value distributor to given function', ->
-
-        f = ->
-        expect(new Space(undefined, f).get_value_distributor).to.equal f
-
       it 'should init vars and var_names', ->
 
         expect(new Space().vars).to.be.an 'object'
@@ -91,18 +82,16 @@ describe "FD", ->
         expect(space.var_names.join()).to.equal clone.var_names.join()
         expect(space._propagators).to.equal clone._propagators
 
-      it 'should copy the get value distributor', ->
-
-        expect(space.get_value_distributor).to.equal clone.get_value_distributor
-        g = ->
-        expect(new Space(undefined, g).clone().get_value_distributor).to.equal g
-
       it 'should copy the solver', ->
 
         expect(clone.solver).to.equal space.solver
         s = new Space()
         s.solver = {}
         expect(s.clone().solver).to.equal s.solver
+
+    describe '#get_value_distributor()', ->
+
+      # TODO
 
     describe '#done()', ->
 

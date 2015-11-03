@@ -291,7 +291,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distributor_options ?= @distribute
-      FD.distribution.create_fixed_distributor(distributor_options)(@S, _.es(vars))
+      FD.distribution.create_custom_distributor @S, _.es(vars), distributor_options
 
       search ?= @search
       searchMethod = FD.search[search]

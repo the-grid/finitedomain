@@ -163,6 +163,6 @@ module.exports = (FD) ->
   distribution.split = create_fixed_distributor('split')
 
   # for testing only
-  distribution._create_custom_distributor = create_custom_distributor
+  distribution.create_custom_distributor = create_custom_distributor
 
   return

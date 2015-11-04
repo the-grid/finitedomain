@@ -120,6 +120,10 @@ module.exports = ->
               pattern: /^.*_class.*$/mg, # should only remove initializations so remove the whole line...
               replacement: ''
             }
+            { # turn function expressions into function declarations (coffee by default compiles to expr, perf is better for decl)
+              pattern: /([;}])[\s\n]*(\w+)\s*=\s*function([^\d])/mg, # tricky with regex... kitten sacrificed.
+              replacement: '$1 function $2 $3'
+            }
           ]
 
 

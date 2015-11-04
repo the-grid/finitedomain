@@ -49,7 +49,7 @@ if PROFILE
   # for the browser
   if console.profile
     console.profile()
-    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1}, true)
+    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1, max: 10000}, true)
     console.profileEnd()
   else
     console.log 'browser does not support console.profile, you\'ll need to work around it ;)'

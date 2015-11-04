@@ -314,14 +314,12 @@ module.exports = (FD) ->
         state = searchMethod state
         break if state.status is 'end'
         count++
-        if squash
-          solutions.push true
-        else
+        unless squash
           solution = state.space.solution()
           solutions.push solution
-        if log >= 2
-          console.log "      - FD solution() ::::::::::::::::::::::::::::"
-          console.log JSON.stringify(solution)
+          if log >= 2
+            console.log "      - FD solution() ::::::::::::::::::::::::::::"
+            console.log JSON.stringify(solution)
 
       if log >= 1
         console.timeEnd '      - FD Solver Time'

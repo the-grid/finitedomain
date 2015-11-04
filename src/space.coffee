@@ -32,6 +32,10 @@ module.exports = (FD) ->
     step_any
   } = FD.propagators
 
+#  {
+#    snode_create_root
+#  } = FD.Snode
+
   {
     fdvar_clone
     fdvar_constrain
@@ -53,8 +57,11 @@ module.exports = (FD) ->
     # all have their __proto__ fields set to the parent's
     # fdvars object. This gets us copy on modify semantics.
     @vars = {}
-    @var_names = []
+    @unsolved_var_names = []
+    @all_var_names = [] # shared by reference in whole tree!
     @root_space = root_space
+
+#    @snode = snode_create_root @
 
     # shared with root! should not change after initialization
     @_propagators = propagator_data
@@ -78,11 +85,12 @@ module.exports = (FD) ->
     space = new Space root, @_propagators
 
     parent_vars = @vars
-    child_vars = space.vars
-    child_var_names = space.var_names
-    for var_name in @var_names
-      child_vars[var_name] = fdvar_clone parent_vars[var_name]
-      child_var_names.push var_name
+    child_all_vars = space.vars
+    child_unsolved_var_names = space.unsolved_var_names
+    for var_name in @unsolved_var_names
+      child_all_vars[var_name] = fdvar_clone parent_vars[var_name]
+      child_unsolved_var_names.push var_name
+    space.all_var_names = @all_var_names # share by ref! this array should not change after init
 
     # D4:
     # - add ref to high level solver
@@ -114,9 +122,9 @@ module.exports = (FD) ->
     ASSERT root_space.get_var_fitness, 'should be set'
     ASSERT root_space.get_next_value, 'should be set'
 
-    var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
-    if var_names.length > 0
-      var_name = get_next_var @, var_names, root_space.get_var_fitness
+    targeted_var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
+    if targeted_var_names.length > 0
+      var_name = get_next_var @, targeted_var_names, root_space.get_var_fitness
       vars_by_id = root_space.markov_vars_by_id
 
       # D4:
@@ -150,7 +158,7 @@ module.exports = (FD) ->
     while changed
       changed = false
       for prop_details in propagators
-        n = step_any prop_details, @
+        n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
         if n > 0
           changed = true
         else if n is REJECTED
@@ -175,7 +183,9 @@ module.exports = (FD) ->
 
   Space::is_solved = ->
     vars = @vars
-    for var_name in @var_names
+    unsolved_names = @unsolved_var_names
+
+    for var_name in unsolved_names
       unless fdvar_is_solved vars[var_name]
         return false
     return true
@@ -187,7 +197,7 @@ module.exports = (FD) ->
   Space::solution = ->
     result = {}
     vars = @vars
-    for var_name in @var_names
+    for var_name in @all_var_names
       getset_var_solve_state var_name, vars, result
     return result
 
@@ -316,7 +326,8 @@ module.exports = (FD) ->
       vars[var_name] = fdvar_create var_name, dom
     else
       vars[var_name] = fdvar_create_wide var_name
-    @var_names.push var_name
+    @unsolved_var_names.push var_name
+    @all_var_names.push var_name
 
     return @
 

@@ -26,6 +26,7 @@ require('./distribution/presets')(FD)
 require('./distribution/value')(FD)
 require('./distribution/var')(FD)
 require('./distribution/distribute')(FD)
+require('./snode')(FD)
 require('./space')(FD)
 require('./search')(FD)
 # high level API

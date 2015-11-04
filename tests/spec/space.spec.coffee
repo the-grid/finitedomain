@@ -34,7 +34,8 @@ describe "FD", ->
       it 'should init vars and var_names', ->
 
         expect(new Space().vars).to.be.an 'object'
-        expect(new Space().var_names).to.be.an 'array'
+        expect(new Space().unsolved_var_names).to.be.an 'array'
+        expect(new Space().all_var_names).to.be.an 'array'
 
       it 'should set root_space to null unless given', ->
 
@@ -73,13 +74,14 @@ describe "FD", ->
 
       it 'should deep clone the vars', ->
 
-        for var_name in space.var_names
+        for var_name in space.all_var_names
           expect(clone.vars[var_name]).to.not.equal space.vars[var_name]
           # note: the deep clone check is already done above, no need to repeat it
 
-      it 'should clone certain props', ->
-        expect(space.var_names).to.not.equal clone.var_names
-        expect(space.var_names.join()).to.equal clone.var_names.join()
+      it 'should clone certain props, copy others', ->
+        expect(space.unsolved_var_names).to.not.equal clone.unsolved_var_names
+        expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
+        expect(space.all_var_names).to.equal clone.all_var_names
         expect(space._propagators).to.equal clone._propagators
 
       it 'should copy the solver', ->
@@ -239,15 +241,18 @@ describe "FD", ->
       it 'should create a new var', ->
 
         space = new Space()
-        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         space.decl_anon spec_d_create_value 22
-        expect(space.var_names.length, 'after decl').to.eql 1
+        expect(space.all_var_names.length, 'after decl').to.eql 1
+        expect(space.unsolved_var_names.length, 'after decl').to.eql 1
 
       it 'should return the name of a var', ->
 
         space = new Space()
         name = space.decl_anon spec_d_create_value 50
-        expect(space.var_names.indexOf(name) > -1).to.be.true
+        expect(space.all_var_names.indexOf(name) > -1).to.be.true
+        expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a var with given domain', ->
 
@@ -266,16 +271,19 @@ describe "FD", ->
       it 'should create multiple vars', ->
 
         space = new Space()
-        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         space.decl_anons 22
-        expect(space.var_names.length, 'after decl').to.eql 22
+        expect(space.all_var_names.length, 'after decl').to.eql 22
+        expect(space.unsolved_var_names.length, 'after decl').to.eql 22
 
       it 'should return a list of names of the new vars', ->
 
         space = new Space()
         names = space.decl_anons 50
         for name in names
-          expect(space.var_names.indexOf(name) > -1).to.be.true
+          expect(space.all_var_names.indexOf(name) > -1).to.be.true
+          expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should set the domain to full if no domain is given', ->
 
@@ -324,15 +332,18 @@ describe "FD", ->
       it 'should create a new var', ->
 
         space = new Space()
-        expect(space.var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         space.decl_value 22
-        expect(space.var_names.length, 'after decl').to.eql 1
+        expect(space.all_var_names.length, 'after decl').to.eql 1
+        expect(space.unsolved_var_names.length, 'after decl').to.eql 1
 
       it 'should return the name of a var', ->
 
         space = new Space()
         name = space.decl_value 50
-        expect(space.var_names.indexOf(name) > -1).to.be.true
+        expect(space.all_var_names.indexOf(name) > -1).to.be.true
+        expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a "solved" var with given value', ->
 
@@ -351,7 +362,8 @@ describe "FD", ->
 
         space = new Space()
         space.decl 'foo', spec_d_create_value 100
-        expect(space.var_names).to.eql ['foo']
+        expect(space.all_var_names).to.eql ['foo']
+        expect(space.unsolved_var_names).to.eql ['foo']
         expect(space.vars.foo?).to.be.true
 
       it 'should return the space', ->
@@ -403,7 +415,8 @@ describe "FD", ->
         space = new Space()
         names = ['foo', 'bar', 'baz']
         space.decls names, spec_d_create_value 100
-        expect(space.var_names).to.eql names
+        expect(space.all_var_names).to.eql names
+        expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars.foo?).to.be.true
 
@@ -413,7 +426,8 @@ describe "FD", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_value 100
         space.decls names, domain
-        expect(space.var_names).to.eql names
+        expect(space.all_var_names).to.eql names
+        expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars[name]?).to.be.true
           expect(space.vars[name].dom, 'domain should be cloned').not.to.equal domain
@@ -427,7 +441,8 @@ describe "FD", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
         space.decls names
-        expect(space.var_names).to.eql names
+        expect(space.all_var_names).to.eql names
+        expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars[name]?).to.be.true
           expect(space.vars[name].dom).to.eql domain
@@ -440,7 +455,8 @@ describe "FD", ->
 
         space = new Space()
         space.num 'foo', 22
-        expect(space.var_names).to.eql ['foo']
+        expect(space.all_var_names).to.eql ['foo']
+        expect(space.unsolved_var_names).to.eql ['foo']
 
       it 'should return the space', ->
 

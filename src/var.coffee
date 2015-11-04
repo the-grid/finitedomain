@@ -42,6 +42,7 @@ module.exports = (FD) ->
       _class: 'fdvar'
       id
       dom
+      was_solved: false # for Space#clone
     }
 
   # A var is undetermined when it is neither rejected nor solved.
@@ -63,6 +64,7 @@ module.exports = (FD) ->
     return domain_is_rejected fdvar.dom
 
   fdvar_clone = (fdvar) ->
+    ASSERT !fdvar.was_solved, 'should not clone vars that are already solved...'
     return fdvar_new fdvar.id, fdvar.dom.slice(0)
 
   fdvar_is_equal = (fdvar1, fdvar2) ->

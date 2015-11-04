@@ -84,13 +84,19 @@ module.exports = (FD) ->
     root = @root_space or @
     space = new Space root, @_propagators
 
+    all_names = @all_var_names
     parent_vars = @vars
     child_all_vars = space.vars
+    parent_unsolved_var_names = @unsolved_var_names
     child_unsolved_var_names = space.unsolved_var_names
-    for var_name in @unsolved_var_names
-      child_all_vars[var_name] = fdvar_clone parent_vars[var_name]
-      child_unsolved_var_names.push var_name
-    space.all_var_names = @all_var_names # share by ref! this array should not change after init
+    for var_name in all_names
+      fdvar = parent_vars[var_name]
+      if fdvar.was_solved
+        child_all_vars[var_name] = fdvar
+      else # copy by reference
+        child_all_vars[var_name] = fdvar_clone fdvar
+        child_unsolved_var_names.push var_name
+    space.all_var_names = all_names # share by ref! this array should not change after init
 
     # D4:
     # - add ref to high level solver
@@ -185,10 +191,17 @@ module.exports = (FD) ->
     vars = @vars
     unsolved_names = @unsolved_var_names
 
-    for var_name in unsolved_names
-      unless fdvar_is_solved vars[var_name]
-        return false
-    return true
+    j = 0
+    for name, i in unsolved_names
+      fdvar = vars[name]
+      if fdvar_is_solved fdvar
+        ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
+        fdvar.was_solved = true # makes Space#clone faster
+      else
+        unsolved_names[j++] = name
+    unsolved_names.length = j
+
+    return j is 0
 
   # Returns an object whose field names are the fdvar names
   # and whose values are the solved values. The space *must*

@@ -37,10 +37,13 @@ module.exports = (FD) ->
   } = FD.Var
 
   distribution_get_undetermined_var_names = (S, var_names) ->
+    svars = S.vars
     undetermined_names = []
     for var_name in var_names
-      ASSERT !fdvar_is_rejected(S.vars[var_name]), 'fdvar should not be rejected at this point, but may be solved'
-      unless fdvar_is_solved S.vars[var_name] # if we do the lookup anyways, why not just return fdvars instead?
+      fdvar = svars[var_name]
+      ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected at this point, but may be solved'
+      # TOFIX: we can drop the fdvar_is_solved check if we make sure `was_solved` is properly set all the time... meh
+      unless fdvar.was_solved or fdvar_is_solved fdvar # if we do the lookup anyways, why not just return fdvars instead?
         undetermined_names.push var_name
     return undetermined_names
 

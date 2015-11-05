@@ -1,6 +1,5 @@
 module.exports = (FD) ->
   {
-    domain_is_rejected
     domain_max
     domain_min
   } = FD.Domain

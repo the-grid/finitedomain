@@ -4,6 +4,7 @@ module.exports = (FD) ->
 
   {
     REJECTED
+    SOMETHING_CHANGED
     SUB
     SUP
 
@@ -165,7 +166,7 @@ module.exports = (FD) ->
       changed = false
       for prop_details in propagators
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
-        if n > 0
+        if n is SOMETHING_CHANGED
           changed = true
         else if n is REJECTED
           return false # solution impossible
@@ -194,6 +195,7 @@ module.exports = (FD) ->
     j = 0
     for name, i in unsolved_names
       fdvar = vars[name]
+      ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
       if fdvar_is_solved fdvar
         ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
         fdvar.was_solved = true # makes Space#clone faster

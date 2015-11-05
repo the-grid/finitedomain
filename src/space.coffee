@@ -49,19 +49,13 @@ module.exports = (FD) ->
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (root_space = null, propagator_data = []) ->
+  Space = FD.space = (root_space = null, propagator_data = [], vars = {}, all_var_names = [], unsolved_var_names = []) ->
     @_class = 'space'
 
-    # The FDVARS are all named and accessed by name.
-    # When a space is cloned, the clone's fdvars objects
-    # all have their __proto__ fields set to the parent's
-    # fdvars object. This gets us copy on modify semantics.
-    @vars = {}
-    @unsolved_var_names = []
-    @all_var_names = [] # shared by reference in whole tree!
+    @vars = vars
+    @all_var_names = all_var_names # shared by reference in whole tree! should have all keys of @vars
+    @unsolved_var_names = unsolved_var_names
     @root_space = root_space
-
-#    @snode = snode_create_root @
 
     # shared with root! should not change after initialization
     @_propagators = propagator_data
@@ -80,28 +74,34 @@ module.exports = (FD) ->
 
     return
 
-  Space::clone = () ->
-    root = @root_space or @
-    space = new Space root, @_propagators
+  space_new = (root, propagators, vars, all_names, unsolved_names) ->
+    return new Space root, propagators, vars, all_names, unsolved_names
 
-    all_names = @all_var_names
-    parent_vars = @vars
-    child_all_vars = space.vars
-    parent_unsolved_var_names = @unsolved_var_names
-    child_unsolved_var_names = space.unsolved_var_names
+  # Note: it's pseudo because solved vars are not cloned but copied...
+
+  pseudo_clone_vars = (all_names, parent_vars, clone_vars, clone_unsolved_var_names) ->
     for var_name in all_names
       fdvar = parent_vars[var_name]
       if fdvar.was_solved
-        child_all_vars[var_name] = fdvar
+        clone_vars[var_name] = fdvar
       else # copy by reference
-        child_all_vars[var_name] = fdvar_clone fdvar
-        child_unsolved_var_names.push var_name
-    space.all_var_names = all_names # share by ref! this array should not change after init
+        clone_vars[var_name] = fdvar_clone fdvar
+        clone_unsolved_var_names.push var_name
+    return
+
+  Space::clone = () ->
+    root = @root_space or @
+    all_names = @all_var_names
+    unsolved_names = []
+    clone_vars = {}
+
+    pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
+    clone = space_new root, @_propagators, clone_vars, all_names, unsolved_names
 
     # D4:
     # - add ref to high level solver
-    space.solver = @solver if @solver
-    return space
+    clone.solver = @solver if @solver
+    return clone
 
   # Return best var according to some fitness function `is_better_var`
   # Note that this function originates from `get_distributor_var_func()`

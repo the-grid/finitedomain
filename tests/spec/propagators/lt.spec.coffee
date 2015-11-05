@@ -40,23 +40,23 @@ describe "FD - propagators - lt", ->
     expect(-> lt_step_bare v).to.throw
     expect(-> lt_step_bare undefined, v).to.throw
 
-  it 'should reject for empty domains', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create 'y', []
-    expect(lt_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty left domain', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create_wide 'y'
-    expect(lt_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty right domain', ->
-
-    v1 = fdvar_create_wide 'x'
-    v2 = fdvar_create 'y', []
-    expect(lt_step_bare v1, v2).to.eql REJECTED
+#  it 'should reject for empty domains', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create 'y', []
+#    expect(lt_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty left domain', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create_wide 'y'
+#    expect(lt_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty right domain', ->
+#
+#    v1 = fdvar_create_wide 'x'
+#    v2 = fdvar_create 'y', []
+#    expect(lt_step_bare v1, v2).to.eql REJECTED
 
   it 'should not change if v1 already < v2', ->
 

@@ -139,17 +139,20 @@ module.exports = (FD) ->
     r = ZERO_CHANGES
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
-    if fdvar_is_solved fdvar1
+
+    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
+    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+
+    if fdvar1.was_solved or fdvar_is_solved fdvar1
       r = domain_remove_value_inline dom2, domain_min dom1
       ASSERT r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!'
-    else if fdvar_is_solved fdvar2
+    else if fdvar2.was_solved or fdvar_is_solved fdvar2
       r = domain_remove_value_inline dom1, domain_min dom2
       ASSERT r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!'
-    if domain_is_rejected(dom1) or domain_is_rejected dom2
-      dom1.length = 0
-      dom2.length = 0
-      r = REJECTED
+
     ASSERT r is REJECTED or r is ZERO_CHANGES or r is SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values'
+    ASSERT (r is REJECTED) is (domain_is_rejected(dom1) or domain_is_rejected(dom2)), 'if either domain is rejected, r should reflect this already'
+
     return r
 
   FD.Var = {

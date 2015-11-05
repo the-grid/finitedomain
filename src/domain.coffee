@@ -861,6 +861,8 @@ module.exports = (FD) ->
       if value >= lo and value <= hi
         _domain_remove_value_at domain, value, index, lo, hi
         ASSERT_DOMAIN domain
+        if domain_is_rejected domain
+          return REJECTED
         return SOMETHING_CHANGED
     return ZERO_CHANGES
 

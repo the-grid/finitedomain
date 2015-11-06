@@ -116,6 +116,14 @@ module.exports = ->
               pattern: /^\s*ASSERT.*$/mg,
               replacement: '1'
             }
+            { # remove _class references. they should be for debugging only but increase the object footprints
+              pattern: /^.*_class.*$/mg, # should only remove initializations so remove the whole line...
+              replacement: ''
+            }
+            { # turn function expressions into function declarations (coffee by default compiles to expr, perf is better for decl)
+              pattern: /([;}])[\s\n]*(\w+)\s*=\s*function([^\d])/mg, # tricky with regex... kitten sacrificed.
+              replacement: '$1 function $2 $3'
+            }
           ]
 
 

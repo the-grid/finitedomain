@@ -42,23 +42,23 @@ describe "FD - propagators - neq", ->
     expect(-> neq_step_bare v).to.throw
     expect(-> neq_step_bare undefined, v).to.throw
 
-  it 'should reject for empty domains', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create 'y', []
-    expect(neq_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty left domain', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create_wide 'y'
-    expect(neq_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty right domain', ->
-
-    v1 = fdvar_create_wide 'x'
-    v2 = fdvar_create 'y', []
-    expect(neq_step_bare v1, v2).to.eql REJECTED
+#  it 'should reject for empty domains', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create 'y', []
+#    expect(neq_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty left domain', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create_wide 'y'
+#    expect(neq_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty right domain', ->
+#
+#    v1 = fdvar_create_wide 'x'
+#    v2 = fdvar_create 'y', []
+#    expect(neq_step_bare v1, v2).to.eql REJECTED
 
   describe 'should not change anything as long as both domains are unsolved', ->
 
@@ -143,8 +143,8 @@ describe "FD - propagators - neq", ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain1.slice 0
         expect(neq_step_bare v1, v2).to.eql REJECTED
-        expect(v1.dom, 'v1 dom').to.eql []
-        expect(v2.dom, 'v2 dom').to.eql []
+#        expect(v1.dom, 'v1 dom').to.eql []
+#        expect(v2.dom, 'v2 dom').to.eql []
 
     test 0, 1
     test 1, 2

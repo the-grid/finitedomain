@@ -21,6 +21,10 @@ module.exports = (FD) ->
     domain_create_bool
   } = FD.Domain
 
+  {
+    create_custom_distributor
+  } = FD.distribution
+
   class FD.Solver
 
     constructor: (o={}) ->
@@ -291,7 +295,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distributor_options ?= @distribute
-      FD.distribution.create_fixed_distributor(distributor_options)(@S, _.es(vars))
+      create_custom_distributor @S, _.es(vars), distributor_options
 
       search ?= @search
       searchMethod = FD.search[search]
@@ -310,14 +314,12 @@ module.exports = (FD) ->
         state = searchMethod state
         break if state.status is 'end'
         count++
-        if squash
-          solutions.push true
-        else
+        unless squash
           solution = state.space.solution()
           solutions.push solution
-        if log >= 2
-          console.log "      - FD solution() ::::::::::::::::::::::::::::"
-          console.log JSON.stringify(solution)
+          if log >= 2
+            console.log "      - FD solution() ::::::::::::::::::::::::::::"
+            console.log JSON.stringify(solution)
 
       if log >= 1
         console.timeEnd '      - FD Solver Time'

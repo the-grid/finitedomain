@@ -2,6 +2,7 @@
 module.exports = (FD) ->
   {
     ASSERT_PROPAGATOR
+    ASSERT_SNODE
     ASSERT_SPACE
   } = FD.helpers
 
@@ -75,17 +76,21 @@ module.exports = (FD) ->
   # @param {Object} state
   # @property {Space} state.space
   # @property {boolean} [state.more]=false
-  # @property {Space[]} [state.stack]=[state,space]
+  # @property {Space[]} [state.snode_stack]=[state,space]
   # @property {Function} [state.is_solved]=Search.solve_for_variables()
   # @property {Function} [state.next_choice]=next_choice
   # @property {string} state.status No initial value, but after a search set to "solved" if state.space has a solution, or "end" when all search space has been exhausted without (further) solutions
-  # @property {boolean} state.more No initial value but set to `true` if the stack is non-empty after a successful result. False otherwise.
+  # @property {boolean} state.more No initial value but set to `true` if the snode_stack is non-empty after a successful result. False otherwise.
 
   init_state_for_depth_first = (state) ->
-    if !state.stack or state.stack.length == 0
+    if !state.snode_stack or state.snode_stack.length == 0
       ASSERT_SPACE state.space
-      # If no stack argument, then search begins with state.space
-      state.stack = [state.space]
+      ASSERT_SNODE state.space.snode
+      # If no snode_stack argument, then search begins with state.space.snode
+      if state.snode_stack
+        state.snode_stack.push state.space
+      else
+        state.snode_stack = [state.space]
 
     unless state.is_solved
       # Set the default "solved" condition to be "all variables".
@@ -118,43 +123,43 @@ module.exports = (FD) ->
   Search.depth_first = (state) ->
     init_state_for_depth_first state
 
-    stack = state.stack
+    snode_stack = state.snode_stack
     choose_next_space = state.next_choice
-    while stack.length > 0
-      space = stack[stack.length - 1]
+    while snode_stack.length > 0
+      space = snode_stack[snode_stack.length - 1]
       # Wait for stability. Could throw a 'fail', in which case
       # this becomes a failed space.
       ASSERT_SPACE space
       unless space.propagate()
         # Some propagators failed so this is now a failed space and we need
-        # to pop the stack and continue from above. This is a failed space.
+        # to pop the snode_stack and continue from above. This is a failed space.
         space.failed = true
         space.done()
-        stack.pop()
+        snode_stack.pop()
         continue
 
       if state.is_solved(space)
         space.succeeded_children++
         space.done()
-        stack.pop()
+        snode_stack.pop()
         state.status = 'solved'
         state.space = space
-        state.more = stack.length > 0
+        state.more = snode_stack.length > 0
         return state
 
       # Now this space is neither solved nor failed,
       # therefore it is stable. (WARNING: Is this correct?)
       next_space = choose_next_space space, state
       if next_space
-        # Push on to the stack and explore further.
-        stack.push next_space
+        # Push on to the snode_stack and explore further.
+        snode_stack.push next_space
       else
         # Finished exploring branches of this space. Continue with the previous spaces.
         # This is a stable space, but isn't a solution. Neither is it a failed space.
         space.stable_children++
         space.done()
-        stack.pop()
-        state.more = stack.length > 0
+        snode_stack.pop()
+        state.more = snode_stack.length > 0
     # Failed space and no more options to explore.
     state.status = 'end'
     state.more = false
@@ -199,7 +204,7 @@ module.exports = (FD) ->
 
   Search.branch_and_bound = (state, ordering) ->
     space = state.space
-    stack = state.stack
+    stack = state.stack # TODO: make this work with snodes instead of spaces, too
     next_space = undefined
     choose_next_space = undefined
     bestSolution = state.best

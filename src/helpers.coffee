@@ -84,6 +84,13 @@ module.exports = (FD) ->
     ASSERT_VARS space.vars
     return
 
+  ASSERT_SNODE = (snode) ->
+    if DISABLED
+      return
+    # TBD: expand with other assertions...
+    ASSERT_VARS snode.changed_var_names
+    return
+
   ASSERT_PROPAGATORS = (propagators) ->
     ASSERT !!propagators, 'propagators should exist', propagators
     for p in propagators
@@ -120,6 +127,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN
     ASSERT_PROPAGATOR
     ASSERT_PROPAGATORS
+    ASSERT_SNODE
     ASSERT_SPACE
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS

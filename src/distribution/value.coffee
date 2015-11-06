@@ -141,36 +141,41 @@ module.exports = (FD) ->
 
     return value_distribution_by_markov
 
+  _value_distribution_by_min = (var_name, parent_space, current_choice_index) ->
+    space = parent_space.clone()
+    fdvar = space.vars[var_name]
+    low = fdvar_lower_bound fdvar
+
+    ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
+
+    _value_distribution_min_choice current_choice_index, fdvar, low
+
+    return space
+
+  _value_distribution_min_choice = (current_choice_index, fdvar, low) ->
+    switch current_choice_index
+      when FIRST_CHOICE
+        # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
+        fdvar_set_value_inline fdvar, low
+
+      when SECOND_CHOICE
+        # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
+        # (because low can only be SUP if the domain is solved which we assert it cannot be)
+        # note: must use some kind of intersect here (there's a test if you mess this up :)
+        # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
+        # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
+        fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
+
+      else
+        throw new Error "Invalid choice value [#{current_choice_index}]"
+    return
+
   # Searches through a var's values from min to max.
 
   distribution_value_by_min = (S, var_name) ->
     value_distribution_by_min = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-      low = fdvar_lower_bound fdvar
-
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-          fdvar_set_value_inline fdvar, low
-
-        when SECOND_CHOICE
-          # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-          # (because low can only be SUP if the domain is solved which we assert it cannot be)
-          # note: must use some kind of intersect here (there's a test if you mess this up :)
-          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
-          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-          fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
+      unless current_choice_index >= TWO_CHOICES
+        return _value_distribution_by_min var_name, parent_space, current_choice_index
 
     return value_distribution_by_min
 

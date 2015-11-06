@@ -4,6 +4,7 @@ module.exports = (FD) ->
 
   {
     REJECTED
+    SOMETHING_CHANGED
     SUB
     SUP
 
@@ -11,6 +12,10 @@ module.exports = (FD) ->
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
   } = FD.helpers
+
+  {
+    get_distributor_value_func
+  } = FD.distribution
 
   {
     domain_create_bool
@@ -28,6 +33,10 @@ module.exports = (FD) ->
     step_any
   } = FD.propagators
 
+#  {
+#    snode_create_root
+#  } = FD.Snode
+
   {
     fdvar_clone
     fdvar_constrain
@@ -35,53 +44,109 @@ module.exports = (FD) ->
     fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
+    fdvar_is_equal
   } = FD.Var
-
-
-  throw_unless_overridden = ->
-    throw new Error 'Space#get_value_distributor(); override me'
-
 
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (get_value_distributor = throw_unless_overridden, propagator_data = []) ->
+  Space = FD.space = (root_space = null, propagator_data = [], vars = {}, all_var_names = [], unsolved_var_names = []) ->
     @_class = 'space'
 
-    # The FDVARS are all named and accessed by name.
-    # When a space is cloned, the clone's fdvars objects
-    # all have their __proto__ fields set to the parent's
-    # fdvars object. This gets us copy on modify semantics.
-    @vars = {}
-    @var_names = []
+    @vars = vars
+    @all_var_names = all_var_names # shared by reference in whole tree! should have all keys of @vars
+    @unsolved_var_names = unsolved_var_names
+    @root_space = root_space
 
     # shared with root! should not change after initialization
     @_propagators = propagator_data
-
-    # overridden from distribution/distribute... for now. and copied from parent space
-    @get_value_distributor = get_value_distributor
 
     # used from Search
     @next_distribution_choice = 0
     @current_value_distributor = undefined
     @solver = undefined # see clone
 
+    # stuff migrated from distribute. See create_distributor_on_space
+    @get_targeted_var_names = undefined
+    @get_var_fitness = undefined
+    @get_next_value = undefined
+    @initial_targeted_var_names = null # may be set from distributor
+    @markov_vars_by_id = null # cache for markov chains
+
+    return
+
+  space_new = (root, propagators, vars, all_names, unsolved_names) ->
+    return new Space root, propagators, vars, all_names, unsolved_names
+
+  # Note: it's pseudo because solved vars are not cloned but copied...
+
+  pseudo_clone_vars = (all_names, parent_vars, clone_vars, clone_unsolved_var_names) ->
+    for var_name in all_names
+      fdvar = parent_vars[var_name]
+      if fdvar.was_solved
+        clone_vars[var_name] = fdvar
+      else # copy by reference
+        clone_vars[var_name] = fdvar_clone fdvar
+        clone_unsolved_var_names.push var_name
     return
 
   Space::clone = () ->
-    space = new FD.space @get_value_distributor, @_propagators
+    root = @root_space or @
+    all_names = @all_var_names
+    unsolved_names = []
+    clone_vars = {}
 
-    parent_vars = @vars
-    child_vars = space.vars
-    child_var_names = space.var_names
-    for var_name in @var_names
-      child_vars[var_name] = fdvar_clone parent_vars[var_name]
-      child_var_names.push var_name
+    pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
+    clone = space_new root, @_propagators, clone_vars, all_names, unsolved_names
 
     # D4:
     # - add ref to high level solver
-    space.solver = @solver if @solver
-    return space
+    clone.solver = @solver if @solver
+    return clone
+
+  # Return best var according to some fitness function `is_better_var`
+  # Note that this function originates from `get_distributor_var_func()`
+
+  get_next_var = (space, vars, is_better_var) ->
+    if vars.length is 0
+      return null
+
+    for var_i, i in vars
+      if i is 0
+        first = var_i
+      else unless is_better_var space, first, var_i
+        first = var_i
+
+    return first
+
+  # This is the actual search strategy being applied by Space root_space
+  # Should return something from FD.distribution.Value
+
+  Space::get_value_distributor = ->
+    root_space = @root_space or @
+    # these are initialized in distribution/distribute.coffee
+    ASSERT root_space.get_targeted_var_names, 'should be set'
+    ASSERT root_space.get_var_fitness, 'should be set'
+    ASSERT root_space.get_next_value, 'should be set'
+
+    targeted_var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
+    if targeted_var_names.length > 0
+      var_name = get_next_var @, targeted_var_names, root_space.get_var_fitness
+      vars_by_id = root_space.markov_vars_by_id
+
+      # D4:
+      # - now, each var can define it's own value distribution, regardless of default
+      if vars_by_id
+        # note: this is not the same as @vars[var_name] because that wont have the distribute property
+        fdvar = vars_by_id[var_name]
+        if fdvar
+          value_distributor = fdvar.distribute
+          if value_distributor
+            value_distributor = get_distributor_value_func value_distributor
+            return value_distributor root_space, var_name, fdvar.distributeOptions
+      if var_name
+        return root_space.get_next_value @, var_name
+    return false
 
   # @obsolete Keeping it for non-breaking-api sake
 
@@ -100,8 +165,8 @@ module.exports = (FD) ->
     while changed
       changed = false
       for prop_details in propagators
-        n = step_any prop_details, @
-        if n > 0
+        n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+        if n is SOMETHING_CHANGED
           changed = true
         else if n is REJECTED
           return false # solution impossible
@@ -125,10 +190,20 @@ module.exports = (FD) ->
 
   Space::is_solved = ->
     vars = @vars
-    for var_name in @var_names
-      unless fdvar_is_solved vars[var_name]
-        return false
-    return true
+    unsolved_names = @unsolved_var_names
+
+    j = 0
+    for name, i in unsolved_names
+      fdvar = vars[name]
+      ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
+      if fdvar_is_solved fdvar
+        ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
+        fdvar.was_solved = true # makes Space#clone faster
+      else
+        unsolved_names[j++] = name
+    unsolved_names.length = j
+
+    return j is 0
 
   # Returns an object whose field names are the fdvar names
   # and whose values are the solved values. The space *must*
@@ -137,7 +212,7 @@ module.exports = (FD) ->
   Space::solution = ->
     result = {}
     vars = @vars
-    for var_name in @var_names
+    for var_name in @all_var_names
       getset_var_solve_state var_name, vars, result
     return result
 
@@ -266,7 +341,8 @@ module.exports = (FD) ->
       vars[var_name] = fdvar_create var_name, dom
     else
       vars[var_name] = fdvar_create_wide var_name
-    @var_names.push var_name
+    @unsolved_var_names.push var_name
+    @all_var_names.push var_name
 
     return @
 

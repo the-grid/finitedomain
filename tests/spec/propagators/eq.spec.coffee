@@ -42,23 +42,23 @@ describe "FD - propagators - eq", ->
     expect(-> eq_step_bare v).to.throw
     expect(-> eq_step_bare undefined, v).to.throw
 
-  it 'should reject for empty domains', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create 'y', []
-    expect(eq_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty left domain', ->
-
-    v1 = fdvar_create 'x', []
-    v2 = fdvar_create_wide 'y'
-    expect(eq_step_bare v1, v2).to.eql REJECTED
-
-  it 'should reject for empty right domain', ->
-
-    v1 = fdvar_create_wide 'x'
-    v2 = fdvar_create 'y', []
-    expect(eq_step_bare v1, v2).to.eql REJECTED
+#  it 'should reject for empty domains', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create 'y', []
+#    expect(eq_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty left domain', ->
+#
+#    v1 = fdvar_create 'x', []
+#    v2 = fdvar_create_wide 'y'
+#    expect(eq_step_bare v1, v2).to.eql REJECTED
+#
+#  it 'should reject for empty right domain', ->
+#
+#    v1 = fdvar_create_wide 'x'
+#    v2 = fdvar_create 'y', []
+#    expect(eq_step_bare v1, v2).to.eql REJECTED
 
   it 'should split a domain if it covers multiple ranges of other domain', ->
 

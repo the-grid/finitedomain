@@ -3,6 +3,7 @@ module.exports = (FD) ->
     REJECTED
     ZERO_CHANGES
 
+    ASSERT
     ASSERT_DOMAIN
   } = FD.helpers
 
@@ -28,19 +29,22 @@ module.exports = (FD) ->
 
     ASSERT_DOMAIN fdvar1.dom, 'v1 needs to be csis for this trick to work'
     ASSERT_DOMAIN fdvar2.dom, 'v2 needs to be csis for this trick to work'
+    ASSERT !domain_is_rejected fdvar1.dom, 'empty domains should reject at time of becoming empty'
+    ASSERT !domain_is_rejected fdvar2.dom, 'empty domains should reject at time of becoming empty'
 
     # every number in v1 can only be smaller than or equal to the biggest
     # value in v2. bigger values will never satisfy lt so prune them.
     if hi_1 > hi_2
       left_changed = fdvar_remove_gte_inline fdvar1, hi_2+1
+      if fdvar_is_rejected fdvar1
+        left_changed = REJECTED
 
     # likewise; numbers in v2 that are smaller than or equal to the
     # smallest value of v1 can never satisfy lt so prune them as well
     if lo_1 > lo_2
       right_changed = fdvar_remove_lte_inline fdvar2, lo_1-1
-
-    if fdvar_is_rejected(fdvar1) or fdvar_is_rejected(fdvar2)
-      return REJECTED
+      if fdvar_is_rejected fdvar2
+        right_changed = REJECTED
 
     return left_changed or right_changed or ZERO_CHANGES
 
@@ -53,8 +57,10 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    if domain_is_rejected dom1 or domain_is_rejected dom2
-      return true
+    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
+    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+#    if domain_is_rejected dom1 or domain_is_rejected dom2
+#      return true
 
     return domain_min(dom1) > domain_max(dom2)
 

@@ -37,10 +37,13 @@ module.exports = (FD) ->
   } = FD.Var
 
   distribution_get_undetermined_var_names = (S, var_names) ->
+    svars = S.vars
     undetermined_names = []
     for var_name in var_names
-      ASSERT !fdvar_is_rejected(S.vars[var_name]), 'fdvar should not be rejected at this point, but may be solved'
-      unless fdvar_is_solved S.vars[var_name] # if we do the lookup anyways, why not just return fdvars instead?
+      fdvar = svars[var_name]
+      ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected at this point, but may be solved'
+      # TOFIX: we can drop the fdvar_is_solved check if we make sure `was_solved` is properly set all the time... meh
+      unless fdvar.was_solved or fdvar_is_solved fdvar # if we do the lookup anyways, why not just return fdvars instead?
         undetermined_names.push var_name
     return undetermined_names
 
@@ -56,17 +59,8 @@ module.exports = (FD) ->
 
     return options
 
-  create_fixed_distributor = (options) ->
-    options = create_distributor_options options
-
-    # partial application by proxy (-> closure)
-    distribution_create_distributor_on_space = (S, varnames) ->
-      return create_distributor_on_space S, varnames, options
-
-    return distribution_create_distributor_on_space
-
   create_custom_distributor = (space, var_names, options) ->
-    return create_fixed_distributor(options) space, var_names
+    return create_distributor_on_space space, var_names, create_distributor_options options
 
   get_distributor_value_func = (name) ->
     switch name
@@ -102,66 +96,43 @@ module.exports = (FD) ->
       else
         throw new Error 'unknown order func ['+name+']'
 
-  # Return best var according to some fitness function `is_better_var`
-  # Note that this function originates from `get_distributor_var_func()`
-
-  get_next_var = (space, vars, is_better_var) ->
-    if vars.length is 0
-      return null
-
-    for var_i, i in vars
-      if i is 0
-        first = var_i
-      else unless is_better_var space, first, var_i
-        first = var_i
-
-    return first
-
   # options: {filter:[Function], var:string|Function, val:string|Function}
 
-  create_distributor_on_space = (root_space, initial_var_names, options) ->
-    get_target_vars = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
-    var_fitness_func = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
-    get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
+  create_distributor_on_space = (root_space, initial_targeted_var_names, options) ->
+    ASSERT !root_space.get_targeted_var_names, 'should not be set'
+    ASSERT !root_space.get_var_fitness, 'should not be set'
+    ASSERT !root_space.get_next_value, 'should not be set'
 
-    unless get_target_vars and var_fitness_func and get_next_value
-      throw new Error "create_distributor_on_space: Invalid options - #{get_target_vars?}, #{var_fitness_func?}, #{get_next_value?}"
+    root_space.get_targeted_var_names = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
+    root_space.get_var_fitness = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
+    root_space.get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
+    root_space.initial_targeted_var_names = initial_targeted_var_names
+    root_space.markov_vars_by_id = root_space.solver?.vars?.byId
 
-    varsById = root_space.solver?.vars?.byId
-
-    # This is the actual search strategy being applied by Space root_space
-    # Should return something from FD.distribution.Value
-    # TODO: we may want to move this function to Space directly? I'm not sure we use any others, regardless of intent
-
-    root_space.get_value_distributor = (current_space) ->
-      var_names = get_target_vars current_space, initial_var_names
-      if var_names.length > 0
-        var_name = get_next_var current_space, var_names, var_fitness_func
-
-        # D4:
-        # - now, each var can define it's own value distribution, regardless of default
-        if varsById
-          # note: this is not the same as current_space.vars[var_name] because that wont have the distribute property
-          fdvar = varsById[var_name]
-          if fdvar
-            value_distributor = fdvar.distribute
-            if value_distributor
-              return (get_distributor_value_func value_distributor) root_space, var_name, fdvar.distributeOptions
-        if var_name
-          return get_next_value current_space, var_name
-      return false
+    ASSERT root_space.get_targeted_var_names, 'should be set'
+    ASSERT root_space.get_var_fitness, 'should be set'
+    ASSERT root_space.get_next_value, 'should be set'
 
     return
 
+  distribution_naive = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'naive'
+
+  distribution_fail_first = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'fail_first'
+
+  distribution_split = (space, var_names) ->
+    return create_custom_distributor space, var_names, 'split'
+
   # TOFIX: to improve later
   distribution = FD.distribution
-  distribution.create_fixed_distributor = create_fixed_distributor
-  # for fd.js API compat:
-  distribution.naive = create_fixed_distributor('naive')
-  distribution.fail_first = create_fixed_distributor('fail_first')
-  distribution.split = create_fixed_distributor('split')
+  distribution.create_custom_distributor = create_custom_distributor
+  distribution.get_distributor_value_func = get_distributor_value_func
 
-  # for testing only
-  distribution._create_custom_distributor = create_custom_distributor
+  # for fd.js API compat (should change this dynamic behavior
+  # to something we can trace and control more easily)
+  distribution.naive = distribution_naive
+  distribution.fail_first = distribution_fail_first
+  distribution.split = distribution_split
 
   return

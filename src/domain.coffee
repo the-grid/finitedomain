@@ -872,7 +872,7 @@ module.exports = (FD) ->
   domain_shares_no_elements = (domain1, domain2) ->
     for lo,i in domain1 by 2
       hi = domain1[i+1]
-      for j in [i...domain2.length] by 2
+      for j in [0...domain2.length] by 2
         # if range A is not before or after range B there is overlap
         unless hi < domain2[j] or lo > domain2[j+1]
           # if there is overlap both domains share at least one element

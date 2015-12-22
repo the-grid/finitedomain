@@ -1,5 +1,4 @@
 module.exports = (FD) ->
-
   {
     SUB
     SUP
@@ -10,6 +9,9 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_DOMAIN
+    ASSERT_DOMAIN_EMPTY_CHECK
+    ASSERT_DOMAIN_EMPTY_SET
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
   } = FD.helpers
 
   INLINE = true
@@ -58,7 +60,7 @@ module.exports = (FD) ->
     return domain[LO_BOUND] is value and domain[HI_BOUND] is value
 
   domain_get_value = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     if domain.length isnt PAIR_SIZE
       return NOT_FOUND
     [lo, hi] = domain
@@ -88,14 +90,14 @@ module.exports = (FD) ->
           lo = value
         hi = value
     domain.push lo, hi
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK domain
     return domain
 
   # domain to list of possible values
   # @see domain_into_list for version with list as arg (=slower)
 
   domain_to_list = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     list = []
     for lo, index in domain by PAIR_SIZE
       # note: the translation for `list.push.apply list, [0..domain[index+1]]` would do double the work
@@ -121,7 +123,7 @@ module.exports = (FD) ->
   # If no items from list can be found, this function returns the empty domain.
 
   domain_remove_next_from_list = (domain, list) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     for value in list
       index = domain_range_index_of domain, value
       if index >= 0
@@ -132,7 +134,7 @@ module.exports = (FD) ->
   # will not contain it. This is an optimization to basically prevent splicing.
 
   domain_deep_clone_without_value = (domain, value) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     index = domain_range_index_of domain, value
     if index >= 0
       return _deep_clone_without_value domain, value, index
@@ -143,6 +145,7 @@ module.exports = (FD) ->
   # range_index whose lo is bigger than or equal to value
 
   _deep_clone_without_value = (domain, value, range_index) ->
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     # we have the range offset that should contain the value. the clone wont
     # affect ranges before or after. but we want to prevent a splice or shifts, so:
     if range_index
@@ -161,6 +164,8 @@ module.exports = (FD) ->
         if hi isnt value
           result.push value+1, hi
     ASSERT_DOMAIN result
+    unless result
+      ASSERT_DOMAIN_EMPTY_SET result
     return result
 
   domain_get_value_of_first_contained_value_in_list = (domain, list) ->
@@ -179,7 +184,7 @@ module.exports = (FD) ->
       domain.push SUB, lo-1
     if hi < SUP
       domain.push hi+1, SUP
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     return domain
 
   # The complement of a domain is such that domain U domain' = [SUB, SUP].
@@ -187,7 +192,7 @@ module.exports = (FD) ->
   # Returns a domain that covers any range in (SUB...SUP) that was not covered by given domain
 
   domain_complement = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN domain # should we reject for empty domains?
     unless domain.length
       return domain_create_all()
 
@@ -202,7 +207,7 @@ module.exports = (FD) ->
     if end <= SUP # <= so SUP is inclusive...
       result.push end, SUP
 
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK domain
     return result
 
   # All ranges will be ordered ascending and overlapping ranges are merged
@@ -224,7 +229,7 @@ module.exports = (FD) ->
     unless is_simplified domain
       domain_simplify_inline domain
 
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK domain
     return domain
 
 
@@ -322,6 +327,7 @@ module.exports = (FD) ->
     domain.length = write_index # if `domain` was a larger at the start this ensures extra elements are dropped from it
     for test in domain
       ASSERT test >= SUB, 'merge should not result in sparse array'
+      ASSERT test <= SUP, 'should be within bounds'
     return domain
 
   # CSIS form = Canonical Sorted Interval Sequeunce form.
@@ -337,7 +343,7 @@ module.exports = (FD) ->
     result = []
     _domain_intersection dom1, dom2, result
     domain_simplify result # TODO: make inline
-    ASSERT_DOMAIN result
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK result
     return result
 
 
@@ -434,7 +440,7 @@ module.exports = (FD) ->
         else
           result.push lo, hi
           plo = lo
-    ASSERT_DOMAIN result
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK result
     return result
 
   dom_smallest_interval_width = (domain) ->
@@ -574,7 +580,7 @@ module.exports = (FD) ->
   # Return the number of elements this domain covers
 
   domain_size = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     count = 0
     for lo, index in domain by PAIR_SIZE
       count += 1 + domain[index+1] - lo # TODO: add test to confirm this still works fine if SUB is negative
@@ -583,7 +589,7 @@ module.exports = (FD) ->
   # Get the middle element of all elements in domain. Not hi-lo/2.
 
   domain_middle_element = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     size = domain_size domain
     target_value = FLOOR size / 2
 
@@ -603,17 +609,18 @@ module.exports = (FD) ->
   # Only use if callsite doesn't use first range again
 
   domain_min = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     return domain[LO_BOUND]
 
   # Only use if callsite doesn't use last range again
 
   domain_max = (domain) ->
-    ASSERT_DOMAIN domain
+    ASSERT_DOMAIN_EMPTY_CHECK domain
     return domain[domain.length - 1]
 
   domain_set_to_range_inline = (domain, lo, hi) ->
     ASSERT_DOMAIN domain, 'should be sound domain'
+    ASSERT lo <= hi, 'lo/hi should be ordered!', [lo, hi]
     domain[LO_BOUND] = lo
     domain[HI_BOUND] = hi
     domain.length = PAIR_SIZE
@@ -773,17 +780,17 @@ module.exports = (FD) ->
     if len2 isnt index
       domain2.length = index
 
-    ASSERT_DOMAIN domain1
-    ASSERT_DOMAIN domain2
-
     if index is 0
       return REJECTED
+
+    ASSERT_DOMAIN domain1
+    ASSERT_DOMAIN domain2
 
     return SOMETHING_CHANGED
 
   domain_force_eq_inline = (domain1, domain2) ->
-    ASSERT_DOMAIN domain1
-    ASSERT_DOMAIN domain2
+    ASSERT_DOMAIN_EMPTY_CHECK domain1
+    ASSERT_DOMAIN_EMPTY_CHECK domain2
 
     len1 = domain1.length
     len2 = domain2.length
@@ -875,6 +882,7 @@ module.exports = (FD) ->
         _domain_remove_value_at domain, value, index, lo, hi
         ASSERT_DOMAIN domain
         if domain_is_rejected domain
+          ASSERT_DOMAIN_EMPTY_SET domain
           return REJECTED
         return SOMETHING_CHANGED
     return ZERO_CHANGES

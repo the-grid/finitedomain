@@ -7,6 +7,7 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_UNUSED_DOMAIN
+    ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
 
   {
@@ -144,8 +145,8 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK dom1
+    ASSERT_DOMAIN_EMPTY_CHECK dom2
 
     if fdvar1.was_solved or fdvar_is_solved fdvar1
       r = domain_remove_value_inline dom2, domain_min dom1

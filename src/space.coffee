@@ -166,11 +166,14 @@ module.exports = (FD) ->
       changed = false
       for prop_details in propagators
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+        ASSERT !@.vars[prop_details[1][0]].dom.length and n isnt REJECTED, 'domain empty but not marked'
+        ASSERT !@.vars[prop_details[1][1]].dom.length and n isnt REJECTED, 'domain empty but not marked'
+
         if n is SOMETHING_CHANGED
           changed = true
         else if n is REJECTED
           return false # solution impossible
-    # console.log(JSON.stringify(this.solution()));
     return true
 
   # Returns true if this space is solved - i.e. when
@@ -196,6 +199,7 @@ module.exports = (FD) ->
     for name, i in unsolved_names
       fdvar = vars[name]
       ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
+      ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
       if fdvar_is_solved fdvar
         ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
         fdvar.was_solved = true # makes Space#clone faster
@@ -235,21 +239,17 @@ module.exports = (FD) ->
     return result
 
   getset_var_solve_state = (var_name, vars, result) ->
-    value = undefined
     # Don't include the temporary variables in the "solution".
     # Temporary variables take the form of a numeric property
     # of the object, so we test for the var_name to be a number and
     # don't include those variables in the result.
-    c = var_name[0]
-    if c < '0' or c > '9'
-      domain = vars[var_name].dom
-      if domain.length is 0
-        value = false
-      else if domain_is_solved domain
-        value = domain_min domain
-      else
-        value = domain
-      result[var_name] = value
+    domain = vars[var_name].dom
+    value = domain
+    if domain.length is 0
+      value = false
+    else if domain_is_solved domain
+      value = domain_min domain
+    result[var_name] = value
 
     return value
 
@@ -292,7 +292,9 @@ module.exports = (FD) ->
   Space::decl_value = (val) ->
     if val >= SUB and val <= SUP # also catches NaN cases
       return @decl_anon domain_create_value val
-    throw new Error 'FD.space.konst: Value out of valid range'
+
+    ASSERT !isNaN(val), 'FD.space.konst: Value is NaN'
+    ASSERT false, "FD.space.konst: Value out of valid range SUB:#{SUB} <= val:#{val} <= SUP:#{SUP}"
 
   # Create N anonymous FD variables and return their names
   # in an array. Optionally set them to given dom for all

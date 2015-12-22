@@ -27,7 +27,8 @@ module.exports = (FD) ->
     if len1 isnt PAIR_SIZE or len2 isnt PAIR_SIZE
       return false
 
-    # reject if domain is solved (lo=hi) and same as other domain
+    # reject if domains are solved (lo=hi) and same as other domain
+
     lo = domain_min dom1
     hi = domain_max dom1
     return lo is hi and lo is domain_min(dom2) and lo is domain_max(dom2)

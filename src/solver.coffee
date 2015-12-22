@@ -309,12 +309,16 @@ module.exports = (FD) ->
       solutions = @solutions
 
       ASSERT_SPACE state.space
-
       if log >= 1
         console.time '      - FD Solver Time'
+        console.log "      - FD Solver Prop Count: #{@S._propagators.length}"
+
+      considered = 0
       while state.more and count < max
         state = searchMethod state
-        break if state.status is 'end'
+        if state.status is 'end'
+          considered += state.considered
+          break
         count++
         unless squash
           solution = state.space.solution()
@@ -326,5 +330,6 @@ module.exports = (FD) ->
       if log >= 1
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
+        console.log "      - Spaces considered: #{considered}"
 
       return solutions

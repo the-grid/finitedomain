@@ -8,6 +8,9 @@ module.exports = (FD) ->
     SUB
     SUP
 
+    ENABLED
+    ENABLE_EMPTY_CHECK
+
     ASSERT
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
@@ -167,8 +170,12 @@ module.exports = (FD) ->
       for prop_details in propagators
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
-        ASSERT !@.vars[prop_details[1][0]].dom.length and n isnt REJECTED, 'domain empty but not marked'
-        ASSERT !@.vars[prop_details[1][1]].dom.length and n isnt REJECTED, 'domain empty but not marked'
+        # the domain of either var of a propagator can only be empty if the prop REJECTED
+        ASSERT n is REJECTED or (@.vars[prop_details[1][0]].dom.length and @.vars[prop_details[1][1]].dom.length), 'prop var empty but it didnt REJECT'
+        # if a domain was set empty and the flag is on the property should be set or
+        # the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
+        ASSERT ENABLED or ENABLE_EMPTY_CHECK or @.vars[prop_details[1][0]].dom.length or @.vars[prop_details[1][0]].dom._trace, 'domain empty but not marked'
+        ASSERT ENABLED or ENABLE_EMPTY_CHECK or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
 
         if n is SOMETHING_CHANGED
           changed = true

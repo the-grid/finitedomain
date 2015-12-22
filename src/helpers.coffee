@@ -169,6 +169,10 @@ module.exports = (FD) ->
   REMOVE_ASSERTS_STOP = 1
 
   FD.helpers = {
+    ENABLED
+    ENABLE_DOMAIN_CHECK
+    ENABLE_EMPTY_CHECK
+
     REJECTED
     SUB
     SUP

@@ -14,6 +14,7 @@ _ =
 module.exports = (FD) ->
 
   {
+    ASSERT
     ASSERT_SPACE
   } = FD.helpers
 
@@ -63,6 +64,7 @@ module.exports = (FD) ->
 
 
     constant: (num) ->
+      ASSERT (!isNaN num), 'Solver#constant: num is NaN', num, typeof num
       num = Number(num)
       return @_constants[num] if @_constants[num]?
       @_constants[num] = @S.konst num

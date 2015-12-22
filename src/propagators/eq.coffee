@@ -2,7 +2,7 @@ module.exports = (FD) ->
   {
     REJECTED
 
-    ASSERT
+    ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
 
   {
@@ -35,8 +35,8 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK dom1
+    ASSERT_DOMAIN_EMPTY_CHECK dom2
 #    if domain_is_rejected dom1 or domain_is_rejected dom2
 #      return true
 

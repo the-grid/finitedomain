@@ -5,6 +5,8 @@ if typeof require is 'function'
     spec_d_create_bool
     spec_d_create_range
     spec_d_create_value
+    strip_anon_vars
+    strip_anon_vars_a
   } = require '../../fixtures/domain.spec.coffee'
 
 {expect, assert} = chai
@@ -88,7 +90,7 @@ describe "FD -", ->
         it 'all solutions', ->
           solutions = S.solve()
           expect(solutions.length, 'all solutions').to.equal(16)
-          expect(solutions).to.eql [
+          expect(strip_anon_vars_a solutions).to.eql [
             { V1: 1, V2: 4 }
             { V1: 1, V2: 3 }
             { V1: 1, V2: 2 }
@@ -119,7 +121,7 @@ describe "FD -", ->
         it 'all solutions', ->
           solutions = S.solve()
           expect(solutions.length, 'all solutions').to.equal(16)
-          expect(solutions).to.eql [
+          expect(strip_anon_vars_a solutions).to.eql [
             { V1: 1, V2: 4 }
             { V1: 1, V2: 3 }
             { V1: 1, V2: 2 }
@@ -150,7 +152,7 @@ describe "FD -", ->
         it 'all solutions', ->
           solutions = S.solve()
           expect(solutions.length, 'all solutions').to.equal(16)
-          expect(solutions).to.eql [
+          expect(strip_anon_vars_a solutions).to.eql [
             { V1: 2, V2: 3 }
             { V1: 2, V2: 1 }
             { V1: 2, V2: 4 }
@@ -201,7 +203,7 @@ describe "FD -", ->
         it 'all solutions', ->
           solutions = S.solve()
           expect(solutions.length, 'all solutions').to.equal(16)
-          expect(solutions).to.eql [
+          expect(strip_anon_vars_a solutions).to.eql [
             { V1: 2, V2: 3, STATE:5 }
             { V1: 2, V2: 1, STATE:5 }
             { V1: 2, V2: 4, STATE:5 }
@@ -365,7 +367,7 @@ describe "FD -", ->
             S = setupSolver()
             solutions = S.solve()
             expect(solutions.length).to.equal 1
-            expect(solutions[0]).to.eql
+            expect(strip_anon_vars solutions[0]).to.eql
               STATE: 5
               V1: 10
               V2: 100

@@ -425,9 +425,6 @@ module.exports = (FD) ->
 
   domain_close_gaps_fresh = (domain, gap) ->
     ASSERT_DOMAIN domain
-    if domain.length is 0
-      return domain
-
     result = []
     for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]

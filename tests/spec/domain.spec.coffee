@@ -1,6 +1,7 @@
 if typeof require is 'function'
   finitedomain = require '../../src/index'
   chai = require 'chai'
+  require '../fixtures/helpers.spec'
 
   {
     spec_d_create_bool

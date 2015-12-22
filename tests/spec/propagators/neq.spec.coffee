@@ -63,6 +63,13 @@ describe "FD - propagators - neq", ->
   describe 'should not change anything as long as both domains are unsolved', ->
 
     test = (domain1, domain2=domain1.slice 0) ->
+      for n in domain1
+        if typeof(n) isnt 'number'
+          throw new Error 'bad test, fixme! neq.spec.1: ['+domain1+'] ['+domain2+']'
+      for n in domain2
+        if typeof(n) isnt 'number'
+          throw new Error 'bad test, fixme! neq.spec.2: ['+domain1+'] ['+domain2+']'
+
       it 'should not change anything (left-right): '+[domain1, domain2].join('|'), ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain2.slice 0
@@ -78,7 +85,7 @@ describe "FD - propagators - neq", ->
         expect(v2.dom, 'v2 dom').to.eql domain1
 
     # these are the (non-solved) cases plucked from eq tests
-    test spec_d_create_ranges(SUB, SUP), spec_d_create_ranges [0, 10], [20, 30]
+    test spec_d_create_range(SUB, SUP), spec_d_create_ranges [0, 10], [20, 30]
     test spec_d_create_range 0, 1
     test spec_d_create_range 20, 50
     test spec_d_create_ranges [0, 10], [20, 30], [40, 50]
@@ -89,7 +96,7 @@ describe "FD - propagators - neq", ->
     test spec_d_create_ranges([0, 10], [20, 30], [40, 50]),  spec_d_create_ranges([5, 15], [25, 35]), spec_d_create_ranges([5, 10], [25, 30])
     test spec_d_create_ranges([0, 10], [20, 30], [40, 50]),  spec_d_create_ranges([SUB, SUP]), spec_d_create_ranges([0, 10], [20, 30], [40, 50])
     test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 1], [3, 3]), [], REJECTED
-    test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 2], [3, 3]), spec_d_create_range 2,2
+    test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 2], [4, 4]), spec_d_create_range 2,2
 
   describe 'with one solved domain', ->
 

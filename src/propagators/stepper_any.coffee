@@ -3,6 +3,7 @@ module.exports = (FD) ->
   {
     ASSERT
     ASSERT_PROPAGATOR
+    ASSERT_THROW
   } = FD.helpers
 
   {
@@ -32,46 +33,61 @@ module.exports = (FD) ->
     return stepper_step_any space, prop_datails[PROP_NAME], prop_datails[PROP_VAR_NAMES], prop_datails
 
   stepper_step_any = (space, op_name, prop_var_names, prop_datails) ->
+    [vn1, vn2] = prop_var_names
     switch op_name
       when 'lt'
-        [vn1, vn2] = prop_var_names
         return step_comparison space, op_name, vn1, vn2
 
       when 'lte'
-        [vn1, vn2] = prop_var_names
         return step_comparison space, op_name, vn1, vn2
 
       when 'eq'
-        [vn1, vn2] = prop_var_names
         return step_comparison space, op_name, vn1, vn2
 
       when 'neq'
-        [vn1, vn2] = prop_var_names
         return step_comparison space, op_name, vn1, vn2
 
       when 'mul'
-        vars = space.vars
-        [vn1, vn2] = prop_var_names
-        return mul_step_bare vars[vn1], vars[vn2]
+        return _mul space, vn1, vn2
 
       when 'div'
-        vars = space.vars
-        [vn1, vn2] = prop_var_names
-        return div_step_bare vars[vn1], vars[vn2]
+        return _div space, vn1, vn2
 
       when 'callback'
-        return callback_step_bare space, prop_var_names, prop_datails[PROP_CALLBACK]
+        return _cb space, prop_var_names, prop_datails
 
       when 'reified'
-        return reified_step_bare space, prop_var_names[0], prop_var_names[1], prop_var_names[2], prop_datails[PROP_OP_NAME], prop_datails[PROP_NOP_NAME]
+        return _reified space, vn1, vn2, prop_var_names, prop_datails
 
       when 'ring'
-        vars = space.vars
-        [vn1, vn2, vn3] = prop_var_names
-        return ring_step_bare vars[vn1], vars[vn2], vars[vn3], prop_datails[PROP_OP_FUNC]
+        return _ring space, vn1, vn2, prop_var_names, prop_datails
 
       else
-        throw new Error 'unsupported propagator: [' + prop_datails + ']'
+        ASSERT_THROW 'unsupported propagator: [' + prop_datails + ']'
+        return
+
+    return
+
+  _mul = (space, vn1, vn2) ->
+    vars = space.vars
+    return mul_step_bare vars[vn1], vars[vn2]
+
+  _div = (space, vn1, vn2) ->
+    vars = space.vars
+    return div_step_bare vars[vn1], vars[vn2]
+
+  _cb = (space, prop_var_names, prop_details) ->
+    return callback_step_bare space, prop_var_names, prop_details[PROP_CALLBACK]
+
+  _reified = (space, vn1, vn2, prop_var_names, prop_details) ->
+    vn3 = prop_var_names[2]
+    return reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
+
+  _ring = (space, vn1, vn2, prop_var_names, prop_details) ->
+    vars = space.vars
+    vn3 = prop_var_names[2]
+    return ring_step_bare vars[vn1], vars[vn2], vars[vn3], prop_details[PROP_OP_FUNC]
+
 
   FD.propagators.step_any = stepper_prop_step
 

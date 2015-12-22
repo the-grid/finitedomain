@@ -50,7 +50,7 @@ module.exports = (FD) ->
   # Should be removed in production. Obviously.
 
   ASSERT_DOMAIN = (domain) ->
-    if !ENABLED
+    if !ENABLED and !ENABLE_DOMAIN_CHECK
       return
 
     ASSERT !!domain, 'domains should be an array', domain
@@ -70,7 +70,7 @@ module.exports = (FD) ->
   # are "fresh", and at least not in use by any fdvar yet
 
   ASSERT_UNUSED_DOMAIN = (domain) ->
-    if !ENABLED or !ENABLE_DOMAIN_CHECK
+    if !ENABLED and !ENABLE_DOMAIN_CHECK
       return
 
     # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
@@ -128,7 +128,7 @@ module.exports = (FD) ->
     return
 
   ASSERT_DOMAIN_EMPTY_SET = (domain) ->
-    if !ENABLED or !ENABLE_EMPTY_CHECK
+    if !ENABLED and !ENABLE_EMPTY_CHECK
       return
 
     if domain._trace
@@ -163,7 +163,7 @@ module.exports = (FD) ->
   # this prevents deopts for having a throw in the function
 
   ASSERT_THROW = (msg) ->
-    throw new Error
+    throw new Error msg
 
   # keep the next line. it's used by a post processor
   REMOVE_ASSERTS_STOP = 1

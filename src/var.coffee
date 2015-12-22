@@ -81,6 +81,10 @@ module.exports = (FD) ->
     domain_set_to_range_inline fdvar.dom, value, value
     return
 
+  fdvar_set_range_inline = (fdvar, lo, hi) ->
+    domain_set_to_range_inline fdvar.dom, lo, hi
+    return
+
   # TODO: rename to intersect for that's what it is.
   fdvar_constrain = (fdvar, domain) ->
     domain = domain_intersection fdvar.dom, domain
@@ -175,5 +179,6 @@ module.exports = (FD) ->
     fdvar_remove_lte_inline
     fdvar_set_domain
     fdvar_set_value_inline
+    fdvar_set_range_inline
     fdvar_size
   }

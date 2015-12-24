@@ -58,11 +58,15 @@ module.exports = (FD) ->
     phi = SUB - 2 # this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
     for lo, index in domain by PAIR_SIZE
       hi = domain[index + 1]
+      ASSERT typeof lo is 'number', 'domains should just be numbers', domain
+      ASSERT typeof hi is 'number', 'domains should just be numbers', domain
       ASSERT lo >= SUB, 'lo should be gte to SUB ' + ' [' + lo + ']', domain
       ASSERT hi >= SUB, 'hi should be gte to SUB ' + ' [' + hi + ']', domain
       ASSERT hi <= SUP, 'hi should be lte to SUP' + ' [' + hi + ']', domain
       ASSERT lo <= hi, 'pairs should be lo<=hi' + ' ' + lo + ' <= ' + hi, domain
       ASSERT lo > phi + 1, 'domains should be in csis form internally, end point apis should normalize input to this: ' + domain, domain
+      ASSERT (lo%1) is 0, 'domain should only contain integers', domain
+      ASSERT (hi%1) is 0, 'domain should only contain integers', domain
       phi = hi
     return
 

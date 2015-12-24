@@ -95,8 +95,16 @@ module.exports = (FD) ->
     unsolved_names = []
     clone_vars = {}
 
+    vars = @vars
+    unsolved_propagators = []
+    for propagator in @_propagators
+      for var_name in propagator[1]
+        unless fdvar_is_solved vars[var_name]
+          unsolved_propagators.push propagator
+          break
+
     pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
-    clone = space_new root, @_propagators, clone_vars, all_names, unsolved_names
+    clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
     # D4:
     # - add ref to high level solver

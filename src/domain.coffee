@@ -36,6 +36,7 @@ module.exports = (FD) ->
   MIN = Math.min
   MAX = Math.max
   FLOOR = Math.floor
+  CEIL = Math.ceil
 
   # returns whether domain covers given value
 

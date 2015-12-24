@@ -652,3 +652,73 @@ module.exports = (FD) ->
       anons.push t
     @sum anons, result_name
     return
+
+  # debug stuff (should be stripped from dist)
+
+  Space::__to_solver_test_case = () ->
+    things = ['S = new FD.Solver {}\n']
+
+    for name of @vars
+      things.push 'S.decl \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    things.push ''
+
+    @_propagators.forEach (c) ->
+      if c[0] is 'reified'
+        things.push 'S._cacheReified \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+      else if c[0] is 'ring'
+        switch c[2]
+          when 'plus'
+            things.push 'S.plus \''+c[1].join('\', \'')+'\''
+          when 'min'
+          # doesnt really exist. merely artifact of times
+            things.push '# S.minus \''+c[1].join('\', \'')+'\' # (artifact from .plus)'
+          when 'mul'
+            things.push 'S.times \''+c[1].join('\', \'')+'\''
+          when 'div'
+          # doesnt really exist. merely artifact of times
+            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .times)'
+          else
+            ASSERT false, 'unknown ring op name', c[2]
+      else
+        things.push 'S.'+c[0]+' \''+c[1].join('\', \'')+'\''
+
+    things.push '\nexpect(S.solve({max:10000}).length).to.eql 666'
+
+    return things.join '\n'
+
+  Space::__to_space_test_case = () ->
+    things = ['S = new Space {}\n']
+
+    for name of @vars
+      things.push 'S.decl \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    things.push ''
+
+    things.push 'S._propagators = [\n  ' + @_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
+
+    things.push '\nexpect(S.propagate()).to.eql true'
+
+    return things.join '\n'
+
+
+  Space::__debug_string = () ->
+
+    things = ['Vars:']
+
+    for name of @vars
+      things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+
+    things.push 'Propagators:'
+
+    @_propagators.forEach (c) ->
+      if c[0] is 'reified'
+        things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+      else
+        things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
+
+    return things.join '\n'
+
+  Space::_debug_var_domains = ->
+    things = []
+    for name of @vars
+      things.push name+': ['+@vars[name].dom+']'
+    return things.join ', '

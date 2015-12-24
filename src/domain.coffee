@@ -94,7 +94,6 @@ module.exports = (FD) ->
     return domain
 
   # domain to list of possible values
-  # @see domain_into_list for version with list as arg (=slower)
 
   domain_to_list = (domain) ->
     ASSERT_DOMAIN_EMPTY_CHECK domain
@@ -103,18 +102,6 @@ module.exports = (FD) ->
       # note: the translation for `list.push.apply list, [0..domain[index+1]]` would do double the work
       for val in [lo..domain[index+1]]
         list.push val
-    return list
-
-  # domain to list of possible values
-  # @see domain_to_list for version without list as arg (=faster)
-  # @public (used externally)
-
-  domain_into_list = (domain, list) ->
-    ASSERT_DOMAIN_EMPTY_CHECK domain
-    for lo, index in domain by PAIR_SIZE
-      for val in [lo..domain[index+1]]
-        if (list.indexOf val < 0)
-          list.push val
     return list
 
   # Given a list and domain, search items in the list in the domain and remove
@@ -948,7 +935,6 @@ module.exports = (FD) ->
     domain_get_value_of_first_contained_value_in_list
     domain_intersect_bounds_into
     domain_intersection
-    domain_into_list
     domain_is_determined
     domain_is_rejected
     domain_is_solved

@@ -542,23 +542,33 @@ module.exports = (FD) ->
     return domain_simplify result, INLINE
 
   # Note that this isn't domain consistent.
+  # Note: we floor/ceil the values because the solver assumes domains have ints only
 
   domain_divby = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
 
     result = []
+
     for loi, index in domain1 by PAIR_SIZE
-      hii = domain1[index+1]
+      hii = domain1[index + 1]
 
       for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
-        ASSERT hij > SUB, 'expecting no empty or inverted ranges'
-        lo = loi / hij
-        hi = if loj > SUB then hii / loj else SUP
-        if hi >= SUB
-          result.push MAX(SUB, lo), hi
+        if hij > 0 # cannot /0
+          lo = loi / hij
+          hi = if loj > 0 then hii / loj else SUP
+
+          if hi >= 0
+            # we cant use fractions, so we'll only include any values in the
+            # resulting domains that are _above_ the lo and _below_ the hi.
+            left = CEIL MAX 0, lo
+            right = FLOOR hi
+            # if the fraction is within the same integer this could result in
+            # lo>hi so we must prevent this case
+            if left < right
+              result.push left, right
 
     return domain_simplify result, INLINE
 

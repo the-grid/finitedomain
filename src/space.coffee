@@ -26,10 +26,6 @@ module.exports = (FD) ->
     domain_create_zero
     domain_is_solved
     domain_min
-    domain_plus
-    domain_times
-    domain_minus
-    domain_divby
   } = FD.Domain
 
   {
@@ -506,7 +502,7 @@ module.exports = (FD) ->
   # will return the current space so that other methods
   # can be invoked in sequence.
 
-  plus_or_times = (space, plusop, minusop, v1name, v2name, sumname) ->
+  plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     retval = space
     # If sumname is not specified, we need to create a anonymous
     # for the result and return the name of that anon variable.
@@ -515,9 +511,9 @@ module.exports = (FD) ->
       retval = sumname
 
     space._propagators.push(
-      ['ring', [v1name, v2name, sumname], plusop]
-      ['ring', [sumname, v1name, v2name], minusop]
-      ['ring', [sumname, v2name, v1name], minusop]
+      ['ring', [v1name, v2name, sumname], target_op_name]
+      ['ring', [sumname, v1name, v2name], inv_op_name]
+      ['ring', [sumname, v2name, v1name], inv_op_name]
     )
 
     ASSERT_PROPAGATORS space._propagators
@@ -528,13 +524,13 @@ module.exports = (FD) ->
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    return plus_or_times @, domain_plus, domain_minus, v1name, v2name, sumname
+    return plus_or_times @, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    return plus_or_times @, domain_times, domain_divby, v1name, v2name, prodname
+    return plus_or_times @, 'mul', 'div', v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name

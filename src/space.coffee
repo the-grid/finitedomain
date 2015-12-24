@@ -179,8 +179,8 @@ module.exports = (FD) ->
         ASSERT n is REJECTED or (@.vars[prop_details[1][0]].dom.length and @.vars[prop_details[1][1]].dom.length), 'prop var empty but it didnt REJECT'
         # if a domain was set empty and the flag is on the property should be set or
         # the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
-        ASSERT ENABLED or ENABLE_EMPTY_CHECK or @.vars[prop_details[1][0]].dom.length or @.vars[prop_details[1][0]].dom._trace, 'domain empty but not marked'
-        ASSERT ENABLED or ENABLE_EMPTY_CHECK or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
+        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][0]].dom.length or @.vars[prop_details[1][0]].dom._trace, 'domain empty but not marked'
+        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
 
         if n is SOMETHING_CHANGED
           changed = true

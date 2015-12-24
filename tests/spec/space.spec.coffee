@@ -8,6 +8,7 @@ if typeof require is 'function'
     spec_d_create_range
     spec_d_create_value
     spec_d_create_ranges
+    strip_anon_vars
   } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
@@ -83,7 +84,7 @@ describe "FD", ->
         expect(space.unsolved_var_names).to.not.equal clone.unsolved_var_names
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
         expect(space.all_var_names).to.equal clone.all_var_names
-        expect(space._propagators).to.equal clone._propagators
+        expect(space._propagators).to.eql clone._propagators
 
       it 'should copy the solver', ->
 
@@ -176,7 +177,7 @@ describe "FD", ->
         space = new Space()
         space.decl_value 15
         space.decl 'addme', spec_d_create_value 20
-        expect(space.solution()).to.eql {addme: 20}
+        expect(strip_anon_vars space.solution()).to.eql {addme: 20}
 
     describe '#solutionFor()', ->
 

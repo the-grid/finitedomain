@@ -277,9 +277,9 @@ module.exports = (FD) ->
     phi = SUB
     for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
-      ASSERT lo >= SUB, 'domains should not be sparse [lo]'
-      ASSERT hi >= SUB, 'domains should not be sparse [hi]'
-      ASSERT lo <= hi, 'ranges should be ascending'
+      ASSERT lo >= SUB, 'domains should not be sparse [lo]', domain
+      ASSERT hi >= SUB, 'domains should not be sparse [hi]', domain
+      ASSERT lo <= hi, 'ranges should be ascending', domain
       # we need to simplify if the lo of the next range goes before or touches the hi of the previous range
       # TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
       #       this function could return the offset to continue at... or -1 to signal "true"

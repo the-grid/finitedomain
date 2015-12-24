@@ -470,7 +470,31 @@ describe "FD", ->
         name = space.num 'foo', 100
         expect(space.vars.foo.dom).to.eql spec_d_create_value 100
 
-    # the propagator methods on Space are to be tested later, after I change them completely;
+    describe 'propagate', ->
+
+      describe 'simple cases', ->
+
+        it 'should not reject this multiply case', ->
+
+          S = new Space()
+
+          S.decl 'A', [0, 10]
+          S.decl 'B', [0, 10]
+          S.decl 'MAX', [25, 25]
+          S.decl 'MUL', [0, 100]
+
+          S._propagators = [
+            ['ring', ['A', 'B', 'MUL'], 'mul']
+            ['ring', ['MUL', 'A', 'B'], 'div']
+            ['ring', ['MUL', 'B', 'A'], 'div']
+            ['lt', ['MUL', 'MAX']]
+          ]
+
+          expect(S.propagate()).to.eql true
+
+
+
+# the propagator methods on Space are to be tested later, after I change them completely;
     # reified
     # callback
     # eq

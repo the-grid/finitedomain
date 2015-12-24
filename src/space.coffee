@@ -17,7 +17,7 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    get_distributor_value_func
+    get_distributor_value_factory
   } = FD.distribution
 
   {
@@ -131,18 +131,19 @@ module.exports = (FD) ->
     targeted_var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
     if targeted_var_names.length > 0
       var_name = get_next_var @, targeted_var_names, root_space.get_var_fitness
-      vars_by_id = root_space.markov_vars_by_id
+      branch_vars_by_id = root_space.markov_vars_by_id
 
       # D4:
       # - now, each var can define it's own value distribution, regardless of default
-      if vars_by_id
-        # note: this is not the same as @vars[var_name] because that wont have the distribute property
-        fdvar = vars_by_id[var_name]
-        if fdvar
-          value_distributor = fdvar.distribute
-          if value_distributor
-            value_distributor = get_distributor_value_func value_distributor
-            return value_distributor root_space, var_name, fdvar.distributeOptions
+      if branch_vars_by_id
+        branch_var = branch_vars_by_id[var_name]
+        if branch_var
+          value_distributor_name = branch_var.distribute
+          if value_distributor_name
+            value_distributor_fac = get_distributor_value_factory value_distributor_name
+            value_distributor = value_distributor_fac root_space, var_name, branch_var.distributeOptions
+            return value_distributor
+
       if var_name
         return root_space.get_next_value @, var_name
     return false

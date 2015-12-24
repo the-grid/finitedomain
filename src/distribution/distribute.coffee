@@ -62,7 +62,7 @@ module.exports = (FD) ->
   create_custom_distributor = (space, var_names, options) ->
     return create_distributor_on_space space, var_names, create_distributor_options options
 
-  get_distributor_value_func = (name) ->
+  get_distributor_value_factory = (name) ->
     switch name
       when 'list'
         return distribution_value_by_list
@@ -83,7 +83,7 @@ module.exports = (FD) ->
       else
         throw new Error 'unknown value order type ['+name+']'
 
-  get_distributor_var_func = (name) ->
+  get_distributor_var_factory = (name) ->
     switch name
       when 'naive'
         return distribution_var_naive
@@ -104,8 +104,8 @@ module.exports = (FD) ->
     ASSERT !root_space.get_next_value, 'should not be set'
 
     root_space.get_targeted_var_names = if typeof options.filter is 'function' then options.filter else distribution_get_undetermined_var_names
-    root_space.get_var_fitness = if typeof options.var == 'string' then get_distributor_var_func options.var else options.var
-    root_space.get_next_value = if typeof options.val == 'string' then get_distributor_value_func options.val else options.val
+    root_space.get_var_fitness = if typeof options.var == 'string' then get_distributor_var_factory options.var else options.var
+    root_space.get_next_value = if typeof options.val == 'string' then get_distributor_value_factory options.val else options.val
     root_space.initial_targeted_var_names = initial_targeted_var_names
     root_space.markov_vars_by_id = root_space.solver?.vars?.byId
 
@@ -127,7 +127,7 @@ module.exports = (FD) ->
   # TOFIX: to improve later
   distribution = FD.distribution
   distribution.create_custom_distributor = create_custom_distributor
-  distribution.get_distributor_value_func = get_distributor_value_func
+  distribution.get_distributor_value_factory = get_distributor_value_factory
 
   # for fd.js API compat (should change this dynamic behavior
   # to something we can trace and control more easily)

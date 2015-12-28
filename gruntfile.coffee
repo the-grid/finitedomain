@@ -6,6 +6,11 @@ module.exports = ->
   @initConfig
     pkg: @file.readJSON 'package.json'
 
+    remove:
+      default_options:
+        trace: true,
+        dirList: ['dist']
+
     # Coding standards
     coffeelint:
       components: [
@@ -20,7 +25,7 @@ module.exports = ->
           'level': 'ignore'
 
     browserify:
-      dist:
+      dist: # includes ASSERT!
         options:
           browserifyOptions:
             extensions: ['.coffee']
@@ -28,6 +33,14 @@ module.exports = ->
             standalone: 'finitedomain'
         files:
           'dist/finitedomain.dev.js': ['src/index.coffee']
+      perf: # strips all ASSERT stuff. should be faster.
+        options:
+          browserifyOptions:
+            extensions: ['.coffee']
+            fullPaths: false
+            standalone: 'finitedomain'
+        files:
+          'dist/finitedomain.dev.perf.js': ['src/index.coffee']
 
     # JavaScript minification for the browser
     uglify:
@@ -36,6 +49,11 @@ module.exports = ->
           report: 'min'
         files:
           './dist/finitedomain.min.js': ['./dist/finitedomain.dev.js']
+      perf:
+        options:
+          report: 'min'
+        files:
+          './dist/finitedomain.min.perf.js': ['./dist/finitedomain.dev.perf.js']
 
     # Automated recompilation and testing when developing
     watch:
@@ -45,6 +63,9 @@ module.exports = ->
       perf:
         files: ['tests/perf/perf.coffee']
         tasks: ['coffee:perf']
+      dist:
+        files: ['src/**']
+        tasks: ['dist']
 
     # BDD tests on Node.js
     mochaTest:
@@ -101,7 +122,7 @@ module.exports = ->
     'string-replace': # read helpers.coffee for why this is needed and how it works
       perf:
         files:
-          'dist/': ['dist/finitedomain.dev.js']
+          'dist/': ['dist/finitedomain.dev.perf.js']
         options:
           replacements: [
             { # first replace the asserts in an object literal... (exports in helper.coffee)
@@ -124,11 +145,24 @@ module.exports = ->
               pattern: /([;}])[\s\n]*(\w+)\s*=\s*function([^\d])/mg, # tricky with regex... kitten sacrificed.
               replacement: '$1 function $2 $3'
             }
+            { # remove left-over ASSERT* names
+              pattern: /ASSERT\w*/g,
+              replacement: '\u039B' # lambda
+            }
+            { # artifacts of doing `ASSERT* = helpers.ASSERT*`
+              pattern: /, \u039B = ref\.\u039B/g, # lambdas
+              replacement: ''
+            }
+            { # artifacts of doing `var ASSERT*, ...`
+              pattern: /var \u039B,(?: \u039B,)*/g, # lambdas. seem to always be at the front. lexicographical ordering?
+              replacement: 'var '
+            }
           ]
 
 
   # Grunt plugins used for building
   @loadNpmTasks 'grunt-browserify'
+  @loadNpmTasks 'grunt-remove'
   @loadNpmTasks 'grunt-contrib-uglify'
 
   # Grunt plugins used for testing
@@ -138,10 +172,11 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-watch'
   @loadNpmTasks 'grunt-string-replace'
 
+  @registerTask 'clean', ['remove']
   @registerTask 'lint', ['coffeelint']
-  @registerTask 'build', ['coffeelint', 'browserify:dist', 'coffee:spec_joined']
-  @registerTask 'test', ['coffeelint', 'browserify:dist', 'mochaTest:all']
-  @registerTask 'perf', ['browserify:dist', 'mochaTest:perf', 'coffee:perf', 'string-replace:perf']
-  @registerTask 'bperf', ['browserify:dist', 'coffee:perf', 'string-replace:perf']
-  @registerTask 'dist', ['coffeelint', 'browserify:dist', 'string-replace:perf', 'uglify']
+  @registerTask 'build', ['clean', 'coffeelint', 'browserify:dist', 'coffee:spec_joined']
+  @registerTask 'test', ['clean', 'coffeelint', 'browserify:dist', 'mochaTest:all']
+  @registerTask 'perf', ['clean', 'browserify:perf', 'mochaTest:perf', 'coffee:perf', 'string-replace:perf']
+  @registerTask 'bperf', ['clean', 'browserify:perf', 'coffee:perf', 'string-replace:perf']
+  @registerTask 'dist', ['clean', 'coffeelint', 'browserify:dist', 'browserify:perf', 'string-replace:perf', 'uglify:perf']
   @registerTask 'default', ['lint']

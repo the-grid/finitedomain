@@ -1,12 +1,14 @@
 if typeof require is 'function'
   finitedomain = require '../../src/index'
   chai = require 'chai'
+  require '../fixtures/helpers.spec'
 
   {
     spec_d_create_bool
     spec_d_create_range
     spec_d_create_value
     spec_d_create_ranges
+    strip_anon_vars
   } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
@@ -82,7 +84,7 @@ describe "FD", ->
         expect(space.unsolved_var_names).to.not.equal clone.unsolved_var_names
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
         expect(space.all_var_names).to.equal clone.all_var_names
-        expect(space._propagators).to.equal clone._propagators
+        expect(space._propagators).to.eql clone._propagators
 
       it 'should copy the solver', ->
 
@@ -175,7 +177,7 @@ describe "FD", ->
         space = new Space()
         space.decl_value 15
         space.decl 'addme', spec_d_create_value 20
-        expect(space.solution()).to.eql {addme: 20}
+        expect(strip_anon_vars space.solution()).to.eql {addme: 20}
 
     describe '#solutionFor()', ->
 
@@ -469,7 +471,31 @@ describe "FD", ->
         name = space.num 'foo', 100
         expect(space.vars.foo.dom).to.eql spec_d_create_value 100
 
-    # the propagator methods on Space are to be tested later, after I change them completely;
+    describe 'propagate', ->
+
+      describe 'simple cases', ->
+
+        it 'should not reject this multiply case', ->
+
+          S = new Space()
+
+          S.decl 'A', [0, 10]
+          S.decl 'B', [0, 10]
+          S.decl 'MAX', [25, 25]
+          S.decl 'MUL', [0, 100]
+
+          S._propagators = [
+            ['ring', ['A', 'B', 'MUL'], 'mul']
+            ['ring', ['MUL', 'A', 'B'], 'div']
+            ['ring', ['MUL', 'B', 'A'], 'div']
+            ['lt', ['MUL', 'MAX']]
+          ]
+
+          expect(S.propagate()).to.eql true
+
+
+
+# the propagator methods on Space are to be tested later, after I change them completely;
     # reified
     # callback
     # eq

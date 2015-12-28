@@ -7,6 +7,7 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_UNUSED_DOMAIN
+    ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
 
   {
@@ -81,6 +82,10 @@ module.exports = (FD) ->
     domain_set_to_range_inline fdvar.dom, value, value
     return
 
+  fdvar_set_range_inline = (fdvar, lo, hi) ->
+    domain_set_to_range_inline fdvar.dom, lo, hi
+    return
+
   # TODO: rename to intersect for that's what it is.
   fdvar_constrain = (fdvar, domain) ->
     domain = domain_intersection fdvar.dom, domain
@@ -140,8 +145,8 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK dom1
+    ASSERT_DOMAIN_EMPTY_CHECK dom2
 
     if fdvar1.was_solved or fdvar_is_solved fdvar1
       r = domain_remove_value_inline dom2, domain_min dom1
@@ -175,5 +180,6 @@ module.exports = (FD) ->
     fdvar_remove_lte_inline
     fdvar_set_domain
     fdvar_set_value_inline
+    fdvar_set_range_inline
     fdvar_size
   }

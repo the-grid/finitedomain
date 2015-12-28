@@ -16,7 +16,8 @@ module.exports = (FD) ->
     # Apply an operator func to fdvar1 and fdvar2
     # Updates fdvar_result to the intersection of the result and itself
 
-    domain = domain_intersection op_func(fdvar1.dom, fdvar2.dom), fdvar_result.dom
+    from_op = op_func fdvar1.dom, fdvar2.dom
+    domain = domain_intersection from_op, fdvar_result.dom
     unless domain.length
       return REJECTED
 

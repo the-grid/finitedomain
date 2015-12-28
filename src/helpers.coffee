@@ -22,42 +22,51 @@ module.exports = (FD) ->
   NOT_FOUND = -1
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
   # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
-  NO_SUCH_VALUE = SUB-1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
-  DISABLED = true # slows down considerably when enabled, but ensures domains are proper only then
-  DISABLE_DOMAIN_CHECK = true # also causes unrelated errors because mocha sees the expandos
+  NO_SUCH_VALUE = SUB - 1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
+  ENABLED = false # slows down considerably when enabled, but ensures domains are proper only then
+  ENABLE_DOMAIN_CHECK = false # also causes unrelated errors because mocha sees the expandos
+  ENABLE_EMPTY_CHECK = false #  also causes unrelated errors because mocha sees the expandos
   PAIR_SIZE = 2
 
-  REMOVE_ASSERTS_START=1
+  # keep the next line. it's used by a post processor
+  REMOVE_ASSERTS_START = 1
 
   # For unit tests
   # Should be removed in production. Obviously.
 
-  ASSERT = (bool, msg='', args...) ->
-    unless !!bool
-      console.error 'Assertion fail: ' + msg
-      if args
-        console.log 'Error args:', args
-#      console.trace()
-#      process.exit() # uncomment for quick error access :)
-      throw new Error 'Assertion fail: ' + msg + ((args.length and (' Args: '+args.slice(0))) or '')
+  ASSERT = (bool, msg = '', args...) ->
+    if bool
+      return
+
+    console.error 'Assertion fail: ' + msg
+    if args
+      console.log 'Error args:', args
+    #      console.trace()
+    #      process.exit() # uncomment for quick error access :)
+    ASSERT_THROW 'Assertion fail: ' + msg + ((args.length and (' Args (' + args.length + 'x): [' + args.join(',') + ']')) or '')
     return
 
   # Simple function to completely validate a domain
   # Should be removed in production. Obviously.
 
   ASSERT_DOMAIN = (domain) ->
-    if DISABLED
+    if !ENABLED and !ENABLE_DOMAIN_CHECK
       return
+
     ASSERT !!domain, 'domains should be an array', domain
     ASSERT domain.length % PAIR_SIZE is 0, 'domains should contain pairs so len should be even', domain
-    phi = SUB-2 # this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
+    phi = SUB - 2 # this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
     for lo, index in domain by PAIR_SIZE
-      hi = domain[index+1]
-      ASSERT lo >= SUB, 'lo should be gte to SUB '+' ['+lo+']', domain
-      ASSERT hi >= SUB, 'hi should be gte to SUB '+' ['+hi+']', domain
-      ASSERT hi <= SUP, 'hi should be lte to SUP'+' ['+hi+']', domain
-      ASSERT lo <= hi, 'pairs should be lo<=hi'+' '+lo+' <= '+hi, domain
-      ASSERT lo > phi+1, 'domains should be in csis form internally, end point apis should normalize input to this'+domain, domain
+      hi = domain[index + 1]
+      ASSERT typeof lo is 'number', 'domains should just be numbers', domain
+      ASSERT typeof hi is 'number', 'domains should just be numbers', domain
+      ASSERT lo >= SUB, 'lo should be gte to SUB ' + ' [' + lo + ']', domain
+      ASSERT hi >= SUB, 'hi should be gte to SUB ' + ' [' + hi + ']', domain
+      ASSERT hi <= SUP, 'hi should be lte to SUP' + ' [' + hi + ']', domain
+      ASSERT lo <= hi, 'pairs should be lo<=hi' + ' ' + lo + ' <= ' + hi, domain
+      ASSERT lo > phi + 1, 'domains should be in csis form internally, end point apis should normalize input to this: ' + domain, domain
+      ASSERT (lo%1) is 0, 'domain should only contain integers', domain
+      ASSERT (hi%1) is 0, 'domain should only contain integers', domain
       phi = hi
     return
 
@@ -65,40 +74,50 @@ module.exports = (FD) ->
   # are "fresh", and at least not in use by any fdvar yet
 
   ASSERT_UNUSED_DOMAIN = (domain) ->
-    unless DISABLE_DOMAIN_CHECK
-      ASSERT !domain._fdvar_in_use, 'domains should be unique and not shared'
-      domain._fdvar_in_use = true # asserted just so automatic removal strips this line as well
+    if !ENABLED and !ENABLE_DOMAIN_CHECK
+      return
+
+    # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
+    ASSERT !domain._fdvar_in_use, 'domains should be unique and not shared'
+    domain._fdvar_in_use = true # asserted just so automatic removal strips this line as well
     return
 
   ASSERT_VARS = (vars) ->
-    if DISABLED
+    if !ENABLED
       return
+
     for name, fdvar of vars
       ASSERT_DOMAIN fdvar.dom
     return
 
   ASSERT_SPACE = (space) ->
-    if DISABLED
+    if !ENABLED
       return
+
     # TBD: expand with other assertions...
     ASSERT_VARS space.vars
     return
 
   ASSERT_SNODE = (snode) ->
-    if DISABLED
+    return # need to enable this once snodes are real
+    if !ENABLED
       return
+
     # TBD: expand with other assertions...
     ASSERT_VARS snode.changed_var_names
     return
 
   ASSERT_PROPAGATORS = (propagators) ->
+    if !ENABLED
+      return
+
     ASSERT !!propagators, 'propagators should exist', propagators
     for p in propagators
       ASSERT_PROPAGATOR p
     return
 
   ASSERT_PROPAGATOR = (propagator) ->
-    if DISABLED
+    if !ENABLED
       return
 
     ASSERT !!propagator, 'propagators should not be sparse', propagator
@@ -112,9 +131,52 @@ module.exports = (FD) ->
 
     return
 
-  REMOVE_ASSERTS_STOP=1
+  ASSERT_DOMAIN_EMPTY_SET = (domain) ->
+    if !ENABLED and !ENABLE_EMPTY_CHECK
+      return
+
+    if domain._trace
+      throw new Error 'Domain already marked as set to empty...: ' + domain._trace
+    # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
+    domain._trace = new Error().stack
+    return
+
+  ASSERT_DOMAIN_EMPTY_CHECK = (domain) ->
+    if !ENABLED
+      return
+
+    unless domain.length
+      if ENABLE_EMPTY_CHECK
+        if domain._trace
+          throw new Error 'Domain should not be empty but was set empty at: ' + domain._trace
+        throw new Error 'Domain should not be empty but was set empty at an untrapped point (investigate!)'
+      throw new Error 'Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)'
+    ASSERT_DOMAIN domain
+    return
+
+  ASSERT_DOMAIN_EMPTY_SET_OR_CHECK = (domain) ->
+    if !ENABLED
+      return
+
+    if domain.length
+      ASSERT_DOMAIN domain
+    else
+      ASSERT_DOMAIN_EMPTY_SET domain
+    return
+
+  # this prevents deopts for having a throw in the function
+
+  ASSERT_THROW = (msg) ->
+    throw new Error msg
+
+  # keep the next line. it's used by a post processor
+  REMOVE_ASSERTS_STOP = 1
 
   FD.helpers = {
+    ENABLED
+    ENABLE_DOMAIN_CHECK
+    ENABLE_EMPTY_CHECK
+
     REJECTED
     SUB
     SUP
@@ -125,10 +187,14 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_DOMAIN
+    ASSERT_DOMAIN_EMPTY_CHECK
+    ASSERT_DOMAIN_EMPTY_SET
+    ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
     ASSERT_PROPAGATOR
     ASSERT_PROPAGATORS
     ASSERT_SNODE
     ASSERT_SPACE
+    ASSERT_THROW
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS
   }

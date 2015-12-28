@@ -121,4 +121,4 @@ describe "FD - propagators - eq", ->
     test spec_d_create_ranges([0, 10], [20, 30], [40, 50]),  spec_d_create_ranges([5, 15], [25, 35]), spec_d_create_ranges([5, 10], [25, 30])
     test spec_d_create_ranges([0, 10], [20, 30], [40, 50]),  spec_d_create_ranges([SUB, SUP]), spec_d_create_ranges([0, 10], [20, 30], [40, 50])
     test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 1], [3, 3]), [], REJECTED
-    test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 2], [3, 3]), spec_d_create_range 2,2
+    test spec_d_create_ranges([0, 0], [2, 2]),  spec_d_create_ranges([1, 2], [4, 4]), spec_d_create_range 2,2

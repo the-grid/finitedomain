@@ -29,6 +29,17 @@ spec_d_create_full = ->
 spec_d_create_bool = ->
   return spec_d_create_ranges [0, 1]
 
+strip_anon_vars = (solution) ->
+  for name of solution
+    if String(parseFloat(name)) is name # only true of name is a number
+      delete solution[name]
+  return solution
+
+strip_anon_vars_a = (solutions) ->
+  for solution in solutions
+    strip_anon_vars solution
+  return solutions
+
 module.exports = {
   spec_d_create_range
   spec_d_create_ranges
@@ -38,4 +49,6 @@ module.exports = {
   spec_d_create_one
   spec_d_create_full
   spec_d_create_bool
+  strip_anon_vars
+  strip_anon_vars_a
 }

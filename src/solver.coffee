@@ -14,6 +14,7 @@ _ =
 module.exports = (FD) ->
 
   {
+    ASSERT
     ASSERT_SPACE
   } = FD.helpers
 
@@ -63,6 +64,7 @@ module.exports = (FD) ->
 
 
     constant: (num) ->
+      ASSERT (!isNaN num), 'Solver#constant: num is NaN', num, typeof num
       num = Number(num)
       return @_constants[num] if @_constants[num]?
       @_constants[num] = @S.konst num
@@ -80,9 +82,20 @@ module.exports = (FD) ->
       v.id = id
       v
 
-    addVar: (v) ->
+    # Uses @defaultDomain if no domain was given
+    # Distribution is optional
+    # Name is used to create a `byName` hash
+    #
+    # Usage:
+    # S.addVar 'foo'
+    # S.addVar 'foo', [1, 2]
+    # S.addVar {id: '12', name: 'foo', domain: [1, 2]}
+    # S.addVar {id: 'foo', domain: [1, 2]}
+    # S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
+
+    addVar: (v, domain) ->
       if typeof v is 'string'
-        v = {id:v}
+        v = {id:v, domain}
       {id, domain, name, distribute} = v
       throw new Error "FD Var requires id " unless id?
       throw new Error "FDSpace var.id already added: #{id}" if @vars.byId[id]
@@ -307,12 +320,16 @@ module.exports = (FD) ->
       solutions = @solutions
 
       ASSERT_SPACE state.space
-
       if log >= 1
         console.time '      - FD Solver Time'
+        console.log "      - FD Solver Prop Count: #{@S._propagators.length}"
+
+      considered = 0
       while state.more and count < max
         state = searchMethod state
-        break if state.status is 'end'
+        if state.status is 'end'
+          considered += state.considered
+          break
         count++
         unless squash
           solution = state.space.solution()
@@ -324,5 +341,6 @@ module.exports = (FD) ->
       if log >= 1
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
+        console.log "      - Spaces considered: #{considered}"
 
       return solutions

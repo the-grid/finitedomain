@@ -8,13 +8,16 @@ module.exports = (FD) ->
     SUB
     SUP
 
+    ENABLED
+    ENABLE_EMPTY_CHECK
+
     ASSERT
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
   } = FD.helpers
 
   {
-    get_distributor_value_func
+    get_distributor_value_factory
   } = FD.distribution
 
   {
@@ -23,14 +26,11 @@ module.exports = (FD) ->
     domain_create_zero
     domain_is_solved
     domain_min
-    domain_plus
-    domain_times
-    domain_minus
-    domain_divby
   } = FD.Domain
 
   {
     step_any
+    prop_is_solved
   } = FD.propagators
 
 #  {
@@ -96,8 +96,14 @@ module.exports = (FD) ->
     unsolved_names = []
     clone_vars = {}
 
+    vars = @vars
+    unsolved_propagators = []
+    for propagator in @_propagators
+      unless prop_is_solved vars, propagator
+        unsolved_propagators.push propagator
+
     pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
-    clone = space_new root, @_propagators, clone_vars, all_names, unsolved_names
+    clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
     # D4:
     # - add ref to high level solver
@@ -132,18 +138,19 @@ module.exports = (FD) ->
     targeted_var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
     if targeted_var_names.length > 0
       var_name = get_next_var @, targeted_var_names, root_space.get_var_fitness
-      vars_by_id = root_space.markov_vars_by_id
+      branch_vars_by_id = root_space.markov_vars_by_id
 
       # D4:
       # - now, each var can define it's own value distribution, regardless of default
-      if vars_by_id
-        # note: this is not the same as @vars[var_name] because that wont have the distribute property
-        fdvar = vars_by_id[var_name]
-        if fdvar
-          value_distributor = fdvar.distribute
-          if value_distributor
-            value_distributor = get_distributor_value_func value_distributor
-            return value_distributor root_space, var_name, fdvar.distributeOptions
+      if branch_vars_by_id
+        branch_var = branch_vars_by_id[var_name]
+        if branch_var
+          value_distributor_name = branch_var.distribute
+          if value_distributor_name
+            value_distributor_fac = get_distributor_value_factory value_distributor_name
+            value_distributor = value_distributor_fac root_space, var_name, branch_var.distributeOptions
+            return value_distributor
+
       if var_name
         return root_space.get_next_value @, var_name
     return false
@@ -166,11 +173,18 @@ module.exports = (FD) ->
       changed = false
       for prop_details in propagators
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+        # the domain of either var of a propagator can only be empty if the prop REJECTED
+        ASSERT n is REJECTED or (@.vars[prop_details[1][0]].dom.length and @.vars[prop_details[1][1]].dom.length), 'prop var empty but it didnt REJECT'
+        # if a domain was set empty and the flag is on the property should be set or
+        # the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
+        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][0]].dom.length or @.vars[prop_details[1][0]].dom._trace, 'domain empty but not marked'
+        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
+
         if n is SOMETHING_CHANGED
           changed = true
         else if n is REJECTED
           return false # solution impossible
-    # console.log(JSON.stringify(this.solution()));
     return true
 
   # Returns true if this space is solved - i.e. when
@@ -196,6 +210,7 @@ module.exports = (FD) ->
     for name, i in unsolved_names
       fdvar = vars[name]
       ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
+      ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
       if fdvar_is_solved fdvar
         ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
         fdvar.was_solved = true # makes Space#clone faster
@@ -235,21 +250,17 @@ module.exports = (FD) ->
     return result
 
   getset_var_solve_state = (var_name, vars, result) ->
-    value = undefined
     # Don't include the temporary variables in the "solution".
     # Temporary variables take the form of a numeric property
     # of the object, so we test for the var_name to be a number and
     # don't include those variables in the result.
-    c = var_name[0]
-    if c < '0' or c > '9'
-      domain = vars[var_name].dom
-      if domain.length is 0
-        value = false
-      else if domain_is_solved domain
-        value = domain_min domain
-      else
-        value = domain
-      result[var_name] = value
+    domain = vars[var_name].dom
+    value = domain
+    if domain.length is 0
+      value = false
+    else if domain_is_solved domain
+      value = domain_min domain
+    result[var_name] = value
 
     return value
 
@@ -292,7 +303,9 @@ module.exports = (FD) ->
   Space::decl_value = (val) ->
     if val >= SUB and val <= SUP # also catches NaN cases
       return @decl_anon domain_create_value val
-    throw new Error 'FD.space.konst: Value out of valid range'
+
+    ASSERT !isNaN(val), 'FD.space.konst: Value is NaN'
+    ASSERT false, "FD.space.konst: Value out of valid range SUB:#{SUB} <= val:#{val} <= SUP:#{SUP}"
 
   # Create N anonymous FD variables and return their names
   # in an array. Optionally set them to given dom for all
@@ -497,7 +510,7 @@ module.exports = (FD) ->
   # will return the current space so that other methods
   # can be invoked in sequence.
 
-  plus_or_times = (space, plusop, minusop, v1name, v2name, sumname) ->
+  plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     retval = space
     # If sumname is not specified, we need to create a anonymous
     # for the result and return the name of that anon variable.
@@ -506,9 +519,9 @@ module.exports = (FD) ->
       retval = sumname
 
     space._propagators.push(
-      ['ring', [v1name, v2name, sumname], plusop]
-      ['ring', [sumname, v1name, v2name], minusop]
-      ['ring', [sumname, v2name, v1name], minusop]
+      ['ring', [v1name, v2name, sumname], target_op_name]
+      ['ring', [sumname, v2name, v1name], inv_op_name]
+      ['ring', [sumname, v1name, v2name], inv_op_name]
     )
 
     ASSERT_PROPAGATORS space._propagators
@@ -519,13 +532,13 @@ module.exports = (FD) ->
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    return plus_or_times @, domain_plus, domain_minus, v1name, v2name, sumname
+    return plus_or_times @, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    return plus_or_times @, domain_times, domain_divby, v1name, v2name, prodname
+    return plus_or_times @, 'mul', 'div', v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -638,3 +651,73 @@ module.exports = (FD) ->
       anons.push t
     @sum anons, result_name
     return
+
+  # debug stuff (should be stripped from dist)
+
+  Space::__to_solver_test_case = () ->
+    things = ['S = new FD.Solver {}\n']
+
+    for name of @vars
+      things.push 'S.decl \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    things.push ''
+
+    @_propagators.forEach (c) ->
+      if c[0] is 'reified'
+        things.push 'S._cacheReified \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+      else if c[0] is 'ring'
+        switch c[2]
+          when 'plus'
+            things.push 'S.plus \''+c[1].join('\', \'')+'\''
+          when 'min'
+          # doesnt really exist. merely artifact of times
+            things.push '# S.minus \''+c[1].join('\', \'')+'\' # (artifact from .plus)'
+          when 'mul'
+            things.push 'S.times \''+c[1].join('\', \'')+'\''
+          when 'div'
+          # doesnt really exist. merely artifact of times
+            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .times)'
+          else
+            ASSERT false, 'unknown ring op name', c[2]
+      else
+        things.push 'S.'+c[0]+' \''+c[1].join('\', \'')+'\''
+
+    things.push '\nexpect(S.solve({max:10000}).length).to.eql 666'
+
+    return things.join '\n'
+
+  Space::__to_space_test_case = () ->
+    things = ['S = new Space {}\n']
+
+    for name of @vars
+      things.push 'S.decl \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    things.push ''
+
+    things.push 'S._propagators = [\n  ' + @_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
+
+    things.push '\nexpect(S.propagate()).to.eql true'
+
+    return things.join '\n'
+
+
+  Space::__debug_string = () ->
+
+    things = ['Vars:']
+
+    for name of @vars
+      things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+
+    things.push 'Propagators:'
+
+    @_propagators.forEach (c) ->
+      if c[0] is 'reified'
+        things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+      else
+        things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
+
+    return things.join '\n'
+
+  Space::_debug_var_domains = ->
+    things = []
+    for name of @vars
+      things.push name+': ['+@vars[name].dom+']'
+    return things.join ', '

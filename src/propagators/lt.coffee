@@ -3,8 +3,8 @@ module.exports = (FD) ->
     REJECTED
     ZERO_CHANGES
 
-    ASSERT
     ASSERT_DOMAIN
+    ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
 
   {
@@ -27,10 +27,8 @@ module.exports = (FD) ->
     lo_2 = fdvar_lower_bound fdvar2
     hi_2 = fdvar_upper_bound fdvar2
 
-    ASSERT_DOMAIN fdvar1.dom, 'v1 needs to be csis for this trick to work'
-    ASSERT_DOMAIN fdvar2.dom, 'v2 needs to be csis for this trick to work'
-    ASSERT !domain_is_rejected fdvar1.dom, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected fdvar2.dom, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK fdvar1.dom
+    ASSERT_DOMAIN_EMPTY_CHECK fdvar2.dom
 
     # every number in v1 can only be smaller than or equal to the biggest
     # value in v2. bigger values will never satisfy lt so prune them.
@@ -57,12 +55,21 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK dom1
+    ASSERT_DOMAIN_EMPTY_CHECK dom2
 #    if domain_is_rejected dom1 or domain_is_rejected dom2
 #      return true
 
     return domain_min(dom1) >= domain_max(dom2)
 
+  # lt is solved if fdvar1 contains no values that are equal
+  # to or higher than any numbers in fdvar2. Since domains
+  # only shrink we can assume that the lt constraint will not
+  # be broken by searching further once this state is seen.
+
+  lt_solved = (fdvar1, fdvar2) ->
+    return fdvar_upper_bound(fdvar1) < fdvar_lower_bound(fdvar2)
+
   FD.propagators.lt_step_bare = lt_step_bare
   FD.propagators.lt_step_would_reject = lt_step_would_reject
+  FD.propagators.lt_solved = lt_solved

@@ -1,6 +1,7 @@
 if typeof require is 'function'
   finitedomain = require '../../src/index'
   chai = require 'chai'
+  require '../fixtures/helpers.spec'
 
   {
     spec_d_create_bool
@@ -901,12 +902,11 @@ describe "FD - Domain", ->
       a = []
       expect(domain_plus [], a).to.not.equal a
 
-    it 'should return empty domain if one is empty', ->
+    it 'should throw if empty domains are passed on', ->
 
       a = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17])
-      expect(domain_plus (a.slice 0), []).to.eql []
-      expect(domain_plus [], (a.slice 0)).to.eql []
-      expect(domain_plus a, []).to.not.equal a
+      expect(-> domain_plus (a.slice 0), []).to.throw
+      expect(-> domain_plus [], (a.slice 0)).to.throw
 
     it 'should add two ranges', ->
 
@@ -1059,19 +1059,19 @@ describe "FD - Domain", ->
 
     it 'should divide one range from another', ->
 
-      expect(domain_divby spec_d_create_range(5, 10), spec_d_create_range(50, 60)).to.eql spec_d_create_range(0.1/12*10, 0.2)
+      expect(domain_divby spec_d_create_range(50, 60), spec_d_create_range(5, 10)).to.eql spec_d_create_range(5, 12)
 
     it 'should divide one domain from another', ->
 
       a = spec_d_create_ranges([5, 10], [20, 35])
       b = spec_d_create_ranges([50, 60], [110, 128])
-      expect(domain_divby a, b).to.eql spec_d_create_range(0.0390625, 0.7)
+      expect(domain_divby a, b).to.eql # would be [0.0390625, 0.7] but there are no ints in between that so its empty
 
     it 'should divide one domain from another (2)', ->
 
       a = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
       b = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
-      expect(domain_divby a, b).to.eql spec_d_create_ranges([0.058823529411764705, 12], [15, 17])
+      expect(domain_divby a, b).to.eql spec_d_create_ranges([1, 12], [15, 17])
 
     it 'divide by zero should blow up', ->
 
@@ -1200,12 +1200,12 @@ describe "FD - Domain", ->
       expect(arr).to.eql spec_d_create_range(0, SUP)
 
       arr = []
-      domain_set_to_range_inline arr, 27, 0
-      expect(arr).to.eql spec_d_create_range(27, 0)
-
-      arr = []
       domain_set_to_range_inline arr, SUP, SUP
       expect(arr).to.eql spec_d_create_range(SUP, SUP)
+
+    it 'should throw for imblalanced ranges', ->
+
+      expect(-> domain_set_to_range_inline [], 27, 0).to.throw
 
     it 'should update the array inline', ->
 
@@ -1457,3 +1457,6 @@ describe "FD - Domain", ->
       domain = spec_d_create_value 51
       domain_remove_lte_inline domain, 50
       expect(domain).to.eql spec_d_create_value 51
+
+  describe.skip 'domain_shares_no_elements', ->
+    # TODO test cases

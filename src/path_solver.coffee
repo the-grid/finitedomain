@@ -52,6 +52,7 @@ module.exports = (FD) ->
       for id, val of solution
         continue if val is 0
         branchVar = @vars.byId[id]
+        continue unless branchVar
         branchId = branchVar.branchId
         pathMeta = branchVar.pathMeta
         pathVal = undefined

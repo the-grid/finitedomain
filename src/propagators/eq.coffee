@@ -2,7 +2,7 @@ module.exports = (FD) ->
   {
     REJECTED
 
-    ASSERT
+    ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
 
   {
@@ -12,6 +12,7 @@ module.exports = (FD) ->
 
   {
     fdvar_force_eq_inline
+    fdvar_is_solved
   } = FD.Var
 
   # This eq propagator looks a lot different from neq because in
@@ -35,12 +36,19 @@ module.exports = (FD) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
-    ASSERT !domain_is_rejected dom1, 'empty domains should reject at time of becoming empty'
-    ASSERT !domain_is_rejected dom2, 'empty domains should reject at time of becoming empty'
+    ASSERT_DOMAIN_EMPTY_CHECK dom1
+    ASSERT_DOMAIN_EMPTY_CHECK dom2
 #    if domain_is_rejected dom1 or domain_is_rejected dom2
 #      return true
 
     return domain_shares_no_elements dom1, dom2
 
+  # An eq propagator is solved when both its vars are
+  # solved. Any other state may still lead to failure.
+
+  eq_solved = (fdvar1, fdvar2) ->
+    return fdvar_is_solved(fdvar1) and fdvar_is_solved fdvar2
+
   FD.propagators.eq_step_bare = eq_step_bare
   FD.propagators.eq_step_would_reject = eq_step_would_reject
+  FD.propagators.eq_solved = eq_solved

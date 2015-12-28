@@ -21,6 +21,7 @@ require('./propagators/scale_div')(FD)
 require('./propagators/scale_mul')(FD)
 require('./propagators/ring')(FD)
 require('./propagators/stepper_any')(FD) # should be last of the props
+require('./propagators/prop_is_solved')(FD) # should be last of the props
 require('./distribution/markov')(FD)
 require('./distribution/presets')(FD)
 require('./distribution/value')(FD)

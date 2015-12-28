@@ -521,8 +521,8 @@ module.exports = (FD) ->
 
     space._propagators.push(
       ['ring', [v1name, v2name, sumname], target_op_name]
-      ['ring', [sumname, v1name, v2name], inv_op_name]
       ['ring', [sumname, v2name, v1name], inv_op_name]
+      ['ring', [sumname, v1name, v2name], inv_op_name]
     )
 
     ASSERT_PROPAGATORS space._propagators

@@ -30,6 +30,7 @@ module.exports = (FD) ->
 
   {
     step_any
+    prop_is_solved
   } = FD.propagators
 
 #  {
@@ -98,10 +99,8 @@ module.exports = (FD) ->
     vars = @vars
     unsolved_propagators = []
     for propagator in @_propagators
-      for var_name in propagator[1]
-        unless fdvar_is_solved vars[var_name]
-          unsolved_propagators.push propagator
-          break
+      unless prop_is_solved vars, propagator
+        unsolved_propagators.push propagator
 
     pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
     clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names

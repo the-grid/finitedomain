@@ -62,5 +62,14 @@ module.exports = (FD) ->
 
     return domain_min(dom1) > domain_max(dom2)
 
+  # lte is solved if fdvar1 contains no values that are
+  # higher than any numbers in fdvar2. Since domains only
+  # shrink we can assume that the lte constraint will not
+  # be broken by searching further once this state is seen.
+
+  lte_solved = (fdvar1, fdvar2) ->
+    return fdvar_upper_bound(fdvar1) <= fdvar_lower_bound(fdvar2)
+
   FD.propagators.lte_step_bare = lte_step_bare
   FD.propagators.lte_step_would_reject = lte_step_would_reject
+  FD.propagators.lte_solved = lte_solved

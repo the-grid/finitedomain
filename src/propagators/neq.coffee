@@ -2,6 +2,7 @@ module.exports = (FD) ->
   {
     domain_max
     domain_min
+    domain_shares_no_elements
   } = FD.Domain
 
   {
@@ -33,5 +34,11 @@ module.exports = (FD) ->
     hi = domain_max dom1
     return lo is hi and lo is domain_min(dom2) and lo is domain_max(dom2)
 
+  # neq is solved if all values in both vars only occur in one var each
+
+  neq_solved = (fdvar1, fdvar2) ->
+    return domain_shares_no_elements fdvar1.dom, fdvar2.dom
+
   FD.propagators.neq_step_bare = neq_step_bare
   FD.propagators.neq_step_would_reject = neq_step_would_reject
+  FD.propagators.neq_solved = neq_solved

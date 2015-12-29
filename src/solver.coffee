@@ -6,6 +6,7 @@ module.exports = (FD) ->
     distribution
     Domain
     helpers
+    search: Search
     space: Space
   } = FD
 
@@ -315,48 +316,61 @@ module.exports = (FD) ->
     isLt: (e1, e2, boolvar) ->
       return @_cacheReified 'lt', e1, e2, boolvar
 
-    # If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
-    solve: (o={}, squash) ->
-      {max, log, vars, search, distribute:distributor_options} = o
+    # Start solving this solver. It should be setup with all the constraints.
+    #
+    # @param {Object} options
+    # @property {number} options.max
+    # @property {number} options.log One of: 0, 1 or 2
+    # @property {number} options.vars Target vars to force solve. Defaults to all.
+    # @property {number} options.search='depth_first' Maps to a function on FD.Search
+    # @property {number} options.distribute='naive' Maps to FD.distribution.value
+    # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
+
+    solve: (options={}, squash) ->
+      {
+        max
+        log
+        vars
+        search
+        distribute:distributor_options
+      } = options
+
       log ?= 0 # 1, 2
       max ?= 1000
       vars ?= @vars.all
-
       distributor_options ?= @distribute
-      create_custom_distributor @S, get_names(vars), distributor_options
+      create_custom_distributor @space, get_names(vars), distributor_options
 
       search ?= @search
-      searchMethod = FD.search[search]
-
-      state = @state
-
-      count = 0
 
       solutions = @solutions
 
+      @_solve @state, Search[search], solutions, max, log, squash
+
+      return solutions
+
+    _solve: (state, search_func, solutions, max, log, squash) ->
       ASSERT_SPACE state.space
+
+      count = 0
       if log >= 1
         console.time '      - FD Solver Time'
-        console.log "      - FD Solver Prop Count: #{@S._propagators.length}"
+        console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
 
-      considered = 0
       while state.more and count < max
-        state = searchMethod state
-        if state.status is 'end'
-          considered += state.considered
-          break
-        count++
-        unless squash
-          solution = state.space.solution()
-          solutions.push solution
-          if log >= 2
-            console.log "      - FD solution() ::::::::::::::::::::::::::::"
-            console.log JSON.stringify(solution)
+        state = search_func state
+        if state.status isnt 'end'
+          count++
+          unless squash
+            solution = state.space.solution()
+            solutions.push solution
+            if log >= 2
+              console.log "      - FD solution() ::::::::::::::::::::::::::::"
+              console.log JSON.stringify(solution)
 
       if log >= 1
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
-        console.log "      - Spaces considered: #{considered}"
 
-      return solutions
+      return

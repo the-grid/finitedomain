@@ -23,7 +23,8 @@ module.exports = (FD) ->
   } = distribution
 
   get_name = (e) ->
-    if e.id
+    # e can be the empty string (TOFIX: let's not allow this...)
+    if e.id?
       return e.id
     return e
 

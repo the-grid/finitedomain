@@ -81,6 +81,11 @@ module.exports = (FD) ->
     constant: (num) ->
       return @space.decl_value num
 
+    # Returns an anonymous var with given value as lo/hi for the domain
+
+    num: (num) ->
+      return @space.decl_value num
+
     addVars: (vs) ->
       for v in vs
         @addVar v

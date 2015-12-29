@@ -19,6 +19,7 @@ module.exports = (FD) ->
   } = FD
 
   {
+    domain_create_one
     domain_create_range
     domain_create_zero
     domain_from_list
@@ -42,9 +43,6 @@ module.exports = (FD) ->
       @searchPriority = searchPriority
 
       @vars.root = undefined
-
-      @one  = @on  = @constant 1
-      @zero = @off = @constant 0
 
       @compileTree(rawtree, branchRules)
 
@@ -152,13 +150,13 @@ module.exports = (FD) ->
       if e1.type is 'branch' and e2.type isnt 'branch'
         @['>='](
           @["#{op}?"](e1, e2),
-          @['==?'](e1.parent, @constant(e1.parentValue))
+          @['==?'](e1.parent, @num e1.parentValue)
         )
 
       #if e2.type is 'branch'
       #  parents.push e2.parent
       #if parents.length > 0
-      #  parents.push(@on) if parents.length is 1
+      #  parents.push(@num 1) if parents.length is 1
       #  @['>='](
       #    @['==?'](e1, e2),
       #    @['==?'](parents[0], parents[1])
@@ -170,7 +168,7 @@ module.exports = (FD) ->
 
     'kill': (paths) ->
       for path in paths
-        @['=='] path, @off
+        @['=='] path, @num 0
 
     '{}~=': (vars) ->
       # TODO
@@ -192,13 +190,13 @@ module.exports = (FD) ->
       @S.decl binder, domain_create_range(minDomain, maxDomain)
 
       @['=='](
-        @['==?'](binder,@off),
-        @['==?'](@['sum'](vars), @off)
+        @['==?'](binder, @num 0),
+        @['==?'](@['sum'](vars), @num 0)
       )
       for v in vars
         @['>='](
           @['==?'](v,binder),
-          @['==?'](v.parent,@constant(v.parentValue))
+          @['==?'](v.parent, @num v.parentValue)
         )
       @bindingCount++
       return binder
@@ -325,7 +323,7 @@ module.exports = (FD) ->
           meta = {
             pathIndex: pIndex
             value: branchValue
-            constant: @constant(branchValue)
+            constant: @num branchValue
           }
           if pathData
             meta.data = pathData
@@ -349,7 +347,7 @@ module.exports = (FD) ->
 
       # root branch must be on
       if branchVar?.id is @rootBranchName
-        @['=='] branchVar, @one
+        @['=='] branchVar, @num 1
 
       if parentBranchVar?
 
@@ -359,20 +357,20 @@ module.exports = (FD) ->
           # but if off, parent can be on
           unless parentIsRoot or parentBranchVar?.required
             @['>='](
-              @['==?'](branchVar, @off),
-              @['==?'](parentBranchVar, @off)
+              @['==?'](branchVar, @num 0),
+              @['==?'](parentBranchVar, @num 0)
             )
         # if branch is required
         else if required or parentIsRoot
           # branch is on
-          @['>='](branchVar, @one)
+          @['>='](branchVar, @num 1)
           # parent branch must be parentValue as well
-          @['=='](parentBranchVar, @constant(parentValue)) unless parentIsRoot or parentBranchVar?.required
+          @['=='](parentBranchVar, @num parentValue) unless parentIsRoot or parentBranchVar?.required
         else
           # branch is on if parent is parentValue
           @['=='](
-            @['>=?'](branchVar, @one),
-            @['==?'](parentBranchVar, @constant(parentValue))
+            @['>=?'](branchVar, @num 1),
+            @['==?'](parentBranchVar, @num parentValue)
           )
 
         parentBranchVar.children.push branchVar

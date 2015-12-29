@@ -21,13 +21,13 @@ spec_d_create_list = (list) ->
   list.forEach (value) -> arr.push value, value
   return arr
 spec_d_create_zero = ->
-  return spec_d_create_ranges [0, 0]
+  return spec_d_create_range 0, 0
 spec_d_create_one = ->
-  return spec_d_create_ranges [1, 1]
+  return spec_d_create_range 1, 1
 spec_d_create_full = ->
-  return spec_d_create_ranges [0, SUP]
+  return spec_d_create_range 0, SUP
 spec_d_create_bool = ->
-  return spec_d_create_ranges [0, 1]
+  return spec_d_create_range 0, 1
 
 strip_anon_vars = (solution) ->
   for name of solution

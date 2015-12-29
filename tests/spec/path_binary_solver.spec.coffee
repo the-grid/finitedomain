@@ -77,10 +77,10 @@ describe "PathBinarySolver", ->
       # .text-align:p(0) == off;
       # .size:p(0) == off;
       # .cols:p(0) ~= on;
-      S['~='] S.branchesByName['align'][0].childByName['0'], S.on
-      S['=='] S.branchesByName['text_align'][0].childByName['0'], S.off
-      S['=='] S.branchesByName['size'][0].childByName['0'], S.off
-      S['~='] S.branchesByName['cols'][0].childByName['0'], S.on
+      S['~='] S.branchesByName['align'][0].childByName['0'], S.num 1
+      S['=='] S.branchesByName['text_align'][0].childByName['0'], S.num 0
+      S['=='] S.branchesByName['size'][0].childByName['0'], S.num 0
+      S['~='] S.branchesByName['cols'][0].childByName['0'], S.num 1
       expect(S).to.be.ok
       samples = S.solve({log:1})
       expect(samples.length).to.equal 4
@@ -91,10 +91,10 @@ describe "PathBinarySolver", ->
       # .text-align:p(0) == off;
       # .size:p(0) == off;
       # .cols:p(0) ~= on;
-      S['branch,path~='] 'align', '0', S.on
-      S['branch,path=='] 'text_align', '0', S.off
-      S['branch,path=='] 'size', '0', S.off
-      S['branch,path~='] 'cols', '0', S.on
+      S['branch,path~='] 'align', '0', S.num 1
+      S['branch,path=='] 'text_align', '0', S.num 0
+      S['branch,path=='] 'size', '0', S.num 0
+      S['branch,path~='] 'cols', '0', S.num 1
       expect(S).to.be.ok
       samples = S.solve()
       expect(samples.length).to.equal 4
@@ -117,8 +117,8 @@ describe "PathBinarySolver", ->
       cols_0_paths = S.branchesByName['cols'].map (b) ->
         b.childByName['0']
 
-      S['~='] align_0_paths.concat(cols_0_paths), S.on
-      S['=='] text_align_0_paths.concat(size_0_paths), S.off
+      S['~='] align_0_paths.concat(cols_0_paths), S.num 1
+      S['=='] text_align_0_paths.concat(size_0_paths), S.num 0
       #S['=='] size_0_paths, text_align_0_paths
       #S['~='] align_0_paths, cols_0_paths
       expect(S).to.be.ok
@@ -143,8 +143,8 @@ describe "PathBinarySolver", ->
       cols_0_paths = S.branchesByName['cols'].map (b) ->
         b.childByName['0']
 
-      S['~='] align_0_paths, S.on
-      S['=='] text_align_0_paths, S.off
+      S['~='] align_0_paths, S.num 1
+      S['=='] text_align_0_paths, S.num 0
       S['=='] size_0_paths, text_align_0_paths
       S['~='] align_0_paths, cols_0_paths
       expect(S).to.be.ok
@@ -197,7 +197,7 @@ describe "PathBinarySolver", ->
 
     it "ex) 1", ->
       S = new FD.PathBinarySolver m
-      S['=='] S['branch/path']['B/1'], S.on
+      S['=='] S['branch/path']['B/1'], S.num 1
       expect(S).to.be.ok
       samples = S.solve()
       expect(samples.length).to.equal 1
@@ -206,14 +206,14 @@ describe "PathBinarySolver", ->
       S = new FD.PathBinarySolver m
       paths = S.pathsByDataKey['$class'].filter (p) ->
         return 'B1' in p.data.$class
-      S['=='] paths, S.on
+      S['=='] paths, S.num 1
       expect(S).to.be.ok
       samples = S.solve()
       expect(samples.length).to.equal 1
 
     it "ex) 2", ->
       S = new FD.PathBinarySolver m
-      S['~='] S['branch/path']['A/1'], S.on
+      S['~='] S['branch/path']['A/1'], S.num 1
       S['{}~='] S['branch/path']['B/0']
       S['{}~='] S['branch/path']['B/1']
       S['{}~='] S['branch/path']['B/2']
@@ -223,7 +223,7 @@ describe "PathBinarySolver", ->
 
     it "ex) 2.b", ->
       S = new FD.PathBinarySolver m
-      S['~='] S['branch/path']['A/1'], S.on
+      S['~='] S['branch/path']['A/1'], S.num 1
       S['{branches}~='] S.branchesByName['B']
       expect(S).to.be.ok
       samples = S.solve({log:1})
@@ -231,7 +231,7 @@ describe "PathBinarySolver", ->
 
     it "ex) 3", ->
       S = new FD.PathBinarySolver m
-      S['=='] S['branch/path']['A/1'], S.off
+      S['=='] S['branch/path']['A/1'], S.num 0
       S['{branches}~='] S.branchesByName['B']
       expect(S).to.be.ok
       samples = S.solve({log:1})

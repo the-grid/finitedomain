@@ -33,18 +33,14 @@ module.exports = (FD) ->
 
       {
         branchRules
-        searchPriority
       } = o
 
-      @branchRules = branchRules
       @distribute = 'naive'
       @rootBranchName = rawtree.branchName
-      @rootPathName = rawtree.paths[0]
-      @searchPriority = searchPriority
 
       @vars.root = undefined
 
-      @compileTree(rawtree, branchRules)
+      @compileTree rawtree, branchRules
 
     solutionToPath: (solution) ->
       path = {}
@@ -245,30 +241,6 @@ module.exports = (FD) ->
       else if parentBranchVar?
         if parentBranchVar.required and parentBranchVar.paths.length is 1
           required = true
-
-      # sort paths by search priority
-      #if paths?
-      #  {path} = branch
-      #  if @searchPriority
-      #    paths = paths.slice(0) # paths is array of path name strings, so shallow clone all good
-      #    pathScores = {}
-      #    for pName, pIndex in paths
-      #      pathScores[pName] ?= 0
-      #      pathData = path?[pName]?.data
-      #      # check by class
-      #      $class = pathData?.$class
-      #      continue unless $class
-      #      for className in $class
-      #        score = @searchPriority.byClass?[className]
-      #        continue unless score?
-      #        pathScores[pName] += score
-      #
-      #    paths.sort (a,b) ->
-      #      pathScores[b] - pathScores[a]
-      #
-      #  else
-      #    paths = paths
-
 
       branchVar = {
         _class: 'branchvar'

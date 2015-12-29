@@ -74,6 +74,9 @@ module.exports = (FD) ->
 
       @state = {@space, more: true}
 
+    # This wasn't a bad idea but the code debt is not worth it
+    # @deprecated
+
     constant: (num) ->
       return @space.decl_value num
 

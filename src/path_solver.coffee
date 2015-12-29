@@ -30,10 +30,15 @@ module.exports = (FD) ->
 
       super
 
-      @distribute = 'naive'
+      {
+        branchRules
+        searchPriority
+      } = o
 
-      {branchRules, searchPriority} = o
       @branchRules = branchRules
+      @distribute = 'naive'
+      @rootBranchName = rawtree.branchName
+      @rootPathName = rawtree.paths[0]
       @searchPriority = searchPriority
 
       @vars.root = undefined
@@ -41,11 +46,7 @@ module.exports = (FD) ->
       @one  = @on  = @constant 1
       @zero = @off = @constant 0
 
-      @rootBranchName = rawtree.branchName
-      @rootPathName = rawtree.paths[0]
-
       @compileTree(rawtree, branchRules)
-      @
 
     solutionToPath: (solution) ->
       path = {}

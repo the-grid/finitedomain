@@ -81,10 +81,9 @@ module.exports = (FD) ->
       return @space.decl_value num
 
     addVars: (vs) ->
-      vars = []
       for v in vs
-        vars.push @addVar v
-      vs
+        @addVar v
+      return
 
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0

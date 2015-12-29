@@ -1,86 +1,95 @@
 # Adds FD.Solver to FD.js
 
-_ =
-  e: (e) ->
-    return e.id if e.id?
-    return e
-
-  es: (es) ->
-    vnames = []
-    for v in es
-      vnames.push _.e(v)
-    vnames
-
 module.exports = (FD) ->
+
+  {
+    distribution
+    Domain
+    helpers
+    search: Search
+    space: Space
+  } = FD
 
   {
     ASSERT
     ASSERT_SPACE
-  } = FD.helpers
+  } = helpers
 
   {
     domain_create_bool
-  } = FD.Domain
+  } = Domain
 
   {
     create_custom_distributor
-  } = FD.distribution
+  } = distribution
+
+  get_name = (e) ->
+    # e can be the empty string (TOFIX: let's not allow this...)
+    if e.id?
+      return e.id
+    return e
+
+  get_names = (es) ->
+    var_names = []
+    for e in es
+      var_names.push get_name e
+
+    return var_names
+
+  # This is a super class.
+  # It is extended by path_solver and path_binary_solver.
+  #
+  # @constructor
+  # @param {Object} o
+  # @property {string} o.distribute='naive'
+  # @property {string} o.search='depth_first'
+  # @property {number[]} defaultDomain=[0,1]
 
   class FD.Solver
 
     constructor: (o={}) ->
-      {@distribute, @search, @defaultDomain} = o
+      {
+        @distribute
+        @search
+        @defaultDomain
+      } = o
 
       @search ?= 'depth_first'
-
       @distribute ?= 'naive'
-
       @defaultDomain ?= domain_create_bool()
 
-      @S = new FD.space()
-      @S.solver = @
+      # TOFIX: get rid of this bi-directional dependency Space <> Solver
+      @space = new Space
+      @space.solver = @
+
+      # TOFIX: deprecate @S in favor of @space
+      @S = @space
 
       @vars =
-        byId:{}
-        byName:{}
-        all:[]
-        byClass:{}
+        byId: {}
+        byName: {}
+        all: []
+        byClass: {}
 
-      # TODO
-      # - constants & resetState? eek
-      @_constants = {}
-      @_cache = {}
+      @solutions = []
 
-      @resetState()
-      @
+      @state = {@space, more: true}
 
-    # Variables
-
-    valueOf: (varr, solution) ->
-      return solution[varr.id]
-
-    varsByName: (name, context) ->
-      return @vars
-
+    # This wasn't a bad idea but the code debt is not worth it
+    # @deprecated
 
     constant: (num) ->
-      ASSERT (!isNaN num), 'Solver#constant: num is NaN', num, typeof num
-      num = Number(num)
-      return @_constants[num] if @_constants[num]?
-      @_constants[num] = @S.konst num
-      @_constants[num]
+      return @space.decl_value num
 
     addVars: (vs) ->
-      vars = []
       for v in vs
-        vars.push @addVar v
-      vs
+        @addVar v
+      return
 
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
-      v = @S.decl id, domain
-      v.id = id
-      v
+      @space.decl id, domain
+      return
 
     # Uses @defaultDomain if no domain was given
     # Distribution is optional
@@ -95,252 +104,273 @@ module.exports = (FD) ->
 
     addVar: (v, domain) ->
       if typeof v is 'string'
-        v = {id:v, domain}
-      {id, domain, name, distribute} = v
-      throw new Error "FD Var requires id " unless id?
-      throw new Error "FDSpace var.id already added: #{id}" if @vars.byId[id]
+        v = {
+          id: v
+          domain
+        }
+
+      {
+        id,
+        domain
+        name
+        distribute
+      } = v
+
+      vars = @vars
+
+      unless id?
+        throw new Error "Solver#addVar: requires id "
+      if vars.byId[id]
+        throw new Error "Solver#addVar: var.id already added: #{id}"
+
       domain ?= @defaultDomain.slice 0
-      @S.decl id, domain
-      @vars.byId[id] = v
-      @vars.all.push v
+      @space.decl id, domain
+      vars.byId[id] = v
+      vars.all.push v
 
       if name?
-        @vars.byName[name] ?= []
-        @vars.byName[name].push v
+        vars.byName[name] ?= []
+        vars.byName[name].push v
 
       if distribute is 'markov'
-        o = v.distributeOptions
-        {matrix} = o
-        throw new Error "markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}" unless matrix
+        matrix = v.distributeOptions.matrix
+        unless matrix
+          throw new Error "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
         for row in matrix
-          boolean = row.boolean
-          if boolean?
-            if typeof boolean is 'function'
-              row.booleanId = boolean(@,v)
+          bool_func = row.boolean
+          if typeof bool_func is 'function'
+            row.booleanId = bool_func @, v
 
-      # {classes} = v
-      # if classes
-      #   for className in classes
-      #     @vars.byClass[className] ?= []
-      #     @vars.byClass[className].push v
-      v
+      return v
+
 
     # Arithmetic Propagators
 
-    '+': (e1, e2, resultVar) ->
-      @plus e1, e2, resultVar
-    plus: (e1, e2, resultVar) ->
-      return @S.plus _.e(e1), _.e(e2), _.e(resultVar) if resultVar
-      return @S.plus _.e(e1), _.e(e2)
+    '+': (e1, e2, result_var) ->
+      return @plus e1, e2, result_var
+    plus: (e1, e2, result_var) ->
+      if result_var
+        return @space.plus get_name(e1), get_name(e2), get_name(result_var)
+      return @space.plus get_name(e1), get_name(e2)
 
-    '*': (e1, e2, resultVar) ->
-      @times e1, e2, resultVar
-    times: (e1, e2, resultVar) ->
-      return @S.times _.e(e1), _.e(e2), _.e(resultVar) if resultVar
-      return @S.times _.e(e1), _.e(e2)
+    '*': (e1, e2, result_var) ->
+      return @times e1, e2, result_var
+    times: (e1, e2, result_var) ->
+      if result_var
+        return @space.times get_name(e1), get_name(e2), get_name(result_var)
+      return @space.times get_name(e1), get_name(e2)
 
-    '∑': (es, resultVar) ->
-      @sum es, resultVar
+    '∑': (es, result_var) ->
+      return @sum es, result_var
     #_sumCache: null
-    sum: (es, resultVar) ->
-      vnames = _.es es
-      #@_sumCache ?= {}
-      #key = vnames.toString()
-      #if @_sumCache[key]?
-      #else
-      #@_sumCache[key] = true
-      return @S.sum vnames, _.e(resultVar) if resultVar
-      return @S.sum vnames
+    sum: (es, result_var) ->
+      var_names = get_names es
+      if result_var
+        return @space.sum var_names, get_name(result_var)
+      return @space.sum var_names
 
-    '∏': (es, resultVar) ->
-      @product es, resultVar
-    product: (es, resultVar) ->
-      vnames = _.es es
-      return @S.product vnames, _.e(resultVar) if resultVar
-      return @S.product vnames
+    '∏': (es, result_var) ->
+      return @product es, result_var
+    product: (es, result_var) ->
+      var_names = get_names es
+      if result_var
+        return @space.product var_names, get_name(result_var)
+      return @space.product var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
     # wsum          ∑ k*v
     # scale         k*v
 
+
     # (In)equality Propagators
     # only first expression can be array
 
     '{}≠': (es) ->
       @distinct es
+      return
     distinct: (es) ->
-      @S.distinct _.es(es)
+      @space.distinct get_names(es)
+      return
 
     '==': (e1, e2) ->
       @eq e1, e2
+      return
     eq: (e1, e2) ->
-      return @_eq(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_eq e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_eq e, e2
+      else
+        @_eq e1, e2
+      return
     _eq: (e1, e2) ->
-      @S.eq _.e(e1), _.e(e2)
-      @
+      @space.eq get_name(e1), get_name(e2)
+      return
 
     '!=': (e1, e2) ->
       @neq e1, e2
+      return
     neq: (e1, e2) ->
-      return @_neq(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_neq e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_neq e, e2
+      else
+        return @_neq e1, e2
+      return
     _neq: (e1, e2) ->
-      @S.neq _.e(e1), _.e(e2)
-      @
+      @space.neq get_name(e1), get_name(e2)
+      return
 
     '>=': (e1, e2) ->
       @gte e1, e2
+      return
     gte: (e1, e2) ->
-      return @_gte(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_gte e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_gte e, e2
+      else
+        @_gte e1, e2
+      return
     _gte: (e1, e2) ->
-      @S.gte _.e(e1), _.e(e2)
-      @
+      @space.gte get_name(e1), get_name(e2)
+      return
 
     '<=': (e1, e2) ->
       @lte e1, e2
+      return
     lte: (e1, e2) ->
-      return @_lte(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_lte e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_lte e, e2
+      else
+        @_lte e1, e2
+      return
     _lte: (e1, e2) ->
-      @S.lte _.e(e1), _.e(e2)
-      @
+      @space.lte get_name(e1), get_name(e2)
+      return
 
     '>': (e1, e2) ->
       @gt e1, e2
+      return
     gt: (e1, e2) ->
-      return @_gt(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_gt e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_gt e, e2
+      else
+        @_gt e1, e2
+      return
     _gt: (e1, e2) ->
-      @S.gt _.e(e1), _.e(e2)
-      @
+      @space.gt get_name(e1), get_name(e2)
+      return
 
     '<': (e1, e2) ->
       @lt e1, e2
+      return
     lt: (e1, e2) ->
-      return @_lt(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_lt e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_lt e, e2
+      else
+        @_lt e1, e2
+      return
     _lt: (e1, e2) ->
-      @S.lt _.e(e1), _.e(e2)
-      @
+      @space.lt get_name(e1), get_name(e2)
+      return
 
 
     # Conditions, ie Reified (In)equality Propagators
     _cacheReified: (op, e1, e2, boolvar) ->
-      e1 = _.e(e1)
-      e2 = _.e(e2)
-      key = "#{e1} #{op}? #{e2}"
+      e1 = get_name(e1)
+      e2 = get_name(e2)
       if boolvar
-        boolvar = _.e(boolvar)
-        if !@_cache[key]?
-          @S.reified op, e1, e2, boolvar
-          @_cache[key] = boolvar
-        else
-          cache = @_cache[key]
-          return cache if cache is boolvar
-          return @S['=='](cache, boolvar)
-        return @
-      else
-        @_cache[key] ?= @S.reified op, e1, e2
-        @_cache[key]
+        return @space.reified op, e1, e2, get_name boolvar
+      return @space.reified op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
-      @_cacheReified 'neq', e1, e2, boolvar
+      return @isNeq e1, e2, boolvar
     isNeq: (e1, e2, boolvar) ->
-      @_cacheReified 'neq', e1, e2, boolvar
+      return @_cacheReified 'neq', e1, e2, boolvar
 
     '==?': (e1, e2, boolvar) ->
-      @_cacheReified 'eq', e1, e2, boolvar
+      return @isEq e1, e2, boolvar
     isEq: (e1, e2, boolvar) ->
-      @_cacheReified 'eq', e1, e2, boolvar
-      #return @S.reified 'eq', _.e(e1), _.e(e2), _.e(boolvar) if boolvar
-      #return @S.reified 'eq', _.e(e1), _.e(e2)
+      return @_cacheReified 'eq', e1, e2, boolvar
 
     '>=?': (e1, e2, boolvar) ->
-      @_cacheReified 'gte', e1, e2, boolvar
+      return @isGte e1, e2, boolvar
     isGte: (e1, e2, boolvar) ->
-      @_cacheReified 'gte', e1, e2, boolvar
+      return @_cacheReified 'gte', e1, e2, boolvar
 
     '<=?': (e1, e2, boolvar) ->
-      @_cacheReified 'lte', e1, e2, boolvar
+      return @isLte e1, e2, boolvar
     isLte: (e1, e2, boolvar) ->
-      @_cacheReified 'lte', e1, e2, boolvar
+      return @_cacheReified 'lte', e1, e2, boolvar
 
     '>?': (e1, e2, boolvar) ->
-      @_cacheReified 'gt', e1, e2, boolvar
+      return @isGt e1, e2, boolvar
     isGt: (e1, e2, boolvar) ->
-      @_cacheReified 'gt', e1, e2, boolvar
+      return @_cacheReified 'gt', e1, e2, boolvar
 
     '<?': (e1, e2, boolvar) ->
-      @_cacheReified 'lt', e1, e2, boolvar
+      return @isLt e1, e2, boolvar
     isLt: (e1, e2, boolvar) ->
-      @_cacheReified 'lt', e1, e2, boolvar
+      return @_cacheReified 'lt', e1, e2, boolvar
 
 
-    # Solving
+    # Start solving this solver. It should be setup with all the constraints.
+    #
+    # @param {Object} options
+    # @property {number} options.max
+    # @property {number} options.log One of: 0, 1 or 2
+    # @property {number} options.vars Target vars to force solve. Defaults to all.
+    # @property {number} options.search='depth_first' Maps to a function on FD.Search
+    # @property {number} options.distribute='naive' Maps to FD.distribution.value
+    # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
-    resetState: () ->
-      @solutions = []
-      space = @S #new FD.space @S # TODO???
-      @state = {space:space, more:true}
-      @
+    solve: (options={}, squash) ->
+      {
+        max
+        log
+        vars
+        search
+        distribute:distributor_options
+      } = options
 
-    # If squashed, dont get the actual solutions. They are irrelevant for perf tests.
-
-    solve: (o={}, squash) ->
-      {max, log, vars, search, distribute:distributor_options} = o
       log ?= 0 # 1, 2
       max ?= 1000
       vars ?= @vars.all
-
       distributor_options ?= @distribute
-      create_custom_distributor @S, _.es(vars), distributor_options
+      create_custom_distributor @space, get_names(vars), distributor_options
 
       search ?= @search
-      searchMethod = FD.search[search]
-
-      state = @state
-
-      count = 0
 
       solutions = @solutions
 
+      @_solve @state, Search[search], solutions, max, log, squash
+
+      return solutions
+
+    _solve: (state, search_func, solutions, max, log, squash) ->
       ASSERT_SPACE state.space
+
+      count = 0
       if log >= 1
         console.time '      - FD Solver Time'
-        console.log "      - FD Solver Prop Count: #{@S._propagators.length}"
+        console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
 
-      considered = 0
       while state.more and count < max
-        state = searchMethod state
-        if state.status is 'end'
-          considered += state.considered
-          break
-        count++
-        unless squash
-          solution = state.space.solution()
-          solutions.push solution
-          if log >= 2
-            console.log "      - FD solution() ::::::::::::::::::::::::::::"
-            console.log JSON.stringify(solution)
+        state = search_func state
+        if state.status isnt 'end'
+          count++
+          unless squash
+            solution = state.space.solution()
+            solutions.push solution
+            if log >= 2
+              console.log "      - FD solution() ::::::::::::::::::::::::::::"
+              console.log JSON.stringify(solution)
 
       if log >= 1
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
-        console.log "      - Spaces considered: #{considered}"
 
-      return solutions
+      return

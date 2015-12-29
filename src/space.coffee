@@ -301,11 +301,11 @@ module.exports = (FD) ->
   # Note: use #num() to give it a name. TODO: combine these funcs to a single func with optional name arg...
 
   Space::decl_value = (val) ->
-    if val >= SUB and val <= SUP # also catches NaN cases
-      return @decl_anon domain_create_value val
+    ASSERT !isNaN(val), 'Space#decl_value: Value is NaN', val
+    ASSERT val >= SUB, 'val must be above minimum value', val
+    ASSERT val <= SUP, 'val must be below max value', val
 
-    ASSERT !isNaN(val), 'FD.space.konst: Value is NaN'
-    ASSERT false, "FD.space.konst: Value out of valid range SUB:#{SUB} <= val:#{val} <= SUP:#{SUP}"
+    return @decl_anon domain_create_value val
 
   # Create N anonymous FD variables and return their names
   # in an array. Optionally set them to given dom for all

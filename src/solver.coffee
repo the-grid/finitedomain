@@ -3,17 +3,24 @@
 module.exports = (FD) ->
 
   {
+    distribution
+    Domain
+    helpers
+    space: Space
+  } = FD
+
+  {
     ASSERT
     ASSERT_SPACE
-  } = FD.helpers
+  } = helpers
 
   {
     domain_create_bool
-  } = FD.Domain
+  } = Domain
 
   {
     create_custom_distributor
-  } = FD.distribution
+  } = distribution
 
   get_name = (e) ->
     if e.id

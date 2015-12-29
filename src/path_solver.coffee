@@ -14,7 +14,6 @@ module.exports = (FD) ->
 
   {
     Domain
-    merge_path_meta
     Solver
   } = FD
 
@@ -58,20 +57,6 @@ module.exports = (FD) ->
           return path_name
 
       throw new Error "solution to Path error"
-
-    solutionMeta: (solution, varIds) ->
-      data = {}
-      for id, val of solution
-        if varIds
-          continue unless id in varIds
-        continue if val is 0
-        branchVar = @vars.byId[id]
-        pathMeta = branchVar.pathMeta
-        for pathName, meta of pathMeta
-          if meta.value is val
-            data = merge_path_meta meta.data, data
-            break
-      return data
 
     collapseSolution: (solution) ->
       path = @S.solutionToPath(solution)

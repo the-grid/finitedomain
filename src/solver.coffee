@@ -74,15 +74,6 @@ module.exports = (FD) ->
 
       @state = {@space, more: true}
 
-    # Variables
-
-    valueOf: (varr, solution) ->
-      return solution[varr.id]
-
-    varsByName: (name, context) ->
-      return @vars
-
-
     constant: (num) ->
       return @space.decl_value num
 

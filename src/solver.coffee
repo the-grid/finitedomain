@@ -142,161 +142,178 @@ module.exports = (FD) ->
 
       return v
 
+
     # Arithmetic Propagators
 
-    '+': (e1, e2, resultVar) ->
-      @plus e1, e2, resultVar
-    plus: (e1, e2, resultVar) ->
-      return @S.plus get_name(e1), get_name(e2), get_name(resultVar) if resultVar
-      return @S.plus get_name(e1), get_name(e2)
+    '+': (e1, e2, result_var) ->
+      return @plus e1, e2, result_var
+    plus: (e1, e2, result_var) ->
+      if result_var
+        return @space.plus get_name(e1), get_name(e2), get_name(result_var)
+      return @space.plus get_name(e1), get_name(e2)
 
-    '*': (e1, e2, resultVar) ->
-      @times e1, e2, resultVar
-    times: (e1, e2, resultVar) ->
-      return @S.times get_name(e1), get_name(e2), get_name(resultVar) if resultVar
-      return @S.times get_name(e1), get_name(e2)
+    '*': (e1, e2, result_var) ->
+      return @times e1, e2, result_var
+    times: (e1, e2, result_var) ->
+      if result_var
+        return @space.times get_name(e1), get_name(e2), get_name(result_var)
+      return @space.times get_name(e1), get_name(e2)
 
-    '∑': (es, resultVar) ->
-      @sum es, resultVar
+    '∑': (es, result_var) ->
+      return @sum es, result_var
     #_sumCache: null
-    sum: (es, resultVar) ->
-      vnames = get_names es
-      #@_sumCache ?= {}
-      #key = vnames.toString()
-      #if @_sumCache[key]?
-      #else
-      #@_sumCache[key] = true
-      return @S.sum vnames, get_name(resultVar) if resultVar
-      return @S.sum vnames
+    sum: (es, result_var) ->
+      var_names = get_names es
+      if result_var
+        return @space.sum var_names, get_name(result_var)
+      return @space.sum var_names
 
-    '∏': (es, resultVar) ->
-      @product es, resultVar
-    product: (es, resultVar) ->
-      vnames = get_names es
-      return @S.product vnames, get_name(resultVar) if resultVar
-      return @S.product vnames
+    '∏': (es, result_var) ->
+      return @product es, result_var
+    product: (es, result_var) ->
+      var_names = get_names es
+      if result_var
+        return @space.product var_names, get_name(result_var)
+      return @space.product var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
     # wsum          ∑ k*v
     # scale         k*v
 
+
     # (In)equality Propagators
     # only first expression can be array
 
     '{}≠': (es) ->
       @distinct es
+      return
     distinct: (es) ->
-      @S.distinct get_names(es)
+      @space.distinct get_names(es)
+      return
 
     '==': (e1, e2) ->
       @eq e1, e2
+      return
     eq: (e1, e2) ->
-      return @_eq(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_eq e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_eq e, e2
+      else
+        @_eq e1, e2
+      return
     _eq: (e1, e2) ->
-      @S.eq get_name(e1), get_name(e2)
-      @
+      @space.eq get_name(e1), get_name(e2)
+      return
 
     '!=': (e1, e2) ->
       @neq e1, e2
+      return
     neq: (e1, e2) ->
-      return @_neq(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_neq e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_neq e, e2
+      else
+        return @_neq e1, e2
+      return
     _neq: (e1, e2) ->
-      @S.neq get_name(e1), get_name(e2)
-      @
+      @space.neq get_name(e1), get_name(e2)
+      return
 
     '>=': (e1, e2) ->
       @gte e1, e2
+      return
     gte: (e1, e2) ->
-      return @_gte(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_gte e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_gte e, e2
+      else
+        @_gte e1, e2
+      return
     _gte: (e1, e2) ->
-      @S.gte get_name(e1), get_name(e2)
-      @
+      @space.gte get_name(e1), get_name(e2)
+      return
 
     '<=': (e1, e2) ->
       @lte e1, e2
+      return
     lte: (e1, e2) ->
-      return @_lte(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_lte e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_lte e, e2
+      else
+        @_lte e1, e2
+      return
     _lte: (e1, e2) ->
-      @S.lte get_name(e1), get_name(e2)
-      @
+      @space.lte get_name(e1), get_name(e2)
+      return
 
     '>': (e1, e2) ->
       @gt e1, e2
+      return
     gt: (e1, e2) ->
-      return @_gt(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_gt e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_gt e, e2
+      else
+        @_gt e1, e2
+      return
     _gt: (e1, e2) ->
-      @S.gt get_name(e1), get_name(e2)
-      @
+      @space.gt get_name(e1), get_name(e2)
+      return
 
     '<': (e1, e2) ->
       @lt e1, e2
+      return
     lt: (e1, e2) ->
-      return @_lt(e1, e2) unless e1 instanceof Array
-      for e in e1
-        @_lt e, e2
-      @
+      if e1 instanceof Array
+        for e in e1
+          @_lt e, e2
+      else
+        @_lt e1, e2
+      return
     _lt: (e1, e2) ->
-      @S.lt get_name(e1), get_name(e2)
-      @
+      @space.lt get_name(e1), get_name(e2)
+      return
 
 
     # Conditions, ie Reified (In)equality Propagators
     _cacheReified: (op, e1, e2, boolvar) ->
       e1 = get_name(e1)
       e2 = get_name(e2)
-
       if boolvar
-        return @S.reified op, e1, e2, get_name boolvar
-
-      return @S.reified op, e1, e2
+        return @space.reified op, e1, e2, get_name boolvar
+      return @space.reified op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
-      @_cacheReified 'neq', e1, e2, boolvar
+      return @isNeq e1, e2, boolvar
     isNeq: (e1, e2, boolvar) ->
-      @_cacheReified 'neq', e1, e2, boolvar
+      return @_cacheReified 'neq', e1, e2, boolvar
 
     '==?': (e1, e2, boolvar) ->
-      @_cacheReified 'eq', e1, e2, boolvar
+      return @isEq e1, e2, boolvar
     isEq: (e1, e2, boolvar) ->
-      @_cacheReified 'eq', e1, e2, boolvar
-      #return @S.reified 'eq', _.e(e1), _.e(e2), _.e(boolvar) if boolvar
-      #return @S.reified 'eq', _.e(e1), _.e(e2)
+      return @_cacheReified 'eq', e1, e2, boolvar
 
     '>=?': (e1, e2, boolvar) ->
-      @_cacheReified 'gte', e1, e2, boolvar
+      return @isGte e1, e2, boolvar
     isGte: (e1, e2, boolvar) ->
-      @_cacheReified 'gte', e1, e2, boolvar
+      return @_cacheReified 'gte', e1, e2, boolvar
 
     '<=?': (e1, e2, boolvar) ->
-      @_cacheReified 'lte', e1, e2, boolvar
+      return @isLte e1, e2, boolvar
     isLte: (e1, e2, boolvar) ->
-      @_cacheReified 'lte', e1, e2, boolvar
+      return @_cacheReified 'lte', e1, e2, boolvar
 
     '>?': (e1, e2, boolvar) ->
-      @_cacheReified 'gt', e1, e2, boolvar
+      return @isGt e1, e2, boolvar
     isGt: (e1, e2, boolvar) ->
-      @_cacheReified 'gt', e1, e2, boolvar
+      return @_cacheReified 'gt', e1, e2, boolvar
 
     '<?': (e1, e2, boolvar) ->
-      @_cacheReified 'lt', e1, e2, boolvar
+      return @isLt e1, e2, boolvar
     isLt: (e1, e2, boolvar) ->
-      @_cacheReified 'lt', e1, e2, boolvar
+      return @_cacheReified 'lt', e1, e2, boolvar
 
     # If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 

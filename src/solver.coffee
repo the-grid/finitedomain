@@ -1,16 +1,5 @@
 # Adds FD.Solver to FD.js
 
-_ =
-  e: (e) ->
-    return e.id if e.id?
-    return e
-
-  es: (es) ->
-    vnames = []
-    for v in es
-      vnames.push _.e(v)
-    vnames
-
 module.exports = (FD) ->
 
   {
@@ -25,6 +14,18 @@ module.exports = (FD) ->
   {
     create_custom_distributor
   } = FD.distribution
+
+  get_name = (e) ->
+    if e.id
+      return e.id
+    return e
+
+  get_names = (es) ->
+    var_names = []
+    for e in es
+      var_names.push get_name e
+
+    return var_names
 
   class FD.Solver
 
@@ -130,33 +131,33 @@ module.exports = (FD) ->
     '+': (e1, e2, resultVar) ->
       @plus e1, e2, resultVar
     plus: (e1, e2, resultVar) ->
-      return @S.plus _.e(e1), _.e(e2), _.e(resultVar) if resultVar
-      return @S.plus _.e(e1), _.e(e2)
+      return @S.plus get_name(e1), get_name(e2), get_name(resultVar) if resultVar
+      return @S.plus get_name(e1), get_name(e2)
 
     '*': (e1, e2, resultVar) ->
       @times e1, e2, resultVar
     times: (e1, e2, resultVar) ->
-      return @S.times _.e(e1), _.e(e2), _.e(resultVar) if resultVar
-      return @S.times _.e(e1), _.e(e2)
+      return @S.times get_name(e1), get_name(e2), get_name(resultVar) if resultVar
+      return @S.times get_name(e1), get_name(e2)
 
     '∑': (es, resultVar) ->
       @sum es, resultVar
     #_sumCache: null
     sum: (es, resultVar) ->
-      vnames = _.es es
+      vnames = get_names es
       #@_sumCache ?= {}
       #key = vnames.toString()
       #if @_sumCache[key]?
       #else
       #@_sumCache[key] = true
-      return @S.sum vnames, _.e(resultVar) if resultVar
+      return @S.sum vnames, get_name(resultVar) if resultVar
       return @S.sum vnames
 
     '∏': (es, resultVar) ->
       @product es, resultVar
     product: (es, resultVar) ->
-      vnames = _.es es
-      return @S.product vnames, _.e(resultVar) if resultVar
+      vnames = get_names es
+      return @S.product vnames, get_name(resultVar) if resultVar
       return @S.product vnames
 
     # TODO
@@ -170,7 +171,7 @@ module.exports = (FD) ->
     '{}≠': (es) ->
       @distinct es
     distinct: (es) ->
-      @S.distinct _.es(es)
+      @S.distinct get_names(es)
 
     '==': (e1, e2) ->
       @eq e1, e2
@@ -180,7 +181,7 @@ module.exports = (FD) ->
         @_eq e, e2
       @
     _eq: (e1, e2) ->
-      @S.eq _.e(e1), _.e(e2)
+      @S.eq get_name(e1), get_name(e2)
       @
 
     '!=': (e1, e2) ->
@@ -191,7 +192,7 @@ module.exports = (FD) ->
         @_neq e, e2
       @
     _neq: (e1, e2) ->
-      @S.neq _.e(e1), _.e(e2)
+      @S.neq get_name(e1), get_name(e2)
       @
 
     '>=': (e1, e2) ->
@@ -202,7 +203,7 @@ module.exports = (FD) ->
         @_gte e, e2
       @
     _gte: (e1, e2) ->
-      @S.gte _.e(e1), _.e(e2)
+      @S.gte get_name(e1), get_name(e2)
       @
 
     '<=': (e1, e2) ->
@@ -213,7 +214,7 @@ module.exports = (FD) ->
         @_lte e, e2
       @
     _lte: (e1, e2) ->
-      @S.lte _.e(e1), _.e(e2)
+      @S.lte get_name(e1), get_name(e2)
       @
 
     '>': (e1, e2) ->
@@ -224,7 +225,7 @@ module.exports = (FD) ->
         @_gt e, e2
       @
     _gt: (e1, e2) ->
-      @S.gt _.e(e1), _.e(e2)
+      @S.gt get_name(e1), get_name(e2)
       @
 
     '<': (e1, e2) ->
@@ -235,17 +236,17 @@ module.exports = (FD) ->
         @_lt e, e2
       @
     _lt: (e1, e2) ->
-      @S.lt _.e(e1), _.e(e2)
+      @S.lt get_name(e1), get_name(e2)
       @
 
 
     # Conditions, ie Reified (In)equality Propagators
     _cacheReified: (op, e1, e2, boolvar) ->
-      e1 = _.e(e1)
-      e2 = _.e(e2)
+      e1 = get_name(e1)
+      e2 = get_name(e2)
       key = "#{e1} #{op}? #{e2}"
       if boolvar
-        boolvar = _.e(boolvar)
+        boolvar = get_name(boolvar)
         if !@_cache[key]?
           @S.reified op, e1, e2, boolvar
           @_cache[key] = boolvar
@@ -308,7 +309,7 @@ module.exports = (FD) ->
       vars ?= @vars.all
 
       distributor_options ?= @distribute
-      create_custom_distributor @S, _.es(vars), distributor_options
+      create_custom_distributor @S, get_names(vars), distributor_options
 
       search ?= @search
       searchMethod = FD.search[search]

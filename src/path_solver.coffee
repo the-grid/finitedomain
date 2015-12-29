@@ -58,34 +58,41 @@ module.exports = (FD) ->
 
       throw new Error "solution to Path error"
 
-    collapseSolution: (solution) ->
-      path = @S.solutionToPath(solution)
-      collapsed = @M.collapse path
-      # console.log JSON.stringify collapsed,1,1
-      collapsed
+# this stuff is unused and not obviously debug. remove it, use it, or clarify it.
+# (and where does the @M come from? I think it's a MultiVerse instance... but who sets it?)
+#    collapseSolution: (solution) ->
+#      path = @space.solutionToPath(solution)
+#      collapsed = @M.collapse path
+#      collapsed
+
+    # walk the whole tree from this node downward
+    # walks in depth first search order
+    # TOFIX: do we ever use the done/floor stuff in state? could simplify this func
 
     lookDown: (node, callback) ->
-      observation =
-        round:0
+      state =
+        round: 0
         flooredRounds: []
-        data:[]
+        data: []
         continue: true
         done: () ->
-          observation.continue = false
+          state.continue = false
         floor: () ->
-          observation.flooredRounds.push observation.round
-      @_lookDown node, callback, observation
+          state.flooredRounds.push state.round
 
-    _lookDown: (node, cb, o) ->
-      return o unless o.continue
-      o.round++
-      cb node, o
-      round = o.round
-      #continue if round in o.flooredRounds
-      for child in node.children
-        break unless o.continue
-        @_lookDown child, cb, o
-      o
+      _lookDown node, callback, state
+      return
+
+    _lookDown = (node, func, state) ->
+      if state.continue
+        state.round++
+        func node, state
+        round = state.round
+        for child in node.children
+          _lookDown child, func, state
+          unless state.continue
+            return
+      return
 
     # overwrite == to handle paths on both sides
     eq: (e1, e2) ->

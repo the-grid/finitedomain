@@ -8,13 +8,11 @@
 # .align:(0) > .text_align:(0)
 # .align:()[]
 
-# Adds FD.PathSolver to FD.js
-{mergePathMeta} = require './merge'
-
-MAX = Math.max
-PAIR_SIZE = 2
-
 module.exports = (FD) ->
+  MAX = Math.max
+  PAIR_SIZE = 2
+
+  merge_path_meta = FD.merge_path_meta
 
   {
     domain_create_range
@@ -74,7 +72,7 @@ module.exports = (FD) ->
         pathMeta = branchVar.pathMeta
         for pathName, meta of pathMeta
           if meta.value is val
-            data = mergePathMeta meta.data, data
+            data = merge_path_meta meta.data, data
             break
       return data
 

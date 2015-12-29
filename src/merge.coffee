@@ -1,44 +1,39 @@
-mergeAccumulatedValue = (val1, val2) ->
-  if typeof val1 is 'number'
-    return val1 + val2
-  else if val1 instanceof Array
-    results = []
-    for v in val1
-      results.push v
-    for v in val2
-      results.push v if v not in results
-    return results
-  else
-    throw new Error "merge??? #{val1}, #{val2}"
+module.exports = (FD) ->
 
-mergeObject = (a, b) ->
-  for key, bValue of b
-    aValue = a[key]
-    if (typeof bValue == 'object' and bValue not instanceof Array) && (typeof aValue == 'object' and aValue not instanceof Array)
-      mergeObject(aValue, bValue)
-    else
-      a[key] = bValue
+  {
+    ASSERT
+  } = FD.helpers
 
-mergePathMeta = (data1, data2) ->
-  merged = {}
+  merge_accumulated_value = (val1, val2) ->
+    if typeof val1 is 'number'
+      ASSERT typeof val2 is 'number'
+      return val1 + val2
 
-  for key,val of data1
-    merged[key] = val
+    if val1 instanceof Array
+      results = []
+      for v in val1
+        results.push v
 
-  for key,val of data2
-    if merged[key]?
-      merged[key] = mergeAccumulatedValue merged[key], val
-    else
+      for v in val2
+        if results.indexOf(v) < 0
+          results.push v
+
+      return results
+
+    throw new Error "mergeAccumulatedValue unknown args: #{val1}, #{val2}"
+
+  merge_path_meta = (data1, data2) ->
+    merged = {}
+
+    for key,val of data1
       merged[key] = val
 
-  merged
+    for key,val of data2
+      if merged[key]?
+        merged[key] = merge_accumulated_value merged[key], val
+      else
+        merged[key] = val
 
-module.exports =
+    return merged
 
-  mergeAccumulatedValue: mergeAccumulatedValue
-
-  mergeObject: mergeObject
-
-  mergePathMeta: mergePathMeta
-
-
+  FD.merge_path_meta = merge_path_meta

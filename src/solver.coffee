@@ -57,7 +57,7 @@ module.exports = (FD) ->
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
 
-      # TOFIX: get rid of this bi-directional dependency
+      # TOFIX: get rid of this bi-directional dependency Space <> Solver
       @space = new Space
       @space.solver = @
 
@@ -65,12 +65,14 @@ module.exports = (FD) ->
       @S = @space
 
       @vars =
-        byId:{}
-        byName:{}
-        all:[]
-        byClass:{}
+        byId: {}
+        byName: {}
+        all: []
+        byClass: {}
 
-      @resetState()
+      @solutions = []
+
+      @state = {@space, more: true}
 
     # Variables
 
@@ -294,15 +296,6 @@ module.exports = (FD) ->
       @_cacheReified 'lt', e1, e2, boolvar
     isLt: (e1, e2, boolvar) ->
       @_cacheReified 'lt', e1, e2, boolvar
-
-
-    # Solving
-
-    resetState: () ->
-      @solutions = []
-      space = @S #new FD.space @S # TODO???
-      @state = {space:space, more:true}
-      @
 
     # If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 

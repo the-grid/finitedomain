@@ -70,7 +70,6 @@ module.exports = (FD) ->
         all:[]
         byClass:{}
 
-      @_cache = {}
       @resetState()
 
     # Variables
@@ -258,20 +257,11 @@ module.exports = (FD) ->
     _cacheReified: (op, e1, e2, boolvar) ->
       e1 = get_name(e1)
       e2 = get_name(e2)
-      key = "#{e1} #{op}? #{e2}"
+
       if boolvar
-        boolvar = get_name(boolvar)
-        if !@_cache[key]?
-          @S.reified op, e1, e2, boolvar
-          @_cache[key] = boolvar
-        else
-          cache = @_cache[key]
-          return cache if cache is boolvar
-          return @S['=='](cache, boolvar)
-        return @
-      else
-        @_cache[key] ?= @S.reified op, e1, e2
-        @_cache[key]
+        return @S.reified op, e1, e2, get_name boolvar
+
+      return @S.reified op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
       @_cacheReified 'neq', e1, e2, boolvar

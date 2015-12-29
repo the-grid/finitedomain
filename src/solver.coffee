@@ -103,35 +103,44 @@ module.exports = (FD) ->
 
     addVar: (v, domain) ->
       if typeof v is 'string'
-        v = {id:v, domain}
-      {id, domain, name, distribute} = v
-      throw new Error "FD Var requires id " unless id?
-      throw new Error "FDSpace var.id already added: #{id}" if @vars.byId[id]
+        v = {
+          id: v
+          domain
+        }
+
+      {
+        id,
+        domain
+        name
+        distribute
+      } = v
+
+      vars = @vars
+
+      unless id?
+        throw new Error "Solver#addVar: requires id "
+      if vars.byId[id]
+        throw new Error "Solver#addVar: var.id already added: #{id}"
+
       domain ?= @defaultDomain.slice 0
-      @S.decl id, domain
-      @vars.byId[id] = v
-      @vars.all.push v
+      @space.decl id, domain
+      vars.byId[id] = v
+      vars.all.push v
 
       if name?
-        @vars.byName[name] ?= []
-        @vars.byName[name].push v
+        vars.byName[name] ?= []
+        vars.byName[name].push v
 
       if distribute is 'markov'
-        o = v.distributeOptions
-        {matrix} = o
-        throw new Error "markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}" unless matrix
+        matrix = v.distributeOptions.matrix
+        unless matrix
+          throw new Error "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
         for row in matrix
-          boolean = row.boolean
-          if boolean?
-            if typeof boolean is 'function'
-              row.booleanId = boolean(@,v)
+          bool_func = row.boolean
+          if typeof bool_func is 'function'
+            row.booleanId = bool_func @, v
 
-      # {classes} = v
-      # if classes
-      #   for className in classes
-      #     @vars.byClass[className] ?= []
-      #     @vars.byClass[className].push v
-      v
+      return v
 
     # Arithmetic Propagators
 

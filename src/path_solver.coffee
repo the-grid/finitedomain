@@ -26,13 +26,11 @@ module.exports = (FD) ->
 
   class PathSolver extends Solver
 
-    constructor: (@multiverse, o = {}) ->
+    constructor: ({rawtree}, o = {}) ->
 
       super
 
       @distribute = 'naive'
-
-      {@rawtree} = @multiverse
 
       {branchRules, searchPriority} = o
       @branchRules = branchRules
@@ -43,10 +41,10 @@ module.exports = (FD) ->
       @one  = @on  = @constant 1
       @zero = @off = @constant 0
 
-      @rootBranchName = @rawtree.branchName
-      @rootPathName = @rawtree.paths[0]
+      @rootBranchName = rawtree.branchName
+      @rootPathName = rawtree.paths[0]
 
-      @compileTree(@rawtree,branchRules)
+      @compileTree(rawtree, branchRules)
       @
 
     solutionToPath: (solution) ->

@@ -34,19 +34,34 @@ module.exports = (FD) ->
 
     return var_names
 
+  # This is a super class.
+  # It is extended by path_solver and path_binary_solver.
+  #
+  # @constructor
+  # @param {Object} o
+  # @property {string} o.distribute='naive'
+  # @property {string} o.search='depth_first'
+  # @property {number[]} defaultDomain=[0,1]
+
   class FD.Solver
 
     constructor: (o={}) ->
-      {@distribute, @search, @defaultDomain} = o
+      {
+        @distribute
+        @search
+        @defaultDomain
+      } = o
 
       @search ?= 'depth_first'
-
       @distribute ?= 'naive'
-
       @defaultDomain ?= domain_create_bool()
 
-      @S = new FD.space()
-      @S.solver = @
+      # TOFIX: get rid of this bi-directional dependency
+      @space = new Space
+      @space.solver = @
+
+      # TOFIX: deprecate @S in favor of @space
+      @S = @space
 
       @vars =
         byId:{}
@@ -60,7 +75,6 @@ module.exports = (FD) ->
       @_cache = {}
 
       @resetState()
-      @
 
     # Variables
 

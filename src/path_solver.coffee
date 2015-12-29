@@ -43,21 +43,21 @@ module.exports = (FD) ->
       @compileTree rawtree, branchRules
 
     solutionToPath: (solution) ->
+      bvars_by_id = @vars.byId
       path = {}
-      for id, val of solution
-        continue if val is 0
-        branchVar = @vars.byId[id]
-        continue unless branchVar
-        branchId = branchVar.branchId
-        pathMeta = branchVar.pathMeta
-        pathVal = undefined
-        for pathName, meta of pathMeta
-          if meta.value is val
-            pathVal = pathName
-            break
-        throw new Error "solution to Path error for: #{varId}" unless pathVal?
-        path[branchId] = pathVal
+      for var_id, solution_value of solution
+        if solution_value isnt 0
+          branch_var = bvars_by_id[var_id]
+          if branch_var
+            path[branch_var.branchId] = find_path_for_val_or_throw branch_var.pathMeta, solution_value
       return path
+
+    find_path_for_val_or_throw = (path_meta, value) ->
+      for path_name, meta of path_meta
+        if meta.value is value
+          return path_name
+
+      throw new Error "solution to Path error"
 
     solutionMeta: (solution, varIds) ->
       data = {}

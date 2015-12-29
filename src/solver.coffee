@@ -87,9 +87,8 @@ module.exports = (FD) ->
 
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
-      v = @S.decl id, domain
-      v.id = id
-      v
+      @space.decl id, domain
+      return
 
     # Uses @defaultDomain if no domain was given
     # Distribution is optional

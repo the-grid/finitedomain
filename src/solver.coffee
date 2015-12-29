@@ -69,11 +69,7 @@ module.exports = (FD) ->
         all:[]
         byClass:{}
 
-      # TODO
-      # - constants & resetState? eek
-      @_constants = {}
       @_cache = {}
-
       @resetState()
 
     # Variables
@@ -86,11 +82,7 @@ module.exports = (FD) ->
 
 
     constant: (num) ->
-      ASSERT (!isNaN num), 'Solver#constant: num is NaN', num, typeof num
-      num = Number(num)
-      return @_constants[num] if @_constants[num]?
-      @_constants[num] = @S.konst num
-      @_constants[num]
+      return @space.decl_value num
 
     addVars: (vs) ->
       vars = []

@@ -12,15 +12,19 @@ module.exports = (FD) ->
   MAX = Math.max
   PAIR_SIZE = 2
 
-  merge_path_meta = FD.merge_path_meta
+  {
+    Domain
+    merge_path_meta
+    Solver
+  } = FD
 
   {
     domain_create_range
     domain_create_zero
     domain_from_list
-  } = FD.Domain
+  } = Domain
 
-  class FD.PathSolver extends FD.Solver
+  class PathSolver extends Solver
 
     constructor: (@multiverse, o = {}) ->
 
@@ -399,3 +403,5 @@ module.exports = (FD) ->
       branchVar.isLeaf = isLeaf
 
       branchVar
+
+  FD.PathSolver = PathSolver

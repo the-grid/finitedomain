@@ -70,6 +70,7 @@ module.exports = (FD) ->
     return NO_SUCH_VALUE
 
   # list of possible values to domain
+  # returns a CSIS domain
 
   domain_from_list = (list, clone = true, sort = true) ->
     if clone
@@ -81,6 +82,7 @@ module.exports = (FD) ->
     domain = []
     for value, index in list
       ASSERT value >= SUB, 'fd values range SUB~SUP'
+      ASSERT value <= SUP, 'fd values range SUB~SUP'
       if index is 0
         lo = value
         hi = value

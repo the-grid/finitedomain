@@ -30,10 +30,8 @@ require('./distribution/distribute')(FD)
 require('./snode')(FD)
 require('./space')(FD)
 require('./search')(FD)
-require('./merge')(FD)
 # high level API
 require('./solver')(FD)
 require('./path_solver')(FD)
-require('./path_binary_solver')(FD)
 
 module.exports = FD

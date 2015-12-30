@@ -10,7 +10,6 @@
 
 module.exports = (FD) ->
   MAX = Math.max
-  PAIR_SIZE = 2
 
   {
     Domain
@@ -22,7 +21,10 @@ module.exports = (FD) ->
     domain_create_range
     domain_create_zero
     domain_from_list
+    domain_max
   } = Domain
+
+  binding_uid = 0
 
   class PathSolver extends Solver
 
@@ -96,50 +98,60 @@ module.exports = (FD) ->
 
     # overwrite == to handle paths on both sides
     eq: (e1, e2) ->
-      if e1 instanceof Array
-        if e2 instanceof Array
-          # this only works with ==
-          @eq e1, e2[0]
-          @eq e2, e1[0]
-          return @
-        else
-          for e in e1
-            @_eq e, e2
-          return @
-      else
-        return @_eq(e1, e2)
+      unless e1 instanceof Array
+        @_eq e1, e2
+        return
 
+      unless e2 instanceof Array
+        for e in e1
+          @_eq e, e2
+        return
+
+      # this only works with ==
+      @eq e1, e2[0]
+      @eq e2, e1[0]
+      return
+
+    ## for these mythical ops:
+    ## ~` denotes a softer constraint, as in if you *can* then respect the constraint, ie. if the
+    ## branch var is on (greater than zero) then you must respect constraint & if branch var is
+    ## off (zero) then do no respect the constraint
+    ## `{}` denotes a constraint against a collection. `{}==` means they are all equal to each other...
 
     '~=': (e1, e2) ->
-      if e1 instanceof Array
-        if e2 instanceof Array
-          # validate if all are paths?
-          return @['{}~='] e1.concat e2
-        else
-          for e in e1
-            @['_~'] '==', e, e2
-          return @
-      else
-        return @['_~']('==', e1, e2)
+      unless e1 instanceof Array
+        @['_~'] '==', e1, e2
+        return
+
+      unless e2 instanceof Array
+        for e in e1
+          @['_~'] '==', e, e2
+        return
+
+      # validate if all are paths?
+      @['{}~='] e1.concat e2
+      return
 
     '~>=': (e1, e2) ->
-      if e1 instanceof Array
-        if e2 instanceof Array
-          # validate if all are paths?
-          return @['{}~='] e1.concat e2
-        else
-          for e in e1
-            @['_~'] '>=', e, e2
-          return @
-      else
-        return @['_~']('>=', e1, e2)
+      unless e1 instanceof Array
+        @['_~'] '>=', e1, e2
+        return
+
+      unless e2 instanceof Array
+        for e in e1
+          @['_~'] '>=', e, e2
+        return
+
+      # validate if all are paths?
+      @['{}~='] e1.concat e2
+      return
 
     '_~': (op, e1, e2) ->
       if e1.type is 'branch' and e2.type isnt 'branch'
-        @['>='](
-          @["#{op}?"](e1, e2),
-          @['==?'](e1.parent, @num e1.parentValue)
-        )
+        rif1 = @["#{op}?"] e1, e2
+        rif2 = @['==?'] e1.parent, @num e1.parentValue
+        @['>='] rif1, rif2
+        return
 
       #if e2.type is 'branch'
       #  parents.push e2.parent
@@ -149,46 +161,49 @@ module.exports = (FD) ->
       #    @['==?'](e1, e2),
       #    @['==?'](parents[0], parents[1])
       #  )
-      else
-        throw new Error "FDTreeSolver... ~= ???"
-        return @['=='] e1, e2
 
+      throw new Error "PathSolver... ~= ???"
+      #return @['=='] e1, e2
 
-    'kill': (paths) ->
+    kill: (paths) ->
       for path in paths
         @['=='] path, @num 0
+      return
 
-    '{}~=': (vars) ->
+    '{}~=': (bvars) ->
       # TODO
       # - cache collections by selector!!!!
 
-      @bindingCount ?= 0
-      binder = "__bind#{@bindingCount}__"
+      bind_name = "__bind#{binding_uid++}__"
 
-      minDomain = 0 # TOFIX: this is always 0. is that correct?
-      maxDomain = -99
-      for v in vars
-        domain = v.domain
+      # TOFIX: should the lo of this domain also be the min of all domains?
+      @S.decl bind_name, domain_create_range 0, find_max_or_throw bvars
+
+      A = @['==?'] bind_name, @num 0
+      B = @['==?'] @['sum'](bvars), @num 0
+      @['=='] A, B
+
+      for branchvar in bvars
+        A = @['==?'] branchvar, bind_name
+        B = @['==?'] branchvar.parent, @num branchvar.parentValue
+        @['>='] A, B
+
+      return bind_name
+
+    find_max_or_throw = (bvars) ->
+      had_domain = false
+      max_domain = 0
+
+      for branchvar in bvars
+        domain = branchvar.domain # csis domain
         if domain
-          for index in [0...domain.length] by PAIR_SIZE
-            hi = domain[index+1]
-            maxDomain = MAX hi, maxDomain
-      if maxDomain is -99
+          had_domain = true
+          max_domain = MAX max_domain, domain_max domain
+
+      unless had_domain
         throw new Error "{}~= Cant find domain for binding"
-      @S.decl binder, domain_create_range(minDomain, maxDomain)
 
-      @['=='](
-        @['==?'](binder, @num 0),
-        @['==?'](@['sum'](vars), @num 0)
-      )
-      for v in vars
-        @['>='](
-          @['==?'](v,binder),
-          @['==?'](v.parent, @num v.parentValue)
-        )
-      @bindingCount++
-      return binder
-
+      return max_domain
 
     compileTree: (rawtree,branchRules) ->
       ###

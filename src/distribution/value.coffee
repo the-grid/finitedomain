@@ -34,6 +34,8 @@ module.exports = (FD) ->
     fdvar_upper_bound
   } = FD.Var
 
+  TRACE = false
+
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
@@ -43,6 +45,8 @@ module.exports = (FD) ->
   # Similar to the "naive" variable distribution, but for values.
 
   distribution_value_by_list = (S, var_name, options) ->
+    if TRACE
+      console.log 'distribution_value_by_list factory for', var_name, options
     list = options.list
     unless list
       throw new Error "list distribution requires SolverVar #{v} w/ distributeOptions:{list:[]}"
@@ -50,6 +54,8 @@ module.exports = (FD) ->
     isDynamic = typeof list is 'function'
 
     value_distribution_by_list = (parent_space, current_choice_index) ->
+      if TRACE
+        console.log 'distribution_value_by_list func', var_name, current_choice_index, options
       if current_choice_index >= TWO_CHOICES
         return
 
@@ -57,12 +63,23 @@ module.exports = (FD) ->
       fdvar = space.vars[var_name]
       if isDynamic
         _list = list space, var_name
+        if TRACE
+          console.log 'choice is dynamic (?):', _list
       else
         _list = list
+        if TRACE
+          console.log 'choice is not dynamic (?):', _list
 
       switch current_choice_index
         when FIRST_CHOICE
+          if TRACE
+            console.log 'distribution_value_by_list first choice'
+            console.log 'searching in _list:', _list
+            console.log 'for first value in fdvar:', fdvar.dom
           value = domain_get_value_of_first_contained_value_in_list fdvar.dom, _list
+          if TRACE
+            console.log 'found: ', value
+            console.log 'list after:', _list
           if value is NO_SUCH_VALUE
             return # signifies end of search
           fdvar_set_value_inline fdvar, value
@@ -152,10 +169,15 @@ module.exports = (FD) ->
 
     return space
 
+  GRAPH = false
+  __graph = {}
+
   _value_distribution_min_choice = (current_choice_index, fdvar, low) ->
     switch current_choice_index
       when FIRST_CHOICE
         # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
+        if GRAPH
+          __graph.label = fdvar.id+': '+low+'; c=1'
         fdvar_set_value_inline fdvar, low
 
       when SECOND_CHOICE
@@ -164,6 +186,8 @@ module.exports = (FD) ->
         # note: must use some kind of intersect here (there's a test if you mess this up :)
         # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
         # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
+        if GRAPH
+          __graph.label = fdvar.id+': NOT '+low+'; c=2'
         fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
 
       else
@@ -173,9 +197,18 @@ module.exports = (FD) ->
   # Searches through a var's values from min to max.
 
   distribution_value_by_min = (S, var_name) ->
+    if TRACE
+      console.log 'distribution_value_by_min factory for', var_name
     value_distribution_by_min = (parent_space, current_choice_index) ->
+      if TRACE
+        console.log 'value_distribution_by_min choice, var_name='+var_name+', choice='+current_choice_index
+      value_distribution_by_min.__last_choice = current_choice_index
       unless current_choice_index >= TWO_CHOICES
         return _value_distribution_by_min var_name, parent_space, current_choice_index
+
+    if GRAPH
+      value_distribution_by_min.__for_var_name = var_name
+      value_distribution_by_min.__last_choice = -1
 
     return value_distribution_by_min
 
@@ -194,10 +227,14 @@ module.exports = (FD) ->
 
       switch current_choice_index
         when FIRST_CHOICE
+          if TRACE
+            console.log 'target:', var_name, 'to', hi
           # Note: this is not determined so the operation cannot fail
           fdvar_set_value_inline fdvar, hi
 
         when SECOND_CHOICE
+          if TRACE
+            console.log 'target:', var_name, 'to NOT', hi
           # Note: this is not determined so the operation cannot fail
           # note: must use some kind of intersect here (there's a test if you mess this up :)
           # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
@@ -336,4 +373,6 @@ module.exports = (FD) ->
     distribution_value_by_mid
     distribution_value_by_split_max
     distribution_value_by_split_min
+
+    __graph
   }

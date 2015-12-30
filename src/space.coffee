@@ -47,11 +47,17 @@ module.exports = (FD) ->
     fdvar_is_equal
   } = FD.Var
 
+  TRACE = false
+
+  _uid = 0
+
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
   Space = FD.space = (root_space = null, propagator_data = [], vars = {}, all_var_names = [], unsolved_var_names = []) ->
     @_class = 'space'
+    if TRACE
+      @_uid = ++_uid
 
     @vars = vars
     @all_var_names = all_var_names # shared by reference in whole tree! should have all keys of @vars
@@ -168,11 +174,57 @@ module.exports = (FD) ->
   Space::propagate = ->
     changed = true # init (do-while)
     propagators = @_propagators
+    if TRACE
+      step = 0
+      var_names = Object.keys @vars
     ASSERT_PROPAGATORS @_propagators
+    if TRACE
+      console.log '######'
+      console.log @__debug_string()
+      console.log '######'
+      console.log ''
     while changed
+      if TRACE
+        console.log ' - Space propagate, space='+@_uid+', parent='+@_parent_uid+', step=', ++step
+        if @_uid is 40
+          console.log 'premature stop'
+          process.exit()
       changed = false
       for prop_details in propagators
+        if TRACE
+          before = []
+          for var_name in var_names
+            before.push var_name+': ['+@vars[var_name].dom+']'
+
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+        if TRACE
+          after = []
+          for var_name in var_names
+            after.push var_name+': ['+@vars[var_name].dom+']'
+
+          varnams = prop_details[1].slice(0)
+          prefix = prop_details[0]
+          if prefix is 'reified'
+            prefix += '['+prop_details[2]+']'
+          else if prop_details[3]
+            prefix += '['+prop_details[2]+']'+prop_details[3]
+
+          console.log '- - ', prefix, varnams, '->', n
+
+          if n > 0 or before.join(',') isnt after.join(',')
+            if n is 0
+              console.log '##### change but not marked as change!!!'
+
+            a = []
+            b = []
+            for e, i in before
+              if e isnt after[i]
+                a.push e
+                b.push after[i]
+
+            console.log '- - # before:', a
+            console.log '- - # after :', b
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
         ASSERT n is REJECTED or (@.vars[prop_details[1][0]].dom.length and @.vars[prop_details[1][1]].dom.length), 'prop var empty but it didnt REJECT'
@@ -519,9 +571,9 @@ module.exports = (FD) ->
       retval = sumname
 
     space._propagators.push(
-      ['ring', [v1name, v2name, sumname], target_op_name]
-      ['ring', [sumname, v2name, v1name], inv_op_name]
-      ['ring', [sumname, v1name, v2name], inv_op_name]
+      ['ring', [v1name, v2name, sumname], target_op_name, '[*a, b, c]']
+      ['ring', [sumname, v2name, v1name], inv_op_name, '[a, *b, c]']
+      ['ring', [sumname, v1name, v2name], inv_op_name, '[a, b, *c]']
     )
 
     ASSERT_PROPAGATORS space._propagators
@@ -704,15 +756,17 @@ module.exports = (FD) ->
     things = ['Vars:']
 
     for name of @vars
-      things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+      things.push name+': ['+@vars[name].dom.join(', ')+']'
 
     things.push 'Propagators:'
 
     @_propagators.forEach (c) ->
       if c[0] is 'reified'
-        things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+        things.push 'reified['+c[2]+'] \''+c[1].join('\', \'')+'\''
+      else if c[0] is 'ring'
+        things.push 'ring['+c[2]+']'+c[3]+' \''+c[1].join('\', \'')+'\''
       else
-        things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
+        things.push c[0]+' \''+c[1].join('\', \'')+'\''
 
     return things.join '\n'
 

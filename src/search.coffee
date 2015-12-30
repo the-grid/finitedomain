@@ -70,6 +70,16 @@ module.exports = (FD) ->
           return false
     return true
 
+  GRAPH = false
+  iter = 0
+  uid = 0
+
+  init_for_graph = (space) ->
+    if space.uid
+      throw new Error 'floeps'
+    space.uid = ++uid
+    console.log '  x'+space.uid+' [label="x'+space.uid+':\\n'+space._debug_var_domains().replace(/],/g,']\\n')+'"]'
+
   # Initialize the state object for depth first search
   # and maybe others... :)
 
@@ -84,13 +94,22 @@ module.exports = (FD) ->
 
   init_state_for_depth_first = (state) ->
     if !state.snode_stack or state.snode_stack.length == 0
-      ASSERT_SPACE state.space
-      ASSERT_SNODE state.space.snode
-      # If no snode_stack argument, then search begins with state.space.snode
+      space = state.space
+      ASSERT_SPACE space
+      ASSERT_SNODE space.snode
+      # If no snode_stack argument, then search begins with space.snode
       if state.snode_stack
-        state.snode_stack.push state.space
+        state.snode_stack.push space
       else
-        state.snode_stack = [state.space]
+        state.snode_stack = [space]
+
+      if GRAPH
+        console.log '\n\n\ndigraph G {'
+        console.log '  xx [label="Solver test case:\\n'+space.__to_solver_test_case().replace(/\n/g, '\\n')+'"]'
+        console.log '  xx -> xy'
+        console.log '  xy [label="Space test case:\\n'+space.__to_space_test_case().replace(/\n/g, '\\n')+'"]'
+        console.log '  xy -> x1'
+        init_for_graph space
 
     unless state.is_solved
       # Set the default "solved" condition to be "all variables".
@@ -107,6 +126,9 @@ module.exports = (FD) ->
 
     unless typeof state.more is 'boolean'
       state.more = false # should this be set to false regardless? this is a new search...
+
+    unless state.front
+      state.front = []
 
     return # is unused
 
@@ -126,11 +148,18 @@ module.exports = (FD) ->
     snode_stack = state.snode_stack
     choose_next_space = state.next_choice
     while snode_stack.length > 0
+      ++iter
       space = snode_stack[snode_stack.length - 1]
+
       # Wait for stability. Could throw a 'fail', in which case
       # this becomes a failed space.
       ASSERT_SPACE space
-      unless space.propagate()
+      not_failed = space.propagate()
+
+      unless not_failed
+        if GRAPH
+          console.log '  x'+space.uid+'_failed [label="x'+space.uid+' FAILED:\\n'+space._debug_var_domains().replace(/],/g,']\\n')+'"]'
+          console.log '  x'+space.uid+' -> x'+space.uid+'_failed [label="i='+iter+'"]'
         # Some propagators failed so this is now a failed space and we need
         # to pop the snode_stack and continue from above. This is a failed space.
         space.failed = true
@@ -139,6 +168,9 @@ module.exports = (FD) ->
         continue
 
       if state.is_solved(space)
+        if GRAPH
+          console.log '  x'+space.uid+'_solved [label="x'+space.uid+' SOLVED:\\n'+space._debug_var_domains().replace(/],/g,']\\n')+'"]'
+          console.log '  x'+space.uid+' -> x'+space.uid+'_solved [label="i='+iter+'"]'
         space.succeeded_children++
         space.done()
         snode_stack.pop()
@@ -151,6 +183,14 @@ module.exports = (FD) ->
       # therefore it is stable. (WARNING: Is this correct?)
       next_space = choose_next_space space, state
       if next_space
+        next_space._parent_uid = space._uid
+        if GRAPH
+          init_for_graph next_space
+          console.log '  x'+space.uid+' -> x'+next_space.uid + '['+
+              'label="'+FD.distribution.Value.__graph.label+'; i='+iter+
+              '\\n'+space.current_value_distributor.__for_var_name+' -> '+space.current_value_distributor.__last_choice+
+            '"]'
+
         # Push on to the snode_stack and explore further.
         snode_stack.push next_space
       else
@@ -163,6 +203,8 @@ module.exports = (FD) ->
     # Failed space and no more options to explore.
     state.status = 'end'
     state.more = false
+    if GRAPH
+      console.log '}\n\n\n'
     state
 
   # Branch and bound search

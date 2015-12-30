@@ -9,7 +9,8 @@ FD = {
 require('./helpers')(FD)
 require('./domain')(FD)
 # core API
-require('./var')(FD)
+require('./fdvar')(FD)
+require('./bvar')(FD)
 require('./propagators/eq')(FD)
 require('./propagators/neq')(FD)
 require('./propagators/lt')(FD)

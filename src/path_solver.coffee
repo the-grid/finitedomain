@@ -12,9 +12,14 @@ module.exports = (FD) ->
   MAX = Math.max
 
   {
+    Bvar
     Domain
     Solver
   } = FD
+
+  {
+    create_branch_var
+  } = Bvar
 
   {
     domain_create_one
@@ -24,6 +29,10 @@ module.exports = (FD) ->
     domain_max
   } = Domain
 
+  UNDETERMINED = 0
+  NUM = 1
+  NAN = 2
+
   binding_uid = 0
 
   class PathSolver extends Solver
@@ -32,16 +41,11 @@ module.exports = (FD) ->
 
       super
 
-      {
-        branchRules
-      } = o
-
       @distribute = 'naive'
-      @rootBranchName = rawtree.branchName
+      @root_branch_name = rawtree.branchName
 
-      @vars.root = undefined
-
-      @compileTree rawtree, branchRules
+      @vars.root = undefined # initialized by compile_tree
+      @compile_tree rawtree, o.branchRules
 
     solutionToPath: (solution) ->
       bvars_by_id = @vars.byId
@@ -170,6 +174,8 @@ module.exports = (FD) ->
         @['=='] path, @num 0
       return
 
+    # an internal thing to make the implementation of the ~ methods more DRY
+
     '{}~=': (bvars) ->
       # TODO
       # - cache collections by selector!!!!
@@ -205,7 +211,7 @@ module.exports = (FD) ->
 
       return max_domain
 
-    compileTree: (rawtree,branchRules) ->
+    compile_tree: (rawtree, branch_rules) ->
       ###
         {
           name: branchName
@@ -221,163 +227,151 @@ module.exports = (FD) ->
         - leaf
 
       ###
-      return @_compileTree(rawtree, branchRules)
+      return @_compile_tree(rawtree, branch_rules)
 
-    _compileTree: (branch, branchRules, parentBranchVar, parentValue, depth = 0) ->
-      {branchName, branchId, paths, _type} = branch
-      _type ?= 'branch'
+    _compile_tree: (branch, branch_rules, parent_branch_var, parent_value) ->
+      {
+        branchName: branch_name
+        branchId: branch_id
+        paths
+        _type
+        path: branch_path
+      } = branch
 
-      parentIsRoot = parentBranchVar?.id is @rootBranchName
+      unless paths?
+        throw new Error "PathSolver: no possible values??? (no paths)"
 
-      required = false
-      optional = false
+      _type ?= 'branch' # can also be 'kill'
 
-      id = branchId
+      parent_is_root = parent_branch_var and parent_branch_var is @vars.root
 
       # handle API for required `!` & optional `?` branches
-      if branchName.indexOf('!') >= 0
+      required = false
+      optional = false
+      bvar_id = branch_id
+      if branch_name.indexOf('!') >= 0
         required = true
-        branchName = branchName.substr 0, branchName.indexOf('!')
-        id = branchId.split('!').join('')
-      else if branchName.indexOf('?') >= 0
+        branch_name = branch_name.substr 0, branch_name.indexOf('!')
+        bvar_id = branch_id.split('!').join('')
+      else if branch_name.indexOf('?') >= 0
         optional = true
-        branchName = branchName.substr 0, branchName.indexOf('?')
-        id = branchId.split('?').join('')
-      else if parentIsRoot
+        branch_name = branch_name.substr 0, branch_name.indexOf('?')
+        bvar_id = branch_id.split('?').join('')
+      else if parent_is_root
         required = true
-      else if parentBranchVar?
-        if parentBranchVar.required and parentBranchVar.paths.length is 1
+      else if parent_branch_var
+        if parent_branch_var.required and parent_branch_var.paths.length is 1
           required = true
 
-      branchVar = {
-        _class: 'branchvar'
-        id:id,
-        branchId:branchId
-        required: required,
-        type: _type,
-        name: branchName,
-        paths: paths,
-        pathNameByValue:{},
-        pathMeta:{},
-        parent: parentBranchVar,
-        parentValue: parentValue,
-        children: [],
-        childByName: {},
-        classes: [],
-        depth: depth,
-        isLeaf: undefined
-      }
+      branch_var = create_branch_var(
+        bvar_id
+        branch_id
+        required
+        _type
+        branch_name
+        paths
+        parent_branch_var
+        parent_value
+      )
 
-      numberedPaths = false
-      possibleValues = []
+      valid_branch_values = @add_path_meta_to_bvar branch_var, paths, branch_path, branch_rules
+      set_bvar_domain branch_var, valid_branch_values, required
 
-      # branchVar.pathMeta
-      if paths?
-        {path} = branch
+      @addVar branch_var
 
-        #
-        for pName, pIndex in paths
-          pathData = path?[pName]?.data
-          if !isNaN(pName)
-            numberedPaths = true
-            branchValue = Number(pName) + 1
-          else
-            throw new Error "Cant mix numbered paths with nonnumbered paths" if numberedPaths
-            branchValue = pIndex + 1
-          # apply branchRules
-          valid = true
-          if branchRules
-            for rule in branchRules
-              # {$class:'target', type:'kill'}
-              if rule.$class and pathData?.$class
-                if rule.$class in path?[pName]?.data.$class
-                  if rule.type is 'kill'
-                    valid = false
-                    break
-          if valid
-            # TODO
-            # - what if none are valid?  make optional?
-            possibleValues.push branchValue
-
-          meta = {
-            pathIndex: pIndex
-            value: branchValue
-            constant: @num branchValue
-          }
-          if pathData
-            meta.data = pathData
-          branchVar.pathMeta[pName] = meta
-          branchVar.pathNameByValue[branchValue] = pName
-
-      # create the domain for the branch Var
-      if possibleValues.length > 0
-        possibleValues.unshift 0 unless required
-        domain = domain_from_list possibleValues
+      if parent_branch_var
+        parent_branch_var.children.push branch_var
+        parent_branch_var.childByName[branch_name] = branch_var
+        @force_parent_child_state branch_var, parent_branch_var, optional, required, parent_is_root, parent_value
       else
-        throw new Error "PathSolver: no possible values???"
-        domain = domain_create_zero()
-      branchVar.domain = domain
+        @vars.root = branch_var
+        # root branch must be on
+        # TOFIX: shouldnt we just init the domain of branch_var to 1 instead?
+        @['=='] branch_var, @num 1
 
-      if depth is 0
-        @vars.root = branchVar
-
-      #if branchName isnt @rootBranchName
-      @addVar branchVar
-
-      # root branch must be on
-      if branchVar?.id is @rootBranchName
-        @['=='] branchVar, @num 1
-
-      if parentBranchVar?
-
-        # if optional
-        if optional
-          # must be off if parent is off,
-          # but if off, parent can be on
-          unless parentIsRoot or parentBranchVar?.required
-            @['>='](
-              @['==?'](branchVar, @num 0),
-              @['==?'](parentBranchVar, @num 0)
-            )
-        # if branch is required
-        else if required or parentIsRoot
-          # branch is on
-          @['>='](branchVar, @num 1)
-          # parent branch must be parentValue as well
-          @['=='](parentBranchVar, @num parentValue) unless parentIsRoot or parentBranchVar?.required
-        else
-          # branch is on if parent is parentValue
-          @['=='](
-            @['>=?'](branchVar, @num 1),
-            @['==?'](parentBranchVar, @num parentValue)
-          )
-
-        parentBranchVar.children.push branchVar
-        parentBranchVar.childByName[branchName] = branchVar
-
-
-      isLeaf = true
-
-      if paths?
-        {path} = branch
-
-        for pName, pIndex in paths
-          childBranches = path?[pName]?.children
+      if branch_path
+        path_meta = branch_var.pathMeta
+        for path_name, path_index in paths
+          childBranches = branch_path[path_name]?.children
           if childBranches?
-            isLeaf = false
-            branchValue = branchVar.pathMeta[pName].value
-            for childBranch in childBranches
-              depth++
-              @_compileTree childBranch, branchRules, branchVar, branchValue, depth
-          #else
-          #  @leafCount ?= 0
-          #  childBranch = {branchName:"__LEAF__", branchId:"LEAF_#{@leafCount}", _type:'leaf'}
-          #  @leafCount++
-          #  # create leaf node
-          #  @_compileTree childBranch, branchRules, branchVar, branchValue+1, pathData, depth++
+            branch_value = path_meta[path_name].value
+            for child_branch in branch_path[path_name]?.children
+              @_compile_tree child_branch, branch_rules, branch_var, branch_value
 
-      branchVar.isLeaf = isLeaf
+      return
 
-      branchVar
+    add_path_meta_to_bvar: (branch_var, paths, branch_path, branch_rules) ->
+      path_type = UNDETERMINED
+      valid_branch_values = []
+
+      for path_name, path_index in paths
+        path_data = branch_path?[path_name]?.data
+
+        if isNaN path_name
+          if path_type is NUM
+            throw new Error "Cant mix numbered paths with nonnumbered paths"
+          path_type = NAN
+          branchValue = path_index + 1
+        else
+          if path_type is NAN
+            throw new Error "Cant mix numbered paths with nonnumbered paths"
+          path_type = NUM
+          branchValue = 1 + parseFloat path_name
+
+        if valid_rules branch_rules, path_data
+          # TODO
+          # - what if none are valid?  make optional?
+          valid_branch_values.push branchValue
+
+        branch_var.pathMeta[path_name] =
+          pathIndex: path_index
+          value: branchValue
+          constant: @num branchValue
+          data: path_data
+        branch_var.pathNameByValue[branchValue] = path_name
+
+      return valid_branch_values
+
+    valid_rules = (branch_rules, path_data) ->
+      path_$class = path_data?.$class
+      if branch_rules and path_$class
+        for rule in branch_rules
+          if rule.$class in path_$class and rule.type is 'kill'
+            return false
+      return true
+
+    set_bvar_domain = (branch_var, valid_branch_values, required) ->
+      unless valid_branch_values.length > 0
+        throw new Error "PathSolver: no possible values???"
+        #domain = domain_create_zero()
+
+      unless required # allow zero?
+        valid_branch_values.unshift 0
+      domain = domain_from_list valid_branch_values
+      branch_var.domain = domain
+
+      return
+
+    force_parent_child_state: (branch_var, parent_branch_var, optional, required, parent_is_root, parent_value) ->
+      # if optional
+      if optional
+        # must be off if parent is off,
+        # but if off, parent can be on
+        unless parent_is_root or parent_branch_var.required
+          A = @['==?'] branch_var, @num 0
+          B = @['==?'] parent_branch_var, @num 0
+          @['>='] A, B
+        # if branch is required
+      else if required or parent_is_root
+        # branch is on
+        @['>='] branch_var, @num 1
+        # parent branch must be parent_value as well
+        unless parent_is_root or parent_branch_var.required
+          @['=='] parent_branch_var, @num parent_value
+      else
+        # branch is on if parent is parent_value
+        A = @['>=?'] branch_var, @num 1
+        B = @['==?'] parent_branch_var, @num parent_value
+        @['=='] A, B
 
   FD.PathSolver = PathSolver

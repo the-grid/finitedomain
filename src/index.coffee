@@ -9,7 +9,8 @@ FD = {
 require('./helpers')(FD)
 require('./domain')(FD)
 # core API
-require('./var')(FD)
+require('./fdvar')(FD)
+require('./bvar')(FD)
 require('./propagators/eq')(FD)
 require('./propagators/neq')(FD)
 require('./propagators/lt')(FD)
@@ -33,6 +34,5 @@ require('./search')(FD)
 # high level API
 require('./solver')(FD)
 require('./path_solver')(FD)
-require('./path_binary_solver')(FD)
 
 module.exports = FD

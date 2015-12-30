@@ -55,10 +55,10 @@ describe "PathSolver", ->
     it "solver w/ rules: var ~= var ", ->
       S = new PathSolver m
 
-      S['~='] S.vars.byName['align'][0], S.one
-      S['!='] S.vars.byName['text_align'][0], S.one
-      S['!='] S.vars.byName['size'][0], S.one
-      S['~='] S.vars.byName['cols'][0], S.one
+      S['~='] S.vars.byName['align'][0], S.num 1
+      S['!='] S.vars.byName['text_align'][0], S.num 1
+      S['!='] S.vars.byName['size'][0], S.num 1
+      S['~='] S.vars.byName['cols'][0], S.num 1
 
       expect(S).to.be.ok
       samples = S.solve({log:1})
@@ -67,8 +67,8 @@ describe "PathSolver", ->
     it "solver w/ rules: vars ~= var", ->
       S = new PathSolver m
 
-      S['~='] S.vars.byName['align'].concat(S.vars.byName['cols']), S.one
-      S['!='] S.vars.byName['text_align'].concat(S.vars.byName['size']), S.one
+      S['~='] S.vars.byName['align'].concat(S.vars.byName['cols']), S.num 1
+      S['!='] S.vars.byName['text_align'].concat(S.vars.byName['size']), S.num 1
       expect(S).to.be.ok
       samples = S.solve()
       expect(samples.length).to.equal 4
@@ -76,8 +76,8 @@ describe "PathSolver", ->
     it "sampler.sample() w/ rules: vars ~= vars", ->
       S = new PathSolver m
       vars = S.vars.byName
-      S['~='] vars['align'].concat(vars['cols']), S.one
-      S['!='] vars['text_align'], S.one
+      S['~='] vars['align'].concat(vars['cols']), S.num 1
+      S['!='] vars['text_align'], S.num 1
       S['=='] vars['size'], vars['text_align']
       expect(S).to.be.ok
       samples = S.solve()
@@ -96,7 +96,7 @@ describe "PathSolver", ->
 
     it "ex) 1", ->
       S = new PathSolver m
-      S['=='] S.vars.byName['B'], S.one
+      S['=='] S.vars.byName['B'], S.num 1
       expect(S).to.be.ok
       samples = S.solve()
       expect(samples.length).to.equal 1
@@ -149,8 +149,8 @@ describe "PathSolver", ->
       S.S.decl 'BBinder', spec_d_create_range(0, 3)
 
       S['=='](
-        S['==?']('BBinder',S.off),
-        S['==?'](S['sum'](vars['B']), S.off)
+        S['==?']('BBinder', S.num 0),
+        S['==?'](S['sum'](vars['B']), S.num 0)
       )
 
       for v in vars['B']

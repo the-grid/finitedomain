@@ -264,7 +264,7 @@ module.exports = (FD) ->
   # TOFIX: we should move this elsewhere so that we can more easily find usages of it. this is too implicit.
 
   Space::toString = ->
-    return JSON.stringify @solution()
+    return 'Object[Space]'
 
   # Call given function with `this` as argument
   # @deprecated (Silly construct... we should refactor call sites to eliminate usages)
@@ -709,11 +709,22 @@ module.exports = (FD) ->
         things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
       else
         things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
+    unless @_propagators.length
+      things.push '  - none'
 
     return things.join '\n'
 
-  Space::_debug_var_domains = ->
+  Space::__debug_var_domains = ->
     things = []
     for name of @vars
       things.push name+': ['+@vars[name].dom+']'
-    return things.join ', '
+    return things
+
+  Space::__get_unsolved = ->
+    vars = @vars
+    unsolved_names = []
+    for name of vars
+      fdvar = vars[name]
+      unless fdvar_is_solved fdvar
+        unsolved_names.push name
+    return unsolved_names

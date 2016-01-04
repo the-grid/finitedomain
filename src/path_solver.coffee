@@ -36,10 +36,8 @@ module.exports = (FD) ->
   class PathSolver extends Solver
 
     constructor: ({rawtree}, o = {}) ->
-
       super
 
-      @distribute = 'naive'
       @root_branch_name = rawtree.branchName
 
       @vars.root = undefined # initialized by compile_tree

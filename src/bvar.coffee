@@ -25,6 +25,8 @@ module.exports = (FD) ->
       childByName: {} # used by multiverse
       # domain should be csis
       domain: undefined
+      # set by multiverse Matrix and Constraints, for example the list, matrix, or legend
+      distributeOptions: undefined
     }
 
   FD.Bvar = {

@@ -11,17 +11,12 @@ module.exports = (FD) ->
   } = FD
 
   {
-    ASSERT
     ASSERT_SPACE
   } = helpers
 
   {
     domain_create_bool
   } = Domain
-
-  {
-    create_custom_distributor
-  } = distribution
 
   get_name = (e) ->
     # e can be the empty string (TOFIX: let's not allow this...)
@@ -37,7 +32,7 @@ module.exports = (FD) ->
     return var_names
 
   # This is a super class.
-  # It is extended by path_solver and path_binary_solver.
+  # It is extended by path_solver
   #
   # @constructor
   # @param {Object} o
@@ -47,11 +42,18 @@ module.exports = (FD) ->
 
   class FD.Solver
 
+    # @param {Object} [o]
+    # @property {string} [o.distribute='naive']
+    # @property {string} [o.search='depth_first']
+    # @property {number[]} [o.defaultDomain=[0,1]]
+    # @property {Object} [o.searchDefaults]
+
     constructor: (o={}) ->
       {
         @distribute
         @search
         @defaultDomain
+        search_defaults
       } = o
 
       @search ?= 'depth_first'
@@ -65,17 +67,24 @@ module.exports = (FD) ->
       # TOFIX: deprecate @S in favor of @space
       @S = @space
 
+      if typeof @distribute is 'string'
+        @space.set_defaults @distribute
+      else if @distribute
+        @space.set_options @distribute
+      if search_defaults # TOFIX: is multiverse using it or can we drop this override? same as o.distribute...
+        @space.set_defaults search_defaults
+
       @vars =
         byId: {}
         byName: {}
         all: []
         byClass: {}
+        root: undefined # see PathSolver
 
       @solutions = []
 
       @state = {@space, more: true}
 
-    # This wasn't a bad idea but the code debt is not worth it
     # @deprecated
 
     constant: (num) ->
@@ -107,11 +116,11 @@ module.exports = (FD) ->
     # S.addVar {id: 'foo', domain: [1, 2]}
     # S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
 
-    addVar: (v, domain) ->
+    addVar: (v, dom) ->
       if typeof v is 'string'
         v = {
           id: v
-          domain
+          domain: dom
         }
 
       {
@@ -326,26 +335,34 @@ module.exports = (FD) ->
     #
     # @param {Object} options
     # @property {number} options.max
-    # @property {number} options.log One of: 0, 1 or 2
-    # @property {number} options.vars Target vars to force solve. Defaults to all.
+    # @property {number} options.log Logging level; one of: 0, 1 or 2
+    # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' Maps to a function on FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
+    # @property {Object} [options.distribute] See Space#set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
     solve: (options={}, squash) ->
       {
         max
         log
-        vars
+        vars: bvars
         search
-        distribute:distributor_options
+        distribute: distribution_options
       } = options
 
       log ?= 0 # 1, 2
       max ?= 1000
-      vars ?= @vars.all
-      distributor_options ?= @distribute
-      create_custom_distributor @space, get_names(vars), distributor_options
+      bvars ?= @vars.all
+      var_names = get_names bvars
+      distribution_options ?= @distribute
+
+      overrides = collect_distribution_overrides var_names, @vars.byId
+      if overrides
+        @space.set_options var_dist_config: overrides
+
+      @space.set_options targeted_var_names: var_names
+      @space.set_options distribution_options
 
       search ?= @search
 
@@ -358,13 +375,14 @@ module.exports = (FD) ->
     _solve: (state, search_func, solutions, max, log, squash) ->
       ASSERT_SPACE state.space
 
-      count = 0
       if log >= 1
         console.time '      - FD Solver Time'
+        console.log "      - FD Solver Var Count: #{@space.all_var_names.length}"
         console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
 
+      count = 0
       while state.more and count < max
-        state = search_func state
+        search_func state
         if state.status isnt 'end'
           count++
           unless squash
@@ -379,3 +397,20 @@ module.exports = (FD) ->
         console.log "      - FD solution count: #{count}"
 
       return
+
+    # Visit the branch vars and collect var specific configuration overrides if
+    # there are any and put them on the root space. This way we don't need to
+    # burden Fdvar with this. Mainly used for Markov searching.
+    # The result is set to be Space#var_dist_config
+    #
+    # @param {string[]} var_names
+    # @param {Object} bvars_by_id Maps var names to their Bvar
+    # @returns {Object|null} Contains data for each var that has dist options
+
+    collect_distribution_overrides = (var_names, bvars_by_id) ->
+      overrides = null
+      for name in var_names
+        if dist_opts = bvars_by_id[name]?.distributeOptions
+          overrides ?= {}
+          overrides[name] = dist_opts
+      return overrides

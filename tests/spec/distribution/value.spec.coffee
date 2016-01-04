@@ -4,6 +4,7 @@ if typeof require is 'function'
   require '../../fixtures/helpers.spec'
   {
     spec_d_create_bool
+    spec_d_create_value
     spec_d_create_range
     spec_d_create_ranges
     spec_d_create_zero
@@ -12,634 +13,406 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'FD.distribution.Value', ->
+describe 'value.spec', ->
+
+  {
+    fdvar_create
+    fdvar_create_bool
+  } = FD.Var
+
+  it 'fdvar_create_bool should exist', ->
+
+    expect(fdvar_create_bool?).to.be.true
 
   describe 'distribution_value_by_min', ->
-    {distribution_value_by_min} = FD.distribution.Value
+
+    {_distribution_value_by_min: distribution_value_by_min} = FD.distribution.value
 
     it 'should exist', ->
 
       expect(distribution_value_by_min?).to.be.true
 
-    describe 'factory', ->
+    it 'should pick lo for FIRST_CHOICE ', ->
 
-      it 'should return a function', ->
+      fdvar = fdvar_create_bool 'A'
 
-        expect(distribution_value_by_min()).to.be.a 'function'
+      expect(distribution_value_by_min fdvar, 0).to.eql spec_d_create_value 0
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-    describe 'distribution', ->
+    it 'should pick hi for SECOND_CHOICE', ->
 
-      it 'should set var to lo for FIRST_CHOICE', ->
+      fdvar = fdvar_create_bool 'A'
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool()
+      expect(distribution_value_by_min fdvar, 1).to.eql spec_d_create_value 1
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+    it 'should return undefined for third choice', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `value_distribution_by_min` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_min fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # since 0 was the lowest value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range 0, 0
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 11], [13, 20])
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+      expect(distribution_value_by_min fdvar, 0).to.eql spec_d_create_value 10
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 11], [13, 20])
 
-        # now we have `distribution_value_by_split_min` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_min fdvar, 1).to.eql spec_d_create_ranges([11, 11], [13, 20])
 
-        # make sure 12 is not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(10, 10)
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
 
-      it 'should set var to second value for SECOND_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_value 20
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool()
+      expect(-> distribution_value_by_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_min fdvar, 1).to.throw
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', []
 
-        # now we have `value_distribution_by_min` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # since 0 was the lowest value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range 1, 1
-
-      it 'should intersect and not use middle elements blindly for SECOND_CHOICE', ->
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # make sure 12 is still not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([11, 11], [13, 20])
-
-      it 'should reject a "solved" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_zero()
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `value_distribution_by_min` so call it and it should throw because A is already solved
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should reject a "rejected" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'min'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_min` here
-        get_next_value = space.get_value_distributor space
-
-        # now clear the var before calling next
-        FD.Var.fdvar_set_domain space.vars.A, []
-
-        # now we have `value_distribution_by_min` so call it and it should throw because A is already rejected
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should do nothing if choice is >2', ->
-
-        expect(distribution_value_by_min()(null, 2)).to.be.undefined
+      expect(-> distribution_value_by_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_min fdvar, 1).to.throw
 
   describe 'distribution_value_by_max', ->
-    {distribution_value_by_max} = FD.distribution.Value
+
+    {_distribution_value_by_max: distribution_value_by_max} = FD.distribution.value
 
     it 'should exist', ->
 
       expect(distribution_value_by_max?).to.be.true
 
-    describe 'factory', ->
+    it 'should pick lo for FIRST_CHOICE ', ->
 
-      it 'should return a function', ->
+      fdvar = fdvar_create_bool 'A'
 
-        expect(distribution_value_by_max()).to.be.a 'function'
+      expect(distribution_value_by_max fdvar, 0).to.eql spec_d_create_value 1
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-    describe 'distribution', ->
+    it 'should pick hi for SECOND_CHOICE', ->
 
-      it 'should set var to hi for FIRST_CHOICE', ->
+      fdvar = fdvar_create_bool 'A'
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool()
+      expect(distribution_value_by_max fdvar, 1).to.eql spec_d_create_value 0
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+    it 'should return undefined for third choice', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_max fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # since 1 was the highest value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range 1, 1
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 17], [19, 20])
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+      expect(distribution_value_by_max fdvar, 0).to.eql spec_d_create_value 20
 
-        # setup the space distributors such that all vars are used and value uses value_distribution_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 17], [19, 20])
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_max fdvar, 1).to.eql spec_d_create_ranges([10, 17], [19, 19])
 
-        # make sure 12 is not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(20, 20)
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
 
-      it 'should set var to second value for SECOND_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_value 20
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool()
+      expect(-> distribution_value_by_max fdvar, 0).to.throw
+      expect(-> distribution_value_by_max fdvar, 1).to.throw
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', []
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # since 1 was the highest value in original value, expecting var to be set to the inv
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range 0, 0
-
-      it 'should intersect and not use middle values blindly for SECOND_CHOICE', ->
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `distribution_value_by_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # make sure 12 is still not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 11], [13, 19])
-
-      it 'should reject a "solved" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_zero()
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should reject a "rejected" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', [0, 1] # initially set to unsolved to circumvent early asserts
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'max'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now clear the var before calling next
-        FD.Var.fdvar_set_domain space.vars.A, []
-
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already rejected
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should do nothing if choice is >2', ->
-
-        expect(distribution_value_by_max()(null, 2)).to.be.undefined
+      expect(-> distribution_value_by_max fdvar, 0).to.throw
+      expect(-> distribution_value_by_max fdvar, 1).to.throw
 
   describe 'distribution_value_by_mid', ->
-    {distribution_value_by_mid} = FD.distribution.Value
+
+    {_distribution_value_by_mid: distribution_value_by_mid} = FD.distribution.value
 
     it 'should exist', ->
 
       expect(distribution_value_by_mid?).to.be.true
 
-    describe 'factory', ->
+    it 'should pick lo for FIRST_CHOICE ', ->
 
-      it 'should return a function', ->
+      fdvar = fdvar_create_bool 'A'
 
-        expect(distribution_value_by_mid()).to.be.a 'function'
+      expect(distribution_value_by_mid fdvar, 0).to.eql spec_d_create_value 1
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-    describe 'distribution', ->
+    it 'should pick hi for SECOND_CHOICE', ->
 
-      it 'should set var to mid for FIRST_CHOICE', ->
+      fdvar = fdvar_create_bool 'A'
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+      expect(distribution_value_by_mid fdvar, 1).to.eql spec_d_create_value 0
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
+    it 'should return undefined for third choice', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `distribution_value_by_mid` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_mid fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # since 15 was the middle value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range 15, 15
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 12], [18, 20])
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 12], [18, 20])
+      expect(distribution_value_by_mid fdvar, 0).to.eql spec_d_create_value 18
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_ranges([10, 12], [18, 20])
 
-        # now we have `distribution_value_by_mid` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_mid fdvar, 1).to.eql spec_d_create_ranges([10, 12], [19, 20])
 
-        # make sure 12 is not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(18, 18) # should not be 15-ish
+    it 'should pick middle out', ->
 
-      it 'should set var to same range sans middle value for SECOND_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 3
+      expect(distribution_value_by_mid fdvar, 0).to.eql spec_d_create_ranges [2, 2]
+      expect(distribution_value_by_mid fdvar, 1).to.eql spec_d_create_ranges [1, 1], [3, 3]
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
+      fdvar = fdvar_create 'A', spec_d_create_value 20
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
-        get_next_value = space.get_value_distributor space
+      expect(-> distribution_value_by_mid fdvar, 0).to.throw
+      expect(-> distribution_value_by_mid fdvar, 1).to.throw
 
-        # now we have `distribution_value_by_mid` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
 
-        # should now be 10-20 sans the 15
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 14], [16, 20])
+      fdvar = fdvar_create 'A', []
 
-      it 'should intersect and not use higher range blindly for SECOND_CHOICE', ->
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 12], [18, 20])
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `distribution_value_by_mid` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # make sure 12 is still not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 12], [19, 20])
-
-      it 'should reject a "solved" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_zero()
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `distribution_value_by_mid` so call it and it should throw because A is already solved
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should reject a "rejected" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool() # initially set to unsolved to circumvent early asserts
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_mid
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'mid'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_mid` here
-        get_next_value = space.get_value_distributor space
-
-        # now clear the var before calling next
-        FD.Var.fdvar_set_domain space.vars.A, []
-
-        # now we have `distribution_value_by_mid` so call it and it should throw because A is already rejected
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should do nothing if choice is >2', ->
-
-        expect(distribution_value_by_mid()(null, 2)).to.be.undefined
+      expect(-> distribution_value_by_mid fdvar, 0).to.throw
+      expect(-> distribution_value_by_mid fdvar, 1).to.throw
 
   describe 'distribution_value_by_split_min', ->
-    {distribution_value_by_split_min} = FD.distribution.Value
+
+    {_distribution_value_by_split_min: distribution_value_by_split_min} = FD.distribution.value
+
 
     it 'should exist', ->
 
       expect(distribution_value_by_split_min?).to.be.true
 
-    describe 'factory', ->
+    it 'should pick lower half for FIRST_CHOICE ', ->
 
-      it 'should return a function', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        expect(distribution_value_by_split_min()).to.be.a 'function'
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 10, 15
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-    describe 'distribution', ->
+    it 'should pick upper half for SECOND_CHOICE', ->
 
-      it 'should set var to lower half for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 16, 20
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+    it 'should return undefined for third choice', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_split_min fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # since 15 was the middle value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(10, 15)
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_ranges [0, 1], [8, 10]
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_ranges [11, 12], [18, 20]
 
-        # make sure 12 is not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 11], [13, 15])
+    it 'should handle simple domains', ->
 
-      it 'should set var to higher half for SECOND_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 1
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 2, 2
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 3
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 3, 3
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 4
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 3, 4
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
+      fdvar = fdvar_create 'A', spec_d_create_value 20
 
-        # should now be 10-20 sans the 15
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(16, 20)
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
 
-      it 'should intersect and not use higher range blindly for SECOND_CHOICE', ->
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 17], [19, 20])
+      fdvar = fdvar_create 'A', []
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+  describe 'distribution_value_by_split_min', ->
 
-        # now we have `distribution_value_by_split_min` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
+    {_distribution_value_by_split_min: distribution_value_by_split_min} = FD.distribution.value
 
-        # should now be 10-20 sans the 15
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([16, 17], [19, 20])
 
-      it 'should reject a "solved" var', ->
-        # note: only rejects with ASSERTs
+    it 'should exist', ->
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_zero()
+      expect(distribution_value_by_split_min?).to.be.true
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+    it 'should pick lower half for FIRST_CHOICE ', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
-        expect(-> get_next_value space, 0).to.throw
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 10, 15
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-      it 'should reject a "rejected" var', ->
-        # note: only rejects with ASSERTs
+    it 'should pick upper half for SECOND_CHOICE', ->
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool() # initially set to unsolved to circumvent early asserts
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_min
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMin'}
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 16, 20
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_min` here
-        get_next_value = space.get_value_distributor space
+    it 'should return undefined for third choice', ->
 
-        # now clear the var before calling next
-        FD.Var.fdvar_set_domain space.vars.A, []
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already rejected
-        expect(-> get_next_value space, 0).to.throw
+      expect(distribution_value_by_split_min fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-      it 'should do nothing if choice is >2', ->
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-        expect(distribution_value_by_split_min()(null, 2)).to.be.undefined
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
+
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_ranges [0, 1], [8, 10]
+
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
+
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
+
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_ranges [11, 12], [18, 20]
+
+    it 'should handle simple domains', ->
+
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 1
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 2, 2
+
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 3
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 3, 3
+
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 4
+      expect(distribution_value_by_split_min fdvar, 0).to.eql spec_d_create_range 1, 2
+      expect(distribution_value_by_split_min fdvar, 1).to.eql spec_d_create_range 3, 4
+
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
+
+      fdvar = fdvar_create 'A', spec_d_create_value 20
+
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
+
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
+
+      fdvar = fdvar_create 'A', []
+
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
 
   describe 'distribution_value_by_split_max', ->
-    {distribution_value_by_split_max} = FD.distribution.Value
+
+    {_distribution_value_by_split_max: distribution_value_by_split_max} = FD.distribution.value
+
 
     it 'should exist', ->
 
       expect(distribution_value_by_split_max?).to.be.true
 
-    describe 'factory', ->
+    it 'should pick lower half for FIRST_CHOICE ', ->
 
-      it 'should return a function', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        expect(distribution_value_by_split_max()).to.be.a 'function'
+      expect(distribution_value_by_split_max fdvar, 0).to.eql spec_d_create_range 16, 20
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-    describe 'distribution', ->
+    it 'should pick upper half for SECOND_CHOICE', ->
 
-      it 'should set higher half for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 10, 20
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+      expect(distribution_value_by_split_max fdvar, 1).to.eql spec_d_create_range 10, 15
+      expect(fdvar.dom).to.eql spec_d_create_range 10, 20
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
+    it 'should return undefined for third choice', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create_bool 'A'
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_split_max fdvar, 2).to.eql undefined
+      expect(fdvar.dom).to.eql spec_d_create_bool()
 
-        # since 15 was the middle value in original value, expecting var to be set to that now
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(16, 20)
+    it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
 
-      it 'should intersect and not use lower range blindly for FIRST_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 17], [19, 20])
+      expect(distribution_value_by_split_max fdvar, 0).to.eql spec_d_create_ranges [11, 12], [18, 20]
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
+    it 'should intersect and not use lower range blindly for SECOND_CHOICE', ->
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
+      fdvar = fdvar_create 'A', spec_d_create_ranges([0, 1], [8, 12], [18, 20])
 
-        # now we have `value_distribution_by_max` so call it with FIRST_CHOICE
-        new_space = get_next_value space, 0
+      expect(distribution_value_by_split_max fdvar, 1).to.eql spec_d_create_ranges [0, 1], [8, 10]
 
-        # make sure 18 is still not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([16, 17], [19, 20])
+    it 'should handle simple domains', ->
 
-      it 'should set var to lower half for SECOND_CHOICE', ->
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 2
+      expect(distribution_value_by_split_max fdvar, 0).to.eql spec_d_create_range 2, 2
+      expect(distribution_value_by_split_max fdvar, 1).to.eql spec_d_create_range 1, 1
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_range(10, 20)
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 3
+      expect(distribution_value_by_split_max fdvar, 0).to.eql spec_d_create_range 3, 3
+      expect(distribution_value_by_split_max fdvar, 1).to.eql spec_d_create_range 1, 2
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
+      fdvar = fdvar_create 'A', spec_d_create_range 1, 4
+      expect(distribution_value_by_split_max fdvar, 0).to.eql spec_d_create_range 3, 4
+      expect(distribution_value_by_split_max fdvar, 1).to.eql spec_d_create_range 1, 2
 
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
+    it 'should reject a "solved" var', ->
+      # note: only rejects with ASSERTs
 
-        # now we have `value_distribution_by_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
+      fdvar = fdvar_create 'A', spec_d_create_value 20
 
-        # should now be 10-20 sans the 15
-        expect(new_space.vars.A.dom).to.eql spec_d_create_range(10, 15)
+      expect(-> distribution_value_by_split_max fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_max fdvar, 1).to.throw
 
-      it 'should intersect and not use higher range blindly for SECOND_CHOICE', ->
+    it 'should reject a "rejected" var', ->
+      # note: only rejects with ASSERTs
 
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_ranges([10, 11], [13, 20])
+      fdvar = fdvar_create 'A', []
 
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `distribution_value_by_split_max` so call it with SECOND_CHOICE
-        new_space = get_next_value space, 1
-
-        # make sure 12 is still not part of the result
-        expect(new_space.vars.A.dom).to.eql spec_d_create_ranges([10, 11], [13, 15])
-
-      it 'should reject a "solved" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_zero()
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already solved
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should reject a "rejected" var', ->
-        # note: only rejects with ASSERTs
-
-        # create a space with one bool var
-        space = new FD.space
-        space.decl 'A', spec_d_create_bool() # initially set to unsolved to circumvent early asserts
-
-        # setup the space distributors such that all vars are used and value uses distribution_value_by_split_max
-        FD.distribution.create_custom_distributor space, ['A'], {var: 'naive', val: 'splitMax'}
-
-        # create a function that walks the space. note that we're calling a `distribution_value_by_split_max` here
-        get_next_value = space.get_value_distributor space
-
-        # now clear the var before calling next
-        FD.Var.fdvar_set_domain space.vars.A, []
-
-        # now we have `value_distribution_by_max` so call it and it should throw because A is already rejected
-        expect(-> get_next_value space, 0).to.throw
-
-      it 'should do nothing if choice is >2', ->
-
-        expect(distribution_value_by_split_max()(null, 2)).to.be.undefined
+      expect(-> distribution_value_by_split_max fdvar, 0).to.throw
+      expect(-> distribution_value_by_split_max fdvar, 1).to.throw

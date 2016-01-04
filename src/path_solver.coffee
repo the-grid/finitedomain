@@ -22,9 +22,7 @@ module.exports = (FD) ->
   } = Bvar
 
   {
-    domain_create_one
     domain_create_range
-    domain_create_zero
     domain_from_list
     domain_max
   } = Domain
@@ -38,10 +36,8 @@ module.exports = (FD) ->
   class PathSolver extends Solver
 
     constructor: ({rawtree}, o = {}) ->
-
       super
 
-      @distribute = 'naive'
       @root_branch_name = rawtree.branchName
 
       @vars.root = undefined # initialized by compile_tree
@@ -295,7 +291,7 @@ module.exports = (FD) ->
           childBranches = branch_path[path_name]?.children
           if childBranches?
             branch_value = path_meta[path_name].value
-            for child_branch in branch_path[path_name]?.children
+            for child_branch in childBranches
               @_compile_tree child_branch, branch_rules, branch_var, branch_value
 
       return

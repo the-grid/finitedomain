@@ -98,15 +98,6 @@ module.exports = (FD) ->
     ASSERT_VARS space.vars
     return
 
-  ASSERT_SNODE = (snode) ->
-    return # need to enable this once snodes are real
-    if !ENABLED
-      return
-
-    # TBD: expand with other assertions...
-    ASSERT_VARS snode.changed_var_names
-    return
-
   ASSERT_PROPAGATORS = (propagators) ->
     if !ENABLED
       return
@@ -192,7 +183,6 @@ module.exports = (FD) ->
     ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
     ASSERT_PROPAGATOR
     ASSERT_PROPAGATORS
-    ASSERT_SNODE
     ASSERT_SPACE
     ASSERT_THROW
     ASSERT_UNUSED_DOMAIN

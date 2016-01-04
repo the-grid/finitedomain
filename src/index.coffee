@@ -24,11 +24,9 @@ require('./propagators/ring')(FD)
 require('./propagators/stepper_any')(FD) # should be last of the props
 require('./propagators/prop_is_solved')(FD) # should be last of the props
 require('./distribution/markov')(FD)
-require('./distribution/presets')(FD)
 require('./distribution/value')(FD)
 require('./distribution/var')(FD)
 require('./distribution/distribute')(FD)
-require('./snode')(FD)
 require('./space')(FD)
 require('./search')(FD)
 # high level API

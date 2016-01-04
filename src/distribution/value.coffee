@@ -2,338 +2,392 @@
 # ======================================================================
 
 module.exports = (FD) ->
+  {
+    distribution
+    Domain
+    helpers
+    Var
+  } = FD
 
   {
-    NO_SUCH_VALUE
-
     ASSERT
-  } = FD.helpers
+  } = helpers
 
   {
     domain_contains_value
-    domain_is_determined
+    domain_create_value
+    domain_create_range
+    domain_intersection
     domain_is_value
     domain_max
     domain_min
-    domain_remove_value_inline
     domain_remove_next_from_list
     domain_get_value_of_first_contained_value_in_list
-  } = FD.Domain
+  } = Domain
 
   {
     distribution_markov_sampleNextFromDomain
-  } = FD.distribution.Markov
+  } = distribution.Markov
 
   {
-    fdvar_constrain
-    fdvar_constrain_to_range
+    fdvar_is_rejected
+    fdvar_is_solved
+    fdvar_is_undetermined
     fdvar_lower_bound
     fdvar_middle_element
-    fdvar_set_domain
-    fdvar_set_value_inline
     fdvar_upper_bound
-  } = FD.Var
+  } = Var
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
-  TWO_CHOICES = 2
+  # The functions in this file are supposed to determine the next
+  # value while solving a Space. The functions are supposed to
+  # return the new domain for some given fdvar. If there's no new
+  # choice left it should return undefined to signify the end.
 
-  # Searches through a variable's values in order specified in a list.
-  # Similar to the "naive" variable distribution, but for values.
+  distribute_get_next_domain_for_var = (root_space, space, fdvar) ->
+    if fdvar_is_solved fdvar
+      # TOFIX: prevent this case at call sites (var picker)... there is no need for it here
+      return # this var is solved but apparently that did not suffice. continue with next var
 
-  distribution_value_by_list = (S, var_name, options) ->
-    list = options.list
-    unless list
-      throw new Error "list distribution requires SolverVar #{v} w/ distributeOptions:{list:[]}"
+    choice_index = space.next_distribution_choice++
+    config_next_value_func = root_space.config_next_value_func
 
-    isDynamic = typeof list is 'function'
+    ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', fdvar.id, fdvar.dom, fdvar
 
-    value_distribution_by_list = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
+    # each var can override the value distributor
+    branch_vars_by_id = root_space.solver?.vars?.byId
+    branch_var = branch_vars_by_id?[fdvar.id]
+    value_distributor_name = branch_var?.distribute
+    if value_distributor_name
+      config_next_value_func = value_distributor_name
 
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-      if isDynamic
-        _list = list space, var_name
-      else
-        _list = list
+    if typeof config_next_value_func is 'function'
+      return config_next_value_func
 
-      switch current_choice_index
-        when FIRST_CHOICE
-          value = domain_get_value_of_first_contained_value_in_list fdvar.dom, _list
-          if value is NO_SUCH_VALUE
-            return # signifies end of search
-          fdvar_set_value_inline fdvar, value
+    switch config_next_value_func
+      when 'max'
+        return distribution_value_by_max fdvar, choice_index
+      when 'markov'
+        return distribution_value_by_markov space, fdvar, choice_index
+      when 'mid'
+        return distribution_value_by_mid fdvar, choice_index
+      when 'min'
+        return distribution_value_by_min fdvar, choice_index
+      when 'minMaxCycle'
+        return distribution_value_by_min_max_cycle space, fdvar, choice_index
+      when 'list'
+        return distribution_value_by_list root_space, space, fdvar, choice_index
+      when 'naive'
+        return domain_create_value fdvar_min fdvar
+      when 'splitMax'
+        return distribution_value_by_split_max fdvar, choice_index
+      when 'splitMin'
+        return distribution_value_by_split_min fdvar, choice_index
 
-        when SECOND_CHOICE
-          new_domain = domain_remove_next_from_list fdvar.dom, _list
-          unless new_domain and new_domain.length
-            return # signifies end of search
-          fdvar_set_domain fdvar, new_domain
+    throw new Error 'unknown next var func', config_next_value_func
+    return
 
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
+  # Attempt to solve by setting fdvar to values in the order
+  # given as a list. This may also be a function which should
+  # return a new domain given the space, fdvar, and choice index.
+  #
+  # @param {Space} root_space
+  # @param {Space} space
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain for this fdvar in the next space
 
-      return space
+  distribution_value_by_list = (root_space, space, fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
 
-    return value_distribution_by_list
+    config_var_dist_options = root_space.config_var_dist_options
+    ASSERT config_var_dist_options, 'space should have config_var_dist_options'
+    ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
+    ASSERT config_var_dist_options[fdvar.id].list, 'there should be a distribution list available for every var', fdvar
+    list_source = config_var_dist_options[fdvar.id].list
+
+    if typeof list_source is 'function'
+      # Note: callback should return the actual list
+      list = list_source space, fdvar.id, choice_index
+    else
+      list = list_source
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        return domain_create_value domain_get_value_of_first_contained_value_in_list fdvar.dom, list
+
+      when SECOND_CHOICE
+        return domain_remove_next_from_list fdvar.dom, list
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
+
+  # Searches through a var's values from min to max.
+  # For each value in the domain it first attempts just
+  # that value, then attempts the domain without this value.
+  #
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_min = (fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        return domain_create_value fdvar_lower_bound fdvar
+
+      when SECOND_CHOICE
+        # Cannot lead to empty domain because lo can only be SUP if
+        # domain was solved and we assert it wasn't.
+        # note: must use some kind of intersect here (there's a test if you mess this up :)
+        # TOFIX: improve performance, this can be done more efficiently directly
+        return domain_intersection fdvar.dom, domain_create_range fdvar_lower_bound(fdvar) + 1, fdvar_upper_bound(fdvar)
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
+
+  # Searches through a var's values from max to min.
+  # For each value in the domain it first attempts just
+  # that value, then attempts the domain without this value.
+  #
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_max = (fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        return domain_create_value fdvar_upper_bound fdvar
+
+      when SECOND_CHOICE
+        # Cannot lead to empty domain because hi can only be SUB if
+        # domain was solved and we assert it wasn't.
+        # note: must use some kind of intersect here (there's a test if you mess this up :)
+        # TOFIX: improve performance, this can be done more efficiently directly
+        return domain_intersection fdvar.dom, domain_create_range fdvar_lower_bound(fdvar), fdvar_upper_bound(fdvar) - 1,
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
+
+  # Searches through a var's values by taking the middle value.
+  # This version targets the value closest to `(max-min)/2`
+  # For each value in the domain it first attempts just
+  # that value, then attempts the domain without this value.
+  #
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_mid = (fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    middle = fdvar_middle_element fdvar
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        return domain_create_value middle
+
+      when SECOND_CHOICE
+        lo = fdvar_lower_bound fdvar
+        hi = fdvar_upper_bound fdvar
+        arr = []
+        if middle > lo
+          arr.push lo, middle - 1
+        if middle < hi
+          arr.push middle + 1, hi
+
+        # Note: fdvar is not determined so the operation cannot fail
+        # note: must use some kind of intersect here (there's a test if you mess this up :)
+        # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
+        return domain_intersection fdvar.dom, arr
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
+
+  # Search a domain by splitting it up through the (max-min)/2 middle.
+  # First simply tries the lower half, then tries the upper half.
+  #
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_split_min = (fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    domain = fdvar.dom
+    min = domain_min domain
+    max = domain_max domain
+    mmhalf = min + max >> 1
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        # Note: fdvar is not determined so the operation cannot fail
+        # Note: this must do some form of intersect, though maybe not constrain
+        # TOFIX: can do this more optimal if coding it out explicitly
+        return domain_intersection fdvar.dom, domain_create_range min, mmhalf
+
+      when SECOND_CHOICE
+        # Note: fdvar is not determined so the operation cannot fail
+        # Note: this must do some form of intersect, though maybe not constrain
+        # TOFIX: can do this more optimal if coding it out explicitly
+        return domain_intersection fdvar.dom, domain_create_range mmhalf + 1, max
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice', choice_index, fdvar
+    return undefined # no choice
+
+  # Search a domain by splitting it up through the (max-min)/2 middle.
+  # First simply tries the upper half, then tries the lower half.
+  #
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_split_max = (fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    domain = fdvar.dom
+    min = domain_min domain
+    max = domain_max domain
+    mmhalf = min + max >> 1
+
+    switch choice_index
+
+      when FIRST_CHOICE
+      # Note: fdvar is not determined so the operation cannot fail
+      # Note: this must do some form of intersect, though maybe not constrain
+      # TOFIX: can do this more optimal if coding it out explicitly
+        return domain_intersection fdvar.dom, domain_create_range mmhalf + 1, max
+
+      when SECOND_CHOICE
+      # Note: fdvar is not determined so the operation cannot fail
+      # Note: this must do some form of intersect, though maybe not constrain
+      # TOFIX: can do this more optimal if coding it out explicitly
+        return domain_intersection fdvar.dom, domain_create_range min, mmhalf
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
+
+  # Applies distribution_value_by_min and distribution_value_by_max alternatingly
+  # depending on the position of the given var in the list of vars.
+  #
+  # @param {Space} space
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_min_max_cycle = (space, fdvar, choice_index) ->
+    root_space = space.root_space or space
+    if _is_even root_space.all_var_names.indexOf fdvar.id
+      return distribution_value_by_min fdvar, choice_index
+    else
+      return distribution_value_by_max fdvar, choice_index
+
+  _is_even = (n) ->
+    return n % 2 is 0
+
+  # Search a domain by applying a markov chain to determine an optimal value
+  # checking path.
+  #
+  # @param {Space} space
+  # @param {Fdvar} fdvar
+  # @param {number} choice_index
+  # @returns {number[]} The new domain this fdvar should get in the next space
+
+  distribution_value_by_markov = (space, fdvar, choice_index) ->
+    ASSERT typeof choice_index is 'number', 'choice_index should be a number'
+    ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
+
+    switch choice_index
+
+      when FIRST_CHOICE
+        root_space = space.root_space or space
+        root_fdvar = root_space.vars[fdvar.id] # distributeOptions isnt cloned
+
+        config_var_dist_options = root_space.config_var_dist_options
+        ASSERT config_var_dist_options, 'space should have config_var_dist_options'
+        ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
+        matrix = config_var_dist_options[fdvar.id].matrix
+        legend = config_var_dist_options[fdvar.id].legend
+        ASSERT matrix, 'there should be a matrix available for every var', fdvar
+        ASSERT legend, 'there should be a legend available for every var', fdvar
+
+        row = _get_next_row_to_solve space, matrix
+        value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
+        unless value?
+          return # signifies end of search
+
+        ASSERT domain_contains_value(fdvar.dom, value), 'markov picks a value from the existing domain so no need for a constrain below'
+        space._markov_last_value = value
+
+        # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
+        return domain_create_value value
+
+      when SECOND_CHOICE
+        ASSERT space._markov_last_value?, 'should have cached previous value'
+        last_value = space._markov_last_value
+        lo = fdvar_lower_bound fdvar
+        hi = fdvar_upper_bound fdvar
+        arr = []
+        if last_value > lo
+          arr.push lo, last_value - 1
+        if last_value < hi
+          arr.push last_value + 1, hi
+
+        # Note: fdvar is not determined so the operation cannot fail
+        # note: must use some kind of intersect here (there's a test if you mess this up :)
+        # TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
+        domain = domain_intersection fdvar.dom, arr
+        if domain.length
+          return domain
+
+    ASSERT typeof choice_index is 'number', 'should be a number'
+    ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
+    return undefined # no choice
 
   # If a row is not boolean, return it.
   # If a row is boolean and 1, return it.
   # If no row meets these conditions, return the last row.
 
-  get_next_row_to_solve = (space, matrix) ->
+  _get_next_row_to_solve = (space, matrix) ->
     vars = space.vars
     for row in matrix
-      is_bool_var = vars[row.booleanId]
-      unless is_bool_var
-        break
-      if domain_is_value is_bool_var.dom, 1
+      bool_var = vars[row.booleanId]
+      if !bool_var or domain_is_value bool_var.dom, 1
         break
     return row
 
-  # options is fdvar.distributeOptions for the fdvar with var_name in root_space
+  return FD.distribution.value = {
+    distribute_get_next_domain_for_var
 
-  distribution_value_by_markov = (root_space, var_name, options) ->
-    {
-      matrix
-      legend
-    } = options
-
-    # TOFIX: are we going to want to set/access lastValueByVar externally? otherwise drop the `memory` struct
-    unless root_space.memory
-      root_space.memory = {}
-    unless root_space.memory.lastValueByVar
-      root_space.memory.lastValueByVar = {}
-    lastValueByVar = root_space.memory.lastValueByVar
-
-    # see Solver.addVar for setup...
-
-    value_distribution_by_markov = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          row = get_next_row_to_solve space, matrix
-          value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
-          unless value?
-            return # signifies end of search
-          ASSERT domain_contains_value(fdvar.dom, value), 'markov picks the value from the existing domain' # the update below assumes this (skips constrain for this assumption)
-          lastValueByVar[var_name] = value
-          # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
-          fdvar_set_value_inline fdvar, value
-
-        when SECOND_CHOICE
-          domain_remove_value_inline fdvar.dom, lastValueByVar[var_name]
-          unless fdvar.dom.length
-            return # signifies end of search
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
-
-    return value_distribution_by_markov
-
-  _value_distribution_by_min = (var_name, parent_space, current_choice_index) ->
-    space = parent_space.clone()
-    fdvar = space.vars[var_name]
-    low = fdvar_lower_bound fdvar
-
-    ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-    _value_distribution_min_choice current_choice_index, fdvar, low
-
-    return space
-
-  _value_distribution_min_choice = (current_choice_index, fdvar, low) ->
-    switch current_choice_index
-      when FIRST_CHOICE
-        # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-        fdvar_set_value_inline fdvar, low
-
-      when SECOND_CHOICE
-        # note: caller should ensure fdvar is not yet solved nor rejected, so this cant fail
-        # (because low can only be SUP if the domain is solved which we assert it cannot be)
-        # note: must use some kind of intersect here (there's a test if you mess this up :)
-        # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
-        # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-        fdvar_constrain_to_range fdvar, low + 1, fdvar_upper_bound fdvar
-
-      else
-        throw new Error "Invalid choice value [#{current_choice_index}]"
-    return
-
-  # Searches through a var's values from min to max.
-
-  distribution_value_by_min = (S, var_name) ->
-    value_distribution_by_min = (parent_space, current_choice_index) ->
-      unless current_choice_index >= TWO_CHOICES
-        return _value_distribution_by_min var_name, parent_space, current_choice_index
-
-    return value_distribution_by_min
-
-  # Searches through a var's values from max to min.
-
-  distribution_value_by_max = (S, var_name) ->
-    value_distribution_by_max = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-      hi = fdvar_upper_bound fdvar
-
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          # Note: this is not determined so the operation cannot fail
-          fdvar_set_value_inline fdvar, hi
-
-        when SECOND_CHOICE
-          # Note: this is not determined so the operation cannot fail
-          # note: must use some kind of intersect here (there's a test if you mess this up :)
-          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
-          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-          fdvar_constrain_to_range fdvar, fdvar_lower_bound(fdvar), hi - 1
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
-
-    return value_distribution_by_max
-
-  distribution_value_by_mid = (S, var_name) ->
-    value_distribution_by_mid = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-      middle = fdvar_middle_element fdvar
-
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          # Note: fdvar is not determined so the operation cannot fail
-          fdvar_set_value_inline fdvar, middle
-
-        when SECOND_CHOICE
-          lob = fdvar_lower_bound fdvar
-          upb = fdvar_upper_bound fdvar
-          arr = []
-          if middle > lob
-            arr.push lob, middle - 1
-          if middle < upb
-            arr.push middle + 1, upb
-          # Note: fdvar is not determined so the operation cannot fail
-          # note: must use some kind of intersect here (there's a test if you mess this up :)
-          # TOFIX: how does this consider _all_ the values in the fdvar? doesn't it just stop after this?
-          # TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-          fdvar_constrain fdvar, arr
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
-
-    return value_distribution_by_mid
-
-
-  distribution_value_by_split_min = (S, var_name) ->
-    value_distribution_by_split_min = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-      domain = fdvar.dom
-      min = domain_min domain
-      max = domain_max domain
-      mmhalf = min + max >> 1
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          # Note: fdvar is not determined so the operation cannot fail
-          # Note: this must do some form of intersect, though maybe not constrain
-          fdvar_constrain_to_range fdvar, min, mmhalf
-
-        when SECOND_CHOICE
-          # Note: fdvar is not determined so the operation cannot fail
-          # Note: this must do some form of intersect, though maybe not constrain
-          fdvar_constrain_to_range fdvar, mmhalf + 1, max
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
-
-    return value_distribution_by_split_min
-
-  distribution_value_by_split_max = (S, var_name) ->
-    value_distribution_by_split_max = (parent_space, current_choice_index) ->
-      if current_choice_index >= TWO_CHOICES
-        return
-
-      space = parent_space.clone()
-      fdvar = space.vars[var_name]
-
-      ASSERT !domain_is_determined(fdvar.dom), 'should not be "solved" nor "rejected"'
-
-      domain = fdvar.dom
-      min = domain_min domain
-      max = domain_max domain
-      mmhalf = min + max >> 1
-
-      switch current_choice_index
-        when FIRST_CHOICE
-          # Note: fdvar is not determined so the operation cannot fail
-          # Note: this must do some form of intersect, though maybe not constrain
-          fdvar_constrain_to_range fdvar, mmhalf + 1, max
-
-        when SECOND_CHOICE
-          # Note: fdvar is not determined so the operation cannot fail
-          # Note: this must do some form of intersect, though maybe not constrain
-          fdvar_constrain_to_range fdvar, min, mmhalf
-
-        else
-          throw new Error "Invalid choice value [#{current_choice_index}]"
-
-      return space
-
-    return value_distribution_by_split_max
-
-
-  # WIP...
-  # -----------------------------------------------------------------
-
-  distribution_value_by_min_max_cycle = (S, var_name) ->
-    vars = S.solver.vars
-    cycle = vars.all.indexOf(vars.byId[var_name]) % 2
-    if cycle is 0
-      return distribution_value_by_min S, var_name
-    else # if cycle is 1
-      return distribution_value_by_max S, var_name
-
-  return FD.distribution.Value = {
-    distribution_value_by_list
-    distribution_value_by_markov
-    distribution_value_by_max
-    distribution_value_by_min
-    distribution_value_by_min_max_cycle
-    distribution_value_by_mid
-    distribution_value_by_split_max
-    distribution_value_by_split_min
+    # for testing:
+    _distribution_value_by_list: distribution_value_by_list
+    _distribution_value_by_markov: distribution_value_by_markov
+    _distribution_value_by_max: distribution_value_by_max
+    _distribution_value_by_mid: distribution_value_by_mid
+    _distribution_value_by_min: distribution_value_by_min
+    _distribution_value_by_min_max_cycle: distribution_value_by_min_max_cycle
+    _distribution_value_by_split_max: distribution_value_by_split_max
+    _distribution_value_by_split_min: distribution_value_by_split_min
   }

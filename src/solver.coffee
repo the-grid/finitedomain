@@ -107,11 +107,11 @@ module.exports = (FD) ->
     # S.addVar {id: 'foo', domain: [1, 2]}
     # S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
 
-    addVar: (v, domain) ->
+    addVar: (v, dom) ->
       if typeof v is 'string'
         v = {
           id: v
-          domain
+          dom
         }
 
       {

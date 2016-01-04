@@ -2,7 +2,6 @@
 module.exports = (FD) ->
   {
     ASSERT_PROPAGATOR
-    ASSERT_SNODE
     ASSERT_SPACE
   } = FD.helpers
 
@@ -85,7 +84,6 @@ module.exports = (FD) ->
   init_state_for_depth_first = (state) ->
     if !state.snode_stack or state.snode_stack.length == 0
       ASSERT_SPACE state.space
-      ASSERT_SNODE state.space.snode
       # If no snode_stack argument, then search begins with state.space.snode
       if state.snode_stack
         state.snode_stack.push state.space

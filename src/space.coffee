@@ -33,10 +33,6 @@ module.exports = (FD) ->
     prop_is_solved
   } = FD.propagators
 
-#  {
-#    snode_create_root
-#  } = FD.Snode
-
   {
     fdvar_clone
     fdvar_constrain

@@ -8,7 +8,16 @@ spec_d_create_range = (lo, hi) ->
   return spec_d_create_ranges [lo, hi]
 spec_d_create_ranges = (ranges...) ->
   arr = []
-  ranges.forEach (range) -> arr.push range[0], range[1]
+  ranges.forEach (range) ->
+    unless range instanceof Array
+      throw 'Expecting each range to be an array'
+    unless range.length is 2
+      throw 'Expecting each range to be [lo,hi]'
+    unless typeof range[0] is 'number'
+      throw 'Expecting ranges to be numbers'
+    unless typeof range[1] is 'number'
+      throw 'Expecting ranges to be numbers'
+    arr.push range[0], range[1]
 
   # hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr

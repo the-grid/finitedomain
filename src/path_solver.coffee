@@ -22,9 +22,7 @@ module.exports = (FD) ->
   } = Bvar
 
   {
-    domain_create_one
     domain_create_range
-    domain_create_zero
     domain_from_list
     domain_max
   } = Domain

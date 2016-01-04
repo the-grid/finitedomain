@@ -53,7 +53,8 @@ describe "FD - propagators - callback", ->
       space.sum ['R', 'G', 'B'], 'T'
       space.callback ['R', 'G', 'B'], cb
 
-      FD.distribution.naive space, ['R', 'G', 'B']
+      space.set_options FD.distribution.get_defaults 'naive'
+      space.set_options targeted_var_names: ['R', 'G', 'B']
 
       state = {space, more: true}
       count = 0

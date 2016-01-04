@@ -17,10 +17,6 @@ module.exports = (FD) ->
   } = FD.helpers
 
   {
-    get_distributor_value_factory
-  } = FD.distribution
-
-  {
     domain_create_bool
     domain_create_value
     domain_create_zero
@@ -40,7 +36,6 @@ module.exports = (FD) ->
     fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
-    fdvar_is_equal
   } = FD.Var
 
   # Duplicates the functionality of new Space(S) for readability.
@@ -54,20 +49,22 @@ module.exports = (FD) ->
     @unsolved_var_names = unsolved_var_names
     @root_space = root_space
 
+    @constant_cache = {}
+
     # shared with root! should not change after initialization
     @_propagators = propagator_data
 
     # used from Search
     @next_distribution_choice = 0
-    @current_value_distributor = undefined
     @solver = undefined # see clone
 
-    # stuff migrated from distribute. See create_distributor_on_space
-    @get_targeted_var_names = undefined
-    @get_var_fitness = undefined
-    @get_next_value = undefined
-    @initial_targeted_var_names = null # may be set from distributor
-    @markov_vars_by_id = null # cache for markov chains
+    # these configs are only read from the root_space
+    @config_var_filter_func = 'unsolved'
+    @config_next_var_func = 'naive'
+    @config_next_value_func = 'min'
+    @config_targeted_vars = 'all'
+    @config_when_solved = 'all'
+    @config_var_dist_options = {}
 
     return
 
@@ -121,39 +118,46 @@ module.exports = (FD) ->
 
     return first
 
-  # This is the actual search strategy being applied by Space root_space
-  # Should return something from FD.distribution.Value
+  # Set solving options on this space. Only required for the root.
 
-  Space::get_value_distributor = ->
-    root_space = @root_space or @
-    # these are initialized in distribution/distribute.coffee
-    ASSERT root_space.get_targeted_var_names, 'should be set'
-    ASSERT root_space.get_var_fitness, 'should be set'
-    ASSERT root_space.get_next_value, 'should be set'
+  Space::set_options = (options) ->
+    if options?.filter
+      # for markov,
+      # string: 'none', ignored
+      # function: callback to determine which vars of a space are considered, should return array of names
+      @config_var_filter_func = options.filter
+    if options?.var
+      # see distribution.var
+      @config_next_var_func = options.var
+    if options?.val
+      # see distribution.value
+      @config_next_value_func = options.val
+    if options?.targeted_var_names
+      # which vars must be solved for this space to be solved
+      # string: 'all'
+      # string[]: list of vars that must be solved
+      # function: callback to return list of names to be solved
+      @config_targeted_vars = options.targeted_var_names
+    if options?.is_solved
+      # 'all': solved when all vars of a space are solved
+      # string[]: a list of vars that must be solved to consider the space solved
+      # function: a custom callback to determine whether the space is solved
+      @config_when_solved = options.is_solved
+    if options?.var_dist_config
+      # An object which defines a value distributor per variable
+      # which overrides the globally set value distributor.
+      # See Bvar#distributionOptions
+      @config_var_dist_options = options.var_dist_config
 
-    targeted_var_names = root_space.get_targeted_var_names @, root_space.initial_targeted_var_names
-    if targeted_var_names.length > 0
-      var_name = get_next_var @, targeted_var_names, root_space.get_var_fitness
-      branch_vars_by_id = root_space.markov_vars_by_id
+    return
 
-      # D4:
-      # - now, each var can define it's own value distribution, regardless of default
-      if branch_vars_by_id
-        branch_var = branch_vars_by_id[var_name]
-        if branch_var
-          value_distributor_name = branch_var.distribute
-          if value_distributor_name
-            value_distributor_fac = get_distributor_value_factory value_distributor_name
-            value_distributor = value_distributor_fac root_space, var_name, branch_var.distributeOptions
-            return value_distributor
+  # Initialize the config of this space according to certain presets
+  #
+  # @param {string} name
 
-      if var_name
-        return root_space.get_next_value @, var_name
-    return false
-
-  # @obsolete Keeping it for non-breaking-api sake
-
-  Space::done = ->
+  Space::set_defaults = (name) ->
+    @set_options FD.distribution.get_defaults name
+    return
 
   # A monotonically increasing class-global counter for unique temporary variable names.
   _temp_count = 1
@@ -301,7 +305,20 @@ module.exports = (FD) ->
     ASSERT val >= SUB, 'val must be above minimum value', val
     ASSERT val <= SUP, 'val must be below max value', val
 
-    return @decl_anon domain_create_value val
+    # The idea is that single value domains are already solved so if they
+    # change, the state is immediately rejected. As such these vars can
+    # be considered constants; use them as is or bust. We do have to take
+    # care not to change them inline as they are shared by reference.
+    # TOFIX: make this more stable.
+    cache = @constant_cache
+
+    fdvar = cache[val]
+    if fdvar
+      return fdvar
+
+    fdvar = @decl_anon domain_create_value val
+    cache[val] = fdvar
+    return fdvar
 
   # Create N anonymous FD variables and return their names
   # in an array. Optionally set them to given dom for all
@@ -697,10 +714,23 @@ module.exports = (FD) ->
 
   Space::__debug_string = () ->
 
-    things = ['Vars:']
+    things = ['Config:']
+
+    things.push '- config_var_filter_func:' + @config_var_filter_func
+    things.push '- config_next_var_func:' + @config_next_var_func
+    things.push '- config_next_value_func:' + @config_next_value_func
+    things.push '- config_targeted_vars:' + @config_targeted_vars
+    things.push '- config_when_solved:' + @config_when_solved
+
+    things.push 'Vars:'
 
     for name of @vars
       things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+
+    things.push 'Var names:'
+    things.push @all_var_names
+    things.push 'Unsolved vars:'
+    things.push @unsolved_var_names
 
     things.push 'Propagators:'
 

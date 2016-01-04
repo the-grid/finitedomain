@@ -178,9 +178,8 @@ describe "FD -", ->
         o = {distribute:{val:'mid'}} # doesnt actually matter
         S = new FD.Solver o
 
-        listCallback = (S,v) ->
+        listCallback = (S, v) ->
           solution = S.solutionFor(['STATE','STATE2','V1','V2'], false)
-          #console.log solution
           if solution['STATE'] is 5
             if v is 'V1'
               return [2,4,3,1]

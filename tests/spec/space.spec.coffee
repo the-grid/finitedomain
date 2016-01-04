@@ -97,20 +97,6 @@ describe "FD", ->
 
       # TODO
 
-    describe '#done()', ->
-
-      it 'should not do anything', ->
-
-        expect(new Space().done).not.to.throw
-
-      it 'should not modify the space', ->
-
-        space = new Space
-        clone = space.clone()
-        clone.root_space = null # since space is the root, it does not have itself as a root_space prop.
-        space.done()
-        expect(space).to.eql clone # since clone is a deep clone, we can do a deep eq check here
-
     describe '#is_solved()', ->
 
       it 'should return true if there are no vars', ->

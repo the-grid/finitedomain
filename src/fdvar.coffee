@@ -12,6 +12,7 @@ module.exports = (FD) ->
 
   {
     domain_create_all
+    domain_create_bool
     domain_create_range
     domain_create_value
     domain_intersection
@@ -32,6 +33,15 @@ module.exports = (FD) ->
 
   fdvar_create = (id, dom) ->
     return fdvar_new id, dom, 0
+
+  fdvar_create_bool = (id) ->
+    return fdvar_new id, domain_create_bool(), 0
+
+  fdvar_create_range = (id, lo, hi) ->
+    return fdvar_new id, domain_create_range(lo, hi), 0
+
+  fdvar_create_value = (id, val) ->
+    return fdvar_new id, domain_create_value(val), 0
 
   fdvar_create_wide = (id) ->
     return fdvar_new id, domain_create_all(), 0
@@ -166,6 +176,9 @@ module.exports = (FD) ->
     fdvar_constrain_to_range
     fdvar_constrain_to_value
     fdvar_create
+    fdvar_create_bool
+    fdvar_create_range
+    fdvar_create_value
     fdvar_create_wide
     fdvar_force_eq_inline
     fdvar_force_neq_inline

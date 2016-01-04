@@ -47,11 +47,18 @@ module.exports = (FD) ->
 
   class FD.Solver
 
+    # @param {Object} [o]
+    # @property {string} [o.distribute='naive']
+    # @property {string} [o.search='depth_first']
+    # @property {number[]} [o.defaultDomain=[0,1]]
+    # @property {Object} [o.searchDefaults]
+
     constructor: (o={}) ->
       {
         @distribute
         @search
         @defaultDomain
+        search_defaults
       } = o
 
       @search ?= 'depth_first'
@@ -70,6 +77,7 @@ module.exports = (FD) ->
         byName: {}
         all: []
         byClass: {}
+        root: undefined # see PathSolver
 
       @solutions = []
 
@@ -111,7 +119,7 @@ module.exports = (FD) ->
       if typeof v is 'string'
         v = {
           id: v
-          dom
+          domain: dom
         }
 
       {
@@ -327,7 +335,7 @@ module.exports = (FD) ->
     # @param {Object} options
     # @property {number} options.max
     # @property {number} options.log One of: 0, 1 or 2
-    # @property {number} options.vars Target vars to force solve. Defaults to all.
+    # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' Maps to a function on FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
@@ -338,7 +346,7 @@ module.exports = (FD) ->
         log
         vars
         search
-        distribute:distributor_options
+        distribute: distribution_options
       } = options
 
       log ?= 0 # 1, 2
@@ -358,11 +366,11 @@ module.exports = (FD) ->
     _solve: (state, search_func, solutions, max, log, squash) ->
       ASSERT_SPACE state.space
 
-      count = 0
       if log >= 1
         console.time '      - FD Solver Time'
         console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
 
+      count = 0
       while state.more and count < max
         state = search_func state
         if state.status isnt 'end'

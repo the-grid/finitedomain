@@ -291,7 +291,7 @@ module.exports = (FD) ->
           childBranches = branch_path[path_name]?.children
           if childBranches?
             branch_value = path_meta[path_name].value
-            for child_branch in branch_path[path_name]?.children
+            for child_branch in childBranches
               @_compile_tree child_branch, branch_rules, branch_var, branch_value
 
       return

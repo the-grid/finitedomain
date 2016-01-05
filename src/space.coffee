@@ -14,6 +14,7 @@ module.exports = (FD) ->
     ASSERT
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
+    THROW
   } = FD.helpers
 
   {
@@ -425,7 +426,7 @@ module.exports = (FD) ->
         nopname = 'lt'
 
       else
-        throw new Error 'FD.space.reified: Unsupported operator \'' + opname + '\''
+        THROW 'FD.space.reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
       if fdvar_constrain(@vars[bool_name], domain_create_bool()) is REJECTED
@@ -567,7 +568,7 @@ module.exports = (FD) ->
       return @eq @decl_anon(domain_create_zero()), prodname
 
     if factor < 0
-      throw new Error 'scale: negative factors not supported.'
+      THROW 'scale: negative factors not supported.'
 
     unless prodname
       prodname = @decl_anon()
@@ -597,7 +598,7 @@ module.exports = (FD) ->
 
     switch vars.length
       when 0
-        throw new Error 'Space.sum: Nothing to sum!'
+        THROW 'Space.sum: Nothing to sum!'
 
       when 1
         @eq vars[0], result_var_name

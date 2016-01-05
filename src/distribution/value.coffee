@@ -11,6 +11,7 @@ module.exports = (FD) ->
 
   {
     ASSERT
+    THROW
   } = helpers
 
   {
@@ -86,7 +87,7 @@ module.exports = (FD) ->
       when 'splitMin'
         return distribution_value_by_split_min fdvar, choice_index
 
-    throw new Error 'unknown next var func', config_next_value_func
+    THROW 'unknown next var func', config_next_value_func
     return
 
   # Attempt to solve by setting fdvar to values in the order

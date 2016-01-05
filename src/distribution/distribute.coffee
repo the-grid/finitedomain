@@ -2,6 +2,10 @@
 
 module.exports = (FD) ->
 
+  {
+    THROW
+  } = FD.helpers
+
   PRESETS =
     'default':
       var: 'naive'
@@ -30,7 +34,8 @@ module.exports = (FD) ->
   get_defaults = (name) ->
     if PRESETS[name]
       return PRESETS[name]
-    throw new Error "distribution.get_defaults: Unknown preset: #{name}"
+    THROW "distribution.get_defaults: Unknown preset: #{name}"
+    return
 
   FD.distribution.get_defaults = get_defaults
 

@@ -36,7 +36,7 @@ module.exports = (FD) ->
     fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
-  } = FD.Var
+  } = FD.Fdvar
 
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators

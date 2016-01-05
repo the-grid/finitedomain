@@ -23,7 +23,7 @@ describe "FD - propagators - lt", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Var
+  } = FD.Fdvar
 
   {
     lt_step_bare

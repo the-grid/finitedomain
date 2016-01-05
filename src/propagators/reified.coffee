@@ -16,7 +16,7 @@ module.exports = (FD) ->
   {
     fdvar_set_range_inline
     fdvar_set_value_inline
-  } = FD.Var
+  } = FD.Fdvar
 
   PAIR_SIZE = 2
 

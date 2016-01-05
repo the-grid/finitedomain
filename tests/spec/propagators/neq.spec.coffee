@@ -25,7 +25,7 @@ describe "FD - propagators - neq", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Var
+  } = FD.Fdvar
 
   {
     neq_step_bare

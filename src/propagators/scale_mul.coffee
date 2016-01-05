@@ -10,7 +10,7 @@ module.exports = (FD) ->
 
   {
     fdvar_set_domain
-  } = FD.Var
+  } = FD.Fdvar
 
   MIN = Math.min
   PAIR_SIZE = 2

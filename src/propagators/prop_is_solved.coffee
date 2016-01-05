@@ -22,7 +22,7 @@ module.exports = (FD) ->
     fdvar_is_solved
     fdvar_lower_bound
     fdvar_upper_bound
-  } = FD.Var
+  } = FD.Fdvar
 
   prop_is_solved = (vars, propagator) ->
     op_name = propagator[0]

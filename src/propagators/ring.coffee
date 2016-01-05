@@ -10,7 +10,7 @@ module.exports = (FD) ->
 
   {
     fdvar_set_domain
-  } = FD.Var
+  } = FD.Fdvar
 
   ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
     # Apply an operator func to fdvar1 and fdvar2

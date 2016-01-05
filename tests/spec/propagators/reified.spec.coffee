@@ -28,7 +28,7 @@ describe 'reified propagator', ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Var
+  } = FD.Fdvar
 
   {
     reified_step_bare

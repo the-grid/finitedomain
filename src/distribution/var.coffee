@@ -5,7 +5,7 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_size
     fdvar_upper_bound
-  } = FD.Var
+  } = FD.Fdvar
 
 
   # Given a list of variables return the next var to consider based on the

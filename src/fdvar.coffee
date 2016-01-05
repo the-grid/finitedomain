@@ -170,7 +170,7 @@ module.exports = (FD) ->
 
     return r
 
-  FD.Var = {
+  FD.Fdvar = {
     fdvar_clone
     fdvar_constrain
     fdvar_constrain_to_range

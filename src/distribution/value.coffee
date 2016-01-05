@@ -6,7 +6,7 @@ module.exports = (FD) ->
     distribution
     Domain
     helpers
-    Var
+    Fdvar
   } = FD
 
   {
@@ -36,7 +36,7 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_upper_bound
-  } = Var
+  } = Fdvar
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1

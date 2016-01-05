@@ -7,7 +7,7 @@ module.exports = (FD) ->
 
   {
     fdvar_force_neq_inline
-  } = FD.Var
+  } = FD.Fdvar
 
   PAIR_SIZE = 2
 

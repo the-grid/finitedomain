@@ -33,7 +33,6 @@
     "grunt-contrib-uglify": "*"
   },
   "dependencies": {
-    "clone": "^1.0.1"
   },
   "keywords": ["constraint solving, GSAT, finite domain solver, FD"],
   "browserify": {

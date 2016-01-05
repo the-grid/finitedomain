@@ -1,11 +1,15 @@
 module.exports = (FD) ->
 
   {
+    THROW
+  } = FD.helpers
+
+  {
     fdvar_is_undetermined
     fdvar_lower_bound
     fdvar_size
     fdvar_upper_bound
-  } = FD.Var
+  } = FD.Fdvar
 
 
   # Given a list of variables return the next var to consider based on the
@@ -33,7 +37,7 @@ module.exports = (FD) ->
       when 'max'
         is_better_var = by_max
       else
-        throw new Error 'unknown next var func', config_next_var_func
+        THROW 'unknown next var func', config_next_var_func
 
     config_var_filter = root_space.config_var_filter_func
     if config_var_filter and typeof config_var_filter isnt 'function'
@@ -41,7 +45,7 @@ module.exports = (FD) ->
         when 'unsolved'
           config_var_filter = fdvar_is_undetermined
         else
-          throw new Error 'unknown var filter', config_var_filter
+          THROW 'unknown var filter', config_var_filter
 
     return find_best fdvars, target_vars, is_better_var, config_var_filter
 

@@ -18,7 +18,7 @@ describe 'value.spec', ->
   {
     fdvar_create
     fdvar_create_bool
-  } = FD.Var
+  } = FD.Fdvar
 
   it 'fdvar_create_bool should exist', ->
 

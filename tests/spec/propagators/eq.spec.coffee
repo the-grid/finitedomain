@@ -25,7 +25,7 @@ describe "FD - propagators - eq", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Var
+  } = FD.Fdvar
 
   {
     eq_step_bare

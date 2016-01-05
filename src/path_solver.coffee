@@ -14,8 +14,13 @@ module.exports = (FD) ->
   {
     Bvar
     Domain
+    helpers
     Solver
   } = FD
+
+  {
+    THROW
+  } = helpers
 
   {
     create_branch_var
@@ -58,14 +63,8 @@ module.exports = (FD) ->
         if meta.value is value
           return path_name
 
-      throw new Error "solution to Path error"
-
-# this stuff is unused and not obviously debug. remove it, use it, or clarify it.
-# (and where does the @M come from? I think it's a MultiVerse instance... but who sets it?)
-#    collapseSolution: (solution) ->
-#      path = @space.solutionToPath(solution)
-#      collapsed = @M.collapse path
-#      collapsed
+      THROW "solution to Path error"
+      return
 
     # walk the whole tree from this node downward
     # walks in depth first search order
@@ -162,7 +161,8 @@ module.exports = (FD) ->
       #    @['==?'](parents[0], parents[1])
       #  )
 
-      throw new Error "PathSolver... ~= ???"
+      THROW "PathSolver... ~= ???"
+      return
       #return @['=='] e1, e2
 
     kill: (paths) ->
@@ -203,7 +203,7 @@ module.exports = (FD) ->
           max_domain = MAX max_domain, domain_max domain
 
       unless had_domain
-        throw new Error "{}~= Cant find domain for binding"
+        THROW "{}~= Cant find domain for binding"
 
       return max_domain
 
@@ -235,7 +235,7 @@ module.exports = (FD) ->
       } = branch
 
       unless paths?
-        throw new Error "PathSolver: no possible values??? (no paths)"
+        THROW "PathSolver: no possible values??? (no paths)"
 
       _type ?= 'branch' # can also be 'kill'
 
@@ -305,12 +305,12 @@ module.exports = (FD) ->
 
         if isNaN path_name
           if path_type is NUM
-            throw new Error "Cant mix numbered paths with nonnumbered paths"
+            THROW "Cant mix numbered paths with nonnumbered paths"
           path_type = NAN
           branchValue = path_index + 1
         else
           if path_type is NAN
-            throw new Error "Cant mix numbered paths with nonnumbered paths"
+            THROW "Cant mix numbered paths with nonnumbered paths"
           path_type = NUM
           branchValue = 1 + parseFloat path_name
 
@@ -338,7 +338,7 @@ module.exports = (FD) ->
 
     set_bvar_domain = (branch_var, valid_branch_values, required) ->
       unless valid_branch_values.length > 0
-        throw new Error "PathSolver: no possible values???"
+        THROW "PathSolver: no possible values???"
         #domain = domain_create_zero()
 
       unless required # allow zero?

@@ -8,6 +8,10 @@
 
 module.exports = (FD) ->
   {
+    THROW
+  } = FD.helpers
+
+  {
     lt_step_would_reject
     lte_step_would_reject
     eq_step_would_reject
@@ -44,7 +48,7 @@ module.exports = (FD) ->
         return neq_step_bare v1, v2
 
       else
-        throw new Error 'unsupported propagator: [' + op_name + ']'
+        THROW 'unsupported propagator: [' + op_name + ']'
 
   # Do a fast dry run of one of the comparison propagators. Only returns
   # true when the step would result in REJECTED. Returns true otherwise.
@@ -71,7 +75,8 @@ module.exports = (FD) ->
         return neq_step_would_reject fdvar1, fdvar2
 
       else
-        throw new Error 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
+        THROW 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
+        return
 
   FD.propagators.step_comparison = stepper_step_comparison
   FD.propagators.step_would_reject = step_would_reject

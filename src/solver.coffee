@@ -12,6 +12,7 @@ module.exports = (FD) ->
 
   {
     ASSERT_SPACE
+    THROW
   } = helpers
 
   {
@@ -133,9 +134,9 @@ module.exports = (FD) ->
       vars = @vars
 
       unless id?
-        throw new Error "Solver#addVar: requires id "
+        THROW "Solver#addVar: requires id "
       if vars.byId[id]
-        throw new Error "Solver#addVar: var.id already added: #{id}"
+        THROW "Solver#addVar: var.id already added: #{id}"
 
       domain ?= @defaultDomain.slice 0
       @space.decl id, domain
@@ -149,7 +150,7 @@ module.exports = (FD) ->
       if distribute is 'markov'
         matrix = v.distributeOptions.matrix
         unless matrix
-          throw new Error "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
+          THROW "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
         for row in matrix
           bool_func = row.boolean
           if typeof bool_func is 'function'

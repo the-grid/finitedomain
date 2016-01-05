@@ -13,7 +13,7 @@ module.exports = (FD) ->
   {
     fdvar_force_eq_inline
     fdvar_is_solved
-  } = FD.Var
+  } = FD.Fdvar
 
   # This eq propagator looks a lot different from neq because in
   # eq we can prune early all values that are not covered by both.

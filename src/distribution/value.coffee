@@ -6,11 +6,12 @@ module.exports = (FD) ->
     distribution
     Domain
     helpers
-    Var
+    Fdvar
   } = FD
 
   {
     ASSERT
+    THROW
   } = helpers
 
   {
@@ -36,7 +37,7 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_upper_bound
-  } = Var
+  } = Fdvar
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
@@ -86,7 +87,7 @@ module.exports = (FD) ->
       when 'splitMin'
         return distribution_value_by_split_min fdvar, choice_index
 
-    throw new Error 'unknown next var func', config_next_value_func
+    THROW 'unknown next var func', config_next_value_func
     return
 
   # Attempt to solve by setting fdvar to values in the order

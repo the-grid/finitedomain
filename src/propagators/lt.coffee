@@ -19,7 +19,7 @@ module.exports = (FD) ->
     fdvar_remove_gte_inline
     fdvar_remove_lte_inline
     fdvar_upper_bound
-  } = FD.Var
+  } = FD.Fdvar
 
   lt_step_bare = (fdvar1, fdvar2) ->
     lo_1 = fdvar_lower_bound fdvar1

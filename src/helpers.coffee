@@ -163,6 +163,13 @@ module.exports = (FD) ->
   # keep the next line. it's used by a post processor
   REMOVE_ASSERTS_STOP = 1
 
+  # Abstraction for throwing because throw statements cause deoptimizations
+  # All explicit throws should use this function. Also helps with tooling
+  # later, catching and reporting explicits throws and what not.
+
+  THROW = (msg) ->
+    throw new Error msg
+
   FD.helpers = {
     ENABLED
     ENABLE_DOMAIN_CHECK
@@ -187,4 +194,5 @@ module.exports = (FD) ->
     ASSERT_THROW
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS
+    THROW
   }

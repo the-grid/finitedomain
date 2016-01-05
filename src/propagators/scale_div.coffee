@@ -9,7 +9,7 @@ module.exports = (FD) ->
 
   {
     fdvar_set_domain
-  } = FD.Var
+  } = FD.Fdvar
 
   FLOOR = Math.floor
   PAIR_SIZE = 2

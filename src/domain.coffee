@@ -165,10 +165,10 @@ module.exports = (FD) ->
         return value
     return NO_SUCH_VALUE
 
-  domain_without = (value) ->
-    return domain_except_bounds value, value
+  domain_create_without_value = (value) ->
+    return domain_create_without_bounds value, value
 
-  domain_except_bounds = (lo, hi) ->
+  domain_create_without_bounds = (lo, hi) ->
     domain = []
     if lo > SUB
       domain.push SUB, lo-1
@@ -938,11 +938,12 @@ module.exports = (FD) ->
     domain_create_sup
     domain_create_range
     domain_create_value
+    domain_create_without_value
+    domain_create_without_bounds
     domain_create_zero
     domain_deep_clone_without_value
     domain_divby
     domain_equal
-    domain_except_bounds
     domain_force_eq_inline
     domain_from_list
     domain_get_value_of_first_contained_value_in_list
@@ -966,7 +967,6 @@ module.exports = (FD) ->
     domain_size
     domain_times
     domain_to_list
-    domain_without
 
     # testing only:
     _domain_get_value: domain_get_value

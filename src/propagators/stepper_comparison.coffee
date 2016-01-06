@@ -20,9 +20,10 @@ module.exports = (FD) ->
     lte_step_bare
     eq_step_bare
     neq_step_bare
+    distinct_step_bare
   } = FD.propagators
 
-  stepper_step_comparison = (space, op_name, var_name_1, var_name_2) ->
+  step_comparison = (space, op_name, var_name_1, var_name_2) ->
     v1 = space.vars[var_name_1]
     v2 = space.vars[var_name_2]
 
@@ -35,11 +36,11 @@ module.exports = (FD) ->
 
       when 'gt'
       # TOFIX: should go to lte
-        return stepper_step_comparison space, 'lt', var_name_2, var_name_1
+        return step_comparison space, 'lt', var_name_2, var_name_1
 
       when 'gte'
       # TOFIX: should go to lt
-        return stepper_step_comparison space, 'lte', var_name_2, var_name_1
+        return step_comparison space, 'lte', var_name_2, var_name_1
 
       when 'eq'
         return eq_step_bare v1, v2
@@ -78,6 +79,6 @@ module.exports = (FD) ->
         THROW 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
         return
 
-  FD.propagators.step_comparison = stepper_step_comparison
+  FD.propagators.step_comparison = step_comparison
   FD.propagators.step_would_reject = step_would_reject
 

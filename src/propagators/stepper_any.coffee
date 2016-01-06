@@ -19,10 +19,6 @@ module.exports = (FD) ->
     callback_step_bare
     reified_step_bare
     ring_step_bare
-    lt_step_bare
-    lte_step_bare
-    eq_step_bare
-    neq_step_bare
     step_comparison
   } = FD.propagators
 

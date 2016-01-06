@@ -43,7 +43,12 @@ module.exports = (FD) ->
       console.log 'Error args:', args
     #      console.trace()
     #      process.exit() # uncomment for quick error access :)
-    THROW "Assertion fail: #{msg}#{((args.length and (" Args (#{args.length}x): [#{_stringify(args).join ', '}]")) or '')}"
+
+    suffix = ''
+    if args?.length
+      suffix = " Args (#{args.length}x): [#{_stringify(args).join ', '}]"
+
+    THROW "Assertion fail: #{msg}#{suffix}"
     return
 
   _stringify = (o) ->

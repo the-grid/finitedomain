@@ -3,7 +3,7 @@ module.exports = (FD) ->
   {
     ASSERT
     ASSERT_PROPAGATOR
-    ASSERT_THROW
+    THROW
   } = FD.helpers
 
   {
@@ -70,8 +70,7 @@ module.exports = (FD) ->
         return _ring space, vn1, vn2, prop_var_names, prop_datails
 
       else
-        ASSERT_THROW 'unsupported propagator: [' + prop_datails + ']'
-        return
+        THROW 'unsupported propagator: [' + prop_datails + ']'
 
     return
 

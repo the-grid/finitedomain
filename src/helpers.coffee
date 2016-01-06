@@ -23,7 +23,7 @@ module.exports = (FD) ->
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
   # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
   NO_SUCH_VALUE = SUB - 1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
-  ENABLED = false # slows down considerably when enabled, but ensures domains are proper only then
+  ENABLED = false # override for most tests (but not regular ASSERTs) like full domains and space validations
   ENABLE_DOMAIN_CHECK = false # also causes unrelated errors because mocha sees the expandos
   ENABLE_EMPTY_CHECK = false #  also causes unrelated errors because mocha sees the expandos
   PAIR_SIZE = 2
@@ -43,8 +43,14 @@ module.exports = (FD) ->
       console.log 'Error args:', args
     #      console.trace()
     #      process.exit() # uncomment for quick error access :)
-    ASSERT_THROW 'Assertion fail: ' + msg + ((args.length and (' Args (' + args.length + 'x): [' + args.join(',') + ']')) or '')
+    THROW "Assertion fail: #{msg}#{((args.length and (" Args (#{args.length}x): [#{_stringify(args).join ', '}]")) or '')}"
     return
+
+  _stringify = (o) ->
+    if o instanceof Array
+      return o.map (e) ->
+        return "[#{_stringify e}]"
+    return o + ''
 
   # Simple function to completely validate a domain
   # Should be removed in production. Obviously.
@@ -54,7 +60,7 @@ module.exports = (FD) ->
       return
 
     ASSERT !!domain, 'domains should be an array', domain
-    ASSERT domain.length % PAIR_SIZE is 0, 'domains should contain pairs so len should be even', domain
+    ASSERT domain.length % PAIR_SIZE is 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % PAIR_SIZE
     phi = SUB - 2 # this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
     for lo, index in domain by PAIR_SIZE
       hi = domain[index + 1]
@@ -155,11 +161,6 @@ module.exports = (FD) ->
       ASSERT_DOMAIN_EMPTY_SET domain
     return
 
-  # this prevents deopts for having a throw in the function
-
-  ASSERT_THROW = (msg) ->
-    throw new Error msg
-
   # keep the next line. it's used by a post processor
   REMOVE_ASSERTS_STOP = 1
 
@@ -191,7 +192,6 @@ module.exports = (FD) ->
     ASSERT_PROPAGATOR
     ASSERT_PROPAGATORS
     ASSERT_SPACE
-    ASSERT_THROW
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS
     THROW

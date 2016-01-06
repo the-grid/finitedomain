@@ -6,6 +6,7 @@ module.exports = (FD) ->
     ZERO_CHANGES
 
     ASSERT
+    ASSERT_DOMAIN
     ASSERT_UNUSED_DOMAIN
     ASSERT_DOMAIN_EMPTY_CHECK
   } = FD.helpers
@@ -48,6 +49,7 @@ module.exports = (FD) ->
 
   fdvar_new = (id, dom) ->
     ASSERT !!dom, 'should init to a domain', [id, dom]
+    ASSERT_DOMAIN dom, 'new domain should be CSIS', [id, dom]
     ASSERT_UNUSED_DOMAIN dom
     return {
       _class: 'fdvar'

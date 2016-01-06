@@ -9,7 +9,15 @@ API is bound to change, consider yourself warned.
 ## Installing
 
     npm install finitedomain
-  
+
 ## Usage
 
 For now, see the extensive [tests](./tests)
+
+## Version
+
+1.0.1:
+- Support legacy style of domains in Solver, will convert them to a flat array of range pairs
+- Improve input domain detection for early error reporting
+
+1.0.0: Initial release

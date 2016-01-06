@@ -11,6 +11,9 @@ module.exports = (FD) ->
   } = FD
 
   {
+    SUB
+    SUP
+
     ASSERT_SPACE
     THROW
   } = helpers
@@ -86,14 +89,24 @@ module.exports = (FD) ->
 
       @state = {@space, more: true}
 
-    # @deprecated
+    # @deprecated; use Solver#num() instead
 
     constant: (num) ->
+      if num is false
+        num = 0
+      if num is true
+        num = 1
+      if typeof num isnt 'number'
+        THROW "Solver#constant: expecting a number, got #{num} (a #{typeof num})"
+      if isNaN num
+        THROW "Solver#constant: expecting a number, got NaN"
       return @space.decl_value num
 
     # Returns an anonymous var with given value as lo/hi for the domain
 
     num: (num) ->
+      if typeof num isnt 'number'
+        THROW "Solver#num: argument is not a number: #{num}"
       return @space.decl_value num
 
     addVars: (vs) ->
@@ -103,6 +116,7 @@ module.exports = (FD) ->
 
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
+      domain = validate_domain domain
       @space.decl id, domain
       return
 
@@ -139,6 +153,8 @@ module.exports = (FD) ->
         THROW "Solver#addVar: var.id already added: #{id}"
 
       domain ?= @defaultDomain.slice 0
+      domain = validate_domain domain
+
       @space.decl id, domain
       vars.byId[id] = v
       vars.all.push v
@@ -158,6 +174,72 @@ module.exports = (FD) ->
 
       return v
 
+    # validate domains, filter and fix legacy domains, throw for bad inputs
+
+    validate_domain = (domain) ->
+      # support legacy domains and validate input here
+      if msg = _confirm_domain domain
+        fixed_domain = _try_to_fix_legacy_domain domain
+        if fixed_domain
+          if console?.warn
+            console.warn msg, domain, 'auto-converted to', fixed_domain
+        else
+          if console?.warn
+            console.warn msg, domain, 'unable to fix'
+          THROW "Fatal: unable to fix domain: #{JSON.stringify domain}"
+        domain = fixed_domain
+      return domain
+
+    # Domain input validation
+    # Have to support and transform legacy domain formats of domains of domains
+    # and transform them to flat domains with lo/hi pairs
+
+    _confirm_domain = (domain) ->
+      if (domain.length % 2) isnt 0
+        return 'Detected invalid domain, maybe legacy?'
+      lhi = SUB - 10
+      for lo, i in domain by 2
+        hi = domain[i + 1]
+        if e = _confirm_domain_element lo
+          return e
+        if e = _confirm_domain_element hi
+          return e
+
+        if lo < SUB
+          return "Domain contains a number lower than SUB (#{n} < #{SUB}), this is probably a bug"
+        if hi > SUP
+          return "Domain contains a number higher than SUP (#{n} > #{SUP}), this is probably a bug"
+        if lo > hi
+          return "Found a lo/hi pair where lo>hi, expecting all pairs lo<=hi (#{lo}>#{hi})"
+
+    _confirm_domain_element = (n) ->
+      if typeof n isnt 'number'
+        if n instanceof Array
+          return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs'
+        return "Expecting array of numbers, found something else (#{n}), this is probably a bug"
+      if n < SUB
+        return "Domain contains a number lower than SUB (#{n} < #{SUB}), this is probably a bug"
+      if n > SUP
+        return "Domain contains a number higher than SUP (#{n} > #{SUP}), this is probably a bug"
+      if isNaN n
+        return "Domain contains an actual NaN, this is probably a bug"
+
+    # Try to convert old array of arrays domain to new
+    # flat array of number pairs domain. If any validation
+    # step fails, return nothing.
+
+    _try_to_fix_legacy_domain = (domain) ->
+      fixed = []
+      for a in domain
+        unless a instanceof Array
+          return
+        unless a.length is 2
+          return
+        [lo, hi] = a
+        if lo > hi
+          return
+        fixed.push lo, hi
+      return fixed
 
     # Arithmetic Propagators
 

@@ -133,7 +133,7 @@ module.exports = (FD) ->
       return
 
     if domain._trace
-      throw new Error 'Domain already marked as set to empty...: ' + domain._trace
+      THROW 'Domain already marked as set to empty...: ' + domain._trace
     # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
     domain._trace = new Error().stack
     return
@@ -145,9 +145,9 @@ module.exports = (FD) ->
     unless domain.length
       if ENABLE_EMPTY_CHECK
         if domain._trace
-          throw new Error 'Domain should not be empty but was set empty at: ' + domain._trace
-        throw new Error 'Domain should not be empty but was set empty at an untrapped point (investigate!)'
-      throw new Error 'Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)'
+          THROW 'Domain should not be empty but was set empty at: ' + domain._trace
+        THROW 'Domain should not be empty but was set empty at an untrapped point (investigate!)'
+      THROW 'Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)'
     ASSERT_DOMAIN domain
     return
 

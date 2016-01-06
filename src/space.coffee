@@ -406,6 +406,9 @@ module.exports = (FD) ->
   # propagator creator functions.
 
   Space::reified = (opname, left_var_name, right_var_name, bool_name) ->
+    return add_reified @, opname, left_var_name, right_var_name, bool_name
+
+  add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -429,19 +432,22 @@ module.exports = (FD) ->
         THROW 'FD.space.reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
-      if fdvar_constrain(@vars[bool_name], domain_create_bool()) is REJECTED
+      if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
         return REJECTED
     else
-      bool_name = @decl_anon domain_create_bool()
+      bool_name = space.decl_anon domain_create_bool()
 
-    @_propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
+    ASSERT_PROPAGATORS space._propagators
 
     return bool_name
 
   Space::callback = (var_names, callback) ->
-    @_propagators.push ['callback', var_names, callback]
-    ASSERT_PROPAGATORS @_propagators
+    return add_callback @, var_names, callback
+
+  add_callback = (space, var_names, callback) ->
+    space._propagators.push ['callback', var_names, callback]
+    ASSERT_PROPAGATORS space._propagators
     return
 
   # Domain equality propagator. Creates the propagator
@@ -451,37 +457,45 @@ module.exports = (FD) ->
   # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   Space::eq = (v1name, v2name) ->
+    return add_eq @, v1name, v2name
+
+  add_eq = (space, v1name, v2name) ->
+
     # If v2name is not specified, then we're operating in functional syntax
     # and the return value is expected to be v2name itself. This can happen
     # when, for example, scale uses a weight factor of 1.
     if !v2name
       return v1name
 
-    @_propagators.push ['eq', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['eq', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.
 
   Space::lt = (v1name, v2name) ->
-    @_propagators.push ['lt', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+    return add_lt @, v1name, v2name
+
+  add_lt = (space, v1name, v2name) ->
+    space._propagators.push ['lt', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
   # Greater than propagator.
 
   Space::gt = (v1name, v2name) ->
     # _swap_ v1 and v2 because: a>b is b<=a
-    @_propagators.push ['lte', [v2name, v1name]]
-    ASSERT_PROPAGATORS @_propagators
-    return
+    return add_lte @, v2name, v1name
 
   # Less than or equal to propagator.
 
   Space::lte = (v1name, v2name) ->
-    @_propagators.push ['lte', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+    return add_lte @, v1name, v2name
+
+  add_lte = (space, v1name, v2name) ->
+    space._propagators.push ['lte', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
   # Greater than or equal to.
@@ -489,15 +503,16 @@ module.exports = (FD) ->
   Space::gte = (v1name, v2name) ->
     # TODO: fix this as per https://github.com/srikumarks/FD.js/issues/6
     # _swap_ v1 and v2 because: a>=b is b<a
-    @_propagators.push ['lte', [v2name, v1name]]
-    ASSERT_PROPAGATORS @_propagators
-    return
+    return add_lte @, v2name, v1name
 
   # Ensures that the two variables take on different values.
 
   Space::neq = (v1name, v2name) ->
-    @_propagators.push ['neq', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+    return add_neq @, v1name, v2name
+
+  add_neq = (space, v1name, v2name) ->
+    space._propagators.push ['neq', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
   # Takes an arbitrary number of FD variables and adds propagators that
@@ -506,8 +521,7 @@ module.exports = (FD) ->
   Space::distinct = (vars) ->
     for var_i, i in vars
       for j in [0...i]
-        @_propagators.push ['neq', [vars[i], vars[j]]]
-    ASSERT_PROPAGATORS @_propagators
+        add_neq @, vars[i], vars[j]
     return
 
   # Once you create an fdvar in a space with the given
@@ -532,27 +546,34 @@ module.exports = (FD) ->
       sumname = space.decl_anon()
       retval = sumname
 
-    space._propagators.push(
-      ['ring', [v1name, v2name, sumname], target_op_name]
-      ['ring', [sumname, v2name, v1name], inv_op_name]
-      ['ring', [sumname, v1name, v2name], inv_op_name]
-    )
-
-    ASSERT_PROPAGATORS space._propagators
+    add_ring space, v1name, v2name, sumname, target_op_name
+    add_ring space, sumname, v2name, v1name, inv_op_name
+    add_ring space, sumname, v1name, v2name, inv_op_name
 
     return retval
+
+  add_ring = (space, A, B, C, op) ->
+    space._propagators.push ['ring', [A, B, C], op]
+    ASSERT_PROPAGATORS space._propagators
+    return
 
   # Bidirectional addition propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    return plus_or_times @, 'plus', 'min', v1name, v2name, sumname
+    return add_plus @, v1name, v2name, sumname
+
+  add_plus = (space, v1name, v2name, sumname) ->
+    return plus_or_times space, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    return plus_or_times @, 'mul', 'div', v1name, v2name, prodname
+    return add_times @, v1name, v2name, prodname
+
+  add_times = (space, v1name, v2name, prodname) ->
+    return plus_or_times space, 'mul', 'div', v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -561,39 +582,47 @@ module.exports = (FD) ->
   # factor * v = prod
 
   Space::scale = (factor, vname, prodname) ->
+    return add_scale @, factor, vname, prodname
+
+  add_scale = (space, factor, vname, prodname) ->
     if factor is 1
-      return @eq vname, prodname
+      return add_eq space, vname, prodname
 
     if factor is 0
-      return @eq @decl_anon(domain_create_zero()), prodname
+      return add_eq space, space.decl_anon(domain_create_zero()), prodname
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
 
     unless prodname
-      prodname = @decl_anon()
+      prodname = space.decl_anon()
       retval = prodname
 
-    @_propagators.push ['mul', [vname, prodname]]
-    @_propagators.push ['div', [vname, prodname]]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['mul', [vname, prodname]]
+    space._propagators.push ['div', [vname, prodname]]
+    ASSERT_PROPAGATORS space._propagators
 
     return retval
 
   # TODO: Can be made more efficient.
 
   Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
-    return @plus @scale(k1, v1name), @scale(k2, v2name), resultname
+    A = add_scale @, k1, v1name
+    B = add_scale @, k2, v2name
+    return add_plus @, A, B, resultname
 
   # Sum of N fdvars = resultFDVar
   # Creates as many anonymous vars as necessary.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::sum = (vars, result_var_name) ->
-    retval = @
+    return add_sum @, vars, result_var_name
+
+  add_sum = (space, vars, result_var_name) ->
+    retval = space
 
     unless result_var_name
-      result_var_name = @decl_anon()
+      result_var_name = space.decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -601,23 +630,23 @@ module.exports = (FD) ->
         THROW 'Space.sum: Nothing to sum!'
 
       when 1
-        @eq vars[0], result_var_name
+        add_eq space, vars[0], result_var_name
 
       when 2
-        @plus vars[0], vars[1], result_var_name
+        add_plus space, vars[0], vars[1], result_var_name
 
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @decl_anon()
-          @sum vars.slice(0, n), t1
+          t1 = space.decl_anon()
+          add_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = @decl_anon()
+        t2 = space.decl_anon()
 
-        @sum vars.slice(n), t2
-        @plus t1, t2, result_var_name
+        add_sum space, vars.slice(n), t2
+        add_plus space, t1, t2, result_var_name
 
     return retval
 
@@ -625,10 +654,13 @@ module.exports = (FD) ->
   # Create as many anonymous vars as necessary.
 
   Space::product = (vars, result_var_name) ->
-    retval = @
+    return add_product @, vars, result_var_name
+
+  add_product = (space, vars, result_var_name) ->
+    retval = space
 
     unless result_var_name
-      result_var_name = @decl_anon()
+      result_var_name = space.decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -636,34 +668,37 @@ module.exports = (FD) ->
         return retval
 
       when 1
-        @eq vars[0], result_var_name
+        add_eq space, vars[0], result_var_name
 
       when 2
-        @times vars[0], vars[1], result_var_name
+        add_times space, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @decl_anon()
-          @product vars.slice(0, n), t1
+          t1 = space.decl_anon()
+          add_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = @decl_anon()
+        t2 = space.decl_anon()
 
-        @product vars.slice(n), t2
-        @times t1, t2, result_var_name
+        add_product space, vars.slice(n), t2
+        add_times space, t1, t2, result_var_name
 
     return retval
 
   # Weighted sum of fdvars where the weights are constants.
 
   Space::wsum = (kweights, vars, result_name) ->
+    return add_wsum @, kweights, vars, result_name
+
+  add_wsum = (space, kweights, vars, result_name) ->
     anons = []
     for var_i, i in vars
-      t = @decl_anon()
-      @scale kweights[i], var_i, t
+      t = space.decl_anon()
+      add_scale space, kweights[i], var_i, t
       anons.push t
-    @sum anons, result_name
+    add_sum space, anons, result_name
     return
 
   # debug stuff (should be stripped from dist)

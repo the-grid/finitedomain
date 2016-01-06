@@ -717,29 +717,32 @@ module.exports = (FD) ->
 
     things = ['Config:']
 
-    things.push '- config_var_filter_func:' + @config_var_filter_func
-    things.push '- config_next_var_func:' + @config_next_var_func
-    things.push '- config_next_value_func:' + @config_next_value_func
-    things.push '- config_targeted_vars:' + @config_targeted_vars
-    things.push '- config_when_solved:' + @config_when_solved
+    things.push '- config_var_filter_func: ' + @config_var_filter_func
+    things.push '- config_next_var_func: ' + @config_next_var_func
+    things.push '- config_next_value_func: ' + @config_next_value_func
+    things.push '- config_targeted_vars: ' + @config_targeted_vars
+    things.push '- config_when_solved: ' + @config_when_solved
 
-    things.push 'Vars:'
+    things.push "Vars (#{@all_var_names.length}x):"
 
-    for name of @vars
-      things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+    vars = @vars
+    for name of vars
+      things.push '  '+name+': ['+vars[name].dom.join(', ')+']'
 
-    things.push 'Var names:'
-    things.push @all_var_names
-    things.push 'Unsolved vars:'
-    things.push @unsolved_var_names
+    things.push "Var (#{@all_var_names.length}x):"
+    things.push '  ' + @all_var_names
+    things.push "Unsolved vars (#{@unsolved_var_names.length}x):"
+    things.push '  ' + @unsolved_var_names
 
-    things.push 'Propagators:'
+    things.push "Propagators (#{@_propagators.length}x):"
 
     @_propagators.forEach (c) ->
       if c[0] is 'reified'
-        things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
+        things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}]"
+      if c[0] is 'ring'
+        things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}]"
       else
-        things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
+        things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}]"
     unless @_propagators.length
       things.push '  - none'
 

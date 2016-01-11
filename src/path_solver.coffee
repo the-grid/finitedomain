@@ -55,7 +55,9 @@ module.exports = (FD) ->
         if solution_value isnt 0
           branch_var = bvars_by_id[var_id]
           if branch_var
-            path[branch_var.branchId] = find_path_for_val_or_throw branch_var.pathMeta, solution_value
+            path_name = find_path_for_val_or_throw branch_var.pathMeta, solution_value
+            if path_name?
+              path[branch_var.branchId] = path_name
       return path
 
     find_path_for_val_or_throw = (path_meta, value) ->

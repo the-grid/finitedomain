@@ -20,7 +20,6 @@ module.exports = (FD) ->
     lte_step_bare
     eq_step_bare
     neq_step_bare
-    distinct_step_bare
   } = FD.propagators
 
   step_comparison = (space, op_name, var_name_1, var_name_2) ->

@@ -14,12 +14,14 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD", ->
+describe "space.spec", ->
 
   it 'FD?', ->
+
     expect(FD?).to.be.true
 
   describe 'Space class', ->
+
     {space:Space} = FD
 
     it 'should exist', ->
@@ -478,8 +480,6 @@ describe "FD", ->
           ]
 
           expect(S.propagate()).to.eql true
-
-
 
 # the propagator methods on Space are to be tested later, after I change them completely;
     # reified

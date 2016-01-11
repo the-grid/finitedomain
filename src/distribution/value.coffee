@@ -23,6 +23,7 @@ module.exports = (FD) ->
     domain_max
     domain_min
     domain_remove_next_from_list
+    domain_to_list
     domain_get_value_of_first_contained_value_in_list
   } = Domain
 
@@ -41,6 +42,8 @@ module.exports = (FD) ->
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
+
+  RANDOM = Math.random
 
   # The functions in this file are supposed to determine the next
   # value while solving a Space. The functions are supposed to
@@ -324,22 +327,56 @@ module.exports = (FD) ->
 
       when FIRST_CHOICE
         root_space = space.root_space or space
-        root_fdvar = root_space.vars[fdvar.id] # distributeOptions isnt cloned
+        domain = fdvar.dom
 
         config_var_dist_options = root_space.config_var_dist_options
         ASSERT config_var_dist_options, 'space should have config_var_dist_options'
-        ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
-        matrix = config_var_dist_options[fdvar.id].matrix
-        legend = config_var_dist_options[fdvar.id].legend
-        ASSERT matrix, 'there should be a matrix available for every var', fdvar
-        ASSERT legend, 'there should be a legend available for every var', fdvar
+        ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', JSON.stringify fdvar
+        {
+          expandVectorsWith: expand_vectors_with
+          legend: input_legend
+          matrix
+          random
+        } = config_var_dist_options[fdvar.id]
+        ASSERT matrix, 'there should be a matrix available for every var', JSON.stringify(fdvar), JSON.stringify config_var_dist_options[fdvar.id]
+        ASSERT input_legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', JSON.stringify(fdvar), JSON.stringify config_var_dist_options[fdvar.id]
+
+        random ?= RANDOM
 
         row = _get_next_row_to_solve space, matrix
-        value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
+
+        if expand_vectors_with? # could be 0
+          # remove values in legend not in domain
+          legend = []
+          if input_legend
+            for part in input_legend
+              legend.push part
+
+          all_values = domain_to_list domain
+          for val in all_values
+            if val not in legend
+              legend.push val
+        else
+          legend = input_legend
+
+        input_prob_vector = row.vector
+        length_delta = legend.length - input_prob_vector.length
+
+        if expand_vectors_with? # could be 0
+          prob_vector = [].concat input_prob_vector
+          if length_delta > 0
+            for [0...length_delta]
+              prob_vector.push expand_vectors_with
+        else
+          prob_vector = input_prob_vector
+          if length_delta isnt 0
+            THROW "FD: Markov val distribution error, vector must be same length of legend, otherwise use `expandVectorsWith:{Number}`"
+
+        value = distribution_markov_sampleNextFromDomain domain, prob_vector, legend, random
         unless value?
           return # signifies end of search
 
-        ASSERT domain_contains_value(fdvar.dom, value), 'markov picks a value from the existing domain so no need for a constrain below'
+        ASSERT domain_contains_value(domain, value), 'markov picks a value from the existing domain so no need for a constrain below'
         space._markov_last_value = value
 
         # it is assumed that markov picks its value from the existing domain, so a direct update should be fine

@@ -14,6 +14,7 @@ module.exports = (FD) ->
     SUB
     SUP
 
+    ASSERT
     ASSERT_SPACE
     THROW
   } = helpers
@@ -110,6 +111,7 @@ module.exports = (FD) ->
       return @space.decl_value num
 
     addVars: (vs) ->
+      ASSERT vs instanceof Array, 'Expecting array', vs
       for v in vs
         @addVar v
       return
@@ -132,6 +134,7 @@ module.exports = (FD) ->
     # S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
 
     addVar: (v, dom) ->
+      ASSERT !(v instanceof Array), 'Not expecting to receive an array', v
       if typeof v is 'string'
         v = {
           id: v
@@ -166,7 +169,10 @@ module.exports = (FD) ->
       if distribute is 'markov'
         matrix = v.distributeOptions.matrix
         unless matrix
-          THROW "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
+          if v.distributeOptions.expandVectorsWith
+            matrix = v.distributeOptions.matrix = [vector: []]
+          else
+            THROW "Solver#addVar: markov distribution requires SolverVar #{JSON.stringify v} w/ distributeOptions:{matrix:[]}"
         for row in matrix
           bool_func = row.boolean
           if typeof bool_func is 'function'

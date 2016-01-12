@@ -453,10 +453,7 @@ module.exports = (FD) ->
   # ensure that they are pairwise distinct.
 
   Space::distinct = (vars) ->
-    for var_i, i in vars
-      for j in [0...i]
-        add_neq @, vars[i], vars[j]
-    return
+    return add_distinct @, vars
 
   # Bidirectional addition propagator.
   # Returns either @ or the anonymous var name if no sumname was given
@@ -572,6 +569,12 @@ module.exports = (FD) ->
   add_neq = (space, v1name, v2name) ->
     space._propagators.push ['neq', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
+    return
+
+  add_distinct = (space, var_names) ->
+    for var_name_i, i in var_names
+      for j in [0...i]
+        add_neq space, var_name_i, var_names[j]
     return
 
   # Once you create an fdvar in a space with the given

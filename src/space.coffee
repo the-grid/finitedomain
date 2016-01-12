@@ -429,8 +429,8 @@ module.exports = (FD) ->
   # Greater than propagator.
 
   Space::gt = (v1name, v2name) ->
-    # _swap_ v1 and v2 because: a>b is b<=a
-    return add_lte @, v2name, v1name
+    # _swap_ v1 and v2 because: a>b is b<a
+    return add_lt @, v2name, v1name
 
   # Less than or equal to propagator.
 
@@ -440,8 +440,7 @@ module.exports = (FD) ->
   # Greater than or equal to.
 
   Space::gte = (v1name, v2name) ->
-    # TODO: fix this as per https://github.com/srikumarks/FD.js/issues/6
-    # _swap_ v1 and v2 because: a>=b is b<a
+    # _swap_ v1 and v2 because: a>b is b<a
     return add_lte @, v2name, v1name
 
   # Ensures that the two variables take on different values.

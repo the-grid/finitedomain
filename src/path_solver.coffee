@@ -43,6 +43,8 @@ module.exports = (FD) ->
     constructor: ({rawtree}, o = {}) ->
       super
 
+      @_class = 'path_solver'
+
       @root_branch_name = rawtree.branchName
 
       @vars.root = undefined # initialized by compile_tree

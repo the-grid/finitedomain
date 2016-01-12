@@ -54,6 +54,8 @@ module.exports = (FD) ->
     # @property {Object} [o.searchDefaults]
 
     constructor: (o={}) ->
+      @_class = 'solver'
+
       {
         @distribute
         @search

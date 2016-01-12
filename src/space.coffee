@@ -760,37 +760,53 @@ module.exports = (FD) ->
 
 
   Space::__debug_string = () ->
+    try
+      things = ['#########']
 
-    things = ['Config:']
+      things.push 'Config:'
+      things.push '- config_var_filter_func: ' + @config_var_filter_func
+      things.push '- config_next_var_func: ' + @config_next_var_func
+      things.push '- config_next_value_func: ' + @config_next_value_func
+      things.push '- config_targeted_vars: ' + @config_targeted_vars
+      things.push '- config_when_solved: ' + @config_when_solved
 
-    things.push '- config_var_filter_func: ' + @config_var_filter_func
-    things.push '- config_next_var_func: ' + @config_next_var_func
-    things.push '- config_next_value_func: ' + @config_next_value_func
-    things.push '- config_targeted_vars: ' + @config_targeted_vars
-    things.push '- config_when_solved: ' + @config_when_solved
+      things.push "Vars (#{@all_var_names.length}x):"
 
-    things.push "Vars (#{@all_var_names.length}x):"
+      vars = @vars
+      for name, fdvar of vars
+        options = @config_var_dist_options[name]
+        things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
 
-    vars = @vars
-    for name of vars
-      things.push '  '+name+': ['+vars[name].dom.join(', ')+']'
+      things.push 'config_var_dist_options:'
+      for key, val of @config_var_dist_options
+        things.push "  #{key}: #{JSON.stringify val}"
 
-    things.push "Var (#{@all_var_names.length}x):"
-    things.push '  ' + @all_var_names
-    things.push "Unsolved vars (#{@unsolved_var_names.length}x):"
-    things.push '  ' + @unsolved_var_names
+      things.push "Var (#{@all_var_names.length}x):"
+      things.push '  ' + @all_var_names
+      things.push "Unsolved vars (#{@unsolved_var_names.length}x):"
+      things.push '  ' + @unsolved_var_names
 
-    things.push "Propagators (#{@_propagators.length}x):"
+      things.push "Propagators (#{@_propagators.length}x):"
 
-    @_propagators.forEach (c) ->
-      if c[0] is 'reified'
-        things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}]"
-      if c[0] is 'ring'
-        things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}]"
-      else
-        things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}]"
-    unless @_propagators.length
-      things.push '  - none'
+      @_propagators.forEach (c) ->
+        try
+          solved = prop_is_solved vars, c
+        catch e
+          solved = '(unknown; crashes when checked)'
+
+        if c[0] is 'reified'
+          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
+        if c[0] is 'ring'
+          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
+        else
+          things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}] | solved: #{solved}"
+      unless @_propagators.length
+        things.push '  - none'
+
+      things.push '#########'
+    catch e
+      things.push '(Crashed inside Space::__debug_string!)'
+      throw new Error things.join '\n'
 
     return things.join '\n'
 

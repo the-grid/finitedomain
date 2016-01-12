@@ -57,12 +57,13 @@ module.exports = (FD) ->
 
     choice_index = space.next_distribution_choice++
     config_next_value_func = root_space.config_next_value_func
+    var_name = fdvar.id
 
-    ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', fdvar.id, fdvar.dom, fdvar
+    ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', var_name, fdvar.dom, fdvar
 
     # each var can override the value distributor
     branch_vars_by_id = root_space.solver?.vars?.byId
-    branch_var = branch_vars_by_id?[fdvar.id]
+    branch_var = branch_vars_by_id?[var_name]
     value_distributor_name = branch_var?.distribute
     if value_distributor_name
       config_next_value_func = value_distributor_name

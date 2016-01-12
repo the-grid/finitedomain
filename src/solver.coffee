@@ -189,8 +189,8 @@ module.exports = (FD) ->
       if msg = _confirm_domain domain
         fixed_domain = _try_to_fix_legacy_domain domain
         if fixed_domain
-          if console?.warn
-            console.warn msg, domain, 'auto-converted to', fixed_domain
+#          if console?.warn
+#            console.warn msg, domain, 'auto-converted to', fixed_domain
         else
           if console?.warn
             console.warn msg, domain, 'unable to fix'
@@ -501,7 +501,11 @@ module.exports = (FD) ->
     collect_distribution_overrides = (var_names, bvars_by_id) ->
       overrides = null
       for name in var_names
-        if dist_opts = bvars_by_id[name]?.distributeOptions
+        bvar = bvars_by_id[name]
+        if dist_opts = bvar?.distributeOptions
           overrides ?= {}
-          overrides[name] = dist_opts
+          overrides[name] ?= {}
+          for key, val of dist_opts
+            overrides[name][key] = val
+
       return overrides

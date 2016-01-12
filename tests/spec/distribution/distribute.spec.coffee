@@ -102,7 +102,7 @@ describe 'distribute.spec', ->
       # note: this is pretty much the same as the previous min/max test except it uses
       # markov for it but it mimics min/max because we fixate the random() outcome
 
-      S = new Solver {distribute: {val: 'mid'}} # ignored because overridden
+      S = new Solver {}
       S.addVar
         id: 'V1'
         domain: spec_d_create_range 0, 4

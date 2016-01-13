@@ -88,13 +88,6 @@ describe "space.spec", ->
         expect(space.all_var_names).to.equal clone.all_var_names
         expect(space._propagators).to.eql clone._propagators
 
-      it 'should copy the solver', ->
-
-        expect(clone.solver).to.equal space.solver
-        s = new Space()
-        s.solver = {}
-        expect(s.clone().solver).to.equal s.solver
-
     describe '#get_value_distributor()', ->
 
       # TODO

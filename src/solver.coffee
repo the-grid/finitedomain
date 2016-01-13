@@ -72,10 +72,7 @@ module.exports = (FD) ->
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
 
-      # TOFIX: get rid of this bi-directional dependency Space <> Solver
       @space = new Space
-      @space.solver = @
-
       # TOFIX: deprecate @S in favor of @space
       @S = @space
 
@@ -543,5 +540,9 @@ module.exports = (FD) ->
           overrides[name] ?= {}
           for key, val of dist_opts
             overrides[name][key] = val
+        if bvar?.distribute
+          overrides ?= {}
+          overrides[name] ?= {}
+          overrides[name].distributor_name = bvar.distribute
 
       return overrides

@@ -57,7 +57,6 @@ module.exports = (FD) ->
 
     # used from Search
     @next_distribution_choice = 0
-    @solver = undefined # see clone
 
     # these configs are only read from the root_space
     @config_var_filter_func = 'unsolved'
@@ -99,9 +98,6 @@ module.exports = (FD) ->
     pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
     clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
-    # D4:
-    # - add ref to high level solver
-    clone.solver = @solver if @solver
     return clone
 
   # Return best var according to some fitness function `is_better_var`

@@ -62,9 +62,8 @@ module.exports = (FD) ->
     ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', var_name, fdvar.dom, fdvar
 
     # each var can override the value distributor
-    branch_vars_by_id = root_space.solver?.vars?.byId
-    branch_var = branch_vars_by_id?[var_name]
-    value_distributor_name = branch_var?.distribute
+    config_var_dist_options = root_space.config_var_dist_options
+    value_distributor_name = config_var_dist_options[var_name]?.distributor_name
     if value_distributor_name
       config_next_value_func = value_distributor_name
 

@@ -23,6 +23,11 @@ module.exports = (FD) ->
     domain_create_bool
   } = Domain
 
+
+  LOG_MIN = LOG_NONE = 0
+  LOG_STATS = 1
+  LOG_MAX = LOG_SOLVES = 2
+
   get_name = (e) ->
     # e can be the empty string (TOFIX: let's not allow this...)
     if e.id?
@@ -91,6 +96,8 @@ module.exports = (FD) ->
       @solutions = []
 
       @state = {@space, more: true}
+
+      @_prepared = false
 
     # @deprecated; use Solver#num() instead
 
@@ -421,19 +428,29 @@ module.exports = (FD) ->
     isLt: (e1, e2, boolvar) ->
       return @_cacheReified 'lt', e1, e2, boolvar
 
-
-    # Start solving this solver. It should be setup with all the constraints.
+    # Solve this solver. It should be setup with all the constraints.
     #
     # @param {Object} options
     # @property {number} options.max
-    # @property {number} options.log Logging level; one of: 0, 1 or 2
+    # @property {number} options.log Logging level; one of: 0, 1 or 2 (see LOG_* constants)
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' Maps to a function on FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
     # @property {Object} [options.distribute] See Space#set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
-    solve: (options={}, squash) ->
+    solve: (options, squash) ->
+      obj = @prepare options, squash
+      #console.log obj.state.space.__debug_string()
+      @run obj
+      return @solutions
+
+    # Prepare internal configuration before actually solving
+    # Collects one-time config data and sets up defaults
+    #
+    # @param {Object} [options={}] See @solve
+
+    prepare: (options={}) ->
       {
         max
         log
@@ -442,11 +459,11 @@ module.exports = (FD) ->
         distribute: distribution_options
       } = options
 
-      log ?= 0 # 1, 2
+      log ?= LOG_NONE # 0, 1, 2
       max ?= 1000
       bvars ?= @vars.all
       var_names = get_names bvars
-      distribution_options ?= @distribute
+      distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
       overrides = collect_distribution_overrides var_names, @vars.byId
       if overrides
@@ -457,16 +474,35 @@ module.exports = (FD) ->
 
       search ?= @search
 
+      @_prepared = true
+
+      return {
+        search_func: Search[search]
+        max
+        log
+      }
+
+    # Run the solver. You should call @prepare before calling this function.
+    #
+    # @param {Object} options
+    # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
+
+    run: ({search_func, max, log}, squash) ->
+      ASSERT typeof search_func is 'function'
+      ASSERT typeof max is 'number'
+      ASSERT log >= LOG_MIN and log <= LOG_MAX
+
+      ASSERT @_prepared, 'must run @prepare before @run'
+      @_prepared = false
+
       solutions = @solutions
+      ASSERT solutions instanceof Array
 
-      @_solve @state, Search[search], solutions, max, log, squash
-
-      return solutions
-
-    _solve: (state, search_func, solutions, max, log, squash) ->
+      state = @state
+      ASSERT state
       ASSERT_SPACE state.space
 
-      if log >= 1
+      if log >= LOG_STATS
         console.time '      - FD Solver Time'
         console.log "      - FD Solver Var Count: #{@space.all_var_names.length}"
         console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
@@ -479,11 +515,11 @@ module.exports = (FD) ->
           unless squash
             solution = state.space.solution()
             solutions.push solution
-            if log >= 2
+            if log >= LOG_SOLVES
               console.log "      - FD solution() ::::::::::::::::::::::::::::"
               console.log JSON.stringify(solution)
 
-      if log >= 1
+      if log >= LOG_STATS
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
 

@@ -172,7 +172,7 @@ module.exports = (FD) ->
         vars.byName[name] ?= []
         vars.byName[name].push v
 
-      if distribute is 'markov'
+      if distribute is 'markov' or (v.distributeOptions and v.distributeOptions.distributor_name is 'markov')
         matrix = v.distributeOptions.matrix
         unless matrix
           if v.distributeOptions.expandVectorsWith
@@ -437,7 +437,7 @@ module.exports = (FD) ->
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
     solve: (options, squash) ->
-      obj = @prepare options, squash
+      obj = @prepare options
       ASSERT !options?.dbg or !console.log @state.space.__debug_string()
       @run obj
       return @solutions

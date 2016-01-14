@@ -183,6 +183,10 @@ module.exports = (FD) ->
           bool_func = row.boolean
           if typeof bool_func is 'function'
             row.booleanId = bool_func @, v
+          else if typeof bool_func is 'string'
+            row.booleanId = bool_func # only considers a row if the var is solved to 1
+          else
+            ASSERT !bool_func, 'row.boolean should be a function returning a var name or just a var name'
 
       return v
 

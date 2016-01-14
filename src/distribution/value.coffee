@@ -70,7 +70,10 @@ module.exports = (FD) ->
     if typeof config_next_value_func is 'function'
       return config_next_value_func
 
-    switch config_next_value_func
+    return _distribute_get_next_domain_for_var config_next_value_func, space, root_space, fdvar, choice_index
+
+  _distribute_get_next_domain_for_var = (value_func_name, space, root_space, fdvar, choice_index) ->
+    switch value_func_name
       when 'max'
         return distribution_value_by_max fdvar, choice_index
       when 'markov'
@@ -89,6 +92,8 @@ module.exports = (FD) ->
         return distribution_value_by_split_max fdvar, choice_index
       when 'splitMin'
         return distribution_value_by_split_min fdvar, choice_index
+      when 'throw'
+        ASSERT false, 'not expecting to pick this distributor'
 
     THROW 'unknown next var func', config_next_value_func
     return
@@ -410,4 +415,5 @@ module.exports = (FD) ->
     _distribution_value_by_min_max_cycle: distribution_value_by_min_max_cycle
     _distribution_value_by_split_max: distribution_value_by_split_max
     _distribution_value_by_split_min: distribution_value_by_split_min
+    _distribute_get_next_domain_for_var
   }

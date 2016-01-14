@@ -24,6 +24,12 @@ describe 'value.spec', ->
 
     expect(fdvar_create_bool?).to.be.true
 
+  describe 'distribution_value_by_throw', ->
+
+    it 'should throw', ->
+
+      expect(-> FD.distribution.value._distribute_get_next_domain_for_var 'throw').to.throw 'not expecting to pick this distributor'
+
   describe 'distribution_value_by_min', ->
 
     {_distribution_value_by_min: distribution_value_by_min} = FD.distribution.value

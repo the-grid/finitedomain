@@ -1,6 +1,7 @@
 module.exports = (FD) ->
 
   {
+    ASSERT
     THROW
   } = FD.helpers
 
@@ -36,6 +37,8 @@ module.exports = (FD) ->
         is_better_var = by_min
       when 'max'
         is_better_var = by_max
+      when 'throw'
+        ASSERT false, 'not expecting to pick this distributor'
       else
         THROW 'unknown next var func', config_next_var_func
 

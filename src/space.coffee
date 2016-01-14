@@ -208,8 +208,8 @@ module.exports = (FD) ->
       fdvar = vars[name]
       ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
       ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
+
       if fdvar_is_solved fdvar
-        ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
         fdvar.was_solved = true # makes Space#clone faster
       else
         unsolved_names[j++] = name
@@ -792,7 +792,7 @@ module.exports = (FD) ->
 
         if c[0] is 'reified'
           things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
-        if c[0] is 'ring'
+        else if c[0] is 'ring'
           things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
         else
           things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}] | solved: #{solved}"

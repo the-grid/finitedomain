@@ -22,6 +22,7 @@ module.exports = (FD) ->
     domain_is_determined
     domain_is_rejected
     domain_is_solved
+    domain_is_value
     domain_max
     domain_middle_element
     domain_min
@@ -71,7 +72,7 @@ module.exports = (FD) ->
     return domain_is_solved fdvar.dom
 
   # Is given var [value, value] ?
-  fdvar_is_value = (fdvar) ->
+  fdvar_is_value = (fdvar, value) ->
     return domain_is_value fdvar.dom, value
 
   # A var is rejected if its domain is empty. This means none of the

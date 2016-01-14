@@ -873,6 +873,7 @@ module.exports = (FD) ->
     return
 
   domain_remove_value_inline = (domain, value) ->
+    ASSERT typeof value is 'number', 'value should be a num', value
     for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
       if value >= lo and value <= hi

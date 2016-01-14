@@ -17,6 +17,7 @@ module.exports = (FD) ->
     mul_step_bare
     div_step_bare
     callback_step_bare
+    markov_step_bare
     reified_step_bare
     ring_step_bare
     step_comparison
@@ -65,6 +66,9 @@ module.exports = (FD) ->
       when 'ring'
         return _ring space, vn1, vn2, prop_var_names, prop_datails
 
+      when 'markov'
+        return _markov space, vn1
+
       else
         THROW 'unsupported propagator: [' + prop_datails + ']'
 
@@ -103,6 +107,9 @@ module.exports = (FD) ->
         ASSERT false, 'UNKNOWN ring opname', op_name
 
     return
+
+  _markov = (space, vn1) ->
+    return markov_step_bare space, vn1
 
   FD.propagators.step_any = stepper_prop_step
 

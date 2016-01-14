@@ -7,6 +7,7 @@ module.exports = (FD) ->
     Domain
     helpers
     Fdvar
+    Markov
   } = FD
 
   {
@@ -26,10 +27,13 @@ module.exports = (FD) ->
   } = Domain
 
   {
-    distribution_markov_get_next_row_to_solve
-    distribution_markov_merge_domain_and_legend
     distribution_markov_sampleNextFromDomain
   } = distribution.Markov
+
+  {
+    markov_create_legend
+    markov_create_prob_vector
+  } = Markov
 
   {
     fdvar_is_rejected
@@ -331,54 +335,36 @@ module.exports = (FD) ->
     switch choice_index
 
       when FIRST_CHOICE
+        # THIS IS AN EXPENSIVE STEP!
+
         root_space = space.root_space or space
         domain = fdvar.dom
+        var_name = fdvar.id
 
         config_var_dist_options = root_space.config_var_dist_options
         ASSERT config_var_dist_options, 'space should have config_var_dist_options'
-        ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', JSON.stringify fdvar
-        {
-          expandVectorsWith: expand_vectors_with
-          legend: input_legend
-          matrix
-          random
-        } = config_var_dist_options[fdvar.id]
-        ASSERT matrix, 'there should be a matrix available for every var', JSON.stringify(fdvar), JSON.stringify config_var_dist_options[fdvar.id]
-        ASSERT input_legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', JSON.stringify(fdvar), JSON.stringify config_var_dist_options[fdvar.id]
+        distribution_options = config_var_dist_options[var_name]
+        ASSERT distribution_options, 'markov vars should have  distribution options', JSON.stringify fdvar
+        expand_vectors_with = distribution_options.expandVectorsWith
+        ASSERT distribution_options.matrix, 'there should be a matrix available for every var', distribution_options.matrix or JSON.stringify(fdvar), distribution_options.matrix or JSON.stringify config_var_dist_options[var_name]
+        ASSERT distribution_options.legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', distribution_options.legend or expand_vectors_with? or JSON.stringify(fdvar), distribution_options.legend or expand_vectors_with? or JSON.stringify distribution_options
 
-        random ?= RANDOM
+        random = distribution_options.random or RANDOM
 
-        if expand_vectors_with? # could be 0
-          legend = distribution_markov_merge_domain_and_legend input_legend, domain
-        else
-          legend = input_legend
-
-        legend_length = legend.length
-        unless legend_length
+        # note: expand_vectors_with can be 0, so check with ?
+        values = markov_create_legend expand_vectors_with?, distribution_options.legend, domain
+        value_count = values.length
+        unless value_count
           return # no choice left
 
-        row = distribution_markov_get_next_row_to_solve space, matrix
-        if expand_vectors_with? # could be 0
-          prob_vector = row.vector and row.vector.slice(0) or []
-          delta = legend_length - prob_vector.length
-          if delta > 0
-            for [0...delta]
-              prob_vector.push expand_vectors_with
-        else
-          prob_vector = row.vector
-          unless prob_vector
-            THROW "distribution_value_by_markov error, each markov var must have a prob vector or use `expandVectorsWith:{Number}`"
-          if prob_vector.length isnt legend_length
-            THROW "distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`"
-
-        value = distribution_markov_sampleNextFromDomain domain, prob_vector, legend, random
+        probabilities = markov_create_prob_vector space, distribution_options.matrix, expand_vectors_with, value_count
+        value = distribution_markov_sampleNextFromDomain domain, probabilities, values, random
         unless value?
           return # signifies end of search
 
         ASSERT domain_contains_value(domain, value), 'markov picks a value from the existing domain so no need for a constrain below'
         space._markov_last_value = value
 
-        # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
         return domain_create_value value
 
       when SECOND_CHOICE

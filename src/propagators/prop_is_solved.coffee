@@ -53,6 +53,10 @@ module.exports = (FD) ->
         # (maybe we do want to ditch it if its argument vars are solved?)
         return false
 
+      when 'markov'
+        # markov doesnt reduce the domain, only validates (in the propagator, not here)
+        return false
+
       else
         return comparison_is_solved op_name, v1, v2
 

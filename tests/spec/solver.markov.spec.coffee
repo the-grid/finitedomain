@@ -37,9 +37,9 @@ describe "solver.markov.spec", ->
 
     solutions = solver.solve()
 
-    # will try V=0 and V=1 and not find any rejects
-    expect(solutions.length, 'number of solutions').to.equal 2
-    expect(solutions).to.eql [{V: 0}, {V: 1}]
+    # will only try (and pass) V=0 because V=1 is not in the legend
+    expect(solutions.length, 'number of solutions').to.equal 1
+    expect(solutions).to.eql [{V: 0}]
 
   describe 'random functions', ->
 
@@ -199,7 +199,12 @@ describe "solver.markov.spec", ->
     solver['=='] 'STATE', solver.constant(5)
 
     solutions = solver.solve()
-    expect(solutions.length).to.equal 1
+
+    # there is only one solution for STATE (5), in which case V1 will
+    # use vector [1,0] on legend [10,100], meaning 10. V2 will use
+    # vector [0,1] on [10,100], meaning 100. so the only valid
+    # solution can be STATE=5,V1=10,V2=100
+    expect(solutions.length, 'solution count').to.equal 1
     expect(strip_anon_vars solutions[0]).to.eql
       STATE: 5
       V1: 10
@@ -301,3 +306,38 @@ describe "solver.markov.spec", ->
       {V1: 4, V2: 2}
       {V1: 4, V2: 1}
     ]
+
+  describe 'markov legend should govern valid domain', ->
+
+
+    it 'should reject if legend contains no values in the domain without vector expansion', ->
+
+      # this examples the case where a solution automatically solves a markov
+      # var before the markov distributor gets a chance to do anything
+
+      solver = new Solver
+      solver.addVar
+        id: 'A_NORM'
+        domain: spec_d_create_range 0, 1
+      solver.addVar
+        id: 'B_MARK'
+        domain: spec_d_create_range 0, 1
+        distributeOptions:
+          distributor_name: 'markov'
+          legend: [2]
+          matrix: [
+            vector: [1]
+          ]
+      solver['>'] 'B_MARK', 'A_NORM'
+
+      # B can only become 2 as goverened by the legend, but the domain
+      # never contained 2 so it will never be considered. No solution
+      # should be possible as no valid value for B can be picked.
+      solver.solve
+        max: 1
+        distribute:
+          # distribute should be ignored as it should reject immediately
+          var: 'throw'
+          val: 'throw'
+
+      expect(solver.solutions.length, 'solution count').to.eql 0

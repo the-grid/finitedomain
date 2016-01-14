@@ -466,7 +466,7 @@ module.exports = (FD) ->
       var_names = get_names bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
-      overrides = collect_distribution_overrides var_names, @vars.byId
+      overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides
         @space.set_options var_dist_config: overrides
 
@@ -535,7 +535,7 @@ module.exports = (FD) ->
     # @param {Object} bvars_by_id Maps var names to their Bvar
     # @returns {Object|null} Contains data for each var that has dist options
 
-    collect_distribution_overrides = (var_names, bvars_by_id) ->
+    collect_distribution_overrides = (var_names, bvars_by_id, root_space) ->
       overrides = null
       for name in var_names
         bvar = bvars_by_id[name]
@@ -549,5 +549,9 @@ module.exports = (FD) ->
           overrides ?= {}
           overrides[name] ?= {}
           overrides[name].distributor_name = bvar.distribute
+
+        # add a markov verifier propagator for each markov var
+        if overrides?[name]?.distributor_name is 'markov'
+          root_space._propagators.push ['markov', [name]]
 
       return overrides

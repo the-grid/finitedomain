@@ -438,7 +438,7 @@ module.exports = (FD) ->
 
     solve: (options, squash) ->
       obj = @prepare options, squash
-      #console.log obj.state.space.__debug_string()
+      ASSERT !options?.dbg or !console.log @state.space.__debug_string()
       @run obj
       return @solutions
 
@@ -540,6 +540,7 @@ module.exports = (FD) ->
           overrides[name] ?= {}
           for key, val of dist_opts
             overrides[name][key] = val
+        # TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
         if bvar?.distribute
           overrides ?= {}
           overrides[name] ?= {}

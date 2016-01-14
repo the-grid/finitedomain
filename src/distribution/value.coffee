@@ -19,15 +19,15 @@ module.exports = (FD) ->
     domain_create_value
     domain_create_range
     domain_intersection
-    domain_is_value
     domain_max
     domain_min
     domain_remove_next_from_list
-    domain_to_list
     domain_get_value_of_first_contained_value_in_list
   } = Domain
 
   {
+    distribution_markov_get_next_row_to_solve
+    distribution_markov_merge_domain_and_legend
     distribution_markov_sampleNextFromDomain
   } = distribution.Markov
 
@@ -343,34 +343,28 @@ module.exports = (FD) ->
 
         random ?= RANDOM
 
-        row = _get_next_row_to_solve space, matrix
-
         if expand_vectors_with? # could be 0
-          # remove values in legend not in domain
-          legend = []
-          if input_legend
-            for part in input_legend
-              legend.push part
-
-          all_values = domain_to_list domain
-          for val in all_values
-            if val not in legend
-              legend.push val
+          legend = distribution_markov_merge_domain_and_legend input_legend, domain
         else
           legend = input_legend
 
-        input_prob_vector = row.vector
-        length_delta = legend.length - input_prob_vector.length
+        legend_length = legend.length
+        unless legend_length
+          return # no choice left
 
+        row = distribution_markov_get_next_row_to_solve space, matrix
         if expand_vectors_with? # could be 0
-          prob_vector = [].concat input_prob_vector
-          if length_delta > 0
-            for [0...length_delta]
+          prob_vector = row.vector and row.vector.slice(0) or []
+          delta = legend_length - prob_vector.length
+          if delta > 0
+            for [0...delta]
               prob_vector.push expand_vectors_with
         else
-          prob_vector = input_prob_vector
-          if length_delta isnt 0
-            THROW "FD: Markov val distribution error, vector must be same length of legend, otherwise use `expandVectorsWith:{Number}`"
+          prob_vector = row.vector
+          unless prob_vector
+            THROW "distribution_value_by_markov error, each markov var must have a prob vector or use `expandVectorsWith:{Number}`"
+          if prob_vector.length isnt legend_length
+            THROW "distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`"
 
         value = distribution_markov_sampleNextFromDomain domain, prob_vector, legend, random
         unless value?
@@ -403,18 +397,6 @@ module.exports = (FD) ->
     ASSERT typeof choice_index is 'number', 'should be a number'
     ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
     return undefined # no choice
-
-  # If a row is not boolean, return it.
-  # If a row is boolean and 1, return it.
-  # If no row meets these conditions, return the last row.
-
-  _get_next_row_to_solve = (space, matrix) ->
-    vars = space.vars
-    for row in matrix
-      bool_var = vars[row.booleanId]
-      if !bool_var or domain_is_value bool_var.dom, 1
-        break
-    return row
 
   return FD.distribution.value = {
     distribute_get_next_domain_for_var

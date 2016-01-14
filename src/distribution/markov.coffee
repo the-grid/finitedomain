@@ -48,7 +48,12 @@ module.exports = (FD) ->
 
   {
     domain_contains_value
+    domain_to_list
   } = FD.Domain
+
+  {
+    fdvar_is_value
+  } = FD.Fdvar
 
   # Given a domain, probability vector, value legend, and rng
   # function; return one of the values in the value legend
@@ -115,6 +120,32 @@ module.exports = (FD) ->
 
     return value_legend[index]
 
+  # If a row has no boolean condition, return it.
+  # If the boolean condition of a row is 1, return it.
+  # If no row meets these conditions, return the last row.
+
+  distribution_markov_get_next_row_to_solve = (space, matrix) ->
+    vars = space.vars
+    for row in matrix
+      bool_var = vars[row.booleanId]
+      if !bool_var or fdvar_is_value bool_var, 1
+        break
+    return row
+
+  distribution_markov_merge_domain_and_legend = (input_legend, domain) ->
+    if input_legend
+      legend = input_legend.slice 0
+    else
+      legend = []
+
+    for val in domain_to_list domain
+      if legend.indexOf(val) < 0
+        legend.push val
+
+    return legend
+
   FD.distribution.Markov = {
+    distribution_markov_get_next_row_to_solve
+    distribution_markov_merge_domain_and_legend
     distribution_markov_sampleNextFromDomain
   }

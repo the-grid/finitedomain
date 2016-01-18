@@ -39,11 +39,11 @@ describe "solver.markov.spec", ->
 
     # will only try (and pass) V=0 because V=1 is not in the legend
     expect(solutions.length, 'number of solutions').to.equal 1
-    expect(solutions).to.eql [{V: 0}]
+    expect(solutions).to.eql [V: 0]
 
   describe 'random functions', ->
 
-    random_funcs =
+    FUNCS =
 
       default: undefined
 
@@ -108,7 +108,7 @@ describe "solver.markov.spec", ->
 
     test_random = (random_name) ->
 
-      random_func = random_funcs[random_name]
+      random_func = FUNCS[random_name]
 
       describe "random function: #{random_name}", ->
 
@@ -121,7 +121,7 @@ describe "solver.markov.spec", ->
 
             solutions = solver.solve max: 1
 
-            expect(solutions.length).to.equal 1
+            expect(solutions.length, 'solution count').to.equal 1
             for solution in solutions
               v1_count[solution['V1']]++
               v2_count[solution['V2']]++
@@ -156,7 +156,7 @@ describe "solver.markov.spec", ->
           assert v1_count[0] is v1_count[1]
           assert v2_count[0] is v2_count[1]
 
-    Object.keys(random_funcs).forEach test_random
+    Object.keys(FUNCS).forEach test_random
 
   it 'should interpret large domain w/ sparse legend & 0 probability as a constraint', ->
 
@@ -214,8 +214,8 @@ describe "solver.markov.spec", ->
 
     # same as previous markov test, but with incomplete, to-be-padded, vectors
 
-    S = new Solver {}
-    S.addVar
+    solver = new Solver {}
+    solver.addVar
       id: 'V1'
       domain: spec_d_create_range 1, 4
       distribute: 'markov'
@@ -227,7 +227,7 @@ describe "solver.markov.spec", ->
           vector: [1, 1] # 1,1] padded by expandVectorsWith
         ]
 
-    S.addVar
+    solver.addVar
       id: 'V2'
       domain: spec_d_create_range 1, 4
       distribute: 'markov'
@@ -238,11 +238,11 @@ describe "solver.markov.spec", ->
         matrix: [
           vector: [1, 1] # 1,1] padded by expandVectorsWith
         ]
-    S['>'] 'V1', S.constant(0)
-    S['>'] 'V2', S.constant(0)
+    solver['>'] 'V1', solver.constant 0
+    solver['>'] 'V2', solver.constant 0
 
-    solutions = S.solve()
-    expect(solutions.length, 'all solutions').to.equal(16)
+    solutions = solver.solve()
+    expect(solutions.length, 'all solutions').to.equal 16
     expect(strip_anon_vars_a solutions).to.eql [
       {V1: 1, V2: 4}
       {V1: 1, V2: 3}
@@ -264,8 +264,8 @@ describe "solver.markov.spec", ->
 
   it "Markov expandVectorsWith w/o any legend or vector", ->
 
-    S = new Solver {}
-    S.addVar
+    solver = new Solver {}
+    solver.addVar
       id: 'V1'
       domain: spec_d_create_range 1, 4
       distribute: 'markov'
@@ -274,7 +274,7 @@ describe "solver.markov.spec", ->
         expandVectorsWith: 1
         random: -> 0 # pick first eligible legend value
         # matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
-    S.addVar
+    solver.addVar
       id: 'V2'
       domain: spec_d_create_range 1, 4
       distribute: 'markov'
@@ -283,11 +283,11 @@ describe "solver.markov.spec", ->
         expandVectorsWith: 1
         random: -> 1 - 1e-5 # pick last eligible legend value
         # matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
-    S['>'] 'V1', S.constant(0)
-    S['>'] 'V2', S.constant(0)
+    solver['>'] 'V1', solver.constant 0
+    solver['>'] 'V2', solver.constant 0
 
-    solutions = S.solve()
-    expect(solutions.length, 'all solutions').to.equal(16)
+    solutions = solver.solve()
+    expect(solutions.length, 'all solutions').to.equal 16
     expect(strip_anon_vars_a solutions).to.eql [
       {V1: 1, V2: 4}
       {V1: 1, V2: 3}

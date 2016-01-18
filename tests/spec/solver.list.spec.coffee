@@ -20,7 +20,7 @@ describe 'solver.list.spec', ->
 
   it 'FD.Solver?', ->
 
-    expect(typeof FD).to.be.equal 'function'
+    expect(typeof Solver).to.be.equal 'function'
 
   describe 'explicit list per var of distribution', ->
 
@@ -89,7 +89,7 @@ describe 'solver.list.spec', ->
       solver['>'] 'V2', solver.constant(0)
 
       solutions = solver.solve()
-      expect(solutions.length, 'all solutions').to.equl 16
+      expect(solutions.length, 'all solutions').to.equal 16
       expect(strip_anon_vars_a solutions).to.eql [
         {V1: 2, V2: 3}
         {V1: 2, V2: 1}

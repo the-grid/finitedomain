@@ -474,6 +474,53 @@ describe "space.spec", ->
 
           expect(S.propagate()).to.eql true
 
+      describe 'timeout callback', ->
+
+        it 'should ignore timeout callback if not set at all', ->
+
+          # (base timeout callback test)
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          expect(space.propagate()).to.eql true
+
+        it 'should not break early if callback doesnt return true', ->
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          space.set_options timeout_callback: -> false
+
+          expect(space.propagate()).to.eql true
+
+        it 'should break early if callback returns true', ->
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          space.set_options timeout_callback: -> true
+
+          expect(space.propagate()).to.eql false
+
 # the propagator methods on Space are to be tested later, after I change them completely;
     # reified
     # callback

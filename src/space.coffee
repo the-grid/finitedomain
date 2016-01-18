@@ -58,13 +58,14 @@ module.exports = (FD) ->
     # used from Search
     @next_distribution_choice = 0
 
-    # these configs are only read from the root_space
+    # these configs are only read from the root_space (see @set_options for details)
     @config_var_filter_func = 'unsolved'
     @config_next_var_func = 'naive'
     @config_next_value_func = 'min'
     @config_targeted_vars = 'all'
     @config_when_solved = 'all'
     @config_var_dist_options = {}
+    @config_timeout_callback = undefined
 
     return
 
@@ -145,6 +146,13 @@ module.exports = (FD) ->
       # which overrides the globally set value distributor.
       # See Bvar#distributionOptions
       @config_var_dist_options = options.var_dist_config
+    if options?.timeout_callback
+      # A function that returns true if the current search should stop
+      # Can be called multiple times after the search is stopped, should
+      # keep returning false (or assume an uncertain outcome).
+      # The function is called after the first batch of propagators is
+      # called so it won't immediately stop. But it stops quickly.
+      @config_timeout_callback = options.timeout_callback
 
     return
 
@@ -183,7 +191,18 @@ module.exports = (FD) ->
           changed = true
         else if n is REJECTED
           return false # solution impossible
+
+      if abort_search @
+        return false
+
     return true
+
+  abort_search = (space) ->
+    root_space = space.get_root()
+    c = root_space.config_timeout_callback
+    if c
+      return c space
+    return false
 
   # Returns true if this space is solved - i.e. when
   # all the fdvars in the space have a singleton domain.

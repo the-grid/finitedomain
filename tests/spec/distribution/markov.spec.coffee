@@ -11,7 +11,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'markov.spec', ->
+describe 'distribution/markov.spec', ->
 
   RNG_UNNORMALIZED = false
   RNG_NORMALIZED = true

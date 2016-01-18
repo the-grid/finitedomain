@@ -13,21 +13,17 @@ FD = finitedomain
 
 describe "solver.mid.spec", ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
-  it 'FD.Solver?', ->
-
-    expect(FD.Solver).to.be.ok
-
   {
     Solver
   } = FD
 
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   describe 'process values by picking the middle value', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, o) ->
 
       it "itDistributes(o = #{JSON.stringify(o)})", ->
 
@@ -41,12 +37,12 @@ describe "solver.mid.spec", ->
         S['>'] 'Hello', 'World'
 
         solutions = S.solve()
-        expect(solutions.length, 'all solutions').to.equal(99)
+        expect(solutions.length, 'all solutions').to.equal 99
         for n, val of solutionMap
-          expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
+          expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-    itDistributes {distribute:{val:'mid'}}             , {0:50, 97:99, 98:1 }
-    itDistributes {distribute:{val:'mid',var:'naive'}} , {0:50, 97:99, 98:1 }
-    itDistributes {distribute:{val:'mid',var:'size'}}  , {0:50, 97:99, 98:1 }
-    itDistributes {distribute:{val:'mid',var:'min'}}   , {0:50, 97:99, 98:1 }
-    itDistributes {distribute:{val:'mid',var:'max'}}   , {0:50, 97:99, 98:1 }
+    itDistributes {0:50, 97:99, 98:1 }, distribute: val: 'mid'
+    itDistributes {0:50, 97:99, 98:1 }, distribute: val: 'mid', var: 'naive'
+    itDistributes {0:50, 97:99, 98:1 }, distribute: val: 'mid', var: 'size'
+    itDistributes {0:50, 97:99, 98:1 }, distribute: val: 'mid', var: 'min'
+    itDistributes {0:50, 97:99, 98:1 }, distribute: val: 'mid', var: 'max'

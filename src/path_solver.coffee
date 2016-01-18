@@ -181,7 +181,7 @@ module.exports = (FD) ->
       bind_name = "__bind#{binding_uid++}__"
 
       # TOFIX: should the lo of this domain also be the min of all domains?
-      @S.decl bind_name, domain_create_range 0, find_max_or_throw bvars
+      @space.decl bind_name, domain_create_range 0, find_max_or_throw bvars
 
       A = @['==?'] bind_name, @num 0
       B = @['==?'] @['sum'](bvars), @num 0

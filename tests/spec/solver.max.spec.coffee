@@ -13,40 +13,36 @@ FD = finitedomain
 
 describe 'solver.max.spec', ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
-  it 'FD.Solver?', ->
-
-    expect(FD.Solver).to.be.ok
-
   {
     Solver
   } = FD
 
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   describe 'process values in from high to low', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, options) ->
 
-      it "itDistributes(o = #{JSON.stringify(o)})", ->
+      it "itDistributes(o = #{JSON.stringify(options)})", ->
 
-        S = new Solver o
-        S.addVar
+        solver = new Solver options
+        solver.addVar
           id:'Hello'
           domain: spec_d_create_range 1, 99
-        S.addVar
+        solver.addVar
           id:'World'
           domain: spec_d_create_value 0
-        S['>'] 'Hello', 'World'
+        solver['>'] 'Hello', 'World'
 
-        solutions = S.solve()
-        expect(solutions.length, 'all solutions').to.equal(99)
+        solutions = solver.solve()
+        expect(solutions.length, 'all solutions').to.equal 99
         for n, val of solutionMap
-          expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
+          expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-    itDistributes {distribute:{val:'max'}}             , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'naive'}} , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'size'}}  , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'min'}}   , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'max'}}   , {0:99, 98:1 }
+    itDistributes {0:99, 98:1 }, distribute: val: 'max'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'naive'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'size'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'min'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'max'

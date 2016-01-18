@@ -13,13 +13,21 @@ FD = finitedomain
 
 describe "solver.splitmax.spec", ->
 
+  {
+    Solver
+  } = FD
+
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   describe 'process values by divide and conquer, high split first', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, options) ->
 
-      it "itDistributes(o = #{JSON.stringify(o)})", ->
+      it "itDistributes(o = #{JSON.stringify(options)})", ->
 
-        S = new FD.Solver o
+        S = new Solver options
         S.addVar
           id:'Hello'
           domain: spec_d_create_range 1, 99
@@ -29,12 +37,12 @@ describe "solver.splitmax.spec", ->
         S['>'] 'Hello', 'World'
 
         solutions = S.solve()
-        expect(solutions.length, 'all solutions').to.equal(99)
+        expect(solutions.length, 'all solutions').to.equal 99
         for n, val of solutionMap
-          expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
+          expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-      itDistributes {distribute:{val:'splitMax'}}             , {0:99, 97:2, 98:1}
-      itDistributes {distribute:{val:'splitMax',var:'naive'}} , {0:99, 97:2, 98:1}
-      itDistributes {distribute:{val:'splitMax',var:'size'}}  , {0:99, 97:2, 98:1}
-      itDistributes {distribute:{val:'splitMax',var:'min'}}   , {0:99, 97:2, 98:1}
-      itDistributes {distribute:{val:'splitMax',var:'max'}}   , {0:99, 97:2, 98:1}
+      itDistributes {0: 99, 97: 2, 98: 1}, distribute: val: 'splitMax'
+      itDistributes {0: 99, 97: 2, 98: 1}, distribute: val: 'splitMax', var: 'naive'
+      itDistributes {0: 99, 97: 2, 98: 1}, distribute: val: 'splitMax', var: 'size'
+      itDistributes {0: 99, 97: 2, 98: 1}, distribute: val: 'splitMax', var: 'min'
+      itDistributes {0: 99, 97: 2, 98: 1}, distribute: val: 'splitMax', var: 'max'

@@ -19,11 +19,12 @@ describe "solver.spec", ->
 
   it 'FD.Solver?', ->
 
-    expect(Solver?).to.be.ok
+    expect(typeof Solver).to.be.equal 'function'
 
   describe 'API integration tests', ->
 
     it '4 branch 2 level example w/ string vars (binary)', ->
+
       ###
       A
         1
@@ -39,57 +40,47 @@ describe "solver.spec", ->
               3
       ###
 
-      S = new Solver
+      solver = new Solver
         defaultDomain: spec_d_create_bool()
 
       # branch vars
-      branchVars = S.addVars ['A','C','B','D']
-
-      # constants
-      one = S.constant 1
-      zero = S.constant 0
+      branchVars = solver.addVars ['A', 'C', 'B', 'D']
 
       # path vars
-      Avars = ['A1','A2','A3']
-      Bvars = ['B1','B2','B3']
-      Cvars = ['C1','C2','C3']
-      Dvars = ['D1','D2','D3']
-      pathVars = [].concat(Avars).concat(Bvars).concat(Cvars).concat(Dvars)
-      S.addVars pathVars
+      Avars = ['A1', 'A2', 'A3']
+      Bvars = ['B1', 'B2', 'B3']
+      Cvars = ['C1', 'C2', 'C3']
+      Dvars = ['D1', 'D2', 'D3']
+      solver.addVars [].concat Avars, Bvars, Cvars, Dvars
 
       # path to branch binding
-      S['∑'] Avars, 'A'
-      S['∑'] Bvars, 'B'
-      S['∑'] Cvars, 'C'
-      S['∑'] Dvars, 'D'
+      solver['∑'] Avars, 'A'
+      solver['∑'] Bvars, 'B'
+      solver['∑'] Cvars, 'C'
+      solver['∑'] Dvars, 'D'
 
       # root branches must be on
-      S['=='] 'A', one
-      S['=='] 'C', one
+      solver['=='] 'A', solver.constant 1
+      solver['=='] 'C', solver.constant 1
 
       # child-parent binding
-      S['=='] 'B', 'A2'
-      S['=='] 'D', 'C2'
+      solver['=='] 'B', 'A2'
+      solver['=='] 'D', 'C2'
 
       # D & B counterpoint
-      S['==?'] 'B', 'D', S.addVar('BsyncD')
+      solver['==?'] 'B', 'D', solver.addVar 'BsyncD'
 
-      S['>='](
-        S['==?']('B1', 'D1'),
-        'BsyncD'
-      )
-      S['>='](
-        S['==?']('B2', 'D2'),
-        'BsyncD'
-      )
-      S['>='](
-        S['==?']('B3', 'D3'),
-        'BsyncD'
-      )
+      BD1 = solver['==?'] 'B1', 'D1'
+      solver['>='] BD1, 'BsyncD'
+      BD2 = solver['==?'] 'B2', 'D2'
+      solver['>='] BD2, 'BsyncD'
+      BD3 = solver['==?'] 'B3', 'D3'
+      solver['>='] BD3, 'BsyncD'
 
-      expect(S.solve().length).to.equal(19)
+      expect(solver.solve().length).to.equal 19
 
     it '4 branch 2 level example w/ var objs (binary)', ->
+
       ###
       A
         1
@@ -105,57 +96,42 @@ describe "solver.spec", ->
               3
       ###
 
-      S = new Solver {defaultDomain:spec_d_create_bool()}
+      solver = new Solver defaultDomain: spec_d_create_bool()
 
-      branches =
-        A:3
-        B:3
-        C:3
-        D:3
+      branches = A: 3, B: 3, C: 3, D: 3
 
       for branchId, pathCount of branches
-        branchVar = {id:branchId}
-        S.addVar branchVar
+        branchVar = id: branchId
+        solver.addVar branchVar
         pathVars = []
         for i in [1..pathCount]
-          pathVars.push {id:branchId + i}
-        S.addVars pathVars
+          pathVars.push id: branchId + i
+        solver.addVars pathVars
         # path to branch binding
-        S['∑'] pathVars, branchVar
-
-      # constants
-      one = S.constant 1
-      zero = S.constant 0
+        solver['∑'] pathVars, branchVar
 
       # root branches must be on
-      S['=='] 'A', one
-      S['=='] 'C', one
+      solver['=='] 'A', solver.constant 1
+      solver['=='] 'C', solver.constant 1
 
       # child-parent binding
-      S['=='] 'B', 'A2'
-      S['=='] 'D', 'C2'
+      solver['=='] 'B', 'A2'
+      solver['=='] 'D', 'C2'
 
       # D & B counterpoint
       #S['==?'] 'B', 'D', S.addVar('BsyncD')
 
-      S['>='](
-        S['==?']('B1', 'D1'),
-        S['==?']('B', 'D')
-      )
-      S['>='](
-        S['==?']('B2', 'D2'),
-        S['==?']('B', 'D')
-      )
-      S['>='](
-        S['==?']('B3', 'D3'),
-        S['==?']('B', 'D')
-      )
+      BD = solver['==?'] 'B', 'D'
+      solver['<='] BD, solver['==?'] 'B1', 'D1'
+      solver['<='] BD, solver['==?'] 'B2', 'D2'
+      solver['<='] BD, solver['==?'] 'B3', 'D3'
 
-      solutions = S.solve()
+      solutions = solver.solve()
 
-      expect(solutions.length).to.equal(19)
+      expect(solutions.length, 'solution count').to.equal 19
 
     it '4 branch 2 level example w/ var objs (non-binary)', ->
+
       ###
       A
         1
@@ -171,65 +147,57 @@ describe "solver.spec", ->
               3
       ###
 
-      S = new Solver {defaultDomain:spec_d_create_bool()}
+      solver = new Solver defaultDomain: spec_d_create_bool()
 
-      S.addVar {id:'A',domain:spec_d_create_range(0,3)}
-      S.addVar {id:'B',domain:spec_d_create_range(0,3)}
-      S.addVar {id:'C',domain:spec_d_create_range(0,3)}
-      S.addVar {id:'D',domain:spec_d_create_range(0,3)}
-
-      # constants
-      zero = S.constant 0
-      one = S.constant 1
-      two = S.constant 2
-      three = S.constant 3
+      solver.addVar 'A', spec_d_create_range 0, 3
+      solver.addVar 'B', spec_d_create_range 0, 3
+      solver.addVar 'C', spec_d_create_range 0, 3
+      solver.addVar 'D', spec_d_create_range 0, 3
 
       # root branches must be on
-      S['>='] 'A', one
-      S['>='] 'C', one
+      solver['>='] 'A', solver.constant 1
+      solver['>='] 'C', solver.constant 1
 
       # child-parent binding
-      S['=='](
-        S['>?'] 'B', zero
-        S['==?'] 'A', two
-      )
-      S['=='](
-        S['>?'] 'D', zero
-        S['==?'] 'C', two
-      )
+      A = solver['==?'] 'A', solver.constant 2
+      B = solver['>?'] 'B', solver.constant 0
+      solver['=='] A, B
+      C = solver['==?'] 'C', solver.constant 2
+      D = solver['>?'] 'D', solver.constant 0
+      solver['=='] C, D
 
       # Synchronize D & B if possible
       # if B > 0 and D > 0, then B == D
-      S['>='](
-        S['==?']('B', 'D'),
-        S['==?'](
-          S['>?']('B', zero),
-          S['>?']('D', zero),
+      solver['>='](
+        solver['==?']('B', 'D'),
+        solver['==?'](
+          solver['>?']('B', solver.constant 0),
+          solver['>?']('D', solver.constant 0),
         )
       )
 
-      solutions = S.solve()
+      solutions = solver.solve()
 
-      expect(solutions.length).to.equal(19)
+      expect(solutions.length).to.equal 19
 
   describe 'plain tests', ->
 
     it 'should solve a sparse domain', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.decl 'item1', spec_d_create_range 1, 5
-      S.decl 'item2', spec_d_create_ranges [2, 2], [4, 5]
-      S.decl 'item3', spec_d_create_range 1, 5
-      S.decl 'item4', spec_d_create_range 4, 4
-      S.decl 'item5', spec_d_create_range 1, 5
+      solver.decl 'item1', spec_d_create_range 1, 5
+      solver.decl 'item2', spec_d_create_ranges [2, 2], [4, 5]
+      solver.decl 'item3', spec_d_create_range 1, 5
+      solver.decl 'item4', spec_d_create_range 4, 4
+      solver.decl 'item5', spec_d_create_range 1, 5
 
-      S['<'] 'item1', 'item2'
-      S['<'] 'item2', 'item3'
-      S['<'] 'item3', 'item4'
-      S['<'] 'item4', 'item5'
+      solver['<'] 'item1', 'item2'
+      solver['<'] 'item2', 'item3'
+      solver['<'] 'item3', 'item4'
+      solver['<'] 'item4', 'item5'
 
-      solutions = S.solve()
+      solutions = solver.solve()
 
       expect(solutions.length, 'solution count').to.equal 1
       expect(solutions[0].item1, 'item1').to.equal 1
@@ -238,63 +206,63 @@ describe "solver.spec", ->
     it "should reject a simple > test (regression)", ->
 
       # regression: x>y was wrongfully mapped to y<=x
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.decl 'item5', spec_d_create_range 1, 5
-      S.decl 'item4', spec_d_create_ranges [2, 2], [3, 5]
-      S.decl 'item3', spec_d_create_range 1, 5
-      S.decl 'item2', spec_d_create_range 4, 4
-      S.decl 'item1', spec_d_create_range 1, 5
+      solver.decl 'item5', spec_d_create_range 1, 5
+      solver.decl 'item4', spec_d_create_ranges [2, 2], [3, 5]
+      solver.decl 'item3', spec_d_create_range 1, 5
+      solver.decl 'item2', spec_d_create_range 4, 4
+      solver.decl 'item1', spec_d_create_range 1, 5
 
-      S['=='] 'item5', S.constant 5
-      S['>'] 'item1', 'item2'
-      S['>'] 'item2', 'item3'
-      S['>'] 'item3', 'item4'
-      S['>'] 'item4', 'item5'
+      solver['=='] 'item5', solver.constant 5
+      solver['>'] 'item1', 'item2'
+      solver['>'] 'item2', 'item3'
+      solver['>'] 'item3', 'item4'
+      solver['>'] 'item4', 'item5'
 
       # there is no solution since item 5 must be 5 and item 2 must be 4
-      solutions = S.solve()
+      solutions = solver.solve()
 
       expect(solutions.length, 'solution count').to.equal 0
 
     it "should solve a simple >= test", ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.decl 'item5', spec_d_create_range 1, 5
-      S.decl 'item4', spec_d_create_ranges [2, 2], [3, 5]
-      S.decl 'item3', spec_d_create_range 1, 5
-      S.decl 'item2', spec_d_create_range 4, 5
-      S.decl 'item1', spec_d_create_range 1, 5
+      solver.decl 'item5', spec_d_create_range 1, 5
+      solver.decl 'item4', spec_d_create_ranges [2, 2], [3, 5]
+      solver.decl 'item3', spec_d_create_range 1, 5
+      solver.decl 'item2', spec_d_create_range 4, 5
+      solver.decl 'item1', spec_d_create_range 1, 5
 
-      S['=='] 'item5', S.constant 5
-      S['>='] 'item1', 'item2'
-      S['>='] 'item2', 'item3'
-      S['>='] 'item3', 'item4'
-      S['>='] 'item4', 'item5'
+      solver['=='] 'item5', solver.constant 5
+      solver['>='] 'item1', 'item2'
+      solver['>='] 'item2', 'item3'
+      solver['>='] 'item3', 'item4'
+      solver['>='] 'item4', 'item5'
 
-      solutions = S.solve()
+      solutions = solver.solve()
 
       # only solution is where everything is `5`
       expect(solutions.length, 'solution count').to.equal 1
 
     it "should solve a simple < test", ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.decl 'item5', spec_d_create_range 1, 5
-      S.decl 'item4', spec_d_create_range 4, 4
-      S.decl 'item3', spec_d_create_range 1, 5
-      S.decl 'item2', spec_d_create_ranges [2, 2], [3, 5]
-      S.decl 'item1', spec_d_create_range 1, 5
+      solver.decl 'item5', spec_d_create_range 1, 5
+      solver.decl 'item4', spec_d_create_range 4, 4
+      solver.decl 'item3', spec_d_create_range 1, 5
+      solver.decl 'item2', spec_d_create_ranges [2, 2], [3, 5]
+      solver.decl 'item1', spec_d_create_range 1, 5
 
-      S['=='] 'item5', S.constant 5
-      S['<'] 'item1', 'item2'
-      S['<'] 'item2', 'item3'
-      S['<'] 'item3', 'item4'
-      S['<'] 'item4', 'item5'
+      solver['=='] 'item5', solver.constant 5
+      solver['<'] 'item1', 'item2'
+      solver['<'] 'item2', 'item3'
+      solver['<'] 'item3', 'item4'
+      solver['<'] 'item4', 'item5'
 
-      solutions = S.solve()
+      solutions = solver.solve()
 
       # only solution is where each var is prev+1, 1 2 3 4 5
       expect(solutions.length, 'solution count').to.equal 1
@@ -303,126 +271,126 @@ describe "solver.spec", ->
 
     it 'should solve a single unconstrainted var', ->
 
-      S = new Solver {}
-      S.addVar 'A', [1, 2]
-      expect(S.solve().length, 'solution count').to.eql 2
+      solver = new Solver {}
+      solver.addVar 'A', [1, 2]
+      expect(solver.solve().length, 'solution count').to.eql 2
 
     it 'should combine multiple unconstrained vars', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar '2', [ 1, 1 ]
-      S.addVar '3', [ 0, 0 ]
-      S.addVar '_ROOT_BRANCH_', [ 0, 1 ]
-      S.addVar 'SECTION', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
-      S.addVar 'ITEM_INDEX', [ 1, 2 ]
-      S.addVar 'align', [ 1, 2 ]
-      S.addVar 'text_align', [ 1, 2 ]
-      S.addVar 'SECTION&n=1', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
-      S.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
-      S.addVar 'align&n=1', [ 1, 2 ]
-      S.addVar 'text_align&n=1', [ 1, 2 ]
-      S.addVar 'SECTION&n=2', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
-      S.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
-      S.addVar 'align&n=2', [ 1, 2 ]
-      S.addVar 'text_align&n=2', [ 1, 2 ]
+      solver.addVar '2', [ 1, 1 ]
+      solver.addVar '3', [ 0, 0 ]
+      solver.addVar '_ROOT_BRANCH_', [ 0, 1 ]
+      solver.addVar 'SECTION', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
+      solver.addVar 'ITEM_INDEX', [ 1, 2 ]
+      solver.addVar 'align', [ 1, 2 ]
+      solver.addVar 'text_align', [ 1, 2 ]
+      solver.addVar 'SECTION&n=1', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
+      solver.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
+      solver.addVar 'align&n=1', [ 1, 2 ]
+      solver.addVar 'text_align&n=1', [ 1, 2 ]
+      solver.addVar 'SECTION&n=2', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
+      solver.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
+      solver.addVar 'align&n=2', [ 1, 2 ]
+      solver.addVar 'text_align&n=2', [ 1, 2 ]
 
       # 2×3×2×2×2×3×2×2×3×2×2 (size of each domain multiplied)
       # there are no constraints so it's just all combinations
-      expect(S.solve({max: 10000}).length, 'solution count').to.eql 6912
+      expect(solver.solve(max: 10000).length, 'solution count').to.eql 6912
 
     it 'should constrain one var to be equal to another', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar '2', [ 1, 1 ]
-      S.addVar '3', [ 0, 0 ]
-      S.addVar '_ROOT_BRANCH_', [ 0, 1 ]
-      S.addVar 'SECTION', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
-      S.addVar 'ITEM_INDEX', [ 1, 2 ]
-      S.addVar 'align', [ 1, 2 ]
-      S.addVar 'text_align', [ 1, 2 ]
-      S.addVar 'SECTION&n=1', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
-      S.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
-      S.addVar 'align&n=1', [ 1, 2 ]
-      S.addVar 'text_align&n=1', [ 1, 2 ]
-      S.addVar 'SECTION&n=2', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
-      S.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
-      S.addVar 'align&n=2', [ 1, 2 ]
-      S.addVar 'text_align&n=2', [ 1, 2 ]
+      solver.addVar '2', [ 1, 1 ]
+      solver.addVar '3', [ 0, 0 ]
+      solver.addVar '_ROOT_BRANCH_', [ 0, 1 ]
+      solver.addVar 'SECTION', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
+      solver.addVar 'ITEM_INDEX', [ 1, 2 ]
+      solver.addVar 'align', [ 1, 2 ]
+      solver.addVar 'text_align', [ 1, 2 ]
+      solver.addVar 'SECTION&n=1', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
+      solver.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
+      solver.addVar 'align&n=1', [ 1, 2 ]
+      solver.addVar 'text_align&n=1', [ 1, 2 ]
+      solver.addVar 'SECTION&n=2', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
+      solver.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
+      solver.addVar 'align&n=2', [ 1, 2 ]
+      solver.addVar 'text_align&n=2', [ 1, 2 ]
 
-      S.eq '_ROOT_BRANCH_', 'SECTION'
+      solver.eq '_ROOT_BRANCH_', 'SECTION'
 
       # same as 'combine multiple unconstrained vars' but one var has one instead of two options, so /2
-      expect(S.solve({max:10000}).length, 'solution count').to.eql 6912/2
+      expect(solver.solve(max: 10000).length, 'solution count').to.eql 6912/2
 
     it 'should allow useless constraints', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar '2', [ 1, 1 ]
-      S.addVar '3', [ 0, 0 ]
-      S.addVar '_ROOT_BRANCH_', [ 0, 1 ] # becomes 1
-      S.addVar 'SECTION', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
-      S.addVar 'ITEM_INDEX', [ 1, 2 ] # becomes 2
-      S.addVar 'align', [ 1, 2 ]
-      S.addVar 'text_align', [ 1, 2 ]
-      S.addVar 'SECTION&n=1', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
-      S.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
-      S.addVar 'align&n=1', [ 1, 2 ]
-      S.addVar 'text_align&n=1', [ 1, 2 ]
-      S.addVar 'SECTION&n=2', [ 1, 1 ]
-      S.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
-      S.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
-      S.addVar 'align&n=2', [ 1, 2 ]
-      S.addVar 'text_align&n=2', [ 1, 2 ]
+      solver.addVar '2', [ 1, 1 ]
+      solver.addVar '3', [ 0, 0 ]
+      solver.addVar '_ROOT_BRANCH_', [ 0, 1 ] # becomes 1
+      solver.addVar 'SECTION', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX', [ 2, 2, 4, 4, 9, 9 ]
+      solver.addVar 'ITEM_INDEX', [ 1, 2 ] # becomes 2
+      solver.addVar 'align', [ 1, 2 ]
+      solver.addVar 'text_align', [ 1, 2 ]
+      solver.addVar 'SECTION&n=1', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=1', [ 5, 6, 8, 8 ]
+      solver.addVar 'ITEM_INDEX&n=1', [ 2, 2 ]
+      solver.addVar 'align&n=1', [ 1, 2 ]
+      solver.addVar 'text_align&n=1', [ 1, 2 ]
+      solver.addVar 'SECTION&n=2', [ 1, 1 ]
+      solver.addVar 'VERSE_INDEX&n=2', [ 1, 1, 3, 3, 7, 7 ]
+      solver.addVar 'ITEM_INDEX&n=2', [ 3, 3 ]
+      solver.addVar 'align&n=2', [ 1, 2 ]
+      solver.addVar 'text_align&n=2', [ 1, 2 ]
 
-      S.eq '_ROOT_BRANCH_', 'SECTION' # root branch can only be 1 because section only has 1
+      solver.eq '_ROOT_BRANCH_', 'SECTION' # root branch can only be 1 because section only has 1
 
       # these are meaningless since '2' is [0,1] and all the rhs have no zeroes
-      S.lte '2', 'SECTION'
-      S.lte '2', 'VERSE_INDEX'
-      S.lte '2', 'ITEM_INDEX'
-      S.lte '2', 'align'
-      S.lte '2', 'text_align'
-      S.lte '2', 'SECTION&n=1'
-      S.lte '2', 'VERSE_INDEX&n=1'
-      S.lte '2', 'ITEM_INDEX&n=1'
-      S.lte '2', 'align&n=1'
-      S.lte '2', 'text_align&n=1'
-      S.lte '2', 'SECTION&n=2'
-      S.lte '2', 'VERSE_INDEX&n=2'
-      S.lte '2', 'ITEM_INDEX&n=2'
-      S.lte '2', 'align&n=2'
-      S.lte '2', 'text_align&n=2'
+      solver.lte '2', 'SECTION'
+      solver.lte '2', 'VERSE_INDEX'
+      solver.lte '2', 'ITEM_INDEX'
+      solver.lte '2', 'align'
+      solver.lte '2', 'text_align'
+      solver.lte '2', 'SECTION&n=1'
+      solver.lte '2', 'VERSE_INDEX&n=1'
+      solver.lte '2', 'ITEM_INDEX&n=1'
+      solver.lte '2', 'align&n=1'
+      solver.lte '2', 'text_align&n=1'
+      solver.lte '2', 'SECTION&n=2'
+      solver.lte '2', 'VERSE_INDEX&n=2'
+      solver.lte '2', 'ITEM_INDEX&n=2'
+      solver.lte '2', 'align&n=2'
+      solver.lte '2', 'text_align&n=2'
 
-      S.neq 'ITEM_INDEX&n=1', 'ITEM_INDEX' # the lhs is [2,2] and rhs is [1,2] so rhs must be [2,2]
-      S.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX' # lhs is [3,3] and rhs [1,2] so this is a noop
-      S.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=1' # [2,2] and [3,3] so noop
+      solver.neq 'ITEM_INDEX&n=1', 'ITEM_INDEX' # the lhs is [2,2] and rhs is [1,2] so rhs must be [2,2]
+      solver.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX' # lhs is [3,3] and rhs [1,2] so this is a noop
+      solver.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=1' # [2,2] and [3,3] so noop
 
       # only two conditions are relevant and cuts the space by 2x2, so we get 6912/4
-      expect(S.solve({max:10000}).length).to.eql 6912/4
+      expect(solver.solve(max: 10000).length).to.eql 6912/4
 
     # there was a "sensible reason" why this test doesnt work but I forgot about it right now... :)
     it.skip 'should resolve a simple sum with times case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'A', [0, 10]
-      S.addVar 'B', [0, 10]
-      S.addVar 'MAX', [25, 25]
-      S.addVar 'MUL', [0, 100]
+      solver.addVar 'A', [0, 10]
+      solver.addVar 'B', [0, 10]
+      solver.addVar 'MAX', [25, 25]
+      solver.addVar 'MUL', [0, 100]
 
-      S.times 'A', 'B', 'MUL'
-      S.lt 'MUL', 'MAX'
+      solver.times 'A', 'B', 'MUL'
+      solver.lt 'MUL', 'MAX'
 
       # There are 11x11=121 combinations (inc dupes)
       # There's a restriction that the product of
@@ -443,73 +411,73 @@ describe "solver.spec", ->
       # Counting everything to the left of <| you
       # get 73 combos of A and B that result in A*B<25
 
-      expect(S.solve({max:10000, vars:['A','B','MUL']}).length).to.eql 73
+      expect(solver.solve(max:10000, vars:['A','B','MUL']).length).to.eql 73
 
     it 'should solve a simplified case from old PathBinarySolver tests', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar '2', [1, 1]
-      S.addVar '3', [0, 0]
-      S.addVar '4', [2, 2]
-      S.addVar '5', [4, 4]
-      S.addVar '6', [9, 9]
-      S.addVar '7', [5, 5]
-      S.addVar '8', [6, 6]
-      S.addVar '9', [8, 8]
-      S.addVar '10', [3, 3]
-      S.addVar '11', [7, 7]
-      S.addVar '12', [0, 1] # -> 1
-      S.addVar '13', [0, 1] # -> 0
-      S.addVar '14', [0, 1] # -> 0
-      S.addVar '_ROOT_BRANCH_', [0, 1] # -> 1
-      S.addVar 'SECTION', [1, 1]
-      S.addVar 'VERSE_INDEX', [2, 2, 4, 4, 9, 9] # -> 4
-      S.addVar 'ITEM_INDEX', [1, 1]
-      S.addVar 'align', [1, 2]
-      S.addVar 'text_align', [1, 2]
-      S.addVar 'SECTION&n=1', [1, 1]
-      S.addVar 'VERSE_INDEX&n=1', [5, 6, 8, 8] # -> 5 or 8
-      S.addVar 'ITEM_INDEX&n=1', [2, 2]
-      S.addVar 'align&n=1', [1, 2]
-      S.addVar 'text_align&n=1', [1, 2]
-      S.addVar 'SECTION&n=2', [1, 1]
-      S.addVar 'VERSE_INDEX&n=2', [1, 1, 3, 3, 7, 7] # -> 3 or 7
-      S.addVar 'ITEM_INDEX&n=2', [3, 3]
-      S.addVar 'align&n=2', [1, 2]
-      S.addVar 'text_align&n=2', [1, 2]
+      solver.addVar '2', [1, 1]
+      solver.addVar '3', [0, 0]
+      solver.addVar '4', [2, 2]
+      solver.addVar '5', [4, 4]
+      solver.addVar '6', [9, 9]
+      solver.addVar '7', [5, 5]
+      solver.addVar '8', [6, 6]
+      solver.addVar '9', [8, 8]
+      solver.addVar '10', [3, 3]
+      solver.addVar '11', [7, 7]
+      solver.addVar '12', [0, 1] # -> 1
+      solver.addVar '13', [0, 1] # -> 0
+      solver.addVar '14', [0, 1] # -> 0
+      solver.addVar '_ROOT_BRANCH_', [0, 1] # -> 1
+      solver.addVar 'SECTION', [1, 1]
+      solver.addVar 'VERSE_INDEX', [2, 2, 4, 4, 9, 9] # -> 4
+      solver.addVar 'ITEM_INDEX', [1, 1]
+      solver.addVar 'align', [1, 2]
+      solver.addVar 'text_align', [1, 2]
+      solver.addVar 'SECTION&n=1', [1, 1]
+      solver.addVar 'VERSE_INDEX&n=1', [5, 6, 8, 8] # -> 5 or 8
+      solver.addVar 'ITEM_INDEX&n=1', [2, 2]
+      solver.addVar 'align&n=1', [1, 2]
+      solver.addVar 'text_align&n=1', [1, 2]
+      solver.addVar 'SECTION&n=2', [1, 1]
+      solver.addVar 'VERSE_INDEX&n=2', [1, 1, 3, 3, 7, 7] # -> 3 or 7
+      solver.addVar 'ITEM_INDEX&n=2', [3, 3]
+      solver.addVar 'align&n=2', [1, 2]
+      solver.addVar 'text_align&n=2', [1, 2]
 
-      S.eq '_ROOT_BRANCH_', '2' # root must be 1
+      solver.eq '_ROOT_BRANCH_', '2' # root must be 1
       # these are meaningless
-      S.lte '2', 'SECTION'
-      S.lte '2', 'VERSE_INDEX'
-      S.lte '2', 'ITEM_INDEX'
-      S.lte '2', 'align'
-      S.lte '2', 'text_align'
-      S.lte '2', 'SECTION&n=1'
-      S.lte '2', 'VERSE_INDEX&n=1'
-      S.lte '2', 'ITEM_INDEX&n=1'
-      S.lte '2', 'align&n=1'
-      S.lte '2', 'text_align&n=1'
-      S.lte '2', 'SECTION&n=2'
-      S.lte '2', 'VERSE_INDEX&n=2'
-      S.lte '2', 'ITEM_INDEX&n=2'
-      S.lte '2', 'align&n=2'
-      S.lte '2', 'text_align&n=2'
+      solver.lte '2', 'SECTION'
+      solver.lte '2', 'VERSE_INDEX'
+      solver.lte '2', 'ITEM_INDEX'
+      solver.lte '2', 'align'
+      solver.lte '2', 'text_align'
+      solver.lte '2', 'SECTION&n=1'
+      solver.lte '2', 'VERSE_INDEX&n=1'
+      solver.lte '2', 'ITEM_INDEX&n=1'
+      solver.lte '2', 'align&n=1'
+      solver.lte '2', 'text_align&n=1'
+      solver.lte '2', 'SECTION&n=2'
+      solver.lte '2', 'VERSE_INDEX&n=2'
+      solver.lte '2', 'ITEM_INDEX&n=2'
+      solver.lte '2', 'align&n=2'
+      solver.lte '2', 'text_align&n=2'
       # item_index is 1 so the others cannot be 1
-      S.neq 'ITEM_INDEX&n=1', 'ITEM_INDEX' # 2 (noop)
-      S.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX' # 3 (noop)
-      S.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=1' # 2!=3 (noop)
+      solver.neq 'ITEM_INDEX&n=1', 'ITEM_INDEX' # 2 (noop)
+      solver.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX' # 3 (noop)
+      solver.neq 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=1' # 2!=3 (noop)
       # constraints are enforced with an eq below. the first must be on, the second/third must be off.
-      S._cacheReified 'eq', 'VERSE_INDEX', '5', '12'
-      S._cacheReified 'eq', 'VERSE_INDEX&n=1', '8', '13'
-      S._cacheReified 'eq', 'VERSE_INDEX&n=2', '2', '14'
-      S.eq '12', '2' # so vi must be 4 (it can be)
-      S.eq '13', '3' # so vi1 must not be 6 (so 5 or 8)
-      S.eq '14', '3' # so vi2 must not be 1 (so 3 or 7)
+      solver._cacheReified 'eq', 'VERSE_INDEX', '5', '12'
+      solver._cacheReified 'eq', 'VERSE_INDEX&n=1', '8', '13'
+      solver._cacheReified 'eq', 'VERSE_INDEX&n=2', '2', '14'
+      solver.eq '12', '2' # so vi must be 4 (it can be)
+      solver.eq '13', '3' # so vi1 must not be 6 (so 5 or 8)
+      solver.eq '14', '3' # so vi2 must not be 1 (so 3 or 7)
 
       # 2×2×2×2×2×2×2×2=256
-      expect(S.solve(
+      expect(solver.solve(
         max:10000
         vars: [
           '_ROOT_BRANCH_'
@@ -535,15 +503,15 @@ describe "solver.spec", ->
 
     it 'should resolve a simple reified eq case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'ONE', [1, 1]
-      S.addVar 'FOUR', [4, 4]
-      S.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
-      S.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
+      solver.addVar 'ONE', [1, 1]
+      solver.addVar 'FOUR', [4, 4]
+      solver.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
+      solver.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
 
-      S._cacheReified 'eq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
-      S.eq 'IS_LIST_FOUR', 'ONE'
+      solver._cacheReified 'eq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
+      solver.eq 'IS_LIST_FOUR', 'ONE'
 
       # list can be one of three elements.
       # there is a bool var that checks whether list is resolved to 4
@@ -551,19 +519,19 @@ describe "solver.spec", ->
       # ergo; list must be 4 to satisfy all constraints
       # ergo; there is 1 possible solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple reified !eq case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'ZERO', [0, 0]
-      S.addVar 'FOUR', [4, 4]
-      S.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
-      S.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
+      solver.addVar 'ZERO', [0, 0]
+      solver.addVar 'FOUR', [4, 4]
+      solver.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
+      solver.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
 
-      S._cacheReified 'eq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
-      S.eq 'IS_LIST_FOUR', 'ZERO'
+      solver._cacheReified 'eq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
+      solver.eq 'IS_LIST_FOUR', 'ZERO'
 
       # list can be one of three elements.
       # there is a bool var that checks whether list is resolved to 4
@@ -571,19 +539,19 @@ describe "solver.spec", ->
       # ergo; list must be 2 or 9 to satisfy all constraints
       # ergo; there are 2 possible solutions
 
-      expect(S.solve(max: 10000).length).to.eql 2
+      expect(solver.solve(max: 10000).length).to.eql 2
 
     it 'should resolve a simple reified neq case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'ONE', [1, 1]
-      S.addVar 'FOUR', [4, 4]
-      S.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 2 or 9
-      S.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
+      solver.addVar 'ONE', [1, 1]
+      solver.addVar 'FOUR', [4, 4]
+      solver.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 2 or 9
+      solver.addVar 'IS_LIST_FOUR', [0, 1] # becomes 1
 
-      S._cacheReified 'neq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
-      S.eq 'IS_LIST_FOUR', 'ONE'
+      solver._cacheReified 'neq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
+      solver.eq 'IS_LIST_FOUR', 'ONE'
 
       # list can be one of three elements.
       # there is a bool var that checks whether list is resolved to 4
@@ -591,19 +559,19 @@ describe "solver.spec", ->
       # ergo; list must be 2 or 9 to satisfy all constraints
       # ergo; there are 2 possible solutions
 
-      expect(S.solve(max: 10000).length).to.eql 2
+      expect(solver.solve(max: 10000).length).to.eql 2
 
     it 'should resolve a simple reified !neq case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'ZERO', [0, 0]
-      S.addVar 'FOUR', [4, 4]
-      S.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
-      S.addVar 'IS_LIST_FOUR', [0, 1] # becomes 0
+      solver.addVar 'ZERO', [0, 0]
+      solver.addVar 'FOUR', [4, 4]
+      solver.addVar 'LIST', [2, 2, 4, 4, 9, 9] # becomes 4
+      solver.addVar 'IS_LIST_FOUR', [0, 1] # becomes 0
 
-      S._cacheReified 'neq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
-      S.eq 'IS_LIST_FOUR', 'ZERO'
+      solver._cacheReified 'neq', 'LIST', 'FOUR', 'IS_LIST_FOUR'
+      solver.eq 'IS_LIST_FOUR', 'ZERO'
 
       # list can be one of three elements.
       # there is a bool var that checks whether list is resolved to 4
@@ -611,19 +579,19 @@ describe "solver.spec", ->
       # ergo; list must be 4 to satisfy all constraints
       # ergo; there is 1 possible solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple reified lt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [1, 1]
-      S.addVar 'ONE_TWO_THREE', [1, 3] # 1 2 or 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
-      S.addVar 'IS_LT', [0, 1] # becomes 1
+      solver.addVar 'STATE', [1, 1]
+      solver.addVar 'ONE_TWO_THREE', [1, 3] # 1 2 or 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
+      solver.addVar 'IS_LT', [0, 1] # becomes 1
 
-      S._cacheReified 'lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT'
-      S.eq 'IS_LT', 'STATE'
+      solver._cacheReified 'lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT'
+      solver.eq 'IS_LT', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 123<345 which is only the case when
@@ -631,19 +599,19 @@ describe "solver.spec", ->
       # IS_LT is required to have one outcome
       # 3 + 3 + 2 = 8  ->  1:3 1:4 1:5 2:3 2:4 2:5 3:4 3:5
 
-      expect(S.solve(max: 10000).length).to.eql 8
+      expect(solver.solve(max: 10000).length).to.eql 8
 
     it 'should resolve a simple reified !lt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [0, 0]
-      S.addVar 'ONE_TWO_THREE', [1, 3] # 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
-      S.addVar 'IS_LT', [0, 1] # 0
+      solver.addVar 'STATE', [0, 0]
+      solver.addVar 'ONE_TWO_THREE', [1, 3] # 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
+      solver.addVar 'IS_LT', [0, 1] # 0
 
-      S._cacheReified 'lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT'
-      S.eq 'IS_LT', 'STATE'
+      solver._cacheReified 'lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT'
+      solver.eq 'IS_LT', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 123<345 which is only the case when
@@ -652,19 +620,19 @@ describe "solver.spec", ->
       # since it must be 0, that is only when both lists are 3
       # ergo; one solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple reified lte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [1, 1]
-      S.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 1 2 or 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
-      S.addVar 'IS_LTE', [0, 1] # becomes 1
+      solver.addVar 'STATE', [1, 1]
+      solver.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 1 2 or 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
+      solver.addVar 'IS_LTE', [0, 1] # becomes 1
 
-      S._cacheReified 'lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE'
-      S.eq 'IS_LTE', 'STATE'
+      solver._cacheReified 'lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE'
+      solver.eq 'IS_LTE', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 1234<=345 which is only the case when
@@ -672,19 +640,19 @@ describe "solver.spec", ->
       # IS_LTE is required to have one outcome
       # 3 + 3 + 3 + 2 = 11  ->  1:3 1:4 1:5 2:3 2:4 2:5 3:3 3:4 3:5 4:4 4:5
 
-      expect(S.solve(max: 10000).length).to.eql 11
+      expect(solver.solve(max: 10000).length).to.eql 11
 
     it 'should resolve a simple reified !lte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [0, 0]
-      S.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 4
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
-      S.addVar 'IS_LTE', [0, 1] # 0
+      solver.addVar 'STATE', [0, 0]
+      solver.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 4
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
+      solver.addVar 'IS_LTE', [0, 1] # 0
 
-      S._cacheReified 'lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE'
-      S.eq 'IS_LTE', 'STATE'
+      solver._cacheReified 'lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE'
+      solver.eq 'IS_LTE', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 1234<=345 which is only the case when
@@ -693,19 +661,19 @@ describe "solver.spec", ->
       # since it must be 0, that is only when left is 4 and right is 3
       # ergo; one solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple reified gt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [1, 1]
-      S.addVar 'ONE_TWO_THREE', [1, 3] # 1 2 or 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
-      S.addVar 'IS_GT', [0, 1] # becomes 1
+      solver.addVar 'STATE', [1, 1]
+      solver.addVar 'ONE_TWO_THREE', [1, 3] # 1 2 or 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
+      solver.addVar 'IS_GT', [0, 1] # becomes 1
 
-      S._cacheReified 'gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT'
-      S.eq 'IS_GT', 'STATE'
+      solver._cacheReified 'gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT'
+      solver.eq 'IS_GT', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 345>123 which is only the case when
@@ -713,19 +681,19 @@ describe "solver.spec", ->
       # IS_GT is required to have one outcome
       # 3 + 3 + 2 = 8  ->  3:1 4:1 5:1 3:2 4:2 5:2 3:1 3:2
 
-      expect(S.solve(max: 10000).length).to.eql 8
+      expect(solver.solve(max: 10000).length).to.eql 8
 
     it 'should resolve a simple reified !gt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [0, 0]
-      S.addVar 'ONE_TWO_THREE', [1, 3] # 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
-      S.addVar 'IS_GT', [0, 1] # 0
+      solver.addVar 'STATE', [0, 0]
+      solver.addVar 'ONE_TWO_THREE', [1, 3] # 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
+      solver.addVar 'IS_GT', [0, 1] # 0
 
-      S._cacheReified 'gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT'
-      S.eq 'IS_GT', 'STATE'
+      solver._cacheReified 'gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT'
+      solver.eq 'IS_GT', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 123<345 which is only the case when
@@ -734,19 +702,19 @@ describe "solver.spec", ->
       # since it must be 0, that is only when both lists are 3
       # ergo; one solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple reified gte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [1, 1]
-      S.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 1 2 or 3
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
-      S.addVar 'IS_GTE', [0, 1] # becomes 1
+      solver.addVar 'STATE', [1, 1]
+      solver.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 1 2 or 3
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3 4 or 5
+      solver.addVar 'IS_GTE', [0, 1] # becomes 1
 
-      S._cacheReified 'gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE'
-      S.eq 'IS_GTE', 'STATE'
+      solver._cacheReified 'gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE'
+      solver.eq 'IS_GTE', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 345>=1234 which is only the case when
@@ -754,19 +722,19 @@ describe "solver.spec", ->
       # IS_GTE is required to have one outcome
       # 3 + 3 + 3 + 2 = 11  ->  3:1 4:1 5:1 3:2 4:2 5:2 3:3 4:4 5:4
 
-      expect(S.solve(max: 10000).length).to.eql 11
+      expect(solver.solve(max: 10000).length).to.eql 11
 
     it 'should resolve a simple reified !gte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'STATE', [0, 0]
-      S.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 4
-      S.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
-      S.addVar 'IS_GTE', [0, 1] # 0
+      solver.addVar 'STATE', [0, 0]
+      solver.addVar 'ONE_TWO_THREE_FOUR', [1, 4] # 4
+      solver.addVar 'THREE_FOUR_FIVE', [3, 5] # 3
+      solver.addVar 'IS_GTE', [0, 1] # 0
 
-      S._cacheReified 'gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE'
-      S.eq 'IS_GTE', 'STATE'
+      solver._cacheReified 'gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE'
+      solver.eq 'IS_GTE', 'STATE'
 
       # two lists, 123 and 345
       # reified checks whether 1234<=345 which is only the case when
@@ -775,19 +743,19 @@ describe "solver.spec", ->
       # since it must be 0, that is only when left is 3 and right is 4
       # ergo; one solution
 
-      expect(S.solve(max: 10000).length).to.eql 1
+      expect(solver.solve(max: 10000).length).to.eql 1
 
     it 'should resolve a simple sum with lte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'A', [0, 10]
-      S.addVar 'B', [0, 10]
-      S.addVar 'MAX', [5, 5]
-      S.addVar 'SUM', [0, 100]
+      solver.addVar 'A', [0, 10]
+      solver.addVar 'B', [0, 10]
+      solver.addVar 'MAX', [5, 5]
+      solver.addVar 'SUM', [0, 100]
 
-      S.sum ['A', 'B'], 'SUM'
-      S.lte 'SUM', 'MAX'
+      solver.sum ['A', 'B'], 'SUM'
+      solver.lte 'SUM', 'MAX'
 
       # a+b<=5
       # so that's the case for: 0+0, 0+1, 0+2, 0+3,
@@ -795,19 +763,19 @@ describe "solver.spec", ->
       # 2+2, 2+3, 3+0, 3+1, 3+2, 4+0, 4+1, and 5+0
       # ergo: 21 solutions
 
-      expect(S.solve(max: 10000).length).to.eql 21
+      expect(solver.solve(max: 10000).length).to.eql 21
 
     it 'should resolve a simple sum with lt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'A', [0, 10]
-      S.addVar 'B', [0, 10]
-      S.addVar 'MAX', [5, 5]
-      S.addVar 'SUM', [0, 100]
+      solver.addVar 'A', [0, 10]
+      solver.addVar 'B', [0, 10]
+      solver.addVar 'MAX', [5, 5]
+      solver.addVar 'SUM', [0, 100]
 
-      S.sum ['A', 'B'], 'SUM'
-      S.lt 'SUM', 'MAX'
+      solver.sum ['A', 'B'], 'SUM'
+      solver.lt 'SUM', 'MAX'
 
       # a+b<5
       # so that's the case for: 0+0, 0+1, 0+2,
@@ -815,40 +783,40 @@ describe "solver.spec", ->
       # 2+2, 3+0, 3+1, and 4+0
       # ergo: 16 solutions
 
-      expect(S.solve(max: 10000).length).to.eql 15
+      expect(solver.solve(max: 10000).length).to.eql 15
 
     it 'should resolve a simple sum with gt case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'A', [0, 10]
-      S.addVar 'B', [0, 10]
-      S.addVar 'MAX', [5, 5]
-      S.addVar 'SUM', [0, 100]
+      solver.addVar 'A', [0, 10]
+      solver.addVar 'B', [0, 10]
+      solver.addVar 'MAX', [5, 5]
+      solver.addVar 'SUM', [0, 100]
 
-      S.sum ['A', 'B'], 'SUM'
-      S.gt 'SUM', 'MAX'
+      solver.sum ['A', 'B'], 'SUM'
+      solver.gt 'SUM', 'MAX'
 
       # a+b>5
       # there are 11x11=121 cases. a+b<=5 is 21 cases
       # (see other test) so there must be 100 results.
 
-      expect(S.solve(max: 10000).length).to.eql 100
+      expect(solver.solve(max: 10000).length).to.eql 100
 
     it 'should resolve a simple sum with gte case', ->
 
-      S = new Solver {}
+      solver = new Solver {}
 
-      S.addVar 'A', [0, 10]
-      S.addVar 'B', [0, 10]
-      S.addVar 'MAX', [5, 5]
-      S.addVar 'SUM', [0, 100]
+      solver.addVar 'A', [0, 10]
+      solver.addVar 'B', [0, 10]
+      solver.addVar 'MAX', [5, 5]
+      solver.addVar 'SUM', [0, 100]
 
-      S.sum ['A', 'B'], 'SUM'
-      S.gte 'SUM', 'MAX'
+      solver.sum ['A', 'B'], 'SUM'
+      solver.gte 'SUM', 'MAX'
 
       # a+b>=5
       # there are 11x11=121 cases. a+b<5 is 15 cases
       # (see other test) so there must be 106 results.
 
-      expect(S.solve(max: 10000).length).to.eql 106
+      expect(solver.solve(max: 10000).length).to.eql 106

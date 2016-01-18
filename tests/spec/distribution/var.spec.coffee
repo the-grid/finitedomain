@@ -13,7 +13,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'var.spec', ->
+describe 'distribution/var.spec', ->
 
   {
     Solver
@@ -138,3 +138,78 @@ describe 'var.spec', ->
       fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C', 'D']
 
       expect(fdvar.id).to.eql 'C'
+
+  describe 'by_list', ->
+
+    it 'should solve vars in the explicit order of the list A', ->
+
+
+      solver = new Solver
+      solver.addVar
+        id: 'A'
+      solver.addVar
+        id: 'B'
+      solver.prepare
+        distribute:
+          var: 'list'
+          var_priority: ['A', 'B']
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+
+      expect(fdvar.id).to.eql 'A'
+
+    it 'should solve vars in the explicit order of the list B', ->
+
+
+      solver = new Solver
+      solver.addVar
+        id: 'A'
+      solver.addVar
+        id: 'B'
+      solver.prepare
+        distribute:
+          var: 'list'
+          var_priority: ['B', 'A']
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+
+      expect(fdvar.id).to.eql 'B'
+
+    it 'should not crash if a var is not on the list or when list is empty', ->
+
+
+      solver = new Solver
+      solver.addVar
+        id: 'A'
+      solver.prepare
+        distribute:
+          var: 'list'
+          var_priority: []
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['A']
+
+      expect(fdvar.id).to.eql 'A'
+
+    it 'should assume unlisted vars come after listed vars', ->
+
+
+      solver = new Solver
+      solver.addVar
+        id: 'A'
+      solver.addVar
+        id: 'B'
+      solver.addVar
+        id: 'C'
+      solver.prepare
+        distribute:
+          var: 'list'
+          var_priority: ['A', 'C']
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C']
+      expect(fdvar.id, 'A and C should go before B').to.eql 'A'
+      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+      expect(fdvar.id, 'A should go before B').to.eql 'A'
+      fdvar = distribution_get_next_var solver.space, solver.space, ['B', 'C']
+      expect(fdvar.id, 'C should go before B').to.eql 'C'
+      fdvar = distribution_get_next_var solver.space, solver.space, ['B']
+      expect(fdvar.id, 'B is only one left').to.eql 'B'

@@ -11,7 +11,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD - propagators - neq", ->
+describe "propagators/neq.spec", ->
   # in general after call v1 and v2 should be equal
 
   {

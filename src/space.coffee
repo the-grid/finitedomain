@@ -138,6 +138,17 @@ module.exports = (FD) ->
       # The function is called after the first batch of propagators is
       # called so it won't immediately stop. But it stops quickly.
       @config_timeout_callback = options.timeout_callback
+    if options?.var_priority
+      # explicit list of priorities. vars not in this list have equal
+      # priority, but lower than any var that is in the list.
+      list = options.var_priority
+      @config_var_priority_list = list # array of var names
+      @config_var_priority_hash = {}
+      max = list.length
+      for name, index in list
+        # note: lowest priority still in the list is one, not zero
+        # this way you dont have to check -1 for non-existing, later
+        @config_var_priority_hash[name] = max - index
 
     return
 

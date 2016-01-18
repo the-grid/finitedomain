@@ -73,8 +73,6 @@ module.exports = (FD) ->
       @defaultDomain ?= domain_create_bool()
 
       @space = new Space
-      # TOFIX: deprecate @S in favor of @space
-      @S = @space
 
       if typeof @distribute is 'string'
         @space.set_defaults @distribute

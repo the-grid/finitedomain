@@ -13,7 +13,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'value.spec', ->
+describe 'distribution/value.spec', ->
 
   {
     fdvar_create

@@ -14,40 +14,36 @@ FD = finitedomain
 
 describe 'solver.list.spec', ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
-  it 'FD.Solver?', ->
-
-    expect(FD.Solver).to.be.ok
-
   {
     Solver
   } = FD
+
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
 
   describe 'explicit list per var of distribution', ->
 
     it 'should try values in order of the list', ->
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'V1'
         domain: spec_d_create_range 1, 4
         distribute: 'list'
         distributeOptions:
           list: [2, 4, 3, 1]
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: spec_d_create_range 1, 4
         distribute: 'list'
         distributeOptions:
           list: [3, 1, 4, 2]
-      S['>'] 'V1', S.constant(0)
-      S['>'] 'V2', S.constant(0)
-      solutions = S.solve()
+      solver['>'] 'V1', solver.constant(0)
+      solver['>'] 'V2', solver.constant(0)
+      solutions = solver.solve()
 
-      expect(solutions.length, 'all solutions').to.equal(16)
+      expect(solutions.length, 'all solutions').to.equal 16
       expect(strip_anon_vars_a solutions).to.eql [
         {V1: 2, V2: 3}
         {V1: 2, V2: 1}
@@ -72,8 +68,8 @@ describe 'solver.list.spec', ->
 
     it "should solve markov according to the list in order when random=0", ->
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'V1'
         domain: [[1, 4]]
         distribute: 'markov'
@@ -81,7 +77,7 @@ describe 'solver.list.spec', ->
           legend: [2, 4, 3, 1]
           expandVectorsWith: 1
           random: -> 0 # causes first element in legend to be picked
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: [[1, 4]]
         distribute: 'markov'
@@ -89,11 +85,11 @@ describe 'solver.list.spec', ->
           legend: [3, 1, 4, 2]
           expandVectorsWith: 1
           random: -> 0 # causes first element in legend to be picked
-      S['>'] 'V1', S.constant(0)
-      S['>'] 'V2', S.constant(0)
+      solver['>'] 'V1', solver.constant(0)
+      solver['>'] 'V2', solver.constant(0)
 
-      solutions = S.solve()
-      expect(solutions.length, 'all solutions').to.equal(16)
+      solutions = solver.solve()
+      expect(solutions.length, 'all solutions').to.equal 16
       expect(strip_anon_vars_a solutions).to.eql [
         {V1: 2, V2: 3}
         {V1: 2, V2: 1}
@@ -128,28 +124,28 @@ describe 'solver.list.spec', ->
               return [3, 1, 4, 2]
         return [1, 2, 3, 4]
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'STATE'
         domain: spec_d_create_range 0, 10
-      S.addVar
+      solver.addVar
         id: 'V1'
         domain: spec_d_create_range 1, 4
         distribute: 'list'
         distributeOptions:
           list: listCallback
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: spec_d_create_range 1, 4
         distribute: 'list'
         distributeOptions:
           list: listCallback
-      S['=='] 'STATE', S.constant 5
-      S['>'] 'V1', S.constant 0
-      S['>'] 'V2', S.constant 0
+      solver['=='] 'STATE', solver.constant 5
+      solver['>'] 'V1', solver.constant 0
+      solver['>'] 'V2', solver.constant 0
 
-      solutions = S.solve()
-      expect(solutions.length, 'all solutions').to.equal(16)
+      solutions = solver.solve()
+      expect(solutions.length, 'all solutions').to.equal 16
       expect(strip_anon_vars_a solutions).to.eql [
         {V1: 2, V2: 3, STATE: 5}
         {V1: 2, V2: 1, STATE: 5}

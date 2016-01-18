@@ -41,11 +41,11 @@ describe "search.spec", ->
               3
       ###
 
-      S = new Space
+      space = new Space
 
       # branch vars
       branchVars = ['A', 'C', 'B', 'D']
-      S.decl branchVars, spec_d_create_bool()
+      space.decl branchVars, spec_d_create_bool()
 
       # path vars
       Avars = ['A1', 'A2', 'A3']
@@ -53,42 +53,38 @@ describe "search.spec", ->
       Cvars = ['C1', 'C2', 'C3']
       Dvars = ['D1', 'D2', 'D3']
       pathVars = [].concat Avars, Bvars, Cvars, Dvars
-      S.decl pathVars, spec_d_create_bool()
+      space.decl pathVars, spec_d_create_bool()
 
       # path to branch binding
-      S.sum Avars, 'A'
-      S.sum Bvars, 'B'
-      S.sum Cvars, 'C'
-      S.sum Dvars, 'D'
+      space.sum Avars, 'A'
+      space.sum Bvars, 'B'
+      space.sum Cvars, 'C'
+      space.sum Dvars, 'D'
 
       # root branches must be on
-      S.eq 'A', S.decl_value 1
-      S.eq 'C', S.decl_value 1
+      space.eq 'A', space.decl_value 1
+      space.eq 'C', space.decl_value 1
 
       # child-parent binding
-      S.eq 'B', 'A2'
-      S.eq 'D', 'C2'
+      space.eq 'B', 'A2'
+      space.eq 'D', 'C2'
 
       # D & B counterpoint
-      S.decl 'BsyncD', spec_d_create_bool()
-      S.reified 'eq', 'B', 'D', 'BsyncD'
-      S.gte(
-        S.reified 'eq', 'B1', 'D1'
-        'BsyncD'
-      )
-      S.gte(
-        S.reified 'eq', 'B2', 'D2'
-        'BsyncD'
-      )
-      S.gte(
-        S.reified 'eq', 'B3', 'D3'
-        'BsyncD'
-      )
+      space.decl 'BsyncD', spec_d_create_bool()
+      space.reified 'eq', 'B', 'D', 'BsyncD'
+      BD1 = space.reified 'eq', 'B1', 'D1'
+      space.gte BD1, 'BsyncD'
+      BD2 = space.reified 'eq', 'B2', 'D2'
+      space.gte BD2, 'BsyncD'
+      BD3 = space.reified 'eq', 'B3', 'D3'
+      space.gte BD3, 'BsyncD'
 
-      S.set_defaults 'fail_first'
-      S.set_options targeted_var_names: pathVars
+      space.set_defaults 'fail_first'
+      space.set_options targeted_var_names: pathVars
 
-      state = {space: S, more: true}
+      state =
+        space: space
+        more: true
 
       count = 0
       console.time 'TIME'

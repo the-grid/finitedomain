@@ -13,8 +13,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe 'reified propagator', ->
-
+describe 'propagators/reified.spec', ->
 
   {
     SUB
@@ -55,8 +54,7 @@ describe 'reified propagator', ->
             B: fdvar_create 'B', B_in.slice 0
             bool: fdvar_create 'bool', bool_in.slice 0
 
-        DONT_ENFORCE = false
-        out = reified_step_bare space, 'A', 'B', 'bool', op, invop, DONT_ENFORCE
+        out = reified_step_bare space, 'A', 'B', 'bool', op, invop
 
         expect(out, 'should reflect changed state').to.equal expected_out
         expect(space.vars.A.dom, 'A should be unchanged').to.eql A_in
@@ -88,14 +86,6 @@ describe 'reified propagator', ->
       riftest spec_d_create_range(0, 5), spec_d_create_range(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet'
       riftest spec_d_create_range(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet'
       riftest spec_d_create_range(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq'
-
-    describe 'eq/neq with preset bool var', ->
-      riftest bool, bool, zero, 'eq', 'neq', SOMETHING_CHANGED, bool, 'bool was false but current state is undetermined so should change bool'
-      riftest bool, bool, one, 'eq', 'neq', SOMETHING_CHANGED, bool, 'bool was true but current state is undetermined so should change bool'
-      riftest zero, one, one, 'eq', 'neq', SOMETHING_CHANGED, zero, 'bool was true but current state is false so it should change'
-      riftest one, zero, one, 'eq', 'neq', SOMETHING_CHANGED, zero, 'bool was true but current state is false so it should change'
-      riftest zero, one, zero, 'neq', 'eq', SOMETHING_CHANGED, one, 'bool was false but current state is true so it should change'
-      riftest one, zero, zero, 'neq', 'eq', SOMETHING_CHANGED, one, 'bool was false but current state is true so it should change'
 
 describe 'integration', ->
 

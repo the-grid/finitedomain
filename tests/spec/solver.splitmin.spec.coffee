@@ -13,13 +13,21 @@ FD = finitedomain
 
 describe "solver.splitmin.spec", ->
 
+  {
+    Solver
+  } = FD
+
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   describe 'process values by divide and conquer, low split first', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, options) ->
 
-      it "itDistributes(o = #{JSON.stringify(o)})", ->
+      it "itDistributes(o = #{JSON.stringify(options)})", ->
 
-        S = new FD.Solver o
+        S = new Solver options
         S.addVar
           id:'Hello'
           domain: spec_d_create_range 1, 99
@@ -29,12 +37,12 @@ describe "solver.splitmin.spec", ->
         S['>'] 'Hello', 'World'
 
         solutions = S.solve()
-        expect(solutions.length, 'all solutions').to.equal(99)
+        expect(solutions.length, 'all solutions').to.equal 99
         for n, val of solutionMap
-          expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
+          expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-      itDistributes {distribute:{val:'splitMin'}}             , {0:1,  97:98, 98:99}
-      itDistributes {distribute:{val:'splitMin',var:'naive'}} , {0:1,  97:98, 98:99}
-      itDistributes {distribute:{val:'splitMin',var:'size'}}  , {0:1,  97:98, 98:99}
-      itDistributes {distribute:{val:'splitMin',var:'min'}}   , {0:1,  97:98, 98:99}
-      itDistributes {distribute:{val:'splitMin',var:'max'}}   , {0:1,  97:98, 98:99}
+      itDistributes {0: 1, 97: 98, 98: 99}, distribute: val: 'splitMin'
+      itDistributes {0: 1, 97: 98, 98: 99}, distribute: val: 'splitMin', var: 'naive'
+      itDistributes {0: 1, 97: 98, 98: 99}, distribute: val: 'splitMin', var: 'size'
+      itDistributes {0: 1, 97: 98, 98: 99}, distribute: val: 'splitMin', var: 'min'
+      itDistributes {0: 1, 97: 98, 98: 99}, distribute: val: 'splitMin', var: 'max'

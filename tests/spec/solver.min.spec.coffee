@@ -13,45 +13,41 @@ FD = finitedomain
 
 describe "solver.min.spec", ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
-  it 'FD.Solver?', ->
-
-    expect(FD.Solver).to.be.ok
-
   {
     Solver
   } = FD
 
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   describe 'process values by picking the lowest value', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, o) ->
 
       it "itDistributes(o = #{JSON.stringify(o)})", ->
 
-        S = new Solver o
-        S.addVar
-          id:'Hello'
+        solver = new Solver o
+        solver.addVar
+          id: 'Hello'
           domain: spec_d_create_range 1, 99
-        S.addVar
-          id:'World'
+        solver.addVar
+          id: 'World'
           domain: spec_d_create_value 0
-        S['>'] 'Hello', 'World'
+        solver['>'] 'Hello', 'World'
 
-        solutions = S.solve()
-        expect(solutions.length, 'all solutions').to.equal(99)
+        solutions = solver.solve()
+        expect(solutions.length, 'all solutions').to.equal 99
         for n, val of solutionMap
-          expect(solutions[n].Hello, "nth: #{n} solution").to.equal(val)
+          expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-    itDistributes {}                                    , {0:1, 98:99}
-    itDistributes {distribute:'naive'}                  , {0:1, 98:99}
-    itDistributes {distribute:'fail_first'}             , {0:1, 98:99}
-    itDistributes {distribute:'split'}                  , {0:1, 98:99}
-    itDistributes {distribute:{var:'naive'}}            , {0:1, 98:99}
-    itDistributes {distribute:{val:'min'}}              , {0:1, 98:99}
-    itDistributes {distribute:{val:'min',var:'naive'}}  , {0:1, 98:99}
-    itDistributes {distribute:{val:'min',var:'size'}}   , {0:1, 98:99}
-    itDistributes {distribute:{val:'min',var:'min'}}    , {0:1, 98:99}
-    itDistributes {distribute:{val:'min',var:'max'}}    , {0:1, 98:99}
+    itDistributes {0:1, 98:99}, {}
+    itDistributes {0:1, 98:99}, distribute: 'naive'
+    itDistributes {0:1, 98:99}, distribute: 'fail_first'
+    itDistributes {0:1, 98:99}, distribute: 'split'
+    itDistributes {0:1, 98:99}, distribute: var: 'naive'
+    itDistributes {0:1, 98:99}, distribute: val: 'min'
+    itDistributes {0:1, 98:99}, distribute: val: 'min', var: 'naive'
+    itDistributes {0:1, 98:99}, distribute: val: 'min', var: 'size'
+    itDistributes {0:1, 98:99}, distribute: val: 'min', var: 'min'
+    itDistributes {0:1, 98:99}, distribute: val: 'min', var: 'max'

@@ -21,6 +21,10 @@ describe "solver.markov.spec", ->
     Solver
   } = FD
 
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
+
   it 'should solve an unconstrained Markov matrix', ->
 
     solver = new Solver {}

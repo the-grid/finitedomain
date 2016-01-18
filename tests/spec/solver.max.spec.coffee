@@ -13,17 +13,13 @@ FD = finitedomain
 
 describe 'solver.max.spec', ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
-  it 'FD.Solver?', ->
-
-    expect(FD.Solver).to.be.ok
-
   {
     Solver
   } = FD
+
+  it 'FD.Solver?', ->
+
+    expect(typeof Solver).to.be.equal 'function'
 
   describe 'process values in from high to low', ->
 

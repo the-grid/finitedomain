@@ -49,8 +49,8 @@ describe "solver.markov.spec", ->
 
       'Math.random': Math.random
 
-    # Multiverse.Random should be tested on its own in its own package...
-    #'seeded': new Multiverse.Random "sjf20ru"
+      # Multiverse.Random should be tested on its own in its own package...
+      #'seeded': new Multiverse.Random "sjf20ru"
 
       # redundant.
       'custom': () ->
@@ -196,7 +196,7 @@ describe "solver.markov.spec", ->
           }
         ]
 
-    solver['=='] 'STATE', solver.constant(5)
+    solver['=='] 'STATE', solver.constant 5
 
     solutions = solver.solve()
 
@@ -308,7 +308,6 @@ describe "solver.markov.spec", ->
     ]
 
   describe 'markov legend should govern valid domain', ->
-
 
     it 'should reject if legend contains no values in the domain without vector expansion', ->
 

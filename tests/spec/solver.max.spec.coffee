@@ -27,11 +27,11 @@ describe 'solver.max.spec', ->
 
   describe 'process values in from high to low', ->
 
-    itDistributes = (o, solutionMap) ->
+    itDistributes = (solutionMap, options) ->
 
-      it "itDistributes(o = #{JSON.stringify(o)})", ->
+      it "itDistributes(o = #{JSON.stringify(options)})", ->
 
-        solver = new Solver o
+        solver = new Solver options
         solver.addVar
           id:'Hello'
           domain: spec_d_create_range 1, 99
@@ -45,8 +45,8 @@ describe 'solver.max.spec', ->
         for n, val of solutionMap
           expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
 
-    itDistributes {distribute:{val:'max'}}             , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'naive'}} , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'size'}}  , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'min'}}   , {0:99, 98:1 }
-    itDistributes {distribute:{val:'max',var:'max'}}   , {0:99, 98:1 }
+    itDistributes {0:99, 98:1 }, distribute: val: 'max'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'naive'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'size'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'min'
+    itDistributes {0:99, 98:1 }, distribute: val: 'max', var:'max'

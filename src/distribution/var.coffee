@@ -41,6 +41,8 @@ module.exports = (FD) ->
         ASSERT false, 'not expecting to pick this distributor'
       when 'markov'
         is_better_var = by_markov
+      when 'list'
+        is_better_var = by_list
       else
         THROW 'unknown next var func', config_next_var_func
 
@@ -89,6 +91,17 @@ module.exports = (FD) ->
   by_markov = (v1, v2, root_space) ->
     # v1 is only, but if so always, better than v2 if v1 is a markov var
     return root_space.config_var_dist_options[v1.id]?.distributor_name is 'markov'
+
+  by_list = (v1, v2, root_space) ->
+    # note: config_var_priority_hash is compiled by Solver#prepare
+    # if in the list, lowest prio is 1. if not in the list, prio will be undefined
+    hash = root_space.config_var_priority_hash
+
+    p1 = hash[v1.id]
+    if !p1
+      return false
+    p2 = hash[v2.id]
+    return !p2 or p1 > p2
 
   FD.distribution.var = {
     distribution_get_next_var

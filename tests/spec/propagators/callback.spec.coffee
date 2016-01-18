@@ -10,7 +10,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD - propagators - callback", ->
+describe "propagators/callback.spec", ->
 
   describe 'integration tests', ->
     {

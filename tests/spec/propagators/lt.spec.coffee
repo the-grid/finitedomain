@@ -11,7 +11,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD - propagators - lt", ->
+describe "propagators/lt.spec", ->
   # in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
   # it makes sure v1 and v2 have no values that can't possibly result in fulfilling <
 

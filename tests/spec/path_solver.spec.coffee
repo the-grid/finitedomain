@@ -11,7 +11,7 @@ FD = finitedomain
 
 PathSolver = FD.PathSolver
 
-describe "PathSolver", ->
+describe "pathsolver.spec", ->
 
   describe 'searchPriority', ->
     searchList = [3,2,1]

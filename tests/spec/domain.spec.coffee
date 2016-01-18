@@ -14,7 +14,7 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD - Domain", ->
+describe 'domain.spec', ->
 
   {
     Domain

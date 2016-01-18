@@ -16,24 +16,22 @@ FD = finitedomain
 
 describe "space.spec", ->
 
-  it 'FD?', ->
-
-    expect(FD?).to.be.true
-
   describe 'Space class', ->
 
-    {space:Space} = FD
+    {
+      space: Space
+    } = FD
 
     it 'should exist', ->
 
-      expect(Space?).to.be.true
+      expect(typeof Space).to.equal 'function'
 
     describe 'new Space', ->
 
       it 'should create a new instance', ->
 
         # I dont want to test for instanceof... but i dont think we can change that due to ext. api.
-        expect(new Space).to.be.a 'object'
+        expect(new Space).to.be.an 'object'
 
       it 'should init vars and var_names', ->
 
@@ -50,7 +48,7 @@ describe "space.spec", ->
       it 'should set root_space to given root_space', ->
 
         root = {}
-        space = new Space(root)
+        space = new Space root
         expect(space._root_space).to.equal root
         expect(space.get_root()).to.equal root
 
@@ -91,10 +89,6 @@ describe "space.spec", ->
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
         expect(space.all_var_names).to.equal clone.all_var_names
         expect(space._propagators).to.eql clone._propagators
-
-    describe '#get_value_distributor()', ->
-
-      # TODO
 
     describe '#is_solved()', ->
 
@@ -258,8 +252,8 @@ describe "space.spec", ->
       it 'should create multiple vars', ->
 
         space = new Space()
-        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.all_var_names.length, 'before decl').to.eql 0
+        expect(space.unsolved_var_names.length, 'before decl').to.eql 0
         space.decl_anons 22
         expect(space.all_var_names.length, 'after decl').to.eql 22
         expect(space.unsolved_var_names.length, 'after decl').to.eql 22
@@ -526,14 +520,8 @@ describe "space.spec", ->
           expect(space.propagate()).to.eql false
 
 # the propagator methods on Space are to be tested later, after I change them completely;
-    # reified
-    # callback
-    # eq
-    # lt
     # gt
-    # lte
     # gte
-    # neq
     # distinct
     # plus
     # times

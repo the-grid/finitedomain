@@ -119,7 +119,7 @@ describe "PathSolver", ->
       S = new PathSolver m
       vars = S.vars.byName
       S['~='] vars['A'], S.constant(2)
-      S.S.decl 'BBinder', spec_d_create_range(0, 3)
+      S.space.decl 'BBinder', spec_d_create_range(0, 3)
       S['~='] vars['B'], 'BBinder'
       expect(S).to.be.ok
       samples = S.solve()
@@ -146,7 +146,7 @@ describe "PathSolver", ->
     it "ex) 4", ->
       S = new PathSolver m
       vars = S.vars.byName
-      S.S.decl 'BBinder', spec_d_create_range(0, 3)
+      S.space.decl 'BBinder', spec_d_create_range(0, 3)
 
       S['=='](
         S['==?']('BBinder', S.num 0),

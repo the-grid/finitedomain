@@ -38,19 +38,18 @@ module.exports = (FD) ->
       if hi is 0
         return REJECTED
       fdvar_set_value_inline bool_var, 1
-        return ZERO_CHANGES
-      return SOMETHING_CHANGED # TOFIX: it should be this.
+      return SOMETHING_CHANGED
     else if hi is 1 and step_would_reject op_name, fdvar1, fdvar2
       if lo is 1
         return REJECTED
       fdvar_set_value_inline bool_var, 0
-        return ZERO_CHANGES
-      return SOMETHING_CHANGED # TOFIX: it should be this.
+      return SOMETHING_CHANGED
     else # bool_var is solved, enforce relevant op
       if lo is 1
         return step_comparison space, op_name, left_var_name, right_var_name
       if hi is 0
         return step_comparison space, inv_op_name, left_var_name, right_var_name
+
     ASSERT lo is 0 and hi is 1, 'bool_var remains undetermined, nothing happens right now'
 
     # artifacts; this way these lines are stripped for dist/perf. we want to cache the result for legibility

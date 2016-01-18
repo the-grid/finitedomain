@@ -31,7 +31,7 @@ module.exports = (FD) ->
 
     ASSERT typeof var_name is 'string', 'arg should be a string', var_name
 
-    root_space = space.root_space or space
+    root_space = space.get_root()
     fdvar = space.vars[var_name]
 
     unless fdvar_is_solved fdvar
@@ -45,7 +45,6 @@ module.exports = (FD) ->
     ASSERT distribution_options, 'var should have a config', var_name, distribution_options or JSON.stringify config_var_dist_options
     ASSERT distribution_options.distributor_name is 'markov', 'var should be a markov var', distribution_options.distributor_name
 
-    root_space = space.root_space or space
     domain = fdvar.dom
     var_name = fdvar.id
 

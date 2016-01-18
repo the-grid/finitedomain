@@ -48,7 +48,7 @@ module.exports = (FD) ->
     @vars = vars
     @all_var_names = all_var_names # shared by reference in whole tree! should have all keys of @vars
     @unsolved_var_names = unsolved_var_names
-    @root_space = root_space
+    @_root_space = root_space
 
     @constant_cache = {}
 
@@ -85,7 +85,7 @@ module.exports = (FD) ->
     return
 
   Space::clone = () ->
-    root = @root_space or @
+    root = @get_root()
     all_names = @all_var_names
     unsolved_names = []
     clone_vars = {}
@@ -148,6 +148,13 @@ module.exports = (FD) ->
   Space::set_defaults = (name) ->
     @set_options FD.distribution.get_defaults name
     return
+
+  # Get the root space for this search tree
+  #
+  # @returns {Space}
+
+  Space::get_root = ->
+    return @_root_space or @
 
   # A monotonically increasing class-global counter for unique temporary variable names.
   _temp_count = 1

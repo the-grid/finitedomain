@@ -311,7 +311,7 @@ module.exports = (FD) ->
   # @returns {number[]} The new domain this fdvar should get in the next space
 
   distribution_value_by_min_max_cycle = (space, fdvar, choice_index) ->
-    root_space = space.root_space or space
+    root_space = space.get_root()
     if _is_even root_space.all_var_names.indexOf fdvar.id
       return distribution_value_by_min fdvar, choice_index
     else
@@ -337,7 +337,7 @@ module.exports = (FD) ->
       when FIRST_CHOICE
         # THIS IS AN EXPENSIVE STEP!
 
-        root_space = space.root_space or space
+        root_space = space.get_root()
         domain = fdvar.dom
         var_name = fdvar.id
 

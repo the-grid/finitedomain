@@ -43,12 +43,16 @@ describe "space.spec", ->
 
       it 'should set root_space to null unless given', ->
 
-        expect(new Space().root_space).to.be.null
+        space = new Space()
+        expect(space._root_space).to.be.null
+        expect(space.get_root()).to.equal space
 
       it 'should set root_space to given root_space', ->
 
         root = {}
-        expect(new Space(root).root_space).to.equal root
+        space = new Space(root)
+        expect(space._root_space).to.equal root
+        expect(space.get_root()).to.equal root
 
     describe '#clone()', ->
 
@@ -62,15 +66,15 @@ describe "space.spec", ->
       it 'should deep clone the space and set root_space', ->
 
         lclone = space.clone() # local!
-        expect(lclone.root_space).to.equal space
-        expect(space.root_space).to.equal null
-        lclone.root_space = null # exception to the rule
+        expect(lclone._root_space).to.equal space
+        expect(space._root_space).to.equal null
+        lclone._root_space = null # exception to the rule
         expect(lclone, 'clone should be space').to.eql space
 
       it 'should set root_space to cloned space if not yet set there', ->
 
-        expect(clone.root_space, 'clone.root_space').to.equal space
-        expect(clone.clone().root_space, 'clone.clone().root_space').to.equal space
+        expect(clone._root_space, 'clone._root_space').to.equal space
+        expect(clone.clone()._root_space, 'clone.clone()._root_space').to.equal space
 
       it 'should clone vars', ->
 
@@ -215,7 +219,7 @@ describe "space.spec", ->
       it 'should not modify its space', ->
         space = new Space()
         clone = space.clone()
-        clone.root_space = null # since space is the root, it does not have itself as a root_space prop.
+        clone._root_space = null # since space is the root, it does not have itself as a root_space prop.
         space.inject ->
         expect(space).to.eql clone
 

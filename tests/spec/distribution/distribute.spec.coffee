@@ -22,21 +22,20 @@ describe 'distribute.spec', ->
 
     it 'v1=min, v2=max', ->
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'V1'
         domain: spec_d_create_range 1, 4
         distribute: 'min'
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: spec_d_create_range 1, 4
         distribute: 'max'
-      S['>'] 'V1', S.constant 0
-      S['>'] 'V2', S.constant 0
+      solver['>'] 'V1', solver.constant 0
+      solver['>'] 'V2', solver.constant 0
 
-      solutions = S.solve()
+      solutions = solver.solve()
       expect(solutions.length, 'all solutions').to.equal 16
-
 
       # (basically V1 solves lo to hi, V2 goes hi to lo)
       expect(strip_anon_vars_a solutions).to.eql [
@@ -62,21 +61,20 @@ describe 'distribute.spec', ->
 
       # regression: when domains include 0, should still lead to same result
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'V1'
         domain: spec_d_create_range 0, 4
         distribute: 'min'
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: spec_d_create_range 0, 4
         distribute: 'max'
-      S['>'] 'V1', S.constant 0
-      S['>'] 'V2', S.constant 0
+      solver['>'] 'V1', solver.constant 0
+      solver['>'] 'V2', solver.constant 0
 
-      solutions = S.solve()
+      solutions = solver.solve()
       expect(solutions.length, 'all solutions').to.equal 16
-
 
       # (basically V1 solves lo to hi, V2 goes hi to lo)
       expect(strip_anon_vars_a solutions).to.eql [
@@ -97,13 +95,14 @@ describe 'distribute.spec', ->
         {V1: 4, V2: 2}
         {V1: 4, V2: 1}
       ]
+
     it 'should pick a random() value in markov', ->
 
       # note: this is pretty much the same as the previous min/max test except it uses
       # markov for it but it mimics min/max because we fixate the random() outcome
 
-      S = new Solver {}
-      S.addVar
+      solver = new Solver {}
+      solver.addVar
         id: 'V1'
         domain: spec_d_create_range 0, 4
         distribute: 'markov'
@@ -113,7 +112,7 @@ describe 'distribute.spec', ->
           matrix: [
             vector: [1, 1, 1, 1]
           ]
-      S.addVar
+      solver.addVar
         id: 'V2'
         domain: spec_d_create_range 0, 4
         distribute: 'markov'
@@ -123,10 +122,10 @@ describe 'distribute.spec', ->
           matrix: [
             vector: [1, 1, 1, 1]
           ]
-      S['>'] 'V1', S.constant 0
-      S['>'] 'V2', S.constant 0
+      solver['>'] 'V1', solver.constant 0
+      solver['>'] 'V2', solver.constant 0
 
-      solutions = S.solve()
+      solutions = solver.solve()
       expect(solutions.length, 'all solutions').to.equal(16)
       expect(strip_anon_vars_a solutions).to.eql [
         {V1: 1, V2: 4}
@@ -146,5 +145,3 @@ describe 'distribute.spec', ->
         {V1: 4, V2: 2}
         {V1: 4, V2: 1}
       ]
-
-

@@ -101,21 +101,6 @@ module.exports = (FD) ->
 
     return clone
 
-  # Return best var according to some fitness function `is_better_var`
-  # Note that this function originates from `get_distributor_var_func()`
-
-  get_next_var = (space, vars, is_better_var) ->
-    if vars.length is 0
-      return null
-
-    for var_i, i in vars
-      if i is 0
-        first = var_i
-      else unless is_better_var space, first, var_i
-        first = var_i
-
-    return first
-
   # Set solving options on this space. Only required for the root.
 
   Space::set_options = (options) ->

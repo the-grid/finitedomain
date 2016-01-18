@@ -48,7 +48,7 @@ module.exports = (FD) ->
     @vars = vars
     @all_var_names = all_var_names # shared by reference in whole tree! should have all keys of @vars
     @unsolved_var_names = unsolved_var_names
-    @root_space = root_space
+    @_root_space = root_space
 
     @constant_cache = {}
 
@@ -57,15 +57,15 @@ module.exports = (FD) ->
 
     # used from Search
     @next_distribution_choice = 0
-    @solver = undefined # see clone
 
-    # these configs are only read from the root_space
+    # these configs are only read from the root_space (see @set_options for details)
     @config_var_filter_func = 'unsolved'
     @config_next_var_func = 'naive'
     @config_next_value_func = 'min'
     @config_targeted_vars = 'all'
     @config_when_solved = 'all'
     @config_var_dist_options = {}
+    @config_timeout_callback = undefined
 
     return
 
@@ -85,7 +85,7 @@ module.exports = (FD) ->
     return
 
   Space::clone = () ->
-    root = @root_space or @
+    root = @get_root()
     all_names = @all_var_names
     unsolved_names = []
     clone_vars = {}
@@ -99,25 +99,7 @@ module.exports = (FD) ->
     pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
     clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
-    # D4:
-    # - add ref to high level solver
-    clone.solver = @solver if @solver
     return clone
-
-  # Return best var according to some fitness function `is_better_var`
-  # Note that this function originates from `get_distributor_var_func()`
-
-  get_next_var = (space, vars, is_better_var) ->
-    if vars.length is 0
-      return null
-
-    for var_i, i in vars
-      if i is 0
-        first = var_i
-      else unless is_better_var space, first, var_i
-        first = var_i
-
-    return first
 
   # Set solving options on this space. Only required for the root.
 
@@ -149,6 +131,13 @@ module.exports = (FD) ->
       # which overrides the globally set value distributor.
       # See Bvar#distributionOptions
       @config_var_dist_options = options.var_dist_config
+    if options?.timeout_callback
+      # A function that returns true if the current search should stop
+      # Can be called multiple times after the search is stopped, should
+      # keep returning false (or assume an uncertain outcome).
+      # The function is called after the first batch of propagators is
+      # called so it won't immediately stop. But it stops quickly.
+      @config_timeout_callback = options.timeout_callback
 
     return
 
@@ -159,6 +148,13 @@ module.exports = (FD) ->
   Space::set_defaults = (name) ->
     @set_options FD.distribution.get_defaults name
     return
+
+  # Get the root space for this search tree
+  #
+  # @returns {Space}
+
+  Space::get_root = ->
+    return @_root_space or @
 
   # A monotonically increasing class-global counter for unique temporary variable names.
   _temp_count = 1
@@ -176,17 +172,29 @@ module.exports = (FD) ->
         n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
-        ASSERT n is REJECTED or (@.vars[prop_details[1][0]].dom.length and @.vars[prop_details[1][1]].dom.length), 'prop var empty but it didnt REJECT'
+        ASSERT n is REJECTED or @.vars[prop_details[1][0]].dom.length, 'prop var empty but it didnt REJECT'
+        ASSERT n is REJECTED or !prop_details[1][1] or @.vars[prop_details[1][1]].dom.length, 'prop var empty but it didnt REJECT'
         # if a domain was set empty and the flag is on the property should be set or
         # the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
         ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][0]].dom.length or @.vars[prop_details[1][0]].dom._trace, 'domain empty but not marked'
-        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
+        ASSERT !ENABLED or !ENABLE_EMPTY_CHECK or !prop_details[1][1] or @.vars[prop_details[1][1]].dom.length or @.vars[prop_details[1][1]].dom._trace, 'domain empty but not marked'
 
         if n is SOMETHING_CHANGED
           changed = true
         else if n is REJECTED
           return false # solution impossible
+
+      if abort_search @
+        return false
+
     return true
+
+  abort_search = (space) ->
+    root_space = space.get_root()
+    c = root_space.config_timeout_callback
+    if c
+      return c space
+    return false
 
   # Returns true if this space is solved - i.e. when
   # all the fdvars in the space have a singleton domain.
@@ -212,8 +220,8 @@ module.exports = (FD) ->
       fdvar = vars[name]
       ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
       ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
+
       if fdvar_is_solved fdvar
-        ASSERT !fdvar.was_solved, 'should not have been marked as solved yet'
         fdvar.was_solved = true # makes Space#clone faster
       else
         unsolved_names[j++] = name
@@ -406,6 +414,105 @@ module.exports = (FD) ->
   # propagator creator functions.
 
   Space::reified = (opname, left_var_name, right_var_name, bool_name) ->
+    return add_reified @, opname, left_var_name, right_var_name, bool_name
+
+  Space::callback = (var_names, callback) ->
+    return add_callback @, var_names, callback
+
+  # Domain equality propagator. Creates the propagator
+  # in this space. The specified variables need not
+  # exist at the time the propagator is created and
+  # added, since the fdvars are all referenced by name.
+  # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
+
+  Space::eq = (v1name, v2name) ->
+    return add_eq @, v1name, v2name
+
+  # Less than propagator. See general propagator nores
+  # for fdeq which also apply to this one.
+
+  Space::lt = (v1name, v2name) ->
+    return add_lt @, v1name, v2name
+
+  # Greater than propagator.
+
+  Space::gt = (v1name, v2name) ->
+    # _swap_ v1 and v2 because: a>b is b<a
+    return add_lt @, v2name, v1name
+
+  # Less than or equal to propagator.
+
+  Space::lte = (v1name, v2name) ->
+    return add_lte @, v1name, v2name
+
+  # Greater than or equal to.
+
+  Space::gte = (v1name, v2name) ->
+    # _swap_ v1 and v2 because: a>b is b<a
+    return add_lte @, v2name, v1name
+
+  # Ensures that the two variables take on different values.
+
+  Space::neq = (v1name, v2name) ->
+    return add_neq @, v1name, v2name
+
+  # Takes an arbitrary number of FD variables and adds propagators that
+  # ensure that they are pairwise distinct.
+
+  Space::distinct = (vars) ->
+    return add_distinct @, vars
+
+  # Bidirectional addition propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
+
+  Space::plus = (v1name, v2name, sumname) ->
+    return add_plus @, v1name, v2name, sumname
+
+  # Bidirectional multiplication propagator.
+  # Returns either @ or the anonymous var name if no sumname was given
+
+  Space::times = (v1name, v2name, prodname) ->
+    return add_times @, v1name, v2name, prodname
+
+  # factor = constant number (not an fdvar)
+  # vname is an fdvar name
+  # prodname is an fdvar name, optional
+  #
+  # factor * v = prod
+
+  Space::scale = (factor, vname, prodname) ->
+    return add_scale @, factor, vname, prodname
+
+  # TODO: Can be made more efficient.
+
+  Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
+    A = add_scale @, k1, v1name
+    B = add_scale @, k2, v2name
+    return add_plus @, A, B, resultname
+
+  # Sum of N fdvars = resultFDVar
+  # Creates as many anonymous vars as necessary.
+  # Returns either @ or the anonymous var name if no sumname was given
+
+  Space::sum = (vars, result_var_name) ->
+    return add_sum @, vars, result_var_name
+
+  # Product of N fdvars = resultFDvar.
+  # Create as many anonymous vars as necessary.
+
+  Space::product = (vars, result_var_name) ->
+    return add_product @, vars, result_var_name
+
+  # Weighted sum of fdvars where the weights are constants.
+
+  Space::wsum = (kweights, vars, result_name) ->
+    return add_wsum @, kweights, vars, result_name
+
+
+  ##### Propagator abstractions
+
+
+  add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -429,85 +536,52 @@ module.exports = (FD) ->
         THROW 'FD.space.reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
-      if fdvar_constrain(@vars[bool_name], domain_create_bool()) is REJECTED
+      if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
         return REJECTED
     else
-      bool_name = @decl_anon domain_create_bool()
+      bool_name = space.decl_anon domain_create_bool()
 
-    @_propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
+    ASSERT_PROPAGATORS space._propagators
 
     return bool_name
 
-  Space::callback = (var_names, callback) ->
-    @_propagators.push ['callback', var_names, callback]
-    ASSERT_PROPAGATORS @_propagators
+  add_callback = (space, var_names, callback) ->
+    space._propagators.push ['callback', var_names, callback]
+    ASSERT_PROPAGATORS space._propagators
     return
 
-  # Domain equality propagator. Creates the propagator
-  # in this space. The specified variables need not
-  # exist at the time the propagator is created and
-  # added, since the fdvars are all referenced by name.
-  # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
+  add_eq = (space, v1name, v2name) ->
 
-  Space::eq = (v1name, v2name) ->
     # If v2name is not specified, then we're operating in functional syntax
     # and the return value is expected to be v2name itself. This can happen
     # when, for example, scale uses a weight factor of 1.
     if !v2name
       return v1name
 
-    @_propagators.push ['eq', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['eq', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
-  # Less than propagator. See general propagator nores
-  # for fdeq which also apply to this one.
-
-  Space::lt = (v1name, v2name) ->
-    @_propagators.push ['lt', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+  add_lt = (space, v1name, v2name) ->
+    space._propagators.push ['lt', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
-  # Greater than propagator.
-
-  Space::gt = (v1name, v2name) ->
-    # _swap_ v1 and v2 because: a>b is b<=a
-    @_propagators.push ['lte', [v2name, v1name]]
-    ASSERT_PROPAGATORS @_propagators
+  add_lte = (space, v1name, v2name) ->
+    space._propagators.push ['lte', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
-  # Less than or equal to propagator.
-
-  Space::lte = (v1name, v2name) ->
-    @_propagators.push ['lte', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
+  add_neq = (space, v1name, v2name) ->
+    space._propagators.push ['neq', [v1name, v2name]]
+    ASSERT_PROPAGATORS space._propagators
     return
 
-  # Greater than or equal to.
-
-  Space::gte = (v1name, v2name) ->
-    # TODO: fix this as per https://github.com/srikumarks/FD.js/issues/6
-    # _swap_ v1 and v2 because: a>=b is b<a
-    @_propagators.push ['lte', [v2name, v1name]]
-    ASSERT_PROPAGATORS @_propagators
-    return
-
-  # Ensures that the two variables take on different values.
-
-  Space::neq = (v1name, v2name) ->
-    @_propagators.push ['neq', [v1name, v2name]]
-    ASSERT_PROPAGATORS @_propagators
-    return
-
-  # Takes an arbitrary number of FD variables and adds propagators that
-  # ensure that they are pairwise distinct.
-
-  Space::distinct = (vars) ->
-    for var_i, i in vars
+  add_distinct = (space, var_names) ->
+    for var_name_i, i in var_names
       for j in [0...i]
-        @_propagators.push ['neq', [vars[i], vars[j]]]
-    ASSERT_PROPAGATORS @_propagators
+        add_neq space, var_name_i, var_names[j]
     return
 
   # Once you create an fdvar in a space with the given
@@ -532,68 +606,49 @@ module.exports = (FD) ->
       sumname = space.decl_anon()
       retval = sumname
 
-    space._propagators.push(
-      ['ring', [v1name, v2name, sumname], target_op_name]
-      ['ring', [sumname, v2name, v1name], inv_op_name]
-      ['ring', [sumname, v1name, v2name], inv_op_name]
-    )
-
-    ASSERT_PROPAGATORS space._propagators
+    add_ring space, v1name, v2name, sumname, target_op_name
+    add_ring space, sumname, v2name, v1name, inv_op_name
+    add_ring space, sumname, v1name, v2name, inv_op_name
 
     return retval
 
-  # Bidirectional addition propagator.
-  # Returns either @ or the anonymous var name if no sumname was given
+  add_ring = (space, A, B, C, op) ->
+    space._propagators.push ['ring', [A, B, C], op]
+    ASSERT_PROPAGATORS space._propagators
+    return
 
-  Space::plus = (v1name, v2name, sumname) ->
-    return plus_or_times @, 'plus', 'min', v1name, v2name, sumname
 
-  # Bidirectional multiplication propagator.
-  # Returns either @ or the anonymous var name if no sumname was given
+  add_plus = (space, v1name, v2name, sumname) ->
+    return plus_or_times space, 'plus', 'min', v1name, v2name, sumname
 
-  Space::times = (v1name, v2name, prodname) ->
-    return plus_or_times @, 'mul', 'div', v1name, v2name, prodname
+  add_times = (space, v1name, v2name, prodname) ->
+    return plus_or_times space, 'mul', 'div', v1name, v2name, prodname
 
-  # factor = constant number (not an fdvar)
-  # vname is an fdvar name
-  # prodname is an fdvar name, optional
-  #
-  # factor * v = prod
-
-  Space::scale = (factor, vname, prodname) ->
+  add_scale = (space, factor, vname, prodname) ->
     if factor is 1
-      return @eq vname, prodname
+      return add_eq space, vname, prodname
 
     if factor is 0
-      return @eq @decl_anon(domain_create_zero()), prodname
+      return add_eq space, space.decl_anon(domain_create_zero()), prodname
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
 
     unless prodname
-      prodname = @decl_anon()
+      prodname = space.decl_anon()
       retval = prodname
 
-    @_propagators.push ['mul', [vname, prodname]]
-    @_propagators.push ['div', [vname, prodname]]
-    ASSERT_PROPAGATORS @_propagators
+    space._propagators.push ['mul', [vname, prodname]]
+    space._propagators.push ['div', [vname, prodname]]
+    ASSERT_PROPAGATORS space._propagators
 
     return retval
 
-  # TODO: Can be made more efficient.
-
-  Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
-    return @plus @scale(k1, v1name), @scale(k2, v2name), resultname
-
-  # Sum of N fdvars = resultFDVar
-  # Creates as many anonymous vars as necessary.
-  # Returns either @ or the anonymous var name if no sumname was given
-
-  Space::sum = (vars, result_var_name) ->
-    retval = @
+  add_sum = (space, vars, result_var_name) ->
+    retval = space
 
     unless result_var_name
-      result_var_name = @decl_anon()
+      result_var_name = space.decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -601,34 +656,31 @@ module.exports = (FD) ->
         THROW 'Space.sum: Nothing to sum!'
 
       when 1
-        @eq vars[0], result_var_name
+        add_eq space, vars[0], result_var_name
 
       when 2
-        @plus vars[0], vars[1], result_var_name
+        add_plus space, vars[0], vars[1], result_var_name
 
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @decl_anon()
-          @sum vars.slice(0, n), t1
+          t1 = space.decl_anon()
+          add_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = @decl_anon()
+        t2 = space.decl_anon()
 
-        @sum vars.slice(n), t2
-        @plus t1, t2, result_var_name
+        add_sum space, vars.slice(n), t2
+        add_plus space, t1, t2, result_var_name
 
     return retval
 
-  # Product of N fdvars = resultFDvar.
-  # Create as many anonymous vars as necessary.
-
-  Space::product = (vars, result_var_name) ->
-    retval = @
+  add_product = (space, vars, result_var_name) ->
+    retval = space
 
     unless result_var_name
-      result_var_name = @decl_anon()
+      result_var_name = space.decl_anon()
       retval = result_var_name
 
     switch vars.length
@@ -636,35 +688,37 @@ module.exports = (FD) ->
         return retval
 
       when 1
-        @eq vars[0], result_var_name
+        add_eq space, vars[0], result_var_name
 
       when 2
-        @times vars[0], vars[1], result_var_name
+        add_times space, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = @decl_anon()
-          @product vars.slice(0, n), t1
+          t1 = space.decl_anon()
+          add_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = @decl_anon()
+        t2 = space.decl_anon()
 
-        @product vars.slice(n), t2
-        @times t1, t2, result_var_name
+        add_product space, vars.slice(n), t2
+        add_times space, t1, t2, result_var_name
 
     return retval
 
-  # Weighted sum of fdvars where the weights are constants.
-
-  Space::wsum = (kweights, vars, result_name) ->
+  add_wsum = (space, kweights, vars, result_name) ->
     anons = []
     for var_i, i in vars
-      t = @decl_anon()
-      @scale kweights[i], var_i, t
+      t = space.decl_anon()
+      add_scale space, kweights[i], var_i, t
       anons.push t
-    @sum anons, result_name
+    add_sum space, anons, result_name
     return
+
+
+  #### Debugging
+
 
   # debug stuff (should be stripped from dist)
 
@@ -714,34 +768,53 @@ module.exports = (FD) ->
 
 
   Space::__debug_string = () ->
+    try
+      things = ['#########']
 
-    things = ['Config:']
+      things.push 'Config:'
+      things.push '- config_var_filter_func: ' + @config_var_filter_func
+      things.push '- config_next_var_func: ' + @config_next_var_func
+      things.push '- config_next_value_func: ' + @config_next_value_func
+      things.push '- config_targeted_vars: ' + @config_targeted_vars
+      things.push '- config_when_solved: ' + @config_when_solved
 
-    things.push '- config_var_filter_func:' + @config_var_filter_func
-    things.push '- config_next_var_func:' + @config_next_var_func
-    things.push '- config_next_value_func:' + @config_next_value_func
-    things.push '- config_targeted_vars:' + @config_targeted_vars
-    things.push '- config_when_solved:' + @config_when_solved
+      things.push "Vars (#{@all_var_names.length}x):"
 
-    things.push 'Vars:'
+      vars = @vars
+      for name, fdvar of vars
+        options = @config_var_dist_options[name]
+        things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
 
-    for name of @vars
-      things.push '  '+name+': ['+@vars[name].dom.join(', ')+']'
+      things.push 'config_var_dist_options:'
+      for key, val of @config_var_dist_options
+        things.push "  #{key}: #{JSON.stringify val}"
 
-    things.push 'Var names:'
-    things.push @all_var_names
-    things.push 'Unsolved vars:'
-    things.push @unsolved_var_names
+      things.push "Var (#{@all_var_names.length}x):"
+      things.push '  ' + @all_var_names
+      things.push "Unsolved vars (#{@unsolved_var_names.length}x):"
+      things.push '  ' + @unsolved_var_names
 
-    things.push 'Propagators:'
+      things.push "Propagators (#{@_propagators.length}x):"
 
-    @_propagators.forEach (c) ->
-      if c[0] is 'reified'
-        things.push '  '+c[0]+': \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
-      else
-        things.push '  '+c[0]+' \''+c[1].join('\', \'')+'\''
-    unless @_propagators.length
-      things.push '  - none'
+      @_propagators.forEach (c) ->
+        try
+          solved = prop_is_solved vars, c
+        catch e
+          solved = '(unknown; crashes when checked)'
+
+        if c[0] is 'reified'
+          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
+        else if c[0] is 'ring'
+          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
+        else
+          things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}] | solved: #{solved}"
+      unless @_propagators.length
+        things.push '  - none'
+
+      things.push '#########'
+    catch e
+      things.push '(Crashed inside Space::__debug_string!)'
+      throw new Error things.join '\n'
 
     return things.join '\n'
 

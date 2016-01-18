@@ -14,12 +14,14 @@ if typeof require is 'function'
 {expect, assert} = chai
 FD = finitedomain
 
-describe "FD", ->
+describe "space.spec", ->
 
   it 'FD?', ->
+
     expect(FD?).to.be.true
 
   describe 'Space class', ->
+
     {space:Space} = FD
 
     it 'should exist', ->
@@ -41,12 +43,16 @@ describe "FD", ->
 
       it 'should set root_space to null unless given', ->
 
-        expect(new Space().root_space).to.be.null
+        space = new Space()
+        expect(space._root_space).to.be.null
+        expect(space.get_root()).to.equal space
 
       it 'should set root_space to given root_space', ->
 
         root = {}
-        expect(new Space(root).root_space).to.equal root
+        space = new Space(root)
+        expect(space._root_space).to.equal root
+        expect(space.get_root()).to.equal root
 
     describe '#clone()', ->
 
@@ -60,15 +66,15 @@ describe "FD", ->
       it 'should deep clone the space and set root_space', ->
 
         lclone = space.clone() # local!
-        expect(lclone.root_space).to.equal space
-        expect(space.root_space).to.equal null
-        lclone.root_space = null # exception to the rule
+        expect(lclone._root_space).to.equal space
+        expect(space._root_space).to.equal null
+        lclone._root_space = null # exception to the rule
         expect(lclone, 'clone should be space').to.eql space
 
       it 'should set root_space to cloned space if not yet set there', ->
 
-        expect(clone.root_space, 'clone.root_space').to.equal space
-        expect(clone.clone().root_space, 'clone.clone().root_space').to.equal space
+        expect(clone._root_space, 'clone._root_space').to.equal space
+        expect(clone.clone()._root_space, 'clone.clone()._root_space').to.equal space
 
       it 'should clone vars', ->
 
@@ -85,13 +91,6 @@ describe "FD", ->
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
         expect(space.all_var_names).to.equal clone.all_var_names
         expect(space._propagators).to.eql clone._propagators
-
-      it 'should copy the solver', ->
-
-        expect(clone.solver).to.equal space.solver
-        s = new Space()
-        s.solver = {}
-        expect(s.clone().solver).to.equal s.solver
 
     describe '#get_value_distributor()', ->
 
@@ -220,7 +219,7 @@ describe "FD", ->
       it 'should not modify its space', ->
         space = new Space()
         clone = space.clone()
-        clone.root_space = null # since space is the root, it does not have itself as a root_space prop.
+        clone._root_space = null # since space is the root, it does not have itself as a root_space prop.
         space.inject ->
         expect(space).to.eql clone
 
@@ -479,7 +478,52 @@ describe "FD", ->
 
           expect(S.propagate()).to.eql true
 
+      describe 'timeout callback', ->
 
+        it 'should ignore timeout callback if not set at all', ->
+
+          # (base timeout callback test)
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          expect(space.propagate()).to.eql true
+
+        it 'should not break early if callback doesnt return true', ->
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          space.set_options timeout_callback: -> false
+
+          expect(space.propagate()).to.eql true
+
+        it 'should break early if callback returns true', ->
+
+          space = new Space()
+
+          space.decl 'A', [0, 10]
+          space.decl 'B', [0, 10]
+
+          space._propagators = [
+            ['lt', ['A', 'B']]
+          ]
+
+          space.set_options timeout_callback: -> true
+
+          expect(space.propagate()).to.eql false
 
 # the propagator methods on Space are to be tested later, after I change them completely;
     # reified

@@ -42,8 +42,6 @@ https://en.wikipedia.org/wiki/Markov_chain#Music
 
 module.exports = (FD) ->
 
-  RANDOM = Math.random #new Multiverse.random "sjf20ru"
-
   {
     ASSERT
   } = FD.helpers
@@ -52,92 +50,71 @@ module.exports = (FD) ->
     domain_contains_value
   } = FD.Domain
 
-  # domain is from an fdvar
-  # prob_vector is options.matrix.row for the first row that is unsolved
-  # val_legend is options.legend
+  # Given a domain, probability vector, value legend, and rng
+  # function; return one of the values in the value legend
+  # according to the outcome of the rng and considering the
+  # prob weight of each value in the legend.
+  # The rng should be normalized (returning values from 0 including
+  # up to but not including 1), unless the argument says otherwise
+  # (that is used for testing only, to get around rounding errors).
+  #
+  # @param {number[]} domain A regular fdvar domain. It's values only determine whether a legend value can be used, it may have values that can never be picked. It's only a filter mask.
+  # @param {number[]} prob_vector List of probabilities, maps 1:1 to val_legend.
+  # @param {number[]} val_legend List of values eligible for picking. Maps 1:1 to prob_vector. Only values in the current domain are actually eligible.
+  # @param {boolean} [rng_is_normalized=true] Is 0<=rng()<1 or 0<=rng()<total_prob ? The latter is only used for testing to avoid rounding errors.
+  # @return {number | undefined}
 
-  distribution_markov_sampleNextFromDomain = (domain, prob_vector, val_legend) ->
-    # this strategy is optimized for small domains,
-    # for large Domains likely better to use the sampleIndexLookupList...
-
-    # val_legend is a list of options to check for some fdvar currently being evaluated.
-    # The probability to use each option is 1:1 mapped to prob_vector. Since we don't
-    # know which options are still valid in this search space, we have to filter down
-    # the valid options first and then stochastically pick one from that result.
+  distribution_markov_sampleNextFromDomain = (domain, prob_vector, val_legend, random_func, rng_is_normalized=true) ->
+    ASSERT !!val_legend, 'expecting val_legend thanks to expandVectorsWith', val_legend
+    ASSERT prob_vector.length <= val_legend.length, 'expecting prob_vector to be smaller or equal length of val_legend', prob_vector, val_legend
 
     # make vector & legend for available values only
-    vector = []
-    legend = []
-    total = 0
+    filtered_legend = []
+    cumulative_filtered_prob_vector = []
+    total_prob = 0
     for prob, index in prob_vector
       if prob > 0
-        value = val_legend?[index]
-        value ?= index # default legend is the indic
-        if value and domain_contains_value domain, value
-          ASSERT prob >= 0, 'addition below assumes values are positive or zero'
-          total += prob # TODO: confirm this keeps working when SUB becomes negative... probably have to normalize
-          vector.push prob
-          legend.push value
+        value = val_legend[index]
+        if domain_contains_value domain, value
+          total_prob += prob
+          cumulative_filtered_prob_vector.push total_prob
+          filtered_legend.push value
 
     # no more values left to search
-    if vector.length is 0
+    if cumulative_filtered_prob_vector.length is 0
       return
 
     # only one value left
-    if vector.length is 1
-      return legend[0]
+    if cumulative_filtered_prob_vector.length is 1
+      return filtered_legend[0]
 
-    # stochastically choose next value
-    prob_val = RANDOM() * total
+    # TOFIX: could set `cumulative_filtered_prob_vector[cumulative_filtered_prob_vector.length-1] = 1` here...
 
-    cursor = 0
-    closest_index = 0
-    prob_val = 0
-    for prob, index in vector
-      if prob_val >= cursor
-        closest_index = index
-        cursor += prob
-      else
+    return roll random_func, total_prob, cumulative_filtered_prob_vector, filtered_legend, rng_is_normalized
+
+  # rng is a function ("random number generator"), which is usually normalized, but in tests may not be
+  # the prob vector maps 1:1 to the value legend
+  # cumulative_prob_vector is: `[prob0, prob0+prob1, prob0+prob1+prob2, etc]`
+
+  roll = (rng, total_prob, cumulative_prob_vector, value_legend, rng_is_normalized) ->
+
+    rng_roll = rng()
+    prob_val = rng_roll
+    if rng_is_normalized # 0 <= rng < 1
+      ASSERT rng_roll >= 0, 'expecting random() to be above or equal to zero', rng_roll, total_prob, prob_val
+      ASSERT rng_roll < 1, 'expecting random() to be below one', rng_roll, total_prob, prob_val
+      prob_val = rng_roll * total_prob
+    # else 0 <= rng < total_prob (mostly to avoid precision problems in tests)
+    ASSERT !rng_is_normalized or rng_roll < total_prob, 'bad test: roll is higher than total prob (cannot used unnormalized roll if domain filters out options!)', rng_roll, total_prob, prob_val
+
+    for prob, index in cumulative_prob_vector
+      # note: if first element is 0.1 and roll is 0.1 this will pick the
+      # SECOND item. by design. so prob domains are `[x, y)`
+      if prob > prob_val
         break
 
-    return legend[closest_index]
-
-  distribution_markov_sampleIndexLookupList = (propabilityRow) ->
-
-    unused = propabilityRow.slice()
-    propabilityRowIndices = [0...propabilityRow.length]
-    list = []
-
-    sum = 0
-    for y in propabilityRow
-      sum += y
-
-    i = 0
-    while i < propabilityRow.length
-      val = RANDOM() * sum
-      cursor = 0
-      if unused.length is 1
-        list.push propabilityRowIndices[0]
-      else
-        for x, j in unused
-          if j is 0
-            closest = x
-            closesti = j
-          else if val >= cursor
-            closest = x
-            closesti = j
-          else
-            break
-          cursor += x
-        # console.log "val: #{val}, sum: #{sum}, closest: #{closest}, propabilityRow: #{propabilityRow}"
-        sum -= unused.splice(closesti,1)[0]
-        list.push propabilityRowIndices.splice(closesti,1)[0]
-      i++
-
-    #console.log "======>", buildValueList([.5,2,.1])
-    return list
+    return value_legend[index]
 
   FD.distribution.Markov = {
     distribution_markov_sampleNextFromDomain
-    distribution_markov_sampleIndexLookupList # unused
   }

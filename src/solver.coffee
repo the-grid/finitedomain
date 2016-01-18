@@ -14,6 +14,7 @@ module.exports = (FD) ->
     SUB
     SUP
 
+    ASSERT
     ASSERT_SPACE
     THROW
   } = helpers
@@ -21,6 +22,11 @@ module.exports = (FD) ->
   {
     domain_create_bool
   } = Domain
+
+
+  LOG_MIN = LOG_NONE = 0
+  LOG_STATS = 1
+  LOG_MAX = LOG_SOLVES = 2
 
   get_name = (e) ->
     # e can be the empty string (TOFIX: let's not allow this...)
@@ -53,6 +59,8 @@ module.exports = (FD) ->
     # @property {Object} [o.searchDefaults]
 
     constructor: (o={}) ->
+      @_class = 'solver'
+
       {
         @distribute
         @search
@@ -64,10 +72,7 @@ module.exports = (FD) ->
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
 
-      # TOFIX: get rid of this bi-directional dependency Space <> Solver
       @space = new Space
-      @space.solver = @
-
       # TOFIX: deprecate @S in favor of @space
       @S = @space
 
@@ -88,6 +93,8 @@ module.exports = (FD) ->
       @solutions = []
 
       @state = {@space, more: true}
+
+      @_prepared = false
 
     # @deprecated; use Solver#num() instead
 
@@ -110,6 +117,7 @@ module.exports = (FD) ->
       return @space.decl_value num
 
     addVars: (vs) ->
+      ASSERT vs instanceof Array, 'Expecting array', vs
       for v in vs
         @addVar v
       return
@@ -132,6 +140,7 @@ module.exports = (FD) ->
     # S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
 
     addVar: (v, dom) ->
+      ASSERT !(v instanceof Array), 'Not expecting to receive an array', v
       if typeof v is 'string'
         v = {
           id: v
@@ -163,14 +172,21 @@ module.exports = (FD) ->
         vars.byName[name] ?= []
         vars.byName[name].push v
 
-      if distribute is 'markov'
+      if distribute is 'markov' or (v.distributeOptions and v.distributeOptions.distributor_name is 'markov')
         matrix = v.distributeOptions.matrix
         unless matrix
-          THROW "Solver#addVar: markov distribution requires SolverVar #{v} w/ distributeOptions:{matrix:[]}"
+          if v.distributeOptions.expandVectorsWith
+            matrix = v.distributeOptions.matrix = [vector: []]
+          else
+            THROW "Solver#addVar: markov distribution requires SolverVar #{JSON.stringify v} w/ distributeOptions:{matrix:[]}"
         for row in matrix
           bool_func = row.boolean
           if typeof bool_func is 'function'
             row.booleanId = bool_func @, v
+          else if typeof bool_func is 'string'
+            row.booleanId = bool_func # only considers a row if the var is solved to 1
+          else
+            ASSERT !bool_func, 'row.boolean should be a function returning a var name or just a var name'
 
       return v
 
@@ -181,8 +197,8 @@ module.exports = (FD) ->
       if msg = _confirm_domain domain
         fixed_domain = _try_to_fix_legacy_domain domain
         if fixed_domain
-          if console?.warn
-            console.warn msg, domain, 'auto-converted to', fixed_domain
+#          if console?.warn
+#            console.warn msg, domain, 'auto-converted to', fixed_domain
         else
           if console?.warn
             console.warn msg, domain, 'unable to fix'
@@ -413,19 +429,29 @@ module.exports = (FD) ->
     isLt: (e1, e2, boolvar) ->
       return @_cacheReified 'lt', e1, e2, boolvar
 
-
-    # Start solving this solver. It should be setup with all the constraints.
+    # Solve this solver. It should be setup with all the constraints.
     #
     # @param {Object} options
     # @property {number} options.max
-    # @property {number} options.log Logging level; one of: 0, 1 or 2
+    # @property {number} options.log Logging level; one of: 0, 1 or 2 (see LOG_* constants)
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' Maps to a function on FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
     # @property {Object} [options.distribute] See Space#set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
-    solve: (options={}, squash) ->
+    solve: (options, squash) ->
+      obj = @prepare options
+      ASSERT !options?.dbg or !console.log @state.space.__debug_string()
+      @run obj
+      return @solutions
+
+    # Prepare internal configuration before actually solving
+    # Collects one-time config data and sets up defaults
+    #
+    # @param {Object} [options={}] See @solve
+
+    prepare: (options={}) ->
       {
         max
         log
@@ -434,13 +460,13 @@ module.exports = (FD) ->
         distribute: distribution_options
       } = options
 
-      log ?= 0 # 1, 2
+      log ?= LOG_NONE # 0, 1, 2
       max ?= 1000
       bvars ?= @vars.all
       var_names = get_names bvars
-      distribution_options ?= @distribute
+      distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
-      overrides = collect_distribution_overrides var_names, @vars.byId
+      overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides
         @space.set_options var_dist_config: overrides
 
@@ -449,16 +475,35 @@ module.exports = (FD) ->
 
       search ?= @search
 
+      @_prepared = true
+
+      return {
+        search_func: Search[search]
+        max
+        log
+      }
+
+    # Run the solver. You should call @prepare before calling this function.
+    #
+    # @param {Object} options
+    # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
+
+    run: ({search_func, max, log}, squash) ->
+      ASSERT typeof search_func is 'function'
+      ASSERT typeof max is 'number'
+      ASSERT log >= LOG_MIN and log <= LOG_MAX
+
+      ASSERT @_prepared, 'must run @prepare before @run'
+      @_prepared = false
+
       solutions = @solutions
+      ASSERT solutions instanceof Array
 
-      @_solve @state, Search[search], solutions, max, log, squash
-
-      return solutions
-
-    _solve: (state, search_func, solutions, max, log, squash) ->
+      state = @state
+      ASSERT state
       ASSERT_SPACE state.space
 
-      if log >= 1
+      if log >= LOG_STATS
         console.time '      - FD Solver Time'
         console.log "      - FD Solver Var Count: #{@space.all_var_names.length}"
         console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
@@ -471,11 +516,11 @@ module.exports = (FD) ->
           unless squash
             solution = state.space.solution()
             solutions.push solution
-            if log >= 2
+            if log >= LOG_SOLVES
               console.log "      - FD solution() ::::::::::::::::::::::::::::"
               console.log JSON.stringify(solution)
 
-      if log >= 1
+      if log >= LOG_STATS
         console.timeEnd '      - FD Solver Time'
         console.log "      - FD solution count: #{count}"
 
@@ -490,10 +535,23 @@ module.exports = (FD) ->
     # @param {Object} bvars_by_id Maps var names to their Bvar
     # @returns {Object|null} Contains data for each var that has dist options
 
-    collect_distribution_overrides = (var_names, bvars_by_id) ->
+    collect_distribution_overrides = (var_names, bvars_by_id, root_space) ->
       overrides = null
       for name in var_names
-        if dist_opts = bvars_by_id[name]?.distributeOptions
+        bvar = bvars_by_id[name]
+        if dist_opts = bvar?.distributeOptions
           overrides ?= {}
-          overrides[name] = dist_opts
+          overrides[name] ?= {}
+          for key, val of dist_opts
+            overrides[name][key] = val
+        # TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
+        if bvar?.distribute
+          overrides ?= {}
+          overrides[name] ?= {}
+          overrides[name].distributor_name = bvar.distribute
+
+        # add a markov verifier propagator for each markov var
+        if overrides?[name]?.distributor_name is 'markov'
+          root_space._propagators.push ['markov', [name]]
+
       return overrides

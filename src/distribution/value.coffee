@@ -7,6 +7,7 @@ module.exports = (FD) ->
     Domain
     helpers
     Fdvar
+    Markov
   } = FD
 
   {
@@ -19,7 +20,6 @@ module.exports = (FD) ->
     domain_create_value
     domain_create_range
     domain_intersection
-    domain_is_value
     domain_max
     domain_min
     domain_remove_next_from_list
@@ -29,6 +29,11 @@ module.exports = (FD) ->
   {
     distribution_markov_sampleNextFromDomain
   } = distribution.Markov
+
+  {
+    markov_create_legend
+    markov_create_prob_vector
+  } = Markov
 
   {
     fdvar_is_rejected
@@ -42,6 +47,8 @@ module.exports = (FD) ->
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
+  RANDOM = Math.random
+
   # The functions in this file are supposed to determine the next
   # value while solving a Space. The functions are supposed to
   # return the new domain for some given fdvar. If there's no new
@@ -54,20 +61,23 @@ module.exports = (FD) ->
 
     choice_index = space.next_distribution_choice++
     config_next_value_func = root_space.config_next_value_func
+    var_name = fdvar.id
 
-    ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', fdvar.id, fdvar.dom, fdvar
+    ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', var_name, fdvar.dom, fdvar
 
     # each var can override the value distributor
-    branch_vars_by_id = root_space.solver?.vars?.byId
-    branch_var = branch_vars_by_id?[fdvar.id]
-    value_distributor_name = branch_var?.distribute
+    config_var_dist_options = root_space.config_var_dist_options
+    value_distributor_name = config_var_dist_options[var_name]?.distributor_name
     if value_distributor_name
       config_next_value_func = value_distributor_name
 
     if typeof config_next_value_func is 'function'
       return config_next_value_func
 
-    switch config_next_value_func
+    return _distribute_get_next_domain_for_var config_next_value_func, space, root_space, fdvar, choice_index
+
+  _distribute_get_next_domain_for_var = (value_func_name, space, root_space, fdvar, choice_index) ->
+    switch value_func_name
       when 'max'
         return distribution_value_by_max fdvar, choice_index
       when 'markov'
@@ -86,6 +96,8 @@ module.exports = (FD) ->
         return distribution_value_by_split_max fdvar, choice_index
       when 'splitMin'
         return distribution_value_by_split_min fdvar, choice_index
+      when 'throw'
+        ASSERT false, 'not expecting to pick this distributor'
 
     THROW 'unknown next var func', config_next_value_func
     return
@@ -299,7 +311,7 @@ module.exports = (FD) ->
   # @returns {number[]} The new domain this fdvar should get in the next space
 
   distribution_value_by_min_max_cycle = (space, fdvar, choice_index) ->
-    root_space = space.root_space or space
+    root_space = space.get_root()
     if _is_even root_space.all_var_names.indexOf fdvar.id
       return distribution_value_by_min fdvar, choice_index
     else
@@ -323,26 +335,36 @@ module.exports = (FD) ->
     switch choice_index
 
       when FIRST_CHOICE
-        root_space = space.root_space or space
-        root_fdvar = root_space.vars[fdvar.id] # distributeOptions isnt cloned
+        # THIS IS AN EXPENSIVE STEP!
+
+        root_space = space.get_root()
+        domain = fdvar.dom
+        var_name = fdvar.id
 
         config_var_dist_options = root_space.config_var_dist_options
         ASSERT config_var_dist_options, 'space should have config_var_dist_options'
-        ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
-        matrix = config_var_dist_options[fdvar.id].matrix
-        legend = config_var_dist_options[fdvar.id].legend
-        ASSERT matrix, 'there should be a matrix available for every var', fdvar
-        ASSERT legend, 'there should be a legend available for every var', fdvar
+        distribution_options = config_var_dist_options[var_name]
+        ASSERT distribution_options, 'markov vars should have  distribution options', JSON.stringify fdvar
+        expand_vectors_with = distribution_options.expandVectorsWith
+        ASSERT distribution_options.matrix, 'there should be a matrix available for every var', distribution_options.matrix or JSON.stringify(fdvar), distribution_options.matrix or JSON.stringify config_var_dist_options[var_name]
+        ASSERT distribution_options.legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', distribution_options.legend or expand_vectors_with? or JSON.stringify(fdvar), distribution_options.legend or expand_vectors_with? or JSON.stringify distribution_options
 
-        row = _get_next_row_to_solve space, matrix
-        value = distribution_markov_sampleNextFromDomain fdvar.dom, row.vector, legend
+        random = distribution_options.random or RANDOM
+
+        # note: expand_vectors_with can be 0, so check with ?
+        values = markov_create_legend expand_vectors_with?, distribution_options.legend, domain
+        value_count = values.length
+        unless value_count
+          return # no choice left
+
+        probabilities = markov_create_prob_vector space, distribution_options.matrix, expand_vectors_with, value_count
+        value = distribution_markov_sampleNextFromDomain domain, probabilities, values, random
         unless value?
           return # signifies end of search
 
-        ASSERT domain_contains_value(fdvar.dom, value), 'markov picks a value from the existing domain so no need for a constrain below'
+        ASSERT domain_contains_value(domain, value), 'markov picks a value from the existing domain so no need for a constrain below'
         space._markov_last_value = value
 
-        # it is assumed that markov picks its value from the existing domain, so a direct update should be fine
         return domain_create_value value
 
       when SECOND_CHOICE
@@ -367,18 +389,6 @@ module.exports = (FD) ->
     ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
     return undefined # no choice
 
-  # If a row is not boolean, return it.
-  # If a row is boolean and 1, return it.
-  # If no row meets these conditions, return the last row.
-
-  _get_next_row_to_solve = (space, matrix) ->
-    vars = space.vars
-    for row in matrix
-      bool_var = vars[row.booleanId]
-      if !bool_var or domain_is_value bool_var.dom, 1
-        break
-    return row
-
   return FD.distribution.value = {
     distribute_get_next_domain_for_var
 
@@ -391,4 +401,5 @@ module.exports = (FD) ->
     _distribution_value_by_min_max_cycle: distribution_value_by_min_max_cycle
     _distribution_value_by_split_max: distribution_value_by_split_max
     _distribution_value_by_split_min: distribution_value_by_split_min
+    _distribute_get_next_domain_for_var
   }

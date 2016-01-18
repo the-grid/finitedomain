@@ -60,6 +60,7 @@ module.exports = (FD) ->
         on_reject state, space, stack
 
       else if space.is_solved space
+        # TOFIX: the "next" space is not made now, so if search continues does it do so properly?
         on_solve state, space, stack
         return
 
@@ -92,7 +93,7 @@ module.exports = (FD) ->
 
   default_space_factory = (space) ->
     # all config should be read from root. sub-nodes dont clone this data
-    root_space = space.root_space or space
+    root_space = space.get_root()
 
     target_vars = _get_vars_unfiltered root_space, space
     fdvar = distribution_get_next_var root_space, space, target_vars

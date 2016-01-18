@@ -43,6 +43,8 @@ module.exports = (FD) ->
     constructor: ({rawtree}, o = {}) ->
       super
 
+      @_class = 'path_solver'
+
       @root_branch_name = rawtree.branchName
 
       @vars.root = undefined # initialized by compile_tree
@@ -55,16 +57,16 @@ module.exports = (FD) ->
         if solution_value isnt 0
           branch_var = bvars_by_id[var_id]
           if branch_var
-            path[branch_var.branchId] = find_path_for_val_or_throw branch_var.pathMeta, solution_value
+            path_name = find_path_for_val_or_throw branch_var.pathMeta, solution_value
+            if path_name isnt false
+              path[branch_var.branchId] = path_name
       return path
 
     find_path_for_val_or_throw = (path_meta, value) ->
       for path_name, meta of path_meta
         if meta.value is value
           return path_name
-
-      THROW "solution to Path error"
-      return
+      return false
 
     # walk the whole tree from this node downward
     # walks in depth first search order

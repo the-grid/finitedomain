@@ -1,6 +1,7 @@
 module.exports = (FD) ->
 
   {
+    ASSERT
     THROW
   } = FD.helpers
 
@@ -36,6 +37,10 @@ module.exports = (FD) ->
         is_better_var = by_min
       when 'max'
         is_better_var = by_max
+      when 'throw'
+        ASSERT false, 'not expecting to pick this distributor'
+      when 'markov'
+        is_better_var = by_markov
       else
         THROW 'unknown next var func', config_next_var_func
 
@@ -47,7 +52,7 @@ module.exports = (FD) ->
         else
           THROW 'unknown var filter', config_var_filter
 
-    return find_best fdvars, target_vars, is_better_var, config_var_filter
+    return find_best fdvars, target_vars, is_better_var, config_var_filter, root_space
 
   # Return the best var name according to a fitness function
   # but only if the filter function is okay with it.
@@ -56,14 +61,15 @@ module.exports = (FD) ->
   # @param {string[]} names A subset of names that are properties on fdvars
   # @param {Function(fdvar,fdvar)} [fitness_func] Given two fdvars returns true iif the first var is better than the second var
   # @param {Function(fdvar)} [filter_func] If given only consider vars where this function returns true
+  # @param {Space} root_space
   # @returns {Fdvar}
 
-  find_best = (fdvars, names, fitness_func, filter_func) ->
+  find_best = (fdvars, names, fitness_func, filter_func, root_space) ->
     best = ''
     for name, i in names
       fdvar = fdvars[name]
       # TOFIX: if the name is the empty string this could lead to a problem. Must eliminate the empty string as var name
-      if (!filter_func or filter_func fdvar) and (!best or (fitness_func and fitness_func fdvar, best))
+      if (!filter_func or filter_func fdvar) and (!best or (fitness_func and fitness_func fdvar, best, root_space))
         best = fdvar
     return best
 
@@ -79,6 +85,10 @@ module.exports = (FD) ->
 
   by_max = (v1, v2) ->
     return fdvar_upper_bound(v1) > fdvar_upper_bound(v2)
+
+  by_markov = (v1, v2, root_space) ->
+    # v1 is only, but if so always, better than v2 if v1 is a markov var
+    return root_space.config_var_dist_options[v1.id]?.distributor_name is 'markov'
 
   FD.distribution.var = {
     distribution_get_next_var

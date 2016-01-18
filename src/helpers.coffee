@@ -43,7 +43,12 @@ module.exports = (FD) ->
       console.log 'Error args:', args
     #      console.trace()
     #      process.exit() # uncomment for quick error access :)
-    THROW "Assertion fail: #{msg}#{((args.length and (" Args (#{args.length}x): [#{_stringify(args).join ', '}]")) or '')}"
+
+    suffix = ''
+    if args?.length
+      suffix = " Args (#{args.length}x): [#{_stringify(args).join ', '}]"
+
+    THROW "Assertion fail: #{msg}#{suffix}"
     return
 
   _stringify = (o) ->
@@ -56,7 +61,7 @@ module.exports = (FD) ->
   # Should be removed in production. Obviously.
 
   ASSERT_DOMAIN = (domain) ->
-    if !ENABLED and !ENABLE_DOMAIN_CHECK
+    unless ENABLED and ENABLE_DOMAIN_CHECK
       return
 
     ASSERT !!domain, 'domains should be an array', domain
@@ -80,7 +85,7 @@ module.exports = (FD) ->
   # are "fresh", and at least not in use by any fdvar yet
 
   ASSERT_UNUSED_DOMAIN = (domain) ->
-    if !ENABLED and !ENABLE_DOMAIN_CHECK
+    unless ENABLED and ENABLE_DOMAIN_CHECK
       return
 
     # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
@@ -89,7 +94,7 @@ module.exports = (FD) ->
     return
 
   ASSERT_VARS = (vars) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     for name, fdvar of vars
@@ -97,7 +102,7 @@ module.exports = (FD) ->
     return
 
   ASSERT_SPACE = (space) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     # TBD: expand with other assertions...
@@ -105,7 +110,7 @@ module.exports = (FD) ->
     return
 
   ASSERT_PROPAGATORS = (propagators) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     ASSERT !!propagators, 'propagators should exist', propagators
@@ -114,7 +119,7 @@ module.exports = (FD) ->
     return
 
   ASSERT_PROPAGATOR = (propagator) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     ASSERT !!propagator, 'propagators should not be sparse', propagator
@@ -129,30 +134,30 @@ module.exports = (FD) ->
     return
 
   ASSERT_DOMAIN_EMPTY_SET = (domain) ->
-    if !ENABLED and !ENABLE_EMPTY_CHECK
+    unless ENABLED and ENABLE_EMPTY_CHECK
       return
 
     if domain._trace
-      throw new Error 'Domain already marked as set to empty...: ' + domain._trace
+      THROW 'Domain already marked as set to empty...: ' + domain._trace
     # Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
     domain._trace = new Error().stack
     return
 
   ASSERT_DOMAIN_EMPTY_CHECK = (domain) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     unless domain.length
       if ENABLE_EMPTY_CHECK
         if domain._trace
-          throw new Error 'Domain should not be empty but was set empty at: ' + domain._trace
-        throw new Error 'Domain should not be empty but was set empty at an untrapped point (investigate!)'
-      throw new Error 'Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)'
+          THROW 'Domain should not be empty but was set empty at: ' + domain._trace
+        THROW 'Domain should not be empty but was set empty at an untrapped point (investigate!)'
+      THROW 'Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)'
     ASSERT_DOMAIN domain
     return
 
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK = (domain) ->
-    if !ENABLED
+    unless ENABLED
       return
 
     if domain.length

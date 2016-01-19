@@ -111,7 +111,14 @@ module.exports = (FD) ->
       @config_var_filter_func = options.filter
     if options?.var
       # see distribution.var
+      # either
+      # - a function: should return the _name_ of the next var to process
+      # - a string: the name of the var distributor to use
+      # - an object: a complex object like {dist_name:string, fallback_config: string|object, data...?}
+      # fallback_config has the same struct as the main config_next_var_func and is used when the dist returns SAME
+      # this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
       @config_next_var_func = options.var
+      init_configs_and_fallbacks options.var
     if options?.val
       # see distribution.value
       @config_next_value_func = options.val
@@ -138,17 +145,35 @@ module.exports = (FD) ->
       # The function is called after the first batch of propagators is
       # called so it won't immediately stop. But it stops quickly.
       @config_timeout_callback = options.timeout_callback
-    if options?.var_priority
+
+    return
+
+  # Create a simple lookup hash from an array of strings
+  # to an object that looks up the index from the string.
+  # This is used for finding the priority of a var elsewhere.
+  #
+  # @param {Object} [config] This is the var dist config (-> @config_next_var_func)
+  # @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
+
+  init_configs_and_fallbacks = (config) ->
+
+    # populate the priority hashes for all (sub)configs
+    while config?
+
       # explicit list of priorities. vars not in this list have equal
       # priority, but lower than any var that is in the list.
-      list = options.var_priority
-      @config_var_priority_list = list # array of var names
-      @config_var_priority_hash = {}
-      max = list.length
-      for name, index in list
-        # note: lowest priority still in the list is one, not zero
-        # this way you dont have to check -1 for non-existing, later
-        @config_var_priority_hash[name] = max - index
+      list = config.priority_list
+      if list
+        hash = {}
+        config.priority_hash = hash
+        max = list.length
+        for name, index in list
+          # note: lowest priority still in the list is one, not zero
+          # this way you dont have to check -1 for non-existing, later
+          hash[name] = max - index
+
+      # do it for all the fallback configs as well...
+      config = config.fallback_config
 
     return
 

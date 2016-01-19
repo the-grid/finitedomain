@@ -319,69 +319,64 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             A: 2
             B: 1
 
-        expect(by_list v1, v2, fake_space, {}).to.equal BETTER
+        expect(by_list v1, v2, {}, config).to.equal BETTER
 
       it 'should THROW if the priority hash says A is equal to B', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             A: 2
             B: 2
 
-        expect(-> by_list v1, v2, fake_space, {}).to.throw
+        expect(-> by_list v1, v2, {}, config).to.throw
 
 
       it 'should return WORSE if the priority hash says A is lower than B', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             A: 1
             B: 2
 
-        expect(by_list v1, v2, fake_space, {}).to.equal WORSE
+        expect(by_list v1, v2, {}, config).to.equal WORSE
 
       it 'should return BETTER if A is in the hash but B is not', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             A: 2
 
-        expect(by_list v1, v2, fake_space, {}).to.equal BETTER
+        expect(by_list v1, v2, {}, config).to.equal BETTER
 
       it 'should return WORSE if B is in the hash but A is not', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             B: 2
 
-        expect(by_list v1, v2, fake_space, {}).to.equal WORSE
+        expect(by_list v1, v2, {}, config).to.equal WORSE
 
       it 'should throw if A gets value 0 from the hash', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
         fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
-            A: 0
+          config_var_dist_options:
+            priority_hash:
+              A: 0
 
         expect(-> by_list v1, v2, fake_space, {}).to.throw
 
@@ -389,58 +384,50 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash:
+        config =
+          priority_hash:
             B: 2
 
-        expect(-> by_list v1, v2, fake_space, {}).to.throw
+        expect(-> by_list v1, v2, {}, config).to.throw
 
       it 'should return SAME if neither A nor B is in the hash without fallback', ->
 
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash: {}
+        config =
+          priority_hash: {}
 
-        expect(by_list v1, v2, fake_space, {}).to.equal SAME
+        expect(by_list v1, v2, {}, config).to.equal SAME
 
       it 'should return BETTER if neither is in the hash and fallback is size with A smaller', ->
 
         v1 = fdvar_create 'A', [0, 0]
         v2 = fdvar_create 'B', [0, 10]
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash: {}
-        fallback =
+        config =
+          priority_hash: {}
           fallback_config: 'size'
 
-        expect(by_list v1, v2, fake_space, fallback).to.equal BETTER
+        expect(by_list v1, v2, {}, config).to.equal BETTER
 
       it 'should return SAME if neither is in the hash and fallback is size with A same size as B', ->
 
         v1 = fdvar_create 'A', [0, 10]
         v2 = fdvar_create 'B', [0, 10]
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash: {}
-        fallback =
+        config =
+          priority_hash: {}
           fallback_config: 'size'
 
-        expect(by_list v1, v2, fake_space, fallback).to.equal SAME
+        expect(by_list v1, v2, {}, config).to.equal SAME
 
       it 'should return WORSE if neither is in the hash and fallback is size with A larger', ->
 
         v1 = fdvar_create 'A', [0, 10]
         v2 = fdvar_create 'B', [0, 0]
-        fake_space =
-          config_var_dist_options: {}
-          config_var_priority_hash: {}
-        fallback =
+        config =
+          priority_hash: {}
           fallback_config: 'size'
 
-        expect(by_list v1, v2, fake_space, fallback).to.equal WORSE
+        expect(by_list v1, v2, {}, config).to.equal WORSE
 
     describe 'integration', ->
 
@@ -454,8 +441,9 @@ describe 'distribution/var.spec', ->
           id: 'B'
         solver.prepare
           distribute:
-            var: 'list'
-            var_priority: ['A', 'B']
+            var:
+              dist_name: 'list'
+              priority_list: ['A', 'B']
 
         fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
 
@@ -471,8 +459,9 @@ describe 'distribution/var.spec', ->
           id: 'B'
         solver.prepare
           distribute:
-            var: 'list'
-            var_priority: ['B', 'A']
+            var:
+              dist_name: 'list'
+              priority_list: ['B', 'A']
 
         fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
 
@@ -486,8 +475,9 @@ describe 'distribution/var.spec', ->
           id: 'A'
         solver.prepare
           distribute:
-            var: 'list'
-            var_priority: []
+            var:
+              dist_name: 'list'
+              priority_list: []
 
         fdvar = distribution_get_next_var solver.space, solver.space, ['A']
 
@@ -504,8 +494,9 @@ describe 'distribution/var.spec', ->
           id: 'C'
         solver.prepare
           distribute:
-            var: 'list'
-            var_priority: ['A', 'C']
+            var:
+              dist_name: 'list'
+              priority_list: ['A', 'C']
 
         fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C']
         expect(fdvar.id, 'A and C should go before B').to.eql 'A'
@@ -515,6 +506,33 @@ describe 'distribution/var.spec', ->
         expect(fdvar.id, 'C should go before B').to.eql 'C'
         fdvar = distribution_get_next_var solver.space, solver.space, ['B']
         expect(fdvar.id, 'B is only one left').to.eql 'B'
+
+      it 'should work with list as fallback dist', ->
+
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+        solver.addVar
+          id: 'B'
+        solver.addVar
+          id: 'C'
+        solver.prepare
+          distribute:
+            var:
+              dist_name: 'markov' # there are no markov vars so it will fallback immediately
+              fallback_config:
+                dist_name: 'list'
+                priority_list: ['A', 'C']
+
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C']
+        expect(fdvar.id, 'A and C should go before B').to.eql 'A'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+        expect(fdvar.id, 'A should go before B').to.eql 'A'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['B', 'C']
+        expect(fdvar.id, 'C should go before B').to.eql 'C'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['B']
+        expect(fdvar.id, 'B is only one left').to.eql 'B'
+
 
   describe 'fallback list -> markov -> size', ->
 
@@ -547,9 +565,9 @@ describe 'distribution/var.spec', ->
       domain: [0, 75]
     solver.prepare
       distribute:
-        var_priority: ['B_list', 'A_list']
         var:
           dist_name: 'list'
+          priority_list: ['B_list', 'A_list']
           fallback_config:
             dist_name: 'markov'
             fallback_config: 'size'

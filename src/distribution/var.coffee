@@ -126,13 +126,16 @@ module.exports = (FD) ->
     return fallback v1, v2, root_space, config_next_var_func.fallback_config
 
   by_list = (v1, v2, root_space, config_next_var_func) ->
-    # note: config_var_priority_hash is compiled by Solver#prepare
-    # if in the list, lowest prio is 1. if not in the list, prio will be undefined
-    hash = root_space.config_var_priority_hash
+    # note: config.priority_hash is compiled by Solver#prepare from given priority_list
+    # if in the list, lowest prio can be 1. if not in the list, prio will be undefined
+    hash = config_next_var_func.priority_hash
 
     # if v1 or v2 is not in the list they will end up as undefined
     p1 = hash[v1.id]
     p2 = hash[v2.id]
+
+    ASSERT p1 isnt 0, 'index 0 should never be used'
+    ASSERT p2 isnt 0, 'index 0 should never be used'
 
     unless p1 or p2
       # either p1 and p2 both dont exist on the list, or ... well no that's it

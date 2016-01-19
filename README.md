@@ -16,6 +16,10 @@ For now, see the extensive [tests](./tests)
 
 ## Version
 
+1.0.3 (unreleased):
+- Added support for fallback var distributions so you can chain list > markov > size for var distributors
+- Internal refactoring/restructuring
+
 1.0.2:
 - Added support for `expandVectorsWith` in Markov distribution
 - Added support for `matrix[].row.boolean` to be the name of a variable, rather than the function to return this name, in Markov distributions

@@ -51,165 +51,175 @@ describe 'distribution/var.spec', ->
 
   describe 'by_min', ->
 
-    it_ab 'min', [0, 1], [10, 11], 'A', 'should decide on lowest vars first A'
-    it_ab 'min', [20, 30], [5, 8], 'B', 'should decide on lowest vars first B'
-    it_ab 'min', [9, 21], [10, 20], 'A', 'should base decision on lowest lo, not lowest hi'
+    describe 'integration', ->
+
+      it_ab 'min', [0, 1], [10, 11], 'A', 'should decide on lowest vars first A'
+      it_ab 'min', [20, 30], [5, 8], 'B', 'should decide on lowest vars first B'
+      it_ab 'min', [9, 21], [10, 20], 'A', 'should base decision on lowest lo, not lowest hi'
 
   describe 'by_max', ->
 
-    it_ab 'max', [0, 1], [10, 11], 'B', 'should decide on highest vars first A'
-    it_ab 'max', [20, 30], [5, 8], 'A', 'should decide on highest vars first B'
-    it_ab 'max', [9, 21], [10, 20], 'A', 'should base decision on highest hi, not highest lo'
+    describe 'integration', ->
+
+      it_ab 'max', [0, 1], [10, 11], 'B', 'should decide on highest vars first A'
+      it_ab 'max', [20, 30], [5, 8], 'A', 'should decide on highest vars first B'
+      it_ab 'max', [9, 21], [10, 20], 'A', 'should base decision on highest hi, not highest lo'
 
   describe 'by_size', ->
 
-    it_ab 'size', [0, 1], [10, 12], 'A', 'should decide on largest domain first A'
-    it_ab 'size', [20, 30], [50, 55], 'B', 'should decide on largest domain first B'
+    describe 'integration', ->
 
-    it 'should count actual elements in the domain', ->
+      it_ab 'size', [0, 1], [10, 12], 'A', 'should decide on largest domain first A'
+      it_ab 'size', [20, 30], [50, 55], 'B', 'should decide on largest domain first B'
 
-      # note: further tests should be unit tests on domain_size instead
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-        domain: spec_d_create_ranges [30, 100] # 71 elements
-      solver.addVar
-        id: 'B'
-        domain: spec_d_create_ranges [0, 50], [60, 90] # 82 elements
-      solver.prepare
-        distribute: var: 'size'
+      it 'should count actual elements in the domain', ->
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+        # note: further tests should be unit tests on domain_size instead
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+          domain: spec_d_create_ranges [30, 100] # 71 elements
+        solver.addVar
+          id: 'B'
+          domain: spec_d_create_ranges [0, 50], [60, 90] # 82 elements
+        solver.prepare
+          distribute: var: 'size'
 
-      expect(fdvar.id).to.eql 'B'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+
+        expect(fdvar.id).to.eql 'B'
 
   describe 'by_markov', ->
 
-    it 'should prioritize markov vars', ->
+    describe 'integration', ->
 
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-        domain: spec_d_create_ranges [0, 1]
-      solver.addVar
-        id: 'B'
-        domain: spec_d_create_ranges [10, 12]
-        distributeOptions:
-          distributor_name: 'markov'
-          expandVectorsWith: 1
-      solver.addVar
-        id: 'C'
-        domain: spec_d_create_ranges [5, 17]
-      solver.addVar
-        id: 'D'
-        domain: spec_d_create_ranges [13, 13]
-      solver.prepare
-        distribute: var: 'markov'
+      it 'should prioritize markov vars', ->
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C', 'D']
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+          domain: spec_d_create_ranges [0, 1]
+        solver.addVar
+          id: 'B'
+          domain: spec_d_create_ranges [10, 12]
+          distributeOptions:
+            distributor_name: 'markov'
+            expandVectorsWith: 1
+        solver.addVar
+          id: 'C'
+          domain: spec_d_create_ranges [5, 17]
+        solver.addVar
+          id: 'D'
+          domain: spec_d_create_ranges [13, 13]
+        solver.prepare
+          distribute: var: 'markov'
 
-      expect(fdvar.id).to.eql 'B'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C', 'D']
 
-    it 'should get markov vars back to front', ->
-      # it's not really a hard requirement but that's how it works
+        expect(fdvar.id).to.eql 'B'
 
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-        domain: spec_d_create_ranges [0, 1]
-      solver.addVar
-        id: 'B'
-        domain: spec_d_create_ranges [10, 12]
-        distributeOptions:
-          distributor_name: 'markov'
-          expandVectorsWith: 1
-      solver.addVar
-        id: 'C'
-        domain: spec_d_create_ranges [5, 17]
-        distributeOptions:
-          distributor_name: 'markov'
-          expandVectorsWith: 1
-      solver.addVar
-        id: 'D'
-        domain: spec_d_create_ranges [13, 13]
-      solver.prepare
-        distribute: var: 'markov'
+      it 'should get markov vars back to front', ->
+        # it's not really a hard requirement but that's how it works
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C', 'D']
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+          domain: spec_d_create_ranges [0, 1]
+        solver.addVar
+          id: 'B'
+          domain: spec_d_create_ranges [10, 12]
+          distributeOptions:
+            distributor_name: 'markov'
+            expandVectorsWith: 1
+        solver.addVar
+          id: 'C'
+          domain: spec_d_create_ranges [5, 17]
+          distributeOptions:
+            distributor_name: 'markov'
+            expandVectorsWith: 1
+        solver.addVar
+          id: 'D'
+          domain: spec_d_create_ranges [13, 13]
+        solver.prepare
+          distribute: var: 'markov'
 
-      expect(fdvar.id).to.eql 'C'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C', 'D']
+
+        expect(fdvar.id).to.eql 'C'
 
   describe 'by_list', ->
 
-    it 'should solve vars in the explicit order of the list A', ->
+    describe 'integration', ->
+
+      it 'should solve vars in the explicit order of the list A', ->
 
 
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-      solver.addVar
-        id: 'B'
-      solver.prepare
-        distribute:
-          var: 'list'
-          var_priority: ['A', 'B']
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+        solver.addVar
+          id: 'B'
+        solver.prepare
+          distribute:
+            var: 'list'
+            var_priority: ['A', 'B']
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
 
-      expect(fdvar.id).to.eql 'A'
+        expect(fdvar.id).to.eql 'A'
 
-    it 'should solve vars in the explicit order of the list B', ->
-
-
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-      solver.addVar
-        id: 'B'
-      solver.prepare
-        distribute:
-          var: 'list'
-          var_priority: ['B', 'A']
-
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
-
-      expect(fdvar.id).to.eql 'B'
-
-    it 'should not crash if a var is not on the list or when list is empty', ->
+      it 'should solve vars in the explicit order of the list B', ->
 
 
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-      solver.prepare
-        distribute:
-          var: 'list'
-          var_priority: []
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+        solver.addVar
+          id: 'B'
+        solver.prepare
+          distribute:
+            var: 'list'
+            var_priority: ['B', 'A']
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A']
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
 
-      expect(fdvar.id).to.eql 'A'
+        expect(fdvar.id).to.eql 'B'
 
-    it 'should assume unlisted vars come after listed vars', ->
+      it 'should not crash if a var is not on the list or when list is empty', ->
 
 
-      solver = new Solver
-      solver.addVar
-        id: 'A'
-      solver.addVar
-        id: 'B'
-      solver.addVar
-        id: 'C'
-      solver.prepare
-        distribute:
-          var: 'list'
-          var_priority: ['A', 'C']
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+        solver.prepare
+          distribute:
+            var: 'list'
+            var_priority: []
 
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C']
-      expect(fdvar.id, 'A and C should go before B').to.eql 'A'
-      fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
-      expect(fdvar.id, 'A should go before B').to.eql 'A'
-      fdvar = distribution_get_next_var solver.space, solver.space, ['B', 'C']
-      expect(fdvar.id, 'C should go before B').to.eql 'C'
-      fdvar = distribution_get_next_var solver.space, solver.space, ['B']
-      expect(fdvar.id, 'B is only one left').to.eql 'B'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A']
+
+        expect(fdvar.id).to.eql 'A'
+
+      it 'should assume unlisted vars come after listed vars', ->
+
+
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+        solver.addVar
+          id: 'B'
+        solver.addVar
+          id: 'C'
+        solver.prepare
+          distribute:
+            var: 'list'
+            var_priority: ['A', 'C']
+
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B', 'C']
+        expect(fdvar.id, 'A and C should go before B').to.eql 'A'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+        expect(fdvar.id, 'A should go before B').to.eql 'A'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['B', 'C']
+        expect(fdvar.id, 'C should go before B').to.eql 'C'
+        fdvar = distribution_get_next_var solver.space, solver.space, ['B']
+        expect(fdvar.id, 'B is only one left').to.eql 'B'

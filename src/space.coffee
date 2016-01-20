@@ -76,12 +76,12 @@ module.exports = do ->
 
     return
 
-  space_new = (root, propagators, vars, all_names, unsolved_names) ->
+  _space_new = (root, propagators, vars, all_names, unsolved_names) ->
     return new Space root, propagators, vars, all_names, unsolved_names
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
-  pseudo_clone_vars = (all_names, parent_vars, clone_vars, clone_unsolved_var_names) ->
+  _space_pseudo_clone_vars = (all_names, parent_vars, clone_vars, clone_unsolved_var_names) ->
     for var_name in all_names
       fdvar = parent_vars[var_name]
       if fdvar.was_solved
@@ -103,8 +103,8 @@ module.exports = do ->
       unless prop_is_solved vars, propagator
         unsolved_propagators.push propagator
 
-    pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
-    clone = space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
+    _space_pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
+    clone = _space_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
     return clone
 
@@ -125,7 +125,7 @@ module.exports = do ->
       # fallback_config has the same struct as the main config_next_var_func and is used when the dist returns SAME
       # this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
       @config_next_var_func = options.var
-      init_configs_and_fallbacks options.var
+      _space_init_configs_and_fallbacks options.var
     if options?.val
       # see distribution.value
       @config_next_value_func = options.val
@@ -162,7 +162,7 @@ module.exports = do ->
   # @param {Object} [config] This is the var dist config (-> @config_next_var_func)
   # @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
 
-  init_configs_and_fallbacks = (config) ->
+  _space_init_configs_and_fallbacks = (config) ->
 
     # populate the priority hashes for all (sub)configs
     while config?
@@ -227,12 +227,12 @@ module.exports = do ->
         else if n is REJECTED
           return false # solution impossible
 
-      if abort_search @
+      if _space_abort_search @
         return false
 
     return true
 
-  abort_search = (space) ->
+  _space_abort_search = (space) ->
     root_space = space.get_root()
     c = root_space.config_timeout_callback
     if c
@@ -280,7 +280,7 @@ module.exports = do ->
     result = {}
     vars = @vars
     for var_name in @all_var_names
-      getset_var_solve_state var_name, vars, result
+      _space_getset_var_solve_state var_name, vars, result
     return result
 
   # @param {string[]} var_names List of var names to query the solution for
@@ -292,7 +292,7 @@ module.exports = do ->
     for var_name in var_names
       value = false
       if vars[var_name]
-        value = getset_var_solve_state var_name, vars, result
+        value = _space_getset_var_solve_state var_name, vars, result
 
       if complete and value is false
         return false
@@ -301,7 +301,7 @@ module.exports = do ->
 
     return result
 
-  getset_var_solve_state = (var_name, vars, result) ->
+  _space_getset_var_solve_state = (var_name, vars, result) ->
     # Don't include the temporary variables in the "solution".
     # Temporary variables take the form of a numeric property
     # of the object, so we test for the var_name to be a number and
@@ -457,10 +457,10 @@ module.exports = do ->
   # propagator creator functions.
 
   Space::reified = (opname, left_var_name, right_var_name, bool_name) ->
-    return add_reified @, opname, left_var_name, right_var_name, bool_name
+    return _space_add_reified @, opname, left_var_name, right_var_name, bool_name
 
   Space::callback = (var_names, callback) ->
-    return add_callback @, var_names, callback
+    return _space_add_callback @, var_names, callback
 
   # Domain equality propagator. Creates the propagator
   # in this space. The specified variables need not
@@ -469,53 +469,53 @@ module.exports = do ->
   # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   Space::eq = (v1name, v2name) ->
-    return add_eq @, v1name, v2name
+    return _space_add_eq @, v1name, v2name
 
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.
 
   Space::lt = (v1name, v2name) ->
-    return add_lt @, v1name, v2name
+    return _space_add_lt @, v1name, v2name
 
   # Greater than propagator.
 
   Space::gt = (v1name, v2name) ->
     # _swap_ v1 and v2 because: a>b is b<a
-    return add_lt @, v2name, v1name
+    return _space_add_lt @, v2name, v1name
 
   # Less than or equal to propagator.
 
   Space::lte = (v1name, v2name) ->
-    return add_lte @, v1name, v2name
+    return _space_add_lte @, v1name, v2name
 
   # Greater than or equal to.
 
   Space::gte = (v1name, v2name) ->
     # _swap_ v1 and v2 because: a>b is b<a
-    return add_lte @, v2name, v1name
+    return _space_add_lte @, v2name, v1name
 
   # Ensures that the two variables take on different values.
 
   Space::neq = (v1name, v2name) ->
-    return add_neq @, v1name, v2name
+    return _space_add_neq @, v1name, v2name
 
   # Takes an arbitrary number of FD variables and adds propagators that
   # ensure that they are pairwise distinct.
 
   Space::distinct = (vars) ->
-    return add_distinct @, vars
+    return _space_add_distinct @, vars
 
   # Bidirectional addition propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::plus = (v1name, v2name, sumname) ->
-    return add_plus @, v1name, v2name, sumname
+    return _space_add_plus @, v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::times = (v1name, v2name, prodname) ->
-    return add_times @, v1name, v2name, prodname
+    return _space_add_times @, v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -524,38 +524,38 @@ module.exports = do ->
   # factor * v = prod
 
   Space::scale = (factor, vname, prodname) ->
-    return add_scale @, factor, vname, prodname
+    return _space_add_scale @, factor, vname, prodname
 
   # TODO: Can be made more efficient.
 
   Space::times_plus = (k1, v1name, k2, v2name, resultname) ->
-    A = add_scale @, k1, v1name
-    B = add_scale @, k2, v2name
-    return add_plus @, A, B, resultname
+    A = _space_add_scale @, k1, v1name
+    B = _space_add_scale @, k2, v2name
+    return _space_add_plus @, A, B, resultname
 
   # Sum of N fdvars = resultFDVar
   # Creates as many anonymous vars as necessary.
   # Returns either @ or the anonymous var name if no sumname was given
 
   Space::sum = (vars, result_var_name) ->
-    return add_sum @, vars, result_var_name
+    return _space_add_sum @, vars, result_var_name
 
   # Product of N fdvars = resultFDvar.
   # Create as many anonymous vars as necessary.
 
   Space::product = (vars, result_var_name) ->
-    return add_product @, vars, result_var_name
+    return _space_add_product @, vars, result_var_name
 
   # Weighted sum of fdvars where the weights are constants.
 
   Space::wsum = (kweights, vars, result_name) ->
-    return add_wsum @, kweights, vars, result_name
+    return _space_add_wsum @, kweights, vars, result_name
 
 
   ##### Propagator abstractions
 
 
-  add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
+  _space_add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -589,12 +589,12 @@ module.exports = do ->
 
     return bool_name
 
-  add_callback = (space, var_names, callback) ->
+  _space_add_callback = (space, var_names, callback) ->
     space._propagators.push ['callback', var_names, callback]
     ASSERT_PROPAGATORS space._propagators
     return
 
-  add_eq = (space, v1name, v2name) ->
+  _space_add_eq = (space, v1name, v2name) ->
 
     # If v2name is not specified, then we're operating in functional syntax
     # and the return value is expected to be v2name itself. This can happen
@@ -606,25 +606,25 @@ module.exports = do ->
     ASSERT_PROPAGATORS space._propagators
     return
 
-  add_lt = (space, v1name, v2name) ->
+  _space_add_lt = (space, v1name, v2name) ->
     space._propagators.push ['lt', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
 
-  add_lte = (space, v1name, v2name) ->
+  _space_add_lte = (space, v1name, v2name) ->
     space._propagators.push ['lte', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
 
-  add_neq = (space, v1name, v2name) ->
+  _space_add_neq = (space, v1name, v2name) ->
     space._propagators.push ['neq', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
 
-  add_distinct = (space, var_names) ->
+  _space_add_distinct = (space, var_names) ->
     for var_name_i, i in var_names
       for j in [0...i]
-        add_neq space, var_name_i, var_names[j]
+        _space_add_neq space, var_name_i, var_names[j]
     return
 
   # Once you create an fdvar in a space with the given
@@ -641,7 +641,7 @@ module.exports = do ->
   # will return the current space so that other methods
   # can be invoked in sequence.
 
-  plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
+  _space_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     retval = space
     # If sumname is not specified, we need to create a anonymous
     # for the result and return the name of that anon variable.
@@ -649,30 +649,30 @@ module.exports = do ->
       sumname = space.decl_anon()
       retval = sumname
 
-    add_ring space, v1name, v2name, sumname, target_op_name
-    add_ring space, sumname, v2name, v1name, inv_op_name
-    add_ring space, sumname, v1name, v2name, inv_op_name
+    _space_add_ring space, v1name, v2name, sumname, target_op_name
+    _space_add_ring space, sumname, v2name, v1name, inv_op_name
+    _space_add_ring space, sumname, v1name, v2name, inv_op_name
 
     return retval
 
-  add_ring = (space, A, B, C, op) ->
+  _space_add_ring = (space, A, B, C, op) ->
     space._propagators.push ['ring', [A, B, C], op]
     ASSERT_PROPAGATORS space._propagators
     return
 
 
-  add_plus = (space, v1name, v2name, sumname) ->
-    return plus_or_times space, 'plus', 'min', v1name, v2name, sumname
+  _space_add_plus = (space, v1name, v2name, sumname) ->
+    return _space_plus_or_times space, 'plus', 'min', v1name, v2name, sumname
 
-  add_times = (space, v1name, v2name, prodname) ->
-    return plus_or_times space, 'mul', 'div', v1name, v2name, prodname
+  _space_add_times = (space, v1name, v2name, prodname) ->
+    return _space_plus_or_times space, 'mul', 'div', v1name, v2name, prodname
 
-  add_scale = (space, factor, vname, prodname) ->
+  _space_add_scale = (space, factor, vname, prodname) ->
     if factor is 1
-      return add_eq space, vname, prodname
+      return _space_add_eq space, vname, prodname
 
     if factor is 0
-      return add_eq space, space.decl_anon(domain_create_zero()), prodname
+      return _space_add_eq space, space.decl_anon(domain_create_zero()), prodname
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
@@ -687,7 +687,7 @@ module.exports = do ->
 
     return retval
 
-  add_sum = (space, vars, result_var_name) ->
+  _space_add_sum = (space, vars, result_var_name) ->
     retval = space
 
     unless result_var_name
@@ -699,27 +699,27 @@ module.exports = do ->
         THROW 'Space.sum: Nothing to sum!'
 
       when 1
-        add_eq space, vars[0], result_var_name
+        _space_add_eq space, vars[0], result_var_name
 
       when 2
-        add_plus space, vars[0], vars[1], result_var_name
+        _space_add_plus space, vars[0], vars[1], result_var_name
 
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
           t1 = space.decl_anon()
-          add_sum space, vars.slice(0, n), t1
+          _space_add_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
         t2 = space.decl_anon()
 
-        add_sum space, vars.slice(n), t2
-        add_plus space, t1, t2, result_var_name
+        _space_add_sum space, vars.slice(n), t2
+        _space_add_plus space, t1, t2, result_var_name
 
     return retval
 
-  add_product = (space, vars, result_var_name) ->
+  _space_add_product = (space, vars, result_var_name) ->
     retval = space
 
     unless result_var_name
@@ -731,32 +731,32 @@ module.exports = do ->
         return retval
 
       when 1
-        add_eq space, vars[0], result_var_name
+        _space_add_eq space, vars[0], result_var_name
 
       when 2
-        add_times space, vars[0], vars[1], result_var_name
+        _space_add_times space, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
         if n > 1
           t1 = space.decl_anon()
-          add_product space, vars.slice(0, n), t1
+          _space_add_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
         t2 = space.decl_anon()
 
-        add_product space, vars.slice(n), t2
-        add_times space, t1, t2, result_var_name
+        _space_add_product space, vars.slice(n), t2
+        _space_add_times space, t1, t2, result_var_name
 
     return retval
 
-  add_wsum = (space, kweights, vars, result_name) ->
+  _space_add_wsum = (space, kweights, vars, result_name) ->
     anons = []
     for var_i, i in vars
       t = space.decl_anon()
-      add_scale space, kweights[i], var_i, t
+      _space_add_scale space, kweights[i], var_i, t
       anons.push t
-    add_sum space, anons, result_name
+    _space_add_sum space, anons, result_name
     return
 
 

@@ -8,6 +8,8 @@ module.exports = do ->
 
     ASSERT
     ASSERT_SPACE
+    GET_NAME
+    GET_NAMES
     THROW
   } = require './helpers'
 
@@ -26,19 +28,6 @@ module.exports = do ->
   LOG_MIN = LOG_NONE = 0
   LOG_STATS = 1
   LOG_MAX = LOG_SOLVES = 2
-
-  get_name = (e) ->
-    # e can be the empty string (TOFIX: let's not allow this...)
-    if e.id?
-      return e.id
-    return e
-
-  get_names = (es) ->
-    var_names = []
-    for e in es
-      var_names.push get_name e
-
-    return var_names
 
   # hack to get around "private" warnings.
   _ = {}
@@ -263,31 +252,31 @@ module.exports = do ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return @space.plus get_name(e1), get_name(e2), get_name(result_var)
-      return @space.plus get_name(e1), get_name(e2)
+        return @space.plus GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return @space.plus GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @times e1, e2, result_var
     times: (e1, e2, result_var) ->
       if result_var
-        return @space.times get_name(e1), get_name(e2), get_name(result_var)
-      return @space.times get_name(e1), get_name(e2)
+        return @space.times GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return @space.times GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
     #_sumCache: null
     sum: (es, result_var) ->
-      var_names = get_names es
+      var_names = GET_NAMES es
       if result_var
-        return @space.sum var_names, get_name(result_var)
+        return @space.sum var_names, GET_NAME(result_var)
       return @space.sum var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
-      var_names = get_names es
+      var_names = GET_NAMES es
       if result_var
-        return @space.product var_names, get_name(result_var)
+        return @space.product var_names, GET_NAME(result_var)
       return @space.product var_names
 
     # TODO
@@ -303,7 +292,7 @@ module.exports = do ->
       @distinct es
       return
     distinct: (es) ->
-      @space.distinct get_names(es)
+      @space.distinct GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -317,7 +306,7 @@ module.exports = do ->
         @_eq e1, e2
       return
     _eq: (e1, e2) ->
-      @space.eq get_name(e1), get_name(e2)
+      @space.eq GET_NAME(e1), GET_NAME(e2)
       return
 
     '!=': (e1, e2) ->
@@ -331,7 +320,7 @@ module.exports = do ->
         return @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      @space.neq get_name(e1), get_name(e2)
+      @space.neq GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -345,7 +334,7 @@ module.exports = do ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      @space.gte get_name(e1), get_name(e2)
+      @space.gte GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -359,7 +348,7 @@ module.exports = do ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      @space.lte get_name(e1), get_name(e2)
+      @space.lte GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -373,7 +362,7 @@ module.exports = do ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      @space.gt get_name(e1), get_name(e2)
+      @space.gt GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -387,16 +376,16 @@ module.exports = do ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      @space.lt get_name(e1), get_name(e2)
+      @space.lt GET_NAME(e1), GET_NAME(e2)
       return
 
 
     # Conditions, ie Reified (In)equality Propagators
     _cacheReified: (op, e1, e2, boolvar) ->
-      e1 = get_name(e1)
-      e2 = get_name(e2)
+      e1 = GET_NAME(e1)
+      e2 = GET_NAME(e2)
       if boolvar
-        return @space.reified op, e1, e2, get_name boolvar
+        return @space.reified op, e1, e2, GET_NAME boolvar
       return @space.reified op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
@@ -463,7 +452,7 @@ module.exports = do ->
       log ?= LOG_NONE # 0, 1, 2
       max ?= 1000
       bvars ?= @vars.all
-      var_names = get_names bvars
+      var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space

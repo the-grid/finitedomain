@@ -168,6 +168,27 @@ module.exports = do ->
 
   ({}.__REMOVE_ABOVE_FOR_DIST__ = 1) && 1
 
+  # given a value return value.id or value
+  # intended to return the name of a variable where the
+  # value can be either that variable, or just its name
+  # @returns {string}
+
+  GET_NAME = (e) ->
+    # e can be the empty string (TOFIX: let's not allow this...)
+    if e.id?
+      return e.id
+    return e
+
+  # @see GET_NAME
+  # @returns {string[]}
+
+  GET_NAMES = (es) ->
+    var_names = []
+    for e in es
+      var_names.push GET_NAME e
+
+    return var_names
+
   # Abstraction for throwing because throw statements cause deoptimizations
   # All explicit throws should use this function. Also helps with tooling
   # later, catching and reporting explicits throws and what not.
@@ -200,5 +221,7 @@ module.exports = do ->
     ASSERT_SPACE
     ASSERT_UNUSED_DOMAIN
     ASSERT_VARS
+    GET_NAME
+    GET_NAMES
     THROW
   }

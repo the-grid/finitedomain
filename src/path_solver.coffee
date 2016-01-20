@@ -29,9 +29,9 @@ module.exports = do ->
   } = require './domain'
 
   MAX = Math.max
-  UNDETERMINED = 0
-  NUM = 1
-  NAN = 2
+  PATH_UNDETERMINED = 0
+  PATH_NUM = 1
+  PATH_NAN = 2
 
   binding_uid = 0
 
@@ -296,21 +296,21 @@ module.exports = do ->
       return
 
     add_path_meta_to_bvar: (branch_var, paths, branch_path, branch_rules) ->
-      path_type = UNDETERMINED
+      path_type = PATH_UNDETERMINED
       valid_branch_values = []
 
       for path_name, path_index in paths
         path_data = branch_path?[path_name]?.data
 
         if isNaN path_name
-          if path_type is NUM
+          if path_type is PATH_NUM
             THROW "Cant mix numbered paths with nonnumbered paths"
-          path_type = NAN
+          path_type = PATH_NAN
           branchValue = path_index + 1
         else
-          if path_type is NAN
+          if path_type is PATH_NAN
             THROW "Cant mix numbered paths with nonnumbered paths"
-          path_type = NUM
+          path_type = PATH_NUM
           branchValue = 1 + parseFloat path_name
 
         if valid_rules branch_rules, path_data

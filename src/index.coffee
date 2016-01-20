@@ -5,6 +5,15 @@ FD = {
 
 # FD = require './fd'
 
+REMOVE_ASSERTS_START = 1
+
+# for tests; if absent will skip certain tests because
+# certain private functions are not exposed in the dist
+# build so we cant test them explicitly. c'est la vie.
+FD.__DEV_BUILD = true
+
+REMOVE_ASSERTS_STOP = 1
+
 # helpers
 require('./helpers')(FD)
 require('./domain')(FD)

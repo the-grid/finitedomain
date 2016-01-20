@@ -12,28 +12,28 @@ module.exports = do ->
   } = require '../helpers'
 
   {
-    lt_step_would_reject
+    propagator_lt_step_would_reject
   } = require './lt'
   {
-    lte_step_would_reject
+    propagator_lte_step_would_reject
   } = require './lte'
   {
-    eq_step_would_reject
+    propagator_eq_step_would_reject
   } = require './eq'
   {
-    neq_step_would_reject
+    propagator_neq_step_would_reject
   } = require './neq'
   {
-    lt_step_bare
+    propagator_lt_step_bare
   } = require './lt'
   {
-    lte_step_bare
+    propagator_lte_step_bare
   } = require './lte'
   {
-    eq_step_bare
+    propagator_eq_step_bare
   } = require './eq'
   {
-    neq_step_bare
+    propagator_neq_step_bare
   } = require './neq'
 
   step_comparison = (space, op_name, var_name_1, var_name_2) ->
@@ -42,10 +42,10 @@ module.exports = do ->
 
     switch op_name
       when 'lt'
-        return lt_step_bare v1, v2
+        return propagator_lt_step_bare v1, v2
 
       when 'lte'
-        return lte_step_bare v1, v2
+        return propagator_lte_step_bare v1, v2
 
       when 'gt'
       # TOFIX: should go to lte
@@ -56,10 +56,10 @@ module.exports = do ->
         return step_comparison space, 'lte', var_name_2, var_name_1
 
       when 'eq'
-        return eq_step_bare v1, v2
+        return propagator_eq_step_bare v1, v2
 
       when 'neq'
-        return neq_step_bare v1, v2
+        return propagator_neq_step_bare v1, v2
 
       else
         THROW 'unsupported propagator: [' + op_name + ']'
@@ -70,23 +70,23 @@ module.exports = do ->
   step_would_reject = (op_name, fdvar1, fdvar2) ->
     switch op_name
       when 'lt'
-        return lt_step_would_reject fdvar1, fdvar2
+        return propagator_lt_step_would_reject fdvar1, fdvar2
 
       when 'lte'
-        return lte_step_would_reject fdvar1, fdvar2
+        return propagator_lte_step_would_reject fdvar1, fdvar2
 
       when 'gt'
         # TOFIX: should go to lte
-        return lt_step_would_reject fdvar2, fdvar1 # swapped vars!
+        return propagator_lt_step_would_reject fdvar2, fdvar1 # swapped vars!
 
       when 'gte'
-        return lte_step_would_reject fdvar2, fdvar1 # swapped vars!
+        return propagator_lte_step_would_reject fdvar2, fdvar1 # swapped vars!
 
       when 'eq'
-        return eq_step_would_reject fdvar1, fdvar2
+        return propagator_eq_step_would_reject fdvar1, fdvar2
 
       when 'neq'
-        return neq_step_would_reject fdvar1, fdvar2
+        return propagator_neq_step_would_reject fdvar1, fdvar2
 
       else
         THROW 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'

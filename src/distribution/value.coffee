@@ -40,7 +40,7 @@ module.exports = do ->
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
-  RANDOM = Math.random
+  MATH_RANDOM = Math.random
 
   # The functions in this file are supposed to determine the next
   # value while solving a Space. The functions are supposed to
@@ -342,7 +342,7 @@ module.exports = do ->
         ASSERT distribution_options.matrix, 'there should be a matrix available for every var', distribution_options.matrix or JSON.stringify(fdvar), distribution_options.matrix or JSON.stringify config_var_dist_options[var_name]
         ASSERT distribution_options.legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', distribution_options.legend or expand_vectors_with? or JSON.stringify(fdvar), distribution_options.legend or expand_vectors_with? or JSON.stringify distribution_options
 
-        random = distribution_options.random or RANDOM
+        random = distribution_options.random or MATH_RANDOM
 
         # note: expand_vectors_with can be 0, so check with ?
         values = markov_create_legend expand_vectors_with?, distribution_options.legend, domain
@@ -388,6 +388,7 @@ module.exports = do ->
 
     distribute_get_next_domain_for_var
 
+    # __REMOVE_BELOW_FOR_DIST__
     # for testing:
     _distribution_value_by_list: distribution_value_by_list
     _distribution_value_by_markov: distribution_value_by_markov
@@ -398,4 +399,5 @@ module.exports = do ->
     _distribution_value_by_split_max: distribution_value_by_split_max
     _distribution_value_by_split_min: distribution_value_by_split_min
     _distribute_get_next_domain_for_var
+    # __REMOVE_ABOVE_FOR_DIST__
   }

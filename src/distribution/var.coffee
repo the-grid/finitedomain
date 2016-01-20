@@ -42,17 +42,17 @@ module.exports = do ->
       when 'naive'
         is_better_var = null
       when 'size'
-        is_better_var = by_min_size
+        is_better_var = _distribution_var_by_min_size
       when 'min'
-        is_better_var = by_min
+        is_better_var = _distribution_var_by_min
       when 'max'
-        is_better_var = by_max
+        is_better_var = _distribution_var_by_max
       when 'throw'
         ASSERT false, 'not expecting to pick this distributor'
       when 'markov'
-        is_better_var = by_markov
+        is_better_var = _distribution_var_by_markov
       when 'list'
-        is_better_var = by_list
+        is_better_var = _distribution_var_by_list
       else
         THROW 'unknown next var func', dist_name
 
@@ -64,7 +64,7 @@ module.exports = do ->
         else
           THROW 'unknown var filter', config_var_filter
 
-    return find_best fdvars, target_vars, is_better_var, config_var_filter, config_next_var_func, root_space
+    return _distribution_var_find_best fdvars, target_vars, is_better_var, config_var_filter, config_next_var_func, root_space
 
   # Return the best var name according to a fitness function
   # but only if the filter function is okay with it.
@@ -77,7 +77,7 @@ module.exports = do ->
   # @param {Space} root_space
   # @returns {Fdvar}
 
-  find_best = (fdvars, names, fitness_func, filter_func, config_next_var_func, root_space) ->
+  _distribution_var_find_best = (fdvars, names, fitness_func, filter_func, config_next_var_func, root_space) ->
     best = ''
     for name, i in names
       fdvar = fdvars[name]
@@ -92,7 +92,7 @@ module.exports = do ->
   # preset fitness functions
   ######
 
-  by_min_size = (v1, v2) ->
+  _distribution_var_by_min_size = (v1, v2) ->
     n = fdvar_size(v1) - fdvar_size(v2)
     if n < 0
       return BETTER
@@ -100,7 +100,7 @@ module.exports = do ->
       return WORSE
     return SAME
 
-  by_min = (v1, v2) ->
+  _distribution_var_by_min = (v1, v2) ->
     n = fdvar_lower_bound(v1) - fdvar_lower_bound(v2)
     if n < 0
       return BETTER
@@ -108,7 +108,7 @@ module.exports = do ->
       return WORSE
     return SAME
 
-  by_max = (v1, v2) ->
+  _distribution_var_by_max = (v1, v2) ->
     n = fdvar_upper_bound(v1) - fdvar_upper_bound(v2)
     if n > 0
       return BETTER
@@ -116,16 +116,16 @@ module.exports = do ->
       return WORSE
     return SAME
 
-  by_markov = (v1, v2, root_space, config_next_var_func) ->
+  _distribution_var_by_markov = (v1, v2, root_space, config_next_var_func) ->
     # v1 is only, but if so always, better than v2 if v1 is a markov var
     if root_space.config_var_dist_options[v1.id]?.distributor_name is 'markov'
       return BETTER
     if root_space.config_var_dist_options[v2.id]?.distributor_name is 'markov'
       return WORSE
 
-    return fallback v1, v2, root_space, config_next_var_func.fallback_config
+    return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config
 
-  by_list = (v1, v2, root_space, config_next_var_func) ->
+  _distribution_var_by_list = (v1, v2, root_space, config_next_var_func) ->
     # note: config.priority_hash is compiled by Solver#prepare from given priority_list
     # if in the list, lowest prio can be 1. if not in the list, prio will be undefined
     hash = config_next_var_func.priority_hash
@@ -139,7 +139,7 @@ module.exports = do ->
 
     unless p1 or p2
       # either p1 and p2 both dont exist on the list, or ... well no that's it
-      return fallback v1, v2, root_space, config_next_var_func.fallback_config
+      return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config
 
     if !p2
       return BETTER
@@ -155,7 +155,7 @@ module.exports = do ->
     ASSERT false, 'not expecting to reach here', p1, p2, v1, v2, hash
     return SAME
 
-  fallback = (v1, v2, root_space, config) ->
+  _distribution_var_fallback = (v1, v2, root_space, config) ->
     unless config
       return SAME
 
@@ -172,17 +172,17 @@ module.exports = do ->
 
     switch dist_name
       when 'size'
-        return by_min_size v1, v2
+        return _distribution_var_by_min_size v1, v2
       when 'min'
-        return by_min v1, v2
+        return _distribution_var_by_min v1, v2
       when 'max'
-        return by_max v1, v2
+        return _distribution_var_by_max v1, v2
       when 'throw'
         THROW 'nope'
       when 'markov'
-        return by_markov v1, v2, root_space, config
+        return _distribution_var_by_markov v1, v2, root_space, config
       when 'list'
-        return by_list v1, v2, root_space, config
+        return _distribution_var_by_list v1, v2, root_space, config
       else
         THROW "Unknown var dist fallback name: #{dist_name}"
 
@@ -196,12 +196,14 @@ module.exports = do ->
 
     distribution_get_next_var
 
+    # __REMOVE_BELOW_FOR_DIST__
     # for testing
-    _distribution_var_list: by_list
-    _distribution_var_max: by_max
-    _distribution_var_markov: by_markov
-    _distribution_var_min: by_min
-    _distribution_var_size: by_min_size
+    _distribution_var_list: _distribution_var_by_list
+    _distribution_var_max: _distribution_var_by_max
+    _distribution_var_markov: _distribution_var_by_markov
+    _distribution_var_min: _distribution_var_by_min
+    _distribution_var_size: _distribution_var_by_min_size
     _distribution_var_throw: (s) -> THROW s
-    _distribution_var_fallback: fallback
+    _distribution_var_fallback: _distribution_var_fallback
+    # __REMOVE_ABOVE_FOR_DIST__
   }

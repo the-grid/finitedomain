@@ -90,13 +90,13 @@ module.exports = do ->
 
     # TOFIX: could set `cumulative_filtered_prob_vector[cumulative_filtered_prob_vector.length-1] = 1` here...
 
-    return roll random_func, total_prob, cumulative_filtered_prob_vector, filtered_legend, rng_is_normalized
+    return _distribution_markov_roll random_func, total_prob, cumulative_filtered_prob_vector, filtered_legend, rng_is_normalized
 
   # rng is a function ("random number generator"), which is usually normalized, but in tests may not be
   # the prob vector maps 1:1 to the value legend
   # cumulative_prob_vector is: `[prob0, prob0+prob1, prob0+prob1+prob2, etc]`
 
-  roll = (rng, total_prob, cumulative_prob_vector, value_legend, rng_is_normalized) ->
+  _distribution_markov_roll = (rng, total_prob, cumulative_prob_vector, value_legend, rng_is_normalized) ->
 
     rng_roll = rng()
     prob_val = rng_roll

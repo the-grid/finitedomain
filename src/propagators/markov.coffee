@@ -27,7 +27,7 @@ module.exports = do ->
   # Every markov variable should have a propagator. Perhaps later
   # there can be one markov propagator that checks all markov vars.
 
-  markov_step_bare = (space, var_name) ->
+  propagator_markov_step_bare = (space, var_name) ->
     # THIS IS VERY EXPENSIVE IF expand_vectors_with IS ENABLED
 
     ASSERT typeof var_name is 'string', 'arg should be a string', var_name
@@ -63,5 +63,5 @@ module.exports = do ->
     return REJECTED
 
   return {
-    markov_step_bare
+    propagator_markov_step_bare
   }

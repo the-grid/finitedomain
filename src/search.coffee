@@ -42,7 +42,7 @@ module.exports = do ->
     # this function clones the current space and then restricts an unsolved
     # var in the clone to see whether this breaks anything. The loop below
     # keeps doing this until something breaks or all target vars are solved.
-    create_next_space_node = state.next_choice or default_space_factory
+    create_next_space_node = state.next_choice or _search_default_space_factory
 
     space = state.space
     stack = state.stack
@@ -52,11 +52,11 @@ module.exports = do ->
       ASSERT_SPACE space
 
       unless space.propagate()
-        on_reject state, space, stack
+        _search_on_reject state, space, stack
 
       else if space.is_solved space
         # TOFIX: the "next" space is not made now, so if search continues does it do so properly?
-        on_solve state, space, stack
+        _search_on_solve state, space, stack
         return
 
       else if next_space = create_next_space_node space, state
@@ -86,11 +86,11 @@ module.exports = do ->
   # @param {Space} space
   # @returns {Space} a clone with small modification
 
-  default_space_factory = (space) ->
+  _search_default_space_factory = (space) ->
     # all config should be read from root. sub-nodes dont clone this data
     root_space = space.get_root()
 
-    target_vars = _get_vars_unfiltered root_space, space
+    target_vars = _search_get_vars_unfiltered root_space, space
     fdvar = distribution_get_next_var root_space, space, target_vars
     if fdvar
       next_domain = distribute_get_next_domain_for_var root_space, space, fdvar
@@ -110,7 +110,7 @@ module.exports = do ->
   # @param {Space} space The current node, can be the root_space
   # @returns {string[]} The names of targeted fdvars on given space
 
-  _get_vars_unfiltered = (root_space, space) ->
+  _search_get_vars_unfiltered = (root_space, space) ->
     config_targeted_vars = root_space.config_targeted_vars
 
     if config_targeted_vars is 'all'
@@ -128,7 +128,7 @@ module.exports = do ->
   # @param {Space} space The search node to fail
   # @param {Space[]} stack See state.stack
 
-  on_reject = (state, space, stack) ->
+  _search_on_reject = (state, space, stack) ->
     # Some propagators failed so this is now a failed space and we need
     # to pop the stack and continue from above. This is a failed space.
     space.failed = true
@@ -141,7 +141,7 @@ module.exports = do ->
   # @param {Space} space The search node to fail
   # @param {Space[]} stack See state.stack
 
-  on_solve = (state, space, stack) ->
+  _search_on_solve = (state, space, stack) ->
     stack.pop()
     state.status = 'solved'
     state.space = space # is this so the solution can be read from it?
@@ -151,8 +151,10 @@ module.exports = do ->
   return {
     search_depth_first
 
+    # __REMOVE_BELOW_FOR_DIST__
     # for testing
-    _default_space_factory: default_space_factory
+    _default_space_factory: _search_default_space_factory
+    # __REMOVE_ABOVE_FOR_DIST__
   }
 
 # fly or die what do we do with this code?

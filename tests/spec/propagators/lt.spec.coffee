@@ -26,19 +26,19 @@ describe "propagators/lt.spec", ->
   } = FD.fdvar
 
   {
-    lt_step_bare
+    propagator_lt_step_bare
   } = FD.propagators.lt
 
   it 'should exist', ->
 
-    expect(lt_step_bare?).to.be.true
+    expect(propagator_lt_step_bare?).to.be.true
 
   it 'should require two vars', ->
 
-    expect(-> lt_step_bare()).to.throw
+    expect(-> propagator_lt_step_bare()).to.throw
     v = fdvar_create_wide 'x'
-    expect(-> lt_step_bare v).to.throw
-    expect(-> lt_step_bare undefined, v).to.throw
+    expect(-> propagator_lt_step_bare v).to.throw
+    expect(-> propagator_lt_step_bare undefined, v).to.throw
 
 #  it 'should reject for empty domains', ->
 #
@@ -62,19 +62,19 @@ describe "propagators/lt.spec", ->
 
     v1 = fdvar_create 'x', spec_d_create_range 0, 10
     v2 = fdvar_create 'y', spec_d_create_range 20, 30
-    expect(lt_step_bare v1, v2).to.eql ZERO_CHANGES
+    expect(propagator_lt_step_bare v1, v2).to.eql ZERO_CHANGES
 
     v1 = fdvar_create 'x', spec_d_create_range 0, 10
     v2 = fdvar_create 'y', spec_d_create_range 11, 30
-    expect(lt_step_bare v1, v2).to.eql ZERO_CHANGES
+    expect(propagator_lt_step_bare v1, v2).to.eql ZERO_CHANGES
 
     v1 = fdvar_create 'x', spec_d_create_range 0, 0
     v2 = fdvar_create 'y', spec_d_create_range 1, 1
-    expect(lt_step_bare v1, v2).to.eql ZERO_CHANGES
+    expect(propagator_lt_step_bare v1, v2).to.eql ZERO_CHANGES
 
     v1 = fdvar_create 'x', spec_d_create_range 0, 0
     v2 = fdvar_create 'y', spec_d_create_range 1, 1
-    expect(lt_step_bare v1, v2).to.eql ZERO_CHANGES
+    expect(propagator_lt_step_bare v1, v2).to.eql ZERO_CHANGES
 
   describe 'when max(v1) >= max(v2)', ->
 
@@ -82,7 +82,7 @@ describe "propagators/lt.spec", ->
       it 'should (only) trunc values from v1 ['+[lo1,hi1,lo2,hi2,result_lo,result_hi]+']', ->
         v1 = fdvar_create 'x', spec_d_create_range lo1, hi1
         v2 = fdvar_create 'y', spec_d_create_range lo2, hi2
-        r = lt_step_bare v1, v2
+        r = propagator_lt_step_bare v1, v2
         expect(v1.dom, 'v1 after').to.eql (result is REJECTED and []) or spec_d_create_range result_lo, result_hi
         expect(v2.dom, 'v2 after').to.eql spec_d_create_range lo2, hi2
         result? and expect(r).to.eql result
@@ -94,7 +94,7 @@ describe "propagators/lt.spec", ->
 
     v1 = fdvar_create 'x', spec_d_create_range 10, 10
     v2 = fdvar_create 'y', spec_d_create_range 5, 5
-    r = lt_step_bare v1, v2
+    r = propagator_lt_step_bare v1, v2
     # depending on implementation v1 and v2 may be cleared, one of them cleared, or not changed. but must reject regardless...
     #expect(v1.dom, 'v1 after').to.eql []
     #expect(v2.dom, 'v2 after').to.eql []
@@ -106,7 +106,7 @@ describe "propagators/lt.spec", ->
       it 'should (only) trunc values from v2 ['+[lo1,hi1,lo2,hi2,result_lo,result_hi]+']', ->
         v1 = fdvar_create 'x', spec_d_create_range lo1, hi1
         v2 = fdvar_create 'y', spec_d_create_range lo2, hi2
-        r = lt_step_bare v1, v2
+        r = propagator_lt_step_bare v1, v2
         expect(v1.dom, 'v1 after').to.eql spec_d_create_range lo1, hi1
         expect(v2.dom, 'v2 after').to.eql (result is REJECTED and []) or spec_d_create_range result_lo, result_hi
         result? and expect(r).to.eql result
@@ -121,7 +121,7 @@ describe "propagators/lt.spec", ->
       it 'should (only) trunc values from v2 ['+[lo1, hi1, lo2, hi2, result_lo1, result_hi1, result_lo2, result_hi2, result]+']', ->
         v1 = fdvar_create 'x', spec_d_create_range lo1, hi1
         v2 = fdvar_create 'y', spec_d_create_range lo2, hi2
-        r = lt_step_bare v1, v2
+        r = propagator_lt_step_bare v1, v2
         expect(v1.dom, 'v1 after').to.eql spec_d_create_range result_lo1, result_hi1
         expect(v2.dom, 'v2 after').to.eql spec_d_create_range result_lo2, result_hi2
         result? and expect(r).to.eql result
@@ -133,7 +133,7 @@ describe "propagators/lt.spec", ->
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 150]
     v2 = fdvar_create 'y', spec_d_create_range 0, 100
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 99]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_range 11, 100
 
@@ -141,19 +141,19 @@ describe "propagators/lt.spec", ->
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98], [120, 150]
     v2 = fdvar_create 'y', spec_d_create_range 0, 100
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_range 11, 100
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98], [100, 150]
     v2 = fdvar_create 'y', spec_d_create_range 0, 100
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_range 11, 100
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98], [100, 100] # last is single value
     v2 = fdvar_create 'y', spec_d_create_range 0, 100
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60], [70, 98]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_range 11, 100
 
@@ -161,18 +161,18 @@ describe "propagators/lt.spec", ->
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     v2 = fdvar_create 'y', spec_d_create_ranges [0, 10], [20, 100]
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_ranges [20, 100]
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     v2 = fdvar_create 'y', spec_d_create_ranges [0, 5], [20, 100]
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_ranges [20, 100]
 
     v1 = fdvar_create 'x', spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     v2 = fdvar_create 'y', spec_d_create_ranges [10, 10], [20, 100]  # first is single value
-    lt_step_bare v1, v2
+    propagator_lt_step_bare v1, v2
     expect(v1.dom, 'v1 after').to.eql spec_d_create_ranges [10, 20], [30, 40], [50, 60]
     expect(v2.dom, 'v2 after').to.eql spec_d_create_ranges [20, 100]

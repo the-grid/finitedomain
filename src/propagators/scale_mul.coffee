@@ -18,7 +18,7 @@ module.exports = do ->
 
   # TODO: write test that uses this. this is currently not tested at all.
 
-  mul_step_bare = (fdvar, fdvar_prod) ->
+  propagator_mul_step_bare = (fdvar, fdvar_prod) ->
     domain = fdvar.dom
     unless domain.length
       return REJECTED
@@ -38,5 +38,5 @@ module.exports = do ->
     return fdvar_set_domain fdvar_prod, d
 
   return {
-    mul_step_bare
+    propagator_mul_step_bare
   }

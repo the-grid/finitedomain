@@ -760,8 +760,9 @@ module.exports = do ->
     return
 
 
-  #### Debugging
+  # __REMOVE_BELOW_FOR_DIST__
 
+  #### Debugging
 
   # debug stuff (should be stripped from dist)
 
@@ -875,6 +876,8 @@ module.exports = do ->
       unless fdvar_is_solved fdvar
         unsolved_names.push name
     return unsolved_names
+
+  # __REMOVE_ABOVE_FOR_DIST__
 
   return {
     Space

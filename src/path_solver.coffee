@@ -33,7 +33,7 @@ module.exports = do ->
   PATH_NUM = 1
   PATH_NAN = 2
 
-  binding_uid = 0
+  _path_solver_binding_uid = 0
 
   class PathSolver extends Solver
 
@@ -175,7 +175,7 @@ module.exports = do ->
       # TODO
       # - cache collections by selector!!!!
 
-      bind_name = "__bind#{binding_uid++}__"
+      bind_name = "__bind#{_path_solver_binding_uid++}__"
 
       # TOFIX: should the lo of this domain also be the min of all domains?
       @space.decl bind_name, domain_create_range 0, find_max_or_throw bvars

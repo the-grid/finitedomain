@@ -12,13 +12,13 @@ module.exports = do ->
 
   PAIR_SIZE = 2
 
-  neq_step_bare = (fdvar1, fdvar2) ->
+  propagator_neq_step_bare = (fdvar1, fdvar2) ->
     return fdvar_force_neq_inline fdvar1, fdvar2
 
   # neq will only reject if both domains are solved and equal.
   # This is a read-only check.
 
-  neq_step_would_reject = (fdvar1, fdvar2) ->
+  propagator_neq_step_would_reject = (fdvar1, fdvar2) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
     len1 = dom1.length
@@ -37,11 +37,11 @@ module.exports = do ->
 
   # neq is solved if all values in both vars only occur in one var each
 
-  neq_solved = (fdvar1, fdvar2) ->
+  propagator_neq_solved = (fdvar1, fdvar2) ->
     return domain_shares_no_elements fdvar1.dom, fdvar2.dom
 
   return {
-    neq_step_bare
-    neq_step_would_reject
-    neq_solved
+    propagator_neq_step_bare
+    propagator_neq_step_would_reject
+    propagator_neq_solved
   }

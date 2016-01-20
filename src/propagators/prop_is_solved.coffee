@@ -13,19 +13,19 @@ module.exports = do ->
   } = require '../helpers'
 
   {
-    lt_solved
+    propagator_lt_solved
   } = require './lt'
 
   {
-    lte_solved
+    propagator_lte_solved
   } = require './lte'
 
   {
-    eq_solved
+    propagator_eq_solved
   } = require './eq'
 
   {
-    neq_solved
+    propagator_neq_solved
   } = require './neq'
 
   {
@@ -48,9 +48,9 @@ module.exports = do ->
         unless fdvar_is_solved v3
           return false
         if fdvar_lower_bound(v3) is 1
-          return comparison_is_solved propagator[2], v1, v2
+          return _propagator_comparison_is_solved propagator[2], v1, v2
         ASSERT fdvar_upper_bound(v3) is 0, 'if bool_var is solved and lower is not 1 then upper should be 0', v3
-        return comparison_is_solved propagator[3], v1, v2
+        return _propagator_comparison_is_solved propagator[3], v1, v2
 
       when 'ring'
         if fdvar_is_solved(v1) and fdvar_is_solved(v2)
@@ -68,27 +68,27 @@ module.exports = do ->
         return false
 
       else
-        return comparison_is_solved op_name, v1, v2
+        return _propagator_comparison_is_solved op_name, v1, v2
 
-  comparison_is_solved = (op, v1, v2) ->
+  _propagator_comparison_is_solved = (op, v1, v2) ->
     switch op
       when 'lt'
-        return lt_solved v1, v2
+        return propagator_lt_solved v1, v2
 
       when 'lte'
-        return lte_solved v1, v2
+        return propagator_lte_solved v1, v2
 
       when 'gt'
-        return lt_solved v2, v1
+        return propagator_lt_solved v2, v1
 
       when 'gte'
-        return lte_solved v2, v1
+        return propagator_lte_solved v2, v1
 
       when 'eq'
-        return eq_solved v1, v2
+        return propagator_eq_solved v1, v2
 
       when 'neq'
-        return neq_solved v1, v2
+        return propagator_neq_solved v1, v2
 
       else
         ASSERT false, 'unknown comparison op', op

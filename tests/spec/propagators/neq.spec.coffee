@@ -28,19 +28,19 @@ describe "propagators/neq.spec", ->
   } = FD.fdvar
 
   {
-    neq_step_bare
+    propagator_neq_step_bare
   } = FD.propagators.neq
 
   it 'should exist', ->
 
-    expect(neq_step_bare?).to.be.true
+    expect(propagator_neq_step_bare?).to.be.true
 
   it 'should require two vars', ->
 
-    expect(-> neq_step_bare()).to.throw
+    expect(-> propagator_neq_step_bare()).to.throw
     v = fdvar_create_wide 'x'
-    expect(-> neq_step_bare v).to.throw
-    expect(-> neq_step_bare undefined, v).to.throw
+    expect(-> propagator_neq_step_bare v).to.throw
+    expect(-> propagator_neq_step_bare undefined, v).to.throw
 
 #  it 'should reject for empty domains', ->
 #
@@ -73,14 +73,14 @@ describe "propagators/neq.spec", ->
       it 'should not change anything (left-right): '+[domain1, domain2].join('|'), ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain2.slice 0
-        expect(neq_step_bare v1, v2).to.eql ZERO_CHANGES
+        expect(propagator_neq_step_bare v1, v2).to.eql ZERO_CHANGES
         expect(v1.dom, 'v1 dom').to.eql domain1
         expect(v2.dom, 'v2 dom').to.eql domain2
 
       it 'should not change anything (right-left): '+[domain2, domain1].join('|'), ->
         v1 = fdvar_create 'x', domain2.slice 0
         v2 = fdvar_create 'y', domain1.slice 0
-        expect(neq_step_bare v1, v2).to.eql ZERO_CHANGES
+        expect(propagator_neq_step_bare v1, v2).to.eql ZERO_CHANGES
         expect(v1.dom, 'v1 dom').to.eql domain2
         expect(v2.dom, 'v2 dom').to.eql domain1
 
@@ -106,14 +106,14 @@ describe "propagators/neq.spec", ->
       it 'should remove solved domain from unsolve domain (left-right): '+[domain1, domain2].join('|'), ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain2.slice 0
-        expect(neq_step_bare v1, v2).to.be.above 0
+        expect(propagator_neq_step_bare v1, v2).to.be.above 0
         expect(v1.dom, 'v1 dom').to.eql result
         expect(v2.dom, 'v2 dom').to.eql domain2
 
       it 'should not change anything (right-left): '+[domain2, domain1].join('|'), ->
         v1 = fdvar_create 'x', domain2.slice 0
         v2 = fdvar_create 'y', domain1.slice 0
-        expect(neq_step_bare v1, v2).to.be.above 0
+        expect(propagator_neq_step_bare v1, v2).to.be.above 0
         expect(v1.dom, 'v1 dom').to.eql domain2
         expect(v2.dom, 'v2 dom').to.eql result
 
@@ -135,21 +135,21 @@ describe "propagators/neq.spec", ->
       it 'should be "solved" (left-right): '+[domain1, domain2].join('|'), ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain2.slice 0
-        expect(neq_step_bare v1, v2).to.eql ZERO_CHANGES
+        expect(propagator_neq_step_bare v1, v2).to.eql ZERO_CHANGES
         expect(v1.dom, 'v1 dom').to.eql domain1
         expect(v2.dom, 'v2 dom').to.eql domain2
 
       it 'should be "solved" (right-left): '+[domain2, domain1].join('|'), ->
         v1 = fdvar_create 'x', domain2.slice 0
         v2 = fdvar_create 'y', domain1.slice 0
-        expect(neq_step_bare v1, v2).to.eql ZERO_CHANGES
+        expect(propagator_neq_step_bare v1, v2).to.eql ZERO_CHANGES
         expect(v1.dom, 'v1 dom').to.eql domain2
         expect(v2.dom, 'v2 dom').to.eql domain1
 
       it 'should reject if same (left-left): '+[domain1, domain1].join('|'), ->
         v1 = fdvar_create 'x', domain1.slice 0
         v2 = fdvar_create 'y', domain1.slice 0
-        expect(neq_step_bare v1, v2).to.eql REJECTED
+        expect(propagator_neq_step_bare v1, v2).to.eql REJECTED
 #        expect(v1.dom, 'v1 dom').to.eql []
 #        expect(v2.dom, 'v2 dom').to.eql []
 

@@ -5,7 +5,6 @@ module.exports = do ->
   } = require '../helpers'
 
   {
-    domain_is_rejected
     domain_shares_no_elements
   } = require '../domain'
 
@@ -22,7 +21,7 @@ module.exports = do ->
   # Basically eq is much more efficient compared to neq because we
   # can potentially skip a lot of values early.
 
-  eq_step_bare = (fdvar1, fdvar2) ->
+  propagator_eq_step_bare = (fdvar1, fdvar2) ->
     return fdvar_force_eq_inline fdvar1, fdvar2
 
   # The eq step would reject if there all elements in one domain
@@ -31,7 +30,7 @@ module.exports = do ->
   # or return false.
   # Read only check
 
-  eq_step_would_reject = (fdvar1, fdvar2) ->
+  propagator_eq_step_would_reject = (fdvar1, fdvar2) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
@@ -45,11 +44,11 @@ module.exports = do ->
   # An eq propagator is solved when both its vars are
   # solved. Any other state may still lead to failure.
 
-  eq_solved = (fdvar1, fdvar2) ->
+  propagator_eq_solved = (fdvar1, fdvar2) ->
     return fdvar_is_solved(fdvar1) and fdvar_is_solved fdvar2
 
   return {
-    eq_step_bare
-    eq_step_would_reject
-    eq_solved
+    propagator_eq_step_bare
+    propagator_eq_step_would_reject
+    propagator_eq_solved
   }

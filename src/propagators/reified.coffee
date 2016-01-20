@@ -23,7 +23,7 @@ module.exports = do ->
   # A boolean variable that represents whether a comparison
   # condition between two variables currently holds or not.
 
-  reified_step_bare = (space, left_var_name, right_var_name, bool_name, op_name, inv_op_name) ->
+  propagator_reified_step_bare = (space, left_var_name, right_var_name, bool_name, op_name, inv_op_name) ->
     vars = space.vars
     fdvar1 = vars[left_var_name]
     fdvar2 = vars[right_var_name]
@@ -65,5 +65,5 @@ module.exports = do ->
     return ZERO_CHANGES
 
   return {
-    reified_step_bare
+    propagator_reified_step_bare
   }

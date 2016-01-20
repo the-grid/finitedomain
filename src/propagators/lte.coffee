@@ -20,7 +20,7 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
-  lte_step_bare = (fdvar1, fdvar2) ->
+  propagator_lte_step_bare = (fdvar1, fdvar2) ->
     lo_1 = fdvar_lower_bound fdvar1
     hi_1 = fdvar_upper_bound fdvar1
     lo_2 = fdvar_lower_bound fdvar2
@@ -50,7 +50,7 @@ module.exports = do ->
   # lo bound of left to the high bound of right for that answer.
   # Read-only check
 
-  lte_step_would_reject = (fdvar1, fdvar2) ->
+  propagator_lte_step_would_reject = (fdvar1, fdvar2) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
@@ -66,11 +66,11 @@ module.exports = do ->
   # shrink we can assume that the lte constraint will not
   # be broken by searching further once this state is seen.
 
-  lte_solved = (fdvar1, fdvar2) ->
+  propagator_lte_solved = (fdvar1, fdvar2) ->
     return fdvar_upper_bound(fdvar1) <= fdvar_lower_bound(fdvar2)
 
   return {
-    lte_step_bare
-    lte_step_would_reject
-    lte_solved
+    propagator_lte_step_bare
+    propagator_lte_step_would_reject
+    propagator_lte_solved
   }

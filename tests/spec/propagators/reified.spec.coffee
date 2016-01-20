@@ -25,7 +25,7 @@ describe 'propagators/reified.spec', ->
   } = FD.fdvar
 
   {
-    reified_step_bare
+    propagator_reified_step_bare
   } = FD.propagators.reified
 
 
@@ -36,7 +36,7 @@ describe 'propagators/reified.spec', ->
 
   it 'should exist', ->
 
-    expect(reified_step_bare?).to.be.true
+    expect(propagator_reified_step_bare?).to.be.true
 
   describe 'enforce=false', ->
     riftest = (A_in, B_in, bool_in, op, invop, expected_out, bool_after, msg) ->
@@ -49,7 +49,7 @@ describe 'propagators/reified.spec', ->
             B: fdvar_create 'B', B_in.slice 0
             bool: fdvar_create 'bool', bool_in.slice 0
 
-        out = reified_step_bare space, 'A', 'B', 'bool', op, invop
+        out = propagator_reified_step_bare space, 'A', 'B', 'bool', op, invop
 
         expect(out, 'should reflect changed state').to.equal expected_out
         expect(space.vars.A.dom, 'A should be unchanged').to.eql A_in

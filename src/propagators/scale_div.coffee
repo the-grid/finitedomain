@@ -15,7 +15,7 @@ module.exports = do ->
   FLOOR = Math.floor
   PAIR_SIZE = 2
 
-  div_step_bare = (fdvar_val, fdvar_prod) ->
+  propagator_div_step_bare = (fdvar_val, fdvar_prod) ->
     domain = fdvar_prod.dom
     unless domain.length
       return REJECTED
@@ -33,5 +33,5 @@ module.exports = do ->
     return fdvar_set_domain fdvar_val, d
 
   return {
-    div_step_bare
+    propagator_div_step_bare
   }

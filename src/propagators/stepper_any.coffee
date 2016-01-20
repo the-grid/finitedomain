@@ -14,22 +14,22 @@ module.exports = do ->
   } = require '../domain'
 
   {
-    mul_step_bare
+    propagator_mul_step_bare
   } = require './scale_mul'
   {
-    div_step_bare
+    propagator_div_step_bare
   } = require './scale_div'
   {
-    callback_step_bare
+    propagator_callback_step_bare
   } = require './callback'
   {
-    markov_step_bare
+    propagator_markov_step_bare
   } = require './markov'
   {
-    reified_step_bare
+    propagator_reified_step_bare
   } = require './reified'
   {
-    ring_step_bare
+    propagator_ring_step_bare
   } = require './ring'
   {
     step_comparison
@@ -64,64 +64,64 @@ module.exports = do ->
         return step_comparison space, op_name, vn1, vn2
 
       when 'mul'
-        return _mul space, vn1, vn2
+        return _propagator_mul space, vn1, vn2
 
       when 'div'
-        return _div space, vn1, vn2
+        return _propagator_div space, vn1, vn2
 
       when 'callback'
-        return _cb space, prop_var_names, prop_datails
+        return _propagator_cb space, prop_var_names, prop_datails
 
       when 'reified'
-        return _reified space, vn1, vn2, prop_var_names, prop_datails
+        return _propagator_reified space, vn1, vn2, prop_var_names, prop_datails
 
       when 'ring'
-        return _ring space, vn1, vn2, prop_var_names, prop_datails
+        return _propagator_ring space, vn1, vn2, prop_var_names, prop_datails
 
       when 'markov'
-        return _markov space, vn1
+        return _propagator_markov space, vn1
 
       else
         THROW 'unsupported propagator: [' + prop_datails + ']'
 
     return
 
-  _mul = (space, vn1, vn2) ->
+  _propagator_mul = (space, vn1, vn2) ->
     vars = space.vars
-    return mul_step_bare vars[vn1], vars[vn2]
+    return propagator_mul_step_bare vars[vn1], vars[vn2]
 
-  _div = (space, vn1, vn2) ->
+  _propagator_div = (space, vn1, vn2) ->
     vars = space.vars
-    return div_step_bare vars[vn1], vars[vn2]
+    return propagator_div_step_bare vars[vn1], vars[vn2]
 
-  _cb = (space, prop_var_names, prop_details) ->
-    return callback_step_bare space, prop_var_names, prop_details[PROP_CALLBACK]
+  _propagator_cb = (space, prop_var_names, prop_details) ->
+    return propagator_callback_step_bare space, prop_var_names, prop_details[PROP_CALLBACK]
 
-  _reified = (space, vn1, vn2, prop_var_names, prop_details) ->
+  _propagator_reified = (space, vn1, vn2, prop_var_names, prop_details) ->
     vn3 = prop_var_names[2]
-    return reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
+    return propagator_reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
 
-  _ring = (space, vn1, vn2, prop_var_names, prop_details) ->
+  _propagator_ring = (space, vn1, vn2, prop_var_names, prop_details) ->
     vars = space.vars
     vn3 = prop_var_names[2]
     op_name = prop_details[PROP_OP_FUNC]
 
     switch op_name
       when 'plus'
-        return ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_plus
+        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_plus
       when 'min'
-        return ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_minus
+        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_minus
       when 'mul'
-        return ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_times
+        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_times
       when 'div'
-        return ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_divby
+        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_divby
       else
         ASSERT false, 'UNKNOWN ring opname', op_name
 
     return
 
-  _markov = (space, vn1) ->
-    return markov_step_bare space, vn1
+  _propagator_markov = (space, vn1) ->
+    return propagator_markov_step_bare space, vn1
 
   return {
     PROP_NAME

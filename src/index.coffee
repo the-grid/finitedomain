@@ -1,10 +1,10 @@
 FD = {
   __DEV_BUILD: false
   distribution:
+    defaults: require './distribution/defaults'
     markov: require './distribution/markov'
     value: require './distribution/value'
     var: require './distribution/var'
-    distribute: require './distribution/distribute'
   propagators:
     callback: require './propagators/callback'
     eq: require './propagators/eq'

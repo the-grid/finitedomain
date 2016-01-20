@@ -43,8 +43,8 @@ module.exports = do ->
   } = require './propagators/prop_is_solved'
 
   {
-    get_defaults
-  } = require './distribution/distribute'
+    distribution_get_defaults
+  } = require './distribution/defaults'
 
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
@@ -189,7 +189,7 @@ module.exports = do ->
   # @param {string} name
 
   Space::set_defaults = (name) ->
-    @set_options get_defaults name
+    @set_options distribution_get_defaults name
     return
 
   # Get the root space for this search tree

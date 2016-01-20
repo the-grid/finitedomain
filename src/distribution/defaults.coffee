@@ -31,12 +31,12 @@ module.exports = do ->
       var: 'size'
       val: 'splitMin'
 
-  get_defaults = (name) ->
+  distribution_get_defaults = (name) ->
     if PRESETS[name]
       return PRESETS[name]
     THROW "distribution.get_defaults: Unknown preset: #{name}"
     return
 
   return {
-    get_defaults
+    distribution_get_defaults
   }

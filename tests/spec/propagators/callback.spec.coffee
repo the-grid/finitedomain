@@ -30,8 +30,8 @@ describe "propagators/callback.spec", ->
     } = FD.search
 
     {
-      get_defaults
-    } = FD.distribution.distribute
+      distribution_get_defaults
+    } = FD.distribution.defaults
 
     it 'should be able to access the var names array', ->
 
@@ -61,7 +61,7 @@ describe "propagators/callback.spec", ->
       space.sum ['R', 'G', 'B'], 'T'
       space.callback ['R', 'G', 'B'], cb
 
-      space.set_options get_defaults 'naive'
+      space.set_options distribution_get_defaults 'naive'
       space.set_options targeted_var_names: ['R', 'G', 'B']
 
       state = {space, more: true}

@@ -21,6 +21,11 @@ module.exports = do ->
   SOMETHING_CHANGED = 1
   REJECTED = -1
   NOT_FOUND = -1
+  LOG_NONE = 0
+  LOG_STATS = 1
+  LOG_SOLVES = 2
+  LOG_MIN = LOG_NONE
+  LOG_MAX = LOG_SOLVES
   # different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
   # while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
   NO_SUCH_VALUE = SUB - 1 # make sure NO_SUCH_VALUE is not a value that may be valid in a domain
@@ -206,6 +211,11 @@ module.exports = do ->
     REJECTED
     SUB
     SUP
+    LOG_NONE
+    LOG_STATS
+    LOG_SOLVES
+    LOG_MAX
+    LOG_MIN
     NOT_FOUND
     NO_SUCH_VALUE
     SOMETHING_CHANGED

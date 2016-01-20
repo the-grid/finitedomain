@@ -3,6 +3,11 @@
 module.exports = do ->
 
   {
+    LOG_NONE
+    LOG_STATS
+    LOG_SOLVES
+    LOG_MAX
+    LOG_MIN
     SUB
     SUP
 
@@ -24,10 +29,6 @@ module.exports = do ->
   {
     Space
   } = require './space'
-
-  LOG_MIN = LOG_NONE = 0
-  LOG_STATS = 1
-  LOG_MAX = LOG_SOLVES = 2
 
   # hack to get around "private" warnings.
   _ = {}

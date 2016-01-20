@@ -1,16 +1,16 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
-    SOMETHING_CHANGED
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
     # Apply an operator func to fdvar1 and fdvar2
@@ -23,4 +23,6 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_result, domain
 
-  FD.propagators.ring_step_bare = ring_step_bare
+  return {
+    ring_step_bare
+  }

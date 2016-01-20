@@ -16,7 +16,7 @@ describe 'solver.list.spec', ->
 
   {
     Solver
-  } = FD
+  } = FD.Solver
 
   it 'FD.Solver?', ->
 

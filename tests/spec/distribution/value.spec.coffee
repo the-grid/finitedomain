@@ -18,7 +18,7 @@ describe 'distribution/value.spec', ->
   {
     fdvar_create
     fdvar_create_bool
-  } = FD.Fdvar
+  } = FD.fdvar
 
   it 'fdvar_create_bool should exist', ->
 

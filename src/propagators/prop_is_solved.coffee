@@ -6,23 +6,33 @@
 # can be included in reified.coffee while the other stepper
 # is included in space.coffee, and requires this as well.
 
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     ASSERT
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     lt_solved
+  } = require './lt'
+
+  {
     lte_solved
+  } = require './lte'
+
+  {
     eq_solved
+  } = require './eq'
+
+  {
     neq_solved
-  } = FD.propagators
+  } = require './neq'
 
   {
     fdvar_is_solved
     fdvar_lower_bound
     fdvar_upper_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   prop_is_solved = (vars, propagator) ->
     op_name = propagator[0]
@@ -83,6 +93,7 @@ module.exports = (FD) ->
       else
         ASSERT false, 'unknown comparison op', op
 
-
-  FD.propagators.prop_is_solved = prop_is_solved
+  return {
+    prop_is_solved
+  }
 

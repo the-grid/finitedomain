@@ -14,20 +14,17 @@ FD = finitedomain
 describe "propagators/markov.spec", ->
 
   {
-    Fdvar
-    helpers
-    propagators
     Solver
-  } = FD
+  } = FD.Solver
 
   {
     REJECTED
     ZERO_CHANGES
-  } = helpers
+  } = FD.helpers
 
   {
     markov_step_bare
-  } = propagators
+  } = FD.propagators.markov
 
   it 'should exist', ->
 

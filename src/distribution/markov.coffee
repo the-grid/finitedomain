@@ -40,15 +40,15 @@ https://en.wikipedia.org/wiki/Markov_chain#Music
 ###
 
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     ASSERT
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_contains_value
-  } = FD.Domain
+  } = require '../domain'
 
   # Given a domain, probability vector, value legend, and rng
   # function; return one of the values in the value legend
@@ -115,6 +115,6 @@ module.exports = (FD) ->
 
     return value_legend[index]
 
-  FD.distribution.Markov = {
+  return {
     distribution_markov_sampleNextFromDomain
   }

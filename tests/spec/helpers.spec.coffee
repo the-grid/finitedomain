@@ -7,7 +7,9 @@ FD = finitedomain
 
 describe "helpers.spec", ->
 
-  {helpers} = FD
+  {
+    helpers
+  } = FD
 
   it 'should exist', ->
 
@@ -15,7 +17,9 @@ describe "helpers.spec", ->
 
   describe 'ASSERT', ->
 
-    {ASSERT} = helpers
+    {
+      ASSERT
+    } = helpers
 
     it 'should exist', ->
 

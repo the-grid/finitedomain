@@ -16,7 +16,7 @@ describe 'distribution/distribute.spec', ->
 
   {
     Solver
-  } = FD
+  } = FD.Solver
 
   describe 'override value distribution strategy per var', ->
 

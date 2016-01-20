@@ -1,19 +1,18 @@
-module.exports = (FD) ->
-  {
-    REJECTED
+module.exports = do ->
 
+  {
     ASSERT_DOMAIN_EMPTY_CHECK
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_is_rejected
     domain_shares_no_elements
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_force_eq_inline
     fdvar_is_solved
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   # This eq propagator looks a lot different from neq because in
   # eq we can prune early all values that are not covered by both.
@@ -49,6 +48,8 @@ module.exports = (FD) ->
   eq_solved = (fdvar1, fdvar2) ->
     return fdvar_is_solved(fdvar1) and fdvar_is_solved fdvar2
 
-  FD.propagators.eq_step_bare = eq_step_bare
-  FD.propagators.eq_step_would_reject = eq_step_would_reject
-  FD.propagators.eq_solved = eq_solved
+  return {
+    eq_step_bare
+    eq_step_would_reject
+    eq_solved
+  }

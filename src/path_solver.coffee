@@ -1,5 +1,5 @@
 
-# FD.PathSolver
+# PathSolver
 # ==============================================
 # Compiles a Multiverse JSON tree into FD constraints, where each branch is a FDVar and the paths (plus an implicit 0 or off path) are it's domain.  Adds additional constraint primitives for constraining branches to each other.
 
@@ -8,30 +8,27 @@
 # .align:(0) > .text_align:(0)
 # .align:()[]
 
-module.exports = (FD) ->
-  MAX = Math.max
+module.exports = do ->
 
   {
-    Bvar
-    Domain
-    helpers
     Solver
-  } = FD
+  } = require './solver'
 
   {
     THROW
-  } = helpers
+  } = require './helpers'
 
   {
     create_branch_var
-  } = Bvar
+  } = require './bvar'
 
   {
     domain_create_range
     domain_from_list
     domain_max
-  } = Domain
+  } = require './domain'
 
+  MAX = Math.max
   UNDETERMINED = 0
   NUM = 1
   NAN = 2
@@ -372,4 +369,6 @@ module.exports = (FD) ->
         B = @['==?'] parent_branch_var, @num parent_value
         @['=='] A, B
 
-  FD.PathSolver = PathSolver
+  return {
+    PathSolver
+  }

@@ -14,7 +14,7 @@ describe "pathsolver.spec", ->
 
   {
     PathSolver
-  } = FD
+  } = FD.PathSolver
 
   it 'should exist', ->
 

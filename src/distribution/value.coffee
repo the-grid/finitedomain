@@ -1,19 +1,12 @@
 # Value Distributions
 # ======================================================================
 
-module.exports = (FD) ->
-  {
-    distribution
-    Domain
-    helpers
-    Fdvar
-    Markov
-  } = FD
+module.exports = do ->
 
   {
     ASSERT
     THROW
-  } = helpers
+  } = require '../helpers'
 
   {
     domain_contains_value
@@ -24,16 +17,16 @@ module.exports = (FD) ->
     domain_min
     domain_remove_next_from_list
     domain_get_value_of_first_contained_value_in_list
-  } = Domain
+  } = require '../domain'
 
   {
     distribution_markov_sampleNextFromDomain
-  } = distribution.Markov
+  } = require './markov'
 
   {
     markov_create_legend
     markov_create_prob_vector
-  } = Markov
+  } = require '../markov'
 
   {
     fdvar_is_rejected
@@ -42,7 +35,7 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_upper_bound
-  } = Fdvar
+  } = require '../fdvar'
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
@@ -389,7 +382,10 @@ module.exports = (FD) ->
     ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
     return undefined # no choice
 
-  return FD.distribution.value = {
+  return {
+    FIRST_CHOICE
+    SECOND_CHOICE
+
     distribute_get_next_domain_for_var
 
     # for testing:

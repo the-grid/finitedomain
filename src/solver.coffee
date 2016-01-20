@@ -1,14 +1,6 @@
 # Adds FD.Solver to FD.js
 
-module.exports = (FD) ->
-
-  {
-    distribution
-    Domain
-    helpers
-    search: Search
-    space: Space
-  } = FD
+module.exports = do ->
 
   {
     SUB
@@ -17,12 +9,17 @@ module.exports = (FD) ->
     ASSERT
     ASSERT_SPACE
     THROW
-  } = helpers
+  } = require './helpers'
 
   {
     domain_create_bool
-  } = Domain
+  } = require './domain'
 
+  Search = require './search'
+
+  {
+    Space
+  } = require './space'
 
   LOG_MIN = LOG_NONE = 0
   LOG_STATS = 1
@@ -41,6 +38,9 @@ module.exports = (FD) ->
 
     return var_names
 
+  # hack to get around "private" warnings.
+  _ = {}
+
   # This is a super class.
   # It is extended by path_solver
   #
@@ -50,7 +50,7 @@ module.exports = (FD) ->
   # @property {string} o.search='depth_first'
   # @property {number[]} defaultDomain=[0,1]
 
-  class FD.Solver
+  class _.Solver
 
     # @param {Object} [o]
     # @property {string} [o.distribute='naive']
@@ -553,3 +553,7 @@ module.exports = (FD) ->
           root_space._propagators.push ['markov', [name]]
 
       return overrides
+
+  return {
+    Solver: _.Solver
+  }

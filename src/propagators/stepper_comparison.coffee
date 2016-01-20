@@ -6,21 +6,35 @@
 # can be included in reified.coffee while the other stepper
 # is included in space.coffee, and requires this as well.
 
-module.exports = (FD) ->
+module.exports = do ->
   {
     THROW
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     lt_step_would_reject
+  } = require './lt'
+  {
     lte_step_would_reject
+  } = require './lte'
+  {
     eq_step_would_reject
+  } = require './eq'
+  {
     neq_step_would_reject
+  } = require './neq'
+  {
     lt_step_bare
+  } = require './lt'
+  {
     lte_step_bare
+  } = require './lte'
+  {
     eq_step_bare
+  } = require './eq'
+  {
     neq_step_bare
-  } = FD.propagators
+  } = require './neq'
 
   step_comparison = (space, op_name, var_name_1, var_name_2) ->
     v1 = space.vars[var_name_1]
@@ -78,6 +92,7 @@ module.exports = (FD) ->
         THROW 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
         return
 
-  FD.propagators.step_comparison = step_comparison
-  FD.propagators.step_would_reject = step_would_reject
-
+  return {
+    step_comparison
+    step_would_reject
+  }

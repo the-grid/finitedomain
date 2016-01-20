@@ -17,7 +17,7 @@ describe "solver.minmaxcycle.spec", ->
 
   {
     Solver
-  } = FD
+  } = FD.Solver
 
   it 'FD.Solver?', ->
 

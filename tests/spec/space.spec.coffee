@@ -19,8 +19,8 @@ describe "space.spec", ->
   describe 'Space class', ->
 
     {
-      space: Space
-    } = FD
+      Space
+    } = FD.Space
 
     it 'should exist', ->
 

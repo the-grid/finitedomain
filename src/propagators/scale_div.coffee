@@ -1,15 +1,16 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   FLOOR = Math.floor
   PAIR_SIZE = 2
@@ -31,4 +32,6 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_val, d
 
-  FD.propagators.div_step_bare = div_step_bare
+  return {
+    div_step_bare
+  }

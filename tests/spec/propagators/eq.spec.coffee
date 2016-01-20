@@ -25,11 +25,11 @@ describe "propagators/eq.spec", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Fdvar
+  } = FD.fdvar
 
   {
     eq_step_bare
-  } = FD.propagators
+  } = FD.propagators.eq
 
   it 'should exist', ->
 

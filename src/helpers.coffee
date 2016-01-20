@@ -13,7 +13,8 @@
 # The export is preserved so the constants are still exported but
 # the method exports are stripped with the ASSERT replacement...
 
-module.exports = (FD) ->
+module.exports = do ->
+
   SUB = 0 # WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
   SUP = 100000000
   ZERO_CHANGES = 0
@@ -176,7 +177,7 @@ module.exports = (FD) ->
   THROW = (msg) ->
     throw new Error msg
 
-  FD.helpers = {
+  return {
     ENABLED
     ENABLE_DOMAIN_CHECK
     ENABLE_EMPTY_CHECK

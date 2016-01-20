@@ -1,22 +1,17 @@
-
-module.exports = (FD) ->
-  {
-    distribution
-    helpers
-  } = FD
+module.exports = do ->
 
   {
     ASSERT
     ASSERT_SPACE
-  } = helpers
+  } = require './helpers'
 
   {
     distribution_get_next_var
-  } = distribution.var
+  } = require './distribution/var'
 
   {
     distribute_get_next_domain_for_var
-  } = distribution.value
+  } = require './distribution/value'
 
   # Depth first search.
   # state.space must be the starting space. The object is used to store and
@@ -153,14 +148,12 @@ module.exports = (FD) ->
     state.more = stack.length > 0
     return
 
-  FD.search = {
+  return {
     depth_first
 
     # for testing
     _default_space_factory: default_space_factory
   }
-
-  return
 
 # fly or die what do we do with this code?
 #

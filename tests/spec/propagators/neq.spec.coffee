@@ -25,11 +25,11 @@ describe "propagators/neq.spec", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Fdvar
+  } = FD.fdvar
 
   {
     neq_step_bare
-  } = FD.propagators
+  } = FD.propagators.neq
 
   it 'should exist', ->
 

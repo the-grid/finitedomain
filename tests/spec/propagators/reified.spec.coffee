@@ -16,22 +16,17 @@ FD = finitedomain
 describe 'propagators/reified.spec', ->
 
   {
-    SUB
-    SUP
-
-    REJECTED
     SOMETHING_CHANGED
     ZERO_CHANGES
   } = FD.helpers
 
   {
     fdvar_create
-    fdvar_create_wide
-  } = FD.Fdvar
+  } = FD.fdvar
 
   {
     reified_step_bare
-  } = FD.propagators
+  } = FD.propagators.reified
 
 
   # constants (tests must copy args)

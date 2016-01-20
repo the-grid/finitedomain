@@ -1,20 +1,21 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     ASSERT
 
     REJECTED
     ZERO_CHANGES
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     fdvar_is_solved
     fdvar_lower_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   {
     markov_create_legend
     markov_create_prob_vector
-  } = FD.Markov
+  } = require '../markov'
 
   # Markov uses a special system for trying values. The domain doesn't
   # govern the list of possible values, only acts as a mask for the
@@ -61,4 +62,6 @@ module.exports = (FD) ->
       return ZERO_CHANGES
     return REJECTED
 
-  FD.propagators.markov_step_bare = markov_step_bare
+  return {
+    markov_step_bare
+  }

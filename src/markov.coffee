@@ -1,14 +1,14 @@
 # markov helper functions
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     domain_to_list
-  } = FD.Domain
+  } = require './domain'
 
   {
     fdvar_is_value
-  } = FD.Fdvar
+  } = require './fdvar'
 
   # If a row has no boolean condition, return it.
   # If the boolean condition of a row is 1, return it.
@@ -57,7 +57,7 @@ module.exports = (FD) ->
       THROW "distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`"
     return prob_vector
 
-  FD.Markov = {
+  return {
     markov_create_legend
     markov_create_prob_vector
   }

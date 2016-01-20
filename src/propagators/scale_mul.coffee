@@ -1,16 +1,17 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     SUP
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   MIN = Math.min
   PAIR_SIZE = 2
@@ -36,4 +37,6 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_prod, d
 
-  FD.propagators.mul_step_bare = mul_step_bare
+  return {
+    mul_step_bare
+  }

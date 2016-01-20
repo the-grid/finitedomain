@@ -14,13 +14,12 @@ FD = finitedomain
 describe "search.spec", ->
 
   {
-    search: Search
-    space: Space
-  } = FD
+    Space
+  } = FD.Space
 
   {
     depth_first: depth_first_search
-  } = Search
+  } = FD.search
 
   describe 'depth first search', ->
 

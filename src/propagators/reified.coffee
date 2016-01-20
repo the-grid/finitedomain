@@ -1,4 +1,5 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     SOMETHING_CHANGED
@@ -6,16 +7,16 @@ module.exports = (FD) ->
 
     ASSERT
     ASSERT_DOMAIN
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     step_comparison
     step_would_reject
-  } = FD.propagators
+  } = require './stepper_comparison'
 
   {
     fdvar_set_value_inline
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   PAIR_SIZE = 2
 
@@ -63,4 +64,6 @@ module.exports = (FD) ->
 
     return ZERO_CHANGES
 
-  FD.propagators.reified_step_bare = reified_step_bare
+  return {
+    reified_step_bare
+  }

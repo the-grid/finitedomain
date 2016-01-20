@@ -14,8 +14,8 @@ describe "propagators/callback.spec", ->
 
   describe 'integration tests', ->
     {
-      space: Space
-    } = FD
+      Space
+    } = FD.Space
 
     {
       NO_SUCH_VALUE
@@ -23,7 +23,15 @@ describe "propagators/callback.spec", ->
 
     {
       _domain_get_value: domain_get_value
-    } = FD.Domain
+    } = FD.domain
+
+    {
+      depth_first: depth_first_search
+    } = FD.search
+
+    {
+      get_defaults
+    } = FD.distribution.distribute
 
     it 'should be able to access the var names array', ->
 
@@ -53,13 +61,13 @@ describe "propagators/callback.spec", ->
       space.sum ['R', 'G', 'B'], 'T'
       space.callback ['R', 'G', 'B'], cb
 
-      space.set_options FD.distribution.get_defaults 'naive'
+      space.set_options get_defaults 'naive'
       space.set_options targeted_var_names: ['R', 'G', 'B']
 
       state = {space, more: true}
       count = 0
       while state.more and state.status isnt 'end'
-        FD.search.depth_first state
+        depth_first_search state
         ++count
       # note: there are a few solutions for the sum(), but only one passes the callback
       expect(count).to.equal 2 # since it keeps searching, add +1 for the last one that fails

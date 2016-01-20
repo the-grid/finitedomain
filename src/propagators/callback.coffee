@@ -1,8 +1,9 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     ZERO_CHANGES
-  } = FD.helpers
+  } = require '../helpers'
 
   # Given function should be called each step, passing on the current variables and
   # space, and return whether their state is acceptable or not. Rejects when not.
@@ -14,4 +15,6 @@ module.exports = (FD) ->
       return ZERO_CHANGES
     return REJECTED
 
-  FD.propagators.callback_step_bare = callback_step_bare
+  return {
+    callback_step_bare
+  }

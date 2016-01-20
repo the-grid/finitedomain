@@ -1,27 +1,39 @@
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     ASSERT
     ASSERT_PROPAGATOR
     THROW
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_divby
     domain_minus
     domain_plus
     domain_times
-  } = FD.Domain
+  } = require '../domain'
 
   {
     mul_step_bare
+  } = require './scale_mul'
+  {
     div_step_bare
+  } = require './scale_div'
+  {
     callback_step_bare
+  } = require './callback'
+  {
     markov_step_bare
+  } = require './markov'
+  {
     reified_step_bare
+  } = require './reified'
+  {
     ring_step_bare
+  } = require './ring'
+  {
     step_comparison
-  } = FD.propagators
+  } = require './stepper_comparison'
 
   PROP_NAME = 0
   PROP_VAR_NAMES = 1
@@ -111,11 +123,13 @@ module.exports = (FD) ->
   _markov = (space, vn1) ->
     return markov_step_bare space, vn1
 
-  FD.propagators.step_any = stepper_prop_step
+  return {
+    PROP_NAME
+    PROP_VAR_NAMES
+    PROP_OP_NAME
+    PROP_NOP_NAME
+    PROP_CALLBACK
+    PROP_OP_FUNC
 
-  FD.propagators.PROP_NAME = PROP_NAME
-  FD.propagators.PROP_VAR_NAMES = PROP_VAR_NAMES
-  FD.propagators.PROP_OP_NAME = PROP_OP_NAME
-  FD.propagators.PROP_NOP_NAME = PROP_NOP_NAME
-  FD.propagators.PROP_CALLBACK = PROP_CALLBACK
-  FD.propagators.PROP_OP_FUNC = PROP_OP_FUNC
+    stepper_prop_step
+  }

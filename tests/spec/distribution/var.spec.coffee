@@ -16,9 +16,8 @@ FD = finitedomain
 describe 'distribution/var.spec', ->
 
   {
-    Fdvar
     Solver
-  } = FD
+  } = FD.Solver
 
   {
     BETTER
@@ -35,7 +34,7 @@ describe 'distribution/var.spec', ->
 
   {
     fdvar_create
-  } = Fdvar
+  } = FD.fdvar
 
 
   describe 'distribution_var_by_throw', ->

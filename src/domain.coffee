@@ -1,4 +1,5 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     SUB
     SUP
@@ -12,7 +13,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN_EMPTY_CHECK
     ASSERT_DOMAIN_EMPTY_SET
     ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
-  } = FD.helpers
+  } = require './helpers'
 
   INLINE = true
   NOT_INLINE = false
@@ -923,7 +924,7 @@ module.exports = (FD) ->
   domain_create_range = (lo, hi) ->
     return [lo, hi]
 
-  FD.Domain = {
+  return {
     INLINE
     NOT_INLINE
     PREV_CHANGED

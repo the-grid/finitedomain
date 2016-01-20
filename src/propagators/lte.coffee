@@ -1,17 +1,16 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     ZERO_CHANGES
 
-    ASSERT_DOMAIN
     ASSERT_DOMAIN_EMPTY_CHECK
-  } = FD.helpers
+  } = require '../helpers'
 
   {
-    domain_is_rejected
     domain_max
     domain_min
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_is_rejected
@@ -19,7 +18,7 @@ module.exports = (FD) ->
     fdvar_remove_gte_inline
     fdvar_remove_lte_inline
     fdvar_upper_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   lte_step_bare = (fdvar1, fdvar2) ->
     lo_1 = fdvar_lower_bound fdvar1
@@ -70,6 +69,8 @@ module.exports = (FD) ->
   lte_solved = (fdvar1, fdvar2) ->
     return fdvar_upper_bound(fdvar1) <= fdvar_lower_bound(fdvar2)
 
-  FD.propagators.lte_step_bare = lte_step_bare
-  FD.propagators.lte_step_would_reject = lte_step_would_reject
-  FD.propagators.lte_solved = lte_solved
+  return {
+    lte_step_bare
+    lte_step_would_reject
+    lte_solved
+  }

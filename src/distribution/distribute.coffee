@@ -1,10 +1,10 @@
 # Distribution strategies
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     THROW
-  } = FD.helpers
+  } = require '../helpers'
 
   PRESETS =
     'default':
@@ -37,6 +37,6 @@ module.exports = (FD) ->
     THROW "distribution.get_defaults: Unknown preset: #{name}"
     return
 
-  FD.distribution.get_defaults = get_defaults
-
-  return
+  return {
+    get_defaults
+  }

@@ -23,11 +23,11 @@ describe "propagators/lt.spec", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Fdvar
+  } = FD.fdvar
 
   {
     lt_step_bare
-  } = FD.propagators
+  } = FD.propagators.lt
 
   it 'should exist', ->
 

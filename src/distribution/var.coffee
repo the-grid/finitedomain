@@ -1,16 +1,16 @@
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     ASSERT
     THROW
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     fdvar_is_undetermined
     fdvar_lower_bound
     fdvar_size
     fdvar_upper_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   BETTER = 1
   SAME = 2
@@ -189,7 +189,7 @@ module.exports = (FD) ->
     ASSERT false, 'should not reach here'
     return
 
-  FD.distribution.var = {
+  return {
     BETTER
     SAME
     WORSE

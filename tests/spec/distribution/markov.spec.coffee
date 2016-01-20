@@ -16,7 +16,7 @@ describe 'distribution/markov.spec', ->
   RNG_UNNORMALIZED = false
   RNG_NORMALIZED = true
 
-  {distribution_markov_sampleNextFromDomain} = FD.distribution.Markov
+  {distribution_markov_sampleNextFromDomain} = FD.distribution.markov
 
   it 'should return a number', ->
 

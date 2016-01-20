@@ -1,6 +1,6 @@
 # Space
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     REJECTED
@@ -15,7 +15,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
     THROW
-  } = FD.helpers
+  } = require './helpers'
 
   {
     domain_create_bool
@@ -23,12 +23,7 @@ module.exports = (FD) ->
     domain_create_zero
     domain_is_solved
     domain_min
-  } = FD.Domain
-
-  {
-    step_any
-    prop_is_solved
-  } = FD.propagators
+  } = require './domain'
 
   {
     fdvar_clone
@@ -37,12 +32,24 @@ module.exports = (FD) ->
     fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require './fdvar'
+
+  {
+    stepper_prop_step
+  } = require './propagators/stepper_any'
+
+  {
+    prop_is_solved
+  } = require './propagators/prop_is_solved'
+
+  {
+    get_defaults
+  } = require './distribution/distribute'
 
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
-  Space = FD.space = (root_space = null, propagator_data = [], vars = {}, all_var_names = [], unsolved_var_names = []) ->
+  Space = (root_space = null, propagator_data = [], vars = {}, all_var_names = [], unsolved_var_names = []) ->
     @_class = 'space'
 
     @vars = vars
@@ -182,7 +189,7 @@ module.exports = (FD) ->
   # @param {string} name
 
   Space::set_defaults = (name) ->
-    @set_options FD.distribution.get_defaults name
+    @set_options get_defaults name
     return
 
   # Get the root space for this search tree
@@ -205,7 +212,7 @@ module.exports = (FD) ->
     while changed
       changed = false
       for prop_details in propagators
-        n = step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+        n = stepper_prop_step prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
         ASSERT n is REJECTED or @.vars[prop_details[1][0]].dom.length, 'prop var empty but it didnt REJECT'
@@ -569,7 +576,7 @@ module.exports = (FD) ->
         nopname = 'lt'
 
       else
-        THROW 'FD.space.reified: Unsupported operator \'' + opname + '\''
+        THROW 'add_reified: Unsupported operator \'' + opname + '\''
 
     if bool_name
       if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
@@ -759,7 +766,7 @@ module.exports = (FD) ->
   # debug stuff (should be stripped from dist)
 
   Space::__to_solver_test_case = () ->
-    things = ['S = new FD.Solver {}\n']
+    things = ['S = new Solver {}\n']
 
     for name of @vars
       things.push 'S.decl \''+name+'\', ['+@vars[name].dom.join(', ')+']'
@@ -868,3 +875,7 @@ module.exports = (FD) ->
       unless fdvar_is_solved fdvar
         unsolved_names.push name
     return unsolved_names
+
+  return {
+    Space
+  }

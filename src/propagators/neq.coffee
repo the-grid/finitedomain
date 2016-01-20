@@ -1,13 +1,14 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     domain_max
     domain_min
     domain_shares_no_elements
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_force_neq_inline
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   PAIR_SIZE = 2
 
@@ -39,6 +40,8 @@ module.exports = (FD) ->
   neq_solved = (fdvar1, fdvar2) ->
     return domain_shares_no_elements fdvar1.dom, fdvar2.dom
 
-  FD.propagators.neq_step_bare = neq_step_bare
-  FD.propagators.neq_step_would_reject = neq_step_would_reject
-  FD.propagators.neq_solved = neq_solved
+  return {
+    neq_step_bare
+    neq_step_would_reject
+    neq_solved
+  }

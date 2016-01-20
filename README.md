@@ -19,6 +19,7 @@ For now, see the extensive [tests](./tests)
 1.0.3 (unreleased):
 - Added support for fallback var distributions so you can chain list > markov > size for var distributors
 - Internal refactoring/restructuring
+- Internal; proper use of `require` which hopefully helps tooling if nothing else
 
 1.0.2:
 - Added support for `expandVectorsWith` in Markov distribution

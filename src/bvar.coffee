@@ -1,4 +1,4 @@
-module.exports = (FD) ->
+module.exports = do ->
 
   # This type of var is used in PathSolver
 
@@ -29,6 +29,6 @@ module.exports = (FD) ->
       distributeOptions: undefined
     }
 
-  FD.Bvar = {
+  return {
     create_branch_var
   }

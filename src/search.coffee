@@ -29,7 +29,7 @@ module.exports = do ->
   # @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
   # @property {string} [state.status] Set to 'solved' or 'end'
 
-  depth_first = (state) ->
+  search_depth_first = (state) ->
     is_start = !state.stack or state.stack.length is 0
     if is_start
       ASSERT_SPACE state.space
@@ -149,7 +149,7 @@ module.exports = do ->
     return
 
   return {
-    depth_first
+    search_depth_first
 
     # for testing
     _default_space_factory: default_space_factory
@@ -184,7 +184,7 @@ module.exports = do ->
 #  # TODO: Test this function and once the tests pass, remove the above warning.
 #  #
 #  # Finds the "best" solution according to the given ordering function.
-#  # The `state` parameter is similar to the `depth_first` search function.
+#  # The `state` parameter is similar to the `search_depth_first` search function.
 #  # It is expected to be an object such that `state.space` gives the space
 #  # from which to search for the best solution.
 #  #

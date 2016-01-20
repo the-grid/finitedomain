@@ -26,7 +26,7 @@ describe "propagators/callback.spec", ->
     } = FD.domain
 
     {
-      depth_first: depth_first_search
+      search_depth_first
     } = FD.search
 
     {
@@ -67,7 +67,7 @@ describe "propagators/callback.spec", ->
       state = {space, more: true}
       count = 0
       while state.more and state.status isnt 'end'
-        depth_first_search state
+        search_depth_first state
         ++count
       # note: there are a few solutions for the sum(), but only one passes the callback
       expect(count).to.equal 2 # since it keeps searching, add +1 for the last one that fails

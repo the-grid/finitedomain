@@ -18,7 +18,7 @@ describe "search.spec", ->
   } = FD.Space
 
   {
-    depth_first: depth_first_search
+    search_depth_first
   } = FD.search
 
   describe 'depth first search', ->
@@ -88,7 +88,7 @@ describe "search.spec", ->
       count = 0
       console.time 'TIME'
       while state.more
-        depth_first_search state
+        search_depth_first state
         break if state.status is 'end'
         count++
       console.timeEnd 'TIME'

@@ -15,7 +15,9 @@ module.exports = do ->
     domain_create_bool
   } = require './domain'
 
-  Search = require './search'
+  {
+    search_depth_first
+  } = require './search'
 
   {
     Space
@@ -433,7 +435,7 @@ module.exports = do ->
     # @property {number} options.max
     # @property {number} options.log Logging level; one of: 0, 1 or 2 (see LOG_* constants)
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
-    # @property {number} options.search='depth_first' Maps to a function on FD.Search
+    # @property {number} options.search='depth_first' See FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
     # @property {Object} [options.distribute] See Space#set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
@@ -473,10 +475,16 @@ module.exports = do ->
 
       search ?= @search
 
+      switch search
+        when 'depth_first'
+          search_func = search_depth_first
+        else
+          THROW "Unknown search strategy: #{search}"
+
       @_prepared = true
 
       return {
-        search_func: Search[search]
+        search_func
         max
         log
       }

@@ -971,9 +971,11 @@ module.exports = do ->
     domain_to_list
 
     # testing only:
+    __REMOVE_BELOW_FOR_DIST__
     _domain_get_value: domain_get_value
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline
     _domain_sort_by_range: domain_sort_by_range
+    __REMOVE_ABOVE_FOR_DIST__
   }

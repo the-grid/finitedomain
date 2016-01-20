@@ -4,9 +4,9 @@
 # A grunt cli (`grunt string-replace:perf`, which is also triggered
 # in `grunt perf`) will replace all lines that start with `ASSERT`
 # with a `1`, which acts as a noop to prevent syntax errors for
-# sub-statements (like condiditions). Additionally, there is a
-# macro `REMOVE_ASSERTS_START` and `REMOVE_ASSERTS_STOP` which act
-# like barriers. Anything in between is removed and replaced with
+# sub-statements (like condiditions). Additionally, there is a macro
+# `__REMOVE_BELOW_FOR_DIST__` and `__REMOVE_ABOVE_FOR_DIST__` which
+# act like barriers. Anything in between is removed and replaced with
 # an `x` so the result is `x=1` (just easier than the clean version).
 # We need to wipe these lines because we won't use them and when we
 # strip the ASSERT lines, syntax errors would happen in this file.
@@ -29,8 +29,7 @@ module.exports = do ->
   ENABLE_EMPTY_CHECK = false #  also causes unrelated errors because mocha sees the expandos
   PAIR_SIZE = 2
 
-  # keep the next line. it's used by a post processor
-  REMOVE_ASSERTS_START = 1
+  ({}.__REMOVE_BELOW_FOR_DIST__ = 1) && 1
 
   # For unit tests
   # Should be removed in production. Obviously.
@@ -167,8 +166,7 @@ module.exports = do ->
       ASSERT_DOMAIN_EMPTY_SET domain
     return
 
-  # keep the next line. it's used by a post processor
-  REMOVE_ASSERTS_STOP = 1
+  ({}.__REMOVE_ABOVE_FOR_DIST__ = 1) && 1
 
   # Abstraction for throwing because throw statements cause deoptimizations
   # All explicit throws should use this function. Also helps with tooling

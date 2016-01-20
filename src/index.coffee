@@ -31,14 +31,14 @@ FD = {
 }
 
 
-REMOVE_ASSERTS_START = 1
+({}.__REMOVE_BELOW_FOR_DIST__ = 1) && 1
 
 # for tests; if absent will skip certain tests because
 # certain private functions are not exposed in the dist
 # build so we cant test them explicitly. c'est la vie.
 FD.__DEV_BUILD = true
 
-REMOVE_ASSERTS_STOP = 1
+({}.__REMOVE_ABOVE_FOR_DIST__ = 1) && 1
 
 
 

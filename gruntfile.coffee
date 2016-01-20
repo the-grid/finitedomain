@@ -130,8 +130,8 @@ module.exports = ->
               replacement: ''
             }
             { # remove the ASSERT functions from helper.coffee
-              pattern: /^\s*REMOVE_ASSERTS_START(?:.|\n|\r)*REMOVE_ASSERTS_STOP/gm,
-              replacement: 'var x'
+              pattern: /^.*__REMOVE_BELOW_FOR_DIST__(?:.|\n|\r)*?__REMOVE_ABOVE_FOR_DIST__.*$/gm,
+              replacement: '// removed stuff here for dist/perf'
             }
             { # now replace any line starting with ASSERT with a `1`, to be a noop while preserving sub-statements
               pattern: /^\s*ASSERT.*$/mg,

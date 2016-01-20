@@ -34,6 +34,8 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
+  # BODY_START
+
   propagator_is_solved = (vars, propagator) ->
     op_name = propagator[0]
     v1 = vars[propagator[1][0]]
@@ -92,6 +94,8 @@ module.exports = do ->
 
       else
         ASSERT false, 'unknown comparison op', op
+
+  # BODY_STOP
 
   return {
     propagator_is_solved

@@ -10,6 +10,8 @@ module.exports = do ->
     fdvar_is_value
   } = require './fdvar'
 
+  # BODY_START
+
   # If a row has no boolean condition, return it.
   # If the boolean condition of a row is 1, return it.
   # If no row meets these conditions, return the last row.
@@ -56,6 +58,8 @@ module.exports = do ->
     if prob_vector.length isnt value_count
       THROW "distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`"
     return prob_vector
+
+  # BODY_STOP
 
   return {
     markov_create_legend

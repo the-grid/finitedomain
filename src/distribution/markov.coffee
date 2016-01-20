@@ -50,6 +50,8 @@ module.exports = do ->
     domain_contains_value
   } = require '../domain'
 
+  # BODY_START
+
   # Given a domain, probability vector, value legend, and rng
   # function; return one of the values in the value legend
   # according to the outcome of the rng and considering the
@@ -114,6 +116,8 @@ module.exports = do ->
         break
 
     return value_legend[index]
+
+  # BODY_STOP
 
   return {
     distribution_markov_sampleNextFromDomain

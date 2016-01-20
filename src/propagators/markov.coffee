@@ -17,6 +17,8 @@ module.exports = do ->
     markov_create_prob_vector
   } = require '../markov'
 
+  # BODY_START
+
   # Markov uses a special system for trying values. The domain doesn't
   # govern the list of possible values, only acts as a mask for the
   # current node in the search tree (-> space). But since FD will work
@@ -61,6 +63,8 @@ module.exports = do ->
     if pos >= 0 and pos < probabilities.length and probabilities[pos] isnt 0
       return ZERO_CHANGES
     return REJECTED
+
+  # BODY_STOP
 
   return {
     propagator_markov_step_bare

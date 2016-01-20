@@ -37,6 +37,8 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
+  # BODY_START
+
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
@@ -381,6 +383,8 @@ module.exports = do ->
     ASSERT typeof choice_index is 'number', 'should be a number'
     ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
     return undefined # no choice
+
+  # BODY_STOP
 
   return {
     FIRST_CHOICE

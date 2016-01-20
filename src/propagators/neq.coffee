@@ -10,6 +10,8 @@ module.exports = do ->
     fdvar_force_neq_inline
   } = require '../fdvar'
 
+  # BODY_START
+
   PAIR_SIZE = 2
 
   propagator_neq_step_bare = (fdvar1, fdvar2) ->
@@ -39,6 +41,8 @@ module.exports = do ->
 
   propagator_neq_solved = (fdvar1, fdvar2) ->
     return domain_shares_no_elements fdvar1.dom, fdvar2.dom
+
+  # BODY_STOP
 
   return {
     propagator_neq_step_bare

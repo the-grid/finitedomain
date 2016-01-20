@@ -18,6 +18,8 @@ module.exports = do ->
     fdvar_set_value_inline
   } = require '../fdvar'
 
+  # BODY_START
+
   PAIR_SIZE = 2
 
   # A boolean variable that represents whether a comparison
@@ -63,6 +65,8 @@ module.exports = do ->
     ASSERT hi is 1 or (op_reject and !inv_op_reject), 'if bool=0 then inv_op_name should not reject'
 
     return ZERO_CHANGES
+
+  # BODY_STOP
 
   return {
     propagator_reified_step_bare

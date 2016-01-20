@@ -5,6 +5,8 @@ module.exports = do ->
     ZERO_CHANGES
   } = require '../helpers'
 
+  # BODY_START
+
   # Given function should be called each step, passing on the current variables and
   # space, and return whether their state is acceptable or not. Rejects when not.
   # The callback call will block the FD search (or at least the current "thread").
@@ -14,6 +16,8 @@ module.exports = do ->
     if func space, var_names
       return ZERO_CHANGES
     return REJECTED
+
+  # BODY_STOP
 
   return {
     propagator_callback_step_bare

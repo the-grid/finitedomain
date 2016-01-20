@@ -1,5 +1,7 @@
 module.exports = do ->
 
+  # BODY_START
+
   # This type of var is used in PathSolver
 
   create_branch_var = (id, branchId, required, type, name, paths, parent, parentValue) ->
@@ -28,6 +30,8 @@ module.exports = do ->
       # set by multiverse Matrix and Constraints, for example the list, matrix, or legend
       distributeOptions: undefined
     }
+
+  # BODY_STOP
 
   return {
     create_branch_var

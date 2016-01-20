@@ -12,6 +12,8 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
+  # BODY_START
+
   BETTER = 1
   SAME = 2
   WORSE = 3
@@ -188,6 +190,8 @@ module.exports = do ->
 
     ASSERT false, 'should not reach here'
     return
+
+  # BODY_STOP
 
   return {
     BETTER

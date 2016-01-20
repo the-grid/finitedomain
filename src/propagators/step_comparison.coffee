@@ -36,6 +36,8 @@ module.exports = do ->
     propagator_neq_step_bare
   } = require './neq'
 
+  # BODY_START
+
   propagator_step_comparison = (space, op_name, var_name_1, var_name_2) ->
     v1 = space.vars[var_name_1]
     v2 = space.vars[var_name_2]
@@ -91,6 +93,8 @@ module.exports = do ->
       else
         THROW 'stepper_step_read_only: unsupported propagator: [' + op_name + ']'
         return
+
+  # BODY_STOP
 
   return {
     propagator_step_comparison

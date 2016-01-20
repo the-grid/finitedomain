@@ -33,6 +33,8 @@ module.exports = do ->
     domain_size
   } = require './domain'
 
+  # BODY_START
+
   fdvar_create = (id, dom) ->
     return fdvar_new id, dom, 0
 
@@ -176,6 +178,8 @@ module.exports = do ->
     ASSERT (r is REJECTED) is (domain_is_rejected(dom1) or domain_is_rejected(dom2)), 'if either domain is rejected, r should reflect this already'
 
     return r
+
+  # BODY_STOP
 
   return {
     fdvar_clone

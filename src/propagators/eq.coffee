@@ -13,6 +13,8 @@ module.exports = do ->
     fdvar_is_solved
   } = require '../fdvar'
 
+  # BODY_START
+
   # This eq propagator looks a lot different from neq because in
   # eq we can prune early all values that are not covered by both.
   # Any value that is not covered by both can not be a valid solution
@@ -46,6 +48,8 @@ module.exports = do ->
 
   propagator_eq_solved = (fdvar1, fdvar2) ->
     return fdvar_is_solved(fdvar1) and fdvar_is_solved fdvar2
+
+  # BODY_STOP
 
   return {
     propagator_eq_step_bare

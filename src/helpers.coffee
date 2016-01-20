@@ -15,6 +15,8 @@
 
 module.exports = do ->
 
+  # BODY_START
+
   SUB = 0 # WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
   SUP = 100000000
   ZERO_CHANGES = 0
@@ -200,6 +202,8 @@ module.exports = do ->
 
   THROW = (msg) ->
     throw new Error msg
+
+  # BODY_STOP
 
   return {
     # __REMOVE_BELOW_FOR_DIST__

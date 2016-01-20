@@ -12,6 +12,8 @@ module.exports = do ->
     fdvar_set_domain
   } = require '../fdvar'
 
+  # BODY_START
+
   propagator_ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
     # Apply an operator func to fdvar1 and fdvar2
     # Updates fdvar_result to the intersection of the result and itself
@@ -22,6 +24,8 @@ module.exports = do ->
       return REJECTED
 
     return fdvar_set_domain fdvar_result, domain
+
+  # BODY_STOP
 
   return {
     propagator_ring_step_bare

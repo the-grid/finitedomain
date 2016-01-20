@@ -46,6 +46,8 @@ module.exports = do ->
     distribution_get_defaults
   } = require './distribution/defaults'
 
+  # BODY_START
+
   # Duplicates the functionality of new Space(S) for readability.
   # Concept of a space that holds fdvars and propagators
 
@@ -878,6 +880,8 @@ module.exports = do ->
     return unsolved_names
 
   # __REMOVE_ABOVE_FOR_DIST__
+
+  # BODY_STOP
 
   return {
     Space

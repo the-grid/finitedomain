@@ -12,6 +12,8 @@ module.exports = do ->
     fdvar_set_domain
   } = require '../fdvar'
 
+  # BODY_START
+
   FLOOR = Math.floor
   PAIR_SIZE = 2
 
@@ -31,6 +33,8 @@ module.exports = do ->
       return REJECTED
 
     return fdvar_set_domain fdvar_val, d
+
+  # BODY_STOP
 
   return {
     propagator_div_step_bare

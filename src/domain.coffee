@@ -15,6 +15,8 @@ module.exports = do ->
     ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
   } = require './helpers'
 
+  # BODY_START
+
   INLINE = true
   NOT_INLINE = false
   PREV_CHANGED = true
@@ -923,6 +925,8 @@ module.exports = do ->
 
   domain_create_range = (lo, hi) ->
     return [lo, hi]
+
+  # BODY_STOP
 
   return {
     INLINE

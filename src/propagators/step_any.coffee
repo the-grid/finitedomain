@@ -35,6 +35,8 @@ module.exports = do ->
     propagator_step_comparison
   } = require './step_comparison'
 
+  # BODY_START
+
   PROP_NAME = 0
   PROP_VAR_NAMES = 1
   PROP_OP_NAME = 2
@@ -122,6 +124,8 @@ module.exports = do ->
 
   _propagator_markov = (space, vn1) ->
     return propagator_markov_step_bare space, vn1
+
+  # BODY_STOP
 
   return {
     PROP_NAME

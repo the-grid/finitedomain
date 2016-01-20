@@ -13,6 +13,8 @@ module.exports = do ->
     fdvar_set_domain
   } = require '../fdvar'
 
+  # BODY_START
+
   MIN = Math.min
   PAIR_SIZE = 2
 
@@ -36,6 +38,8 @@ module.exports = do ->
       return REJECTED
 
     return fdvar_set_domain fdvar_prod, d
+
+  # BODY_STOP
 
   return {
     propagator_mul_step_bare

@@ -20,6 +20,8 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
+  # BODY_START
+
   propagator_lte_step_bare = (fdvar1, fdvar2) ->
     lo_1 = fdvar_lower_bound fdvar1
     hi_1 = fdvar_upper_bound fdvar1
@@ -68,6 +70,8 @@ module.exports = do ->
 
   propagator_lte_solved = (fdvar1, fdvar2) ->
     return fdvar_upper_bound(fdvar1) <= fdvar_lower_bound(fdvar2)
+
+  # BODY_STOP
 
   return {
     propagator_lte_step_bare

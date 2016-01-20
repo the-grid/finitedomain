@@ -30,6 +30,8 @@ module.exports = do ->
     Space
   } = require './space'
 
+  # BODY_START
+
   # hack to get around "private" warnings.
   _ = {}
 
@@ -552,6 +554,10 @@ module.exports = do ->
 
       return overrides
 
+  Solver = _.Solver # part of the hack
+
+  # BODY_STOP
+
   return {
-    Solver: _.Solver
+    Solver
   }

@@ -13,6 +13,8 @@ module.exports = do ->
     distribute_get_next_domain_for_var
   } = require './distribution/value'
 
+  # BODY_START
+
   # Depth first search.
   # state.space must be the starting space. The object is used to store and
   # track continuation information from that point onwards.
@@ -147,6 +149,8 @@ module.exports = do ->
     state.space = space # is this so the solution can be read from it?
     state.more = stack.length > 0
     return
+
+  # BODY_STOP
 
   return {
     search_depth_first

@@ -6,6 +6,8 @@ module.exports = do ->
     THROW
   } = require '../helpers'
 
+  # BODY_START
+
   PRESETS =
     'default':
       var: 'naive'
@@ -36,6 +38,8 @@ module.exports = do ->
       return PRESETS[name]
     THROW "distribution.get_defaults: Unknown preset: #{name}"
     return
+
+  # BODY_STOP
 
   return {
     distribution_get_defaults

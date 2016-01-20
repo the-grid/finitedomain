@@ -28,6 +28,8 @@ module.exports = do ->
     domain_max
   } = require './domain'
 
+  # BODY_START
+
   MAX = Math.max
   PATH_UNDETERMINED = 0
   PATH_NUM = 1
@@ -368,6 +370,8 @@ module.exports = do ->
         A = @['>=?'] branch_var, @num 1
         B = @['==?'] parent_branch_var, @num parent_value
         @['=='] A, B
+
+  # BODY_STOP
 
   return {
     PathSolver

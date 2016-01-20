@@ -176,11 +176,11 @@ module.exports = do ->
     throw new Error msg
 
   return {
-    __REMOVE_BELOW_FOR_DIST__
+    # __REMOVE_BELOW_FOR_DIST__
     ENABLED
     ENABLE_DOMAIN_CHECK
     ENABLE_EMPTY_CHECK
-    __REMOVE_ABOVE_FOR_DIST__
+    # __REMOVE_ABOVE_FOR_DIST__
 
     REJECTED
     SUB

@@ -42,13 +42,13 @@ module.exports = do ->
   PROP_CALLBACK = 2
   PROP_OP_FUNC = 2
 
-  stepper_prop_step = (prop_datails, space) ->
+  propagator_step_any = (prop_datails, space) ->
     ASSERT_PROPAGATOR prop_datails
     ASSERT !!space, 'requires a space'
 
-    return stepper_step_any space, prop_datails[PROP_NAME], prop_datails[PROP_VAR_NAMES], prop_datails
+    return _propagator_step_any space, prop_datails[PROP_NAME], prop_datails[PROP_VAR_NAMES], prop_datails
 
-  stepper_step_any = (space, op_name, prop_var_names, prop_datails) ->
+  _propagator_step_any = (space, op_name, prop_var_names, prop_datails) ->
     [vn1, vn2] = prop_var_names
     switch op_name
       when 'lt'
@@ -131,5 +131,5 @@ module.exports = do ->
     PROP_CALLBACK
     PROP_OP_FUNC
 
-    stepper_prop_step
+    propagator_step_any
   }

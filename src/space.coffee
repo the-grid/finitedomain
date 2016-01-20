@@ -35,8 +35,8 @@ module.exports = do ->
   } = require './fdvar'
 
   {
-    stepper_prop_step
-  } = require './propagators/stepper_any'
+    propagator_step_any
+  } = require './propagators/step_any'
 
   {
     prop_is_solved
@@ -212,7 +212,7 @@ module.exports = do ->
     while changed
       changed = false
       for prop_details in propagators
-        n = stepper_prop_step prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+        n = propagator_step_any prop_details, @ # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
         ASSERT n is REJECTED or @.vars[prop_details[1][0]].dom.length, 'prop var empty but it didnt REJECT'

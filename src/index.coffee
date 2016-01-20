@@ -12,7 +12,7 @@ FD = {
     lte: require './propagators/lte'
     markov: require './propagators/markov'
     neq: require './propagators/neq'
-    prop_is_solved: require './propagators/prop_is_solved'
+    propagator_is_solved: require './propagators/is_solved'
     reified: require './propagators/reified'
     ring: require './propagators/ring'
     scale_div: require './propagators/scale_div'

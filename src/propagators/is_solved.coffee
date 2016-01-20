@@ -34,7 +34,7 @@ module.exports = do ->
     fdvar_upper_bound
   } = require '../fdvar'
 
-  prop_is_solved = (vars, propagator) ->
+  propagator_is_solved = (vars, propagator) ->
     op_name = propagator[0]
     v1 = vars[propagator[1][0]]
     v2 = vars[propagator[1][1]]
@@ -94,6 +94,6 @@ module.exports = do ->
         ASSERT false, 'unknown comparison op', op
 
   return {
-    prop_is_solved
+    propagator_is_solved
   }
 

@@ -39,8 +39,8 @@ module.exports = do ->
   } = require './propagators/step_any'
 
   {
-    prop_is_solved
-  } = require './propagators/prop_is_solved'
+    propagator_is_solved
+  } = require './propagators/is_solved'
 
   {
     distribution_get_defaults
@@ -100,7 +100,7 @@ module.exports = do ->
     vars = @vars
     unsolved_propagators = []
     for propagator in @_propagators
-      unless prop_is_solved vars, propagator
+      unless propagator_is_solved vars, propagator
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, @vars, clone_vars, unsolved_names
@@ -842,7 +842,7 @@ module.exports = do ->
 
       @_propagators.forEach (c) ->
         try
-          solved = prop_is_solved vars, c
+          solved = propagator_is_solved vars, c
         catch e
           solved = '(unknown; crashes when checked)'
 

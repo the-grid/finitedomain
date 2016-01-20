@@ -17,7 +17,7 @@ FD = {
     ring: require './propagators/ring'
     scale_div: require './propagators/scale_div'
     scale_mul: require './propagators/scale_mul'
-    stepper_comparison: require './propagators/stepper_comparison'
+    step_comparison: require './propagators/step_comparison'
     step_any: require './propagators/step_any'
   bvar: require './bvar'
   domain: require './domain'

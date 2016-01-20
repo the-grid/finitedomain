@@ -36,7 +36,7 @@ module.exports = do ->
     propagator_neq_step_bare
   } = require './neq'
 
-  step_comparison = (space, op_name, var_name_1, var_name_2) ->
+  propagator_step_comparison = (space, op_name, var_name_1, var_name_2) ->
     v1 = space.vars[var_name_1]
     v2 = space.vars[var_name_2]
 
@@ -49,11 +49,11 @@ module.exports = do ->
 
       when 'gt'
       # TOFIX: should go to lte
-        return step_comparison space, 'lt', var_name_2, var_name_1
+        return propagator_step_comparison space, 'lt', var_name_2, var_name_1
 
       when 'gte'
       # TOFIX: should go to lt
-        return step_comparison space, 'lte', var_name_2, var_name_1
+        return propagator_step_comparison space, 'lte', var_name_2, var_name_1
 
       when 'eq'
         return propagator_eq_step_bare v1, v2
@@ -67,7 +67,7 @@ module.exports = do ->
   # Do a fast dry run of one of the comparison propagators. Only returns
   # true when the step would result in REJECTED. Returns true otherwise.
 
-  step_would_reject = (op_name, fdvar1, fdvar2) ->
+  propagator_step_would_reject = (op_name, fdvar1, fdvar2) ->
     switch op_name
       when 'lt'
         return propagator_lt_step_would_reject fdvar1, fdvar2
@@ -93,6 +93,6 @@ module.exports = do ->
         return
 
   return {
-    step_comparison
-    step_would_reject
+    propagator_step_comparison
+    propagator_step_would_reject
   }

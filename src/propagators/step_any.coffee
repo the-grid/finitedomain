@@ -32,8 +32,8 @@ module.exports = do ->
     propagator_ring_step_bare
   } = require './ring'
   {
-    step_comparison
-  } = require './stepper_comparison'
+    propagator_step_comparison
+  } = require './step_comparison'
 
   PROP_NAME = 0
   PROP_VAR_NAMES = 1
@@ -52,16 +52,16 @@ module.exports = do ->
     [vn1, vn2] = prop_var_names
     switch op_name
       when 'lt'
-        return step_comparison space, op_name, vn1, vn2
+        return propagator_step_comparison space, op_name, vn1, vn2
 
       when 'lte'
-        return step_comparison space, op_name, vn1, vn2
+        return propagator_step_comparison space, op_name, vn1, vn2
 
       when 'eq'
-        return step_comparison space, op_name, vn1, vn2
+        return propagator_step_comparison space, op_name, vn1, vn2
 
       when 'neq'
-        return step_comparison space, op_name, vn1, vn2
+        return propagator_step_comparison space, op_name, vn1, vn2
 
       when 'mul'
         return _propagator_mul space, vn1, vn2

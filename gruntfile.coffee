@@ -161,10 +161,13 @@ module.exports = ->
   @loadNpmTasks 'grunt-contrib-watch'
   @loadNpmTasks 'grunt-string-replace'
 
+  @registerTask 'target-dist-file', ->
+    process.env.TEST_TARGET = 'min'
+
   @registerTask 'clean', ['remove']
   @registerTask 'lint', ['coffeelint']
   @registerTask 'build', ['clean', 'coffeelint', 'concat:dist', 'string-replace:strip_for_dist', 'coffee:dist','string-replace:strip_asserts', 'uglify:dist']
   @registerTask 'test', ['coffeelint', 'mochaTest:all']
-  @registerTask 'dist', ['build', 'test', 'string-replace:copy_dist']
-  @registerTask 'perf', ['build', 'mochaTest:perf']
+  @registerTask 'dist', ['build', 'target-dist-file', 'test', 'string-replace:copy_dist']
+  @registerTask 'perf', ['build', 'target-dist-file', 'mochaTest:perf']
   @registerTask 'default', ['lint']

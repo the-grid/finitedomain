@@ -1,14 +1,15 @@
 {
   "name": "finitedomain",
-  "main": "./src/index.coffee",
+  "main": "./dist/finitedomain.min.js",
   "description": "A fast feature rich finite domain solver",
   "license": "MIT",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "repository": {
     "type": "git",
     "url": "git://github.com/the-grid/finitedomain.git"
   },
   "scripts": {
+    "prepublish": "grunt dist",
     "test": "grunt test"
   },
   "devDependencies": {
@@ -34,9 +35,5 @@
   },
   "dependencies": {
   },
-  "keywords": ["constraint solving, GSAT, finite domain solver, FD"],
-  "browserify": {
-    "name": "finitedomain",
-    "transform": ["coffeeify"]
-  }
+  "keywords": ["constraint solving, GSAT, finite domain solver, FD"]
 }

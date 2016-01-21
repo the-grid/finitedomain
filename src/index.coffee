@@ -1,9 +1,6 @@
 TEST_TARGET = 'dev'
-# TOFIX: figure out a way to pass data from the grunt config to here
-if process.argv[2] is 'dist' # grunt dist
-  TEST_TARGET = 'min'
-if process.argv[2] is 'perf' # grunt perf
-  TEST_TARGET = 'min'
+if process.env.TEST_TARGET
+  TEST_TARGET = process.env.TEST_TARGET
 
 switch TEST_TARGET
   when 'dist'

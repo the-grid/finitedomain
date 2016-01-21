@@ -16,8 +16,11 @@ FD = finitedomain
 
 describe 'domain.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
-    Domain
+    domain: Domain
   } = FD
 
   {
@@ -396,7 +399,7 @@ describe 'domain.spec', ->
       INLINE
       NOT_INLINE
       _merge_overlapping_inline: merge_overlapping_inline
-    } = FD.Domain
+    } = FD.domain
 
     it 'should exist', ->
 
@@ -1082,7 +1085,7 @@ describe 'domain.spec', ->
   describe 'domain_is_solved', ->
 
     {SUP} = FD.helpers
-    {domain_is_solved} = FD.Domain
+    {domain_is_solved} = FD.domain
 
     it 'should exist', ->
 
@@ -1113,7 +1116,7 @@ describe 'domain.spec', ->
   describe 'domain_is_rejected', ->
 
     {SUP} = FD.helpers
-    {domain_is_rejected} = FD.Domain
+    {domain_is_rejected} = FD.domain
 
     it 'should exist', ->
 
@@ -1144,7 +1147,7 @@ describe 'domain.spec', ->
   describe 'domain_is_determined', ->
 
     {SUP} = FD.helpers
-    {domain_is_determined} = FD.Domain
+    {domain_is_determined} = FD.domain
 
     it 'should exist', ->
 
@@ -1175,7 +1178,7 @@ describe 'domain.spec', ->
   describe 'domain_set_to_range_inline', ->
 
     {SUP} = FD.helpers
-    {domain_set_to_range_inline} = FD.Domain
+    {domain_set_to_range_inline} = FD.domain
 
     it 'should exist', ->
 
@@ -1227,7 +1230,7 @@ describe 'domain.spec', ->
 
   describe 'domain_sort_by_range', ->
 
-    {_domain_sort_by_range: domain_sort_by_range} = FD.Domain
+    {_domain_sort_by_range: domain_sort_by_range} = FD.domain
 
     it 'should exist', ->
 
@@ -1316,7 +1319,7 @@ describe 'domain.spec', ->
 
   describe 'domain_remove_gte_inline', ->
 
-    {domain_remove_gte_inline} = FD.Domain
+    {domain_remove_gte_inline} = FD.domain
 
     it 'should exist', ->
 
@@ -1388,7 +1391,7 @@ describe 'domain.spec', ->
 
   describe 'domain_remove_lte_inline', ->
 
-    {domain_remove_lte_inline} = FD.Domain
+    {domain_remove_lte_inline} = FD.domain
 
     it 'should exist', ->
 

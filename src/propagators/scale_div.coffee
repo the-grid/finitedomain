@@ -1,20 +1,23 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
+
+  # BODY_START
 
   FLOOR = Math.floor
   PAIR_SIZE = 2
 
-  div_step_bare = (fdvar_val, fdvar_prod) ->
+  propagator_div_step_bare = (fdvar_val, fdvar_prod) ->
     domain = fdvar_prod.dom
     unless domain.length
       return REJECTED
@@ -31,4 +34,8 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_val, d
 
-  FD.propagators.div_step_bare = div_step_bare
+  # BODY_STOP
+
+  return {
+    propagator_div_step_bare
+  }

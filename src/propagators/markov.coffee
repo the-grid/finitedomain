@@ -1,20 +1,23 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     ASSERT
 
     REJECTED
     ZERO_CHANGES
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     fdvar_is_solved
     fdvar_lower_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
   {
     markov_create_legend
     markov_create_prob_vector
-  } = FD.Markov
+  } = require '../markov'
+
+  # BODY_START
 
   # Markov uses a special system for trying values. The domain doesn't
   # govern the list of possible values, only acts as a mask for the
@@ -26,7 +29,7 @@ module.exports = (FD) ->
   # Every markov variable should have a propagator. Perhaps later
   # there can be one markov propagator that checks all markov vars.
 
-  markov_step_bare = (space, var_name) ->
+  propagator_markov_step_bare = (space, var_name) ->
     # THIS IS VERY EXPENSIVE IF expand_vectors_with IS ENABLED
 
     ASSERT typeof var_name is 'string', 'arg should be a string', var_name
@@ -61,4 +64,8 @@ module.exports = (FD) ->
       return ZERO_CHANGES
     return REJECTED
 
-  FD.propagators.markov_step_bare = markov_step_bare
+  # BODY_STOP
+
+  return {
+    propagator_markov_step_bare
+  }

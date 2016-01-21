@@ -15,10 +15,13 @@ FD = finitedomain
 
 describe 'distribution/value.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     fdvar_create
     fdvar_create_bool
-  } = FD.Fdvar
+  } = FD.fdvar
 
   it 'fdvar_create_bool should exist', ->
 

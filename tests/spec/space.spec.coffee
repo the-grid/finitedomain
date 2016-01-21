@@ -16,11 +16,14 @@ FD = finitedomain
 
 describe "space.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   describe 'Space class', ->
 
     {
-      space: Space
-    } = FD
+      Space
+    } = FD.Space
 
     it 'should exist', ->
 

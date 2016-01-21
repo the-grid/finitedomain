@@ -15,8 +15,10 @@ FD = finitedomain
 
 describe 'distribution/var.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
-    Fdvar
     Solver
   } = FD
 
@@ -35,7 +37,7 @@ describe 'distribution/var.spec', ->
 
   {
     fdvar_create
-  } = Fdvar
+  } = FD.fdvar
 
 
   describe 'distribution_var_by_throw', ->
@@ -171,19 +173,35 @@ describe 'distribution/var.spec', ->
       it_ab 'size', [0, 1], [10, 12], 'A', 'should decide on largest domain first A'
       it_ab 'size', [20, 30], [50, 55], 'B', 'should decide on largest domain first B'
 
-      it 'should count actual elements in the domain', ->
+      it 'should count actual elements in the domain A', ->
 
         # note: further tests should be unit tests on domain_size instead
         solver = new Solver
         solver.addVar
           id: 'A'
-          domain: spec_d_create_ranges [30, 100] # 71 elements
+          domain: spec_d_create_ranges([30, 100]) # 71 elements
         solver.addVar
           id: 'B'
-          domain: spec_d_create_ranges [0, 50], [60, 90] # 82 elements
+          domain: spec_d_create_ranges([0, 50], [60, 90]) # 82 elements
         solver.prepare
           distribute: var: 'size'
 
+        fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
+
+        expect(fdvar.id).to.eql 'A'
+
+      it 'should count actual elements in the domain B', ->
+
+        # note: further tests should be unit tests on domain_size instead
+        solver = new Solver
+        solver.addVar
+          id: 'A'
+          domain: spec_d_create_ranges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]) # 69 elements
+        solver.addVar
+          id: 'B'
+          domain: spec_d_create_ranges([0, 10], [30, 40], [50, 60], [670, 700]) # 64 elements
+        solver.prepare
+          distribute: var: 'size'
         fdvar = distribution_get_next_var solver.space, solver.space, ['A', 'B']
 
         expect(fdvar.id).to.eql 'B'

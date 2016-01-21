@@ -12,6 +12,10 @@ if typeof require is 'function'
 FD = finitedomain
 
 describe "propagators/eq.spec", ->
+
+  unless FD.__DEV_BUILD
+    return
+
   # in general after call v1 and v2 should be equal
 
   {
@@ -25,22 +29,22 @@ describe "propagators/eq.spec", ->
   {
     fdvar_create
     fdvar_create_wide
-  } = FD.Fdvar
+  } = FD.fdvar
 
   {
-    eq_step_bare
-  } = FD.propagators
+    propagator_eq_step_bare
+  } = FD.propagators.eq
 
   it 'should exist', ->
 
-    expect(eq_step_bare?).to.be.true
+    expect(propagator_eq_step_bare?).to.be.true
 
   it 'should require two vars', ->
 
-    expect(-> eq_step_bare()).to.throw
+    expect(-> propagator_eq_step_bare()).to.throw
     v = fdvar_create_wide 'x'
-    expect(-> eq_step_bare v).to.throw
-    expect(-> eq_step_bare undefined, v).to.throw
+    expect(-> propagator_eq_step_bare v).to.throw
+    expect(-> propagator_eq_step_bare undefined, v).to.throw
 
 #  it 'should reject for empty domains', ->
 #
@@ -64,7 +68,7 @@ describe "propagators/eq.spec", ->
 
     v1 = fdvar_create_wide 'x'
     v2 = fdvar_create 'y', spec_d_create_ranges [0, 10], [20, 30]
-    expect(eq_step_bare v1, v2).to.be.above 0
+    expect(propagator_eq_step_bare v1, v2).to.be.above 0
     expect(v1.dom).to.eql spec_d_create_ranges [0, 10], [20, 30]
     expect(v2.dom).to.eql spec_d_create_ranges [0, 10], [20, 30]
 
@@ -74,7 +78,7 @@ describe "propagators/eq.spec", ->
       it 'should not change anything: '+domain, ->
         v1 = fdvar_create 'x', domain.slice 0
         v2 = fdvar_create 'y', domain.slice 0
-        expect(eq_step_bare v1, v2).to.eql ZERO_CHANGES
+        expect(propagator_eq_step_bare v1, v2).to.eql ZERO_CHANGES
         expect(v1.dom, 'v1 dom').to.eql domain
         expect(v2.dom, 'v2 dom').to.eql domain
 
@@ -98,9 +102,9 @@ describe "propagators/eq.spec", ->
         v1 = fdvar_create 'x', left.slice 0
         v2 = fdvar_create 'y', right.slice 0
         if rejects
-          expect(eq_step_bare v1, v2).to.eql REJECTED
+          expect(propagator_eq_step_bare v1, v2).to.eql REJECTED
         else
-          expect(eq_step_bare v1, v2).to.be.above 0
+          expect(propagator_eq_step_bare v1, v2).to.be.above 0
         expect(v1.dom, 'v1 dom').to.eql result
         expect(v2.dom, 'v2 dom').to.eql result
 
@@ -108,9 +112,9 @@ describe "propagators/eq.spec", ->
         v1 = fdvar_create 'x', right.slice 0
         v2 = fdvar_create 'y', left.slice 0
         if rejects
-          expect(eq_step_bare v1, v2).to.eql REJECTED
+          expect(propagator_eq_step_bare v1, v2).to.eql REJECTED
         else
-          expect(eq_step_bare v1, v2).to.be.above 0
+          expect(propagator_eq_step_bare v1, v2).to.be.above 0
         expect(v1.dom, 'v1 dom').to.eql result
         expect(v2.dom, 'v2 dom').to.eql result
 

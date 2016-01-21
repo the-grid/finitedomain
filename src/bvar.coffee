@@ -1,4 +1,6 @@
-module.exports = (FD) ->
+module.exports = do ->
+
+  # BODY_START
 
   # This type of var is used in PathSolver
 
@@ -29,6 +31,8 @@ module.exports = (FD) ->
       distributeOptions: undefined
     }
 
-  FD.Bvar = {
+  # BODY_STOP
+
+  return {
     create_branch_var
   }

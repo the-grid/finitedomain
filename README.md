@@ -14,11 +14,22 @@ API is bound to change, consider yourself warned.
 
 For now, see the extensive [tests](./tests)
 
+## Building
+
+Use `grunt dist` (after `npm install`) to compile everything. Intermediate build files can be found in `/build`. This build is tentatively tested and afterwards a minified final build is put in `/dist/finitedomain.min.js`.
+
 ## Version
 
-1.0.3 (unreleased):
+1.1.1
+- Fixed a bug where solver options were not properly passed on from `PathSolver` to its super, `Solver`
+
+1.1.0
 - Added support for fallback var distributions so you can chain list > markov > size for var distributors
+- Dropped browserify in favor of a custom concatenation technique
+- Fixed the dist, made it faster and much smaller
+- Internal breaking changes: some internal apis were renamed, should not affect external apis.
 - Internal refactoring/restructuring
+- Internal; proper use of `require` which hopefully helps tooling if nothing else
 
 1.0.2:
 - Added support for `expandVectorsWith` in Markov distribution

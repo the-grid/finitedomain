@@ -1,17 +1,16 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     ZERO_CHANGES
 
-    ASSERT_DOMAIN
     ASSERT_DOMAIN_EMPTY_CHECK
-  } = FD.helpers
+  } = require '../helpers'
 
   {
-    domain_is_rejected
     domain_max
     domain_min
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_is_rejected
@@ -19,9 +18,11 @@ module.exports = (FD) ->
     fdvar_remove_gte_inline
     fdvar_remove_lte_inline
     fdvar_upper_bound
-  } = FD.Fdvar
+  } = require '../fdvar'
 
-  lt_step_bare = (fdvar1, fdvar2) ->
+  # BODY_START
+
+  propagator_lt_step_bare = (fdvar1, fdvar2) ->
     lo_1 = fdvar_lower_bound fdvar1
     hi_1 = fdvar_upper_bound fdvar1
     lo_2 = fdvar_lower_bound fdvar2
@@ -51,7 +52,7 @@ module.exports = (FD) ->
   # lo bound of left to the high bound of right for that answer.
   # Read-only check
 
-  lt_step_would_reject = (fdvar1, fdvar2) ->
+  propagator_lt_step_would_reject = (fdvar1, fdvar2) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
@@ -67,9 +68,13 @@ module.exports = (FD) ->
   # only shrink we can assume that the lt constraint will not
   # be broken by searching further once this state is seen.
 
-  lt_solved = (fdvar1, fdvar2) ->
+  propagator_lt_solved = (fdvar1, fdvar2) ->
     return fdvar_upper_bound(fdvar1) < fdvar_lower_bound(fdvar2)
 
-  FD.propagators.lt_step_bare = lt_step_bare
-  FD.propagators.lt_step_would_reject = lt_step_would_reject
-  FD.propagators.lt_solved = lt_solved
+  # BODY_STOP
+
+  return {
+    propagator_lt_step_bare
+    propagator_lt_step_would_reject
+    propagator_lt_solved
+  }

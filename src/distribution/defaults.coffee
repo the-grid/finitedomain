@@ -1,10 +1,12 @@
 # Distribution strategies
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     THROW
-  } = FD.helpers
+  } = require '../helpers'
+
+  # BODY_START
 
   PRESETS =
     'default':
@@ -31,12 +33,14 @@ module.exports = (FD) ->
       var: 'size'
       val: 'splitMin'
 
-  get_defaults = (name) ->
+  distribution_get_defaults = (name) ->
     if PRESETS[name]
       return PRESETS[name]
     THROW "distribution.get_defaults: Unknown preset: #{name}"
     return
 
-  FD.distribution.get_defaults = get_defaults
+  # BODY_STOP
 
-  return
+  return {
+    distribution_get_defaults
+  }

@@ -1,23 +1,26 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
     SUP
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
+
+  # BODY_START
 
   MIN = Math.min
   PAIR_SIZE = 2
 
   # TODO: write test that uses this. this is currently not tested at all.
 
-  mul_step_bare = (fdvar, fdvar_prod) ->
+  propagator_mul_step_bare = (fdvar, fdvar_prod) ->
     domain = fdvar.dom
     unless domain.length
       return REJECTED
@@ -36,4 +39,8 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_prod, d
 
-  FD.propagators.mul_step_bare = mul_step_bare
+  # BODY_STOP
+
+  return {
+    propagator_mul_step_bare
+  }

@@ -1,19 +1,12 @@
 # Value Distributions
 # ======================================================================
 
-module.exports = (FD) ->
-  {
-    distribution
-    Domain
-    helpers
-    Fdvar
-    Markov
-  } = FD
+module.exports = do ->
 
   {
     ASSERT
     THROW
-  } = helpers
+  } = require '../helpers'
 
   {
     domain_contains_value
@@ -24,16 +17,16 @@ module.exports = (FD) ->
     domain_min
     domain_remove_next_from_list
     domain_get_value_of_first_contained_value_in_list
-  } = Domain
+  } = require '../domain'
 
   {
     distribution_markov_sampleNextFromDomain
-  } = distribution.Markov
+  } = require './markov'
 
   {
     markov_create_legend
     markov_create_prob_vector
-  } = Markov
+  } = require '../markov'
 
   {
     fdvar_is_rejected
@@ -42,12 +35,14 @@ module.exports = (FD) ->
     fdvar_lower_bound
     fdvar_middle_element
     fdvar_upper_bound
-  } = Fdvar
+  } = require '../fdvar'
+
+  # BODY_START
 
   FIRST_CHOICE = 0
   SECOND_CHOICE = 1
 
-  RANDOM = Math.random
+  MATH_RANDOM = Math.random
 
   # The functions in this file are supposed to determine the next
   # value while solving a Space. The functions are supposed to
@@ -349,7 +344,7 @@ module.exports = (FD) ->
         ASSERT distribution_options.matrix, 'there should be a matrix available for every var', distribution_options.matrix or JSON.stringify(fdvar), distribution_options.matrix or JSON.stringify config_var_dist_options[var_name]
         ASSERT distribution_options.legend or expand_vectors_with?, 'every var should have a legend or expand_vectors_with set', distribution_options.legend or expand_vectors_with? or JSON.stringify(fdvar), distribution_options.legend or expand_vectors_with? or JSON.stringify distribution_options
 
-        random = distribution_options.random or RANDOM
+        random = distribution_options.random or MATH_RANDOM
 
         # note: expand_vectors_with can be 0, so check with ?
         values = markov_create_legend expand_vectors_with?, distribution_options.legend, domain
@@ -389,9 +384,15 @@ module.exports = (FD) ->
     ASSERT choice_index is 1 or choice_index is 2, 'should not keep calling this func after the last choice'
     return undefined # no choice
 
-  return FD.distribution.value = {
+  # BODY_STOP
+
+  return {
+    FIRST_CHOICE
+    SECOND_CHOICE
+
     distribute_get_next_domain_for_var
 
+    # __REMOVE_BELOW_FOR_DIST__
     # for testing:
     _distribution_value_by_list: distribution_value_by_list
     _distribution_value_by_markov: distribution_value_by_markov
@@ -402,4 +403,5 @@ module.exports = (FD) ->
     _distribution_value_by_split_max: distribution_value_by_split_max
     _distribution_value_by_split_min: distribution_value_by_split_min
     _distribute_get_next_domain_for_var
+    # __REMOVE_ABOVE_FOR_DIST__
   }

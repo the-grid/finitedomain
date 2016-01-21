@@ -1,4 +1,4 @@
-module.exports = (FD) ->
+module.exports = do ->
 
   {
     REJECTED
@@ -9,7 +9,7 @@ module.exports = (FD) ->
     ASSERT_DOMAIN
     ASSERT_UNUSED_DOMAIN
     ASSERT_DOMAIN_EMPTY_CHECK
-  } = FD.helpers
+  } = require './helpers'
 
   {
     domain_create_all
@@ -31,7 +31,9 @@ module.exports = (FD) ->
     domain_remove_value_inline
     domain_set_to_range_inline
     domain_size
-  } = FD.Domain
+  } = require './domain'
+
+  # BODY_START
 
   fdvar_create = (id, dom) ->
     return fdvar_new id, dom, 0
@@ -177,7 +179,9 @@ module.exports = (FD) ->
 
     return r
 
-  FD.Fdvar = {
+  # BODY_STOP
+
+  return {
     fdvar_clone
     fdvar_constrain
     fdvar_constrain_to_range

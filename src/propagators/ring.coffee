@@ -1,18 +1,20 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     REJECTED
-    SOMETHING_CHANGED
-  } = FD.helpers
+  } = require '../helpers'
 
   {
     domain_intersection
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_set_domain
-  } = FD.Fdvar
+  } = require '../fdvar'
 
-  ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
+  # BODY_START
+
+  propagator_ring_step_bare = (fdvar1, fdvar2, fdvar_result, op_func) ->
     # Apply an operator func to fdvar1 and fdvar2
     # Updates fdvar_result to the intersection of the result and itself
 
@@ -23,4 +25,8 @@ module.exports = (FD) ->
 
     return fdvar_set_domain fdvar_result, domain
 
-  FD.propagators.ring_step_bare = ring_step_bare
+  # BODY_STOP
+
+  return {
+    propagator_ring_step_bare
+  }

@@ -1,19 +1,19 @@
-module.exports = (FD) ->
-  {
-    REJECTED
+module.exports = do ->
 
+  {
     ASSERT_DOMAIN_EMPTY_CHECK
-  } = FD.helpers
+  } = require '../helpers'
 
   {
-    domain_is_rejected
     domain_shares_no_elements
-  } = FD.Domain
+  } = require '../domain'
 
   {
     fdvar_force_eq_inline
     fdvar_is_solved
-  } = FD.Fdvar
+  } = require '../fdvar'
+
+  # BODY_START
 
   # This eq propagator looks a lot different from neq because in
   # eq we can prune early all values that are not covered by both.
@@ -23,7 +23,7 @@ module.exports = (FD) ->
   # Basically eq is much more efficient compared to neq because we
   # can potentially skip a lot of values early.
 
-  eq_step_bare = (fdvar1, fdvar2) ->
+  propagator_eq_step_bare = (fdvar1, fdvar2) ->
     return fdvar_force_eq_inline fdvar1, fdvar2
 
   # The eq step would reject if there all elements in one domain
@@ -32,7 +32,7 @@ module.exports = (FD) ->
   # or return false.
   # Read only check
 
-  eq_step_would_reject = (fdvar1, fdvar2) ->
+  propagator_eq_step_would_reject = (fdvar1, fdvar2) ->
     dom1 = fdvar1.dom
     dom2 = fdvar2.dom
 
@@ -46,9 +46,13 @@ module.exports = (FD) ->
   # An eq propagator is solved when both its vars are
   # solved. Any other state may still lead to failure.
 
-  eq_solved = (fdvar1, fdvar2) ->
+  propagator_eq_solved = (fdvar1, fdvar2) ->
     return fdvar_is_solved(fdvar1) and fdvar_is_solved fdvar2
 
-  FD.propagators.eq_step_bare = eq_step_bare
-  FD.propagators.eq_step_would_reject = eq_step_would_reject
-  FD.propagators.eq_solved = eq_solved
+  # BODY_STOP
+
+  return {
+    propagator_eq_step_bare
+    propagator_eq_step_would_reject
+    propagator_eq_solved
+  }

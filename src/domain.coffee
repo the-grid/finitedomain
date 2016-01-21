@@ -1,4 +1,5 @@
-module.exports = (FD) ->
+module.exports = do ->
+
   {
     SUB
     SUP
@@ -12,7 +13,9 @@ module.exports = (FD) ->
     ASSERT_DOMAIN_EMPTY_CHECK
     ASSERT_DOMAIN_EMPTY_SET
     ASSERT_DOMAIN_EMPTY_SET_OR_CHECK
-  } = FD.helpers
+  } = require './helpers'
+
+  # BODY_START
 
   INLINE = true
   NOT_INLINE = false
@@ -923,7 +926,9 @@ module.exports = (FD) ->
   domain_create_range = (lo, hi) ->
     return [lo, hi]
 
-  FD.Domain = {
+  # BODY_STOP
+
+  return {
     INLINE
     NOT_INLINE
     PREV_CHANGED
@@ -969,10 +974,12 @@ module.exports = (FD) ->
     domain_times
     domain_to_list
 
+    # __REMOVE_BELOW_FOR_DIST__
     # testing only:
     _domain_get_value: domain_get_value
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline
     _domain_sort_by_range: domain_sort_by_range
+    # __REMOVE_ABOVE_FOR_DIST__
   }

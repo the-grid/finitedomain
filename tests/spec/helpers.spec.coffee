@@ -7,7 +7,12 @@ FD = finitedomain
 
 describe "helpers.spec", ->
 
-  {helpers} = FD
+  unless FD.__DEV_BUILD
+    return
+
+  {
+    helpers
+  } = FD
 
   it 'should exist', ->
 
@@ -15,7 +20,9 @@ describe "helpers.spec", ->
 
   describe 'ASSERT', ->
 
-    {ASSERT} = helpers
+    {
+      ASSERT
+    } = helpers
 
     it 'should exist', ->
 

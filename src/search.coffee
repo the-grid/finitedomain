@@ -1,22 +1,19 @@
-
-module.exports = (FD) ->
-  {
-    distribution
-    helpers
-  } = FD
+module.exports = do ->
 
   {
     ASSERT
     ASSERT_SPACE
-  } = helpers
+  } = require './helpers'
 
   {
     distribution_get_next_var
-  } = distribution.var
+  } = require './distribution/var'
 
   {
     distribute_get_next_domain_for_var
-  } = distribution.value
+  } = require './distribution/value'
+
+  # BODY_START
 
   # Depth first search.
   # state.space must be the starting space. The object is used to store and
@@ -34,7 +31,7 @@ module.exports = (FD) ->
   # @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
   # @property {string} [state.status] Set to 'solved' or 'end'
 
-  depth_first = (state) ->
+  search_depth_first = (state) ->
     is_start = !state.stack or state.stack.length is 0
     if is_start
       ASSERT_SPACE state.space
@@ -47,7 +44,7 @@ module.exports = (FD) ->
     # this function clones the current space and then restricts an unsolved
     # var in the clone to see whether this breaks anything. The loop below
     # keeps doing this until something breaks or all target vars are solved.
-    create_next_space_node = state.next_choice or default_space_factory
+    create_next_space_node = state.next_choice or _search_default_space_factory
 
     space = state.space
     stack = state.stack
@@ -57,11 +54,11 @@ module.exports = (FD) ->
       ASSERT_SPACE space
 
       unless space.propagate()
-        on_reject state, space, stack
+        _search_on_reject state, space, stack
 
       else if space.is_solved space
         # TOFIX: the "next" space is not made now, so if search continues does it do so properly?
-        on_solve state, space, stack
+        _search_on_solve state, space, stack
         return
 
       else if next_space = create_next_space_node space, state
@@ -91,11 +88,11 @@ module.exports = (FD) ->
   # @param {Space} space
   # @returns {Space} a clone with small modification
 
-  default_space_factory = (space) ->
+  _search_default_space_factory = (space) ->
     # all config should be read from root. sub-nodes dont clone this data
     root_space = space.get_root()
 
-    target_vars = _get_vars_unfiltered root_space, space
+    target_vars = _search_get_vars_unfiltered root_space, space
     fdvar = distribution_get_next_var root_space, space, target_vars
     if fdvar
       next_domain = distribute_get_next_domain_for_var root_space, space, fdvar
@@ -115,7 +112,7 @@ module.exports = (FD) ->
   # @param {Space} space The current node, can be the root_space
   # @returns {string[]} The names of targeted fdvars on given space
 
-  _get_vars_unfiltered = (root_space, space) ->
+  _search_get_vars_unfiltered = (root_space, space) ->
     config_targeted_vars = root_space.config_targeted_vars
 
     if config_targeted_vars is 'all'
@@ -133,7 +130,7 @@ module.exports = (FD) ->
   # @param {Space} space The search node to fail
   # @param {Space[]} stack See state.stack
 
-  on_reject = (state, space, stack) ->
+  _search_on_reject = (state, space, stack) ->
     # Some propagators failed so this is now a failed space and we need
     # to pop the stack and continue from above. This is a failed space.
     space.failed = true
@@ -146,21 +143,23 @@ module.exports = (FD) ->
   # @param {Space} space The search node to fail
   # @param {Space[]} stack See state.stack
 
-  on_solve = (state, space, stack) ->
+  _search_on_solve = (state, space, stack) ->
     stack.pop()
     state.status = 'solved'
     state.space = space # is this so the solution can be read from it?
     state.more = stack.length > 0
     return
 
-  FD.search = {
-    depth_first
+  # BODY_STOP
 
+  return {
+    search_depth_first
+
+    # __REMOVE_BELOW_FOR_DIST__
     # for testing
-    _default_space_factory: default_space_factory
+    _default_space_factory: _search_default_space_factory
+    # __REMOVE_ABOVE_FOR_DIST__
   }
-
-  return
 
 # fly or die what do we do with this code?
 #
@@ -191,7 +190,7 @@ module.exports = (FD) ->
 #  # TODO: Test this function and once the tests pass, remove the above warning.
 #  #
 #  # Finds the "best" solution according to the given ordering function.
-#  # The `state` parameter is similar to the `depth_first` search function.
+#  # The `state` parameter is similar to the `search_depth_first` search function.
 #  # It is expected to be an object such that `state.space` gives the space
 #  # from which to search for the best solution.
 #  #

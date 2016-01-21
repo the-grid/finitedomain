@@ -1,45 +1,36 @@
 # Adds FD.Solver to FD.js
 
-module.exports = (FD) ->
+module.exports = do ->
 
   {
-    distribution
-    Domain
-    helpers
-    search: Search
-    space: Space
-  } = FD
-
-  {
+    LOG_NONE
+    LOG_STATS
+    LOG_SOLVES
+    LOG_MAX
+    LOG_MIN
     SUB
     SUP
 
     ASSERT
     ASSERT_SPACE
+    GET_NAME
+    GET_NAMES
     THROW
-  } = helpers
+  } = require './helpers'
 
   {
     domain_create_bool
-  } = Domain
+  } = require './domain'
 
+  {
+    search_depth_first
+  } = require './search'
 
-  LOG_MIN = LOG_NONE = 0
-  LOG_STATS = 1
-  LOG_MAX = LOG_SOLVES = 2
+  {
+    Space
+  } = require './space'
 
-  get_name = (e) ->
-    # e can be the empty string (TOFIX: let's not allow this...)
-    if e.id?
-      return e.id
-    return e
-
-  get_names = (es) ->
-    var_names = []
-    for e in es
-      var_names.push get_name e
-
-    return var_names
+  # BODY_START
 
   # This is a super class.
   # It is extended by path_solver
@@ -50,7 +41,7 @@ module.exports = (FD) ->
   # @property {string} o.search='depth_first'
   # @property {number[]} defaultDomain=[0,1]
 
-  class FD.Solver
+  Solver = class Solver
 
     # @param {Object} [o]
     # @property {string} [o.distribute='naive']
@@ -261,31 +252,31 @@ module.exports = (FD) ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return @space.plus get_name(e1), get_name(e2), get_name(result_var)
-      return @space.plus get_name(e1), get_name(e2)
+        return @space.plus GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return @space.plus GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @times e1, e2, result_var
     times: (e1, e2, result_var) ->
       if result_var
-        return @space.times get_name(e1), get_name(e2), get_name(result_var)
-      return @space.times get_name(e1), get_name(e2)
+        return @space.times GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return @space.times GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
     #_sumCache: null
     sum: (es, result_var) ->
-      var_names = get_names es
+      var_names = GET_NAMES es
       if result_var
-        return @space.sum var_names, get_name(result_var)
+        return @space.sum var_names, GET_NAME(result_var)
       return @space.sum var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
-      var_names = get_names es
+      var_names = GET_NAMES es
       if result_var
-        return @space.product var_names, get_name(result_var)
+        return @space.product var_names, GET_NAME(result_var)
       return @space.product var_names
 
     # TODO
@@ -301,7 +292,7 @@ module.exports = (FD) ->
       @distinct es
       return
     distinct: (es) ->
-      @space.distinct get_names(es)
+      @space.distinct GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -315,7 +306,7 @@ module.exports = (FD) ->
         @_eq e1, e2
       return
     _eq: (e1, e2) ->
-      @space.eq get_name(e1), get_name(e2)
+      @space.eq GET_NAME(e1), GET_NAME(e2)
       return
 
     '!=': (e1, e2) ->
@@ -329,7 +320,7 @@ module.exports = (FD) ->
         return @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      @space.neq get_name(e1), get_name(e2)
+      @space.neq GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -343,7 +334,7 @@ module.exports = (FD) ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      @space.gte get_name(e1), get_name(e2)
+      @space.gte GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -357,7 +348,7 @@ module.exports = (FD) ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      @space.lte get_name(e1), get_name(e2)
+      @space.lte GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -371,7 +362,7 @@ module.exports = (FD) ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      @space.gt get_name(e1), get_name(e2)
+      @space.gt GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -385,16 +376,16 @@ module.exports = (FD) ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      @space.lt get_name(e1), get_name(e2)
+      @space.lt GET_NAME(e1), GET_NAME(e2)
       return
 
 
     # Conditions, ie Reified (In)equality Propagators
     _cacheReified: (op, e1, e2, boolvar) ->
-      e1 = get_name(e1)
-      e2 = get_name(e2)
+      e1 = GET_NAME(e1)
+      e2 = GET_NAME(e2)
       if boolvar
-        return @space.reified op, e1, e2, get_name boolvar
+        return @space.reified op, e1, e2, GET_NAME boolvar
       return @space.reified op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
@@ -433,7 +424,7 @@ module.exports = (FD) ->
     # @property {number} options.max
     # @property {number} options.log Logging level; one of: 0, 1 or 2 (see LOG_* constants)
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
-    # @property {number} options.search='depth_first' Maps to a function on FD.Search
+    # @property {number} options.search='depth_first' See FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
     # @property {Object} [options.distribute] See Space#set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
@@ -461,7 +452,7 @@ module.exports = (FD) ->
       log ?= LOG_NONE # 0, 1, 2
       max ?= 1000
       bvars ?= @vars.all
-      var_names = get_names bvars
+      var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space
@@ -473,10 +464,16 @@ module.exports = (FD) ->
 
       search ?= @search
 
+      switch search
+        when 'depth_first'
+          search_func = search_depth_first
+        else
+          THROW "Unknown search strategy: #{search}"
+
       @_prepared = true
 
       return {
-        search_func: Search[search]
+        search_func
         max
         log
       }
@@ -553,3 +550,9 @@ module.exports = (FD) ->
           root_space._propagators.push ['markov', [name]]
 
       return overrides
+
+  # BODY_STOP
+
+  return {
+    Solver
+  }

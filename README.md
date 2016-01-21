@@ -20,10 +20,14 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
-1.1.1
+1.1.2:
+- Add npm prepublish script so npm can distribute a dist build rather than from dev
+- Internal update to how test target is determined
+
+1.1.1:
 - Fixed a bug where solver options were not properly passed on from `PathSolver` to its super, `Solver`
 
-1.1.0
+1.1.0:
 - Added support for fallback var distributions so you can chain list > markov > size for var distributors
 - Dropped browserify in favor of a custom concatenation technique
 - Fixed the dist, made it faster and much smaller

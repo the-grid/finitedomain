@@ -41,7 +41,7 @@ module.exports = (FD) ->
   class PathSolver extends Solver
 
     constructor: ({rawtree}, o = {}) ->
-      super
+      super(o)
 
       @_class = 'path_solver'
 

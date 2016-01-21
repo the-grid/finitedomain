@@ -32,9 +32,6 @@ module.exports = do ->
 
   # BODY_START
 
-  # hack to get around "private" warnings.
-  _ = {}
-
   # This is a super class.
   # It is extended by path_solver
   #
@@ -44,7 +41,7 @@ module.exports = do ->
   # @property {string} o.search='depth_first'
   # @property {number[]} defaultDomain=[0,1]
 
-  class _.Solver
+  Solver = class Solver
 
     # @param {Object} [o]
     # @property {string} [o.distribute='naive']
@@ -553,8 +550,6 @@ module.exports = do ->
           root_space._propagators.push ['markov', [name]]
 
       return overrides
-
-  Solver = _.Solver # part of the hack
 
   # BODY_STOP
 

@@ -15,9 +15,12 @@ FD = finitedomain
 
 describe 'distribution/var.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     Solver
-  } = FD.Solver
+  } = FD
 
   {
     BETTER

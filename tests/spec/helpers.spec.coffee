@@ -7,6 +7,9 @@ FD = finitedomain
 
 describe "helpers.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     helpers
   } = FD

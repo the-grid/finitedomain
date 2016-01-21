@@ -16,6 +16,9 @@ FD = finitedomain
 
 describe "space.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   describe 'Space class', ->
 
     {

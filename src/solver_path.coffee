@@ -1,3 +1,8 @@
+# Note: the name of this file, solver_path.coffee, is "reverse" from the class name because
+# the dist build concats files in ascending file name order. But due to how coffeescript
+# translates classes to javascript, we must declare Solver before PathSolver in the source/build.
+# To do this, we make sure the file name for PathSolver comes after that of Solver. But to
+# keep API end points as is, we'll keep the name of the class as it was...
 
 # PathSolver
 # ==============================================
@@ -37,7 +42,7 @@ module.exports = do ->
 
   _path_solver_binding_uid = 0
 
-  class PathSolver extends Solver
+  PathSolver = class PathSolver extends Solver
 
     constructor: ({rawtree}, o = {}) ->
       super(o)

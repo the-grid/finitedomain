@@ -15,7 +15,7 @@ describe "solver.splitmax.spec", ->
 
   {
     Solver
-  } = FD.Solver
+  } = FD
 
   it 'FD.Solver?', ->
 

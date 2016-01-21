@@ -15,7 +15,7 @@ describe "solver.splitmin.spec", ->
 
   {
     Solver
-  } = FD.Solver
+  } = FD
 
   it 'FD.Solver?', ->
 

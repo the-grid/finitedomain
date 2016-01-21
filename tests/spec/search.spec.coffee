@@ -13,6 +13,9 @@ FD = finitedomain
 
 describe "search.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     Space
   } = FD.Space

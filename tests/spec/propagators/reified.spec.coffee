@@ -15,6 +15,9 @@ FD = finitedomain
 
 describe 'propagators/reified.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     SOMETHING_CHANGED
     ZERO_CHANGES

@@ -13,9 +13,12 @@ FD = finitedomain
 
 describe "propagators/markov.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     Solver
-  } = FD.Solver
+  } = FD
 
   {
     REJECTED

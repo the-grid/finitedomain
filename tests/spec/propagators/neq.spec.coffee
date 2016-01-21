@@ -12,6 +12,10 @@ if typeof require is 'function'
 FD = finitedomain
 
 describe "propagators/neq.spec", ->
+
+  unless FD.__DEV_BUILD
+    return
+
   # in general after call v1 and v2 should be equal
 
   {

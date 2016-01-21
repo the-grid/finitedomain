@@ -13,6 +13,9 @@ FD = finitedomain
 
 describe 'distribution/markov.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   RNG_UNNORMALIZED = false
   RNG_NORMALIZED = true
 

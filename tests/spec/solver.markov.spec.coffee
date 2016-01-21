@@ -19,7 +19,7 @@ describe "solver.markov.spec", ->
 
   {
     Solver
-  } = FD.Solver
+  } = FD
 
   it 'FD.Solver?', ->
 

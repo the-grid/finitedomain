@@ -16,6 +16,9 @@ FD = finitedomain
 
 describe 'domain.spec', ->
 
+  unless FD.__DEV_BUILD
+    return
+
   {
     domain: Domain
   } = FD

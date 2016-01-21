@@ -6,7 +6,7 @@ if typeof window isnt 'undefined'
 PROFILE = false # set to true to profile the slowest perf test here in a browser, devtools should auto-profile it here.
 
 if typeof require is 'function'
-  finitedomain = require '../../src/index'
+  finitedomain = require '../../build/5.finitedomain.dist.min'
   chai = require 'chai'
 
   # json files, basically. just large sets of input data. no need to clutter this page with them.

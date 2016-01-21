@@ -12,6 +12,10 @@ if typeof require is 'function'
 FD = finitedomain
 
 describe "propagators/lte.spec", ->
+
+  unless FD.__DEV_BUILD
+    return
+
   # in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
   # it makes sure v1 and v2 have no values that can't possibly result in fulfilling <
 

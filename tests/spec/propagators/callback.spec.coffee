@@ -12,7 +12,11 @@ FD = finitedomain
 
 describe "propagators/callback.spec", ->
 
+  unless FD.__DEV_BUILD
+    return
+
   describe 'integration tests', ->
+
     {
       Space
     } = FD.Space

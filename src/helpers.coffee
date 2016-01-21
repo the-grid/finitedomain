@@ -36,7 +36,7 @@ module.exports = do ->
   ENABLE_EMPTY_CHECK = false #  also causes unrelated errors because mocha sees the expandos
   PAIR_SIZE = 2
 
-  ({}.__REMOVE_BELOW_FOR_DIST__ = 1) && 1
+  [].__REMOVE_BELOW_FOR_ASSERTS__ = this.foo # local var would cause a problem!
 
   # For unit tests
   # Should be removed in production. Obviously.
@@ -173,7 +173,7 @@ module.exports = do ->
       ASSERT_DOMAIN_EMPTY_SET domain
     return
 
-  ({}.__REMOVE_ABOVE_FOR_DIST__ = 1) && 1
+  [].__REMOVE_ABOVE_FOR_ASSERTS__ = this.foo  # local var would cause a problem!
 
   # given a value return value.id or value
   # intended to return the name of a variable where the

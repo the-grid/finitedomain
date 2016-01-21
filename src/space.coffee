@@ -318,12 +318,6 @@ module.exports = do ->
 
     return value
 
-  # Utility to easily print out the state of variables in the space.
-  # TOFIX: we should move this elsewhere so that we can more easily find usages of it. this is too implicit.
-
-  Space::toString = ->
-    return 'Object[Space]'
-
   # Call given function with `this` as argument
   # @deprecated (Silly construct... we should refactor call sites to eliminate usages)
 

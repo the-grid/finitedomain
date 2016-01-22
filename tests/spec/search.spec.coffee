@@ -17,8 +17,16 @@ describe "search.spec", ->
     return
 
   {
-    Space
-  } = FD.Space
+    space_create_root
+    space_decl
+    space_decl_value
+    space_eq
+    space_gte
+    space_reified
+    space_set_defaults
+    space_set_options
+    space_sum
+  } = FD.space
 
   {
     search_depth_first
@@ -43,11 +51,11 @@ describe "search.spec", ->
               3
       ###
 
-      space = new Space
+      space = space_create_root()
 
       # branch vars
       branchVars = ['A', 'C', 'B', 'D']
-      space.decl branchVars, spec_d_create_bool()
+      space_decl space, branchVars, spec_d_create_bool()
 
       # path vars
       Avars = ['A1', 'A2', 'A3']
@@ -55,34 +63,34 @@ describe "search.spec", ->
       Cvars = ['C1', 'C2', 'C3']
       Dvars = ['D1', 'D2', 'D3']
       pathVars = [].concat Avars, Bvars, Cvars, Dvars
-      space.decl pathVars, spec_d_create_bool()
+      space_decl space, pathVars, spec_d_create_bool()
 
       # path to branch binding
-      space.sum Avars, 'A'
-      space.sum Bvars, 'B'
-      space.sum Cvars, 'C'
-      space.sum Dvars, 'D'
+      space_sum space, Avars, 'A'
+      space_sum space, Bvars, 'B'
+      space_sum space, Cvars, 'C'
+      space_sum space,Dvars, 'D'
 
       # root branches must be on
-      space.eq 'A', space.decl_value 1
-      space.eq 'C', space.decl_value 1
+      space_eq space, 'A', space_decl_value space, 1
+      space_eq space, 'C', space_decl_value space, 1
 
       # child-parent binding
-      space.eq 'B', 'A2'
-      space.eq 'D', 'C2'
+      space_eq space, 'B', 'A2'
+      space_eq space, 'D', 'C2'
 
       # D & B counterpoint
-      space.decl 'BsyncD', spec_d_create_bool()
-      space.reified 'eq', 'B', 'D', 'BsyncD'
-      BD1 = space.reified 'eq', 'B1', 'D1'
-      space.gte BD1, 'BsyncD'
-      BD2 = space.reified 'eq', 'B2', 'D2'
-      space.gte BD2, 'BsyncD'
-      BD3 = space.reified 'eq', 'B3', 'D3'
-      space.gte BD3, 'BsyncD'
+      space_decl space, 'BsyncD', spec_d_create_bool()
+      space_reified space, 'eq', 'B', 'D', 'BsyncD'
+      BD1 = space_reified space, 'eq', 'B1', 'D1'
+      space_gte space, BD1, 'BsyncD'
+      BD2 = space_reified space, 'eq', 'B2', 'D2'
+      space_gte space, BD2, 'BsyncD'
+      BD3 = space_reified space, 'eq', 'B3', 'D3'
+      space_gte space, BD3, 'BsyncD'
 
-      space.set_defaults 'fail_first'
-      space.set_options targeted_var_names: pathVars
+      space_set_defaults space, 'fail_first'
+      space_set_options space, targeted_var_names: pathVars
 
       state =
         space: space

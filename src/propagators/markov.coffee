@@ -34,7 +34,7 @@ module.exports = do ->
 
     ASSERT typeof var_name is 'string', 'arg should be a string', var_name
 
-    root_space = space.get_root()
+    root_space = space._root_space or space # cant use space_get_root due to circular references... :/
     fdvar = space.vars[var_name]
 
     unless fdvar_is_solved fdvar

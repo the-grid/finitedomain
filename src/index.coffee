@@ -43,7 +43,7 @@ switch TEST_TARGET
       fdvar: require './fdvar'
       helpers: require './helpers'
       markov: require './markov'
-      Space: require './space'
+      space: require './space'
       search: require './search'
       Solver: require('./solver').Solver
       PathSolver: require('./solver_path').PathSolver

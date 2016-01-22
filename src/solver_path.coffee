@@ -33,6 +33,10 @@ module.exports = do ->
     domain_max
   } = require './domain'
 
+  {
+    space_decl
+  } = require './space'
+
   # BODY_START
 
   MAX = Math.max
@@ -185,7 +189,7 @@ module.exports = do ->
       bind_name = "__bind#{_path_solver_binding_uid++}__"
 
       # TOFIX: should the lo of this domain also be the min of all domains?
-      @space.decl bind_name, domain_create_range 0, find_max_or_throw bvars
+      space_decl @space, bind_name, domain_create_range 0, find_max_or_throw bvars
 
       A = @['==?'] bind_name, @num 0
       B = @['==?'] @['sum'](bvars), @num 0

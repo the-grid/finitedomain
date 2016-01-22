@@ -6,6 +6,8 @@ if typeof window isnt 'undefined'
 PROFILE = false # set to true to profile the slowest perf test here in a browser, devtools should auto-profile it here.
 
 if typeof require is 'function'
+  finitedomain = require '../../build/3.finitedomain.dist.coffeed'
+  finitedomain = require '../../build/4.finitedomain.dist.perf_stripped'
   finitedomain = require '../../build/5.finitedomain.dist.min'
   chai = require 'chai'
 
@@ -26,7 +28,9 @@ if typeof require is 'function'
   w.o15 = require './o15'
 else
   chai = window.chai
-  finitedomain = window.finitedomain
+  #finitedomain = window.FD3 # dev
+  finitedomain = window.FD4 # no asserts
+  #finitedomain = window.FD5 # minified
   PROFILE = location.href.indexOf('?profile') >= 0
 
 {expect, assert} = chai

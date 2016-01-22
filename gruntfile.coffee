@@ -59,6 +59,13 @@ module.exports = ->
 
     # CoffeeScript compilation
     coffee:
+      # to run perf/perf.html
+      perf:
+        expand: true
+        cwd: 'tests/perf'
+        src: ['**/*.coffee']
+        dest: 'build/perf'
+        ext: '.js'
       dist:
         options:
           bare: true
@@ -169,5 +176,5 @@ module.exports = ->
   @registerTask 'build', ['clean', 'coffeelint', 'concat:dist', 'string-replace:strip_for_dist', 'coffee:dist','string-replace:strip_asserts', 'uglify:dist']
   @registerTask 'test', ['coffeelint', 'mochaTest:all']
   @registerTask 'dist', ['build', 'target-dist-file', 'test', 'string-replace:copy_dist']
-  @registerTask 'perf', ['build', 'target-dist-file', 'mochaTest:perf']
+  @registerTask 'perf', ['build', 'coffee:perf', 'target-dist-file', 'mochaTest:perf', 'string-replace:copy_dist']
   @registerTask 'default', ['lint']

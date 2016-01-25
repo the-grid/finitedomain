@@ -53,6 +53,8 @@ module.exports = do ->
   # Create a space node that is a child of given space node
 
   space_create_clone = (space) ->
+    ASSERT space._class is 'space'
+
     root = space_get_root space
     all_names = space.all_var_names
     unsolved_names = []
@@ -115,6 +117,7 @@ module.exports = do ->
   # Set solving options on this space. Only required for the root.
 
   space_set_options = (space, options) ->
+    ASSERT space._class is 'space'
     if options?.filter
       # for markov,
       # string: 'none', ignored
@@ -193,6 +196,7 @@ module.exports = do ->
   # @param {string} name
 
   space_set_defaults = (space, name) ->
+    ASSERT space._class is 'space'
     space_set_options space, distribution_get_defaults name
     return
 
@@ -201,12 +205,14 @@ module.exports = do ->
   # @returns {Space}
 
   space_get_root = (space) ->
+    ASSERT space._class is 'space'
     return space._root_space or space
 
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
 
   space_propagate = (space) ->
+    ASSERT space._class is 'space'
     changed = true # init (do-while)
     propagators = space._propagators
     ASSERT_PROPAGATORS space._propagators
@@ -234,6 +240,7 @@ module.exports = do ->
     return true
 
   _space_abort_search = (space) ->
+    ASSERT space._class is 'space'
     root_space = space_get_root space
     c = root_space.config_timeout_callback
     if c
@@ -256,6 +263,7 @@ module.exports = do ->
   # that function.
 
   space_is_solved = (space) ->
+    ASSERT space._class is 'space'
     vars = space.vars
     unsolved_names = space.unsolved_var_names
 
@@ -278,6 +286,7 @@ module.exports = do ->
   # be already in a solved state for this to work.
 
   space_solution = (space) ->
+    ASSERT space._class is 'space'
     result = {}
     vars = space.vars
     for var_name in space.all_var_names
@@ -288,6 +297,7 @@ module.exports = do ->
   # @param {boolean} [complete=false] Return false if at least one var could not be solved?
 
   space_solution_for = (space, var_names, complete = false) -> # todo implement memorize flag
+    ASSERT space._class is 'space'
     vars = space.vars
     result = {}
     for var_name in var_names
@@ -337,6 +347,7 @@ module.exports = do ->
   # space_add_var space                   # declares anonymous var with [SUB, SUP]
 
   space_add_var = (space, name, lo, hi, skip_value_check) ->
+    ASSERT space._class is 'space'
     if typeof name is 'number' or name instanceof Array
       hi = lo
       lo = name
@@ -377,6 +388,7 @@ module.exports = do ->
   # See space_add_var for details
 
   space_add_vars = (space, arr...) ->
+    ASSERT space._class is 'space'
     for a in arr
       space_add_var space, a[0], a[1], a[2]
     return
@@ -385,6 +397,7 @@ module.exports = do ->
   # See space_add_var for details
 
   space_add_vars_domain = (space, names, lo, hi) ->
+    ASSERT space._class is 'space'
     for name in names
       space_add_var space, name, lo, hi
     return
@@ -394,6 +407,7 @@ module.exports = do ->
   # reference as optimization (should not harm?)
 
   _space_create_var_value = (space, val) ->
+    ASSERT space._class is 'space'
     ASSERT !isNaN(val), '_space_create_var_value: Value is NaN', val
     ASSERT val >= SUB, 'val must be above minimum value', val
     ASSERT val <= SUP, 'val must be below max value', val
@@ -417,6 +431,7 @@ module.exports = do ->
   # Register a variable with specific name and specific dom
 
   _space_create_var_domain = (space, var_name, dom) ->
+    ASSERT space._class is 'space'
     ASSERT !!dom
     ASSERT_DOMAIN dom
 
@@ -453,6 +468,7 @@ module.exports = do ->
   # propagator creator functions.
 
   space_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
+    ASSERT space._class is 'space'
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -481,11 +497,16 @@ module.exports = do ->
     else
       bool_name = space_add_var space, 0, 1
 
+    ASSERT space.vars[left_var_name], 'var should exist'
+    ASSERT space.vars[right_var_name], 'var should exist'
+    ASSERT space.vars[bool_name], 'var should exist'
+
     space._propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     ASSERT_PROPAGATORS space._propagators
     return bool_name
 
   space_callback = (space, var_names, callback) ->
+    ASSERT space._class is 'space'
     space._propagators.push ['callback', var_names, callback]
     ASSERT_PROPAGATORS space._propagators
     return
@@ -499,6 +520,7 @@ module.exports = do ->
   # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   space_eq = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     # If v2name is not specified, then we're operating in functional syntax
     # and the return value is expected to be v2name itself. This can happen
     # when, for example, scale uses a weight factor of 1.
@@ -516,6 +538,7 @@ module.exports = do ->
   # for fdeq which also apply to this one.
 
   space_lt = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     space._propagators.push ['lt', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
@@ -523,6 +546,7 @@ module.exports = do ->
   # Greater than propagator.
 
   space_gt = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     # _swap_ v1 and v2 because: a>b is b<a
     space._propagators.push ['lt', [v2name, v1name]]
     ASSERT_PROPAGATORS space._propagators
@@ -531,6 +555,7 @@ module.exports = do ->
   # Less than or equal to propagator.
 
   space_lte = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     space._propagators.push ['lte', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
@@ -538,6 +563,7 @@ module.exports = do ->
   # Greater than or equal to.
 
   space_gte = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     # _swap_ v1 and v2 because: a>b is b<a
     space._propagators.push ['lte', [v2name, v1name]]
     ASSERT_PROPAGATORS space._propagators
@@ -546,6 +572,7 @@ module.exports = do ->
   # Ensures that the two variables take on different values.
 
   space_neq = (space, v1name, v2name) ->
+    ASSERT space._class is 'space'
     space._propagators.push ['neq', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
     return
@@ -554,6 +581,7 @@ module.exports = do ->
   # ensure that they are pairwise distinct.
 
   space_distinct = (space, var_names) ->
+    ASSERT space._class is 'space'
     for var_name_i, i in var_names
       for j in [0...i]
         space_neq space, var_name_i, var_names[j]
@@ -574,6 +602,7 @@ module.exports = do ->
   # can be invoked in sequence.
 
   _space_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
+    ASSERT space._class is 'space'
     retval = space
     # If sumname is not specified, we need to create a anonymous
     # for the result and return the name of that anon variable.
@@ -588,6 +617,7 @@ module.exports = do ->
     return retval
 
   _space_add_ring = (space, A, B, C, op) ->
+    ASSERT space._class is 'space'
     space._propagators.push ['ring', [A, B, C], op]
     ASSERT_PROPAGATORS space._propagators
     return
@@ -596,12 +626,14 @@ module.exports = do ->
   # Returns either space or the anonymous var name if no sumname was given
 
   space_plus = (space, v1name, v2name, sumname) ->
+    ASSERT space._class is 'space'
     return _space_plus_or_times space, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
   space_times = (space, v1name, v2name, prodname) ->
+    ASSERT space._class is 'space'
     return _space_plus_or_times space, 'mul', 'div', v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
@@ -611,6 +643,7 @@ module.exports = do ->
   # factor * v = prod
 
   space_scale = (space, factor, vname, prodname) ->
+    ASSERT space._class is 'space'
     if factor is 1
       return space_eq space, vname, prodname
 
@@ -633,6 +666,7 @@ module.exports = do ->
   # TODO: Can be made more efficient.
 
   space_times_plus = (space, k1, v1name, k2, v2name, resultname) ->
+    ASSERT space._class is 'space'
     A = space_scale space, k1, v1name
     B = space_scale space, k2, v2name
     return space_plus space, A, B, resultname
@@ -642,6 +676,7 @@ module.exports = do ->
   # Returns either space or the anonymous var name if no sumname was given
 
   space_sum = (space, vars, result_var_name) ->
+    ASSERT space._class is 'space'
     retval = space
 
     unless result_var_name
@@ -677,6 +712,7 @@ module.exports = do ->
   # Create as many anonymous vars as necessary.
 
   space_product = (space, vars, result_var_name) ->
+    ASSERT space._class is 'space'
     retval = space
 
     unless result_var_name
@@ -710,6 +746,7 @@ module.exports = do ->
   # Weighted sum of fdvars where the weights are constants.
 
   space_wsum = (space, kweights, vars, result_name) ->
+    ASSERT space._class is 'space'
     anons = []
     for var_i, i in vars
       t = space_add_var space
@@ -731,6 +768,7 @@ module.exports = do ->
   # debug stuff (should be stripped from dist)
 
   __space_to_solver_test_case = (space) ->
+    ASSERT space._class is 'space'
     things = ['S = new Solver {}\n']
 
     for name of space.vars
@@ -762,6 +800,7 @@ module.exports = do ->
     return things.join '\n'
 
   __space_to_space_test_case = (space) ->
+    ASSERT space._class is 'space'
     things = ['S = space_create_root()\n']
 
     for name of space.vars
@@ -776,6 +815,7 @@ module.exports = do ->
 
 
   __space_debug_string = (space) ->
+    ASSERT space._class is 'space'
     try
       things = ['#########']
 

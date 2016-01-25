@@ -7,7 +7,7 @@ module.exports = do ->
   create_branch_var = (id, branchId, required, type, name, paths, parent, parentValue) ->
     return {
       _class: 'branchvar'
-      id
+      id: (id is '' and '_ROOT_HAS_NO_ID_') or id # i hope this is right... but at least it prevents empty string vars
       branchId # string. may be different from id and name
       required # boolean
       type # 'branch', 'kill'

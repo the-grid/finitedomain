@@ -718,6 +718,10 @@ module.exports = do ->
     space_sum space, anons, result_name
     return
 
+  space_markov = (space, var_name) ->
+    space._propagators.push ['markov', [name]]
+    ASSERT_PROPAGATORS space._propagators
+    return
 
   # __REMOVE_BELOW_FOR_DIST__
 
@@ -855,6 +859,7 @@ module.exports = do ->
     space_is_solved
     space_lt
     space_lte
+    space_markov
     space_neq
     space_plus
     space_product

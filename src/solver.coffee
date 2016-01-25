@@ -36,6 +36,7 @@ module.exports = do ->
     space_gte
     space_lt
     space_lte
+    space_markov
     space_neq
     space_plus
     space_product
@@ -563,7 +564,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          root_space._propagators.push ['markov', [name]]
+          space_markov root_space, name
 
       return overrides
 

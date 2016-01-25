@@ -864,7 +864,7 @@ module.exports = do ->
 
       things.push '#########'
     catch e
-      things.push '(Crashed inside __space_debug_string!)'
+      things.push '(Crashed inside __space_debug_string!)('+e.toString()+')'
       throw new Error things.join '\n'
 
     return things.join '\n'
@@ -884,7 +884,7 @@ module.exports = do ->
           unsolved_names.push name
       return unsolved_names
 
-    # __REMOVE_ABOVE_FOR_DIST__
+  # __REMOVE_ABOVE_FOR_DIST__
 
   # BODY_STOP
 
@@ -922,4 +922,8 @@ module.exports = do ->
     # testing
     _space_create_var_domain
     _space_create_var_value
+    # debugging
+    __space_to_solver_test_case
+    __space_to_space_test_case
+    __space_debug_string
   }

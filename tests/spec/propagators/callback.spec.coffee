@@ -17,11 +17,14 @@ describe "propagators/callback.spec", ->
 
   {
     space_add_vars
-    space_callback
     space_set_defaults
     space_set_options
-    space_sum
   } = FD.space
+
+  {
+    propagator_add_callback
+    propagator_add_sum
+  } = FD.propagator
 
   describe 'integration tests', ->
 
@@ -73,8 +76,8 @@ describe "propagators/callback.spec", ->
         ['B', 200, 203]
         ['T', tr + tg + tb, tr + tg + tb]
 
-      space_sum space, ['R', 'G', 'B'], 'T'
-      space_callback space, ['R', 'G', 'B'], cb
+      propagator_add_sum space, ['R', 'G', 'B'], 'T'
+      propagator_add_callback space, ['R', 'G', 'B'], cb
 
       space_set_defaults space, 'naive'
       space_set_options space, targeted_var_names: ['R', 'G', 'B']

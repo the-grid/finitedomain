@@ -30,23 +30,26 @@ module.exports = do ->
     __space_debug_string
     space_create_root
     space_add_var
-    space_distinct
-    space_eq
-    space_gt
-    space_gte
-    space_lt
-    space_lte
-    space_markov
-    space_neq
-    space_plus
-    space_product
-    space_reified
     space_set_defaults
     space_set_options
     space_solution
-    space_sum
-    space_times
   } = require './space'
+
+  {
+    propagator_add_distinct
+    propagator_add_eq
+    propagator_add_gt
+    propagator_add_gte
+    propagator_add_lt
+    propagator_add_lte
+    propagator_add_markov
+    propagator_add_neq
+    propagator_add_plus
+    propagator_add_product
+    propagator_add_reified
+    propagator_add_sum
+    propagator_add_times
+  } = require './propagator'
 
   # BODY_START
 
@@ -269,15 +272,15 @@ module.exports = do ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return space_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return space_plus @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @times e1, e2, result_var
     times: (e1, e2, result_var) ->
       if result_var
-        return space_times @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return space_times @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
@@ -285,16 +288,16 @@ module.exports = do ->
     sum: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return space_sum @space, var_names, GET_NAME(result_var)
-      return space_sum @space, var_names
+        return propagator_add_sum @space, var_names, GET_NAME(result_var)
+      return propagator_add_sum @space, var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return space_product @space, var_names, GET_NAME(result_var)
-      return space_product @space, var_names
+        return propagator_add_product @space, var_names, GET_NAME(result_var)
+      return propagator_add_product @space, var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
@@ -309,7 +312,7 @@ module.exports = do ->
       @distinct es
       return
     distinct: (es) ->
-      space_distinct @space, GET_NAMES(es)
+      propagator_add_distinct @space, GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -323,7 +326,7 @@ module.exports = do ->
         @_eq e1, e2
       return
     _eq: (e1, e2) ->
-      space_eq @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '!=': (e1, e2) ->
@@ -337,7 +340,7 @@ module.exports = do ->
         return @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      space_neq @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -351,7 +354,7 @@ module.exports = do ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      space_gte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gte @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -365,7 +368,7 @@ module.exports = do ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      space_lte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lte @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -379,7 +382,7 @@ module.exports = do ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      space_gt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gt @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -393,7 +396,7 @@ module.exports = do ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      space_lt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lt @space, GET_NAME(e1), GET_NAME(e2)
       return
 
 
@@ -402,8 +405,8 @@ module.exports = do ->
       e1 = GET_NAME(e1)
       e2 = GET_NAME(e2)
       if boolvar
-        return space_reified @space, op, e1, e2, GET_NAME boolvar
-      return space_reified @space, op, e1, e2
+        return propagator_add_reified @space, op, e1, e2, GET_NAME boolvar
+      return propagator_add_reified @space, op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
       return @isNeq e1, e2, boolvar
@@ -564,7 +567,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          space_markov root_space, name
+          propagator_add_markov root_space, name
 
       return overrides
 

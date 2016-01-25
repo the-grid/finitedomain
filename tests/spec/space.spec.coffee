@@ -25,32 +25,15 @@ describe "space.spec", ->
       space_add_var
       space_add_vars
       space_add_vars_domain
-      space_callback
       space_create_clone
       space_create_root
-      space_distinct
-      space_eq
       space_get_root
-      space_gt
-      space_gte
       space_is_solved
-      space_lt
-      space_lte
-      space_markov
-      space_neq
-      space_plus
-      space_product
       space_propagate
-      space_reified
-      space_scale
-      space_set_defaults
+      space_set_defaults # TOFIX: add test
       space_set_options
       space_solution
       space_solution_for
-      space_sum
-      space_times
-      space_times_plus
-      space_wsum
     } = FD.space
 
     describe 'space_create_root()', ->
@@ -527,21 +510,3 @@ describe "space.spec", ->
           expect(space.vars[name].dom).to.eql domain
           for name2 in names
             expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]
-
-    describe 'space_markov', ->
-
-      it 'should not crash', ->
-
-        expect(space_markov space_create_root(), 'foo').to.be.undefined
-
-# the propagator methods on Space are to be tested later, after I change them completely;
-    # gt
-    # gte
-    # distinct
-    # plus
-    # times
-    # scale
-    # times_plus
-    # sum
-    # product
-    # wsum

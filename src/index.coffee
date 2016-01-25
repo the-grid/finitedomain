@@ -43,6 +43,7 @@ switch TEST_TARGET
       fdvar: require './fdvar'
       helpers: require './helpers'
       markov: require './markov'
+      propagator: require './propagator'
       space: require './space'
       search: require './search'
       Solver: require('./solver').Solver

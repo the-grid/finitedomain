@@ -65,7 +65,7 @@ module.exports = do ->
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    clone = _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
+    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 

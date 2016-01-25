@@ -719,7 +719,8 @@ module.exports = do ->
     return
 
   space_markov = (space, var_name) ->
-    space._propagators.push ['markov', [name]]
+    ASSERT space._class is 'space'
+    space._propagators.push ['markov', [var_name]]
     ASSERT_PROPAGATORS space._propagators
     return
 

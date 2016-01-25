@@ -163,7 +163,7 @@ module.exports = do ->
   # to an object that looks up the index from the string.
   # This is used for finding the priority of a var elsewhere.
   #
-  # @param {Object} [config] This is the var dist config (-> @config_next_var_func)
+  # @param {Object} [config] This is the var dist config (-> space.config_next_var_func)
   # @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
 
   _space_init_configs_and_fallbacks = (config) ->
@@ -593,13 +593,13 @@ module.exports = do ->
     return
 
   # Bidirectional addition propagator.
-  # Returns either @ or the anonymous var name if no sumname was given
+  # Returns either space or the anonymous var name if no sumname was given
 
   space_plus = (space, v1name, v2name, sumname) ->
     return _space_plus_or_times space, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
-  # Returns either @ or the anonymous var name if no sumname was given
+  # Returns either space or the anonymous var name if no sumname was given
 
   space_times = (space, v1name, v2name, prodname) ->
     return _space_plus_or_times space, 'mul', 'div', v1name, v2name, prodname
@@ -639,7 +639,7 @@ module.exports = do ->
 
   # Sum of N fdvars = resultFDVar
   # Creates as many anonymous vars as necessary.
-  # Returns either @ or the anonymous var name if no sumname was given
+  # Returns either space or the anonymous var name if no sumname was given
 
   space_sum = (space, vars, result_var_name) ->
     retval = space
@@ -733,11 +733,11 @@ module.exports = do ->
   __space_to_solver_test_case = (space) ->
     things = ['S = new Solver {}\n']
 
-    for name of @vars
-      things.push 'space_add_var space, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    for name of space.vars
+      things.push 'space_add_var space, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    @_propagators.forEach (c) ->
+    space._propagators.forEach (c) ->
       if c[0] is 'reified'
         things.push 'S._cacheReified \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
       else if c[0] is 'ring'
@@ -764,11 +764,11 @@ module.exports = do ->
   __space_to_space_test_case = (space) ->
     things = ['S = space_create_root()\n']
 
-    for name of @vars
-      things.push 'space_add_var S, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+    for name of space.vars
+      things.push 'space_add_var S, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    things.push 'S._propagators = [\n  ' + @_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
+    things.push 'S._propagators = [\n  ' + space._propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
 
     things.push '\nexpect(space_propagate S).to.eql true'
 
@@ -780,43 +780,46 @@ module.exports = do ->
       things = ['#########']
 
       things.push 'Config:'
-      things.push '- config_var_filter_func: ' + @config_var_filter_func
-      things.push '- config_next_var_func: ' + @config_next_var_func
-      things.push '- config_next_value_func: ' + @config_next_value_func
-      things.push '- config_targeted_vars: ' + @config_targeted_vars
-      things.push '- config_when_solved: ' + @config_when_solved
+      things.push '- config_var_filter_func: ' + space.config_var_filter_func
+      things.push '- config_next_var_func: ' + space.config_next_var_func
+      things.push '- config_next_value_func: ' + space.config_next_value_func
+      things.push '- config_targeted_vars: ' + space.config_targeted_vars
+      things.push '- config_when_solved: ' + space.config_when_solved
 
-      things.push "Vars (#{@all_var_names.length}x):"
+      things.push "Vars (#{space.all_var_names.length}x):"
 
-      vars = @vars
+      vars = space.vars
       for name, fdvar of vars
-        options = @config_var_dist_options[name]
+        options = space.config_var_dist_options[name]
         things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
 
       things.push 'config_var_dist_options:'
-      for key, val of @config_var_dist_options
+      for key, val of space.config_var_dist_options
         things.push "  #{key}: #{JSON.stringify val}"
 
-      things.push "Var (#{@all_var_names.length}x):"
-      things.push '  ' + @all_var_names
-      things.push "Unsolved vars (#{@unsolved_var_names.length}x):"
-      things.push '  ' + @unsolved_var_names
+      things.push "Var (#{space.all_var_names.length}x):"
+      things.push '  ' + space.all_var_names
+      things.push "Unsolved vars (#{space.unsolved_var_names.length}x):"
+      things.push '  ' + space.unsolved_var_names
 
-      things.push "Propagators (#{@_propagators.length}x):"
+      things.push "Propagators (#{space._propagators.length}x):"
 
-      @_propagators.forEach (c) ->
+      space._propagators.forEach (p) ->
         try
-          solved = propagator_is_solved vars, c
+          solved = propagator_is_solved vars, p
         catch e
           solved = '(unknown; crashes when checked)'
 
-        if c[0] is 'reified'
-          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
-        else if c[0] is 'ring'
-          things.push "  #{c[0]}: '#{c[2]}', '#{c[1].join '\', \''}' \# [#{vars[c[1][0]].dom}] #{c[2]} [#{vars[c[1][1]].dom}] -> [#{vars[c[1][2]].dom}] | solved: #{solved}"
+        a = p[1]?[0]
+        b = p[1]?[1]
+        c = p[1]?[2]
+        if p[0] is 'reified'
+          things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
+        else if p[0] is 'ring'
+          things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
         else
-          things.push "  #{c[0]} '#{c[1].join ', '}' \# [#{vars[c[1][0]].dom}] #{c[0]} [#{vars[c[1][1]].dom}] | solved: #{solved}"
-      unless @_propagators.length
+          things.push "  #{p[0]} '#{p[1].join ', '}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[0]} [#{vars[b]?.dom or 'FAIL'}] | solved: #{solved}"
+      unless space._propagators.length
         things.push '  - none'
 
       things.push '#########'
@@ -828,12 +831,12 @@ module.exports = do ->
 
     __space_debug_var_domains = (space_) ->
       things = []
-      for name of @vars
-        things.push name+': ['+@vars[name].dom+']'
+      for name of space.vars
+        things.push name+': ['+space.vars[name].dom+']'
       return things
 
     __space_get_unsolved = (space) ->
-      vars = @vars
+      vars = space.vars
       unsolved_names = []
       for name of vars
         fdvar = vars[name]

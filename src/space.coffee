@@ -18,7 +18,6 @@ module.exports = do ->
   {
     domain_create_bool
     domain_create_value
-    domain_create_zero
     domain_is_solved
     domain_min
   } = require './domain'
@@ -27,7 +26,6 @@ module.exports = do ->
     fdvar_clone
     fdvar_constrain
     fdvar_create
-    fdvar_create_wide
     fdvar_is_solved
     fdvar_set_domain
   } = require './fdvar'
@@ -319,11 +317,84 @@ module.exports = do ->
 
     return value
 
-  # Alias for space_decl_anon [val, val]
-  # Note: use #num() to give it a name. TODO: combine these funcs to a single func with optional name arg...
+  # create a new var on this space
+  # - name is optional, an anonymous var is created if absent
+  # - if name is a number or array it is assumed to be `lo`,
+  # and then hi becomes lo, lo becomes name, name becomes null
+  # - lo can be a number, undefined, or an array.\
+  # - hi can be a number or undefined.
+  # - if lo is array it is assumed to be the whole domain
+  # returns the name of the new var (regardless)
+  #
+  # Usage:
+  # space_add_var space, 'A', 0           # declares var A with domain [0, 0]
+  # space_add_var space, 'A', 0, 1        # declares var A with domain [0, 1]
+  # space_add_var space, 'A', [0, 1]      # declares var A with given domain
+  # space_add_var space, 'A'              # declares var A with [SUB, SUP]
+  # space_add_var space, 0                # declares anonymous var with [0, 0]
+  # space_add_var space, 0, 1             # declares anonymous var with [0, 1]
+  # space_add_var space, [0, 1]           # declares anonymous var with given domain
+  # space_add_var space                   # declares anonymous var with [SUB, SUP]
 
-  space_decl_value = (space, val) ->
-    ASSERT !isNaN(val), 'space_decl_value: Value is NaN', val
+  space_add_var = (space, name, lo, hi, skip_value_check) ->
+    if typeof name is 'number' or name instanceof Array
+      hi = lo
+      lo = name
+      name = undefined
+
+    if typeof lo is 'number' and !hi?
+      if name
+        _space_create_var_domain space, name, domain_create_value lo
+        return name
+
+    if !name? and typeof lo is 'number'
+      # use special function that caches and dedupes "solved" vars
+      if !hi?
+        return _space_create_var_value space, lo
+      # recursive check. but if a "solved" domain is passed we may want to cache that too
+      if !skip_value_check and lo is hi
+        return _space_create_var_value space, lo
+
+    if lo? and hi?
+      ASSERT typeof lo is 'number', 'if hi is passed lo should be a number', lo, hi
+      domain = [lo, hi]
+    else if lo?
+      ASSERT lo instanceof Array, 'if lo is not a number it must be an array; the domain', lo
+      ASSERT !hi?, 'if lo is the domain, hi should not be given', lo, hi
+      domain = lo.slice 0
+    else
+      ASSERT !lo?, 'expecting no lo/hi at this point', lo, hi
+      ASSERT !hi?, 'expecting no lo/hi at this point', lo, hi
+      domain = [SUB, SUP]
+
+    unless name
+      # create anonymous var
+      name = String ++_space_uid_counter
+
+    _space_create_var_domain space, name, domain
+    return name
+
+  # See space_add_var for details
+
+  space_add_vars = (space, arr...) ->
+    for a in arr
+      space_add_var space, a[0], a[1], a[2]
+    return
+
+  # Add a bunch of vars by different names and same domain
+  # See space_add_var for details
+
+  space_add_vars_domain = (space, names, lo, hi) ->
+    for name in names
+      space_add_var space, name, lo, hi
+    return
+
+  # create an anonymous var with specific solved state
+  # multiple anonymous vars with same name return the same
+  # reference as optimization (should not harm?)
+
+  _space_create_var_value = (space, val) ->
+    ASSERT !isNaN(val), '_space_create_var_value: Value is NaN', val
     ASSERT val >= SUB, 'val must be above minimum value', val
     ASSERT val <= SUP, 'val must be below max value', val
 
@@ -334,77 +405,34 @@ module.exports = do ->
     # TOFIX: make this more stable.
     cache = space.constant_cache
 
-    fdvar = cache[val]
-    if fdvar
-      return fdvar
+    fdvar_name = cache[val]
+    if fdvar_name
+      return fdvar_name
 
-    fdvar = space_decl_anon space, domain_create_value val
-    cache[val] = fdvar
-    return fdvar
+    SKIP_RECURSION = true
+    fdvar_name = space_add_var space, undefined, val, val, SKIP_RECURSION
+    cache[val] = fdvar_name
+    return fdvar_name
 
-  # Returns a new unique name usable for an anonymous fdvar.
-  # Returns the name of the new var, which will be a unique
-  # number. You can optionally specify a domain, defaults
-  # to the full range (SUB-SUP).
+  # Register a variable with specific name and specific dom
 
-  space_decl_anon = (space, dom) ->
-    t = String ++_space_uid_counter
-    space_decl space, t, dom
-    return t
+  _space_create_var_domain = (space, var_name, dom) ->
+    ASSERT !!dom
+    ASSERT_DOMAIN dom
 
-  # Create N anonymous FD variables and return their names
-  # in an array. Optionally set them to given dom for all
-  # of them, defaults to full range (SUB-SUP).
-
-  space_decl_anons = (space, N, dom) ->
-    result = []
-    for [0...N]
-      result.push space_decl_anon space, (dom and dom.slice 0)
-    return result
-
-  # Register one or more variables with specific names
-  # Note: if you want to register multiple names call space_decls instead
-
-  space_decl = (space, name_or_names, dom) ->
-    if dom
-      ASSERT_DOMAIN dom
-    # lets try to deprecate this path
-    if name_or_names instanceof Object or name_or_names instanceof Array
-      return space_decls space, name_or_names, dom
-
-    # A single variable is being declared.
-    var_name = name_or_names
     vars = space.vars
 
     fdvar = vars[var_name]
     if fdvar
       # If it already exists, change the domain if necessary.
-      if dom
-        fdvar_set_domain fdvar, dom
-      return space
-
-    if dom
-      vars[var_name] = fdvar_create var_name, dom
+      # (I think this should issue an error because when would you want to do this?)
+      fdvar_set_domain fdvar, dom
     else
-      vars[var_name] = fdvar_create_wide var_name
-    space.unsolved_var_names.push var_name
-    space.all_var_names.push var_name
+      vars[var_name] = fdvar_create var_name, dom
+      space.unsolved_var_names.push var_name
+      space.all_var_names.push var_name
 
-    return space
-
-  # Register multiple vars. If you supply a domain the domain will be cloned for each.
-
-  space_decls = (space, names, dom) ->
-    # Recursively declare all variables in the structure given.
-    for key, value of names
-      space_decl space, value, (dom and dom.slice 0)
-    return space
-
-  # Same function as @decl_value but with explicit name
-
-  space_num = (space, name, n) ->
-    space_decl space, name, domain_create_value n
-    return space
+    return
 
   # Adds propagators which reify the given operator application
   # to the given boolean variable.
@@ -451,7 +479,7 @@ module.exports = do ->
       if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
         return REJECTED
     else
-      bool_name = space_decl_anon space, domain_create_bool()
+      bool_name = space_add_var space, 0, 1
 
     space._propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     ASSERT_PROPAGATORS space._propagators
@@ -466,14 +494,19 @@ module.exports = do ->
   # in this space. The specified variables need not
   # exist at the time the propagator is created and
   # added, since the fdvars are all referenced by name.
+  # if `v2name` is a number, an anonymous var is created
+  # for that value so you can do `space_eq(space, 'A', 1)`
   # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
 
   space_eq = (space, v1name, v2name) ->
     # If v2name is not specified, then we're operating in functional syntax
     # and the return value is expected to be v2name itself. This can happen
     # when, for example, scale uses a weight factor of 1.
-    if !v2name
+    if !v2name?
       return v1name
+
+    if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
 
     space._propagators.push ['eq', [v1name, v2name]]
     ASSERT_PROPAGATORS space._propagators
@@ -545,7 +578,7 @@ module.exports = do ->
     # If sumname is not specified, we need to create a anonymous
     # for the result and return the name of that anon variable.
     unless sumname
-      sumname = space_decl_anon space
+      sumname = space_add_var space
       retval = sumname
 
     _space_add_ring space, v1name, v2name, sumname, target_op_name
@@ -582,13 +615,13 @@ module.exports = do ->
       return space_eq space, vname, prodname
 
     if factor is 0
-      return space_eq space, space_decl_anon(space, domain_create_zero()), prodname
+      return space_eq space, space_add_var(space, 0), prodname
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
 
     unless prodname
-      prodname = space_decl_anon space
+      prodname = space_add_var space
       retval = prodname
 
     space._propagators.push ['mul', [vname, prodname]]
@@ -612,7 +645,7 @@ module.exports = do ->
     retval = space
 
     unless result_var_name
-      result_var_name = space_decl_anon space
+      result_var_name = space_add_var space
       retval = result_var_name
 
     switch vars.length
@@ -628,12 +661,12 @@ module.exports = do ->
       else # "divide and conquer" ugh. feels like there is a better way to do this
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = space_decl_anon space
+          t1 = space_add_var space
           space_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = space_decl_anon space
+        t2 = space_add_var space
 
         space_sum space, vars.slice(n), t2
         space_plus space, t1, t2, result_var_name
@@ -647,7 +680,7 @@ module.exports = do ->
     retval = space
 
     unless result_var_name
-      result_var_name = space_decl_anon space
+      result_var_name = space_add_var space
       retval = result_var_name
 
     switch vars.length
@@ -663,11 +696,11 @@ module.exports = do ->
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = space_decl_anon space
+          t1 = space_add_var space
           space_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = space_decl_anon space
+        t2 = space_add_var space
 
         space_product space, vars.slice(n), t2
         space_times space, t1, t2, result_var_name
@@ -679,7 +712,7 @@ module.exports = do ->
   space_wsum = (space, kweights, vars, result_name) ->
     anons = []
     for var_i, i in vars
-      t = space_decl_anon space
+      t = space_add_var space
       space_scale space, kweights[i], var_i, t
       anons.push t
     space_sum space, anons, result_name
@@ -696,7 +729,7 @@ module.exports = do ->
     things = ['S = new Solver {}\n']
 
     for name of @vars
-      things.push 'space_decl space, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+      things.push 'space_add_var space, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
     things.push ''
 
     @_propagators.forEach (c) ->
@@ -727,7 +760,7 @@ module.exports = do ->
     things = ['S = space_create_root()\n']
 
     for name of @vars
-      things.push 'space_decl S, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
+      things.push 'space_add_var S, \''+name+'\', ['+@vars[name].dom.join(', ')+']'
     things.push ''
 
     things.push 'S._propagators = [\n  ' + @_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
@@ -808,14 +841,12 @@ module.exports = do ->
   # BODY_STOP
 
   return {
+    space_add_vars_domain
+    space_add_var
+    space_add_vars
     space_callback
     space_create_clone
     space_create_root
-    space_decl
-    space_decl_anon
-    space_decl_anons
-    space_decl_value
-    space_decls
     space_distinct
     space_eq
     space_get_root
@@ -825,7 +856,6 @@ module.exports = do ->
     space_lt
     space_lte
     space_neq
-    space_num
     space_plus
     space_product
     space_propagate
@@ -839,4 +869,8 @@ module.exports = do ->
     space_times
     space_times_plus
     space_wsum
+
+    # testing
+    _space_create_var_domain
+    _space_create_var_value
   }

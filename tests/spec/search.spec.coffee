@@ -17,9 +17,9 @@ describe "search.spec", ->
     return
 
   {
+    space_add_var
+    space_add_vars_domain
     space_create_root
-    space_decl
-    space_decl_value
     space_eq
     space_gte
     space_reified
@@ -55,7 +55,7 @@ describe "search.spec", ->
 
       # branch vars
       branchVars = ['A', 'C', 'B', 'D']
-      space_decl space, branchVars, spec_d_create_bool()
+      space_add_vars_domain space, branchVars, 0, 1
 
       # path vars
       Avars = ['A1', 'A2', 'A3']
@@ -63,7 +63,7 @@ describe "search.spec", ->
       Cvars = ['C1', 'C2', 'C3']
       Dvars = ['D1', 'D2', 'D3']
       pathVars = [].concat Avars, Bvars, Cvars, Dvars
-      space_decl space, pathVars, spec_d_create_bool()
+      space_add_vars_domain space, pathVars, 0, 1
 
       # path to branch binding
       space_sum space, Avars, 'A'
@@ -72,15 +72,15 @@ describe "search.spec", ->
       space_sum space,Dvars, 'D'
 
       # root branches must be on
-      space_eq space, 'A', space_decl_value space, 1
-      space_eq space, 'C', space_decl_value space, 1
+      space_eq space, 'A', 1
+      space_eq space, 'C', 1
 
       # child-parent binding
       space_eq space, 'B', 'A2'
       space_eq space, 'D', 'C2'
 
       # D & B counterpoint
-      space_decl space, 'BsyncD', spec_d_create_bool()
+      space_add_var space, 'BsyncD', 0, 1
       space_reified space, 'eq', 'B', 'D', 'BsyncD'
       BD1 = space_reified space, 'eq', 'B1', 'D1'
       space_gte space, BD1, 'BsyncD'

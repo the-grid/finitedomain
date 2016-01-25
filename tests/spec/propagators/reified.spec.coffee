@@ -28,10 +28,6 @@ describe 'propagators/reified.spec', ->
   } = FD.fdvar
 
   {
-    space_decl
-  } = FD.space
-
-  {
     propagator_reified_step_bare
   } = FD.propagators.reified
 

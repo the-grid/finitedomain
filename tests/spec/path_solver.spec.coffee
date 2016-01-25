@@ -17,7 +17,7 @@ describe "pathsolver.spec", ->
   } = FD
 
   {
-    space_decl
+    space_add_var
   } = FD.space or {} # no space in dist
 
   it 'should exist', ->
@@ -272,7 +272,7 @@ describe "pathsolver.spec", ->
 
       vars = path_solver.vars.byName
       path_solver['~='] vars['A'], path_solver.constant(2)
-      space_decl path_solver.space, 'BBinder', spec_d_create_range(0, 3)
+      space_add_var path_solver.space, 'BBinder', 0, 3
       path_solver['~='] vars['B'], 'BBinder'
 
       solutions = path_solver.solve()
@@ -308,7 +308,7 @@ describe "pathsolver.spec", ->
       path_solver = new PathSolver TREE_DATA
 
       vars = path_solver.vars.byName
-      space_decl path_solver.space, 'BBinder', spec_d_create_range(0, 3)
+      space_add_var path_solver.space, 'BBinder', 0, 3
       A = path_solver['==?'] 'BBinder', path_solver.num 0
       B = path_solver['==?'] path_solver['sum'](vars['B']), path_solver.num 0
       path_solver['=='] A, B

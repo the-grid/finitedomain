@@ -16,6 +16,7 @@ describe "propagators/callback.spec", ->
     return
 
   {
+    space_add_vars
     space_callback
     space_set_defaults
     space_set_options
@@ -25,8 +26,8 @@ describe "propagators/callback.spec", ->
   describe 'integration tests', ->
 
     {
-    space_create_root
-    space_decl
+      space_add_var
+      space_create_root
     } = FD.space
 
     {
@@ -66,10 +67,12 @@ describe "propagators/callback.spec", ->
       # some criteria to search for. callback will reject all but one.
       # (could also work with [0,255] but just takes longer...)
       [tr, tg, tb] = [2, 120, 201]
-      space_decl space, 'R', spec_d_create_range 0, 3
-      space_decl space, 'G', spec_d_create_range 119, 121
-      space_decl space, 'B', spec_d_create_range 200, 203
-      space_decl space, 'T', spec_d_create_range tr + tg + tb, tr + tg + tb
+      space_add_vars space,
+        ['R', 0, 3]
+        ['G', 119, 121]
+        ['B', 200, 203]
+        ['T', tr + tg + tb, tr + tg + tb]
+
       space_sum space, ['R', 'G', 'B'], 'T'
       space_callback space, ['R', 'G', 'B'], cb
 

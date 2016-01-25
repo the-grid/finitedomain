@@ -29,8 +29,7 @@ module.exports = do ->
   {
     __space_debug_string
     space_create_root
-    space_decl
-    space_decl_value
+    space_add_var
     space_distinct
     space_eq
     space_gt
@@ -111,18 +110,16 @@ module.exports = do ->
         num = 0
       if num is true
         num = 1
-      if typeof num isnt 'number'
-        THROW "Solver#constant: expecting a number, got #{num} (a #{typeof num})"
-      if isNaN num
-        THROW "Solver#constant: expecting a number, got NaN"
-      return space_decl_value @space, num
+      return @num num
 
     # Returns an anonymous var with given value as lo/hi for the domain
 
     num: (num) ->
       if typeof num isnt 'number'
-        THROW "Solver#num: argument is not a number: #{num}"
-      return space_decl_value @space, num
+        THROW "Solver#num: expecting a number, got #{num} (a #{typeof num})"
+      if isNaN num
+        THROW "Solver#num: expecting a number, got NaN"
+      return space_add_var @space, num
 
     addVars: (vs) ->
       ASSERT vs instanceof Array, 'Expecting array', vs
@@ -133,7 +130,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      space_decl @space, id, domain
+      space_add_var @space, id, domain
       return
 
     # Uses @defaultDomain if no domain was given
@@ -172,7 +169,7 @@ module.exports = do ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
 
-      space_decl @space, id, domain
+      space_add_var @space, id, domain
       vars.byId[id] = v
       vars.all.push v
 

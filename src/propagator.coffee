@@ -4,7 +4,6 @@ module.exports = do ->
     REJECTED
 
     ASSERT
-    ASSERT_PROPAGATORS
     THROW
   } = require './helpers'
 
@@ -18,6 +17,7 @@ module.exports = do ->
 
   {
     space_add_var
+    space_add_propagator
   } = require './space'
 
   # BODY_START
@@ -74,14 +74,12 @@ module.exports = do ->
     ASSERT space.vars[right_var_name], 'var should exist'
     ASSERT space.vars[bool_name], 'var should exist'
 
-    space._propagators.push ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     return bool_name
 
   propagator_add_callback = (space, var_names, callback) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['callback', var_names, callback]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['callback', var_names, callback]
     return
 
   # Domain equality propagator. Creates the propagator
@@ -103,8 +101,7 @@ module.exports = do ->
     if typeof v2name is 'number'
       v2name = space_add_var space, v2name
 
-    space._propagators.push ['eq', [v1name, v2name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['eq', [v1name, v2name]]
     return
 
   # Less than propagator. See general propagator nores
@@ -112,8 +109,7 @@ module.exports = do ->
 
   propagator_add_lt = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['lt', [v1name, v2name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['lt', [v1name, v2name]]
     return
 
   # Greater than propagator.
@@ -121,16 +117,14 @@ module.exports = do ->
   propagator_add_gt = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
     # _swap_ v1 and v2 because: a>b is b<a
-    space._propagators.push ['lt', [v2name, v1name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['lt', [v2name, v1name]]
     return
 
   # Less than or equal to propagator.
 
   propagator_add_lte = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['lte', [v1name, v2name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['lte', [v1name, v2name]]
     return
 
   # Greater than or equal to.
@@ -138,16 +132,14 @@ module.exports = do ->
   propagator_add_gte = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
     # _swap_ v1 and v2 because: a>b is b<a
-    space._propagators.push ['lte', [v2name, v1name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['lte', [v2name, v1name]]
     return
 
   # Ensures that the two variables take on different values.
 
   propagator_add_neq = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['neq', [v1name, v2name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['neq', [v1name, v2name]]
     return
 
   # Takes an arbitrary number of FD variables and adds propagators that
@@ -191,8 +183,7 @@ module.exports = do ->
 
   _propagator_add_ring = (space, A, B, C, op) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['ring', [A, B, C], op]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['ring', [A, B, C], op]
     return
 
   # Bidirectional addition propagator.
@@ -230,9 +221,8 @@ module.exports = do ->
       prodname = space_add_var space
       retval = prodname
 
-    space._propagators.push ['mul', [vname, prodname]]
-    space._propagators.push ['div', [vname, prodname]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['mul', [vname, prodname]]
+    space_add_propagator space, ['div', [vname, prodname]]
 
     return retval
 
@@ -330,8 +320,7 @@ module.exports = do ->
 
   propagator_add_markov = (space, var_name) ->
     ASSERT space._class is 'space'
-    space._propagators.push ['markov', [var_name]]
-    ASSERT_PROPAGATORS space._propagators
+    space_add_propagator space, ['markov', [var_name]]
     return
 
   # BODY_STOP

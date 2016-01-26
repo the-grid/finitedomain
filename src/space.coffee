@@ -12,11 +12,9 @@ module.exports = do ->
     ASSERT
     ASSERT_DOMAIN
     ASSERT_PROPAGATORS
-    THROW
   } = require './helpers'
 
   {
-    domain_create_bool
     domain_create_value
     domain_is_solved
     domain_min
@@ -24,7 +22,6 @@ module.exports = do ->
 
   {
     fdvar_clone
-    fdvar_constrain
     fdvar_create
     fdvar_is_solved
     fdvar_set_domain
@@ -449,6 +446,12 @@ module.exports = do ->
 
     return
 
+  space_add_propagator = (space, data) ->
+    ASSERT space._class is 'space'
+    space._propagators.push data
+    ASSERT_PROPAGATORS space._propagators
+    return
+
   # __REMOVE_BELOW_FOR_DIST__
 
   #### Debugging
@@ -577,6 +580,7 @@ module.exports = do ->
   # BODY_STOP
 
   return {
+    space_add_propagator
     space_add_vars_domain
     space_add_var
     space_add_vars

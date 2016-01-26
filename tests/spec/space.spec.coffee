@@ -25,6 +25,7 @@ describe "space.spec", ->
       space_add_var
       space_add_vars
       space_add_vars_domain
+      space_add_propagator
       space_create_clone
       space_create_root
       space_get_root
@@ -222,12 +223,10 @@ describe "space.spec", ->
           space_add_var space, 'MAX', 25, 25
           space_add_var space, 'MUL', 0, 100
 
-          space._propagators = [
-            ['ring', ['A', 'B', 'MUL'], 'mul']
-            ['ring', ['MUL', 'A', 'B'], 'div']
-            ['ring', ['MUL', 'B', 'A'], 'div']
-            ['lt', ['MUL', 'MAX']]
-          ]
+          space_add_propagator space, ['ring', ['A', 'B', 'MUL'], 'mul']
+          space_add_propagator space, ['ring', ['MUL', 'A', 'B'], 'div']
+          space_add_propagator space, ['ring', ['MUL', 'B', 'A'], 'div']
+          space_add_propagator space, ['lt', ['MUL', 'MAX']]
 
           expect(space_propagate space).to.eql true
 
@@ -242,9 +241,7 @@ describe "space.spec", ->
           space_add_var space, 'A', 0, 10
           space_add_var space, 'B', 0, 10
 
-          space._propagators = [
-            ['lt', ['A', 'B']]
-          ]
+          space_add_propagator space, ['lt', ['A', 'B']]
 
           expect(space_propagate space).to.eql true
 
@@ -255,9 +252,7 @@ describe "space.spec", ->
           space_add_var space, 'A', 0, 10
           space_add_var space, 'B', 0, 10
 
-          space._propagators = [
-            ['lt', ['A', 'B']]
-          ]
+          space_add_propagator space, ['lt', ['A', 'B']]
 
           space_set_options space, timeout_callback: -> false
 
@@ -270,9 +265,7 @@ describe "space.spec", ->
           space_add_var space, 'A', 0, 10
           space_add_var space, 'B', 0, 10
 
-          space._propagators = [
-            ['lt', ['A', 'B']]
-          ]
+          space_add_propagator space, ['lt', ['A', 'B']]
 
           space_set_options space, timeout_callback: -> true
 

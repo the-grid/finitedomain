@@ -482,6 +482,21 @@ module.exports = do ->
       space_set_options @space, targeted_var_names: var_names
       space_set_options @space, distribution_options
 
+      search_func = @_get_search_func_or_die search
+
+      @_prepared = true
+
+      if @space._propagators.length > 5000
+        #console.log require('./space').__space_debug_string @space
+        console.log JSON.stringify @space
+
+      return {
+        search_func
+        max
+        log
+      }
+
+    _get_search_func_or_die: (search) ->
       search ?= @search
 
       switch search
@@ -490,13 +505,7 @@ module.exports = do ->
         else
           THROW "Unknown search strategy: #{search}"
 
-      @_prepared = true
-
-      return {
-        search_func
-        max
-        log
-      }
+      return search_func
 
     # Run the solver. You should call @prepare before calling this function.
     #

@@ -26,6 +26,10 @@ if typeof require is 'function'
   w.o12 = require './o12'
   w.o13 = require './o13'
   w.o15 = require './o15'
+
+  w.b1 = require './big1.js'
+  w.b2 = require './big2.js'
+  w.b3 = require './big3.js'
 else
   chai = window.chai
   #finitedomain = window.FD3 # dev
@@ -35,11 +39,17 @@ else
 
 {expect, assert} = chai
 
+{
+  PathSolver
+  Solver
+} = finitedomain
+
+
 test = (desc, data, profile) ->
   it desc, (done) ->
     @timeout 20000
 
-    new finitedomain.PathSolver({rawtree: data}).solve({log:1}, true)
+    new PathSolver({rawtree: data}).solve({log: 0, max: 1000}, true)
     expect(true).to.be.true
 
     done()
@@ -53,7 +63,7 @@ if PROFILE
   # for the browser
   if console.profile
     console.profile()
-    new finitedomain.PathSolver({rawtree: w.o5}).solve({log:1, max: 10000}, true)
+    new PathSolver({rawtree: w.o5}).solve({log: 0, max: 1000}, true)
     console.profileEnd()
   else
     console.log 'browser does not support console.profile, you\'ll need to work around it ;)'
@@ -86,8 +96,39 @@ else
 
     for i in [0...10]
       it 'run', (done) ->
-        new finitedomain.PathSolver(m).solve({log:1}, true)
+        new finitedomain.PathSolver(m).solve({log: 0, max: 1000}, true)
         expect(true).to.be.true
         done()
 
+  describe '5k+ prop test exports', ->
+    # space exports from Cluster tests (5k+ props)
 
+    big_test = (desc, space, max) ->
+
+      it desc+' ('+max+'x)', (done) ->
+
+        @timeout 20000
+
+        solver = new Solver {}
+        solver.space = solver.state.space = space
+        solver._prepared = true
+        solver.run
+          search_func: solver._get_search_func_or_die 'depth_first'
+          max: max
+          log: 0
+        expect(solver.solutions.length).to.eql max
+
+        done()
+
+    big_test 'b1', JSON.parse(JSON.stringify w.b1), 100
+    big_test 'b1', JSON.parse(JSON.stringify w.b1), 250
+
+    big_test 'b2', JSON.parse(JSON.stringify w.b2), 100
+    big_test 'b2', JSON.parse(JSON.stringify w.b2), 250
+    big_test 'b2', JSON.parse(JSON.stringify w.b2), 500
+    big_test 'b2', JSON.parse(JSON.stringify w.b2), 1000
+
+    big_test 'b3', JSON.parse(JSON.stringify w.b3), 100
+    big_test 'b3', JSON.parse(JSON.stringify w.b3), 250
+    big_test 'b3', JSON.parse(JSON.stringify w.b3), 500
+    big_test 'b3', JSON.parse(JSON.stringify w.b3), 1000

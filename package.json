@@ -3,7 +3,7 @@
   "main": "./dist/finitedomain.min.js",
   "description": "A fast feature rich finite domain solver",
   "license": "MIT",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "repository": {
     "type": "git",
     "url": "git://github.com/the-grid/finitedomain.git"

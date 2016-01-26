@@ -15,11 +15,23 @@ describe "propagators/callback.spec", ->
   unless FD.__DEV_BUILD
     return
 
+  {
+    space_add_vars
+    space_set_defaults
+    space_set_options
+  } = FD.space
+
+  {
+    propagator_add_callback
+    propagator_add_sum
+  } = FD.propagator
+
   describe 'integration tests', ->
 
     {
-      Space
-    } = FD.Space
+      space_add_var
+      space_create_root
+    } = FD.space
 
     {
       NO_SUCH_VALUE
@@ -53,20 +65,22 @@ describe "propagators/callback.spec", ->
         # exact match now
         return rv is tr and gv is tg and bv is tb
 
-      space = new Space
+      space = space_create_root()
 
       # some criteria to search for. callback will reject all but one.
       # (could also work with [0,255] but just takes longer...)
       [tr, tg, tb] = [2, 120, 201]
-      space.decl 'R', spec_d_create_range 0, 3
-      space.decl 'G', spec_d_create_range 119, 121
-      space.decl 'B', spec_d_create_range 200, 203
-      space.decl 'T', spec_d_create_range tr + tg + tb, tr + tg + tb
-      space.sum ['R', 'G', 'B'], 'T'
-      space.callback ['R', 'G', 'B'], cb
+      space_add_vars space,
+        ['R', 0, 3]
+        ['G', 119, 121]
+        ['B', 200, 203]
+        ['T', tr + tg + tb, tr + tg + tb]
 
-      space.set_options distribution_get_defaults 'naive'
-      space.set_options targeted_var_names: ['R', 'G', 'B']
+      propagator_add_sum space, ['R', 'G', 'B'], 'T'
+      propagator_add_callback space, ['R', 'G', 'B'], cb
+
+      space_set_defaults space, 'naive'
+      space_set_options space, targeted_var_names: ['R', 'G', 'B']
 
       state = {space, more: true}
       count = 0

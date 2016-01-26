@@ -15,7 +15,12 @@
     <script src="../../node_modules/mocha/mocha.js"></script>
     <script>mocha.setup('bdd');</script>
 
-    <script src="../../dist/finitedomain.dev.js"></script>
+    <script src="../../build/3.finitedomain.dist.coffeed.js"></script>
+    <script>var FD3 = FD;</script>
+    <script src="../../build/4.finitedomain.dist.perf_stripped.js"></script>
+    <script>var FD4 = FD;</script>
+    <script src="../../build/5.finitedomain.dist.min.js"></script>
+    <script>var FD5 = FD;</script>
 
     <script>var module = {};</script>
     <script src="../../build/perf/o1.js"></script>

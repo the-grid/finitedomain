@@ -18,6 +18,10 @@ describe 'solver.list.spec', ->
     Solver
   } = FD
 
+  {
+    space_solution_for
+  } = FD.space or {} # no space in dist
+
   it 'FD.Solver?', ->
 
     expect(typeof Solver).to.be.equal 'function'
@@ -114,8 +118,11 @@ describe 'solver.list.spec', ->
 
     it "should call the list if it is a function", ->
 
-      listCallback = (S, v) ->
-        solution = S.solutionFor(['STATE', 'STATE2', 'V1', 'V2'], false)
+      unless FD.__DEV_BUILD
+        return
+
+      listCallback = (space, v) ->
+        solution = space_solution_for space, ['STATE', 'STATE2', 'V1', 'V2'], false
         if solution['STATE'] is 5
           if v is 'V1'
             return [2, 4, 3, 1]

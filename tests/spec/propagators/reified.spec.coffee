@@ -87,20 +87,24 @@ describe 'propagators/reified.spec', ->
 
 describe 'integration', ->
 
+  {
+    Solver
+  } = FD
+
   describe.skip 'interdependency', ->
 
     it 'a == (b == c)', ->
-      S = new FD.Solver
+      solver = new Solver
         defaultDomain: spec_d_create_bool()
 
-      S.decl 'A'
-      S.decl 'B'
-      S.decl 'C'
-      S['==?'] 'A', 'B', S.decl 'AnotB'
-      S['==?'] 'C', 'AnotB', S.decl 'CnotAnotB'
-      S['=='] 'AnotB', S.constant 1
+      solver.decl 'A'
+      solver.decl 'B'
+      solver.decl 'C'
+      solver['==?'] 'A', 'B', solver.decl 'AnotB'
+      solver['==?'] 'C', 'AnotB', solver.decl 'CnotAnotB'
+      solver['=='] 'AnotB', solver.constant 1
 
-      solutions = S.solve
+      solutions = solver.solve
         vars: ['A', 'B', 'C']
 
 #      # visualize solutions

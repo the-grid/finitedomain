@@ -17,8 +17,19 @@ describe "search.spec", ->
     return
 
   {
-    Space
-  } = FD.Space
+    space_add_var
+    space_add_vars_domain
+    space_create_root
+    space_set_defaults
+    space_set_options
+  } = FD.space
+
+  {
+    propagator_add_eq
+    propagator_add_gte
+    propagator_add_reified
+    propagator_add_sum
+  } = FD.propagator
 
   {
     search_depth_first
@@ -43,11 +54,11 @@ describe "search.spec", ->
               3
       ###
 
-      space = new Space
+      space = space_create_root()
 
       # branch vars
       branchVars = ['A', 'C', 'B', 'D']
-      space.decl branchVars, spec_d_create_bool()
+      space_add_vars_domain space, branchVars, 0, 1
 
       # path vars
       Avars = ['A1', 'A2', 'A3']
@@ -55,34 +66,34 @@ describe "search.spec", ->
       Cvars = ['C1', 'C2', 'C3']
       Dvars = ['D1', 'D2', 'D3']
       pathVars = [].concat Avars, Bvars, Cvars, Dvars
-      space.decl pathVars, spec_d_create_bool()
+      space_add_vars_domain space, pathVars, 0, 1
 
       # path to branch binding
-      space.sum Avars, 'A'
-      space.sum Bvars, 'B'
-      space.sum Cvars, 'C'
-      space.sum Dvars, 'D'
+      propagator_add_sum space, Avars, 'A'
+      propagator_add_sum space, Bvars, 'B'
+      propagator_add_sum space, Cvars, 'C'
+      propagator_add_sum space,Dvars, 'D'
 
       # root branches must be on
-      space.eq 'A', space.decl_value 1
-      space.eq 'C', space.decl_value 1
+      propagator_add_eq space, 'A', 1
+      propagator_add_eq space, 'C', 1
 
       # child-parent binding
-      space.eq 'B', 'A2'
-      space.eq 'D', 'C2'
+      propagator_add_eq space, 'B', 'A2'
+      propagator_add_eq space, 'D', 'C2'
 
       # D & B counterpoint
-      space.decl 'BsyncD', spec_d_create_bool()
-      space.reified 'eq', 'B', 'D', 'BsyncD'
-      BD1 = space.reified 'eq', 'B1', 'D1'
-      space.gte BD1, 'BsyncD'
-      BD2 = space.reified 'eq', 'B2', 'D2'
-      space.gte BD2, 'BsyncD'
-      BD3 = space.reified 'eq', 'B3', 'D3'
-      space.gte BD3, 'BsyncD'
+      space_add_var space, 'BsyncD', 0, 1
+      propagator_add_reified space, 'eq', 'B', 'D', 'BsyncD'
+      BD1 = propagator_add_reified space, 'eq', 'B1', 'D1'
+      propagator_add_gte space, BD1, 'BsyncD'
+      BD2 = propagator_add_reified space, 'eq', 'B2', 'D2'
+      propagator_add_gte space, BD2, 'BsyncD'
+      BD3 = propagator_add_reified space, 'eq', 'B3', 'D3'
+      propagator_add_gte space, BD3, 'BsyncD'
 
-      space.set_defaults 'fail_first'
-      space.set_options targeted_var_names: pathVars
+      space_set_defaults space, 'fail_first'
+      space_set_options space, targeted_var_names: pathVars
 
       state =
         space: space

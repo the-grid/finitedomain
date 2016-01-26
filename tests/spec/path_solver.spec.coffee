@@ -16,6 +16,10 @@ describe "pathsolver.spec", ->
     PathSolver
   } = FD
 
+  {
+    space_add_var
+  } = FD.space or {} # no space in dist
+
   it 'should exist', ->
 
     expect(typeof PathSolver).to.eql 'function'
@@ -261,11 +265,14 @@ describe "pathsolver.spec", ->
 
     it "ex) 2.a", ->
 
+      unless FD.__DEV_BUILD # requires Space
+        return
+
       path_solver = new PathSolver TREE_DATA
 
       vars = path_solver.vars.byName
       path_solver['~='] vars['A'], path_solver.constant(2)
-      path_solver.space.decl 'BBinder', spec_d_create_range(0, 3)
+      space_add_var path_solver.space, 'BBinder', 0, 3
       path_solver['~='] vars['B'], 'BBinder'
 
       solutions = path_solver.solve()
@@ -295,10 +302,13 @@ describe "pathsolver.spec", ->
 
     it "ex) 4", ->
 
+      unless FD.__DEV_BUILD # requires Space
+        return
+
       path_solver = new PathSolver TREE_DATA
 
       vars = path_solver.vars.byName
-      path_solver.space.decl 'BBinder', spec_d_create_range(0, 3)
+      space_add_var path_solver.space, 'BBinder', 0, 3
       A = path_solver['==?'] 'BBinder', path_solver.num 0
       B = path_solver['==?'] path_solver['sum'](vars['B']), path_solver.num 0
       path_solver['=='] A, B

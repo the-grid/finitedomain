@@ -20,6 +20,14 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.2.0:
+- Removed the silly `Space#inject` function. You probably didn't use it anyways (because, why?).
+- Removed already deprecated Space#konst, #const, #decl, and #decls
+- Refactored `Space` from a class to a static set of functions (internal change)
+
+1.1.3:
+- Make npm use the dist build by default
+
 1.1.2:
 - Add npm prepublish script so npm can distribute a dist build rather than from dev
 - Internal update to how test target is determined

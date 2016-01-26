@@ -29,6 +29,7 @@ module.exports = do ->
     vars = space.vars
     fdvar1 = vars[left_var_name]
     fdvar2 = vars[right_var_name]
+    ASSERT fdvar1 and fdvar2, 'should have two vars', left_var_name, right_var_name, bool_name, op_name, inv_op_name
     bool_var = vars[bool_name]
 
     ASSERT bool_var.dom.length is PAIR_SIZE

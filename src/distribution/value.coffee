@@ -29,6 +29,10 @@ module.exports = do ->
   } = require '../markov'
 
   {
+    space_get_root
+  } = require '../space'
+
+  {
     fdvar_is_rejected
     fdvar_is_solved
     fdvar_is_undetermined
@@ -306,7 +310,7 @@ module.exports = do ->
   # @returns {number[]} The new domain this fdvar should get in the next space
 
   distribution_value_by_min_max_cycle = (space, fdvar, choice_index) ->
-    root_space = space.get_root()
+    root_space = space_get_root space
     if _is_even root_space.all_var_names.indexOf fdvar.id
       return distribution_value_by_min fdvar, choice_index
     else
@@ -332,7 +336,7 @@ module.exports = do ->
       when FIRST_CHOICE
         # THIS IS AN EXPENSIVE STEP!
 
-        root_space = space.get_root()
+        root_space = space_get_root space
         domain = fdvar.dom
         var_name = fdvar.id
 

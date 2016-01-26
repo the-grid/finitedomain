@@ -58,7 +58,7 @@ module.exports = do ->
       _class: 'fdvar'
       id
       dom
-      was_solved: false # for Space#clone
+      was_solved: false # for space_create_clone
     }
 
   # A var is undetermined when it is neither rejected nor solved.

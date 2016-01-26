@@ -27,8 +27,29 @@ module.exports = do ->
   } = require './search'
 
   {
-    Space
+    __space_debug_string
+    space_create_root
+    space_add_var
+    space_set_defaults
+    space_set_options
+    space_solution
   } = require './space'
+
+  {
+    propagator_add_distinct
+    propagator_add_eq
+    propagator_add_gt
+    propagator_add_gte
+    propagator_add_lt
+    propagator_add_lte
+    propagator_add_markov
+    propagator_add_neq
+    propagator_add_plus
+    propagator_add_product
+    propagator_add_reified
+    propagator_add_sum
+    propagator_add_times
+  } = require './propagator'
 
   # BODY_START
 
@@ -63,12 +84,13 @@ module.exports = do ->
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
 
-      @space = new Space
+      # TOFIX: cache @space and move set_defaults to prepare step
+      @space = space_create_root()
 
       if typeof @distribute is 'string'
-        @space.set_defaults @distribute
+        space_set_defaults @space, @distribute
       else if @distribute
-        @space.set_options @distribute
+        space_set_options @space, @distribute
       if search_defaults # TOFIX: is multiverse using it or can we drop this override? same as o.distribute...
         @space.set_defaults search_defaults
 
@@ -92,18 +114,16 @@ module.exports = do ->
         num = 0
       if num is true
         num = 1
-      if typeof num isnt 'number'
-        THROW "Solver#constant: expecting a number, got #{num} (a #{typeof num})"
-      if isNaN num
-        THROW "Solver#constant: expecting a number, got NaN"
-      return @space.decl_value num
+      return @num num
 
     # Returns an anonymous var with given value as lo/hi for the domain
 
     num: (num) ->
       if typeof num isnt 'number'
-        THROW "Solver#num: argument is not a number: #{num}"
-      return @space.decl_value num
+        THROW "Solver#num: expecting a number, got #{num} (a #{typeof num})"
+      if isNaN num
+        THROW "Solver#num: expecting a number, got NaN"
+      return space_add_var @space, num
 
     addVars: (vs) ->
       ASSERT vs instanceof Array, 'Expecting array', vs
@@ -114,7 +134,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      @space.decl id, domain
+      space_add_var @space, id, domain
       return
 
     # Uses @defaultDomain if no domain was given
@@ -153,7 +173,7 @@ module.exports = do ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
 
-      @space.decl id, domain
+      space_add_var @space, id, domain
       vars.byId[id] = v
       vars.all.push v
 
@@ -252,15 +272,15 @@ module.exports = do ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return @space.plus GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return @space.plus GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @times e1, e2, result_var
     times: (e1, e2, result_var) ->
       if result_var
-        return @space.times GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return @space.times GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
@@ -268,16 +288,16 @@ module.exports = do ->
     sum: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return @space.sum var_names, GET_NAME(result_var)
-      return @space.sum var_names
+        return propagator_add_sum @space, var_names, GET_NAME(result_var)
+      return propagator_add_sum @space, var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return @space.product var_names, GET_NAME(result_var)
-      return @space.product var_names
+        return propagator_add_product @space, var_names, GET_NAME(result_var)
+      return propagator_add_product @space, var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
@@ -292,7 +312,7 @@ module.exports = do ->
       @distinct es
       return
     distinct: (es) ->
-      @space.distinct GET_NAMES(es)
+      propagator_add_distinct @space, GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -306,7 +326,7 @@ module.exports = do ->
         @_eq e1, e2
       return
     _eq: (e1, e2) ->
-      @space.eq GET_NAME(e1), GET_NAME(e2)
+      propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '!=': (e1, e2) ->
@@ -320,7 +340,7 @@ module.exports = do ->
         return @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      @space.neq GET_NAME(e1), GET_NAME(e2)
+      propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -334,7 +354,7 @@ module.exports = do ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      @space.gte GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gte @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -348,7 +368,7 @@ module.exports = do ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      @space.lte GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lte @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -362,7 +382,7 @@ module.exports = do ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      @space.gt GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gt @space, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -376,7 +396,7 @@ module.exports = do ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      @space.lt GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lt @space, GET_NAME(e1), GET_NAME(e2)
       return
 
 
@@ -385,8 +405,8 @@ module.exports = do ->
       e1 = GET_NAME(e1)
       e2 = GET_NAME(e2)
       if boolvar
-        return @space.reified op, e1, e2, GET_NAME boolvar
-      return @space.reified op, e1, e2
+        return propagator_add_reified @space, op, e1, e2, GET_NAME boolvar
+      return propagator_add_reified @space, op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
       return @isNeq e1, e2, boolvar
@@ -426,12 +446,12 @@ module.exports = do ->
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' See FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
-    # @property {Object} [options.distribute] See Space#set_options
+    # @property {Object} [options.distribute] See space_set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
     solve: (options, squash) ->
       obj = @prepare options
-      ASSERT !options?.dbg or !console.log @state.space.__debug_string()
+      ASSERT !options?.dbg or !console.log __space_debug_string @state.space
       @run obj
       return @solutions
 
@@ -457,10 +477,10 @@ module.exports = do ->
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides
-        @space.set_options var_dist_config: overrides
+        space_set_options @space, var_dist_config: overrides
 
-      @space.set_options targeted_var_names: var_names
-      @space.set_options distribution_options
+      space_set_options @space, targeted_var_names: var_names
+      space_set_options @space, distribution_options
 
       search ?= @search
 
@@ -509,7 +529,7 @@ module.exports = do ->
         if state.status isnt 'end'
           count++
           unless squash
-            solution = state.space.solution()
+            solution = space_solution state.space
             solutions.push solution
             if log >= LOG_SOLVES
               console.log "      - FD solution() ::::::::::::::::::::::::::::"
@@ -547,7 +567,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          root_space._propagators.push ['markov', [name]]
+          propagator_add_markov root_space, name
 
       return overrides
 

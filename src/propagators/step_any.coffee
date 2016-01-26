@@ -52,6 +52,9 @@ module.exports = do ->
 
   _propagator_step_any = (space, op_name, prop_var_names, prop_datails) ->
     [vn1, vn2] = prop_var_names
+
+    ASSERT vn2 or op_name is 'markov' or op_name is 'callback', 'vn2 should exist for most props', prop_datails
+
     switch op_name
       when 'lt'
         return propagator_step_comparison space, op_name, vn1, vn2

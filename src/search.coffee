@@ -6,6 +6,13 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    space_create_clone
+    space_get_root
+    space_is_solved
+    space_propagate
+  } = require './space'
+
+  {
     distribution_get_next_var
   } = require './distribution/var'
 
@@ -53,11 +60,10 @@ module.exports = do ->
       space = stack[stack.length - 1]
       ASSERT_SPACE space
 
-      unless space.propagate()
+      unless space_propagate space
         _search_on_reject state, space, stack
 
-      else if space.is_solved space
-        # TOFIX: the "next" space is not made now, so if search continues does it do so properly?
+      else if space_is_solved space
         _search_on_solve state, space, stack
         return
 
@@ -90,14 +96,14 @@ module.exports = do ->
 
   _search_default_space_factory = (space) ->
     # all config should be read from root. sub-nodes dont clone this data
-    root_space = space.get_root()
+    root_space = space_get_root space
 
     target_vars = _search_get_vars_unfiltered root_space, space
     fdvar = distribution_get_next_var root_space, space, target_vars
     if fdvar
       next_domain = distribute_get_next_domain_for_var root_space, space, fdvar
       if next_domain
-        clone = space.clone()
+        clone = space_create_clone space
         clone.vars[fdvar.id].dom = next_domain
         return clone
 
@@ -172,7 +178,7 @@ module.exports = do ->
 #        return true
 #    else
 #      return (S) ->
-#        S.is_solved()
+#        space_is_solved S
 #
 #  # @public (this func is used outside of multiverse)
 #
@@ -244,7 +250,7 @@ module.exports = do ->
 #
 #      # Wait for stability. Could throw a 'fail', in which case
 #      # this becomes a failed space.
-#      unless space.propagate()
+#      unless space_propagate space
 #        on_reject state, space, stack
 #        continue
 #

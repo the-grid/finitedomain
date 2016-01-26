@@ -344,6 +344,18 @@ describe 'distribution/var.spec', ->
 
         expect(by_list v1, v2, {}, config).to.equal BETTER
 
+      it 'should return WORSE if the inverted priority hash says A is higher than B', ->
+
+        v1 = fdvar_create 'A', []
+        v2 = fdvar_create 'B', []
+        config =
+          inverted: true
+          priority_hash:
+            A: 2
+            B: 1
+
+        expect(by_list v1, v2, {}, config).to.equal WORSE
+
       it 'should THROW if the priority hash says A is equal to B', ->
 
         v1 = fdvar_create 'A', []
@@ -354,7 +366,6 @@ describe 'distribution/var.spec', ->
             B: 2
 
         expect(-> by_list v1, v2, {}, config).to.throw
-
 
       it 'should return WORSE if the priority hash says A is lower than B', ->
 
@@ -367,6 +378,18 @@ describe 'distribution/var.spec', ->
 
         expect(by_list v1, v2, {}, config).to.equal WORSE
 
+      it 'should return BETTER if the inverted priority hash says A is lower than B', ->
+
+        v1 = fdvar_create 'A', []
+        v2 = fdvar_create 'B', []
+        config =
+          inverted: true
+          priority_hash:
+            A: 1
+            B: 2
+
+        expect(by_list v1, v2, {}, config).to.equal BETTER
+
       it 'should return BETTER if A is in the hash but B is not', ->
 
         v1 = fdvar_create 'A', []
@@ -377,6 +400,17 @@ describe 'distribution/var.spec', ->
 
         expect(by_list v1, v2, {}, config).to.equal BETTER
 
+      it 'should return WORSE if A is in the inverted hash but B is not', ->
+
+        v1 = fdvar_create 'A', []
+        v2 = fdvar_create 'B', []
+        config =
+          inverted: true
+          priority_hash:
+            A: 2
+
+        expect(by_list v1, v2, {}, config).to.equal WORSE
+
       it 'should return WORSE if B is in the hash but A is not', ->
 
         v1 = fdvar_create 'A', []
@@ -386,6 +420,17 @@ describe 'distribution/var.spec', ->
             B: 2
 
         expect(by_list v1, v2, {}, config).to.equal WORSE
+
+      it 'should return BETTER if B is in the inverted hash but A is not', ->
+
+        v1 = fdvar_create 'A', []
+        v2 = fdvar_create 'B', []
+        config =
+          inverted: true
+          priority_hash:
+            B: 2
+
+        expect(by_list v1, v2, {}, config).to.equal BETTER
 
       it 'should throw if A gets value 0 from the hash', ->
 
@@ -417,11 +462,32 @@ describe 'distribution/var.spec', ->
 
         expect(by_list v1, v2, {}, config).to.equal SAME
 
+      it 'should return SAME if neither A nor B is in the inverted hash without fallback', ->
+
+        v1 = fdvar_create 'A', []
+        v2 = fdvar_create 'B', []
+        config =
+          inverted: true
+          priority_hash: {}
+
+        expect(by_list v1, v2, {}, config).to.equal SAME
+
       it 'should return BETTER if neither is in the hash and fallback is size with A smaller', ->
 
         v1 = fdvar_create 'A', [0, 0]
         v2 = fdvar_create 'B', [0, 10]
         config =
+          priority_hash: {}
+          fallback_config: 'size'
+
+        expect(by_list v1, v2, {}, config).to.equal BETTER
+
+      it 'should return BETTER if neither is in the inverted hash and fallback is size with A smaller', ->
+
+        v1 = fdvar_create 'A', [0, 0]
+        v2 = fdvar_create 'B', [0, 10]
+        config =
+          inverted: true
           priority_hash: {}
           fallback_config: 'size'
 
@@ -450,7 +516,6 @@ describe 'distribution/var.spec', ->
     describe 'integration', ->
 
       it 'should solve vars in the explicit order of the list A', ->
-
 
         solver = new Solver
         solver.addVar
@@ -642,3 +707,65 @@ describe 'distribution/var.spec', ->
         names.sort -> Math.random() - .5
 
         expect(-> distribution_get_next_var solver.space, solver.space, names).not.to.throw
+
+  describe 'list -> inverted list -> min', ->
+
+    solver = new Solver
+    solver.addVar
+      id: 'A'
+      domain: [0, 10]
+    solver.addVar
+      id: 'B'
+      domain: [10, 20]
+    solver.addVar
+      id: 'C'
+      domain: [0, 20]
+    solver.addVar
+      id: 'D'
+      domain: [10, 20]
+    solver.addVar
+      id: 'E'
+      domain: [0, 20]
+    solver.addVar
+      id: 'F'
+      domain: [10, 20]
+    solver.prepare
+      distribute:
+        var:
+          dist_name: 'list'
+          priority_list: ['B', 'A']
+          fallback_config:
+            dist_name: 'list'
+            inverted: true
+            priority_list: ['D', 'C']
+            fallback_config: 'min'
+
+    it 'should prioritize list over rest A', ->
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['D', 'C', 'A', 'E', 'F']
+
+      expect(fdvar.id).to.equal 'A'
+
+    it 'should prioritize list over rest B', ->
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['D', 'C', 'B', 'E', 'F']
+
+      expect(fdvar.id).to.equal 'B'
+
+    it 'should prioritize un-blacklisted over rest E', ->
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['D', 'E', 'C']
+
+      expect(fdvar.id).to.equal 'E'
+
+    it 'should prioritize un-blacklisted over rest F', ->
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['D', 'F', 'C']
+
+      expect(fdvar.id).to.equal 'F'
+
+    it 'should prioritize C over D in blacklist', ->
+
+      fdvar = distribution_get_next_var solver.space, solver.space, ['D', 'C']
+
+      expect(fdvar.id).to.equal 'C'

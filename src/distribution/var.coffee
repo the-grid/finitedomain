@@ -143,14 +143,29 @@ module.exports = do ->
       # either p1 and p2 both dont exist on the list, or ... well no that's it
       return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config
 
+    # invert this operation? ("deprioritizing").
+    inverted = config_next_var_func.inverted
+
+    # if inverted being on the list makes it worse than not.
+
     if !p2
+      if inverted
+        return WORSE
       return BETTER
     if !p1
+      if inverted
+        return BETTER
       return WORSE
 
+    # if inverted being low on the list makes it better
+
     if p1 > p2
+      if inverted
+        return WORSE
       return BETTER
     if p2 > p1
+      if inverted
+        return BETTER
       return WORSE
 
     ASSERT p1 isnt p2, 'cant have same indexes, would mean same item is compared'

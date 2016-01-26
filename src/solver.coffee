@@ -525,12 +525,13 @@ module.exports = do ->
 
       state = @state
       ASSERT state
-      ASSERT_SPACE state.space
+      root_space = state.space
+      ASSERT_SPACE root_space
 
       if log >= LOG_STATS
         console.time '      - FD Solver Time'
-        console.log "      - FD Solver Var Count: #{@space.all_var_names.length}"
-        console.log "      - FD Solver Prop Count: #{@space._propagators.length}"
+        console.log "      - FD Solver Var Count: #{root_space.all_var_names.length}"
+        console.log "      - FD Solver Prop Count: #{root_space._propagators.length}"
 
       count = 0
       while state.more and count < max

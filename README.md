@@ -20,6 +20,9 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.2.1:
+- Added `inverted` option to the var list distributor which allows you to deprioritize variables (prefer vars not on the list or otherwise the lowest on the list)
+
 1.2.0:
 - Removed the silly `Space#inject` function. You probably didn't use it anyways (because, why?).
 - Removed already deprecated Space#konst, #const, #decl, and #decls

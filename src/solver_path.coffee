@@ -380,6 +380,8 @@ module.exports = do ->
         B = @['==?'] parent_branch_var, @num parent_value
         @['=='] A, B
 
+      return
+
   # BODY_STOP
 
   return {

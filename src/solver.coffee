@@ -486,10 +486,6 @@ module.exports = do ->
 
       @_prepared = true
 
-      if @space._propagators.length > 5000
-        #console.log require('./space').__space_debug_string @space
-        console.log JSON.stringify @space
-
       return {
         search_func
         max

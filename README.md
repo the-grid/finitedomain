@@ -20,6 +20,9 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.2.2:
+- Remove debugging statements on large sets introduced in 1.2.1. Oops.
+
 1.2.1:
 - Added `inverted` option to the var list distributor which allows you to deprioritize variables (prefer vars not on the list or otherwise the lowest on the list)
 

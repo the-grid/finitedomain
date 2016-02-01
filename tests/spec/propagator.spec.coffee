@@ -43,6 +43,7 @@ describe "propagator.spec", ->
 
 
   {
+    space_add_var
     space_create_root
   } = FD.space
 
@@ -51,3 +52,53 @@ describe "propagator.spec", ->
     it 'should not crash', ->
 
       expect(propagator_add_markov space_create_root(), 'foo').to.be.undefined
+
+  describe 'propagator_add_reified', ->
+
+    describe 'bool var domain', ->
+
+      it 'should throw if the boolvar has no zero or one', ->
+
+        space = space_create_root()
+        space_add_var space, 'A'
+        space_add_var space, 'B'
+        space_add_var space, 'C', 2, 3
+
+        expect(-> propagator_add_reified space, 'eq', 'A', 'B', 'C').to.throw
+
+      it 'should be fine if the boolvar has no one', ->
+
+        space = space_create_root()
+        space_add_var space, 'A'
+        space_add_var space, 'B'
+        space_add_var space, 'C', 0, 0
+
+        expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
+
+      it 'should be fine if the boolvar has no zero', ->
+
+        space = space_create_root()
+        space_add_var space, 'A'
+        space_add_var space, 'B'
+        space_add_var space, 'C', 1, 5
+
+        expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
+
+      it 'should be fine if the boolvar has more than zero and one', ->
+
+        space = space_create_root()
+        space_add_var space, 'A'
+        space_add_var space, 'B'
+        space_add_var space, 'C', 0, 3
+
+        expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
+
+      it 'should reduce the domain to bool if not already', ->
+
+        space = space_create_root()
+        space_add_var space, 'A'
+        space_add_var space, 'B'
+        space_add_var space, 'C', 0, 3
+        propagator_add_reified space, 'eq', 'A', 'B', 'C'
+
+        expect(space.vars.C.dom).to.eql spec_d_create_bool()

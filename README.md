@@ -20,6 +20,9 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.2.3:
+- The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.
+
 1.2.2:
 - Remove debugging statements on large sets introduced in 1.2.1. Oops.
 

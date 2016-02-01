@@ -64,11 +64,10 @@ module.exports = do ->
       else
         THROW 'add_reified: Unsupported operator \'' + opname + '\''
 
-    if bool_name
-      if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
-        return REJECTED
-    else
+    if !bool_name
       bool_name = space_add_var space, 0, 1
+    else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
+      THROW 'boolean var should start with a domain containing zero, one, or both'
 
     ASSERT space.vars[left_var_name], 'var should exist'
     ASSERT space.vars[right_var_name], 'var should exist'

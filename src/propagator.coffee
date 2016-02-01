@@ -152,20 +152,6 @@ module.exports = do ->
         propagator_add_neq space, var_name_i, var_names[j]
     return
 
-  # Once you create an fdvar in a space with the given
-  # name, it is available for accessing as a direct member
-  # of the space. Since this can cause a name clash, it is
-  # recommended that you start the names of fdvars with an
-  # upper case letter. Since all the declared member names
-  # start with a lower case letter, a clash can certainly
-  # be avoided if you stick to that rule.
-  #
-  # If the domain is not specified, it is taken to be [SUB, SUP].
-  #
-  # Returns the space. All methods, unless otherwise noted,
-  # will return the current space so that other methods
-  # can be invoked in sequence.
-
   _propagator_add_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
     retval = space

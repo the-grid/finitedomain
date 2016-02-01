@@ -407,7 +407,7 @@ describe "space.spec", ->
       it 'should throw if value is OOB', ->
 
         space = space_create_root()
-        expect(-> space_add_var space, FD.helpers.SUB - 100).to.throw
+        expect(-> space_add_var space, FD.helpers.SUB - 100).to.throw()
 
       it 'should create a new var', ->
 

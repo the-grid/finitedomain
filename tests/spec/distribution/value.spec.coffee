@@ -79,16 +79,16 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_min fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_min fdvar, 1).to.throw()
 
   describe 'distribution_value_by_max', ->
 
@@ -136,16 +136,16 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_max fdvar, 0).to.throw
-      expect(-> distribution_value_by_max fdvar, 1).to.throw
+      expect(-> distribution_value_by_max fdvar, 0).to.throw()
+      expect(-> distribution_value_by_max fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_max fdvar, 0).to.throw
-      expect(-> distribution_value_by_max fdvar, 1).to.throw
+      expect(-> distribution_value_by_max fdvar, 0).to.throw()
+      expect(-> distribution_value_by_max fdvar, 1).to.throw()
 
   describe 'distribution_value_by_mid', ->
 
@@ -199,16 +199,16 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_mid fdvar, 0).to.throw
-      expect(-> distribution_value_by_mid fdvar, 1).to.throw
+      expect(-> distribution_value_by_mid fdvar, 0).to.throw()
+      expect(-> distribution_value_by_mid fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_mid fdvar, 0).to.throw
-      expect(-> distribution_value_by_mid fdvar, 1).to.throw
+      expect(-> distribution_value_by_mid fdvar, 0).to.throw()
+      expect(-> distribution_value_by_mid fdvar, 1).to.throw()
 
   describe 'distribution_value_by_split_min', ->
 
@@ -271,16 +271,16 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw()
 
   describe 'distribution_value_by_split_min', ->
 
@@ -343,16 +343,16 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_split_min fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_min fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_min fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_min fdvar, 1).to.throw()
 
   describe 'distribution_value_by_split_max', ->
 
@@ -415,13 +415,13 @@ describe 'distribution/value.spec', ->
 
       fdvar = fdvar_create 'A', spec_d_create_value 20
 
-      expect(-> distribution_value_by_split_max fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_max fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_max fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_max fdvar, 1).to.throw()
 
     it 'should reject a "rejected" var', ->
       # note: only rejects with ASSERTs
 
       fdvar = fdvar_create 'A', []
 
-      expect(-> distribution_value_by_split_max fdvar, 0).to.throw
-      expect(-> distribution_value_by_split_max fdvar, 1).to.throw
+      expect(-> distribution_value_by_split_max fdvar, 0).to.throw()
+      expect(-> distribution_value_by_split_max fdvar, 1).to.throw()

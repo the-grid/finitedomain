@@ -39,10 +39,10 @@ describe "propagators/lte.spec", ->
 
   it 'should require two vars', ->
 
-    expect(-> propagator_lte_step_bare()).to.throw
+    expect(-> propagator_lte_step_bare()).to.throw()
     v = fdvar_create_wide 'x'
-    expect(-> propagator_lte_step_bare v).to.throw
-    expect(-> propagator_lte_step_bare undefined, v).to.throw
+    expect(-> propagator_lte_step_bare v).to.throw()
+    expect(-> propagator_lte_step_bare undefined, v).to.throw()
 
 #  it 'should reject for empty domains', ->
 #

@@ -365,7 +365,7 @@ describe 'distribution/var.spec', ->
             A: 2
             B: 2
 
-        expect(-> by_list v1, v2, {}, config).to.throw
+        expect(-> by_list v1, v2, {}, config).to.throw()
 
       it 'should return WORSE if the priority hash says A is lower than B', ->
 
@@ -441,7 +441,7 @@ describe 'distribution/var.spec', ->
             priority_hash:
               A: 0
 
-        expect(-> by_list v1, v2, fake_space, {}).to.throw
+        expect(-> by_list v1, v2, fake_space, {}).to.throw()
 
       it 'should throw if B gets value 0 from the hash', ->
 
@@ -449,9 +449,9 @@ describe 'distribution/var.spec', ->
         v2 = fdvar_create 'B', []
         config =
           priority_hash:
-            B: 2
+            B: 0
 
-        expect(-> by_list v1, v2, {}, config).to.throw
+        expect(-> by_list v1, v2, {}, config).to.throw()
 
       it 'should return SAME if neither A nor B is in the hash without fallback', ->
 
@@ -706,7 +706,7 @@ describe 'distribution/var.spec', ->
         # shuffle list the ugly way
         names.sort -> Math.random() - .5
 
-        expect(-> distribution_get_next_var solver.space, solver.space, names).not.to.throw
+        expect(-> distribution_get_next_var solver.space, solver.space, names).not.to.throw()
 
   describe 'list -> inverted list -> min', ->
 

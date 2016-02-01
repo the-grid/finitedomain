@@ -41,10 +41,10 @@ describe "propagators/eq.spec", ->
 
   it 'should require two vars', ->
 
-    expect(-> propagator_eq_step_bare()).to.throw
+    expect(-> propagator_eq_step_bare()).to.throw()
     v = fdvar_create_wide 'x'
-    expect(-> propagator_eq_step_bare v).to.throw
-    expect(-> propagator_eq_step_bare undefined, v).to.throw
+    expect(-> propagator_eq_step_bare v).to.throw()
+    expect(-> propagator_eq_step_bare undefined, v).to.throw()
 
 #  it 'should reject for empty domains', ->
 #

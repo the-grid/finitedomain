@@ -34,4 +34,4 @@ describe "helpers.spec", ->
 
     it 'should throw if you pass on false', ->
 
-      expect(-> ASSERT false).to.throw
+      expect(-> ASSERT false).to.throw()

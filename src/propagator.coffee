@@ -42,6 +42,10 @@ module.exports = do ->
 
   propagator_add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
     ASSERT space._class is 'space'
+    ASSERT typeof left_var_name is 'string' or typeof left_var_name is 'number', 'expecting left_var_name', left_var_name
+    ASSERT typeof right_var_name is 'string' or typeof right_var_name is 'number', 'expecting right_var_name', right_var_name
+    ASSERT typeof bool_name is 'string' or typeof bool_name is 'number' or typeof bool_name is 'undefined', 'expecting bool_name to be string, number, or undefined', bool_name
+
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -69,6 +73,15 @@ module.exports = do ->
     else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
       THROW 'boolean var should start with a domain containing zero, one, or both'
 
+    if typeof left_var_name is 'number'
+      left_var_name = space_add_var space, left_var_name
+      if typeof right_var_name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof right_var_name is 'number'
+      right_var_name = space_add_var space, right_var_name
+      if typeof left_var_name is 'number'
+        THROW 'must pass in at least one var name'
+
     ASSERT space.vars[left_var_name], 'var should exist'
     ASSERT space.vars[right_var_name], 'var should exist'
     ASSERT space.vars[bool_name], 'var should exist'
@@ -82,23 +95,24 @@ module.exports = do ->
     return
 
   # Domain equality propagator. Creates the propagator
-  # in this space. The specified variables need not
-  # exist at the time the propagator is created and
-  # added, since the fdvars are all referenced by name.
-  # if `v2name` is a number, an anonymous var is created
-  # for that value so you can do `propagator_add_eq(space, 'A', 1)`
-  # TOFIX: deprecate the "functional" syntax for sake of simplicity. Was part of original lib. Silliness.
+  # in given space.
+  # Can pass in vars or numbers that become anonymous
+  # vars. Must at least pass in one var because the
+  # propagator would be useless otherwise.
 
   propagator_add_eq = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
-    # If v2name is not specified, then we're operating in functional syntax
-    # and the return value is expected to be v2name itself. This can happen
-    # when, for example, scale uses a weight factor of 1.
-    if !v2name?
-      return v1name
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
-    if typeof v2name is 'number'
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
       v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
 
     space_add_propagator space, ['eq', [v1name, v2name]]
     return
@@ -108,36 +122,69 @@ module.exports = do ->
 
   propagator_add_lt = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
     space_add_propagator space, ['lt', [v1name, v2name]]
     return
 
   # Greater than propagator.
 
   propagator_add_gt = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
     # _swap_ v1 and v2 because: a>b is b<a
-    space_add_propagator space, ['lt', [v2name, v1name]]
+    propagator_add_lt space, v2name, v1name
     return
 
   # Less than or equal to propagator.
 
   propagator_add_lte = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
     space_add_propagator space, ['lte', [v1name, v2name]]
     return
 
   # Greater than or equal to.
 
   propagator_add_gte = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
-    # _swap_ v1 and v2 because: a>b is b<a
-    space_add_propagator space, ['lte', [v2name, v1name]]
-    return
+    # _swap_ v1 and v2 because: a>=b is b<=a
+    return propagator_add_lte space, v2name, v1name
 
   # Ensures that the two variables take on different values.
 
   propagator_add_neq = (space, v1name, v2name) ->
     ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
     space_add_propagator space, ['neq', [v1name, v2name]]
     return
 
@@ -153,21 +200,37 @@ module.exports = do ->
 
   _propagator_add_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
-    retval = space
-    # If sumname is not specified, we need to create a anonymous
-    # for the result and return the name of that anon variable.
-    unless sumname
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+    ASSERT typeof sumname is 'string' or typeof sumname is 'number' or typeof sumname is 'undefined', 'expecting sumname to be number, string, or undefined', sumname
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    if typeof sumname is 'undefined'
       sumname = space_add_var space
-      retval = sumname
+    else if typeof sumname is 'number'
+      sumname = space_add_var space, sumname
+    else if typeof sumname isnt 'string'
+      THROW 'expecting sumname to be absent or a number or string: `'+sumname+'`'
 
     _propagator_add_ring space, v1name, v2name, sumname, target_op_name
     _propagator_add_ring space, sumname, v2name, v1name, inv_op_name
     _propagator_add_ring space, sumname, v1name, v2name, inv_op_name
 
-    return retval
+    return sumname
 
   _propagator_add_ring = (space, A, B, C, op) ->
     ASSERT space._class is 'space'
+    ASSERT typeof A is 'string', 'number/undefined vars should be handled by caller'
+    ASSERT typeof B is 'string', 'number/undefined vars should be handled by caller'
+    ASSERT typeof C is 'string', 'number/undefined vars should be handled by caller'
     space_add_propagator space, ['ring', [A, B, C], op]
     return
 
@@ -194,22 +257,23 @@ module.exports = do ->
   propagator_add_scale = (space, factor, vname, prodname) ->
     ASSERT space._class is 'space'
     if factor is 1
-      return propagator_add_eq space, vname, prodname
+      propagator_add_eq space, vname, prodname
+      return prodname
 
     if factor is 0
-      return propagator_add_eq space, space_add_var(space, 0), prodname
+      propagator_add_eq space, 0, prodname
+      return prodname
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
 
     unless prodname
       prodname = space_add_var space
-      retval = prodname
 
     space_add_propagator space, ['mul', [vname, prodname]]
     space_add_propagator space, ['div', [vname, prodname]]
 
-    return retval
+    return prodname
 
   # TODO: Can be made more efficient.
 
@@ -328,4 +392,7 @@ module.exports = do ->
     propagator_add_times
     propagator_add_times_plus
     propagator_add_wsum
+
+    # for testing
+    _propagator_add_plus_or_times
   }

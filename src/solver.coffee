@@ -20,6 +20,7 @@ module.exports = do ->
 
   {
     domain_create_bool
+    domain_from_list
   } = require './domain'
 
   {
@@ -546,6 +547,16 @@ module.exports = do ->
         console.log "      - FD solution count: #{count}"
 
       return
+
+    # exposes internal method space_add_var for subclass
+
+    space_add_var_range: (id, lo, hi) ->
+      return space_add_var @space, id, lo, hi
+
+    # exposes internal method domain_from_list for subclass
+
+    domain_from_list: (list) ->
+      return domain_from_list list
 
     # Visit the branch vars and collect var specific configuration overrides if
     # there are any and put them on the root space. This way we don't need to

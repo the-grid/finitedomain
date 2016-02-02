@@ -277,9 +277,9 @@ module.exports = do ->
       return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
-      return @times e1, e2, result_var
+      return @mul e1, e2, result_var
     times: (e1, e2, result_var) -> # deprecated
-      return @times e1, e2, result_var
+      return @mul e1, e2, result_var
     mul: (e1, e2, result_var) ->
       if result_var
         return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)

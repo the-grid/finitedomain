@@ -308,3 +308,92 @@ describe "propagator.spec", ->
       space_add_var space, 'B'
 
       expect(propagator_add_scale space, 5, 'A', 'B').to.eql 'B'
+
+  describe 'propagator_add_sum', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(typeof propagator_add_sum space, ['A', 'B', 'C']).to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+      space_add_var space, 'D'
+
+      expect(propagator_add_sum space, ['A', 'B', 'C'], 'D').to.eql 'D'
+
+    it 'should allow anonymous numbers in the list of vars', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'C'
+      space_add_var space, 'D'
+
+      expect(propagator_add_sum space, ['A', 5, 'C'], 'D').to.eql 'D'
+
+    it 'should throw if you dont pass on any vars', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+
+      expect(-> propagator_add_sum space, [], 'A').to.throw()
+
+    it 'should throw if you dont pass on an array', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+
+      expect(-> propagator_add_sum space undefined, 'A').to.throw()
+      expect(-> propagator_add_sum space, 'X', 'A').to.throw()
+      expect(-> propagator_add_sum space, 5, 'A').to.throw()
+      expect(-> propagator_add_sum space, null, 'A').to.throw()
+
+  describe 'propagator_add_product', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(typeof propagator_add_product space, ['A', 'B', 'C']).to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+      space_add_var space, 'D'
+
+      expect(propagator_add_product space, ['A', 'B', 'C'], 'D').to.eql 'D'
+
+  describe 'propagator_add_wsum', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(typeof propagator_add_wsum space, [1, 2, 3], ['A', 'B', 'C']).to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+      space_add_var space, 'D'
+
+      expect(propagator_add_wsum space, [1, 2, 3], ['A', 'B', 'C'], 'D').to.eql 'D'

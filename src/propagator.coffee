@@ -167,7 +167,8 @@ module.exports = do ->
 
   propagator_add_gte = (space, v1name, v2name) ->
     # _swap_ v1 and v2 because: a>=b is b<=a
-    return propagator_add_lte space, v2name, v1name
+    propagator_add_lte space, v2name, v1name
+    return
 
   # Ensures that the two variables take on different values.
 
@@ -256,13 +257,18 @@ module.exports = do ->
 
   propagator_add_scale = (space, factor, vname, prodname) ->
     ASSERT space._class is 'space'
+
     if factor is 1
+      unless prodname
+        prodname = space_add_var space
       propagator_add_eq space, vname, prodname
       return prodname
 
     if factor is 0
-      propagator_add_eq space, 0, prodname
-      return prodname
+      if prodname
+        propagator_add_eq space, 0, prodname
+        return prodname
+      return space_add_var space, 0
 
     if factor < 0
       THROW 'scale: negative factors not supported.'
@@ -289,13 +295,13 @@ module.exports = do ->
 
   propagator_add_sum = (space, vars, result_var_name) ->
     ASSERT space._class is 'space'
-    retval = space
+    ASSERT vars instanceof Array, 'vars should be an array of var names', vars
 
     unless result_var_name
       result_var_name = space_add_var space
-      retval = result_var_name
 
-    switch vars.length
+    len = vars.length
+    switch len
       when 0
         THROW 'propagator_add_sum: Nothing to sum!'
 
@@ -306,6 +312,8 @@ module.exports = do ->
         propagator_add_plus space, vars[0], vars[1], result_var_name
 
       else # "divide and conquer" ugh. feels like there is a better way to do this
+        ASSERT len > 2, 'expecting at least 3 elements in the list...', vars
+
         n = Math.floor vars.length / 2
         if n > 1
           t1 = space_add_var space
@@ -318,18 +326,16 @@ module.exports = do ->
         propagator_add_sum space, vars.slice(n), t2
         propagator_add_plus space, t1, t2, result_var_name
 
-    return retval
+    return result_var_name
 
   # Product of N fdvars = resultFDvar.
   # Create as many anonymous vars as necessary.
 
   propagator_add_product = (space, vars, result_var_name) ->
     ASSERT space._class is 'space'
-    retval = space
 
     unless result_var_name
       result_var_name = space_add_var space
-      retval = result_var_name
 
     switch vars.length
       when 0
@@ -353,22 +359,21 @@ module.exports = do ->
         propagator_add_product space, vars.slice(n), t2
         propagator_add_times space, t1, t2, result_var_name
 
-    return retval
+    return result_var_name
 
   # Weighted sum of fdvars where the weights are constants.
 
   propagator_add_wsum = (space, kweights, vars, result_name) ->
     ASSERT space._class is 'space'
-    anons = []
+    result_var_names = []
     for var_i, i in vars
-      t = space_add_var space
-      propagator_add_scale space, kweights[i], var_i, t
-      anons.push t
-    propagator_add_sum space, anons, result_name
-    return
+      result_var_names.push propagator_add_scale space, kweights[i], var_i
+
+    return propagator_add_sum space, result_var_names, result_name
 
   propagator_add_markov = (space, var_name) ->
     ASSERT space._class is 'space'
+    ASSERT typeof var_name is 'string'
     space_add_propagator space, ['markov', [var_name]]
     return
 

@@ -51,7 +51,7 @@ describe 'distribution/markov.spec', ->
     value_legend = [2, 8]
     prob_vector = [1, 1] # equal odds (irrelevant for this test)
     rng_func = -> 1 # not a valid normalized value
-    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw
+    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw()
 
   it 'should throw if normalized rng returns 1.1', ->
 
@@ -59,7 +59,7 @@ describe 'distribution/markov.spec', ->
     value_legend = [2, 8]
     prob_vector = [1, 1] # equal odds (irrelevant for this test)
     rng_func = -> 1.1 # not a valid normalized value
-    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw
+    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw()
 
   it 'should throw if normalized rng returns -1', ->
 
@@ -67,7 +67,7 @@ describe 'distribution/markov.spec', ->
     value_legend = [2, 8]
     prob_vector = [1, 1] # equal odds (irrelevant for this test)
     rng_func = -> -1 # not a valid normalized value
-    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw
+    expect(-> distribution_markov_sampleNextFromDomain domain, prob_vector, value_legend, rng_func, RNG_NORMALIZED).to.throw()
 
   it 'should return middle value in legend if rng is .5 with equal probs', ->
 

@@ -41,10 +41,10 @@ describe "propagators/neq.spec", ->
 
   it 'should require two vars', ->
 
-    expect(-> propagator_neq_step_bare()).to.throw
+    expect(-> propagator_neq_step_bare()).to.throw()
     v = fdvar_create_wide 'x'
-    expect(-> propagator_neq_step_bare v).to.throw
-    expect(-> propagator_neq_step_bare undefined, v).to.throw
+    expect(-> propagator_neq_step_bare v).to.throw()
+    expect(-> propagator_neq_step_bare undefined, v).to.throw()
 
 #  it 'should reject for empty domains', ->
 #

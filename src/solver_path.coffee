@@ -20,22 +20,8 @@ module.exports = do ->
   } = require './solver'
 
   {
-    THROW
-  } = require './helpers'
-
-  {
     create_branch_var
   } = require './bvar'
-
-  {
-    domain_create_range
-    domain_from_list
-    domain_max
-  } = require './domain'
-
-  {
-    space_add_var
-  } = require './space'
 
   # BODY_START
 
@@ -43,6 +29,11 @@ module.exports = do ->
   PATH_UNDETERMINED = 0
   PATH_NUM = 1
   PATH_NAN = 2
+
+  # throwing abstraction because throws inside a function deopt the whole function
+
+  THROW = (s) ->
+    throw new Error s
 
   _path_solver_binding_uid = 0
 
@@ -189,7 +180,7 @@ module.exports = do ->
       bind_name = "__bind#{_path_solver_binding_uid++}__"
 
       # TOFIX: should the lo of this domain also be the min of all domains?
-      space_add_var @space, bind_name, 0, find_max_or_throw bvars
+      @space_add_var_range bind_name, 0, find_max_or_throw bvars
 
       A = @['==?'] bind_name, @num 0
       B = @['==?'] @['sum'](bvars), @num 0
@@ -208,9 +199,9 @@ module.exports = do ->
 
       for branchvar in bvars
         domain = branchvar.domain # csis domain
-        if domain
+        if domain and domain.length
           had_domain = true
-          max_domain = MAX max_domain, domain_max domain
+          max_domain = MAX max_domain, domain[domain.length - 1]
 
       unless had_domain
         THROW "{}~= Cant find domain for binding"
@@ -281,7 +272,7 @@ module.exports = do ->
       )
 
       valid_branch_values = @add_path_meta_to_bvar branch_var, paths, branch_path, branch_rules
-      set_bvar_domain branch_var, valid_branch_values, required
+      @set_bvar_domain branch_var, valid_branch_values, required
 
       @addVar branch_var
 
@@ -338,6 +329,18 @@ module.exports = do ->
 
       return valid_branch_values
 
+    set_bvar_domain: (branch_var, valid_branch_values, required) ->
+      unless valid_branch_values.length > 0
+        THROW "PathSolver: no possible values???"
+        #domain = domain_create_zero()
+
+      unless required # allow zero?
+        valid_branch_values.unshift 0
+      domain = @domain_from_list valid_branch_values
+      branch_var.domain = domain
+
+      return
+
     valid_rules = (branch_rules, path_data) ->
       path_$class = path_data?.$class
       if branch_rules and path_$class
@@ -345,18 +348,6 @@ module.exports = do ->
           if rule.$class in path_$class and rule.type is 'kill'
             return false
       return true
-
-    set_bvar_domain = (branch_var, valid_branch_values, required) ->
-      unless valid_branch_values.length > 0
-        THROW "PathSolver: no possible values???"
-        #domain = domain_create_zero()
-
-      unless required # allow zero?
-        valid_branch_values.unshift 0
-      domain = domain_from_list valid_branch_values
-      branch_var.domain = domain
-
-      return
 
     force_parent_child_state: (branch_var, parent_branch_var, optional, required, parent_is_root, parent_value) ->
       # if optional

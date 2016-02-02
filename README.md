@@ -20,6 +20,11 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.2.3:
+- The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.
+- Support numbers or strings on some internal propagator creators and make them return more consistent values (`propagator_add_reified`, `propagator_add_eq`, `propagator_add_lt`, `propagator_add_gt`, `_propagator_add_ring`, `propagator_add_scale`).
+- Removed the PathSolver subclass and Bvar class and moved it to the right (private) repo
+
 1.2.2:
 - Remove debugging statements on large sets introduced in 1.2.1. Oops.
 

@@ -50,8 +50,8 @@ describe 'domain.spec', ->
       expect(domain_from_list [1,1,0,0]).to.eql spec_d_create_bool()
 
     it "negative elements should throw", ->
-      expect(-> domain_from_list [10,1,-1,0]).to.throw
-      expect(-> domain_from_list [10,1,-1,0,10,1,-1,0,10,1,-1,0]).to.throw
+      expect(-> domain_from_list [10,1,-1,0]).to.throw()
+      expect(-> domain_from_list [10,1,-1,0,10,1,-1,0,10,1,-1,0]).to.throw()
 
   describe "domain_to_list", ->
 
@@ -63,7 +63,7 @@ describe 'domain.spec', ->
 
     it 'should require a domain', ->
 
-      expect(-> domain_to_list()).to.throw
+      expect(-> domain_to_list()).to.throw()
 
     it "[[0,0]]", ->
 
@@ -72,10 +72,6 @@ describe 'domain.spec', ->
     it "[[0,1]]", ->
 
       expect(domain_to_list spec_d_create_bool()).to.eql [0,1]
-
-    it "negative elements to throw", ->
-
-      expect(-> domain_to_list spec_d_create_ranges([-1,1], [10,10])).to.throw
 
   describe "domain_remove_next_from_list", ->
 
@@ -87,7 +83,7 @@ describe 'domain.spec', ->
 
     it 'should require an array', ->
 
-      expect(-> domain_remove_next_from_list null, [0]).to.throw
+      expect(-> domain_remove_next_from_list null, [0]).to.throw()
 
     it 'should return a fresh domain', ->
 
@@ -138,8 +134,8 @@ describe 'domain.spec', ->
 
     it "should throw for negative values", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])
-      expect(-> domain_remove_next_from_list dom, [99,-1,12,11]).to.throw
-      expect(-> domain_remove_next_from_list dom, [99,-1]).to.throw
+      expect(-> domain_remove_next_from_list dom, [99,-1,12,11]).to.throw()
+      expect(-> domain_remove_next_from_list dom, [99,-1]).to.throw()
 
   describe "domain_get_value_of_first_contained_value_in_list ", ->
 
@@ -179,8 +175,8 @@ describe 'domain.spec', ->
 
     it "should throw for negative values", ->
       dom = spec_d_create_ranges([0,4],[10,14],[20,24])
-      expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1,12,11]) ).to.throw
-      expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1]) ).to.throw
+      expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1,12,11]) ).to.throw()
+      expect(-> domain_get_value_of_first_contained_value_in_list(dom,[99,-1]) ).to.throw()
 
   describe 'domain_contains_value', ->
 
@@ -257,7 +253,7 @@ describe 'domain.spec', ->
 
     it 'should require a domain', ->
 
-      expect(-> domain_is_value()).to.throw
+      expect(-> domain_is_value()).to.throw()
 
     it 'should return false if domain is empty', ->
 
@@ -265,7 +261,7 @@ describe 'domain.spec', ->
 
     it 'should throw for invalid domains', ->
 
-      expect(-> domain_is_value spec_d_create_value(undefined)).to.throw
+      expect(-> domain_is_value spec_d_create_value(undefined)).to.throw()
 
     it 'should be able to check without arg (but return false)', ->
 
@@ -297,17 +293,6 @@ describe 'domain.spec', ->
       expect(domain_is_value(spec_d_create_ranges([1, 1], [3, 3]), 3), 'first range 1 with second range 3').to.be.false
       expect(domain_is_value(spec_d_create_ranges([10, 20], [50, 50]), 50), 'two ranges').to.be.false
 
-    it 'should throw for invalid (non-csis) domains', ->
-
-      expect(-> domain_is_value(spec_d_create_ranges([50, 50], [10, 20]), 50)).to.throw
-      expect(-> domain_is_value(spec_d_create_ranges([50, 50], [60, 70]), 50)).to.throw
-      expect(-> domain_is_value(spec_d_create_ranges([50, 50], [54, 54]), 50)).to.throw
-
-    it 'should throw for bogus domains', ->
-
-      expect(-> domain_is_value([[50, 50], ['oops']])).to.throw
-      expect(-> domain_is_value([[50, 50], ['oops']])).to.throw
-
   describe 'domain_remove_value_inline', ->
 
     {domain_remove_value_inline} = Domain
@@ -318,7 +303,7 @@ describe 'domain.spec', ->
 
     it 'should require a domain', ->
 
-      expect(-> domain_remove_value_inline null, 15).to.throw
+      expect(-> domain_remove_value_inline null, 15).to.throw()
 
     it 'should accept an empty domain', ->
 
@@ -349,7 +334,7 @@ describe 'domain.spec', ->
 
     it 'should require a domain', ->
 
-      expect(-> is_simplified()).to.throw
+      expect(-> is_simplified()).to.throw()
 
     it 'should accept empty domain', ->
 
@@ -367,7 +352,7 @@ describe 'domain.spec', ->
 
       it 'should reject domain with inverted range', ->
 
-        expect(-> is_simplified spec_d_create_range(1, 0)).to.throw
+        expect(-> is_simplified spec_d_create_range(1, 0)).to.throw()
 
     describe 'multiple ranges in domain', ->
 
@@ -377,11 +362,11 @@ describe 'domain.spec', ->
 #        expect(is_simplified spec_d_create_ranges([5, 6], [7, 8], [9, 10])).to.be.true
 #        expect(is_simplified spec_d_create_ranges([5, 6], [7, 8], [9, 10], [100, 200])).to.be.true
 
-      it 'should reject if two ranges overlap despite ordering', ->
+      it 'should throw if two ranges overlap despite ordering', ->
 
-        expect(-> is_simplified spec_d_create_ranges([10, 15], [13, 19], [50, 60])).to.throw # start
-        expect(-> is_simplified spec_d_create_ranges([1, 3], [10, 15], [13, 19], [70, 75])).to.throw # middle
-        expect(-> is_simplified spec_d_create_ranges([1, 3], [10, 15], [16, 19], [18, 25])).to.throw #end
+        expect(is_simplified spec_d_create_ranges([10, 15], [13, 19], [50, 60])).to.be.false # start
+        expect(is_simplified spec_d_create_ranges([1, 3], [10, 15], [13, 19], [70, 75])).to.be.false # middle
+        expect(is_simplified spec_d_create_ranges([1, 3], [10, 15], [16, 19], [18, 25])).to.be.false #end
 
       it 'should reject if two ranges touch', ->
 
@@ -389,9 +374,9 @@ describe 'domain.spec', ->
 
       it 'should reject if at least one range is inverted', ->
 
-        expect(-> is_simplified spec_d_create_ranges([15, 10], [40, 50], [55, 60])).to.throw # start
-        expect(-> is_simplified spec_d_create_ranges([10, 15], [50, 40], [55, 60])).to.throw # middle
-        expect(-> is_simplified spec_d_create_ranges([10, 15], [40, 50], [65, 60])).to.throw # end
+        expect(-> is_simplified spec_d_create_ranges([15, 10], [40, 50], [55, 60])).to.throw() # start
+        expect(-> is_simplified spec_d_create_ranges([10, 15], [50, 40], [55, 60])).to.throw() # middle
+        expect(-> is_simplified spec_d_create_ranges([10, 15], [40, 50], [65, 60])).to.throw() # end
 
   describe 'merge_overlapping_inline', ->
 
@@ -497,7 +482,7 @@ describe 'domain.spec', ->
 
     it 'should throw without a domain', ->
 
-      expect(-> domain_simplify()).to.throw
+      expect(-> domain_simplify()).to.throw()
 
     # test both empty domains and the case where the domain actually requires an action
 
@@ -603,9 +588,9 @@ describe 'domain.spec', ->
 
       it 'should require two domains', ->
 
-        expect(-> domain_intersection).to.throw
-        expect(-> domain_intersection []).to.throw
-        expect(-> domain_intersection null, []).to.throw
+        expect(-> domain_intersection()).to.throw()
+        expect(-> domain_intersection []).to.throw()
+        expect(-> domain_intersection null, []).to.throw()
 
       it 'should handle empty domains', ->
 
@@ -752,7 +737,7 @@ describe 'domain.spec', ->
 
     it 'should require a domain', ->
 
-      expect(-> domain_complement()).to.throw
+      expect(-> domain_complement()).to.throw()
 
     it 'should accept an empty array', ->
 
@@ -809,9 +794,9 @@ describe 'domain.spec', ->
 #
 #    it 'should requires two domains', ->
 #
-#      expect(-> domain_close_gaps_inline()).to.throw
-#      expect(-> domain_close_gaps_inline []).to.throw
-#      expect(-> domain_close_gaps_inline undefined, []).to.throw
+#      expect(-> domain_close_gaps_inline()).to.throw()
+#      expect(-> domain_close_gaps_inline []).to.throw()
+#      expect(-> domain_close_gaps_inline undefined, []).to.throw()
 #
 #    it 'should accept empty domains', ->
 #
@@ -889,9 +874,9 @@ describe 'domain.spec', ->
 
     it 'should require domains', ->
 
-      expect(-> domain_plus).to.throw
-      expect(-> domain_plus []).to.throw
-      expect(-> domain_plus null, []).to.throw
+      expect(-> domain_plus()).to.throw()
+      expect(-> domain_plus []).to.throw()
+      expect(-> domain_plus null, []).to.throw()
 
     it 'should accept empty domains', ->
 
@@ -904,12 +889,6 @@ describe 'domain.spec', ->
       expect(domain_plus a, []).to.not.equal a
       a = []
       expect(domain_plus [], a).to.not.equal a
-
-    it 'should throw if empty domains are passed on', ->
-
-      a = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17])
-      expect(-> domain_plus (a.slice 0), []).to.throw
-      expect(-> domain_plus [], (a.slice 0)).to.throw
 
     it 'should add two ranges', ->
 
@@ -937,9 +916,9 @@ describe 'domain.spec', ->
 
     it 'should require domains', ->
 
-      expect(-> domain_times).to.throw
-      expect(-> domain_times []).to.throw
-      expect(-> domain_times null, []).to.throw
+      expect(-> domain_times()).to.throw()
+      expect(-> domain_times []).to.throw()
+      expect(-> domain_times null, []).to.throw()
 
     it 'should accept empty domains', ->
 
@@ -986,9 +965,9 @@ describe 'domain.spec', ->
 
     it 'should require domains', ->
 
-      expect(-> domain_minus).to.throw
-      expect(-> domain_minus []).to.throw
-      expect(-> domain_minus null, []).to.throw
+      expect(-> domain_minus()).to.throw()
+      expect(-> domain_minus []).to.throw()
+      expect(-> domain_minus null, []).to.throw()
 
     it 'should accept empty domains', ->
 
@@ -1037,9 +1016,9 @@ describe 'domain.spec', ->
 
     it 'should require domains', ->
 
-      expect(-> domain_divby).to.throw
-      expect(-> domain_divby []).to.throw
-      expect(-> domain_divby null, []).to.throw
+      expect(-> domain_divby()).to.throw()
+      expect(-> domain_divby []).to.throw()
+      expect(-> domain_divby null, []).to.throw()
 
     it 'should accept empty domains', ->
 
@@ -1208,7 +1187,7 @@ describe 'domain.spec', ->
 
     it 'should throw for imblalanced ranges', ->
 
-      expect(-> domain_set_to_range_inline [], 27, 0).to.throw
+      expect(-> domain_set_to_range_inline [], 27, 0).to.throw()
 
     it 'should update the array inline', ->
 
@@ -1238,7 +1217,7 @@ describe 'domain.spec', ->
 
     it 'should throw for emtpy domains', ->
 
-      expect(-> domain_sort_by_range []).to.throw
+      expect(-> domain_sort_by_range []).to.throw()
 
     it 'should return nothing', ->
 
@@ -1327,7 +1306,7 @@ describe 'domain.spec', ->
 
     it 'should accept an empty domain', ->
 
-      expect(-> domain_remove_gte_inline [], 5).not.to.throw
+      expect(-> domain_remove_gte_inline [], 5).not.to.throw()
 
     it 'should return bool', ->
 
@@ -1399,7 +1378,7 @@ describe 'domain.spec', ->
 
     it 'should accept an empty domain', ->
 
-      expect(-> domain_remove_lte_inline [], 5).not.to.throw
+      expect(-> domain_remove_lte_inline [], 5).not.to.throw()
 
     it 'should return bool', ->
 

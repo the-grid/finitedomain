@@ -118,6 +118,7 @@ module.exports = do ->
   domain_remove_next_from_list = (domain, list) ->
     ASSERT_DOMAIN_EMPTY_CHECK domain
     for value in list
+      ASSERT value >= SUB and value <= SUP, 'lists with oob values probably indicate a bug'
       index = domain_range_index_of domain, value
       if index >= 0
         return _deep_clone_without_value domain, value, index
@@ -164,6 +165,7 @@ module.exports = do ->
   domain_get_value_of_first_contained_value_in_list = (domain, list) ->
     ASSERT_DOMAIN domain
     for value in list
+      ASSERT value >= SUB and value <= SUP, 'OOB values probably indicate a bug in the code', list
       if domain_contains_value domain, value
         return value
     return NO_SUCH_VALUE
@@ -237,6 +239,7 @@ module.exports = do ->
 
   domain_sort_by_range = (domain) ->
     len = domain.length
+    ASSERT len > 0, 'input domain should not be empty', domain
     if len >= 4
       quick_sort_inline domain, 0, domain.length-PAIR_SIZE
     return
@@ -275,16 +278,19 @@ module.exports = do ->
   # Check if given domain is in simplified, CSIS form
 
   is_simplified = (domain) ->
-    if domain.length <= PAIR_SIZE
-      if domain.length is PAIR_SIZE
-        ASSERT domain[FIRST_RANGE_LO] >= SUB, 'domains should not be sparse [0]'
-        ASSERT domain[FIRST_RANGE_HI] >= SUB, 'domains should not be sparse [1]'
+    if domain.length is PAIR_SIZE
+      ASSERT domain[FIRST_RANGE_LO] >= SUB
+      ASSERT domain[FIRST_RANGE_HI] <= SUP
+      ASSERT domain[FIRST_RANGE_LO] <= domain[FIRST_RANGE_HI]
       return true
+    if domain.length is 0
+      return true
+    ASSERT (domain.length % PAIR_SIZE) is 0
     phi = SUB
     for lo, index in domain by PAIR_SIZE
       hi = domain[index+1]
-      ASSERT lo >= SUB, 'domains should not be sparse [lo]', domain
-      ASSERT hi >= SUB, 'domains should not be sparse [hi]', domain
+      ASSERT lo >= SUB
+      ASSERT hi >= SUB
       ASSERT lo <= hi, 'ranges should be ascending', domain
       # we need to simplify if the lo of the next range goes before or touches the hi of the previous range
       # TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
@@ -489,6 +495,7 @@ module.exports = do ->
   domain_plus = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
+    ASSERT domain1? and domain2?
 
     # Simplify the domains by closing gaps since when we add
     # the domains, the gaps will close according to the
@@ -511,6 +518,7 @@ module.exports = do ->
   domain_times = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
+    ASSERT domain1? and domain2?
 
     result = []
     for loi, index in domain1 by PAIR_SIZE
@@ -526,6 +534,7 @@ module.exports = do ->
   domain_minus = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
+    ASSERT domain1? and domain2?
 
     # Simplify the domains by closing gaps since when we add
     # the domains, the gaps will close according to the
@@ -552,6 +561,8 @@ module.exports = do ->
   domain_divby = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
+
+    ASSERT domain1? and domain2?
 
     result = []
 

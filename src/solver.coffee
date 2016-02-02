@@ -49,7 +49,7 @@ module.exports = do ->
     propagator_add_product
     propagator_add_reified
     propagator_add_sum
-    propagator_add_times
+    propagator_add_mul
   } = require './propagator'
 
   # BODY_START
@@ -278,10 +278,12 @@ module.exports = do ->
 
     '*': (e1, e2, result_var) ->
       return @times e1, e2, result_var
-    times: (e1, e2, result_var) ->
+    times: (e1, e2, result_var) -> # deprecated
+      return @times e1, e2, result_var
+    mul: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var

@@ -36,11 +36,11 @@ describe "propagator.spec", ->
     propagator_add_reified
     propagator_add_scale
     propagator_add_sum
-    propagator_add_times
-    propagator_add_times_plus
+    propagator_add_mul
+    propagator_add_mul_plus
     propagator_add_wsum
 
-    _propagator_add_plus_or_times
+    _propagator_add_plus_or_mul
   } = FD.propagator
 
 
@@ -273,7 +273,7 @@ describe "propagator.spec", ->
 
         expect(-> propagator_add_gte space, 0, 0).to.throw()
 
-  describe '_propagator_add_plus_or_times', ->
+  describe '_propagator_add_plus_or_mul', ->
 
     it 'should return the name of the anonymous result var', ->
 
@@ -281,7 +281,7 @@ describe "propagator.spec", ->
       space_add_var space, 'A'
       space_add_var space, 'B'
 
-      expect(typeof _propagator_add_plus_or_times space, 'div', 'mul', 'A', 'B', 0).to.eql 'string'
+      expect(typeof _propagator_add_plus_or_mul space, 'div', 'mul', 'A', 'B', 0).to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
@@ -290,7 +290,7 @@ describe "propagator.spec", ->
       space_add_var space, 'B'
       space_add_var space, 'C'
 
-      expect(_propagator_add_plus_or_times space, 'div', 'mul', 'A', 'B', 'C').to.eql 'C'
+      expect(_propagator_add_plus_or_mul space, 'div', 'mul', 'A', 'B', 'C').to.eql 'C'
 
   describe 'propagator_add_scale', ->
 

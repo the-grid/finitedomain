@@ -389,7 +389,7 @@ describe "solver.spec", ->
       solver.addVar 'MAX', [25, 25]
       solver.addVar 'MUL', [0, 100]
 
-      solver.times 'A', 'B', 'MUL'
+      solver.mul 'A', 'B', 'MUL'
       solver.lt 'MUL', 'MAX'
 
       # There are 11x11=121 combinations (inc dupes)

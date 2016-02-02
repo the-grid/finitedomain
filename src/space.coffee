@@ -474,13 +474,13 @@ module.exports = do ->
           when 'plus'
             things.push 'propagator_add_plus S, \''+c[1].join('\', \'')+'\''
           when 'min'
-          # doesnt really exist. merely artifact of times
+          # doesnt really exist. merely artifact of plus
             things.push '# S.minus \''+c[1].join('\', \'')+'\' # (artifact from .plus)'
           when 'mul'
-            things.push 'propagator_add_times S, \''+c[1].join('\', \'')+'\''
+            things.push 'propagator_add_mul S, \''+c[1].join('\', \'')+'\''
           when 'div'
-          # doesnt really exist. merely artifact of times
-            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .times)'
+          # doesnt really exist. merely artifact of mul
+            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .mul)'
           else
             ASSERT false, 'unknown ring op name', c[2]
       else

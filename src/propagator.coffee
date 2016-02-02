@@ -199,7 +199,7 @@ module.exports = do ->
         propagator_add_neq space, var_name_i, var_names[j]
     return
 
-  _propagator_add_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
+  _propagator_add_plus_or_mul = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
@@ -240,14 +240,14 @@ module.exports = do ->
 
   propagator_add_plus = (space, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
-    return _propagator_add_plus_or_times space, 'plus', 'min', v1name, v2name, sumname
+    return _propagator_add_plus_or_mul space, 'plus', 'min', v1name, v2name, sumname
 
   # Bidirectional multiplication propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
-  propagator_add_times = (space, v1name, v2name, prodname) ->
+  propagator_add_mul = (space, v1name, v2name, prodname) ->
     ASSERT space._class is 'space'
-    return _propagator_add_plus_or_times space, 'mul', 'div', v1name, v2name, prodname
+    return _propagator_add_plus_or_mul space, 'mul', 'div', v1name, v2name, prodname
 
   # factor = constant number (not an fdvar)
   # vname is an fdvar name
@@ -283,7 +283,7 @@ module.exports = do ->
 
   # TODO: Can be made more efficient.
 
-  propagator_add_times_plus = (space, k1, v1name, k2, v2name, resultname) ->
+  propagator_add_mul_plus = (space, k1, v1name, k2, v2name, resultname) ->
     ASSERT space._class is 'space'
     A = propagator_add_scale space, k1, v1name
     B = propagator_add_scale space, k2, v2name
@@ -345,7 +345,7 @@ module.exports = do ->
         propagator_add_eq space, vars[0], result_var_name
 
       when 2
-        propagator_add_times space, vars[0], vars[1], result_var_name
+        propagator_add_mul space, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
@@ -357,7 +357,7 @@ module.exports = do ->
         t2 = space_add_var space
 
         propagator_add_product space, vars.slice(n), t2
-        propagator_add_times space, t1, t2, result_var_name
+        propagator_add_mul space, t1, t2, result_var_name
 
     return result_var_name
 
@@ -394,10 +394,10 @@ module.exports = do ->
     propagator_add_reified
     propagator_add_scale
     propagator_add_sum
-    propagator_add_times
-    propagator_add_times_plus
+    propagator_add_mul
+    propagator_add_mul_plus
     propagator_add_wsum
 
     # for testing
-    _propagator_add_plus_or_times
+    _propagator_add_plus_or_mul
   }

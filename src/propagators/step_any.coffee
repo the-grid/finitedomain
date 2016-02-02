@@ -10,7 +10,7 @@ module.exports = do ->
     domain_divby
     domain_minus
     domain_plus
-    domain_times
+    domain_mul
   } = require '../domain'
 
   {
@@ -97,7 +97,7 @@ module.exports = do ->
       when 'min'
         return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_minus
       when 'mul'
-        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_times
+        return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_mul
       when 'div'
         return propagator_ring_step_bare vars[vn1], vars[vn2], vars[vn3], domain_divby
       else

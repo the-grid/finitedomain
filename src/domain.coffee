@@ -515,7 +515,7 @@ module.exports = do ->
 
   # Note that this one isn't domain consistent.
 
-  domain_times = (domain1, domain2) ->
+  domain_mul = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
     ASSERT domain1? and domain2?
@@ -982,7 +982,7 @@ module.exports = do ->
     domain_set_to_range_inline
     domain_simplify
     domain_size
-    domain_times
+    domain_mul
     domain_to_list
 
     # __REMOVE_BELOW_FOR_DIST__

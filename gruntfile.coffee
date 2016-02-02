@@ -136,7 +136,6 @@ module.exports = ->
           '\n' +
           '  return {\n' +
           '    Solver\n'+
-          '    PathSolver\n'+
           '  }\n'
         separator: '\n\n'
         process: (str, fname) ->

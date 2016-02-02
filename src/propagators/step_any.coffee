@@ -14,12 +14,6 @@ module.exports = do ->
   } = require '../domain'
 
   {
-    propagator_mul_step_bare
-  } = require './scale_mul'
-  {
-    propagator_div_step_bare
-  } = require './scale_div'
-  {
     propagator_callback_step_bare
   } = require './callback'
   {
@@ -68,12 +62,6 @@ module.exports = do ->
       when 'neq'
         return propagator_step_comparison space, op_name, vn1, vn2
 
-      when 'mul'
-        return _propagator_mul space, vn1, vn2
-
-      when 'div'
-        return _propagator_div space, vn1, vn2
-
       when 'callback'
         return _propagator_cb space, prop_var_names, prop_datails
 
@@ -90,14 +78,6 @@ module.exports = do ->
         THROW 'unsupported propagator: [' + prop_datails + ']'
 
     return
-
-  _propagator_mul = (space, vn1, vn2) ->
-    vars = space.vars
-    return propagator_mul_step_bare vars[vn1], vars[vn2]
-
-  _propagator_div = (space, vn1, vn2) ->
-    vars = space.vars
-    return propagator_div_step_bare vars[vn1], vars[vn2]
 
   _propagator_cb = (space, prop_var_names, prop_details) ->
     return propagator_callback_step_bare space, prop_var_names, prop_details[PROP_CALLBACK]

@@ -23,6 +23,7 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 1.3.1:
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon
 - Rename `Solver#times` to `Solver#mul` for clarity, renamed `times` to `mul` internally in other relevant places as well
+- Fix bug in domain division that could cause valid values to be omitted
 
 1.3.0:
 - The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.

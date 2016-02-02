@@ -1061,6 +1061,19 @@ describe 'domain.spec', ->
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       expect(domain_divby a, b).to.eql spec_d_create_ranges([0, SUP])
 
+    describe 'simple examples', ->
+
+      doit = (a, b, c) ->
+
+        it 'should pass ['+a+'] / ['+b+'] = ['+c+']', ->
+
+          expect(domain_divby a, b).to.eql c
+
+      doit [50, 60], [5, 5], [10, 12]
+      doit [50, 50, 60, 60], [5, 5], [10, 10, 12, 12]
+      doit [50, 60], [5, 5, 10, 10], [5, 6, 10, 12]
+      doit [50, 60], [5, 10], [5, 12]
+
   describe 'domain_is_solved', ->
 
     {SUP} = FD.helpers

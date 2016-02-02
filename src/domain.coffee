@@ -581,9 +581,10 @@ module.exports = do ->
             # resulting domains that are _above_ the lo and _below_ the hi.
             left = CEIL MAX 0, lo
             right = FLOOR hi
+
             # if the fraction is within the same integer this could result in
             # lo>hi so we must prevent this case
-            if left < right
+            if left <= right
               result.push left, right
 
     return domain_simplify result, INLINE

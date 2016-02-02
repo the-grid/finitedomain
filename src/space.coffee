@@ -147,7 +147,7 @@ module.exports = do ->
     if options?.var_dist_config
       # An object which defines a value distributor per variable
       # which overrides the globally set value distributor.
-      # See Bvar#distributionOptions
+      # See Bvar#distributionOptions (in multiverse)
       space.config_var_dist_options = options.var_dist_config
     if options?.timeout_callback
       # A function that returns true if the current search should stop

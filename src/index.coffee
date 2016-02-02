@@ -38,7 +38,6 @@ switch TEST_TARGET
         scale_mul: require './propagators/scale_mul'
         step_comparison: require './propagators/step_comparison'
         step_any: require './propagators/step_any'
-      bvar: require './bvar'
       domain: require './domain'
       fdvar: require './fdvar'
       helpers: require './helpers'
@@ -47,7 +46,6 @@ switch TEST_TARGET
       space: require './space'
       search: require './search'
       Solver: require('./solver').Solver
-      PathSolver: require('./solver_path').PathSolver
   else
     throw new Error 'unknown type to include'
 

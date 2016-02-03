@@ -30,6 +30,7 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 - Improved the domain division code. Before when dividing two ranges it would only include integers from the resulting range, meaning `[5,5]/[2,2]=[2.5,2.5]` resulted in an empty domain because there aren't any integers between `2.5` and `2.5`. The new option will floor the `lo` of the range such that this becomes `[2, 2.5]` and so `2` will be picked.
 - Internally; removed the propagators for `scale`, `mul_plus`, and `wsum`; they were not used anywhere and we can add them back later if needed
 - Added `min` propagator, which assigns the result of `A - B` into a result var `C`
+- Allow the domain of `Solver#addVar` to be a plain number, to be expanded into the "solved" domain `[value, value]`
 
 1.3.0:
 - The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.

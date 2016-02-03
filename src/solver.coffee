@@ -20,6 +20,7 @@ module.exports = do ->
 
   {
     domain_create_bool
+    domain_create_value
     domain_from_list
   } = require './domain'
 
@@ -142,6 +143,7 @@ module.exports = do ->
       return
 
     # Uses @defaultDomain if no domain was given
+    # If domain is a number it becomes [dom, dom]
     # Distribution is optional
     # Name is used to create a `byName` hash
     #
@@ -175,6 +177,8 @@ module.exports = do ->
         THROW "Solver#addVar: var.id already added: #{id}"
 
       domain ?= @defaultDomain.slice 0
+      if typeof domain is 'number'
+        domain = domain_create_value domain
       domain = validate_domain domain
 
       space_add_var @space, id, domain

@@ -45,7 +45,7 @@ module.exports = do ->
   _space_uid_counter = 1
 
   space_create_root = ->
-    return _space_create_new null, [], {}, [], []
+    return _space_create_new null, [], {}, [], [], 0, 0
 
   # Create a space node that is a child of given space node
 
@@ -64,7 +64,7 @@ module.exports = do ->
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
+    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -80,7 +80,7 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names) ->
+  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
     ASSERT typeof _root_space is 'object', 'should be an object or null', _root_space
     ASSERT !(_root_space instanceof Array), 'not expecting an array here',  _root_space
     ASSERT _propagators instanceof Array, 'props should be an array', _propagators
@@ -90,6 +90,10 @@ module.exports = do ->
 
     return {
       _class: 'space'
+      # search graph metrics
+      _depth
+      _child
+      _child_count: 0
 
       _root_space
 
@@ -560,20 +564,20 @@ module.exports = do ->
 
     return things.join '\n'
 
-    __space_debug_var_domains = (space_) ->
-      things = []
-      for name of space.vars
-        things.push name+': ['+space.vars[name].dom+']'
-      return things
+  __space_debug_var_domains = (space) ->
+    things = []
+    for name of space.vars
+      things.push name+': ['+space.vars[name].dom+']'
+    return things
 
-    __space_get_unsolved = (space) ->
-      vars = space.vars
-      unsolved_names = []
-      for name of vars
-        fdvar = vars[name]
-        unless fdvar_is_solved fdvar
-          unsolved_names.push name
-      return unsolved_names
+  __space_get_unsolved = (space) ->
+    vars = space.vars
+    unsolved_names = []
+    for name of vars
+      fdvar = vars[name]
+      unless fdvar_is_solved fdvar
+        unsolved_names.push name
+    return unsolved_names
 
   # __REMOVE_ABOVE_FOR_DIST__
 

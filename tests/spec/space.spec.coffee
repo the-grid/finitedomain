@@ -79,6 +79,14 @@ describe "space.spec", ->
         expect(lclone._root_space).to.equal space
         expect(space._root_space).to.equal null
         lclone._root_space = null # exception to the rule
+
+        delete lclone._depth
+        delete lclone._child
+        delete lclone._child_count
+        delete space._depth
+        delete space._child
+        delete space._child_count
+
         expect(lclone, 'clone should be space').to.eql space
 
       it 'should set root_space to cloned space if not yet set there', ->

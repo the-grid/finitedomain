@@ -962,3 +962,196 @@ describe "solver.spec", ->
       # (see other test) so there must be 106 results.
 
       expect(solver.solve(max: 10000).length).to.eql 106
+
+  describe 'gss poc', ->
+
+    it 'with everything in FD', ->
+
+      ###
+      // assuming
+      // ::window[width] is 1200
+      // ::window[height] is 800
+
+      #box1 {
+        width:== 100;
+        height:== 100;
+      }
+      #box2 {
+        width: == 100;
+        height: == 100;
+      }
+
+      #box1[right] == :window[center-x] - 10;
+      #box2[left] == :window[center-x] + 10;
+
+      #box1[center-y] == #box2[center-y] == ::window[center-y];
+      ###
+
+      solver = new Solver defaultDomain: spec_d_create_range 0, 10000
+      solver.addVar
+        id: 'VIEWPORT_WIDTH'
+        domain: 1200
+      solver.addVar
+        id: 'VIEWPORT_HEIGHT'
+        domain: 800
+      solver.addVars [
+        # box1
+        '#box1[x]'
+        '#box1[width]'
+        '#box1[y]'
+        '#box1[height]'
+        # box2
+        '#box2[x]'
+        '#box2[width]'
+        '#box2[y]'
+        '#box2[height]'
+        # middle of the viewport, to be computed later
+        'VIEWPORT_MIDDLE_HEIGHT'
+        'VIEWPORT_MIDDLE_WIDTH'
+      ]
+
+      # simple constraints
+      # #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
+      solver.eq '#box1[width]', 100
+      solver.eq '#box1[height]', 100
+      solver.eq '#box2[width]', 100
+      solver.eq '#box2[height]', 100
+      # make sure boxes are within viewport
+
+      solver.lt '#box1[x]', solver.minus 'VIEWPORT_WIDTH', '#box1[width]'
+      solver.lt '#box1[y]', solver.minus 'VIEWPORT_HEIGHT', '#box1[height]'
+      solver.lt '#box2[x]', solver.minus 'VIEWPORT_WIDTH', '#box2[width]'
+      solver.lt '#box2[y]', solver.minus 'VIEWPORT_HEIGHT', '#box2[height]'
+
+      # VIEWPORT_WIDTH / 2
+      solver.div 'VIEWPORT_WIDTH', 2, 'VIEWPORT_MIDDLE_WIDTH'
+
+      # #box1[right] == :window[center-x] - 10;
+      # so: #box1[x] + #box[width] + 10 == VIEWPORT_MIDDLE_WIDTH
+      solver.eq solver.plus(solver.plus('#box1[x]', '#box1[width]'), 10), 'VIEWPORT_MIDDLE_WIDTH'
+
+      # similar for #box2[left] == :window[center-x] + 10;
+      solver.eq solver.min('#box2[x]', 10), 'VIEWPORT_MIDDLE_WIDTH'
+
+      # #box1[center-y] == #box2[center-y] == ::window[center-y];
+      # center-y = height/2 -> y=(height/2)-(box_height/2)
+      solver.div 'VIEWPORT_HEIGHT', 2, 'VIEWPORT_MIDDLE_HEIGHT'
+      solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box1[height]', 2), '#box1[y]'
+      solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box2[height]', 2), '#box2[y]'
+
+      solutions = solver.solve(max: 3)
+      #console.log FD.space.__space_debug_string solver.space
+
+      # viewport is 1200 x 800
+      # boxes are 100x100
+      # box1 is 10 left to center so box1.x = 1200/2-110=490
+      # box2 is 10 right of center so box2.x = 1200/2+10=610
+      # box1 and box2 are vertically centered, same height so same y: (800/2)-(100/2)=350
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        '#box1[x]': 490 # 490+100+10=600=1200/2
+        '#box1[width]': 100
+        '#box1[y]': 350
+        '#box1[height]': 100
+        '#box2[x]': 610
+        '#box2[width]': 100
+        '#box2[y]': 350
+        '#box2[height]': 100
+
+        "VIEWPORT_WIDTH": 1200
+        "VIEWPORT_HEIGHT": 800
+        "VIEWPORT_MIDDLE_WIDTH": 600
+        "VIEWPORT_MIDDLE_HEIGHT": 400
+      ]
+
+      expect(solutions.length).to.equal 1
+
+    it 'with viewport constants hardcoded', ->
+
+      ###
+      // assuming
+      // ::window[width] is 1200
+      // ::window[height] is 800
+
+      #box1 {
+        width:== 100;
+        height:== 100;
+      }
+      #box2 {
+        width: == 100;
+        height: == 100;
+      }
+
+      #box1[right] == :window[center-x] - 10;
+      #box2[left] == :window[center-x] + 10;
+
+      #box1[center-y] == #box2[center-y] == ::window[center-y];
+      ###
+
+      FLOOR = Math.floor
+      VIEWPORT_WIDTH = 1200
+      VIEWPORT_HEIGHT = 800
+
+      solver = new Solver defaultDomain: spec_d_create_range 0, 10000
+      solver.addVars [
+        # box1
+        '#box1[x]'
+        '#box1[width]'
+        '#box1[y]'
+        '#box1[height]'
+        # box2
+        '#box2[x]'
+        '#box2[width]'
+        '#box2[y]'
+        '#box2[height]'
+      ]
+
+      # simple constraints
+      # #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
+      solver.eq '#box1[width]', 100
+      solver.eq '#box1[height]', 100
+      solver.eq '#box2[width]', 100
+      solver.eq '#box2[height]', 100
+      # make sure boxes are within viewport
+
+      solver.lt '#box1[x]', solver.minus VIEWPORT_WIDTH, '#box1[width]'
+      solver.lt '#box1[y]', solver.minus VIEWPORT_HEIGHT, '#box1[height]'
+      solver.lt '#box2[x]', solver.minus VIEWPORT_WIDTH, '#box2[width]'
+      solver.lt '#box2[y]', solver.minus VIEWPORT_HEIGHT, '#box2[height]'
+
+      # VIEWPORT_WIDTH / 2
+      VIEWPORT_MIDDLE_WIDTH = FLOOR VIEWPORT_WIDTH / 2
+
+      # #box1[right] == :window[center-x] - 10;
+      # so: #box1[x] + #box[width] + 10 == VIEWPORT_MIDDLE_WIDTH
+      solver.eq solver.plus('#box1[x]', '#box1[width]'), VIEWPORT_MIDDLE_WIDTH - 10
+
+      # similar for #box2[left] == :window[center-x] + 10;
+      solver.eq VIEWPORT_MIDDLE_WIDTH + 10, '#box2[x]'
+
+      # #box1[center-y] == #box2[center-y] == ::window[center-y];
+      # center-y = height/2 -> y=(height/2)-(box_height/2)
+      VIEWPORT_MIDDLE_HEIGHT = FLOOR VIEWPORT_HEIGHT / 2
+      solver.minus VIEWPORT_MIDDLE_HEIGHT, solver.div('#box1[height]', 2), '#box1[y]'
+      solver.minus VIEWPORT_MIDDLE_HEIGHT, solver.div('#box2[height]', 2), '#box2[y]'
+
+      solutions = solver.solve(max: 3)
+
+      # viewport is 1200 x 800
+      # boxes are 100x100
+      # box1 is 10 left to center so box1.x = 1200/2-110=490
+      # box2 is 10 right of center so box2.x = 1200/2+10=610
+      # box1 and box2 are vertically centered, same height so same y: (800/2)-(100/2)=350
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        '#box1[x]': 490 # 490+100+10=600=1200/2
+        '#box1[width]': 100
+        '#box1[y]': 350
+        '#box1[height]': 100
+        '#box2[x]': 610
+        '#box2[width]': 100
+        '#box2[y]': 350
+        '#box2[height]': 100
+      ]
+
+      expect(solutions.length).to.equal 1

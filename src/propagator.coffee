@@ -290,6 +290,31 @@ module.exports = do ->
     ASSERT space._class is 'space'
     return _propagator_add_ring_plus_or_mul space, 'plus', 'min', v1name, v2name, sumname
 
+  propagator_add_min = (space, v1name, v2name, result_var) ->
+    ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+    ASSERT typeof result_var is 'string' or typeof result_var is 'number' or typeof result_var is 'undefined', 'expecting result_var to be number, string, or undefined', result_var
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    if typeof result_var is 'undefined'
+      result_var = space_add_var space
+    else if typeof result_var is 'number'
+      result_var = space_add_var space, result_var
+    else if typeof result_var isnt 'string'
+      THROW 'expecting result_var to be absent or a number or string: `'+result_var+'`'
+
+    space_add_propagator space, ['min', [v1name, v2name, result_var]]
+    return result_var
+
   # Bidirectional multiplication propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
@@ -390,6 +415,7 @@ module.exports = do ->
     propagator_add_mul
     propagator_add_neq
     propagator_add_plus
+    propagator_add_min
     propagator_add_product
     propagator_add_reified
     propagator_add_ring_mul

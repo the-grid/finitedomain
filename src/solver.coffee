@@ -45,6 +45,7 @@ module.exports = do ->
     propagator_add_lt
     propagator_add_lte
     propagator_add_markov
+    propagator_add_min
     propagator_add_mul
     propagator_add_neq
     propagator_add_plus
@@ -277,6 +278,15 @@ module.exports = do ->
       if result_var
         return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
       return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
+
+    '-': (e1, e2, result_var) ->
+      return @min e1, e2, result_var
+    minus: (e1, e2, result_var) ->
+      return @min e1, e2, result_var
+    min: (e1, e2, result_var) ->
+      if result_var
+        return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @ring_mul e1, e2, result_var

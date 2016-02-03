@@ -360,7 +360,7 @@ describe "solver.spec", ->
         C: 2 # floored
       }]
 
-    it 'should solve another simple * test', ->
+    it 'should solve a simple * test', ->
 
       solver = new Solver {}
 
@@ -391,6 +391,23 @@ describe "solver.spec", ->
         B: 5
         C: 30
       }]
+
+    it 'should solve a simple - test', ->
+
+      solver = new Solver {}
+      solver.addVar 'A', 400
+      solver.addVar 'B', 50
+      solver.addVar 'C', spec_d_create_range 0, 10000
+
+      solver.min 'A', 'B', 'C'
+
+      solutions = solver.solve()
+
+      expect(solutions).to.eql [
+        A: 400
+        B: 50
+        C: 350
+      ]
 
   describe 'brute force entire space', ->
 

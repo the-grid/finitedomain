@@ -31,6 +31,7 @@ describe "propagator.spec", ->
     propagator_add_lt
     propagator_add_lte
     propagator_add_markov
+    propagator_add_min
     propagator_add_mul
     propagator_add_neq
     propagator_add_plus
@@ -358,6 +359,25 @@ describe "propagator.spec", ->
       space_add_var space, 'D'
 
       expect(propagator_add_product space, ['A', 'B', 'C'], 'D').to.eql 'D'
+
+  describe 'propagator_add_min', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+
+      expect(typeof propagator_add_min space, 'A', 'B').to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(propagator_add_min space, 'A', 'B', 'C').to.eql 'C'
 
   describe 'propagator_add_div', ->
 

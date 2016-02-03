@@ -26,6 +26,9 @@ module.exports = do ->
     propagator_ring_step_bare
   } = require './ring'
   {
+    propagator_min_step
+  } = require './min'
+  {
     propagator_mul_step
   } = require './mul'
   {
@@ -80,6 +83,9 @@ module.exports = do ->
       when 'markov'
         return _propagator_markov space, vn1
 
+      when 'min'
+        return _propagator_min space, vn1, vn2, prop_var_names
+
       when 'mul'
         return _propagator_mul space, vn1, vn2, prop_var_names, prop_datails
 
@@ -98,14 +104,25 @@ module.exports = do ->
     vn3 = prop_var_names[2]
     return propagator_reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
 
+  _propagator_min = (space, vn1, vn2, prop_var_names) ->
+    vn3 = prop_var_names[2]
+    vars = space.vars
+    ASSERT vn1 and vn2 and vn3, 'expecting three vars', vn1, vn2, vn3
+    ASSERT vars[vn1] and vars[vn2] and vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3
+    return propagator_min_step vars[vn1], vars[vn2], vars[vn3]
+
   _propagator_mul = (space, vn1, vn2, prop_var_names) ->
     vn3 = prop_var_names[2]
     vars = space.vars
+    ASSERT vn1 and vn2 and vn3, 'expecting three vars', vn1, vn2, vn3
+    ASSERT vars[vn1] and vars[vn2] and vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3
     return propagator_mul_step vars[vn1], vars[vn2], vars[vn3]
 
   _propagator_div = (space, vn1, vn2, prop_var_names) ->
     vn3 = prop_var_names[2]
     vars = space.vars
+    ASSERT vn1 and vn2 and vn3, 'expecting three vars', vn1, vn2, vn3
+    ASSERT vars[vn1] and vars[vn2] and vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3
     return propagator_div_step vars[vn1], vars[vn2], vars[vn3]
 
   _propagator_ring = (space, vn1, vn2, prop_var_names, prop_details) ->

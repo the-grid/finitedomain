@@ -70,6 +70,8 @@ module.exports = do ->
         return false
 
       # TOFIX: we may be able to come up with a fast algorithm to validate div and mul
+      when 'min'
+        return false
       when 'div'
         return false
       when 'mul'

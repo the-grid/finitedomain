@@ -69,7 +69,10 @@ module.exports = do ->
         # markov doesnt reduce the domain, only validates (in the propagator, not here)
         return false
 
+      # TOFIX: we may be able to come up with a fast algorithm to validate div and mul
       when 'div'
+        return false
+      when 'mul'
         return false
 
       else

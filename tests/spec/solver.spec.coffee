@@ -360,6 +360,37 @@ describe "solver.spec", ->
         C: 2 # floored
       }]
 
+    it 'should solve another simple * test', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 3, 8
+      solver.addVar 'B', spec_d_create_range 2, 10
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.mul 'A', 'B', 'C'
+      solver.eq 'C', 30
+
+      solutions = solver.solve()
+
+      expect(solutions.length, 'solution count').to.equal 3
+
+      # 3*10=30
+      # 5*6=30
+      # 6*5=30
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 3
+        B: 10
+        C: 30
+      }, {
+        A: 5
+        B: 6
+        C: 30
+      }, {
+        A: 6
+        B: 5
+        C: 30
+      }]
 
   describe 'brute force entire space', ->
 

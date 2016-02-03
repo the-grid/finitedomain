@@ -476,14 +476,16 @@ module.exports = do ->
       else if c[0] is 'ring'
         switch c[2]
           when 'plus'
+            # doesnt really exist. merely artifact of ring
             things.push 'propagator_add_plus S, \''+c[1].join('\', \'')+'\''
           when 'min'
-          # doesnt really exist. merely artifact of plus
+            # doesnt really exist. merely artifact of plus
             things.push '# S.minus \''+c[1].join('\', \'')+'\' # (artifact from .plus)'
           when 'mul'
+            # doesnt really exist. merely artifact of ring
             things.push 'propagator_add_mul S, \''+c[1].join('\', \'')+'\''
           when 'div'
-          # doesnt really exist. merely artifact of mul
+            # doesnt really exist. merely artifact of ring
             things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .mul)'
           else
             ASSERT false, 'unknown ring op name', c[2]

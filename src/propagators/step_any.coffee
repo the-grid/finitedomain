@@ -26,6 +26,9 @@ module.exports = do ->
     propagator_ring_step_bare
   } = require './ring'
   {
+    propagator_mul_step
+  } = require './mul'
+  {
     propagator_div_step
   } = require './div'
   {
@@ -77,6 +80,9 @@ module.exports = do ->
       when 'markov'
         return _propagator_markov space, vn1
 
+      when 'mul'
+        return _propagator_mul space, vn1, vn2, prop_var_names, prop_datails
+
       when 'div'
         return _propagator_div space, vn1, vn2, prop_var_names, prop_datails
 
@@ -92,7 +98,12 @@ module.exports = do ->
     vn3 = prop_var_names[2]
     return propagator_reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
 
-  _propagator_div = (space, vn1, vn2, prop_var_names, prop_details) ->
+  _propagator_mul = (space, vn1, vn2, prop_var_names) ->
+    vn3 = prop_var_names[2]
+    vars = space.vars
+    return propagator_mul_step vars[vn1], vars[vn2], vars[vn3]
+
+  _propagator_div = (space, vn1, vn2, prop_var_names) ->
     vn3 = prop_var_names[2]
     vars = space.vars
     return propagator_div_step vars[vn1], vars[vn2], vars[vn3]

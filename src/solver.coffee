@@ -139,8 +139,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      space_add_var @space, id, domain
-      return
+      return space_add_var @space, id, domain
 
     # Uses @defaultDomain if no domain was given
     # If domain is a number it becomes [dom, dom]

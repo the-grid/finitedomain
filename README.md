@@ -31,6 +31,7 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 - Internally; removed the propagators for `scale`, `mul_plus`, and `wsum`; they were not used anywhere and we can add them back later if needed
 - Added `min` propagator, which assigns the result of `A - B` into a result var `C`
 - Allow the domain of `Solver#addVar` to be a plain number, to be expanded into the "solved" domain `[value, value]`
+- Make `Solver#decl` return the name of the var being declared
 
 1.3.0:
 - The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.

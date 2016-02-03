@@ -24,6 +24,8 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon
 - Rename `Solver#times` to `Solver#mul` for clarity, renamed `times` to `mul` internally in other relevant places as well
 - Fix bug in domain division that could cause valid values to be omitted
+- Added `div` propagator, which assigns the result of `A / B` into a result var `C`
+- Improved the domain division code. Before when dividing two ranges it would only include integers from the resulting range, meaning `[5,5]/[2,2]=[2.5,2.5]` resulted in an empty domain because there aren't any integers between `2.5` and `2.5`. The new option will floor the `lo` of the range such that this becomes `[2, 2.5]` and so `2` will be picked.
 
 1.3.0:
 - The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.

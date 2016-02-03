@@ -69,6 +69,9 @@ module.exports = do ->
         # markov doesnt reduce the domain, only validates (in the propagator, not here)
         return false
 
+      when 'div'
+        return false
+
       else
         return _propagator_comparison_is_solved op_name, v1, v2
 

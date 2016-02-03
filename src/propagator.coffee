@@ -163,6 +163,30 @@ module.exports = do ->
     space_add_propagator space, ['lte', [v1name, v2name]]
     return
 
+  propagator_add_div = (space, v1name, v2name, result_name) ->
+    ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof result_name is 'undefined'
+      result_name = space_add_var space
+    else if typeof result_name is 'number'
+      result_name = space_add_var space, result_name
+    else if typeof result_name isnt 'string'
+      THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    space_add_propagator space, ['div', [v1name, v2name, result_name]]
+    return result_name
+
   # Greater than or equal to.
 
   propagator_add_gte = (space, v1name, v2name) ->
@@ -382,6 +406,7 @@ module.exports = do ->
   return {
     propagator_add_callback
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte

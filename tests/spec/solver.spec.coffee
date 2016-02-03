@@ -6,6 +6,7 @@ if typeof require is 'function'
     spec_d_create_bool
     spec_d_create_range
     spec_d_create_ranges
+    strip_anon_vars_a
   } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
@@ -266,6 +267,99 @@ describe "solver.spec", ->
 
       # only solution is where each var is prev+1, 1 2 3 4 5
       expect(solutions.length, 'solution count').to.equal 1
+
+    it "should solve a simple / test", ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 50, 100
+      solver.addVar 'B', spec_d_create_range 5, 10
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.div 'A', 'B', 'C'
+      solver.eq 'C', 15
+
+      solutions = solver.solve()
+
+      # there are two integer solutions (75/5 and 90/6) and
+      # 9 fractional solutions whose floor result in 15
+      expect(solutions.length, 'solution count').to.equal 11
+
+      # there are two cases where A/B=15 with input ranges:
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 75
+        B: 5
+        C: 15
+      }, {
+        A: 76
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 77
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 78
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 79
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 90
+        B: 6
+        C: 15
+      }, {
+        A: 91
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 92
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 93
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 94
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 95
+        B: 6
+        C: 15 # floored
+      }]
+
+    it 'should solve another simple / test', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 3, 5
+      solver.addVar 'B', spec_d_create_range 2, 2
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.div 'A', 'B', 'C'
+      solver.eq 'C', 2
+
+      solutions = solver.solve()
+
+      # expecting two solutions; one integer division and one floored fractional division
+      expect(solutions.length, 'solution count').to.equal 2
+
+      # there is only one case where 3~5 / 2 equals 2 and that is when A is 4.
+      # but when flooring results, 5/2=2.5 -> 2, so there are two answers
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 4
+        B: 2
+        C: 2
+      }, {
+        A: 5
+        B: 2
+        C: 2 # floored
+      }]
+
 
   describe 'brute force entire space', ->
 

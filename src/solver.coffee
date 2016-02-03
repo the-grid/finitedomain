@@ -38,6 +38,7 @@ module.exports = do ->
 
   {
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte
@@ -284,6 +285,13 @@ module.exports = do ->
       if result_var
         return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
       return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2)
+
+    '/': (e1, e2, result_var) ->
+      return @div e1, e2, result_var
+    div: (e1, e2, result_var) ->
+      if result_var
+        return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var

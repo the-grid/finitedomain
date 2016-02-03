@@ -1043,17 +1043,29 @@ describe 'domain.spec', ->
 
       expect(domain_divby spec_d_create_range(50, 60), spec_d_create_range(5, 10)).to.eql spec_d_create_range(5, 12)
 
-    it 'should divide one domain from another', ->
+    it 'should divide one domain from another; floored', ->
 
       a = spec_d_create_ranges([5, 10], [20, 35])
       b = spec_d_create_ranges([50, 60], [110, 128])
-      expect(domain_divby a, b).to.eql # would be [0.0390625, 0.7] but there are no ints in between that so its empty
+      expect(domain_divby a, b, true).to.eql [0, 0] # would be [0.0390625, 0.7] which gets floored to [0, 0.7] so [0,0]
 
-    it 'should divide one domain from another (2)', ->
+    it 'should divide one domain from another (2); floored', ->
 
       a = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
       b = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
-      expect(domain_divby a, b).to.eql spec_d_create_ranges([1, 12], [15, 17])
+      expect(domain_divby a, b, true).to.eql spec_d_create_ranges([0, 12], [15, 17])
+
+    it 'should divide one domain from another; integer', ->
+
+      a = spec_d_create_ranges([5, 10], [20, 35])
+      b = spec_d_create_ranges([50, 60], [110, 128])
+      expect(domain_divby a, b, false).to.eql [] # would be [0.0390625, 0.7] but there are no ints in between that so its empty
+
+    it 'should divide one domain from another (2); integer', ->
+
+      a = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
+      b = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
+      expect(domain_divby a, b, false).to.eql spec_d_create_ranges([1, 12], [15, 17])
 
     it 'divide by zero should blow up', ->
 
@@ -1073,6 +1085,11 @@ describe 'domain.spec', ->
       doit [50, 50, 60, 60], [5, 5], [10, 10, 12, 12]
       doit [50, 60], [5, 5, 10, 10], [5, 6, 10, 12]
       doit [50, 60], [5, 10], [5, 12]
+      doit [0, 0], [5, 10], [0, 0]
+      doit [0, 1], [5, 10], [0, 0] # because all results are <1
+      doit [0, 10], [2, 2], [0, 5]
+      doit [5, 10], [0, 0], []
+      doit [5, 10], [0, 1], [5, SUP]
 
   describe 'domain_is_solved', ->
 

@@ -26,6 +26,9 @@ module.exports = do ->
     propagator_ring_step_bare
   } = require './ring'
   {
+    propagator_div_step
+  } = require './div'
+  {
     propagator_step_comparison
   } = require './step_comparison'
 
@@ -74,6 +77,9 @@ module.exports = do ->
       when 'markov'
         return _propagator_markov space, vn1
 
+      when 'div'
+        return _propagator_div space, vn1, vn2, prop_var_names, prop_datails
+
       else
         THROW 'unsupported propagator: [' + prop_datails + ']'
 
@@ -85,6 +91,11 @@ module.exports = do ->
   _propagator_reified = (space, vn1, vn2, prop_var_names, prop_details) ->
     vn3 = prop_var_names[2]
     return propagator_reified_step_bare space, vn1, vn2, vn3, prop_details[PROP_OP_NAME], prop_details[PROP_NOP_NAME]
+
+  _propagator_div = (space, vn1, vn2, prop_var_names, prop_details) ->
+    vn3 = prop_var_names[2]
+    vars = space.vars
+    return propagator_div_step vars[vn1], vars[vn2], vars[vn3]
 
   _propagator_ring = (space, vn1, vn2, prop_var_names, prop_details) ->
     vars = space.vars

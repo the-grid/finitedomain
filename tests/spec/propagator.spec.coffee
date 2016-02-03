@@ -24,6 +24,7 @@ describe "propagator.spec", ->
   {
     propagator_add_callback
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte
@@ -42,7 +43,6 @@ describe "propagator.spec", ->
 
     _propagator_add_plus_or_mul
   } = FD.propagator
-
 
   {
     space_add_var
@@ -397,3 +397,23 @@ describe "propagator.spec", ->
       space_add_var space, 'D'
 
       expect(propagator_add_wsum space, [1, 2, 3], ['A', 'B', 'C'], 'D').to.eql 'D'
+
+  describe 'propagator_add_div', ->
+
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+
+      expect(typeof propagator_add_div space, 'A', 'B').to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(propagator_add_div space, 'A', 'B', 'C').to.eql 'C'

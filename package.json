@@ -17,23 +17,20 @@
     "grunt-cli": "~0.1.13",
     "error-reporter": "~0.1.0",
     "grunt-contrib-watch": "~0.3.1",
-
     "grunt-remove": "0.1.0",
     "coffeeify": "^1.0.0",
     "grunt-contrib-concat": "*",
-
     "coffeelint": "^1.8.1",
-    "grunt-coffeelint": "0.0.13",
+    "grunt-coffeelint": "0.0.15",
     "grunt-contrib-coffee": "~0.7.0",
     "grunt-string-replace": "*",
-
     "chai": "~3.5.0",
     "mocha": "^2.3.3",
     "grunt-mocha-test": "^0.12.7",
-
     "grunt-contrib-uglify": "*"
   },
-  "dependencies": {
-  },
-  "keywords": ["constraint solving, GSAT, finite domain solver, FD"]
+  "dependencies": {},
+  "keywords": [
+    "constraint solving, GSAT, finite domain solver, FD"
+  ]
 }

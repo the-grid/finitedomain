@@ -30,8 +30,8 @@ module.exports = do ->
 
   {
     __space_debug_string
-    space_create_root
     space_add_var
+    space_create_root
     space_set_defaults
     space_set_options
     space_solution

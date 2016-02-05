@@ -110,12 +110,18 @@ module.exports = do ->
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
-      if typeof v1name is 'number'
+      t = space_add_var space, v2name
+      # swap such that v1 is the solved var. order is irrelevant to eq itself.
+      v2name = v1name
+      v1name = t
+      if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
 
     space_add_propagator space, ['eq', [v1name, v2name]]
-    return
+    # return either operand var. this allows you to chain eqs -> .eq(.eq(A, B), C)
+    # doesnt really matter which operand since they should be equal
+    # (though you should probably try to make v1 solved the fastest)
+    return v1name
 
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.

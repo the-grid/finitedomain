@@ -375,7 +375,7 @@ module.exports = do ->
 
     unless name
       # create anonymous var
-      name = String ++_space_uid_counter
+      name = String _space_uid_counter++
 
     _space_create_var_domain space, name, domain
     return name

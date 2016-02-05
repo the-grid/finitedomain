@@ -352,12 +352,11 @@ module.exports = do ->
       if e1 instanceof Array
         for e in e1
           @_eq e, e2
+        return e2
       else
-        @_eq e1, e2
-      return
+        return @_eq e1, e2
     _eq: (e1, e2) ->
-      propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
-      return
+      return propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
 
     '!=': (e1, e2) ->
       @neq e1, e2
@@ -367,7 +366,7 @@ module.exports = do ->
         for e in e1
           @_neq e, e2
       else
-        return @_neq e1, e2
+        @_neq e1, e2
       return
     _neq: (e1, e2) ->
       propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)

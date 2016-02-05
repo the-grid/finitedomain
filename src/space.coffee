@@ -386,12 +386,22 @@ module.exports = do ->
     _space_create_var_domain space, name, domain
     return name
 
+  # add multiple var names with names in arg list
   # See space_add_var for details
 
   space_add_vars = (space, arr...) ->
     ASSERT space._class is 'space'
     for a in arr
       space_add_var space, a[0], a[1], a[2]
+    return
+
+  # add multiple var names with names in an array
+  # See space_add_var for details
+
+  space_add_vars_a = (space, arr) ->
+    ASSERT space._class is 'space'
+    for a in arr
+      space_add_var space, a
     return
 
   # Add a bunch of vars by different names and same domain
@@ -455,6 +465,17 @@ module.exports = do ->
     space._propagators.push data
     ASSERT_PROPAGATORS space._propagators
     return
+
+  space_get_unknown_vars = (space) ->
+    names = []
+    for p in space._propagators
+      a = p[1][0]
+      if !space.vars[a] and names.indexOf(a) < 0
+        names.push a
+      b = p[1][1]
+      if !space.vars[b] and names.indexOf(b) < 0
+        names.push b
+    return names
 
   # __REMOVE_BELOW_FOR_DIST__
 
@@ -590,9 +611,11 @@ module.exports = do ->
     space_add_vars_domain
     space_add_var
     space_add_vars
+    space_add_vars_a
     space_create_clone
     space_create_root
     space_get_root
+    space_get_unknown_vars
     space_is_solved
     space_propagate
     space_set_defaults

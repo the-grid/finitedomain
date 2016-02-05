@@ -31,7 +31,9 @@ module.exports = do ->
   {
     __space_debug_string
     space_add_var
+    space_add_vars_a
     space_create_root
+    space_get_unknown_vars
     space_set_defaults
     space_set_options
     space_solution
@@ -496,6 +498,7 @@ module.exports = do ->
         vars: bvars
         search
         distribute: distribution_options
+        add_unknown_vars # bool
       } = options
 
       log ?= LOG_NONE # 0, 1, 2
@@ -503,6 +506,10 @@ module.exports = do ->
       bvars ?= @vars.all
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
+
+      if add_unknown_vars
+        unknown_names = space_get_unknown_vars @space
+        space_add_vars_a @space, unknown_names
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides

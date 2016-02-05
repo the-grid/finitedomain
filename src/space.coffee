@@ -101,7 +101,6 @@ module.exports = do ->
       config_next_var_func: 'naive'
       config_next_value_func: 'min'
       config_targeted_vars: 'all'
-      config_when_solved: 'all'
       config_var_dist_options: {}
       config_timeout_callback: undefined
 
@@ -143,11 +142,6 @@ module.exports = do ->
       # string[]: list of vars that must be solved
       # function: callback to return list of names to be solved
       space.config_targeted_vars = options.targeted_var_names
-    if options?.is_solved
-      # 'all': solved when all vars of a space are solved
-      # string[]: a list of vars that must be solved to consider the space solved
-      # function: a custom callback to determine whether the space is solved
-      space.config_when_solved = options.is_solved
     if options?.var_dist_config
       # An object which defines a value distributor per variable
       # which overrides the globally set value distributor.
@@ -542,7 +536,6 @@ module.exports = do ->
       things.push '- config_next_var_func: ' + space.config_next_var_func
       things.push '- config_next_value_func: ' + space.config_next_value_func
       things.push '- config_targeted_vars: ' + space.config_targeted_vars
-      things.push '- config_when_solved: ' + space.config_when_solved
 
       things.push "Vars (#{space.all_var_names.length}x):"
 

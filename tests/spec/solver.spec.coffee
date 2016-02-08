@@ -6,6 +6,7 @@ if typeof require is 'function'
     spec_d_create_bool
     spec_d_create_range
     spec_d_create_ranges
+    strip_anon_vars_a
   } = require '../fixtures/domain.spec'
 
 {expect, assert} = chai
@@ -267,6 +268,147 @@ describe "solver.spec", ->
       # only solution is where each var is prev+1, 1 2 3 4 5
       expect(solutions.length, 'solution count').to.equal 1
 
+    it "should solve a simple / test", ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 50, 100
+      solver.addVar 'B', spec_d_create_range 5, 10
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.div 'A', 'B', 'C'
+      solver.eq 'C', 15
+
+      solutions = solver.solve()
+
+      # there are two integer solutions (75/5 and 90/6) and
+      # 9 fractional solutions whose floor result in 15
+      expect(solutions.length, 'solution count').to.equal 11
+
+      # there are two cases where A/B=15 with input ranges:
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 75
+        B: 5
+        C: 15
+      }, {
+        A: 76
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 77
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 78
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 79
+        B: 5
+        C: 15 # floored
+      }, {
+        A: 90
+        B: 6
+        C: 15
+      }, {
+        A: 91
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 92
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 93
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 94
+        B: 6
+        C: 15 # floored
+      }, {
+        A: 95
+        B: 6
+        C: 15 # floored
+      }]
+
+    it 'should solve another simple / test', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 3, 5
+      solver.addVar 'B', spec_d_create_range 2, 2
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.div 'A', 'B', 'C'
+      solver.eq 'C', 2
+
+      solutions = solver.solve()
+
+      # expecting two solutions; one integer division and one floored fractional division
+      expect(solutions.length, 'solution count').to.equal 2
+
+      # there is only one case where 3~5 / 2 equals 2 and that is when A is 4.
+      # but when flooring results, 5/2=2.5 -> 2, so there are two answers
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 4
+        B: 2
+        C: 2
+      }, {
+        A: 5
+        B: 2
+        C: 2 # floored
+      }]
+
+    it 'should solve a simple * test', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 3, 8
+      solver.addVar 'B', spec_d_create_range 2, 10
+      solver.addVar 'C', spec_d_create_range 0, 100
+
+      solver.mul 'A', 'B', 'C'
+      solver.eq 'C', 30
+
+      solutions = solver.solve()
+
+      expect(solutions.length, 'solution count').to.equal 3
+
+      # 3*10=30
+      # 5*6=30
+      # 6*5=30
+      expect(strip_anon_vars_a solutions).to.eql [{
+        A: 3
+        B: 10
+        C: 30
+      }, {
+        A: 5
+        B: 6
+        C: 30
+      }, {
+        A: 6
+        B: 5
+        C: 30
+      }]
+
+    it 'should solve a simple - test', ->
+
+      solver = new Solver {}
+      solver.addVar 'A', 400
+      solver.addVar 'B', 50
+      solver.addVar 'C', spec_d_create_range 0, 10000
+
+      solver.min 'A', 'B', 'C'
+
+      solutions = solver.solve()
+
+      expect(solutions).to.eql [
+        A: 400
+        B: 50
+        C: 350
+      ]
+
   describe 'brute force entire space', ->
 
     it 'should solve a single unconstrainted var', ->
@@ -389,7 +531,7 @@ describe "solver.spec", ->
       solver.addVar 'MAX', [25, 25]
       solver.addVar 'MUL', [0, 100]
 
-      solver.times 'A', 'B', 'MUL'
+      solver.mul 'A', 'B', 'MUL'
       solver.lt 'MUL', 'MAX'
 
       # There are 11x11=121 combinations (inc dupes)
@@ -820,3 +962,196 @@ describe "solver.spec", ->
       # (see other test) so there must be 106 results.
 
       expect(solver.solve(max: 10000).length).to.eql 106
+
+  describe 'gss poc', ->
+
+    it 'with everything in FD', ->
+
+      ###
+      // assuming
+      // ::window[width] is 1200
+      // ::window[height] is 800
+
+      #box1 {
+        width:== 100;
+        height:== 100;
+      }
+      #box2 {
+        width: == 100;
+        height: == 100;
+      }
+
+      #box1[right] == :window[center-x] - 10;
+      #box2[left] == :window[center-x] + 10;
+
+      #box1[center-y] == #box2[center-y] == ::window[center-y];
+      ###
+
+      solver = new Solver defaultDomain: spec_d_create_range 0, 10000
+      solver.addVar
+        id: 'VIEWPORT_WIDTH'
+        domain: 1200
+      solver.addVar
+        id: 'VIEWPORT_HEIGHT'
+        domain: 800
+      solver.addVars [
+        # box1
+        '#box1[x]'
+        '#box1[width]'
+        '#box1[y]'
+        '#box1[height]'
+        # box2
+        '#box2[x]'
+        '#box2[width]'
+        '#box2[y]'
+        '#box2[height]'
+        # middle of the viewport, to be computed later
+        'VIEWPORT_MIDDLE_HEIGHT'
+        'VIEWPORT_MIDDLE_WIDTH'
+      ]
+
+      # simple constraints
+      # #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
+      solver.eq '#box1[width]', 100
+      solver.eq '#box1[height]', 100
+      solver.eq '#box2[width]', 100
+      solver.eq '#box2[height]', 100
+      # make sure boxes are within viewport
+
+      solver.lt '#box1[x]', solver.minus 'VIEWPORT_WIDTH', '#box1[width]'
+      solver.lt '#box1[y]', solver.minus 'VIEWPORT_HEIGHT', '#box1[height]'
+      solver.lt '#box2[x]', solver.minus 'VIEWPORT_WIDTH', '#box2[width]'
+      solver.lt '#box2[y]', solver.minus 'VIEWPORT_HEIGHT', '#box2[height]'
+
+      # VIEWPORT_WIDTH / 2
+      solver.div 'VIEWPORT_WIDTH', 2, 'VIEWPORT_MIDDLE_WIDTH'
+
+      # #box1[right] == :window[center-x] - 10;
+      # so: #box1[x] + #box[width] + 10 == VIEWPORT_MIDDLE_WIDTH
+      solver.eq solver.plus(solver.plus('#box1[x]', '#box1[width]'), 10), 'VIEWPORT_MIDDLE_WIDTH'
+
+      # similar for #box2[left] == :window[center-x] + 10;
+      solver.eq solver.min('#box2[x]', 10), 'VIEWPORT_MIDDLE_WIDTH'
+
+      # #box1[center-y] == #box2[center-y] == ::window[center-y];
+      # center-y = height/2 -> y=(height/2)-(box_height/2)
+      solver.div 'VIEWPORT_HEIGHT', 2, 'VIEWPORT_MIDDLE_HEIGHT'
+      solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box1[height]', 2), '#box1[y]'
+      solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box2[height]', 2), '#box2[y]'
+
+      solutions = solver.solve(max: 3)
+      #console.log FD.space.__space_debug_string solver.space
+
+      # viewport is 1200 x 800
+      # boxes are 100x100
+      # box1 is 10 left to center so box1.x = 1200/2-110=490
+      # box2 is 10 right of center so box2.x = 1200/2+10=610
+      # box1 and box2 are vertically centered, same height so same y: (800/2)-(100/2)=350
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        '#box1[x]': 490 # 490+100+10=600=1200/2
+        '#box1[width]': 100
+        '#box1[y]': 350
+        '#box1[height]': 100
+        '#box2[x]': 610
+        '#box2[width]': 100
+        '#box2[y]': 350
+        '#box2[height]': 100
+
+        "VIEWPORT_WIDTH": 1200
+        "VIEWPORT_HEIGHT": 800
+        "VIEWPORT_MIDDLE_WIDTH": 600
+        "VIEWPORT_MIDDLE_HEIGHT": 400
+      ]
+
+      expect(solutions.length).to.equal 1
+
+    it 'with viewport constants hardcoded', ->
+
+      ###
+      // assuming
+      // ::window[width] is 1200
+      // ::window[height] is 800
+
+      #box1 {
+        width:== 100;
+        height:== 100;
+      }
+      #box2 {
+        width: == 100;
+        height: == 100;
+      }
+
+      #box1[right] == :window[center-x] - 10;
+      #box2[left] == :window[center-x] + 10;
+
+      #box1[center-y] == #box2[center-y] == ::window[center-y];
+      ###
+
+      FLOOR = Math.floor
+      VIEWPORT_WIDTH = 1200
+      VIEWPORT_HEIGHT = 800
+
+      solver = new Solver defaultDomain: spec_d_create_range 0, 10000
+      solver.addVars [
+        # box1
+        '#box1[x]'
+        '#box1[width]'
+        '#box1[y]'
+        '#box1[height]'
+        # box2
+        '#box2[x]'
+        '#box2[width]'
+        '#box2[y]'
+        '#box2[height]'
+      ]
+
+      # simple constraints
+      # #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
+      solver.eq '#box1[width]', 100
+      solver.eq '#box1[height]', 100
+      solver.eq '#box2[width]', 100
+      solver.eq '#box2[height]', 100
+      # make sure boxes are within viewport
+
+      solver.lt '#box1[x]', solver.minus VIEWPORT_WIDTH, '#box1[width]'
+      solver.lt '#box1[y]', solver.minus VIEWPORT_HEIGHT, '#box1[height]'
+      solver.lt '#box2[x]', solver.minus VIEWPORT_WIDTH, '#box2[width]'
+      solver.lt '#box2[y]', solver.minus VIEWPORT_HEIGHT, '#box2[height]'
+
+      # VIEWPORT_WIDTH / 2
+      VIEWPORT_MIDDLE_WIDTH = FLOOR VIEWPORT_WIDTH / 2
+
+      # #box1[right] == :window[center-x] - 10;
+      # so: #box1[x] + #box[width] + 10 == VIEWPORT_MIDDLE_WIDTH
+      solver.eq solver.plus('#box1[x]', '#box1[width]'), VIEWPORT_MIDDLE_WIDTH - 10
+
+      # similar for #box2[left] == :window[center-x] + 10;
+      solver.eq VIEWPORT_MIDDLE_WIDTH + 10, '#box2[x]'
+
+      # #box1[center-y] == #box2[center-y] == ::window[center-y];
+      # center-y = height/2 -> y=(height/2)-(box_height/2)
+      VIEWPORT_MIDDLE_HEIGHT = FLOOR VIEWPORT_HEIGHT / 2
+      solver.minus VIEWPORT_MIDDLE_HEIGHT, solver.div('#box1[height]', 2), '#box1[y]'
+      solver.minus VIEWPORT_MIDDLE_HEIGHT, solver.div('#box2[height]', 2), '#box2[y]'
+
+      solutions = solver.solve(max: 3)
+
+      # viewport is 1200 x 800
+      # boxes are 100x100
+      # box1 is 10 left to center so box1.x = 1200/2-110=490
+      # box2 is 10 right of center so box2.x = 1200/2+10=610
+      # box1 and box2 are vertically centered, same height so same y: (800/2)-(100/2)=350
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        '#box1[x]': 490 # 490+100+10=600=1200/2
+        '#box1[width]': 100
+        '#box1[y]': 350
+        '#box1[height]': 100
+        '#box2[x]': 610
+        '#box2[width]': 100
+        '#box2[y]': 350
+        '#box2[height]': 100
+      ]
+
+      expect(solutions.length).to.equal 1

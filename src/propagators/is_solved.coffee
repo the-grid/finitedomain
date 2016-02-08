@@ -69,6 +69,14 @@ module.exports = do ->
         # markov doesnt reduce the domain, only validates (in the propagator, not here)
         return false
 
+      # TOFIX: we may be able to come up with a fast algorithm to validate div and mul
+      when 'min'
+        return false
+      when 'div'
+        return false
+      when 'mul'
+        return false
+
       else
         return _propagator_comparison_is_solved op_name, v1, v2
 

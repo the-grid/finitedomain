@@ -20,6 +20,7 @@ module.exports = do ->
 
   {
     domain_create_bool
+    domain_create_value
     domain_from_list
   } = require './domain'
 
@@ -29,8 +30,10 @@ module.exports = do ->
 
   {
     __space_debug_string
-    space_create_root
     space_add_var
+    space_add_vars_a
+    space_create_root
+    space_get_unknown_vars
     space_set_defaults
     space_set_options
     space_solution
@@ -38,18 +41,21 @@ module.exports = do ->
 
   {
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte
     propagator_add_lt
     propagator_add_lte
     propagator_add_markov
+    propagator_add_min
+    propagator_add_mul
     propagator_add_neq
     propagator_add_plus
     propagator_add_product
     propagator_add_reified
+    propagator_add_ring_mul
     propagator_add_sum
-    propagator_add_times
   } = require './propagator'
 
   # BODY_START
@@ -135,10 +141,10 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      space_add_var @space, id, domain
-      return
+      return space_add_var @space, id, domain
 
     # Uses @defaultDomain if no domain was given
+    # If domain is a number it becomes [dom, dom]
     # Distribution is optional
     # Name is used to create a `byName` hash
     #
@@ -172,6 +178,8 @@ module.exports = do ->
         THROW "Solver#addVar: var.id already added: #{id}"
 
       domain ?= @defaultDomain.slice 0
+      if typeof domain is 'number'
+        domain = domain_create_value domain
       domain = validate_domain domain
 
       space_add_var @space, id, domain
@@ -276,12 +284,35 @@ module.exports = do ->
         return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
       return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
 
-    '*': (e1, e2, result_var) ->
-      return @times e1, e2, result_var
-    times: (e1, e2, result_var) ->
+    '-': (e1, e2, result_var) ->
+      return @min e1, e2, result_var
+    minus: (e1, e2, result_var) ->
+      return @min e1, e2, result_var
+    min: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_times @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2)
+
+    '*': (e1, e2, result_var) ->
+      return @ring_mul e1, e2, result_var
+    times: (e1, e2, result_var) -> # deprecated
+      return @ring_mul e1, e2, result_var
+    ring_mul: (e1, e2, result_var) ->
+      if result_var
+        return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2)
+
+    '/': (e1, e2, result_var) ->
+      return @div e1, e2, result_var
+    div: (e1, e2, result_var) ->
+      if result_var
+        return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2)
+
+    mul: (e1, e2, result_var) ->
+      if result_var
+        return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
@@ -323,12 +354,11 @@ module.exports = do ->
       if e1 instanceof Array
         for e in e1
           @_eq e, e2
+        return e2
       else
-        @_eq e1, e2
-      return
+        return @_eq e1, e2
     _eq: (e1, e2) ->
-      propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
-      return
+      return propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
 
     '!=': (e1, e2) ->
       @neq e1, e2
@@ -338,7 +368,7 @@ module.exports = do ->
         for e in e1
           @_neq e, e2
       else
-        return @_neq e1, e2
+        @_neq e1, e2
       return
     _neq: (e1, e2) ->
       propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)
@@ -468,6 +498,7 @@ module.exports = do ->
         vars: bvars
         search
         distribute: distribution_options
+        add_unknown_vars # bool
       } = options
 
       log ?= LOG_NONE # 0, 1, 2
@@ -475,6 +506,10 @@ module.exports = do ->
       bvars ?= @vars.all
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
+
+      if add_unknown_vars
+        unknown_names = space_get_unknown_vars @space
+        space_add_vars_a @space, unknown_names
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides

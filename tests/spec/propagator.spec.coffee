@@ -24,25 +24,25 @@ describe "propagator.spec", ->
   {
     propagator_add_callback
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte
     propagator_add_lt
     propagator_add_lte
     propagator_add_markov
+    propagator_add_min
+    propagator_add_mul
     propagator_add_neq
     propagator_add_plus
     propagator_add_product
     propagator_add_reified
     propagator_add_scale
+    propagator_add_ring_mul
     propagator_add_sum
-    propagator_add_times
-    propagator_add_times_plus
-    propagator_add_wsum
 
-    _propagator_add_plus_or_times
+    _propagator_add_ring_plus_or_mul
   } = FD.propagator
-
 
   {
     space_add_var
@@ -273,7 +273,7 @@ describe "propagator.spec", ->
 
         expect(-> propagator_add_gte space, 0, 0).to.throw()
 
-  describe '_propagator_add_plus_or_times', ->
+  describe '_propagator_add_ring_plus_or_mul', ->
 
     it 'should return the name of the anonymous result var', ->
 
@@ -281,7 +281,7 @@ describe "propagator.spec", ->
       space_add_var space, 'A'
       space_add_var space, 'B'
 
-      expect(typeof _propagator_add_plus_or_times space, 'div', 'mul', 'A', 'B', 0).to.eql 'string'
+      expect(typeof _propagator_add_ring_plus_or_mul space, 'div', 'mul', 'A', 'B', 0).to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
@@ -290,24 +290,7 @@ describe "propagator.spec", ->
       space_add_var space, 'B'
       space_add_var space, 'C'
 
-      expect(_propagator_add_plus_or_times space, 'div', 'mul', 'A', 'B', 'C').to.eql 'C'
-
-  describe 'propagator_add_scale', ->
-
-    it 'should return the name of the anonymous result var', ->
-
-      space = space_create_root()
-      space_add_var space, 'A'
-
-      expect(typeof propagator_add_scale space, 5, 'A', 0).to.eql 'string'
-
-    it 'should return the name of the named result var', ->
-
-      space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-
-      expect(propagator_add_scale space, 5, 'A', 'B').to.eql 'B'
+      expect(_propagator_add_ring_plus_or_mul space, 'div', 'mul', 'A', 'B', 'C').to.eql 'C'
 
   describe 'propagator_add_sum', ->
 
@@ -377,16 +360,15 @@ describe "propagator.spec", ->
 
       expect(propagator_add_product space, ['A', 'B', 'C'], 'D').to.eql 'D'
 
-  describe 'propagator_add_wsum', ->
+  describe 'propagator_add_min', ->
 
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
       space_add_var space, 'A'
       space_add_var space, 'B'
-      space_add_var space, 'C'
 
-      expect(typeof propagator_add_wsum space, [1, 2, 3], ['A', 'B', 'C']).to.eql 'string'
+      expect(typeof propagator_add_min space, 'A', 'B').to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
@@ -394,6 +376,43 @@ describe "propagator.spec", ->
       space_add_var space, 'A'
       space_add_var space, 'B'
       space_add_var space, 'C'
-      space_add_var space, 'D'
 
-      expect(propagator_add_wsum space, [1, 2, 3], ['A', 'B', 'C'], 'D').to.eql 'D'
+      expect(propagator_add_min space, 'A', 'B', 'C').to.eql 'C'
+
+  describe 'propagator_add_div', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+
+      expect(typeof propagator_add_div space, 'A', 'B').to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(propagator_add_div space, 'A', 'B', 'C').to.eql 'C'
+
+  describe 'propagator_add_mul', ->
+
+    it 'should return the name of the anonymous result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+
+      expect(typeof propagator_add_mul space, 'A', 'B').to.eql 'string'
+
+    it 'should return the name of the named result var', ->
+
+      space = space_create_root()
+      space_add_var space, 'A'
+      space_add_var space, 'B'
+      space_add_var space, 'C'
+
+      expect(propagator_add_mul space, 'A', 'B', 'C').to.eql 'C'

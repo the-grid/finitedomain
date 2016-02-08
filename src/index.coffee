@@ -34,8 +34,6 @@ switch TEST_TARGET
         propagator_is_solved: require './propagators/is_solved'
         reified: require './propagators/reified'
         ring: require './propagators/ring'
-        scale_div: require './propagators/scale_div'
-        scale_mul: require './propagators/scale_mul'
         step_comparison: require './propagators/step_comparison'
         step_any: require './propagators/step_any'
       domain: require './domain'

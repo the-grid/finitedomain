@@ -515,7 +515,7 @@ module.exports = do ->
 
   # Note that this one isn't domain consistent.
 
-  domain_times = (domain1, domain2) ->
+  domain_mul = (domain1, domain2) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
     ASSERT domain1? and domain2?
@@ -555,14 +555,20 @@ module.exports = do ->
 
     return domain_simplify result, INLINE
 
-  # Note that this isn't domain consistent.
-  # Note: we floor/ceil the values because the solver assumes domains have ints only
+  # Divide one range by another
+  # Result has any integer values that are equal or between
+  # the real results. This means fractions are floored/ceiled.
+  # This is an expensive operation.
+  # Zero is a special case.
+  #
+  # @param {boolean} [floor_fractions=true] Include the floored lo of the resulting ranges?
+  #         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
+  #         <2,2>, otherwise it will not include anything for that division.
 
-  domain_divby = (domain1, domain2) ->
+  domain_divby = (domain1, domain2, floor_fractions=true) ->
     ASSERT_DOMAIN domain1
     ASSERT_DOMAIN domain2
-
-    ASSERT domain1? and domain2?
+    ASSERT domain1? and domain2?, 'domain 1 and 2?', domain1, domain2
 
     result = []
 
@@ -572,19 +578,30 @@ module.exports = do ->
       for loj, index2 in domain2 by PAIR_SIZE
         hij = domain2[index2 + 1]
 
-        if hij > 0 # cannot /0
+        # cannot /0
+        # we ignore it right now. should we...
+        # - add a 0 or SUB or SUP for it
+        # - throw an error / issue a warning for it
+        if hij > 0
           lo = loi / hij
           hi = if loj > 0 then hii / loj else SUP
 
-          if hi >= 0
-            # we cant use fractions, so we'll only include any values in the
-            # resulting domains that are _above_ the lo and _below_ the hi.
-            left = CEIL MAX 0, lo
-            right = FLOOR hi
-            # if the fraction is within the same integer this could result in
-            # lo>hi so we must prevent this case
-            if left < right
-              result.push left, right
+          ASSERT hi >= 0, 'hi could only be sub zero when domains allow negative numbers', hi
+          # we cant use fractions, so we'll only include any values in the
+          # resulting domains that are _above_ the lo and _below_ the hi.
+          left = CEIL MAX 0, lo
+          right = FLOOR hi
+
+          # if the fraction is within the same integer this could result in
+          # lo>hi so we must prevent this case
+          if left <= right
+            result.push left, right
+          else
+            ASSERT FLOOR(lo) is FLOOR(hi), 'left>right when fraction is in same int, which can happen', lo, hi
+            if floor_fractions
+              # only use the floored value
+              # note: this is a choice. not both floor/ceil because then 5/2=2.5 becomes [2,3]. should be [2,2] or [3,3]
+              result.push right, right
 
     return domain_simplify result, INLINE
 
@@ -982,7 +999,7 @@ module.exports = do ->
     domain_set_to_range_inline
     domain_simplify
     domain_size
-    domain_times
+    domain_mul
     domain_to_list
 
     # __REMOVE_BELOW_FOR_DIST__

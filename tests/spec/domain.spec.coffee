@@ -906,54 +906,54 @@ describe 'domain.spec', ->
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       expect(domain_plus a, b).to.eql spec_d_create_ranges([0, 2], [4, 34])
 
-  describe 'domain_times', ->
+  describe 'domain_mul', ->
 
-    {domain_times} = Domain
+    {domain_mul} = Domain
 
     it 'should exist', ->
 
-      expect(domain_times?).to.be.true
+      expect(domain_mul?).to.be.true
 
     it 'should require domains', ->
 
-      expect(-> domain_times()).to.throw()
-      expect(-> domain_times []).to.throw()
-      expect(-> domain_times null, []).to.throw()
+      expect(-> domain_mul()).to.throw()
+      expect(-> domain_mul []).to.throw()
+      expect(-> domain_mul null, []).to.throw()
 
     it 'should accept empty domains', ->
 
-      expect(domain_times [], []).to.eql []
+      expect(domain_mul [], []).to.eql []
 
     it 'should accept empty domains', ->
 
-      expect(domain_times [], []).to.eql []
+      expect(domain_mul [], []).to.eql []
       a = []
-      expect(domain_times a, []).to.not.equal a
+      expect(domain_mul a, []).to.not.equal a
       a = []
-      expect(domain_times [], a).to.not.equal a
+      expect(domain_mul [], a).to.not.equal a
 
     it 'should return empty domain if one is empty', ->
 
       a = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17])
-      expect(domain_times (a.slice 0), []).to.eql []
-      expect(domain_times [], (a.slice 0)).to.eql []
-      expect(domain_times a, []).to.not.equal a
+      expect(domain_mul (a.slice 0), []).to.eql []
+      expect(domain_mul [], (a.slice 0)).to.eql []
+      expect(domain_mul a, []).to.not.equal a
 
     it 'should multiply two ranges', ->
 
-      expect(domain_times spec_d_create_range(5, 10), spec_d_create_range(50, 60)).to.eql spec_d_create_range(250, 600)
+      expect(domain_mul spec_d_create_range(5, 10), spec_d_create_range(50, 60)).to.eql spec_d_create_range(250, 600)
 
     it 'should multiply two domains', ->
 
       a = spec_d_create_ranges([5, 10], [20, 35])
       b = spec_d_create_ranges([50, 60], [110, 128])
-      expect(domain_times a, b).to.eql spec_d_create_ranges([250, 2100], [2200, 4480])
+      expect(domain_mul a, b).to.eql spec_d_create_ranges([250, 2100], [2200, 4480])
 
     it 'should multiply two domains', ->
 
       a = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
-      expect(domain_times a, b).to.eql spec_d_create_ranges([0, 204], [225, 289])
+      expect(domain_mul a, b).to.eql spec_d_create_ranges([0, 204], [225, 289])
 
   describe 'domain_minus', ->
 
@@ -1043,23 +1043,53 @@ describe 'domain.spec', ->
 
       expect(domain_divby spec_d_create_range(50, 60), spec_d_create_range(5, 10)).to.eql spec_d_create_range(5, 12)
 
-    it 'should divide one domain from another', ->
+    it 'should divide one domain from another; floored', ->
 
       a = spec_d_create_ranges([5, 10], [20, 35])
       b = spec_d_create_ranges([50, 60], [110, 128])
-      expect(domain_divby a, b).to.eql # would be [0.0390625, 0.7] but there are no ints in between that so its empty
+      expect(domain_divby a, b, true).to.eql [0, 0] # would be [0.0390625, 0.7] which gets floored to [0, 0.7] so [0,0]
 
-    it 'should divide one domain from another (2)', ->
+    it 'should divide one domain from another (2); floored', ->
 
       a = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
       b = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
-      expect(domain_divby a, b).to.eql spec_d_create_ranges([1, 12], [15, 17])
+      expect(domain_divby a, b, true).to.eql spec_d_create_ranges([0, 12], [15, 17])
+
+    it 'should divide one domain from another; integer', ->
+
+      a = spec_d_create_ranges([5, 10], [20, 35])
+      b = spec_d_create_ranges([50, 60], [110, 128])
+      expect(domain_divby a, b, false).to.eql [] # would be [0.0390625, 0.7] but there are no ints in between that so its empty
+
+    it 'should divide one domain from another (2); integer', ->
+
+      a = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
+      b = spec_d_create_ranges([1, 1], [4, 12], [15, 17])
+      expect(domain_divby a, b, false).to.eql spec_d_create_ranges([1, 12], [15, 17])
 
     it 'divide by zero should blow up', ->
 
       a = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       b = spec_d_create_ranges([0, 1], [4, 12], [15, 17])
       expect(domain_divby a, b).to.eql spec_d_create_ranges([0, SUP])
+
+    describe 'simple examples', ->
+
+      doit = (a, b, c) ->
+
+        it 'should pass ['+a+'] / ['+b+'] = ['+c+']', ->
+
+          expect(domain_divby a, b).to.eql c
+
+      doit [50, 60], [5, 5], [10, 12]
+      doit [50, 50, 60, 60], [5, 5], [10, 10, 12, 12]
+      doit [50, 60], [5, 5, 10, 10], [5, 6, 10, 12]
+      doit [50, 60], [5, 10], [5, 12]
+      doit [0, 0], [5, 10], [0, 0]
+      doit [0, 1], [5, 10], [0, 0] # because all results are <1
+      doit [0, 10], [2, 2], [0, 5]
+      doit [5, 10], [0, 0], []
+      doit [5, 10], [0, 1], [5, SUP]
 
   describe 'domain_is_solved', ->
 

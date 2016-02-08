@@ -45,7 +45,7 @@ module.exports = do ->
   _space_uid_counter = 1
 
   space_create_root = ->
-    return _space_create_new null, [], {}, [], []
+    return _space_create_new null, [], {}, [], [], 0, 0
 
   # Create a space node that is a child of given space node
 
@@ -64,7 +64,7 @@ module.exports = do ->
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names
+    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -80,7 +80,7 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names) ->
+  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
     ASSERT typeof _root_space is 'object', 'should be an object or null', _root_space
     ASSERT !(_root_space instanceof Array), 'not expecting an array here',  _root_space
     ASSERT _propagators instanceof Array, 'props should be an array', _propagators
@@ -90,6 +90,10 @@ module.exports = do ->
 
     return {
       _class: 'space'
+      # search graph metrics
+      _depth
+      _child
+      _child_count: 0
 
       _root_space
 
@@ -97,7 +101,6 @@ module.exports = do ->
       config_next_var_func: 'naive'
       config_next_value_func: 'min'
       config_targeted_vars: 'all'
-      config_when_solved: 'all'
       config_var_dist_options: {}
       config_timeout_callback: undefined
 
@@ -139,11 +142,6 @@ module.exports = do ->
       # string[]: list of vars that must be solved
       # function: callback to return list of names to be solved
       space.config_targeted_vars = options.targeted_var_names
-    if options?.is_solved
-      # 'all': solved when all vars of a space are solved
-      # string[]: a list of vars that must be solved to consider the space solved
-      # function: a custom callback to determine whether the space is solved
-      space.config_when_solved = options.is_solved
     if options?.var_dist_config
       # An object which defines a value distributor per variable
       # which overrides the globally set value distributor.
@@ -377,17 +375,27 @@ module.exports = do ->
 
     unless name
       # create anonymous var
-      name = String ++_space_uid_counter
+      name = String _space_uid_counter++
 
     _space_create_var_domain space, name, domain
     return name
 
+  # add multiple var names with names in arg list
   # See space_add_var for details
 
   space_add_vars = (space, arr...) ->
     ASSERT space._class is 'space'
     for a in arr
       space_add_var space, a[0], a[1], a[2]
+    return
+
+  # add multiple var names with names in an array
+  # See space_add_var for details
+
+  space_add_vars_a = (space, arr) ->
+    ASSERT space._class is 'space'
+    for a in arr
+      space_add_var space, a
     return
 
   # Add a bunch of vars by different names and same domain
@@ -452,6 +460,17 @@ module.exports = do ->
     ASSERT_PROPAGATORS space._propagators
     return
 
+  space_get_unknown_vars = (space) ->
+    names = []
+    for p in space._propagators
+      a = p[1][0]
+      if !space.vars[a] and names.indexOf(a) < 0
+        names.push a
+      b = p[1][1]
+      if !space.vars[b] and names.indexOf(b) < 0
+        names.push b
+    return names
+
   # __REMOVE_BELOW_FOR_DIST__
 
   #### Debugging
@@ -472,15 +491,17 @@ module.exports = do ->
       else if c[0] is 'ring'
         switch c[2]
           when 'plus'
+            # doesnt really exist. merely artifact of ring
             things.push 'propagator_add_plus S, \''+c[1].join('\', \'')+'\''
           when 'min'
-          # doesnt really exist. merely artifact of times
+            # doesnt really exist. merely artifact of plus
             things.push '# S.minus \''+c[1].join('\', \'')+'\' # (artifact from .plus)'
           when 'mul'
-            things.push 'propagator_add_times S, \''+c[1].join('\', \'')+'\''
+            # doesnt really exist. merely artifact of ring
+            things.push 'propagator_add_mul S, \''+c[1].join('\', \'')+'\''
           when 'div'
-          # doesnt really exist. merely artifact of times
-            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .times)'
+            # doesnt really exist. merely artifact of ring
+            things.push '# S.divby \''+c[1].join('\', \'')+'\' # (artifact from .mul)'
           else
             ASSERT false, 'unknown ring op name', c[2]
       else
@@ -515,7 +536,6 @@ module.exports = do ->
       things.push '- config_next_var_func: ' + space.config_next_var_func
       things.push '- config_next_value_func: ' + space.config_next_value_func
       things.push '- config_targeted_vars: ' + space.config_targeted_vars
-      things.push '- config_when_solved: ' + space.config_when_solved
 
       things.push "Vars (#{space.all_var_names.length}x):"
 
@@ -560,20 +580,20 @@ module.exports = do ->
 
     return things.join '\n'
 
-    __space_debug_var_domains = (space_) ->
-      things = []
-      for name of space.vars
-        things.push name+': ['+space.vars[name].dom+']'
-      return things
+  __space_debug_var_domains = (space) ->
+    things = []
+    for name of space.vars
+      things.push name+': ['+space.vars[name].dom+']'
+    return things
 
-    __space_get_unsolved = (space) ->
-      vars = space.vars
-      unsolved_names = []
-      for name of vars
-        fdvar = vars[name]
-        unless fdvar_is_solved fdvar
-          unsolved_names.push name
-      return unsolved_names
+  __space_get_unsolved = (space) ->
+    vars = space.vars
+    unsolved_names = []
+    for name of vars
+      fdvar = vars[name]
+      unless fdvar_is_solved fdvar
+        unsolved_names.push name
+    return unsolved_names
 
   # __REMOVE_ABOVE_FOR_DIST__
 
@@ -584,9 +604,11 @@ module.exports = do ->
     space_add_vars_domain
     space_add_var
     space_add_vars
+    space_add_vars_a
     space_create_clone
     space_create_root
     space_get_root
+    space_get_unknown_vars
     space_is_solved
     space_propagate
     space_set_defaults

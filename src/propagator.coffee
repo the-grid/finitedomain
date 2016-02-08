@@ -110,12 +110,18 @@ module.exports = do ->
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
-      if typeof v1name is 'number'
+      t = space_add_var space, v2name
+      # swap such that v1 is the solved var. order is irrelevant to eq itself.
+      v2name = v1name
+      v1name = t
+      if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
 
     space_add_propagator space, ['eq', [v1name, v2name]]
-    return
+    # return either operand var. this allows you to chain eqs -> .eq(.eq(A, B), C)
+    # doesnt really matter which operand since they should be equal
+    # (though you should probably try to make v1 solved the fastest)
+    return v1name
 
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.
@@ -163,6 +169,54 @@ module.exports = do ->
     space_add_propagator space, ['lte', [v1name, v2name]]
     return
 
+  propagator_add_mul = (space, v1name, v2name, result_name) ->
+    ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof result_name is 'undefined'
+      result_name = space_add_var space
+    else if typeof result_name is 'number'
+      result_name = space_add_var space, result_name
+    else if typeof result_name isnt 'string'
+      THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    space_add_propagator space, ['mul', [v1name, v2name, result_name]]
+    return result_name
+
+  propagator_add_div = (space, v1name, v2name, result_name) ->
+    ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+
+    if typeof result_name is 'undefined'
+      result_name = space_add_var space
+    else if typeof result_name is 'number'
+      result_name = space_add_var space, result_name
+    else if typeof result_name isnt 'string'
+      THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    space_add_propagator space, ['div', [v1name, v2name, result_name]]
+    return result_name
+
   # Greater than or equal to.
 
   propagator_add_gte = (space, v1name, v2name) ->
@@ -199,7 +253,7 @@ module.exports = do ->
         propagator_add_neq space, var_name_i, var_names[j]
     return
 
-  _propagator_add_plus_or_times = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
+  _propagator_add_ring_plus_or_mul = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
@@ -240,54 +294,39 @@ module.exports = do ->
 
   propagator_add_plus = (space, v1name, v2name, sumname) ->
     ASSERT space._class is 'space'
-    return _propagator_add_plus_or_times space, 'plus', 'min', v1name, v2name, sumname
+    return _propagator_add_ring_plus_or_mul space, 'plus', 'min', v1name, v2name, sumname
+
+  propagator_add_min = (space, v1name, v2name, result_var) ->
+    ASSERT space._class is 'space'
+    ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
+    ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
+    ASSERT typeof result_var is 'string' or typeof result_var is 'number' or typeof result_var is 'undefined', 'expecting result_var to be number, string, or undefined', result_var
+
+    if typeof v1name is 'number'
+      v1name = space_add_var space, v1name
+      if typeof v2name is 'number'
+        THROW 'must pass in at least one var name'
+    else if typeof v2name is 'number'
+      v2name = space_add_var space, v2name
+      if typeof v1name is 'number'
+        THROW 'must pass in at least one var name'
+
+    if typeof result_var is 'undefined'
+      result_var = space_add_var space
+    else if typeof result_var is 'number'
+      result_var = space_add_var space, result_var
+    else if typeof result_var isnt 'string'
+      THROW 'expecting result_var to be absent or a number or string: `'+result_var+'`'
+
+    space_add_propagator space, ['min', [v1name, v2name, result_var]]
+    return result_var
 
   # Bidirectional multiplication propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
-  propagator_add_times = (space, v1name, v2name, prodname) ->
+  propagator_add_ring_mul = (space, v1name, v2name, prodname) ->
     ASSERT space._class is 'space'
-    return _propagator_add_plus_or_times space, 'mul', 'div', v1name, v2name, prodname
-
-  # factor = constant number (not an fdvar)
-  # vname is an fdvar name
-  # prodname is an fdvar name, optional
-  #
-  # factor * v = prod
-
-  propagator_add_scale = (space, factor, vname, prodname) ->
-    ASSERT space._class is 'space'
-
-    if factor is 1
-      unless prodname
-        prodname = space_add_var space
-      propagator_add_eq space, vname, prodname
-      return prodname
-
-    if factor is 0
-      if prodname
-        propagator_add_eq space, 0, prodname
-        return prodname
-      return space_add_var space, 0
-
-    if factor < 0
-      THROW 'scale: negative factors not supported.'
-
-    unless prodname
-      prodname = space_add_var space
-
-    space_add_propagator space, ['mul', [vname, prodname]]
-    space_add_propagator space, ['div', [vname, prodname]]
-
-    return prodname
-
-  # TODO: Can be made more efficient.
-
-  propagator_add_times_plus = (space, k1, v1name, k2, v2name, resultname) ->
-    ASSERT space._class is 'space'
-    A = propagator_add_scale space, k1, v1name
-    B = propagator_add_scale space, k2, v2name
-    return propagator_add_plus space, A, B, resultname
+    return _propagator_add_ring_plus_or_mul space, 'mul', 'div', v1name, v2name, prodname
 
   # Sum of N fdvars = resultFDVar
   # Creates as many anonymous vars as necessary.
@@ -345,7 +384,7 @@ module.exports = do ->
         propagator_add_eq space, vars[0], result_var_name
 
       when 2
-        propagator_add_times space, vars[0], vars[1], result_var_name
+        propagator_add_ring_mul space, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
@@ -357,19 +396,9 @@ module.exports = do ->
         t2 = space_add_var space
 
         propagator_add_product space, vars.slice(n), t2
-        propagator_add_times space, t1, t2, result_var_name
+        propagator_add_ring_mul space, t1, t2, result_var_name
 
     return result_var_name
-
-  # Weighted sum of fdvars where the weights are constants.
-
-  propagator_add_wsum = (space, kweights, vars, result_name) ->
-    ASSERT space._class is 'space'
-    result_var_names = []
-    for var_i, i in vars
-      result_var_names.push propagator_add_scale space, kweights[i], var_i
-
-    return propagator_add_sum space, result_var_names, result_name
 
   propagator_add_markov = (space, var_name) ->
     ASSERT space._class is 'space'
@@ -382,22 +411,22 @@ module.exports = do ->
   return {
     propagator_add_callback
     propagator_add_distinct
+    propagator_add_div
     propagator_add_eq
     propagator_add_gt
     propagator_add_gte
     propagator_add_lt
     propagator_add_lte
     propagator_add_markov
+    propagator_add_mul
     propagator_add_neq
     propagator_add_plus
+    propagator_add_min
     propagator_add_product
     propagator_add_reified
-    propagator_add_scale
+    propagator_add_ring_mul
     propagator_add_sum
-    propagator_add_times
-    propagator_add_times_plus
-    propagator_add_wsum
 
     # for testing
-    _propagator_add_plus_or_times
+    _propagator_add_ring_plus_or_mul
   }

@@ -16,9 +16,12 @@ describe "propagators/callback.spec", ->
     return
 
   {
+    config_set_options
+    config_set_defaults
+  } = FD.config
+
+  {
     space_add_vars
-    space_set_defaults
-    space_set_options
   } = FD.space
 
   {
@@ -79,8 +82,8 @@ describe "propagators/callback.spec", ->
       propagator_add_sum space, ['R', 'G', 'B'], 'T'
       propagator_add_callback space, ['R', 'G', 'B'], cb
 
-      space_set_defaults space, 'naive'
-      space_set_options space, targeted_var_names: ['R', 'G', 'B']
+      config_set_defaults space.config, 'naive'
+      config_set_options space.config, targeted_var_names: ['R', 'G', 'B']
 
       state = {space, more: true}
       count = 0

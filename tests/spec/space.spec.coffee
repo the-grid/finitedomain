@@ -22,6 +22,10 @@ describe "space.spec", ->
   describe 'Space class', ->
 
     {
+      config_set_options
+    } = FD.config
+
+    {
       space_add_var
       space_add_vars
       space_add_vars_domain
@@ -31,8 +35,6 @@ describe "space.spec", ->
       space_get_root
       space_is_solved
       space_propagate
-      space_set_defaults # TOFIX: add test
-      space_set_options
       space_solution
       space_solution_for
     } = FD.space
@@ -262,7 +264,7 @@ describe "space.spec", ->
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
-          space_set_options space, timeout_callback: -> false
+          config_set_options space.config, timeout_callback: -> false
 
           expect(space_propagate space).to.eql true
 
@@ -275,7 +277,7 @@ describe "space.spec", ->
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
-          space_set_options space, timeout_callback: -> true
+          config_set_options space.config, timeout_callback: -> true
 
           expect(space_propagate space).to.eql false
 

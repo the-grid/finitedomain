@@ -26,6 +26,8 @@ describe 'config.spec', ->
     config_add_vars_a
     config_add_vars_o
     config_create
+    config_set_defaults # TOFIX: test
+    config_set_options # TOFIX: test
   } = FD.config
 
   describe 'config_create', ->

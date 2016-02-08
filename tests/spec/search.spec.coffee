@@ -17,11 +17,14 @@ describe "search.spec", ->
     return
 
   {
+    config_set_defaults
+    config_set_options
+  } = FD.config
+
+  {
     space_add_var
     space_add_vars_domain
     space_create_root
-    space_set_defaults
-    space_set_options
   } = FD.space
 
   {
@@ -92,8 +95,8 @@ describe "search.spec", ->
       BD3 = propagator_add_reified space, 'eq', 'B3', 'D3'
       propagator_add_gte space, BD3, 'BsyncD'
 
-      space_set_defaults space, 'fail_first'
-      space_set_options space, targeted_var_names: pathVars
+      config_set_defaults space.config, 'fail_first'
+      config_set_options space.config, targeted_var_names: pathVars
 
       state =
         space: space

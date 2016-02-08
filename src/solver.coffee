@@ -20,6 +20,8 @@ module.exports = do ->
 
   {
     config_create
+    config_set_defaults
+    config_set_options
   } = require './config'
 
   {
@@ -38,8 +40,6 @@ module.exports = do ->
     space_add_vars_a
     space_create_root
     space_get_unknown_vars
-    space_set_defaults
-    space_set_options
     space_solution
   } = require './space'
 
@@ -100,9 +100,9 @@ module.exports = do ->
       @space = space_create_root @config
 
       if typeof @distribute is 'string'
-        space_set_defaults @space, @distribute
+        config_set_defaults @config, @distribute
       else if @distribute
-        space_set_options @space, @distribute
+        config_set_options @config, @distribute
       if search_defaults # TOFIX: is multiverse using it or can we drop this override? same as o.distribute...
         @space.set_defaults search_defaults
 
@@ -482,7 +482,7 @@ module.exports = do ->
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' See FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
-    # @property {Object} [options.distribute] See space_set_options
+    # @property {Object} [options.distribute] See config_set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
     solve: (options, squash) ->
@@ -518,10 +518,10 @@ module.exports = do ->
 
       overrides = collect_distribution_overrides var_names, @vars.byId, @space
       if overrides
-        space_set_options @space, var_dist_config: overrides
+        config_set_options @config, var_dist_config: overrides
 
-      space_set_options @space, targeted_var_names: var_names
-      space_set_options @space, distribution_options
+      config_set_options @config, targeted_var_names: var_names
+      config_set_options @config, distribution_options
 
       search_func = @_get_search_func_or_die search
 

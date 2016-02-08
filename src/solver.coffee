@@ -19,6 +19,10 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    config_create
+  } = require './config'
+
+  {
     domain_create_bool
     domain_create_value
     domain_from_list
@@ -92,7 +96,8 @@ module.exports = do ->
       @defaultDomain ?= domain_create_bool()
 
       # TOFIX: cache @space and move set_defaults to prepare step
-      @space = space_create_root()
+      @config = config_create()
+      @space = space_create_root @config
 
       if typeof @distribute is 'string'
         space_set_defaults @space, @distribute

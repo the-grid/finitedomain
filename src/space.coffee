@@ -15,6 +15,10 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    config_create
+  } = require './config'
+
+  {
     domain_create_value
     domain_is_solved
     domain_min
@@ -45,7 +49,9 @@ module.exports = do ->
   _space_uid_counter = 1
 
   space_create_root = ->
-    return _space_create_new null, [], {}, [], [], 0, 0
+    config = config_create()
+
+    return _space_create_new config, null, [], {}, [], [], 0, 0
 
   # Create a space node that is a child of given space node
 
@@ -64,7 +70,7 @@ module.exports = do ->
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
+    return _space_create_new space.config, root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -80,7 +86,7 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
+  _space_create_new = (config, _root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
     ASSERT typeof _root_space is 'object', 'should be an object or null', _root_space
     ASSERT !(_root_space instanceof Array), 'not expecting an array here',  _root_space
     ASSERT _propagators instanceof Array, 'props should be an array', _propagators
@@ -95,19 +101,13 @@ module.exports = do ->
       _child
       _child_count: 0
 
-      _root_space
+      config
 
-      config_var_filter_func: 'unsolved'
-      config_next_var_func: 'naive'
-      config_next_value_func: 'min'
-      config_targeted_vars: 'all'
-      config_var_dist_options: {}
-      config_timeout_callback: undefined
+      _root_space
 
       vars
       all_var_names
       unsolved_var_names
-      constant_cache: {}
 
       _propagators
 
@@ -122,38 +122,38 @@ module.exports = do ->
       # for markov,
       # string: 'none', ignored
       # function: callback to determine which vars of a space are considered, should return array of names
-      space.config_var_filter_func = options.filter
+      space.config.var_filter_func = options.filter
     if options?.var
       # see distribution.var
       # either
       # - a function: should return the _name_ of the next var to process
       # - a string: the name of the var distributor to use
       # - an object: a complex object like {dist_name:string, fallback_config: string|object, data...?}
-      # fallback_config has the same struct as the main config_next_var_func and is used when the dist returns SAME
+      # fallback_config has the same struct as the main config.next_var_func and is used when the dist returns SAME
       # this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
-      space.config_next_var_func = options.var
+      space.config.next_var_func = options.var
       _space_init_configs_and_fallbacks options.var
     if options?.val
       # see distribution.value
-      space.config_next_value_func = options.val
+      space.config.next_value_func = options.val
     if options?.targeted_var_names
       # which vars must be solved for this space to be solved
       # string: 'all'
       # string[]: list of vars that must be solved
       # function: callback to return list of names to be solved
-      space.config_targeted_vars = options.targeted_var_names
+      space.config.targeted_vars = options.targeted_var_names
     if options?.var_dist_config
       # An object which defines a value distributor per variable
       # which overrides the globally set value distributor.
       # See Bvar#distributionOptions (in multiverse)
-      space.config_var_dist_options = options.var_dist_config
+      space.config.var_dist_options = options.var_dist_config
     if options?.timeout_callback
       # A function that returns true if the current search should stop
       # Can be called multiple times after the search is stopped, should
       # keep returning false (or assume an uncertain outcome).
       # The function is called after the first batch of propagators is
       # called so it won't immediately stop. But it stops quickly.
-      space.config_timeout_callback = options.timeout_callback
+      space.config.timeout_callback = options.timeout_callback
 
     return
 
@@ -161,7 +161,7 @@ module.exports = do ->
   # to an object that looks up the index from the string.
   # This is used for finding the priority of a var elsewhere.
   #
-  # @param {Object} [config] This is the var dist config (-> space.config_next_var_func)
+  # @param {Object} [config] This is the var dist config (-> space.config.next_var_func)
   # @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
 
   _space_init_configs_and_fallbacks = (config) ->
@@ -237,7 +237,7 @@ module.exports = do ->
   _space_abort_search = (space) ->
     ASSERT space._class is 'space'
     root_space = space_get_root space
-    c = root_space.config_timeout_callback
+    c = root_space.config.timeout_callback
     if c
       return c space
     return false
@@ -422,7 +422,7 @@ module.exports = do ->
     # be considered constants; use them as is or bust. We do have to take
     # care not to change them inline as they are shared by reference.
     # TOFIX: make this more stable.
-    cache = space.constant_cache
+    cache = space.config.constant_cache
 
     fdvar_name = cache[val]
     if fdvar_name
@@ -532,20 +532,20 @@ module.exports = do ->
       things = ['#########']
 
       things.push 'Config:'
-      things.push '- config_var_filter_func: ' + space.config_var_filter_func
-      things.push '- config_next_var_func: ' + space.config_next_var_func
-      things.push '- config_next_value_func: ' + space.config_next_value_func
-      things.push '- config_targeted_vars: ' + space.config_targeted_vars
+      things.push '- config.var_filter_func: ' + space.config.var_filter_func
+      things.push '- config.next_var_func: ' + space.config.next_var_func
+      things.push '- config.next_value_func: ' + space.config.next_value_func
+      things.push '- config.targeted_vars: ' + space.config.targeted_vars
 
       things.push "Vars (#{space.all_var_names.length}x):"
 
       vars = space.vars
       for name, fdvar of vars
-        options = space.config_var_dist_options[name]
+        options = space.config.var_dist_options[name]
         things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
 
-      things.push 'config_var_dist_options:'
-      for key, val of space.config_var_dist_options
+      things.push 'config.var_dist_options:'
+      for key, val of space.config.var_dist_options
         things.push "  #{key}: #{JSON.stringify val}"
 
       things.push "Var (#{space.all_var_names.length}x):"

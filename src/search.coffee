@@ -122,7 +122,7 @@ module.exports = do ->
   # @returns {string[]} The names of targeted fdvars on given space
 
   _search_get_vars_unfiltered = (root_space, space) ->
-    config_targeted_vars = root_space.config_targeted_vars
+    config_targeted_vars = root_space.config.targeted_vars
 
     if config_targeted_vars is 'all'
       return space.unsolved_var_names
@@ -130,7 +130,7 @@ module.exports = do ->
     if config_targeted_vars instanceof Array
       return config_targeted_vars
 
-    ASSERT typeof config_targeted_vars is 'function', 'config_targeted_vars should be a func at this point', config_targeted_vars
+    ASSERT typeof config_targeted_vars is 'function', 'config.targeted_vars should be a func at this point', config_targeted_vars
     return config_target_vars space
 
   # When search fails this function is called

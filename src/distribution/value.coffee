@@ -59,13 +59,13 @@ module.exports = do ->
       return # this var is solved but apparently that did not suffice. continue with next var
 
     choice_index = space.next_distribution_choice++
-    config_next_value_func = root_space.config_next_value_func
+    config_next_value_func = root_space.config.next_value_func
     var_name = fdvar.id
 
     ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', var_name, fdvar.dom, fdvar
 
     # each var can override the value distributor
-    config_var_dist_options = root_space.config_var_dist_options
+    config_var_dist_options = root_space.config.var_dist_options
     value_distributor_name = config_var_dist_options[var_name]?.distributor_name
     if value_distributor_name
       config_next_value_func = value_distributor_name
@@ -115,8 +115,8 @@ module.exports = do ->
     ASSERT typeof choice_index is 'number', 'choice_index should be a number'
     ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
 
-    config_var_dist_options = root_space.config_var_dist_options
-    ASSERT config_var_dist_options, 'space should have config_var_dist_options'
+    config_var_dist_options = root_space.config.var_dist_options
+    ASSERT config_var_dist_options, 'space should have config.var_dist_options'
     ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
     ASSERT config_var_dist_options[fdvar.id].list, 'there should be a distribution list available for every var', fdvar
     list_source = config_var_dist_options[fdvar.id].list
@@ -340,8 +340,8 @@ module.exports = do ->
         domain = fdvar.dom
         var_name = fdvar.id
 
-        config_var_dist_options = root_space.config_var_dist_options
-        ASSERT config_var_dist_options, 'space should have config_var_dist_options'
+        config_var_dist_options = root_space.config.var_dist_options
+        ASSERT config_var_dist_options, 'space should have config.var_dist_options'
         distribution_options = config_var_dist_options[var_name]
         ASSERT distribution_options, 'markov vars should have  distribution options', JSON.stringify fdvar
         expand_vectors_with = distribution_options.expandVectorsWith

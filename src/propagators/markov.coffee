@@ -42,7 +42,7 @@ module.exports = do ->
 
     value = fdvar_lower_bound fdvar # note: solved so lo=hi=value
 
-    config_var_dist_options = root_space.config_var_dist_options
+    config_var_dist_options = root_space.config.var_dist_options
     distribution_options = config_var_dist_options[var_name]
 
     ASSERT distribution_options, 'var should have a config', var_name, distribution_options or JSON.stringify config_var_dist_options

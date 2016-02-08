@@ -27,7 +27,7 @@ module.exports = do ->
   # @returns {Fdvar}
 
   distribution_get_next_var = (root_space, space, target_vars) ->
-    config_next_var_func = root_space.config_next_var_func
+    config_next_var_func = root_space.config.next_var_func
     fdvars = space.vars
 
     # if it's a function it should return the name of the next var to process
@@ -58,7 +58,7 @@ module.exports = do ->
       else
         THROW 'unknown next var func', dist_name
 
-    config_var_filter = root_space.config_var_filter_func
+    config_var_filter = root_space.config.var_filter_func
     if config_var_filter and typeof config_var_filter isnt 'function'
       switch config_var_filter
         when 'unsolved'
@@ -120,9 +120,9 @@ module.exports = do ->
 
   _distribution_var_by_markov = (v1, v2, root_space, config_next_var_func) ->
     # v1 is only, but if so always, better than v2 if v1 is a markov var
-    if root_space.config_var_dist_options[v1.id]?.distributor_name is 'markov'
+    if root_space.config.var_dist_options[v1.id]?.distributor_name is 'markov'
       return BETTER
-    if root_space.config_var_dist_options[v2.id]?.distributor_name is 'markov'
+    if root_space.config.var_dist_options[v2.id]?.distributor_name is 'markov'
       return WORSE
 
     return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config

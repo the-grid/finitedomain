@@ -44,7 +44,7 @@ describe 'distribution/var.spec', ->
 
     it 'should throw', ->
 
-      expect(-> distribution_get_next_var {config_next_var_func: 'throw'}, {}).to.throw 'not expecting to pick this distributor'
+      expect(-> distribution_get_next_var {config: next_var_func: 'throw'}, {}).to.throw 'not expecting to pick this distributor'
 
 
   it_ab = (dist_name, range_a, range_b, out, desc) ->
@@ -214,7 +214,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 12]
         v2 = fdvar_create 'B', [11, 11]
-        fake_space = config_var_dist_options: A: distributor_name: 'markov'
+        fake_space = config: var_dist_options: A: distributor_name: 'markov'
 
         expect(by_markov v1, v2, fake_space).to.equal BETTER
 
@@ -222,7 +222,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 12]
         v2 = fdvar_create 'B', [11, 11]
-        fake_space = config_var_dist_options: B: distributor_name: 'markov'
+        fake_space = config: var_dist_options: B: distributor_name: 'markov'
 
         expect(by_markov v1, v2, fake_space).to.equal WORSE
 
@@ -231,9 +231,10 @@ describe 'distribution/var.spec', ->
         v1 = fdvar_create 'A', [11, 12]
         v2 = fdvar_create 'B', [11, 11]
         fake_space =
-          config_var_dist_options:
-            A: distributor_name: 'markov'
-            B: distributor_name: 'markov'
+          config:
+            var_dist_options:
+              A: distributor_name: 'markov'
+              B: distributor_name: 'markov'
 
         expect(by_markov v1, v2, fake_space).to.equal BETTER
 
@@ -241,7 +242,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 12]
         v2 = fdvar_create 'B', [11, 11]
-        fake_space = config_var_dist_options: {}
+        fake_space = config: var_dist_options: {}
         fake_config = {} # its okay to expect this to exist
 
         expect(by_markov v1, v2, fake_space, fake_config).to.equal SAME
@@ -250,7 +251,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 11]
         v2 = fdvar_create 'B', [11, 12]
-        fake_space = config_var_dist_options: {} # neither is markov
+        fake_space = config: var_dist_options: {} # neither is markov
         fallback_config = fallback_config: 'size'
 
         expect(by_markov v1, v2, fake_space, fallback_config).to.equal BETTER
@@ -259,7 +260,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 11]
         v2 = fdvar_create 'B', [11, 11]
-        fake_space = config_var_dist_options: {} # neither is markov
+        fake_space = config: var_dist_options: {} # neither is markov
         fallback_config = fallback_config: 'size'
 
         expect(by_markov v1, v2, fake_space, fallback_config).to.equal SAME
@@ -268,7 +269,7 @@ describe 'distribution/var.spec', ->
 
         v1 = fdvar_create 'A', [11, 12]
         v2 = fdvar_create 'B', [11, 11]
-        fake_space = config_var_dist_options: {} # neither is markov
+        fake_space = config: var_dist_options: {} # neither is markov
         fallback_config = fallback_config: 'size'
 
         expect(by_markov v1, v2, fake_space, fallback_config).to.equal WORSE
@@ -437,9 +438,10 @@ describe 'distribution/var.spec', ->
         v1 = fdvar_create 'A', []
         v2 = fdvar_create 'B', []
         fake_space =
-          config_var_dist_options:
-            priority_hash:
-              A: 0
+          config:
+            var_dist_options:
+              priority_hash:
+                A: 0
 
         expect(-> by_list v1, v2, fake_space, {}).to.throw()
 

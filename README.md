@@ -22,11 +22,10 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 1.3.1:
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon
-- Rename `Solver#times` to `Solver#mul` for clarity, renamed `times` to `mul` internally in other relevant places as well
+- Rename `Solver#times` to `Solver#ring_mul` for clarity, renamed `times` to `ring_mul` internally in other relevant places as well, this affects the external api but should not affect deps with the new prop
 - Fix bug in domain division that could cause valid values to be omitted
-- Added `div` propagator, which assigns the result of `A / B` into a result var `C`
-- Added `mul` propagator, which assigns the result of `A * B` into a result var `C`
-- Renamed the old `mul` propagator artifacts to `ring_mul` where needed, this affects the external api but should not affect deps
+- Added new `div` propagator, which assigns the result of `A / B` into a result var `C`
+- Added new `mul` propagator, which assigns the result of `A * B` into a result var `C`
 - Improved the domain division code. Before when dividing two ranges it would only include integers from the resulting range, meaning `[5,5]/[2,2]=[2.5,2.5]` resulted in an empty domain because there aren't any integers between `2.5` and `2.5`. The new option will floor the `lo` of the range such that this becomes `[2, 2.5]` and so `2` will be picked.
 - Internally; removed the propagators for `scale`, `mul_plus`, and `wsum`; they were not used anywhere and we can add them back later if needed
 - Added `min` propagator, which assigns the result of `A - B` into a result var `C`

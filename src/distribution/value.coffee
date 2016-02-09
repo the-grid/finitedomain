@@ -29,10 +29,6 @@ module.exports = do ->
   } = require '../markov'
 
   {
-    space_get_root
-  } = require '../space'
-
-  {
     fdvar_is_rejected
     fdvar_is_solved
     fdvar_is_undetermined
@@ -53,19 +49,19 @@ module.exports = do ->
   # return the new domain for some given fdvar. If there's no new
   # choice left it should return undefined to signify the end.
 
-  distribute_get_next_domain_for_var = (root_space, space, fdvar) ->
+  distribute_get_next_domain_for_var = (space, fdvar) ->
     if fdvar_is_solved fdvar
       # TOFIX: prevent this case at call sites (var picker)... there is no need for it here
       return # this var is solved but apparently that did not suffice. continue with next var
 
     choice_index = space.next_distribution_choice++
-    config_next_value_func = root_space.config.next_value_func
+    config_next_value_func = space.config.next_value_func
     var_name = fdvar.id
 
     ASSERT !fdvar_is_rejected(fdvar), 'fdvar should not be rejected', var_name, fdvar.dom, fdvar
 
     # each var can override the value distributor
-    config_var_dist_options = root_space.config.var_dist_options
+    config_var_dist_options = space.config.var_dist_options
     value_distributor_name = config_var_dist_options[var_name]?.distributor_name
     if value_distributor_name
       config_next_value_func = value_distributor_name
@@ -73,9 +69,9 @@ module.exports = do ->
     if typeof config_next_value_func is 'function'
       return config_next_value_func
 
-    return _distribute_get_next_domain_for_var config_next_value_func, space, root_space, fdvar, choice_index
+    return _distribute_get_next_domain_for_var config_next_value_func, space, fdvar, choice_index
 
-  _distribute_get_next_domain_for_var = (value_func_name, space, root_space, fdvar, choice_index) ->
+  _distribute_get_next_domain_for_var = (value_func_name, space, fdvar, choice_index) ->
     switch value_func_name
       when 'max'
         return distribution_value_by_max fdvar, choice_index
@@ -88,7 +84,7 @@ module.exports = do ->
       when 'minMaxCycle'
         return distribution_value_by_min_max_cycle space, fdvar, choice_index
       when 'list'
-        return distribution_value_by_list root_space, space, fdvar, choice_index
+        return distribution_value_by_list space, fdvar, choice_index
       when 'naive'
         return domain_create_value fdvar_min fdvar
       when 'splitMax'
@@ -105,17 +101,16 @@ module.exports = do ->
   # given as a list. This may also be a function which should
   # return a new domain given the space, fdvar, and choice index.
   #
-  # @param {Space} root_space
   # @param {Space} space
   # @param {Fdvar} fdvar
   # @param {number} choice_index
   # @returns {number[]} The new domain for this fdvar in the next space
 
-  distribution_value_by_list = (root_space, space, fdvar, choice_index) ->
+  distribution_value_by_list = (space, fdvar, choice_index) ->
     ASSERT typeof choice_index is 'number', 'choice_index should be a number'
     ASSERT fdvar_is_undetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar
 
-    config_var_dist_options = root_space.config.var_dist_options
+    config_var_dist_options = space.config.var_dist_options
     ASSERT config_var_dist_options, 'space should have config.var_dist_options'
     ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
     ASSERT config_var_dist_options[fdvar.id].list, 'there should be a distribution list available for every var', fdvar
@@ -310,8 +305,7 @@ module.exports = do ->
   # @returns {number[]} The new domain this fdvar should get in the next space
 
   distribution_value_by_min_max_cycle = (space, fdvar, choice_index) ->
-    root_space = space_get_root space
-    if _is_even root_space.all_var_names.indexOf fdvar.id
+    if _is_even space.config.all_var_names.indexOf fdvar.id
       return distribution_value_by_min fdvar, choice_index
     else
       return distribution_value_by_max fdvar, choice_index
@@ -336,11 +330,10 @@ module.exports = do ->
       when FIRST_CHOICE
         # THIS IS AN EXPENSIVE STEP!
 
-        root_space = space_get_root space
         domain = fdvar.dom
         var_name = fdvar.id
 
-        config_var_dist_options = root_space.config.var_dist_options
+        config_var_dist_options = space.config.var_dist_options
         ASSERT config_var_dist_options, 'space should have config.var_dist_options'
         distribution_options = config_var_dist_options[var_name]
         ASSERT distribution_options, 'markov vars should have  distribution options', JSON.stringify fdvar

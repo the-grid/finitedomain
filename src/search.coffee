@@ -7,7 +7,6 @@ module.exports = do ->
 
   {
     space_create_clone
-    space_get_root
     space_is_solved
     space_propagate
   } = require './space'
@@ -98,13 +97,10 @@ module.exports = do ->
   # @returns {Space} a clone with small modification
 
   _search_default_space_factory = (space) ->
-    # all config should be read from root. sub-nodes dont clone this data
-    root_space = space_get_root space
-
-    target_vars = _search_get_vars_unfiltered root_space, space
-    fdvar = distribution_get_next_var root_space, space, target_vars
+    target_vars = _search_get_vars_unfiltered space
+    fdvar = distribution_get_next_var space, target_vars
     if fdvar
-      next_domain = distribute_get_next_domain_for_var root_space, space, fdvar
+      next_domain = distribute_get_next_domain_for_var space, fdvar
       if next_domain
         clone = space_create_clone space
         clone.vars[fdvar.id].dom = next_domain
@@ -117,12 +113,11 @@ module.exports = do ->
   # by an fdvar-specific config.
   # One of the returned fdvar names will be picked to restrict.
   #
-  # @param {Space} root_space Root of the search graph (config is read from this space)
-  # @param {Space} space The current node, can be the root_space
+  # @param {Space} space The current node
   # @returns {string[]} The names of targeted fdvars on given space
 
-  _search_get_vars_unfiltered = (root_space, space) ->
-    config_targeted_vars = root_space.config.targeted_vars
+  _search_get_vars_unfiltered = (space) ->
+    config_targeted_vars = space.config.targeted_vars
 
     if config_targeted_vars is 'all'
       return space.unsolved_var_names

@@ -564,13 +564,11 @@ module.exports = do ->
 
       state = @state
       ASSERT state
-      root_space = state.space
-      ASSERT_SPACE root_space
 
       if log >= LOG_STATS
         console.time '      - FD Solver Time'
-        console.log "      - FD Solver Var Count: #{root_space.all_var_names.length}"
-        console.log "      - FD Solver Prop Count: #{root_space._propagators.length}"
+        console.log "      - FD Solver Var Count: #{@state.space.config.all_var_names.length}"
+        console.log "      - FD Solver Prop Count: #{@state.space._propagators.length}"
 
       count = 0
       while state.more and count < max
@@ -607,9 +605,10 @@ module.exports = do ->
     #
     # @param {string[]} var_names
     # @param {Object} bvars_by_id Maps var names to their Bvar
+    # @param {Space} space
     # @returns {Object|null} Contains data for each var that has dist options
 
-    collect_distribution_overrides = (var_names, bvars_by_id, root_space) ->
+    collect_distribution_overrides = (var_names, bvars_by_id, space) ->
       overrides = null
       for name in var_names
         bvar = bvars_by_id[name]
@@ -626,7 +625,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          propagator_add_markov root_space, name
+          propagator_add_markov space, name
 
       return overrides
 

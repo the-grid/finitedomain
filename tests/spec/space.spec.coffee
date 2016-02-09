@@ -32,7 +32,6 @@ describe "space.spec", ->
       space_add_propagator
       space_create_clone
       space_create_root
-      space_get_root
       space_is_solved
       space_propagate
       space_solution
@@ -50,21 +49,7 @@ describe "space.spec", ->
 
         expect(space_create_root().vars).to.be.an 'object'
         expect(space_create_root().unsolved_var_names).to.be.an 'array'
-        expect(space_create_root().all_var_names).to.be.an 'array'
-
-      it 'should set root_space to null unless given', ->
-
-        space = space_create_root()
-        expect(space._root_space).to.be.null
-        expect(space_get_root space).to.equal space
-
-      it 'should set root_space to given root_space', ->
-
-        # TOFIX: move to space_create_clone
-        root = space_create_root()
-        space = space_create_clone root
-        expect(space._root_space).to.equal root
-        expect(space_get_root space).to.equal root
+        expect(space_create_root().config.all_var_names).to.be.an 'array'
 
     describe 'space_create_clone()', ->
 
@@ -75,34 +60,13 @@ describe "space.spec", ->
 
         expect(clone).to.not.equal space
 
-      it 'should deep clone the space and set root_space', ->
-
-        lclone = space_create_clone space # local!
-        expect(lclone._root_space).to.equal space
-        expect(space._root_space).to.equal null
-        lclone._root_space = null # exception to the rule
-
-        delete lclone._depth
-        delete lclone._child
-        delete lclone._child_count
-        delete space._depth
-        delete space._child
-        delete space._child_count
-
-        expect(lclone, 'clone should be space').to.eql space
-
-      it 'should set root_space to cloned space if not yet set there', ->
-
-        expect(clone._root_space, 'clone._root_space').to.equal space
-        expect(space_create_clone(clone)._root_space, 'space_create_clone(clone)._root_space').to.equal space
-
       it 'should clone vars', ->
 
         expect(space.vars).to.not.equal clone.vars
 
       it 'should deep clone the vars', ->
 
-        for var_name in space.all_var_names
+        for var_name in space.config.all_var_names
           expect(clone.vars[var_name]).to.not.equal space.vars[var_name]
           # note: the deep clone check is already done above, no need to repeat it
 
@@ -110,7 +74,7 @@ describe "space.spec", ->
 
         expect(space.unsolved_var_names).to.not.equal clone.unsolved_var_names
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
-        expect(space.all_var_names).to.equal clone.all_var_names
+        expect(space.config).to.equal clone.config
         expect(space._propagators).to.eql clone._propagators
 
     describe 'space_is_solved()', ->
@@ -324,14 +288,14 @@ describe "space.spec", ->
         space = space_create_root()
         space_add_var space, 0
 
-        expect(space.vars[space.all_var_names[0]].dom).to.eql domain_create_range 0, 0
+        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 0
 
       it 'should create an anonymous var with [lo,hi] if name is not given', ->
 
         space = space_create_root()
         space_add_var space, 0, 1
 
-        expect(space.vars[space.all_var_names[0]].dom).to.eql domain_create_range 0, 1
+        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
 
       it 'should create an anonymous var with given domain if name is not given', ->
 
@@ -339,8 +303,8 @@ describe "space.spec", ->
         space = space_create_root()
         space_add_var space, input_domain
 
-        expect(space.vars[space.all_var_names[0]].dom).to.eql domain_create_range 0, 1
-        expect(space.vars[space.all_var_names[0]].dom).to.not.equal input_domain
+        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
+        expect(space.vars[space.config.all_var_names[0]].dom).to.not.equal input_domain
 
       it 'should create a full wide domain for var without lo/hi', ->
 
@@ -354,13 +318,13 @@ describe "space.spec", ->
         space = space_create_root()
         space_add_var space
 
-        expect(space.vars[space.all_var_names[0]].dom).to.eql domain_create_range SUB, SUP
+        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range SUB, SUP
 
       it 'should create a new var', ->
 
         space = space_create_root()
         space_add_var space, 'foo', 100
-        expect(space.all_var_names).to.eql ['foo']
+        expect(space.config.all_var_names).to.eql ['foo']
         expect(space.unsolved_var_names).to.eql ['foo']
         expect(space.vars.foo?).to.be.true
 
@@ -395,17 +359,17 @@ describe "space.spec", ->
       it 'should create a new var', ->
 
         space = space_create_root()
-        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.config.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         space_add_var space, 22
-        expect(space.all_var_names.length, 'after decl').to.eql 1
+        expect(space.config.all_var_names.length, 'after decl').to.eql 1
         expect(space.unsolved_var_names.length, 'after decl').to.eql 1
 
       it 'should return the name of a var', ->
 
         space = space_create_root()
         name = space_add_var space, 50
-        expect(space.all_var_names.indexOf(name) > -1).to.be.true
+        expect(space.config.all_var_names.indexOf(name) > -1).to.be.true
         expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a "solved" var with given value', ->
@@ -422,17 +386,17 @@ describe "space.spec", ->
       it 'should create a new var', ->
 
         space = space_create_root()
-        expect(space.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+        expect(space.config.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         space_add_var space, 22
-        expect(space.all_var_names.length, 'after decl').to.eql 1
+        expect(space.config.all_var_names.length, 'after decl').to.eql 1
         expect(space.unsolved_var_names.length, 'after decl').to.eql 1
 
       it 'should return the name of a var', ->
 
         space = space_create_root()
         name = space_add_var space, 50
-        expect(space.all_var_names.indexOf(name) > -1).to.be.true
+        expect(space.config.all_var_names.indexOf(name) > -1).to.be.true
         expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a var with given domain', ->
@@ -480,7 +444,7 @@ describe "space.spec", ->
         space = space_create_root()
         names = ['foo', 'bar', 'baz']
         space_add_vars_domain space, names, 100
-        expect(space.all_var_names).to.eql names
+        expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars.foo?).to.be.true
@@ -491,7 +455,7 @@ describe "space.spec", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_value 100
         space_add_vars_domain space, names, domain
-        expect(space.all_var_names).to.eql names
+        expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars[name]?).to.be.true
@@ -506,7 +470,7 @@ describe "space.spec", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
         space_add_vars_domain space, names
-        expect(space.all_var_names).to.eql names
+        expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names
           expect(space.vars[name]?).to.be.true

@@ -47,15 +47,14 @@ module.exports = do ->
   space_create_root = (config) ->
     config ?= config_create()
 
-    return _space_create_new config, null, [], {}, [], [], 0, 0
+    return _space_create_new config, [], {}, [], [], 0, 0
 
   # Create a space node that is a child of given space node
 
   space_create_clone = (space) ->
     ASSERT space._class is 'space'
 
-    root = space_get_root space
-    all_names = space.all_var_names
+    all_names = space.config.all_var_names
     unsolved_names = []
     clone_vars = {}
 
@@ -66,7 +65,7 @@ module.exports = do ->
         unsolved_propagators.push propagator
 
     _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new space.config, root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
+    return _space_create_new space.config, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -82,13 +81,15 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (config, _root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
-    ASSERT typeof _root_space is 'object', 'should be an object or null', _root_space
-    ASSERT !(_root_space instanceof Array), 'not expecting an array here',  _root_space
+  _space_create_new = (config, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
     ASSERT _propagators instanceof Array, 'props should be an array', _propagators
     ASSERT vars and typeof vars is 'object', 'vars should be an object', vars
     ASSERT all_var_names instanceof Array, 'all_var_names should be an array', all_var_names
     ASSERT unsolved_var_names instanceof Array, 'unsolved_var_names should be an array', unsolved_var_names
+
+    for name in all_var_names
+      if config.all_var_names.indexOf(name) < 0
+        config.all_var_names.push name
 
     return {
       _class: 'space'
@@ -99,24 +100,13 @@ module.exports = do ->
 
       config
 
-      _root_space
-
       vars
-      all_var_names
       unsolved_var_names
 
       _propagators
 
       next_distribution_choice: 0
     }
-
-  # Get the root space for this search tree
-  #
-  # @returns {Space}
-
-  space_get_root = (space) ->
-    ASSERT space._class is 'space'
-    return space._root_space or space
 
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
@@ -151,8 +141,7 @@ module.exports = do ->
 
   _space_abort_search = (space) ->
     ASSERT space._class is 'space'
-    root_space = space_get_root space
-    c = root_space.config.timeout_callback
+    c = space.config.timeout_callback
     if c
       return c space
     return false
@@ -199,7 +188,7 @@ module.exports = do ->
     ASSERT space._class is 'space'
     result = {}
     vars = space.vars
-    for var_name in space.all_var_names
+    for var_name in space.config.all_var_names
       _space_getset_var_solve_state var_name, vars, result
     return result
 
@@ -365,7 +354,7 @@ module.exports = do ->
     else
       vars[var_name] = fdvar_create var_name, dom
       space.unsolved_var_names.push var_name
-      space.all_var_names.push var_name
+      space.config.all_var_names.push var_name
 
     return
 
@@ -452,7 +441,7 @@ module.exports = do ->
       things.push '- config.next_value_func: ' + space.config.next_value_func
       things.push '- config.targeted_vars: ' + space.config.targeted_vars
 
-      things.push "Vars (#{space.all_var_names.length}x):"
+      things.push "Vars (#{space.config.all_var_names.length}x):"
 
       vars = space.vars
       for name, fdvar of vars
@@ -463,8 +452,8 @@ module.exports = do ->
       for key, val of space.config.var_dist_options
         things.push "  #{key}: #{JSON.stringify val}"
 
-      things.push "Var (#{space.all_var_names.length}x):"
-      things.push '  ' + space.all_var_names
+      things.push "Var (#{space.config.all_var_names.length}x):"
+      things.push '  ' + space.config.all_var_names
       things.push "Unsolved vars (#{space.unsolved_var_names.length}x):"
       things.push '  ' + space.unsolved_var_names
 
@@ -522,7 +511,6 @@ module.exports = do ->
     space_add_vars_a
     space_create_clone
     space_create_root
-    space_get_root
     space_get_unknown_vars
     space_is_solved
     space_propagate

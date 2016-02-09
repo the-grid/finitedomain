@@ -48,6 +48,7 @@ module.exports = do ->
   } = require './space'
 
   {
+    propagator_add_callback
     propagator_add_distinct
     propagator_add_div
     propagator_add_eq
@@ -475,6 +476,12 @@ module.exports = do ->
       return @isLt e1, e2, boolvar
     isLt: (e1, e2, boolvar) ->
       return @_cacheReified 'lt', e1, e2, boolvar
+
+    # Various rest
+
+    callback: (es, cb) ->
+      propagator_add_callback @space, GET_NAMES(es), cb
+      return
 
     # Solve this solver. It should be setup with all the constraints.
     #

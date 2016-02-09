@@ -70,8 +70,9 @@ module.exports = do ->
 
     if !bool_name
       bool_name = space_add_var space, 0, 1
-    else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
-      THROW 'boolean var should start with a domain containing zero, one, or both'
+    # TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
+    #else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
+    #  THROW 'boolean var should start with a domain containing zero, one, or both'
 
     if typeof left_var_name is 'number'
       left_var_name = space_add_var space, left_var_name
@@ -81,10 +82,6 @@ module.exports = do ->
       right_var_name = space_add_var space, right_var_name
       if typeof left_var_name is 'number'
         THROW 'must pass in at least one var name'
-
-    ASSERT space.vars[left_var_name], 'var should exist'
-    ASSERT space.vars[right_var_name], 'var should exist'
-    ASSERT space.vars[bool_name], 'var should exist'
 
     space_add_propagator space, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     return bool_name

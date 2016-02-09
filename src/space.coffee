@@ -105,6 +105,26 @@ module.exports = do ->
       next_distribution_choice: 0
     }
 
+  space_init_from_config = (space) ->
+    config = space.config
+    initial_vars = config.initial_vars
+    ASSERT config, 'should have a config'
+    for name in config.all_var_names
+      val = initial_vars[name]
+      if typeof val is 'number'
+        val = fdvar_create name, [val, val]
+      else if val is undefined
+        val = fdvar_create name, @defaultDomain.slice(0)
+      else
+        ASSERT val instanceof Array
+        ASSERT (val.length % 2) is 0
+        val = fdvar_create name, val
+
+      space.vars[name] = val
+      if val.length isnt 2 or val[0] isnt val[1]
+        space.unsolved_var_names.push name
+    return
+
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
 
@@ -341,14 +361,10 @@ module.exports = do ->
     ASSERT !!dom
     ASSERT_DOMAIN dom
 
-    vars = space.vars
+    ASSERT !space.config.initial_vars[var_name], 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars[var_name], '->', var_name, '->', dom
+    ASSERT space.config.all_var_names.indexOf(var_name) < 0, 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars, '->', var_name, '->', dom
 
-    fdvar = vars[var_name]
-    ASSERT !fdvar, 'fdvar should not be defined but was, when would that not be a bug?', fdvar, '->', dom
-
-    vars[var_name] = fdvar_create var_name, dom
     config_add_var_value space.config, var_name, dom, true
-    space.unsolved_var_names.push var_name
     space.config.all_var_names.push var_name
 
     return
@@ -507,6 +523,7 @@ module.exports = do ->
     space_create_clone
     space_create_root
     space_get_unknown_vars
+    space_init_from_config
     space_is_solved
     space_propagate
     space_solution

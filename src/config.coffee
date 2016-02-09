@@ -37,6 +37,12 @@ module.exports = do ->
       initial_propagators: {}
     }
 
+  config_create_with = (obj) ->
+    config = config_create()
+    for name, domain of obj
+      config_add_var config, name, domain
+    return config
+
   config_add_vars_a = (config, arr, domain_or_lo, hi) ->
     for name in arr
       config_add_var config, name, domain_or_lo, hi
@@ -172,6 +178,7 @@ module.exports = do ->
     config_add_vars_a
     config_add_vars_o
     config_create
+    config_create_with
     config_set_defaults
     config_set_options
 

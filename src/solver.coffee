@@ -44,6 +44,7 @@ module.exports = do ->
     space_add_vars_a
     space_create_root
     space_get_unknown_vars
+    space_init_from_config
     space_solution
   } = require './space'
 
@@ -520,20 +521,9 @@ module.exports = do ->
       bvars ?= @vars.all
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
-
       space = @space
-      space.vars = {}
-      config = space.config
-      ASSERT space.config, 'should have a config'
-      for name in config.all_var_names
-        if typeof config.initial_vars[name] is 'number'
-          space.vars[name] = fdvar_create name, [config.initial_vars[name], config.initial_vars[name]]
-        else if config.initial_vars[name] is undefined
-          space.vars[name] = fdvar_create name, @defaultDomain.slice(0)
-        else
-          ASSERT config.initial_vars[name] instanceof Array
-          ASSERT (config.initial_vars[name].length % 2) is 0
-          space.vars[name] = fdvar_create name, config.initial_vars[name]
+
+      space_init_from_config space
 
       if add_unknown_vars
         unknown_names = space_get_unknown_vars space

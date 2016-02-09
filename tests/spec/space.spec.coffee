@@ -32,6 +32,7 @@ describe "space.spec", ->
       space_add_propagator
       space_create_clone
       space_create_root
+      space_init_from_config
       space_is_solved
       space_propagate
       space_solution
@@ -87,6 +88,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 1
+        space_init_from_config space
         expect(space_is_solved(space), 'only one solved var').to.be.true
 
         space_add_var space, 1
@@ -96,12 +98,24 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 0, 1
+        space_init_from_config space
         expect(space_is_solved(space), 'only one unsolved var').to.be.false
 
+      it 'should return false if at least one var of two is not solved', ->
+
+        space = space_create_root()
         space_add_var space, 0, 1
+        space_add_var space, 0, 1
+        space_init_from_config space
         expect(space_is_solved(space), 'two unsolved vars').to.be.false
 
+      it 'should return false if at least one var of three is not solved', ->
+
+        space = space_create_root()
+        space_add_var space, 0, 1
+        space_add_var space, 0, 1
         space_add_var space, 1
+        space_init_from_config space
         expect(space_is_solved(space), 'two unsolved vars and a solved var').to.be.false
 
     describe 'space_solution()', ->
@@ -119,12 +133,14 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'test', []
+        space_init_from_config space
         expect(space_solution space).to.eql {test: false}
 
       it 'should return the value of a var is solved', ->
 
         space = space_create_root()
         space_add_var space, 'test', 5
+        space_init_from_config space
         expect(space_solution space).to.eql {test: 5}
 
       it 'should return the domain of a var if not yet determined', ->
@@ -133,6 +149,7 @@ describe "space.spec", ->
         space_add_var space, 'single_range', 10, 20
         space_add_var space, 'multi_range', spec_d_create_ranges [10, 20], [30, 40]
         space_add_var space, 'multi_range_with_solved', spec_d_create_ranges [10, 20], [25, 25], [30, 40]
+        space_init_from_config space
         expect(space_solution space).to.eql
           single_range: spec_d_create_range 10, 20
           multi_range: spec_d_create_ranges([10, 20], [30, 40])
@@ -143,6 +160,7 @@ describe "space.spec", ->
         space = space_create_root()
         space_add_var space, 15
         space_add_var space, 'addme', 20
+        space_init_from_config space
         expect(strip_anon_vars space_solution space).to.eql {addme: 20}
 
     describe 'space_solution_for()', ->
@@ -155,6 +173,7 @@ describe "space.spec", ->
         space_add_var space, 'yep10', 10
         space_add_var space, 'yep20', 20
         space_add_var space, 'yep30', 30
+        space_init_from_config space
         expect(space_solution_for space, ['yep10', 'yep20', 'yep30']).to.eql {yep10: 10, yep20: 20, yep30: 30}
 
       it 'should return normal even if a var is unsolved when complete=false', ->
@@ -164,6 +183,7 @@ describe "space.spec", ->
         space_add_var space, 'yep10', 10
         space_add_var space, 'oops20', []
         space_add_var space, 'yep30', 30
+        space_init_from_config space
         expect(space_solution_for space, ['yep10', 'oops20', 'yep30']).to.eql {yep10: 10, oops20: false, yep30: 30}
 
       it 'should return false if a var is unsolved when complete=true', ->
@@ -173,6 +193,7 @@ describe "space.spec", ->
         space_add_var space, 'yep10', 10
         space_add_var space, 'oops20', []
         space_add_var space, 'yep30', 30
+        space_init_from_config space
         expect(space_solution_for space, ['yep10', 'oops20', 'yep30'], true).to.be.false
 
       it 'should return true if a var is unsolved that was not requested when complete=true', ->
@@ -182,6 +203,7 @@ describe "space.spec", ->
         space_add_var space, 'yep10', 10
         space_add_var space, 'nope20', []
         space_add_var space, 'yep30', 30
+        space_init_from_config space
         expect(space_solution_for space, ['yep10', 'yep30'], true).to.eql {yep10: 10, yep30: 30}
 
     describe 'space_propagate', ->
@@ -202,6 +224,7 @@ describe "space.spec", ->
           space_add_propagator space, ['ring', ['MUL', 'B', 'A'], 'div']
           space_add_propagator space, ['lt', ['MUL', 'MAX']]
 
+          space_init_from_config space
           expect(space_propagate space).to.eql true
 
       describe 'timeout callback', ->
@@ -217,6 +240,7 @@ describe "space.spec", ->
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
+          space_init_from_config space
           expect(space_propagate space).to.eql true
 
         it 'should not break early if callback doesnt return true', ->
@@ -229,6 +253,7 @@ describe "space.spec", ->
           space_add_propagator space, ['lt', ['A', 'B']]
 
           config_set_options space.config, timeout_callback: -> false
+          space_init_from_config space
 
           expect(space_propagate space).to.eql true
 
@@ -242,6 +267,7 @@ describe "space.spec", ->
           space_add_propagator space, ['lt', ['A', 'B']]
 
           config_set_options space.config, timeout_callback: -> true
+          space_init_from_config space
 
           expect(space_propagate space).to.eql false
 
@@ -264,6 +290,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'A', 0, 1
+        space_init_from_config space
 
         expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 1
 
@@ -271,6 +298,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'A', 0
+        space_init_from_config space
 
         expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 0
 
@@ -279,6 +307,7 @@ describe "space.spec", ->
         input_domain = [0, 1]
         space = space_create_root()
         space_add_var space, 'A', input_domain
+        space_init_from_config space
 
         expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 1
         expect(space.vars.A.dom).to.not.equal input_domain # should clone
@@ -287,6 +316,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 0
+        space_init_from_config space
 
         expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 0
 
@@ -294,6 +324,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 0, 1
+        space_init_from_config space
 
         expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
 
@@ -302,6 +333,7 @@ describe "space.spec", ->
         input_domain = [0, 1]
         space = space_create_root()
         space_add_var space, input_domain
+        space_init_from_config space
 
         expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
         expect(space.vars[space.config.all_var_names[0]].dom).to.not.equal input_domain
@@ -310,6 +342,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'A'
+        space_init_from_config space
 
         expect(space.vars.A).to.eql fdvar_create_range 'A', SUB, SUP
 
@@ -317,6 +350,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space
+        space_init_from_config space
 
         expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range SUB, SUP
 
@@ -324,6 +358,8 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'foo', 100
+        space_init_from_config space
+
         expect(space.config.all_var_names).to.eql ['foo']
         expect(space.unsolved_var_names).to.eql ['foo']
         expect(space.vars.foo?).to.be.true
@@ -332,12 +368,16 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'foo', 100
+        space_init_from_config space
+
         expect(space.vars.foo.dom).to.eql domain_create_range 100, 100
 
       it 'should set var to full domain if none given', ->
 
         space = space_create_root()
         space_add_var space, 'foo'
+        space_init_from_config space
+
         expect(space.vars.foo.dom).to.eql spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
 
       it 'should throw if var already exists', ->
@@ -345,20 +385,32 @@ describe "space.spec", ->
 
         space = space_create_root()
         space_add_var space, 'foo', 100
+        space_init_from_config space
+
         expect(space.vars.foo.dom).to.eql spec_d_create_value 100
         expect(-> space_add_var space, 'foo', 200).to.throw()
 
       it 'should return the name', ->
 
         space = space_create_root()
+        space_init_from_config space
+
         expect(space_add_var space, 'foo', 100).to.equal 'foo'
 
-      it 'should create a new var', ->
+      it 'should create a new var p1', ->
 
         space = space_create_root()
+        space_init_from_config space
+
         expect(space.config.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
         expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
+
+      it 'should create a new var p2', ->
+
+        space = space_create_root()
         space_add_var space, 22
+        space_init_from_config space
+
         expect(space.config.all_var_names.length, 'after decl').to.eql 1
         expect(space.unsolved_var_names.length, 'after decl').to.eql 1
 
@@ -366,6 +418,8 @@ describe "space.spec", ->
 
         space = space_create_root()
         name = space_add_var space, 50
+        space_init_from_config space
+
         expect(space.config.all_var_names.indexOf(name) > -1).to.be.true
         expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
@@ -373,39 +427,31 @@ describe "space.spec", ->
 
         space = space_create_root()
         name = space_add_var space, 100
+        space_init_from_config space
+
         expect(space.vars[name].dom).to.eql spec_d_create_value 100
 
       it 'should throw if value is OOB', ->
 
         space = space_create_root()
+        space_init_from_config space
+
         expect(-> space_add_var space, FD.helpers.SUB - 100).to.throw()
-
-      it 'should create a new var', ->
-
-        space = space_create_root()
-        expect(space.config.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-        space_add_var space, 22
-        expect(space.config.all_var_names.length, 'after decl').to.eql 1
-        expect(space.unsolved_var_names.length, 'after decl').to.eql 1
-
-      it 'should return the name of a var', ->
-
-        space = space_create_root()
-        name = space_add_var space, 50
-        expect(space.config.all_var_names.indexOf(name) > -1).to.be.true
-        expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
 
       it 'should create a var with given domain', ->
 
         space = space_create_root()
         name = space_add_var space, 100, 200
+        space_init_from_config space
+
         expect(space.vars[name].dom).to.eql spec_d_create_range 100, 200
 
       it 'should create a full range var if no name and no domain is given', ->
 
         space = space_create_root()
         name = space_add_var space
+        space_init_from_config space
+
         expect(space.vars[name].dom).to.eql spec_d_create_range SUB, SUP
 
     describe 'space_add_vars', ->
@@ -428,6 +474,7 @@ describe "space.spec", ->
           ['B', 0]
           ['C', 10, 20]
           ['D', [5, 8, 20, 30]]
+        space_init_from_config space
 
         expect(space.vars.A).to.eql fdvar_create_range 'A', SUB, SUP
         expect(space.vars.B).to.eql fdvar_create_range 'B', 0, 0
@@ -441,6 +488,8 @@ describe "space.spec", ->
         space = space_create_root()
         names = ['foo', 'bar', 'baz']
         space_add_vars_domain space, names, 100
+        space_init_from_config space
+
         expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names
@@ -452,6 +501,8 @@ describe "space.spec", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_value 100
         space_add_vars_domain space, names, domain
+        space_init_from_config space
+
         expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names
@@ -467,6 +518,8 @@ describe "space.spec", ->
         names = ['foo', 'bar', 'baz']
         domain = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
         space_add_vars_domain space, names
+        space_init_from_config space
+
         expect(space.config.all_var_names).to.eql names
         expect(space.unsolved_var_names).to.eql names
         for name in names

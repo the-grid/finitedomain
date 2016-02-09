@@ -271,7 +271,7 @@ module.exports = do ->
 
     if typeof lo is 'number' and !hi?
       if name
-        _space_create_var_domain space, name, domain_create_value lo
+        config_add_var space.config, name, domain_create_value lo
         return name
 
     if !name? and typeof lo is 'number'
@@ -298,7 +298,7 @@ module.exports = do ->
       # create anonymous var
       name = String _space_uid_counter++
 
-    _space_create_var_domain space, name, domain
+    config_add_var space.config, name, domain
     return name
 
   # add multiple var names with names in arg list
@@ -353,12 +353,6 @@ module.exports = do ->
     fdvar_name = space_add_var space, undefined, val, val, SKIP_RECURSION
     cache[val] = fdvar_name
     return fdvar_name
-
-  # Register a variable with specific name and specific dom
-
-  _space_create_var_domain = (space, var_name, dom) ->
-    config_add_var space.config, var_name, dom
-    return
 
   space_add_propagator = (space, data) ->
     ASSERT space._class is 'space'
@@ -521,7 +515,6 @@ module.exports = do ->
     space_solution_for
 
     # testing
-    _space_create_var_domain
     _space_create_var_value
     # debugging
     __space_to_solver_test_case

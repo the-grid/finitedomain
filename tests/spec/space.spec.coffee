@@ -340,21 +340,18 @@ describe "space.spec", ->
         space_add_var space, 'foo'
         expect(space.vars.foo.dom).to.eql spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
 
-      it 'should just update domain if var already exists', ->
+      it 'should throw if var already exists', ->
         # this should throw an error instead. when would you _want_ to do this?
 
         space = space_create_root()
         space_add_var space, 'foo', 100
         expect(space.vars.foo.dom).to.eql spec_d_create_value 100
-        space_add_var space, 'foo', 200
-        expect(space.vars.foo.dom).to.eql spec_d_create_value 200
+        expect(-> space_add_var space, 'foo', 200).to.throw()
 
       it 'should return the name', ->
 
         space = space_create_root()
         expect(space_add_var space, 'foo', 100).to.equal 'foo'
-        # even if already exists
-        expect(space_add_var space, 'foo', 200).to.equal 'foo'
 
       it 'should create a new var', ->
 

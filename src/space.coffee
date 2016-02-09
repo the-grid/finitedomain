@@ -344,15 +344,12 @@ module.exports = do ->
     vars = space.vars
 
     fdvar = vars[var_name]
-    if fdvar
-      # If it already exists, change the domain if necessary.
-      # (I think this should issue an error because when would you want to do this?)
-      fdvar_set_domain fdvar, dom
-    else
-      vars[var_name] = fdvar_create var_name, dom
-      config_add_var_value space.config, var_name, dom, true
-      space.unsolved_var_names.push var_name
-      space.config.all_var_names.push var_name
+    ASSERT !fdvar, 'fdvar should not be defined but was, when would that not be a bug?', fdvar, '->', dom
+
+    vars[var_name] = fdvar_create var_name, dom
+    config_add_var_value space.config, var_name, dom, true
+    space.unsolved_var_names.push var_name
+    space.config.all_var_names.push var_name
 
     return
 

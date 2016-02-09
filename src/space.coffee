@@ -15,7 +15,7 @@ module.exports = do ->
   } = require './helpers'
 
   {
-    config_add_var_value
+    config_add_var
     config_create
   } = require './config'
 
@@ -357,15 +357,7 @@ module.exports = do ->
   # Register a variable with specific name and specific dom
 
   _space_create_var_domain = (space, var_name, dom) ->
-    ASSERT space._class is 'space'
-    ASSERT !!dom
-    ASSERT_DOMAIN dom
-
-    ASSERT !space.config.initial_vars[var_name], 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars[var_name], '->', var_name, '->', dom
-    ASSERT space.config.all_var_names.indexOf(var_name) < 0, 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars, '->', var_name, '->', dom
-
-    config_add_var_value space.config, var_name, dom
-
+    config_add_var space.config, var_name, dom
     return
 
   space_add_propagator = (space, data) ->

@@ -5,6 +5,7 @@ module.exports = do ->
 
   {
     ASSERT
+    THROW
   } = require './helpers'
 
   {
@@ -67,8 +68,12 @@ module.exports = do ->
     return
 
   config_add_var_value = (config, name, domain) ->
+    ASSERT config._class is 'config'
+    ASSERT name and typeof name is 'string', 'name should be a non-empty string', name
+    ASSERT !config.initial_vars[name], 'fdvar should not be defined but was, when would that not be a bug?', config.initial_vars[name], '->', name, '->', domain
     if config.all_var_names.indexOf(name) >= 0
-      throw new Error 'Var name already part of this config. Probably a bug?'
+      THROW 'Var name already part of this config. Probably a bug?'
+
     config.initial_vars[name] = domain
     config.all_var_names.push name
 
@@ -80,6 +85,7 @@ module.exports = do ->
     return
 
   config_add_constant = (config, value) ->
+    ASSERT config._class is 'config'
     ASSERT typeof value is 'number', 'constant value should be a number', value
     if config.constant_cache[value]
       return config.constant_cache[value]

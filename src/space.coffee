@@ -88,10 +88,6 @@ module.exports = do ->
     ASSERT all_var_names instanceof Array, 'all_var_names should be an array', all_var_names
     ASSERT unsolved_var_names instanceof Array, 'unsolved_var_names should be an array', unsolved_var_names
 
-    for name in all_var_names
-      if config.all_var_names.indexOf(name) < 0
-        config.all_var_names.push name
-
     return {
       _class: 'space'
       # search graph metrics

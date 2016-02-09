@@ -88,7 +88,6 @@ module.exports = do ->
         @distribute
         @search
         @defaultDomain
-        search_defaults
       } = o
 
       @search ?= 'depth_first'
@@ -103,8 +102,6 @@ module.exports = do ->
         config_set_defaults @config, @distribute
       else if @distribute
         config_set_options @config, @distribute
-      if search_defaults # TOFIX: is multiverse using it or can we drop this override? same as o.distribute...
-        @space.set_defaults search_defaults
 
       @vars =
         byId: {}

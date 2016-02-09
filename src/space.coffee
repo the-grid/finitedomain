@@ -364,8 +364,7 @@ module.exports = do ->
     ASSERT !space.config.initial_vars[var_name], 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars[var_name], '->', var_name, '->', dom
     ASSERT space.config.all_var_names.indexOf(var_name) < 0, 'fdvar should not be defined but was, when would that not be a bug?', space.config.initial_vars, '->', var_name, '->', dom
 
-    config_add_var_value space.config, var_name, dom, true
-    space.config.all_var_names.push var_name
+    config_add_var_value space.config, var_name, dom
 
     return
 

@@ -641,6 +641,64 @@ describe "solver.spec", ->
         ]
       ).length).to.eql 256
 
+
+    it 'should solve 4 branch 2 level example (binary)', ->
+
+      ###
+      A
+        1
+        2 - B
+        3     1
+              2
+              3
+      C
+        1
+        2 - D
+        3     1
+              2
+              3
+      ###
+
+      branchVars = ['A', 'C', 'B', 'D']
+      # path vars
+      Avars = ['A1', 'A2', 'A3']
+      Bvars = ['B1', 'B2', 'B3']
+      Cvars = ['C1', 'C2', 'C3']
+      Dvars = ['D1', 'D2', 'D3']
+      pathVars = [].concat Avars, Bvars, Cvars, Dvars
+
+      solver = new Solver
+        defaultDomain: [0, 1]
+      solver.addVars branchVars
+      solver.addVars pathVars
+
+      # path to branch binding
+      solver.sum Avars, 'A'
+      solver.sum Bvars, 'B'
+      solver.sum Cvars, 'C'
+      solver.sum Dvars, 'D'
+
+      # root branches must be on
+      solver.eq 'A', 1
+      solver.eq 'C', 1
+
+      # child-parent binding
+      solver.eq 'B', 'A2'
+      solver.eq 'D', 'C2'
+
+      # D & B counterpoint
+      solver.addVar 'BsyncD'
+      solver['==?'] 'B', 'D', 'BsyncD'
+      solver['>='] solver['==?']('B1', 'D1'), 'BsyncD'
+      solver['>='] solver['==?']('B2', 'D2'), 'BsyncD'
+      solver['>='] solver['==?']('B3', 'D3'), 'BsyncD'
+
+      solver.solve
+        distribute: 'fail_first'
+        vars: pathVars
+
+      expect(solver.solutions.length, 'solution count').to.equal 19
+
   describe 'reifiers', ->
 
     it 'should resolve a simple reified eq case', ->

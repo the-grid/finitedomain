@@ -60,11 +60,11 @@ module.exports = do ->
     config_add_var_value config, name, domain_or_lo
     return
 
-  config_add_var_value = (config, name, domain) ->
-    if config.all_var_names.indexOf(name) >= 0
+  config_add_var_value = (config, name, domain, tmp_migration_flag) ->
+    if !tmp_migration_flag and config.all_var_names.indexOf(name) >= 0
       throw new Error 'Var name already part of this config. Probably a bug?'
     config.initial_vars[name] = domain
-    config.all_var_names.push name
+    !tmp_migration_flag and config.all_var_names.push name
     return
 
   config_add_constant = (config, value) ->

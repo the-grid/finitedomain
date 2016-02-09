@@ -570,6 +570,8 @@ module.exports = do ->
         console.log "      - FD Solver Var Count: #{@state.space.config.all_var_names.length}"
         console.log "      - FD Solver Prop Count: #{@state.space._propagators.length}"
 
+      ASSERT Object.keys(@state.space.vars).sort().join('--') is Object.keys(@state.space.config.initial_vars).sort().join('--'), 'migration test'
+
       count = 0
       while state.more and count < max
         search_func state

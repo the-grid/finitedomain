@@ -15,6 +15,7 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    config_add_var_value
     config_create
   } = require './config'
 
@@ -353,6 +354,7 @@ module.exports = do ->
       fdvar_set_domain fdvar, dom
     else
       vars[var_name] = fdvar_create var_name, dom
+      config_add_var_value space.config, var_name, dom, true
       space.unsolved_var_names.push var_name
       space.config.all_var_names.push var_name
 

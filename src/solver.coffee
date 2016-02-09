@@ -31,6 +31,10 @@ module.exports = do ->
   } = require './domain'
 
   {
+    fdvar_create
+  } = require './fdvar'
+
+  {
     search_depth_first
   } = require './search'
 
@@ -94,7 +98,6 @@ module.exports = do ->
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
 
-      # TOFIX: cache @space and move set_defaults to prepare step
       @config = config_create()
       @space = space_create_root @config
 
@@ -511,11 +514,25 @@ module.exports = do ->
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
-      if add_unknown_vars
-        unknown_names = space_get_unknown_vars @space
-        space_add_vars_a @space, unknown_names
+      space = @space
+      space.vars = {}
+      config = space.config
+      ASSERT space.config, 'should have a config'
+      for name in config.all_var_names
+        if typeof config.initial_vars[name] is 'number'
+          space.vars[name] = fdvar_create name, [config.initial_vars[name], config.initial_vars[name]]
+        else if config.initial_vars[name] is undefined
+          space.vars[name] = fdvar_create name, @defaultDomain.slice(0)
+        else
+          ASSERT config.initial_vars[name] instanceof Array
+          ASSERT (config.initial_vars[name].length % 2) is 0
+          space.vars[name] = fdvar_create name, config.initial_vars[name]
 
-      overrides = collect_distribution_overrides var_names, @vars.byId, @space
+      if add_unknown_vars
+        unknown_names = space_get_unknown_vars space
+        space_add_vars_a space, unknown_names
+
+      overrides = collect_distribution_overrides var_names, @vars.byId, space
       if overrides
         config_set_options @config, var_dist_config: overrides
 
@@ -524,7 +541,7 @@ module.exports = do ->
 
       search_func = @_get_search_func_or_die search
 
-      @state.space = @space
+      @state.space = space
       @state.more = true
 
       @_prepared = true

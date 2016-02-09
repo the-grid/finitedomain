@@ -112,7 +112,9 @@ module.exports = do ->
 
       @solutions = []
 
-      @state = {@space, more: true}
+      @state =
+        space: null
+        more: false
 
       @_prepared = false
 
@@ -521,6 +523,9 @@ module.exports = do ->
       config_set_options @config, distribution_options
 
       search_func = @_get_search_func_or_die search
+
+      @state.space = @space
+      @state.more = true
 
       @_prepared = true
 

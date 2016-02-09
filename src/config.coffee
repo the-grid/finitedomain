@@ -65,6 +65,12 @@ module.exports = do ->
       throw new Error 'Var name already part of this config. Probably a bug?'
     config.initial_vars[name] = domain
     !tmp_migration_flag and config.all_var_names.push name
+
+    # we cant change the name here but we can cache the constant if it were one
+    if domain instanceof Array and domain.length is 2 and domain[0] is domain[1]
+      if !config.constant_cache[domain[0]]
+        config.constant_cache[domain[0]] = name
+
     return
 
   config_add_constant = (config, value) ->

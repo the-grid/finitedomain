@@ -3,6 +3,8 @@ module.exports = do ->
   {
     REJECTED
     SOMETHING_CHANGED
+    SUB
+    SUP
 
     ENABLED
     ENABLE_EMPTY_CHECK
@@ -13,11 +15,14 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    config_clone
     config_create
     config_generate_vars
   } = require './config'
 
   {
+    domain_get_value
+    domain_is_range
     domain_is_solved
     domain_min
   } = require './domain'
@@ -65,6 +70,28 @@ module.exports = do ->
 
     _space_pseudo_clone_vars space.config.all_var_names, vars, clone_vars, unsolved_names
     return _space_create_new space.config, unsolved_propagators, clone_vars, unsolved_names, space._depth + 1, space._child_count++
+
+  # Create a new config with the configuration of the given Space
+  # Basically clones its config but updates the `initial_vars` with fresh state
+
+  space_to_config = (space) ->
+    ASSERT space._class = 'space'
+
+    vars_for_clone = {}
+    names = space.config.all_var_names
+    fdvars = space.vars
+    for name in names
+      fdvar = fdvars[name]
+      dom = fdvar.dom
+      if domain_is_solved dom
+        dom = domain_get_value dom
+      else if domain_is_range dom, SUB, SUP
+        dom = undefined
+      else
+        dom = dom.slice 0
+      vars_for_clone[name] = dom
+
+    return config_clone space.config, vars_for_clone
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -368,6 +395,7 @@ module.exports = do ->
     space_propagate
     space_solution
     space_solution_for
+    space_to_config
 
     # debugging
     __space_to_solver_test_case

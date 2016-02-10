@@ -22,6 +22,7 @@ module.exports = do ->
     config_add_var_anon
     config_add_vars_a
     config_create
+    config_get_unknown_vars
     config_set_defaults
     config_set_options
   } = require './config'
@@ -39,7 +40,6 @@ module.exports = do ->
   {
     __space_debug_string
     space_create_root
-    space_get_unknown_vars
     space_init_from_config
     space_solution
   } = require './space'
@@ -522,7 +522,7 @@ module.exports = do ->
       space = @space
 
       if add_unknown_vars
-        unknown_names = space_get_unknown_vars space
+        unknown_names = config_get_unknown_vars @config
         config_add_vars_a @config, unknown_names
 
       overrides = collect_distribution_overrides var_names, @vars.byId, space

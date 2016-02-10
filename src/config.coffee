@@ -194,6 +194,17 @@ module.exports = do ->
     ASSERT_PROPAGATORS config.propagators
     return
 
+  config_get_unknown_vars = (config) ->
+    names = []
+    for p in config.propagators
+      a = p[1][0]
+      if !config.initial_vars[a] and names.indexOf(a) < 0
+        names.push a
+      b = p[1][1]
+      if !config.initial_vars[b] and names.indexOf(b) < 0
+        names.push b
+    return names
+
   # Create a simple lookup hash from an array of strings
   # to an object that looks up the index from the string.
   # This is used for finding the priority of a var elsewhere.

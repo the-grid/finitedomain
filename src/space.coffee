@@ -241,18 +241,6 @@ module.exports = do ->
 
     return value
 
-  space_get_unknown_vars = (space) ->
-    # TOFIX: move to config
-    names = []
-    for p in space.config.propagators
-      a = p[1][0]
-      if !space.config.initial_vars[a] and names.indexOf(a) < 0
-        names.push a
-      b = p[1][1]
-      if !space.config.initial_vars[b] and names.indexOf(b) < 0
-        names.push b
-    return names
-
   # __REMOVE_BELOW_FOR_DIST__
 
   #### Debugging
@@ -384,7 +372,6 @@ module.exports = do ->
   return {
     space_create_clone
     space_create_root
-    space_get_unknown_vars
     space_init_from_config
     space_is_solved
     space_propagate

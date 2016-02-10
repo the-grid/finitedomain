@@ -641,6 +641,64 @@ describe "solver.spec", ->
         ]
       ).length).to.eql 256
 
+
+    it 'should solve 4 branch 2 level example (binary)', ->
+
+      ###
+      A
+        1
+        2 - B
+        3     1
+              2
+              3
+      C
+        1
+        2 - D
+        3     1
+              2
+              3
+      ###
+
+      branchVars = ['A', 'C', 'B', 'D']
+      # path vars
+      Avars = ['A1', 'A2', 'A3']
+      Bvars = ['B1', 'B2', 'B3']
+      Cvars = ['C1', 'C2', 'C3']
+      Dvars = ['D1', 'D2', 'D3']
+      pathVars = [].concat Avars, Bvars, Cvars, Dvars
+
+      solver = new Solver
+        defaultDomain: [0, 1]
+      solver.addVars branchVars
+      solver.addVars pathVars
+
+      # path to branch binding
+      solver.sum Avars, 'A'
+      solver.sum Bvars, 'B'
+      solver.sum Cvars, 'C'
+      solver.sum Dvars, 'D'
+
+      # root branches must be on
+      solver.eq 'A', 1
+      solver.eq 'C', 1
+
+      # child-parent binding
+      solver.eq 'B', 'A2'
+      solver.eq 'D', 'C2'
+
+      # D & B counterpoint
+      solver.addVar 'BsyncD'
+      solver['==?'] 'B', 'D', 'BsyncD'
+      solver['>='] solver['==?']('B1', 'D1'), 'BsyncD'
+      solver['>='] solver['==?']('B2', 'D2'), 'BsyncD'
+      solver['>='] solver['==?']('B3', 'D3'), 'BsyncD'
+
+      solver.solve
+        distribute: 'fail_first'
+        vars: pathVars
+
+      expect(solver.solutions.length, 'solution count').to.equal 19
+
   describe 'reifiers', ->
 
     it 'should resolve a simple reified eq case', ->
@@ -1040,7 +1098,6 @@ describe "solver.spec", ->
       solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box2[height]', 2), '#box2[y]'
 
       solutions = solver.solve(max: 3)
-      #console.log FD.space.__space_debug_string solver.space
 
       # viewport is 1200 x 800
       # boxes are 100x100
@@ -1155,3 +1212,33 @@ describe "solver.spec", ->
       ]
 
       expect(solutions.length).to.equal 1
+
+  describe 'continue solved space', ->
+
+    it 'should be able to continue a solution with extra vars', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 2, 5
+      solver.addVar 'B', spec_d_create_ranges [2, 2], [4, 5]
+      solver.addVar 'C', spec_d_create_range 1, 5
+      solver['<'] 'A', 'B'
+
+      # should find a solution (there are three or four or whatever)
+      solver.solve
+        vars: ['A', 'B']
+        max: 1
+      expect(solver.solutions.length, 'solve count 1').to.eql 1
+      # should not solve C yet because only A and B were targeted
+      expect(solver.solutions[0].C).to.eql [1, 5]
+
+      solver2 = solver.branch_from_current_solution()
+      # add a new constraint to the space and solve it
+      solver2['<'] 'C', 'A'
+
+      # C could be either 1 or 2 to pass all the constraints
+      solver2.solve
+        vars: ['A', 'B', 'C']
+        max: 1
+      expect(solver2.solutions.length, 'solve count 1').to.eql 1
+      expect(solver2.solutions[0].C < solver2.solutions[0].B).to.be.true

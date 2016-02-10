@@ -36,6 +36,7 @@ switch TEST_TARGET
         ring: require './propagators/ring'
         step_comparison: require './propagators/step_comparison'
         step_any: require './propagators/step_any'
+      config: require './config'
       domain: require './domain'
       fdvar: require './fdvar'
       helpers: require './helpers'

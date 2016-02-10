@@ -16,40 +16,22 @@ describe "propagators/callback.spec", ->
     return
 
   {
-    space_add_vars
-    space_set_defaults
-    space_set_options
-  } = FD.space
-
-  {
-    propagator_add_callback
-    propagator_add_sum
-  } = FD.propagator
+    Solver
+  } = FD
 
   describe 'integration tests', ->
-
-    {
-      space_add_var
-      space_create_root
-    } = FD.space
-
     {
       NO_SUCH_VALUE
     } = FD.helpers
 
     {
-      _domain_get_value: domain_get_value
+      domain_get_value
     } = FD.domain
 
-    {
-      search_depth_first
-    } = FD.search
-
-    {
-      distribution_get_defaults
-    } = FD.distribution.defaults
-
     it 'should be able to access the var names array', ->
+
+      # some criteria to search for. callback will reject all but one.
+      [tr, tg, tb] = [2, 120, 201]
 
       cb = (space, var_names) ->
 
@@ -65,27 +47,18 @@ describe "propagators/callback.spec", ->
         # exact match now
         return rv is tr and gv is tg and bv is tb
 
-      space = space_create_root()
+      solver = new Solver
+      solver.addVar 'R', [0, 3]
+      solver.addVar 'G', [119, 121]
+      solver.addVar 'B', [200, 203]
+      solver.addVar 'T', [tr + tg + tb, tr + tg + tb]
+      solver.sum ['R', 'G', 'B'], 'T'
+      solver.callback ['R', 'G', 'B'], cb
 
-      # some criteria to search for. callback will reject all but one.
-      # (could also work with [0,255] but just takes longer...)
-      [tr, tg, tb] = [2, 120, 201]
-      space_add_vars space,
-        ['R', 0, 3]
-        ['G', 119, 121]
-        ['B', 200, 203]
-        ['T', tr + tg + tb, tr + tg + tb]
+      solver.solve
+        distribute: 'naive'
+        vars: ['R', 'G', 'B']
+        max: 10 # should only find 1
 
-      propagator_add_sum space, ['R', 'G', 'B'], 'T'
-      propagator_add_callback space, ['R', 'G', 'B'], cb
-
-      space_set_defaults space, 'naive'
-      space_set_options space, targeted_var_names: ['R', 'G', 'B']
-
-      state = {space, more: true}
-      count = 0
-      while state.more and state.status isnt 'end'
-        search_depth_first state
-        ++count
       # note: there are a few solutions for the sum(), but only one passes the callback
-      expect(count).to.equal 2 # since it keeps searching, add +1 for the last one that fails
+      expect(solver.solutions.length, 'solutions').to.equal 1

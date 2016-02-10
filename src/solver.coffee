@@ -12,11 +12,20 @@ module.exports = do ->
     SUP
 
     ASSERT
-    ASSERT_SPACE
     GET_NAME
     GET_NAMES
     THROW
   } = require './helpers'
+
+  {
+    config_add_var
+    config_add_var_anon
+    config_add_vars_a
+    config_create
+    config_get_unknown_vars
+    config_set_defaults
+    config_set_options
+  } = require './config'
 
   {
     domain_create_bool
@@ -30,16 +39,13 @@ module.exports = do ->
 
   {
     __space_debug_string
-    space_add_var
-    space_add_vars_a
-    space_create_root
-    space_get_unknown_vars
-    space_set_defaults
-    space_set_options
+    space_create_from_config
     space_solution
+    space_to_config
   } = require './space'
 
   {
+    propagator_add_callback
     propagator_add_distinct
     propagator_add_div
     propagator_add_eq
@@ -76,6 +82,7 @@ module.exports = do ->
     # @property {string} [o.search='depth_first']
     # @property {number[]} [o.defaultDomain=[0,1]]
     # @property {Object} [o.searchDefaults]
+    # @property {Config} [o.config=config_create()]
 
     constructor: (o={}) ->
       @_class = 'solver'
@@ -84,22 +91,18 @@ module.exports = do ->
         @distribute
         @search
         @defaultDomain
-        search_defaults
+        @config
       } = o
 
       @search ?= 'depth_first'
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
-
-      # TOFIX: cache @space and move set_defaults to prepare step
-      @space = space_create_root()
+      @config ?= config_create()
 
       if typeof @distribute is 'string'
-        space_set_defaults @space, @distribute
+        config_set_defaults @config, @distribute
       else if @distribute
-        space_set_options @space, @distribute
-      if search_defaults # TOFIX: is multiverse using it or can we drop this override? same as o.distribute...
-        @space.set_defaults search_defaults
+        config_set_options @config, @distribute
 
       @vars =
         byId: {}
@@ -110,7 +113,9 @@ module.exports = do ->
 
       @solutions = []
 
-      @state = {@space, more: true}
+      @state =
+        space: null
+        more: false
 
       @_prepared = false
 
@@ -130,7 +135,7 @@ module.exports = do ->
         THROW "Solver#num: expecting a number, got #{num} (a #{typeof num})"
       if isNaN num
         THROW "Solver#num: expecting a number, got NaN"
-      return space_add_var @space, num
+      return config_add_var_anon @config, num
 
     addVars: (vs) ->
       ASSERT vs instanceof Array, 'Expecting array', vs
@@ -141,7 +146,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      return space_add_var @space, id, domain
+      return config_add_var @config, id, domain
 
     # Uses @defaultDomain if no domain was given
     # If domain is a number it becomes [dom, dom]
@@ -182,7 +187,7 @@ module.exports = do ->
         domain = domain_create_value domain
       domain = validate_domain domain
 
-      space_add_var @space, id, domain
+      config_add_var @config, id, domain
       vars.byId[id] = v
       vars.all.push v
 
@@ -281,8 +286,8 @@ module.exports = do ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_plus @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_plus @config, GET_NAME(e1), GET_NAME(e2)
 
     '-': (e1, e2, result_var) ->
       return @min e1, e2, result_var
@@ -290,8 +295,8 @@ module.exports = do ->
       return @min e1, e2, result_var
     min: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_min @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_min @config, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @ring_mul e1, e2, result_var
@@ -299,20 +304,20 @@ module.exports = do ->
       return @ring_mul e1, e2, result_var
     ring_mul: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_ring_mul @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_ring_mul @config, GET_NAME(e1), GET_NAME(e2)
 
     '/': (e1, e2, result_var) ->
       return @div e1, e2, result_var
     div: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_div @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_div @config, GET_NAME(e1), GET_NAME(e2)
 
     mul: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_mul @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_mul @config, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
@@ -320,16 +325,16 @@ module.exports = do ->
     sum: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return propagator_add_sum @space, var_names, GET_NAME(result_var)
-      return propagator_add_sum @space, var_names
+        return propagator_add_sum @config, var_names, GET_NAME(result_var)
+      return propagator_add_sum @config, var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return propagator_add_product @space, var_names, GET_NAME(result_var)
-      return propagator_add_product @space, var_names
+        return propagator_add_product @config, var_names, GET_NAME(result_var)
+      return propagator_add_product @config, var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
@@ -344,7 +349,7 @@ module.exports = do ->
       @distinct es
       return
     distinct: (es) ->
-      propagator_add_distinct @space, GET_NAMES(es)
+      propagator_add_distinct @config, GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -358,7 +363,7 @@ module.exports = do ->
       else
         return @_eq e1, e2
     _eq: (e1, e2) ->
-      return propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
+      return propagator_add_eq @config, GET_NAME(e1), GET_NAME(e2)
 
     '!=': (e1, e2) ->
       @neq e1, e2
@@ -371,7 +376,7 @@ module.exports = do ->
         @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_neq @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -385,7 +390,7 @@ module.exports = do ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      propagator_add_gte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gte @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -399,7 +404,7 @@ module.exports = do ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      propagator_add_lte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lte @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -413,7 +418,7 @@ module.exports = do ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      propagator_add_gt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gt @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -427,7 +432,7 @@ module.exports = do ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      propagator_add_lt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lt @config, GET_NAME(e1), GET_NAME(e2)
       return
 
 
@@ -436,8 +441,8 @@ module.exports = do ->
       e1 = GET_NAME(e1)
       e2 = GET_NAME(e2)
       if boolvar
-        return propagator_add_reified @space, op, e1, e2, GET_NAME boolvar
-      return propagator_add_reified @space, op, e1, e2
+        return propagator_add_reified @config, op, e1, e2, GET_NAME boolvar
+      return propagator_add_reified @config, op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
       return @isNeq e1, e2, boolvar
@@ -469,6 +474,12 @@ module.exports = do ->
     isLt: (e1, e2, boolvar) ->
       return @_cacheReified 'lt', e1, e2, boolvar
 
+    # Various rest
+
+    callback: (es, cb) ->
+      propagator_add_callback @config, GET_NAMES(es), cb
+      return
+
     # Solve this solver. It should be setup with all the constraints.
     #
     # @param {Object} options
@@ -477,12 +488,13 @@ module.exports = do ->
     # @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
     # @property {number} options.search='depth_first' See FD.Search
     # @property {number} options.distribute='naive' Maps to FD.distribution.value
-    # @property {Object} [options.distribute] See space_set_options
+    # @property {Object} [options.distribute] See config_set_options
     # @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
 
     solve: (options, squash) ->
       obj = @prepare options
-      ASSERT !options?.dbg or !console.log __space_debug_string @state.space
+      ASSERT !(options?.dbg is true or options?.dbg & 1) or !console.log __space_debug_string @state.space
+      ASSERT !(options?.dbg & 2) or !console.log '### state.space.config:\n' + @state.space.config
       @run obj
       return @solutions
 
@@ -508,17 +520,26 @@ module.exports = do ->
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
       if add_unknown_vars
-        unknown_names = space_get_unknown_vars @space
-        space_add_vars_a @space, unknown_names
+        unknown_names = config_get_unknown_vars @config
+        config_add_vars_a @config, unknown_names
 
-      overrides = collect_distribution_overrides var_names, @vars.byId, @space
+      overrides = collect_distribution_overrides var_names, @vars.byId, @config
       if overrides
-        space_set_options @space, var_dist_config: overrides
+        config_set_options @config, var_dist_config: overrides
 
-      space_set_options @space, targeted_var_names: var_names
-      space_set_options @space, distribution_options
+      config_set_options @config, targeted_var_names: var_names
+      config_set_options @config, distribution_options
 
       search_func = @_get_search_func_or_die search
+
+      # create the root node of the search tree (each node is a Space)
+      root_space = space_create_from_config @config
+
+      # __REMOVE_BELOW_FOR_DIST__
+      @_space = root_space # only exposed for easy access in tests, and so only available after .prepare()
+      # __REMOVE_ABOVE_FOR_DIST__
+      @state.space = root_space
+      @state.more = true
 
       @_prepared = true
 
@@ -557,13 +578,13 @@ module.exports = do ->
 
       state = @state
       ASSERT state
-      root_space = state.space
-      ASSERT_SPACE root_space
 
       if log >= LOG_STATS
         console.time '      - FD Solver Time'
-        console.log "      - FD Solver Var Count: #{root_space.all_var_names.length}"
-        console.log "      - FD Solver Prop Count: #{root_space._propagators.length}"
+        console.log "      - FD Solver Var Count: #{@state.space.config.all_var_names.length}"
+        console.log "      - FD Solver Prop Count: #{@state.space.config.propagators.length}"
+
+      ASSERT Object.keys(@state.space.vars).sort().join('--') is Object.keys(@state.space.config.initial_vars).sort().join('--'), 'migration test'
 
       count = 0
       while state.more and count < max
@@ -583,15 +604,22 @@ module.exports = do ->
 
       return
 
-    # exposes internal method space_add_var for subclass
+    # exposes internal method config_add_var for subclass
 
     space_add_var_range: (id, lo, hi) ->
-      return space_add_var @space, id, lo, hi
+      return config_add_var @config, id, lo, hi
 
     # exposes internal method domain_from_list for subclass
 
     domain_from_list: (list) ->
       return domain_from_list list
+
+    branch_from_current_solution: ->
+      # get the _solved_ space, convert to config,
+      # use new config as base for new solver
+      solved_config = space_to_config @state.space
+      return new Solver
+        config: solved_config
 
     # Visit the branch vars and collect var specific configuration overrides if
     # there are any and put them on the root space. This way we don't need to
@@ -600,9 +628,10 @@ module.exports = do ->
     #
     # @param {string[]} var_names
     # @param {Object} bvars_by_id Maps var names to their Bvar
+    # @param {Config} config
     # @returns {Object|null} Contains data for each var that has dist options
 
-    collect_distribution_overrides = (var_names, bvars_by_id, root_space) ->
+    collect_distribution_overrides = (var_names, bvars_by_id, config) ->
       overrides = null
       for name in var_names
         bvar = bvars_by_id[name]
@@ -619,7 +648,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          propagator_add_markov root_space, name
+          propagator_add_markov config, name
 
       return overrides
 

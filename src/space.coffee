@@ -15,16 +15,21 @@ module.exports = do ->
   } = require './helpers'
 
   {
-    domain_create_value
+    config_clone
+    config_create
+    config_generate_vars
+  } = require './config'
+
+  {
+    domain_get_value
+    domain_is_range
     domain_is_solved
     domain_min
   } = require './domain'
 
   {
     fdvar_clone
-    fdvar_create
     fdvar_is_solved
-    fdvar_set_domain
   } = require './fdvar'
 
   {
@@ -35,36 +40,58 @@ module.exports = do ->
     propagator_is_solved
   } = require './propagators/is_solved'
 
-  {
-    distribution_get_defaults
-  } = require './distribution/defaults'
-
   # BODY_START
 
-  # A monotonically increasing class-global counter for unique temporary variable names.
-  _space_uid_counter = 1
+  space_create_root = (config) ->
+    config ?= config_create()
 
-  space_create_root = ->
-    return _space_create_new null, [], {}, [], [], 0, 0
+    return _space_create_new config, [], {}, [], 0, 0
+
+  space_create_from_config = (config) ->
+    ASSERT config._class is 'config'
+
+    space = space_create_root config
+    space_init_from_config space
+    return space
 
   # Create a space node that is a child of given space node
 
   space_create_clone = (space) ->
     ASSERT space._class is 'space'
 
-    root = space_get_root space
-    all_names = space.all_var_names
     unsolved_names = []
     clone_vars = {}
 
     vars = space.vars
     unsolved_propagators = []
-    for propagator in space._propagators
+    for propagator in space.unsolved_propagators
       unless propagator_is_solved vars, propagator
         unsolved_propagators.push propagator
 
-    _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new root, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
+    _space_pseudo_clone_vars space.config.all_var_names, vars, clone_vars, unsolved_names
+    return _space_create_new space.config, unsolved_propagators, clone_vars, unsolved_names, space._depth + 1, space._child_count++
+
+  # Create a new config with the configuration of the given Space
+  # Basically clones its config but updates the `initial_vars` with fresh state
+
+  space_to_config = (space) ->
+    ASSERT space._class = 'space'
+
+    vars_for_clone = {}
+    names = space.config.all_var_names
+    fdvars = space.vars
+    for name in names
+      fdvar = fdvars[name]
+      dom = fdvar.dom
+      if domain_is_solved dom
+        dom = domain_get_value dom
+      else if domain_is_range dom, SUB, SUP
+        dom = undefined
+      else
+        dom = dom.slice 0
+      vars_for_clone[name] = dom
+
+    return config_clone space.config, vars_for_clone
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -80,12 +107,9 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (_root_space, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
-    ASSERT typeof _root_space is 'object', 'should be an object or null', _root_space
-    ASSERT !(_root_space instanceof Array), 'not expecting an array here',  _root_space
-    ASSERT _propagators instanceof Array, 'props should be an array', _propagators
+  _space_create_new = (config, unsolved_propagators, vars, unsolved_var_names, _depth, _child) ->
+    ASSERT unsolved_propagators instanceof Array, 'props should be an array', unsolved_propagators
     ASSERT vars and typeof vars is 'object', 'vars should be an object', vars
-    ASSERT all_var_names instanceof Array, 'all_var_names should be an array', all_var_names
     ASSERT unsolved_var_names instanceof Array, 'unsolved_var_names should be an array', unsolved_var_names
 
     return {
@@ -95,113 +119,26 @@ module.exports = do ->
       _child
       _child_count: 0
 
-      _root_space
-
-      config_var_filter_func: 'unsolved'
-      config_next_var_func: 'naive'
-      config_next_value_func: 'min'
-      config_targeted_vars: 'all'
-      config_var_dist_options: {}
-      config_timeout_callback: undefined
+      config
 
       vars
-      all_var_names
       unsolved_var_names
-      constant_cache: {}
-
-      _propagators
+      unsolved_propagators # by references from space.config.propagators
 
       next_distribution_choice: 0
     }
 
-  # Set solving options on this space. Only required for the root.
+  space_init_from_config = (space) ->
+    config = space.config
+    ASSERT config, 'should have a config'
 
-  space_set_options = (space, options) ->
-    ASSERT space._class is 'space'
-    if options?.filter
-      # for markov,
-      # string: 'none', ignored
-      # function: callback to determine which vars of a space are considered, should return array of names
-      space.config_var_filter_func = options.filter
-    if options?.var
-      # see distribution.var
-      # either
-      # - a function: should return the _name_ of the next var to process
-      # - a string: the name of the var distributor to use
-      # - an object: a complex object like {dist_name:string, fallback_config: string|object, data...?}
-      # fallback_config has the same struct as the main config_next_var_func and is used when the dist returns SAME
-      # this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
-      space.config_next_var_func = options.var
-      _space_init_configs_and_fallbacks options.var
-    if options?.val
-      # see distribution.value
-      space.config_next_value_func = options.val
-    if options?.targeted_var_names
-      # which vars must be solved for this space to be solved
-      # string: 'all'
-      # string[]: list of vars that must be solved
-      # function: callback to return list of names to be solved
-      space.config_targeted_vars = options.targeted_var_names
-    if options?.var_dist_config
-      # An object which defines a value distributor per variable
-      # which overrides the globally set value distributor.
-      # See Bvar#distributionOptions (in multiverse)
-      space.config_var_dist_options = options.var_dist_config
-    if options?.timeout_callback
-      # A function that returns true if the current search should stop
-      # Can be called multiple times after the search is stopped, should
-      # keep returning false (or assume an uncertain outcome).
-      # The function is called after the first batch of propagators is
-      # called so it won't immediately stop. But it stops quickly.
-      space.config_timeout_callback = options.timeout_callback
+    config_generate_vars config, space.vars, space.unsolved_var_names
+
+    # propagators are immutable so share by reference
+    for propagator in config.propagators
+      space.unsolved_propagators.push propagator
 
     return
-
-  # Create a simple lookup hash from an array of strings
-  # to an object that looks up the index from the string.
-  # This is used for finding the priority of a var elsewhere.
-  #
-  # @param {Object} [config] This is the var dist config (-> space.config_next_var_func)
-  # @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
-
-  _space_init_configs_and_fallbacks = (config) ->
-
-    # populate the priority hashes for all (sub)configs
-    while config?
-
-      # explicit list of priorities. vars not in this list have equal
-      # priority, but lower than any var that is in the list.
-      list = config.priority_list
-      if list
-        hash = {}
-        config.priority_hash = hash
-        max = list.length
-        for name, index in list
-          # note: lowest priority still in the list is one, not zero
-          # this way you dont have to check -1 for non-existing, later
-          hash[name] = max - index
-
-      # do it for all the fallback configs as well...
-      config = config.fallback_config
-
-    return
-
-  # Initialize the config of this space according to certain presets
-  #
-  # @param {string} name
-
-  space_set_defaults = (space, name) ->
-    ASSERT space._class is 'space'
-    space_set_options space, distribution_get_defaults name
-    return
-
-  # Get the root space for this search tree
-  #
-  # @returns {Space}
-
-  space_get_root = (space) ->
-    ASSERT space._class is 'space'
-    return space._root_space or space
 
   # Run all the propagators until stability point. Returns the number
   # of changes made or throws a 'fail' if any propagator failed.
@@ -209,11 +146,11 @@ module.exports = do ->
   space_propagate = (space) ->
     ASSERT space._class is 'space'
     changed = true # init (do-while)
-    propagators = space._propagators
-    ASSERT_PROPAGATORS space._propagators
+    unsolved_propagators = space.unsolved_propagators
+    ASSERT_PROPAGATORS unsolved_propagators
     while changed
       changed = false
-      for prop_details in propagators
+      for prop_details in unsolved_propagators
         n = propagator_step_any prop_details, space # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
@@ -236,8 +173,7 @@ module.exports = do ->
 
   _space_abort_search = (space) ->
     ASSERT space._class is 'space'
-    root_space = space_get_root space
-    c = root_space.config_timeout_callback
+    c = space.config.timeout_callback
     if c
       return c space
     return false
@@ -260,18 +196,20 @@ module.exports = do ->
   space_is_solved = (space) ->
     ASSERT space._class is 'space'
     vars = space.vars
+    targeted_vars = space.config.targeted_vars
     unsolved_names = space.unsolved_var_names
 
     j = 0
     for name, i in unsolved_names
-      fdvar = vars[name]
-      ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
-      ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
+      if targeted_vars is 'all' or targeted_vars.indexOf(name) >= 0
+        fdvar = vars[name]
+        ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
+        ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
 
-      if fdvar_is_solved fdvar
-        fdvar.was_solved = true # makes space_create_clone faster
-      else
-        unsolved_names[j++] = name
+        if fdvar_is_solved fdvar
+          fdvar.was_solved = true # makes space_create_clone faster
+        else
+          unsolved_names[j++] = name
     unsolved_names.length = j
 
     return j is 0
@@ -284,7 +222,7 @@ module.exports = do ->
     ASSERT space._class is 'space'
     result = {}
     vars = space.vars
-    for var_name in space.all_var_names
+    for var_name in space.config.all_var_names
       _space_getset_var_solve_state var_name, vars, result
     return result
 
@@ -322,155 +260,6 @@ module.exports = do ->
 
     return value
 
-  # create a new var on this space
-  # - name is optional, an anonymous var is created if absent
-  # - if name is a number or array it is assumed to be `lo`,
-  # and then hi becomes lo, lo becomes name, name becomes null
-  # - lo can be a number, undefined, or an array.\
-  # - hi can be a number or undefined.
-  # - if lo is array it is assumed to be the whole domain
-  # returns the name of the new var (regardless)
-  #
-  # Usage:
-  # space_add_var space, 'A', 0           # declares var A with domain [0, 0]
-  # space_add_var space, 'A', 0, 1        # declares var A with domain [0, 1]
-  # space_add_var space, 'A', [0, 1]      # declares var A with given domain
-  # space_add_var space, 'A'              # declares var A with [SUB, SUP]
-  # space_add_var space, 0                # declares anonymous var with [0, 0]
-  # space_add_var space, 0, 1             # declares anonymous var with [0, 1]
-  # space_add_var space, [0, 1]           # declares anonymous var with given domain
-  # space_add_var space                   # declares anonymous var with [SUB, SUP]
-
-  space_add_var = (space, name, lo, hi, skip_value_check) ->
-    ASSERT space._class is 'space'
-    if typeof name is 'number' or name instanceof Array
-      hi = lo
-      lo = name
-      name = undefined
-
-    if typeof lo is 'number' and !hi?
-      if name
-        _space_create_var_domain space, name, domain_create_value lo
-        return name
-
-    if !name? and typeof lo is 'number'
-      # use special function that caches and dedupes "solved" vars
-      if !hi?
-        return _space_create_var_value space, lo
-      # recursive check. but if a "solved" domain is passed we may want to cache that too
-      if !skip_value_check and lo is hi
-        return _space_create_var_value space, lo
-
-    if lo? and hi?
-      ASSERT typeof lo is 'number', 'if hi is passed lo should be a number', lo, hi
-      domain = [lo, hi]
-    else if lo?
-      ASSERT lo instanceof Array, 'if lo is not a number it must be an array; the domain', lo
-      ASSERT !hi?, 'if lo is the domain, hi should not be given', lo, hi
-      domain = lo.slice 0
-    else
-      ASSERT !lo?, 'expecting no lo/hi at this point', lo, hi
-      ASSERT !hi?, 'expecting no lo/hi at this point', lo, hi
-      domain = [SUB, SUP]
-
-    unless name
-      # create anonymous var
-      name = String _space_uid_counter++
-
-    _space_create_var_domain space, name, domain
-    return name
-
-  # add multiple var names with names in arg list
-  # See space_add_var for details
-
-  space_add_vars = (space, arr...) ->
-    ASSERT space._class is 'space'
-    for a in arr
-      space_add_var space, a[0], a[1], a[2]
-    return
-
-  # add multiple var names with names in an array
-  # See space_add_var for details
-
-  space_add_vars_a = (space, arr) ->
-    ASSERT space._class is 'space'
-    for a in arr
-      space_add_var space, a
-    return
-
-  # Add a bunch of vars by different names and same domain
-  # See space_add_var for details
-
-  space_add_vars_domain = (space, names, lo, hi) ->
-    ASSERT space._class is 'space'
-    for name in names
-      space_add_var space, name, lo, hi
-    return
-
-  # create an anonymous var with specific solved state
-  # multiple anonymous vars with same name return the same
-  # reference as optimization (should not harm?)
-
-  _space_create_var_value = (space, val) ->
-    ASSERT space._class is 'space'
-    ASSERT !isNaN(val), '_space_create_var_value: Value is NaN', val
-    ASSERT val >= SUB, 'val must be above minimum value', val
-    ASSERT val <= SUP, 'val must be below max value', val
-
-    # The idea is that single value domains are already solved so if they
-    # change, the state is immediately rejected. As such these vars can
-    # be considered constants; use them as is or bust. We do have to take
-    # care not to change them inline as they are shared by reference.
-    # TOFIX: make this more stable.
-    cache = space.constant_cache
-
-    fdvar_name = cache[val]
-    if fdvar_name
-      return fdvar_name
-
-    SKIP_RECURSION = true
-    fdvar_name = space_add_var space, undefined, val, val, SKIP_RECURSION
-    cache[val] = fdvar_name
-    return fdvar_name
-
-  # Register a variable with specific name and specific dom
-
-  _space_create_var_domain = (space, var_name, dom) ->
-    ASSERT space._class is 'space'
-    ASSERT !!dom
-    ASSERT_DOMAIN dom
-
-    vars = space.vars
-
-    fdvar = vars[var_name]
-    if fdvar
-      # If it already exists, change the domain if necessary.
-      # (I think this should issue an error because when would you want to do this?)
-      fdvar_set_domain fdvar, dom
-    else
-      vars[var_name] = fdvar_create var_name, dom
-      space.unsolved_var_names.push var_name
-      space.all_var_names.push var_name
-
-    return
-
-  space_add_propagator = (space, data) ->
-    ASSERT space._class is 'space'
-    space._propagators.push data
-    ASSERT_PROPAGATORS space._propagators
-    return
-
-  space_get_unknown_vars = (space) ->
-    names = []
-    for p in space._propagators
-      a = p[1][0]
-      if !space.vars[a] and names.indexOf(a) < 0
-        names.push a
-      b = p[1][1]
-      if !space.vars[b] and names.indexOf(b) < 0
-        names.push b
-    return names
-
   # __REMOVE_BELOW_FOR_DIST__
 
   #### Debugging
@@ -485,7 +274,7 @@ module.exports = do ->
       things.push 'space_add_var space, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    space._propagators.forEach (c) ->
+    space.unsolved_propagators.forEach (c) ->
       if c[0] is 'reified'
         things.push 'S._cacheReified \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
       else if c[0] is 'ring'
@@ -519,7 +308,7 @@ module.exports = do ->
       things.push 'space_add_var S, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    things.push 'S._propagators = [\n  ' + space._propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
+    things.push 'S.unsolved_propagators = [\n  ' + space.unsolved_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
 
     things.push '\nexpect(space_propagate S).to.eql true'
 
@@ -532,30 +321,30 @@ module.exports = do ->
       things = ['#########']
 
       things.push 'Config:'
-      things.push '- config_var_filter_func: ' + space.config_var_filter_func
-      things.push '- config_next_var_func: ' + space.config_next_var_func
-      things.push '- config_next_value_func: ' + space.config_next_value_func
-      things.push '- config_targeted_vars: ' + space.config_targeted_vars
+      things.push '- config.var_filter_func: ' + space.config.var_filter_func
+      things.push '- config.next_var_func: ' + space.config.next_var_func
+      things.push '- config.next_value_func: ' + space.config.next_value_func
+      things.push '- config.targeted_vars: ' + space.config.targeted_vars
 
-      things.push "Vars (#{space.all_var_names.length}x):"
+      things.push "Vars (#{space.config.all_var_names.length}x):"
 
       vars = space.vars
       for name, fdvar of vars
-        options = space.config_var_dist_options[name]
+        options = space.config.var_dist_options[name]
         things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
 
-      things.push 'config_var_dist_options:'
-      for key, val of space.config_var_dist_options
+      things.push 'config.var_dist_options:'
+      for key, val of space.config.var_dist_options
         things.push "  #{key}: #{JSON.stringify val}"
 
-      things.push "Var (#{space.all_var_names.length}x):"
-      things.push '  ' + space.all_var_names
+      things.push "Var (#{space.config.all_var_names.length}x):"
+      things.push '  ' + space.config.all_var_names
       things.push "Unsolved vars (#{space.unsolved_var_names.length}x):"
       things.push '  ' + space.unsolved_var_names
 
-      things.push "Propagators (#{space._propagators.length}x):"
+      things.push "Propagators (#{space.unsolved_propagators.length}x):"
 
-      space._propagators.forEach (p) ->
+      space.unsolved_propagators.forEach (p) ->
         try
           solved = propagator_is_solved vars, p
         catch e
@@ -570,7 +359,7 @@ module.exports = do ->
           things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
         else
           things.push "  #{p[0]} '#{p[1].join ', '}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[0]} [#{vars[b]?.dom or 'FAIL'}] | solved: #{solved}"
-      unless space._propagators.length
+      unless space.unsolved_propagators.length
         things.push '  - none'
 
       things.push '#########'
@@ -600,25 +389,16 @@ module.exports = do ->
   # BODY_STOP
 
   return {
-    space_add_propagator
-    space_add_vars_domain
-    space_add_var
-    space_add_vars
-    space_add_vars_a
     space_create_clone
+    space_create_from_config
     space_create_root
-    space_get_root
-    space_get_unknown_vars
+    space_init_from_config
     space_is_solved
     space_propagate
-    space_set_defaults
-    space_set_options
     space_solution
     space_solution_for
+    space_to_config
 
-    # testing
-    _space_create_var_domain
-    _space_create_var_value
     # debugging
     __space_to_solver_test_case
     __space_to_space_test_case

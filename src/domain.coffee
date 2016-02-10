@@ -63,6 +63,12 @@ module.exports = do ->
       return false
     return domain[LO_BOUND] is value and domain[HI_BOUND] is value
 
+  domain_is_range = (domain, lo, hi) ->
+    ASSERT_DOMAIN domain
+    if domain.length isnt PAIR_SIZE
+      return false
+    return domain[LO_BOUND] is lo and domain[HI_BOUND] is hi
+
   domain_get_value = (domain) ->
     ASSERT_DOMAIN_EMPTY_CHECK domain
     if domain.length isnt PAIR_SIZE
@@ -980,10 +986,12 @@ module.exports = do ->
     domain_equal
     domain_force_eq_inline
     domain_from_list
+    domain_get_value
     domain_get_value_of_first_contained_value_in_list
     domain_intersect_bounds_into
     domain_intersection
     domain_is_determined
+    domain_is_range
     domain_is_rejected
     domain_is_solved
     domain_is_value
@@ -1004,7 +1012,6 @@ module.exports = do ->
 
     # __REMOVE_BELOW_FOR_DIST__
     # testing only:
-    _domain_get_value: domain_get_value
     _domain_range_index_of: domain_range_index_of
     _is_simplified: is_simplified
     _merge_overlapping_inline: merge_overlapping_inline

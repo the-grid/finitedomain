@@ -34,7 +34,6 @@ module.exports = do ->
 
     ASSERT typeof var_name is 'string', 'arg should be a string', var_name
 
-    root_space = space._root_space or space # cant use space_get_root due to circular references... :/
     fdvar = space.vars[var_name]
 
     unless fdvar_is_solved fdvar
@@ -42,7 +41,7 @@ module.exports = do ->
 
     value = fdvar_lower_bound fdvar # note: solved so lo=hi=value
 
-    config_var_dist_options = root_space.config_var_dist_options
+    config_var_dist_options = space.config.var_dist_options
     distribution_options = config_var_dist_options[var_name]
 
     ASSERT distribution_options, 'var should have a config', var_name, distribution_options or JSON.stringify config_var_dist_options

@@ -21,13 +21,12 @@ module.exports = do ->
   # Given a list of variables return the next var to consider based on the
   # current var distribution configuration and an optional filter condition.
   #
-  # @param {Space} root_space
   # @param {Space} space
   # @param {Fdvar[]} target_vars
   # @returns {Fdvar}
 
-  distribution_get_next_var = (root_space, space, target_vars) ->
-    config_next_var_func = root_space.config_next_var_func
+  distribution_get_next_var = (space, target_vars) ->
+    config_next_var_func = space.config.next_var_func
     fdvars = space.vars
 
     # if it's a function it should return the name of the next var to process
@@ -58,7 +57,7 @@ module.exports = do ->
       else
         THROW 'unknown next var func', dist_name
 
-    config_var_filter = root_space.config_var_filter_func
+    config_var_filter = space.config.var_filter_func
     if config_var_filter and typeof config_var_filter isnt 'function'
       switch config_var_filter
         when 'unsolved'
@@ -66,7 +65,7 @@ module.exports = do ->
         else
           THROW 'unknown var filter', config_var_filter
 
-    return _distribution_var_find_best fdvars, target_vars, is_better_var, config_var_filter, config_next_var_func, root_space
+    return _distribution_var_find_best fdvars, target_vars, is_better_var, config_var_filter, config_next_var_func, space
 
   # Return the best var name according to a fitness function
   # but only if the filter function is okay with it.
@@ -76,17 +75,17 @@ module.exports = do ->
   # @param {Function(fdvar,fdvar)} [fitness_func] Given two fdvars returns true iif the first var is better than the second var
   # @param {Function(fdvar)} [filter_func] If given only consider vars where this function returns true
   # @param {string|Object} config_next_var_func From Space; either the name of the dist or specific options for a var dist
-  # @param {Space} root_space
+  # @param {Space} space
   # @returns {Fdvar}
 
-  _distribution_var_find_best = (fdvars, names, fitness_func, filter_func, config_next_var_func, root_space) ->
+  _distribution_var_find_best = (fdvars, names, fitness_func, filter_func, config_next_var_func, space) ->
     best = ''
     for name, i in names
       fdvar = fdvars[name]
       # TOFIX: if the name is the empty string this could lead to a problem. Must eliminate the empty string as var name
 
       if !filter_func or filter_func fdvar
-        if not best or (fitness_func and BETTER is fitness_func fdvar, best, root_space, config_next_var_func)
+        if not best or (fitness_func and BETTER is fitness_func fdvar, best, space, config_next_var_func)
           best = fdvar
     return best
 
@@ -118,16 +117,16 @@ module.exports = do ->
       return WORSE
     return SAME
 
-  _distribution_var_by_markov = (v1, v2, root_space, config_next_var_func) ->
+  _distribution_var_by_markov = (v1, v2, space, config_next_var_func) ->
     # v1 is only, but if so always, better than v2 if v1 is a markov var
-    if root_space.config_var_dist_options[v1.id]?.distributor_name is 'markov'
+    if space.config.var_dist_options[v1.id]?.distributor_name is 'markov'
       return BETTER
-    if root_space.config_var_dist_options[v2.id]?.distributor_name is 'markov'
+    if space.config.var_dist_options[v2.id]?.distributor_name is 'markov'
       return WORSE
 
-    return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config
+    return _distribution_var_fallback v1, v2, space, config_next_var_func.fallback_config
 
-  _distribution_var_by_list = (v1, v2, root_space, config_next_var_func) ->
+  _distribution_var_by_list = (v1, v2, space, config_next_var_func) ->
     # note: config.priority_hash is compiled by Solver#prepare from given priority_list
     # if in the list, lowest prio can be 1. if not in the list, prio will be undefined
     hash = config_next_var_func.priority_hash
@@ -141,7 +140,7 @@ module.exports = do ->
 
     unless p1 or p2
       # either p1 and p2 both dont exist on the list, or ... well no that's it
-      return _distribution_var_fallback v1, v2, root_space, config_next_var_func.fallback_config
+      return _distribution_var_fallback v1, v2, space, config_next_var_func.fallback_config
 
     # invert this operation? ("deprioritizing").
     inverted = config_next_var_func.inverted
@@ -172,20 +171,20 @@ module.exports = do ->
     ASSERT false, 'not expecting to reach here', p1, p2, v1, v2, hash
     return SAME
 
-  _distribution_var_fallback = (v1, v2, root_space, config) ->
-    unless config
+  _distribution_var_fallback = (v1, v2, space, fallback_config) ->
+    unless fallback_config
       return SAME
 
-    if typeof config is 'string'
-      dist_name = config
-    else if typeof config is 'object'
-      dist_name = config.dist_name
+    if typeof fallback_config is 'string'
+      dist_name = fallback_config
+    else if typeof fallback_config is 'object'
+      dist_name = fallback_config.dist_name
       unless dist_name
-        THROW "Missing fallback var distribution name: #{JSON.stringify config}"
-    else if typeof config is 'function'
-      return config v1, v2, root_space
+        THROW "Missing fallback var distribution name: #{JSON.stringify fallback_config}"
+    else if typeof fallback_config is 'function'
+      return fallback_config v1, v2, space
     else
-      THROW 'Unexpected fallback config', config
+      THROW 'Unexpected fallback config', fallback_config
 
     switch dist_name
       when 'size'
@@ -197,9 +196,9 @@ module.exports = do ->
       when 'throw'
         THROW 'nope'
       when 'markov'
-        return _distribution_var_by_markov v1, v2, root_space, config
+        return _distribution_var_by_markov v1, v2, space, fallback_config
       when 'list'
-        return _distribution_var_by_list v1, v2, root_space, config
+        return _distribution_var_by_list v1, v2, space, fallback_config
       else
         THROW "Unknown var dist fallback name: #{dist_name}"
 

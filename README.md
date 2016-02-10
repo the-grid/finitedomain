@@ -20,6 +20,12 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+1.3.2:
+- (Internal) consolidate shared root space data into a new Config class, should hold static data which is shared between all nodes of a search tree
+- Dropped support for the `search_defaults` option of `Solver#solve`, you can set the string to the `distribute` option of that call if you need it
+- Disallow vars from being redeclared to prevent possible bugs. Before a var would be clobbered if you declared the same var name twice.
+- Added `Solver#callback` which is used to read the current state and reject a search branch at an arbitrary point
+
 1.3.1:
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon
 - Rename `Solver#times` to `Solver#ring_mul` for clarity, renamed `times` to `ring_mul` internally in other relevant places as well, this affects the external api but should not affect deps with the new prop

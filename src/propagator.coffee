@@ -46,6 +46,8 @@ module.exports = do ->
     ASSERT typeof right_var_name is 'string' or typeof right_var_name is 'number', 'expecting right_var_name', right_var_name
     ASSERT typeof bool_name is 'string' or typeof bool_name is 'number' or typeof bool_name is 'undefined', 'expecting bool_name to be string, number, or undefined', bool_name
 
+    config = space.config
+
     switch opname
       when 'eq'
         nopname = 'neq'
@@ -69,21 +71,21 @@ module.exports = do ->
         THROW 'add_reified: Unsupported operator \'' + opname + '\''
 
     if !bool_name
-      bool_name = config_add_var_anon space.config, 0, 1
+      bool_name = config_add_var_anon config, 0, 1
     # TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
     #else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
     #  THROW 'boolean var should start with a domain containing zero, one, or both'
 
     if typeof left_var_name is 'number'
-      left_var_name = config_add_var_anon space.config, left_var_name
+      left_var_name = config_add_var_anon config, left_var_name
       if typeof right_var_name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof right_var_name is 'number'
-      right_var_name = config_add_var_anon space.config, right_var_name
+      right_var_name = config_add_var_anon config, right_var_name
       if typeof left_var_name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
+    config_add_propagator config, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     return bool_name
 
   propagator_add_callback = (space, var_names, callback) ->
@@ -102,19 +104,21 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      t = config_add_var_anon space.config, v2name
+      t = config_add_var_anon config, v2name
       # swap such that v1 is the solved var. order is irrelevant to eq itself.
       v2name = v1name
       v1name = t
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['eq', [v1name, v2name]]
+    config_add_propagator config, ['eq', [v1name, v2name]]
     # return either operand var. this allows you to chain eqs -> .eq(.eq(A, B), C)
     # doesnt really matter which operand since they should be equal
     # (though you should probably try to make v1 solved the fastest)
@@ -128,16 +132,18 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['lt', [v1name, v2name]]
+    config_add_propagator config, ['lt', [v1name, v2name]]
     return
 
   # Greater than propagator.
@@ -154,16 +160,18 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['lte', [v1name, v2name]]
+    config_add_propagator config, ['lte', [v1name, v2name]]
     return
 
   propagator_add_mul = (space, v1name, v2name, result_name) ->
@@ -171,23 +179,25 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof result_name is 'undefined'
-      result_name = config_add_var_anon space.config
+      result_name = config_add_var_anon config
     else if typeof result_name is 'number'
-      result_name = config_add_var_anon space.config, result_name
+      result_name = config_add_var_anon config, result_name
     else if typeof result_name isnt 'string'
       THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
 
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['mul', [v1name, v2name, result_name]]
+    config_add_propagator config, ['mul', [v1name, v2name, result_name]]
     return result_name
 
   propagator_add_div = (space, v1name, v2name, result_name) ->
@@ -195,23 +205,25 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof result_name is 'undefined'
-      result_name = config_add_var_anon space.config
+      result_name = config_add_var_anon config
     else if typeof result_name is 'number'
-      result_name = config_add_var_anon space.config, result_name
+      result_name = config_add_var_anon config, result_name
     else if typeof result_name isnt 'string'
       THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
 
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['div', [v1name, v2name, result_name]]
+    config_add_propagator config, ['div', [v1name, v2name, result_name]]
     return result_name
 
   # Greater than or equal to.
@@ -228,16 +240,18 @@ module.exports = do ->
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    config_add_propagator space.config, ['neq', [v1name, v2name]]
+    config_add_propagator config, ['neq', [v1name, v2name]]
     return
 
   # Takes an arbitrary number of FD variables and adds propagators that
@@ -256,41 +270,42 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
     ASSERT typeof sumname is 'string' or typeof sumname is 'number' or typeof sumname is 'undefined', 'expecting sumname to be number, string, or undefined', sumname
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
     if typeof sumname is 'undefined'
-      sumname = config_add_var_anon space.config
+      sumname = config_add_var_anon config
     else if typeof sumname is 'number'
-      sumname = config_add_var_anon space.config, sumname
+      sumname = config_add_var_anon config, sumname
     else if typeof sumname isnt 'string'
       THROW 'expecting sumname to be absent or a number or string: `'+sumname+'`'
 
-    _propagator_add_ring space, v1name, v2name, sumname, target_op_name
-    _propagator_add_ring space, sumname, v2name, v1name, inv_op_name
-    _propagator_add_ring space, sumname, v1name, v2name, inv_op_name
+    _propagator_add_ring config, v1name, v2name, sumname, target_op_name
+    _propagator_add_ring config, sumname, v2name, v1name, inv_op_name
+    _propagator_add_ring config, sumname, v1name, v2name, inv_op_name
 
     return sumname
 
-  _propagator_add_ring = (space, A, B, C, op) ->
-    ASSERT space._class is 'space'
+  _propagator_add_ring = (config, A, B, C, op) ->
+    ASSERT config._class is 'config'
     ASSERT typeof A is 'string', 'number/undefined vars should be handled by caller'
     ASSERT typeof B is 'string', 'number/undefined vars should be handled by caller'
     ASSERT typeof C is 'string', 'number/undefined vars should be handled by caller'
-    config_add_propagator space.config, ['ring', [A, B, C], op]
+    config_add_propagator config, ['ring', [A, B, C], op]
     return
 
   # Bidirectional addition propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
   propagator_add_plus = (space, v1name, v2name, sumname) ->
-    ASSERT space._class is 'space'
     return _propagator_add_ring_plus_or_mul space, 'plus', 'min', v1name, v2name, sumname
 
   propagator_add_min = (space, v1name, v2name, result_var) ->
@@ -299,30 +314,31 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
     ASSERT typeof result_var is 'string' or typeof result_var is 'number' or typeof result_var is 'undefined', 'expecting result_var to be number, string, or undefined', result_var
 
+    config = space.config
+
     if typeof v1name is 'number'
-      v1name = config_add_var_anon space.config, v1name
+      v1name = config_add_var_anon config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = config_add_var_anon space.config, v2name
+      v2name = config_add_var_anon config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
     if typeof result_var is 'undefined'
-      result_var = config_add_var_anon space.config
+      result_var = config_add_var_anon config
     else if typeof result_var is 'number'
-      result_var = config_add_var_anon space.config, result_var
+      result_var = config_add_var_anon config, result_var
     else if typeof result_var isnt 'string'
       THROW 'expecting result_var to be absent or a number or string: `'+result_var+'`'
 
-    config_add_propagator space.config, ['min', [v1name, v2name, result_var]]
+    config_add_propagator config, ['min', [v1name, v2name, result_var]]
     return result_var
 
   # Bidirectional multiplication propagator.
   # Returns either space or the anonymous var name if no sumname was given
 
   propagator_add_ring_mul = (space, v1name, v2name, prodname) ->
-    ASSERT space._class is 'space'
     return _propagator_add_ring_plus_or_mul space, 'mul', 'div', v1name, v2name, prodname
 
   # Sum of N fdvars = resultFDVar
@@ -333,8 +349,10 @@ module.exports = do ->
     ASSERT space._class is 'space'
     ASSERT vars instanceof Array, 'vars should be an array of var names', vars
 
+    config = space.config
+
     unless result_var_name
-      result_var_name = config_add_var_anon space.config
+      result_var_name = config_add_var_anon config
 
     len = vars.length
     switch len
@@ -352,12 +370,12 @@ module.exports = do ->
 
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = config_add_var_anon space.config
+          t1 = config_add_var_anon config
           propagator_add_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = config_add_var_anon space.config
+        t2 = config_add_var_anon config
 
         propagator_add_sum space, vars.slice(n), t2
         propagator_add_plus space, t1, t2, result_var_name
@@ -370,8 +388,10 @@ module.exports = do ->
   propagator_add_product = (space, vars, result_var_name) ->
     ASSERT space._class is 'space'
 
+    config = space.config
+
     unless result_var_name
-      result_var_name = config_add_var_anon space.config
+      result_var_name = config_add_var_anon config
 
     switch vars.length
       when 0
@@ -386,11 +406,11 @@ module.exports = do ->
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = config_add_var_anon space.config
+          t1 = config_add_var_anon config
           propagator_add_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = config_add_var_anon space.config
+        t2 = config_add_var_anon config
 
         propagator_add_product space, vars.slice(n), t2
         propagator_add_ring_mul space, t1, t2, result_var_name
@@ -425,5 +445,6 @@ module.exports = do ->
     propagator_add_sum
 
     # for testing
+    _propagator_add_ring
     _propagator_add_ring_plus_or_mul
   }

@@ -15,7 +15,6 @@ module.exports = do ->
   } = require './helpers'
 
   {
-    config_add_var
     config_create
   } = require './config'
 
@@ -240,87 +239,6 @@ module.exports = do ->
 
     return value
 
-  # create a new var on this space
-  # - name is optional, an anonymous var is created if absent
-  # - if name is a number or array it is assumed to be `lo`,
-  # and then hi becomes lo, lo becomes name, name becomes null
-  # - lo can be a number, undefined, or an array.\
-  # - hi can be a number or undefined.
-  # - if lo is array it is assumed to be the whole domain
-  # returns the name of the new var (regardless)
-  #
-  # Usage:
-  # space_add_var space, 'A', 0           # declares var A with domain [0, 0]
-  # space_add_var space, 'A', 0, 1        # declares var A with domain [0, 1]
-  # space_add_var space, 'A', [0, 1]      # declares var A with given domain
-  # space_add_var space, 'A'              # declares var A with [SUB, SUP]
-  # space_add_var space, 0                # declares anonymous var with [0, 0]
-  # space_add_var space, 0, 1             # declares anonymous var with [0, 1]
-  # space_add_var space, [0, 1]           # declares anonymous var with given domain
-  # space_add_var space                   # declares anonymous var with [SUB, SUP]
-
-  space_add_var = (space, name, lo, hi, skip_value_check) ->
-    ASSERT space._class is 'space'
-    if typeof name is 'number' or name instanceof Array
-      hi = lo
-      lo = name
-      name = undefined
-
-    return config_add_var space.config, name, lo, hi
-
-  # add multiple var names with names in arg list
-  # See space_add_var for details
-
-  space_add_vars = (space, arr...) ->
-    ASSERT space._class is 'space'
-    for a in arr
-      space_add_var space, a[0], a[1], a[2]
-    return
-
-  # add multiple var names with names in an array
-  # See space_add_var for details
-
-  space_add_vars_a = (space, arr) ->
-    ASSERT space._class is 'space'
-    for a in arr
-      space_add_var space, a
-    return
-
-  # Add a bunch of vars by different names and same domain
-  # See space_add_var for details
-
-  space_add_vars_domain = (space, names, lo, hi) ->
-    ASSERT space._class is 'space'
-    for name in names
-      space_add_var space, name, lo, hi
-    return
-
-  # create an anonymous var with specific solved state
-  # multiple anonymous vars with same name return the same
-  # reference as optimization (should not harm?)
-
-  _space_create_var_value = (space, val) ->
-    ASSERT space._class is 'space'
-    ASSERT !isNaN(val), '_space_create_var_value: Value is NaN', val
-    ASSERT val >= SUB, 'val must be above minimum value', val
-    ASSERT val <= SUP, 'val must be below max value', val
-
-    # The idea is that single value domains are already solved so if they
-    # change, the state is immediately rejected. As such these vars can
-    # be considered constants; use them as is or bust. We do have to take
-    # care not to change them inline as they are shared by reference.
-    # TOFIX: make this more stable.
-    cache = space.config.constant_cache
-
-    fdvar_name = cache[val]
-    if fdvar_name
-      return fdvar_name
-
-    SKIP_RECURSION = true
-    fdvar_name = space_add_var space, undefined, val, val, SKIP_RECURSION
-    cache[val] = fdvar_name
-    return fdvar_name
-
   space_add_propagator = (space, data) ->
     ASSERT space._class is 'space'
     space._propagators.push data
@@ -468,10 +386,6 @@ module.exports = do ->
 
   return {
     space_add_propagator
-    space_add_vars_domain
-    space_add_var
-    space_add_vars
-    space_add_vars_a
     space_create_clone
     space_create_root
     space_get_unknown_vars
@@ -481,8 +395,6 @@ module.exports = do ->
     space_solution
     space_solution_for
 
-    # testing
-    _space_create_var_value
     # debugging
     __space_to_solver_test_case
     __space_to_space_test_case

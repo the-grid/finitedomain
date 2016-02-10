@@ -8,6 +8,11 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    config_add_var
+    config_add_var_anon
+  } = require './config'
+
+  {
     domain_create_bool
   } = require './domain'
 
@@ -16,7 +21,6 @@ module.exports = do ->
   } = require './fdvar'
 
   {
-    space_add_var
     space_add_propagator
   } = require './space'
 
@@ -69,17 +73,17 @@ module.exports = do ->
         THROW 'add_reified: Unsupported operator \'' + opname + '\''
 
     if !bool_name
-      bool_name = space_add_var space, 0, 1
+      bool_name = config_add_var_anon space.config, 0, 1
     # TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
     #else if fdvar_constrain(space.vars[bool_name], domain_create_bool()) is REJECTED
     #  THROW 'boolean var should start with a domain containing zero, one, or both'
 
     if typeof left_var_name is 'number'
-      left_var_name = space_add_var space, left_var_name
+      left_var_name = config_add_var_anon space.config, left_var_name
       if typeof right_var_name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof right_var_name is 'number'
-      right_var_name = space_add_var space, right_var_name
+      right_var_name = config_add_var_anon space.config, right_var_name
       if typeof left_var_name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -103,11 +107,11 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      t = space_add_var space, v2name
+      t = config_add_var_anon space.config, v2name
       # swap such that v1 is the solved var. order is irrelevant to eq itself.
       v2name = v1name
       v1name = t
@@ -129,11 +133,11 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -155,11 +159,11 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -172,18 +176,18 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof result_name is 'undefined'
-      result_name = space_add_var space
+      result_name = config_add_var_anon space.config
     else if typeof result_name is 'number'
-      result_name = space_add_var space, result_name
+      result_name = config_add_var_anon space.config, result_name
     else if typeof result_name isnt 'string'
       THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -196,18 +200,18 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof result_name is 'undefined'
-      result_name = space_add_var space
+      result_name = config_add_var_anon space.config
     else if typeof result_name is 'number'
-      result_name = space_add_var space, result_name
+      result_name = config_add_var_anon space.config, result_name
     else if typeof result_name isnt 'string'
       THROW 'expecting result_name to be absent or a number or string: `'+result_name+'`'
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -229,11 +233,11 @@ module.exports = do ->
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
@@ -257,18 +261,18 @@ module.exports = do ->
     ASSERT typeof sumname is 'string' or typeof sumname is 'number' or typeof sumname is 'undefined', 'expecting sumname to be number, string, or undefined', sumname
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
     if typeof sumname is 'undefined'
-      sumname = space_add_var space
+      sumname = config_add_var_anon space.config
     else if typeof sumname is 'number'
-      sumname = space_add_var space, sumname
+      sumname = config_add_var_anon space.config, sumname
     else if typeof sumname isnt 'string'
       THROW 'expecting sumname to be absent or a number or string: `'+sumname+'`'
 
@@ -300,18 +304,18 @@ module.exports = do ->
     ASSERT typeof result_var is 'string' or typeof result_var is 'number' or typeof result_var is 'undefined', 'expecting result_var to be number, string, or undefined', result_var
 
     if typeof v1name is 'number'
-      v1name = space_add_var space, v1name
+      v1name = config_add_var_anon space.config, v1name
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
     else if typeof v2name is 'number'
-      v2name = space_add_var space, v2name
+      v2name = config_add_var_anon space.config, v2name
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
     if typeof result_var is 'undefined'
-      result_var = space_add_var space
+      result_var = config_add_var_anon space.config
     else if typeof result_var is 'number'
-      result_var = space_add_var space, result_var
+      result_var = config_add_var_anon space.config, result_var
     else if typeof result_var isnt 'string'
       THROW 'expecting result_var to be absent or a number or string: `'+result_var+'`'
 
@@ -334,7 +338,7 @@ module.exports = do ->
     ASSERT vars instanceof Array, 'vars should be an array of var names', vars
 
     unless result_var_name
-      result_var_name = space_add_var space
+      result_var_name = config_add_var_anon space.config
 
     len = vars.length
     switch len
@@ -352,12 +356,12 @@ module.exports = do ->
 
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = space_add_var space
+          t1 = config_add_var_anon space.config
           propagator_add_sum space, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
-        t2 = space_add_var space
+        t2 = config_add_var_anon space.config
 
         propagator_add_sum space, vars.slice(n), t2
         propagator_add_plus space, t1, t2, result_var_name
@@ -371,7 +375,7 @@ module.exports = do ->
     ASSERT space._class is 'space'
 
     unless result_var_name
-      result_var_name = space_add_var space
+      result_var_name = config_add_var_anon space.config
 
     switch vars.length
       when 0
@@ -386,11 +390,11 @@ module.exports = do ->
       else
         n = Math.floor vars.length / 2
         if n > 1
-          t1 = space_add_var space
+          t1 = config_add_var_anon space.config
           propagator_add_product space, vars.slice(0, n), t1
         else
           t1 = vars[0]
-        t2 = space_add_var space
+        t2 = config_add_var_anon space.config
 
         propagator_add_product space, vars.slice(n), t2
         propagator_add_ring_mul space, t1, t2, result_var_name

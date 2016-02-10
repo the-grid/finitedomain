@@ -12,13 +12,15 @@ module.exports = do ->
     SUP
 
     ASSERT
-    ASSERT_SPACE
     GET_NAME
     GET_NAMES
     THROW
   } = require './helpers'
 
   {
+    config_add_var
+    config_add_var_anon
+    config_add_vars_a
     config_create
     config_set_defaults
     config_set_options
@@ -31,17 +33,11 @@ module.exports = do ->
   } = require './domain'
 
   {
-    fdvar_create
-  } = require './fdvar'
-
-  {
     search_depth_first
   } = require './search'
 
   {
     __space_debug_string
-    space_add_var
-    space_add_vars_a
     space_create_root
     space_get_unknown_vars
     space_init_from_config
@@ -139,7 +135,7 @@ module.exports = do ->
         THROW "Solver#num: expecting a number, got #{num} (a #{typeof num})"
       if isNaN num
         THROW "Solver#num: expecting a number, got NaN"
-      return space_add_var @space, num
+      return config_add_var_anon @space.config, num
 
     addVars: (vs) ->
       ASSERT vs instanceof Array, 'Expecting array', vs
@@ -150,7 +146,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      return space_add_var @space, id, domain
+      return config_add_var @space.config, id, domain
 
     # Uses @defaultDomain if no domain was given
     # If domain is a number it becomes [dom, dom]
@@ -191,7 +187,7 @@ module.exports = do ->
         domain = domain_create_value domain
       domain = validate_domain domain
 
-      space_add_var @space, id, domain
+      config_add_var @space.config, id, domain
       vars.byId[id] = v
       vars.all.push v
 
@@ -522,13 +518,14 @@ module.exports = do ->
       bvars ?= @vars.all
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
+
       space = @space
 
       space_init_from_config space
 
       if add_unknown_vars
         unknown_names = space_get_unknown_vars space
-        space_add_vars_a space, unknown_names
+        config_add_vars_a @config, unknown_names
 
       overrides = collect_distribution_overrides var_names, @vars.byId, space
       if overrides
@@ -605,10 +602,10 @@ module.exports = do ->
 
       return
 
-    # exposes internal method space_add_var for subclass
+    # exposes internal method config_add_var for subclass
 
     space_add_var_range: (id, lo, hi) ->
-      return space_add_var @space, id, lo, hi
+      return config_add_var @space.config, id, lo, hi
 
     # exposes internal method domain_from_list for subclass
 

@@ -22,18 +22,12 @@ describe "space.spec", ->
   describe 'Space class', ->
 
     {
-      SUB
-      SUP
-    } = FD.helpers
-
-    {
+      config_add_var
+      config_add_var_anon
       config_set_options
     } = FD.config
 
     {
-      space_add_var
-      space_add_vars
-      space_add_vars_domain
       space_add_propagator
       space_create_clone
       space_create_root
@@ -89,37 +83,44 @@ describe "space.spec", ->
 
         expect(space_is_solved space_create_root()).to.be.true
 
-      it 'should return true if all vars are solved', ->
+      it 'should return true if all 1 vars are solved', ->
 
         space = space_create_root()
-        space_add_var space, 1
+        config_add_var_anon space.config, 1
         space_init_from_config space
+
         expect(space_is_solved(space), 'only one solved var').to.be.true
 
-        space_add_var space, 1
+      it 'should return true if all 2 vars are solved', ->
+
+        space = space_create_root()
+        config_add_var_anon space.config, 1
+        config_add_var_anon space.config, 1
+        space_init_from_config space
+
         expect(space_is_solved(space), 'two solved vars').to.be.true
 
       it 'should return false if at least one var is not solved', ->
 
         space = space_create_root()
-        space_add_var space, 0, 1
+        config_add_var_anon space.config, 0, 1
         space_init_from_config space
         expect(space_is_solved(space), 'only one unsolved var').to.be.false
 
       it 'should return false if at least one var of two is not solved', ->
 
         space = space_create_root()
-        space_add_var space, 0, 1
-        space_add_var space, 0, 1
+        config_add_var_anon space.config, 0, 1
+        config_add_var_anon space.config, 0, 1
         space_init_from_config space
         expect(space_is_solved(space), 'two unsolved vars').to.be.false
 
       it 'should return false if at least one var of three is not solved', ->
 
         space = space_create_root()
-        space_add_var space, 0, 1
-        space_add_var space, 0, 1
-        space_add_var space, 1
+        config_add_var_anon space.config, 0, 1
+        config_add_var_anon space.config, 0, 1
+        config_add_var_anon space.config, 1
         space_init_from_config space
         expect(space_is_solved(space), 'two unsolved vars and a solved var').to.be.false
 
@@ -137,23 +138,23 @@ describe "space.spec", ->
       it 'should return false if a var covers no (more) elements', ->
 
         space = space_create_root()
-        space_add_var space, 'test', []
+        config_add_var space.config, 'test', []
         space_init_from_config space
         expect(space_solution space).to.eql {test: false}
 
       it 'should return the value of a var is solved', ->
 
         space = space_create_root()
-        space_add_var space, 'test', 5
+        config_add_var space.config, 'test', 5
         space_init_from_config space
         expect(space_solution space).to.eql {test: 5}
 
       it 'should return the domain of a var if not yet determined', ->
 
         space = space_create_root()
-        space_add_var space, 'single_range', 10, 20
-        space_add_var space, 'multi_range', spec_d_create_ranges [10, 20], [30, 40]
-        space_add_var space, 'multi_range_with_solved', spec_d_create_ranges [10, 20], [25, 25], [30, 40]
+        config_add_var space.config, 'single_range', 10, 20
+        config_add_var space.config, 'multi_range', spec_d_create_ranges [10, 20], [30, 40]
+        config_add_var space.config, 'multi_range_with_solved', spec_d_create_ranges [10, 20], [25, 25], [30, 40]
         space_init_from_config space
         expect(space_solution space).to.eql
           single_range: spec_d_create_range 10, 20
@@ -163,8 +164,8 @@ describe "space.spec", ->
       it 'should not add anonymous vars to the result', ->
 
         space = space_create_root()
-        space_add_var space, 15
-        space_add_var space, 'addme', 20
+        config_add_var_anon space.config, 15
+        config_add_var space.config, 'addme', 20
         space_init_from_config space
         expect(strip_anon_vars space_solution space).to.eql {addme: 20}
 
@@ -173,41 +174,41 @@ describe "space.spec", ->
       it 'should only collect results for given var names', ->
 
         space = space_create_root()
-        space_add_var space, 10 # should be ignored
-        space_add_var space, 'nope', 10, 20
-        space_add_var space, 'yep10', 10
-        space_add_var space, 'yep20', 20
-        space_add_var space, 'yep30', 30
+        config_add_var_anon space.config, 10 # should be ignored
+        config_add_var space.config, 'nope', 10, 20
+        config_add_var space.config, 'yep10', 10
+        config_add_var space.config, 'yep20', 20
+        config_add_var space.config, 'yep30', 30
         space_init_from_config space
         expect(space_solution_for space, ['yep10', 'yep20', 'yep30']).to.eql {yep10: 10, yep20: 20, yep30: 30}
 
       it 'should return normal even if a var is unsolved when complete=false', ->
 
         space = space_create_root()
-        space_add_var space, 10 # should be ignored
-        space_add_var space, 'yep10', 10
-        space_add_var space, 'oops20', []
-        space_add_var space, 'yep30', 30
+        config_add_var_anon space.config, 10 # should be ignored
+        config_add_var space.config, 'yep10', 10
+        config_add_var space.config, 'oops20', []
+        config_add_var space.config, 'yep30', 30
         space_init_from_config space
         expect(space_solution_for space, ['yep10', 'oops20', 'yep30']).to.eql {yep10: 10, oops20: false, yep30: 30}
 
       it 'should return false if a var is unsolved when complete=true', ->
 
         space = space_create_root()
-        space_add_var space, 10 # should be ignored
-        space_add_var space, 'yep10', 10
-        space_add_var space, 'oops20', []
-        space_add_var space, 'yep30', 30
+        config_add_var_anon space.config, 10 # should be ignored
+        config_add_var space.config, 'yep10', 10
+        config_add_var space.config, 'oops20', []
+        config_add_var space.config, 'yep30', 30
         space_init_from_config space
         expect(space_solution_for space, ['yep10', 'oops20', 'yep30'], true).to.be.false
 
       it 'should return true if a var is unsolved that was not requested when complete=true', ->
 
         space = space_create_root()
-        space_add_var space, 10 # should be ignored
-        space_add_var space, 'yep10', 10
-        space_add_var space, 'nope20', []
-        space_add_var space, 'yep30', 30
+        config_add_var_anon space.config, 10 # should be ignored
+        config_add_var space.config, 'yep10', 10
+        config_add_var space.config, 'nope20', []
+        config_add_var space.config, 'yep30', 30
         space_init_from_config space
         expect(space_solution_for space, ['yep10', 'yep30'], true).to.eql {yep10: 10, yep30: 30}
 
@@ -219,10 +220,10 @@ describe "space.spec", ->
 
           space = space_create_root()
 
-          space_add_var space, 'A', 0, 10
-          space_add_var space, 'B', 0, 10
-          space_add_var space, 'MAX', 25, 25
-          space_add_var space, 'MUL', 0, 100
+          config_add_var space.config, 'A', 0, 10
+          config_add_var space.config, 'B', 0, 10
+          config_add_var space.config, 'MAX', 25, 25
+          config_add_var space.config, 'MUL', 0, 100
 
           space_add_propagator space, ['ring', ['A', 'B', 'MUL'], 'mul']
           space_add_propagator space, ['ring', ['MUL', 'A', 'B'], 'div']
@@ -240,8 +241,8 @@ describe "space.spec", ->
 
           space = space_create_root()
 
-          space_add_var space, 'A', 0, 10
-          space_add_var space, 'B', 0, 10
+          config_add_var space.config, 'A', 0, 10
+          config_add_var space.config, 'B', 0, 10
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
@@ -252,8 +253,8 @@ describe "space.spec", ->
 
           space = space_create_root()
 
-          space_add_var space, 'A', 0, 10
-          space_add_var space, 'B', 0, 10
+          config_add_var space.config, 'A', 0, 10
+          config_add_var space.config, 'B', 0, 10
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
@@ -266,8 +267,8 @@ describe "space.spec", ->
 
           space = space_create_root()
 
-          space_add_var space, 'A', 0, 10
-          space_add_var space, 'B', 0, 10
+          config_add_var space.config, 'A', 0, 10
+          config_add_var space.config, 'B', 0, 10
 
           space_add_propagator space, ['lt', ['A', 'B']]
 
@@ -276,250 +277,3 @@ describe "space.spec", ->
 
           expect(space_propagate space).to.eql false
 
-    describe 'space_add_var', ->
-
-      {
-        fdvar_create_range
-      } = FD.fdvar
-
-      {
-        domain_create_range
-      } = FD.domain
-
-      it 'should accept full parameters', ->
-
-        space = space_create_root()
-        space_add_var space, 'A', 0, 1
-        space_init_from_config space
-
-        expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 1
-
-      it 'should accept only lo and assume [lo,lo] for domain', ->
-
-        space = space_create_root()
-        space_add_var space, 'A', 0
-        space_init_from_config space
-
-        expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 0
-
-      it 'should accept lo as the domain if array', ->
-
-        input_domain = [0, 1]
-        space = space_create_root()
-        space_add_var space, 'A', input_domain
-        space_init_from_config space
-
-        expect(space.vars.A).to.eql fdvar_create_range 'A', 0, 1
-        expect(space.vars.A.dom).to.not.equal input_domain # should clone
-
-      it 'should create an anonymous var with [lo,lo] if name is not given', ->
-
-        space = space_create_root()
-        space_add_var space, 0
-        space_init_from_config space
-
-        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 0
-
-      it 'should create an anonymous var with [lo,hi] if name is not given', ->
-
-        space = space_create_root()
-        space_add_var space, 0, 1
-        space_init_from_config space
-
-        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
-
-      it 'should create an anonymous var with given domain if name is not given', ->
-
-        input_domain = [0, 1]
-        space = space_create_root()
-        space_add_var space, input_domain
-        space_init_from_config space
-
-        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range 0, 1
-        expect(space.vars[space.config.all_var_names[0]].dom).to.not.equal input_domain
-
-      it 'should create a full wide domain for var without lo/hi', ->
-
-        space = space_create_root()
-        space_add_var space, 'A'
-        space_init_from_config space
-
-        expect(space.vars.A).to.eql fdvar_create_range 'A', SUB, SUP
-
-      it 'should create a full wide domain for anonymous var', ->
-
-        space = space_create_root()
-        space_add_var space
-        space_init_from_config space
-
-        expect(space.vars[space.config.all_var_names[0]].dom).to.eql domain_create_range SUB, SUP
-
-      it 'should create a new var', ->
-
-        space = space_create_root()
-        space_add_var space, 'foo', 100
-        space_init_from_config space
-
-        expect(space.config.all_var_names).to.eql ['foo']
-        expect(space.unsolved_var_names).to.eql ['foo']
-        expect(space.vars.foo?).to.be.true
-
-      it 'should set var to domain', ->
-
-        space = space_create_root()
-        space_add_var space, 'foo', 100
-        space_init_from_config space
-
-        expect(space.vars.foo.dom).to.eql domain_create_range 100, 100
-
-      it 'should set var to full domain if none given', ->
-
-        space = space_create_root()
-        space_add_var space, 'foo'
-        space_init_from_config space
-
-        expect(space.vars.foo.dom).to.eql spec_d_create_range SUB, SUP
-
-      it 'should throw if var already exists', ->
-        # this should throw an error instead. when would you _want_ to do this?
-
-        space = space_create_root()
-        space_add_var space, 'foo', 100
-        space_init_from_config space
-
-        expect(space.vars.foo.dom).to.eql spec_d_create_value 100
-        expect(-> space_add_var space, 'foo', 200).to.throw()
-
-      it 'should return the name', ->
-
-        space = space_create_root()
-        space_init_from_config space
-
-        expect(space_add_var space, 'foo', 100).to.equal 'foo'
-
-      it 'should create a new var p1', ->
-
-        space = space_create_root()
-        space_init_from_config space
-
-        expect(space.config.all_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-        expect(space.unsolved_var_names.length, 'before decl').to.eql 0 # no vars... right? :)
-
-      it 'should create a new var p2', ->
-
-        space = space_create_root()
-        space_add_var space, 22
-        space_init_from_config space
-
-        expect(space.config.all_var_names.length, 'after decl').to.eql 1
-        expect(space.unsolved_var_names.length, 'after decl').to.eql 1
-
-      it 'should return the name of a var', ->
-
-        space = space_create_root()
-        name = space_add_var space, 50
-        space_init_from_config space
-
-        expect(space.config.all_var_names.indexOf(name) > -1).to.be.true
-        expect(space.unsolved_var_names.indexOf(name) > -1).to.be.true
-
-      it 'should create a "solved" var with given value', ->
-
-        space = space_create_root()
-        name = space_add_var space, 100
-        space_init_from_config space
-
-        expect(space.vars[name].dom).to.eql spec_d_create_value 100
-
-      it 'should throw if value is OOB', ->
-
-        space = space_create_root()
-        space_init_from_config space
-
-        expect(-> space_add_var space, SUB - 100).to.throw()
-        expect(-> space_add_var space, SUP + 100).to.throw()
-
-      it 'should create a var with given domain', ->
-
-        space = space_create_root()
-        name = space_add_var space, 100, 200
-        space_init_from_config space
-
-        expect(space.vars[name].dom).to.eql spec_d_create_range 100, 200
-
-      it 'should create a full range var if no name and no domain is given', ->
-
-        space = space_create_root()
-        name = space_add_var space
-        space_init_from_config space
-
-        expect(space.vars[name].dom).to.eql spec_d_create_range SUB, SUP
-
-    describe 'space_add_vars', ->
-
-      {
-        fdvar_create
-        fdvar_create_range
-      } = FD.fdvar
-
-      it 'should accept multiple vars', ->
-
-        space = space_create_root()
-        space_add_vars space,
-          ['A']
-          ['B', 0]
-          ['C', 10, 20]
-          ['D', [5, 8, 20, 30]]
-        space_init_from_config space
-
-        expect(space.vars.A).to.eql fdvar_create_range 'A', SUB, SUP
-        expect(space.vars.B).to.eql fdvar_create_range 'B', 0, 0
-        expect(space.vars.C).to.eql fdvar_create_range 'C', 10, 20
-        expect(space.vars.D).to.eql fdvar_create 'D', spec_d_create_ranges [5, 8], [20, 30]
-
-    describe 'space_add_vars_domain', ->
-
-      it 'should create some new vars', ->
-
-        space = space_create_root()
-        names = ['foo', 'bar', 'baz']
-        space_add_vars_domain space, names, 100
-        space_init_from_config space
-
-        expect(space.config.all_var_names).to.eql names
-        expect(space.unsolved_var_names).to.eql names
-        for name in names
-          expect(space.vars.foo?).to.be.true
-
-      it 'should set to given domain', ->
-
-        space = space_create_root()
-        names = ['foo', 'bar', 'baz']
-        domain = spec_d_create_value 100
-        space_add_vars_domain space, names, domain
-        space_init_from_config space
-
-        expect(space.config.all_var_names).to.eql names
-        expect(space.unsolved_var_names).to.eql names
-        for name in names
-          expect(space.vars[name]?).to.be.true
-          expect(space.vars[name].dom, 'domain should be cloned').not.to.equal domain
-          expect(space.vars[name].dom).to.eql domain
-          for name2 in names
-            expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]
-
-      it 'should be set to full domain if none given', ->
-
-        space = space_create_root()
-        names = ['foo', 'bar', 'baz']
-        domain = spec_d_create_range SUB, SUP
-        space_add_vars_domain space, names
-        space_init_from_config space
-
-        expect(space.config.all_var_names).to.eql names
-        expect(space.unsolved_var_names).to.eql names
-        for name in names
-          expect(space.vars[name]?).to.be.true
-          expect(space.vars[name].dom).to.eql domain
-          for name2 in names
-            expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]

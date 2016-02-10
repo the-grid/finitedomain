@@ -40,13 +40,11 @@ module.exports = do ->
   # the reified boolean variable which you can pass to other
   # propagator creator functions.
 
-  propagator_add_reified = (space, opname, left_var_name, right_var_name, bool_name) ->
-    ASSERT space._class is 'space'
+  propagator_add_reified = (config, opname, left_var_name, right_var_name, bool_name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof left_var_name is 'string' or typeof left_var_name is 'number', 'expecting left_var_name', left_var_name
     ASSERT typeof right_var_name is 'string' or typeof right_var_name is 'number', 'expecting right_var_name', right_var_name
     ASSERT typeof bool_name is 'string' or typeof bool_name is 'number' or typeof bool_name is 'undefined', 'expecting bool_name to be string, number, or undefined', bool_name
-
-    config = space.config
 
     switch opname
       when 'eq'
@@ -88,23 +86,21 @@ module.exports = do ->
     config_add_propagator config, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     return bool_name
 
-  propagator_add_callback = (space, var_names, callback) ->
-    ASSERT space._class is 'space'
-    config_add_propagator space.config, ['callback', var_names, callback]
+  propagator_add_callback = (config, var_names, callback) ->
+    ASSERT config._class is 'config'
+    config_add_propagator config, ['callback', var_names, callback]
     return
 
   # Domain equality propagator. Creates the propagator
-  # in given space.
+  # in given config.
   # Can pass in vars or numbers that become anonymous
   # vars. Must at least pass in one var because the
   # propagator would be useless otherwise.
 
-  propagator_add_eq = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
+  propagator_add_eq = (config, v1name, v2name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -127,12 +123,10 @@ module.exports = do ->
   # Less than propagator. See general propagator nores
   # for fdeq which also apply to this one.
 
-  propagator_add_lt = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
+  propagator_add_lt = (config, v1name, v2name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -148,19 +142,17 @@ module.exports = do ->
 
   # Greater than propagator.
 
-  propagator_add_gt = (space, v1name, v2name) ->
+  propagator_add_gt = (config, v1name, v2name) ->
     # _swap_ v1 and v2 because: a>b is b<a
-    propagator_add_lt space, v2name, v1name
+    propagator_add_lt config, v2name, v1name
     return
 
   # Less than or equal to propagator.
 
-  propagator_add_lte = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
+  propagator_add_lte = (config, v1name, v2name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -174,12 +166,10 @@ module.exports = do ->
     config_add_propagator config, ['lte', [v1name, v2name]]
     return
 
-  propagator_add_mul = (space, v1name, v2name, result_name) ->
-    ASSERT space._class is 'space'
+  propagator_add_mul = (config, v1name, v2name, result_name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof result_name is 'undefined'
       result_name = config_add_var_anon config
@@ -200,12 +190,10 @@ module.exports = do ->
     config_add_propagator config, ['mul', [v1name, v2name, result_name]]
     return result_name
 
-  propagator_add_div = (space, v1name, v2name, result_name) ->
-    ASSERT space._class is 'space'
+  propagator_add_div = (config, v1name, v2name, result_name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof result_name is 'undefined'
       result_name = config_add_var_anon config
@@ -228,19 +216,17 @@ module.exports = do ->
 
   # Greater than or equal to.
 
-  propagator_add_gte = (space, v1name, v2name) ->
+  propagator_add_gte = (config, v1name, v2name) ->
     # _swap_ v1 and v2 because: a>=b is b<=a
-    propagator_add_lte space, v2name, v1name
+    propagator_add_lte config, v2name, v1name
     return
 
   # Ensures that the two variables take on different values.
 
-  propagator_add_neq = (space, v1name, v2name) ->
-    ASSERT space._class is 'space'
+  propagator_add_neq = (config, v1name, v2name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -257,20 +243,18 @@ module.exports = do ->
   # Takes an arbitrary number of FD variables and adds propagators that
   # ensure that they are pairwise distinct.
 
-  propagator_add_distinct = (space, var_names) ->
-    ASSERT space._class is 'space'
+  propagator_add_distinct = (config, var_names) ->
+    ASSERT config._class is 'config'
     for var_name_i, i in var_names
       for j in [0...i]
-        propagator_add_neq space, var_name_i, var_names[j]
+        propagator_add_neq config, var_name_i, var_names[j]
     return
 
-  _propagator_add_ring_plus_or_mul = (space, target_op_name, inv_op_name, v1name, v2name, sumname) ->
-    ASSERT space._class is 'space'
+  _propagator_add_ring_plus_or_mul = (config, target_op_name, inv_op_name, v1name, v2name, sumname) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
     ASSERT typeof sumname is 'string' or typeof sumname is 'number' or typeof sumname is 'undefined', 'expecting sumname to be number, string, or undefined', sumname
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -303,18 +287,16 @@ module.exports = do ->
     return
 
   # Bidirectional addition propagator.
-  # Returns either space or the anonymous var name if no sumname was given
+  # Returns the sumname
 
-  propagator_add_plus = (space, v1name, v2name, sumname) ->
-    return _propagator_add_ring_plus_or_mul space, 'plus', 'min', v1name, v2name, sumname
+  propagator_add_plus = (config, v1name, v2name, sumname) ->
+    return _propagator_add_ring_plus_or_mul config, 'plus', 'min', v1name, v2name, sumname
 
-  propagator_add_min = (space, v1name, v2name, result_var) ->
-    ASSERT space._class is 'space'
+  propagator_add_min = (config, v1name, v2name, result_var) ->
+    ASSERT config._class is 'config'
     ASSERT typeof v1name is 'string' or typeof v1name is 'number', 'expecting var name 1', v1name
     ASSERT typeof v2name is 'string' or typeof v2name is 'number', 'expecting var name 2', v2name
     ASSERT typeof result_var is 'string' or typeof result_var is 'number' or typeof result_var is 'undefined', 'expecting result_var to be number, string, or undefined', result_var
-
-    config = space.config
 
     if typeof v1name is 'number'
       v1name = config_add_var_anon config, v1name
@@ -336,20 +318,18 @@ module.exports = do ->
     return result_var
 
   # Bidirectional multiplication propagator.
-  # Returns either space or the anonymous var name if no sumname was given
+  # Returns the sumname
 
-  propagator_add_ring_mul = (space, v1name, v2name, prodname) ->
-    return _propagator_add_ring_plus_or_mul space, 'mul', 'div', v1name, v2name, prodname
+  propagator_add_ring_mul = (config, v1name, v2name, prodname) ->
+    return _propagator_add_ring_plus_or_mul config, 'mul', 'div', v1name, v2name, prodname
 
   # Sum of N fdvars = resultFDVar
   # Creates as many anonymous vars as necessary.
-  # Returns either space or the anonymous var name if no sumname was given
+  # Returns the sumname
 
-  propagator_add_sum = (space, vars, result_var_name) ->
-    ASSERT space._class is 'space'
+  propagator_add_sum = (config, vars, result_var_name) ->
+    ASSERT config._class is 'config'
     ASSERT vars instanceof Array, 'vars should be an array of var names', vars
-
-    config = space.config
 
     unless result_var_name
       result_var_name = config_add_var_anon config
@@ -360,10 +340,10 @@ module.exports = do ->
         THROW 'propagator_add_sum: Nothing to sum!'
 
       when 1
-        propagator_add_eq space, vars[0], result_var_name
+        propagator_add_eq config, vars[0], result_var_name
 
       when 2
-        propagator_add_plus space, vars[0], vars[1], result_var_name
+        propagator_add_plus config, vars[0], vars[1], result_var_name
 
       else # "divide and conquer" ugh. feels like there is a better way to do this
         ASSERT len > 2, 'expecting at least 3 elements in the list...', vars
@@ -371,24 +351,22 @@ module.exports = do ->
         n = Math.floor vars.length / 2
         if n > 1
           t1 = config_add_var_anon config
-          propagator_add_sum space, vars.slice(0, n), t1
+          propagator_add_sum config, vars.slice(0, n), t1
         else
           t1 = vars[0]
 
         t2 = config_add_var_anon config
 
-        propagator_add_sum space, vars.slice(n), t2
-        propagator_add_plus space, t1, t2, result_var_name
+        propagator_add_sum config, vars.slice(n), t2
+        propagator_add_plus config, t1, t2, result_var_name
 
     return result_var_name
 
   # Product of N fdvars = resultFDvar.
   # Create as many anonymous vars as necessary.
 
-  propagator_add_product = (space, vars, result_var_name) ->
-    ASSERT space._class is 'space'
-
-    config = space.config
+  propagator_add_product = (config, vars, result_var_name) ->
+    ASSERT config._class is 'config'
 
     unless result_var_name
       result_var_name = config_add_var_anon config
@@ -398,29 +376,29 @@ module.exports = do ->
         return retval
 
       when 1
-        propagator_add_eq space, vars[0], result_var_name
+        propagator_add_eq config, vars[0], result_var_name
 
       when 2
-        propagator_add_ring_mul space, vars[0], vars[1], result_var_name
+        propagator_add_ring_mul config, vars[0], vars[1], result_var_name
 
       else
         n = Math.floor vars.length / 2
         if n > 1
           t1 = config_add_var_anon config
-          propagator_add_product space, vars.slice(0, n), t1
+          propagator_add_product config, vars.slice(0, n), t1
         else
           t1 = vars[0]
         t2 = config_add_var_anon config
 
-        propagator_add_product space, vars.slice(n), t2
-        propagator_add_ring_mul space, t1, t2, result_var_name
+        propagator_add_product config, vars.slice(n), t2
+        propagator_add_ring_mul config, t1, t2, result_var_name
 
     return result_var_name
 
-  propagator_add_markov = (space, var_name) ->
-    ASSERT space._class is 'space'
+  propagator_add_markov = (config, var_name) ->
+    ASSERT config._class is 'config'
     ASSERT typeof var_name is 'string'
-    config_add_propagator space.config, ['markov', [var_name]]
+    config_add_propagator config, ['markov', [var_name]]
     return
 
   # BODY_STOP

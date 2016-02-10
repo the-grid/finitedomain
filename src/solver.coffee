@@ -286,8 +286,8 @@ module.exports = do ->
       return @plus e1, e2, result_var
     plus: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_plus @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_plus @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_plus @config, GET_NAME(e1), GET_NAME(e2)
 
     '-': (e1, e2, result_var) ->
       return @min e1, e2, result_var
@@ -295,8 +295,8 @@ module.exports = do ->
       return @min e1, e2, result_var
     min: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_min @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_min @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_min @config, GET_NAME(e1), GET_NAME(e2)
 
     '*': (e1, e2, result_var) ->
       return @ring_mul e1, e2, result_var
@@ -304,20 +304,20 @@ module.exports = do ->
       return @ring_mul e1, e2, result_var
     ring_mul: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_ring_mul @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_ring_mul @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_ring_mul @config, GET_NAME(e1), GET_NAME(e2)
 
     '/': (e1, e2, result_var) ->
       return @div e1, e2, result_var
     div: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_div @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_div @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_div @config, GET_NAME(e1), GET_NAME(e2)
 
     mul: (e1, e2, result_var) ->
       if result_var
-        return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
-      return propagator_add_mul @space, GET_NAME(e1), GET_NAME(e2)
+        return propagator_add_mul @config, GET_NAME(e1), GET_NAME(e2), GET_NAME(result_var)
+      return propagator_add_mul @config, GET_NAME(e1), GET_NAME(e2)
 
     '∑': (es, result_var) ->
       return @sum es, result_var
@@ -325,16 +325,16 @@ module.exports = do ->
     sum: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return propagator_add_sum @space, var_names, GET_NAME(result_var)
-      return propagator_add_sum @space, var_names
+        return propagator_add_sum @config, var_names, GET_NAME(result_var)
+      return propagator_add_sum @config, var_names
 
     '∏': (es, result_var) ->
       return @product es, result_var
     product: (es, result_var) ->
       var_names = GET_NAMES es
       if result_var
-        return propagator_add_product @space, var_names, GET_NAME(result_var)
-      return propagator_add_product @space, var_names
+        return propagator_add_product @config, var_names, GET_NAME(result_var)
+      return propagator_add_product @config, var_names
 
     # TODO
     # times_plus    k1*v1 + k2*v2
@@ -349,7 +349,7 @@ module.exports = do ->
       @distinct es
       return
     distinct: (es) ->
-      propagator_add_distinct @space, GET_NAMES(es)
+      propagator_add_distinct @config, GET_NAMES(es)
       return
 
     '==': (e1, e2) ->
@@ -363,7 +363,7 @@ module.exports = do ->
       else
         return @_eq e1, e2
     _eq: (e1, e2) ->
-      return propagator_add_eq @space, GET_NAME(e1), GET_NAME(e2)
+      return propagator_add_eq @config, GET_NAME(e1), GET_NAME(e2)
 
     '!=': (e1, e2) ->
       @neq e1, e2
@@ -376,7 +376,7 @@ module.exports = do ->
         @_neq e1, e2
       return
     _neq: (e1, e2) ->
-      propagator_add_neq @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_neq @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>=': (e1, e2) ->
@@ -390,7 +390,7 @@ module.exports = do ->
         @_gte e1, e2
       return
     _gte: (e1, e2) ->
-      propagator_add_gte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gte @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<=': (e1, e2) ->
@@ -404,7 +404,7 @@ module.exports = do ->
         @_lte e1, e2
       return
     _lte: (e1, e2) ->
-      propagator_add_lte @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lte @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '>': (e1, e2) ->
@@ -418,7 +418,7 @@ module.exports = do ->
         @_gt e1, e2
       return
     _gt: (e1, e2) ->
-      propagator_add_gt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_gt @config, GET_NAME(e1), GET_NAME(e2)
       return
 
     '<': (e1, e2) ->
@@ -432,7 +432,7 @@ module.exports = do ->
         @_lt e1, e2
       return
     _lt: (e1, e2) ->
-      propagator_add_lt @space, GET_NAME(e1), GET_NAME(e2)
+      propagator_add_lt @config, GET_NAME(e1), GET_NAME(e2)
       return
 
 
@@ -441,8 +441,8 @@ module.exports = do ->
       e1 = GET_NAME(e1)
       e2 = GET_NAME(e2)
       if boolvar
-        return propagator_add_reified @space, op, e1, e2, GET_NAME boolvar
-      return propagator_add_reified @space, op, e1, e2
+        return propagator_add_reified @config, op, e1, e2, GET_NAME boolvar
+      return propagator_add_reified @config, op, e1, e2
 
     '!=?': (e1, e2, boolvar) ->
       return @isNeq e1, e2, boolvar
@@ -477,7 +477,7 @@ module.exports = do ->
     # Various rest
 
     callback: (es, cb) ->
-      propagator_add_callback @space, GET_NAMES(es), cb
+      propagator_add_callback @config, GET_NAMES(es), cb
       return
 
     # Solve this solver. It should be setup with all the constraints.
@@ -525,7 +525,7 @@ module.exports = do ->
         unknown_names = config_get_unknown_vars @config
         config_add_vars_a @config, unknown_names
 
-      overrides = collect_distribution_overrides var_names, @vars.byId, space
+      overrides = collect_distribution_overrides var_names, @vars.byId, @config
       if overrides
         config_set_options @config, var_dist_config: overrides
 
@@ -533,6 +533,8 @@ module.exports = do ->
       config_set_options @config, distribution_options
 
       search_func = @_get_search_func_or_die search
+
+
 
       space_init_from_config space
 
@@ -619,10 +621,10 @@ module.exports = do ->
     #
     # @param {string[]} var_names
     # @param {Object} bvars_by_id Maps var names to their Bvar
-    # @param {Space} space
+    # @param {Config} config
     # @returns {Object|null} Contains data for each var that has dist options
 
-    collect_distribution_overrides = (var_names, bvars_by_id, space) ->
+    collect_distribution_overrides = (var_names, bvars_by_id, config) ->
       overrides = null
       for name in var_names
         bvar = bvars_by_id[name]
@@ -639,7 +641,7 @@ module.exports = do ->
 
         # add a markov verifier propagator for each markov var
         if overrides?[name]?.distributor_name is 'markov'
-          propagator_add_markov space, name
+          propagator_add_markov config, name
 
       return overrides
 

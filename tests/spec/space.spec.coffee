@@ -22,6 +22,11 @@ describe "space.spec", ->
   describe 'Space class', ->
 
     {
+      SUB
+      SUP
+    } = FD.helpers
+
+    {
       config_set_options
     } = FD.config
 
@@ -274,11 +279,6 @@ describe "space.spec", ->
     describe 'space_add_var', ->
 
       {
-        SUB
-        SUP
-      } = FD.helpers
-
-      {
         fdvar_create_range
       } = FD.fdvar
 
@@ -378,7 +378,7 @@ describe "space.spec", ->
         space_add_var space, 'foo'
         space_init_from_config space
 
-        expect(space.vars.foo.dom).to.eql spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+        expect(space.vars.foo.dom).to.eql spec_d_create_range SUB, SUP
 
       it 'should throw if var already exists', ->
         # this should throw an error instead. when would you _want_ to do this?
@@ -436,7 +436,8 @@ describe "space.spec", ->
         space = space_create_root()
         space_init_from_config space
 
-        expect(-> space_add_var space, FD.helpers.SUB - 100).to.throw()
+        expect(-> space_add_var space, SUB - 100).to.throw()
+        expect(-> space_add_var space, SUP + 100).to.throw()
 
       it 'should create a var with given domain', ->
 
@@ -457,16 +458,11 @@ describe "space.spec", ->
     describe 'space_add_vars', ->
 
       {
-        SUB
-        SUP
-      } = FD.helpers
-
-      {
         fdvar_create
         fdvar_create_range
       } = FD.fdvar
 
-      it 'should multiple vars', ->
+      it 'should accept multiple vars', ->
 
         space = space_create_root()
         space_add_vars space,
@@ -516,7 +512,7 @@ describe "space.spec", ->
 
         space = space_create_root()
         names = ['foo', 'bar', 'baz']
-        domain = spec_d_create_range FD.helpers.SUB, FD.helpers.SUP
+        domain = spec_d_create_range SUB, SUP
         space_add_vars_domain space, names
         space_init_from_config space
 

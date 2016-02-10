@@ -22,7 +22,7 @@ describe 'config.spec', ->
   {
     config_add_constant
     config_add_var
-    config_add_var_value
+    _config_add_var_value
     config_add_vars_a
     config_add_vars_o
     config_create
@@ -106,12 +106,12 @@ describe 'config.spec', ->
       expect(config.initial_vars.A).to.eql undefined
 
 
-  describe 'config_add_var_value', ->
+  describe '_config_add_var_value', ->
 
     it 'should accept domain as param', ->
 
       config = config_create()
-      config_add_var_value config, 'A', [0, 1]
+      _config_add_var_value config, 'A', [0, 1]
 
       expect(config.initial_vars.A).to.eql [0, 1]
 
@@ -119,7 +119,7 @@ describe 'config.spec', ->
 
       d = [0, 1]
       config = config_create()
-      config_add_var_value config, 'A', d
+      _config_add_var_value config, 'A', d
 
       expect(config.initial_vars.A).to.eql d
       expect(config.initial_vars.A).to.equal d
@@ -127,21 +127,20 @@ describe 'config.spec', ->
     it 'should accept a number', ->
 
       config = config_create()
-      config_add_var_value config, 'A', 5
+      _config_add_var_value config, 'A', 5
 
       expect(config.initial_vars.A).to.eql 5
 
-    it 'should only use one number even if given two', ->
+    it 'should throw if given lo, hi', ->
 
       config = config_create()
-      config_add_var_value config, 'A', 5, 20
 
-      expect(config.initial_vars.A).to.eql 5
+      expect(-> _config_add_var_value config, 'A', 5, 20).to.throw()
 
     it 'should accept undefined', ->
 
       config = config_create()
-      config_add_var_value config, 'A'
+      _config_add_var_value config, 'A'
 
       expect(config.initial_vars.A).to.eql undefined
       expect(config.all_var_names).to.contain 'A'

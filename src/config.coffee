@@ -4,6 +4,9 @@
 module.exports = do ->
 
   {
+    SUB
+    SUP
+
     ASSERT
     THROW
   } = require './helpers'
@@ -55,22 +58,57 @@ module.exports = do ->
       config_add_var config, name, domain
     return
 
+  # simply alias to omit the name for complex domains
+
+  config_add_var_anon = (config, domain_or_lo, hi) ->
+    return config_add_var config, undefined, domain_or_lo, hi
+
   config_add_var = (config, name, domain_or_lo, hi) ->
-    is_number = typeof domain_or_lo is 'number'
-    if is_number
-      if typeof hi is 'number'
-        config_add_var_value config, name, [domain_or_lo, hi]
-        return
+    ASSERT domain_or_lo instanceof Array or typeof domain_or_lo is 'number' or domain_or_lo is undefined, 'arr/num/undef', domain_or_lo
 
     if domain_or_lo instanceof Array
-      domain_or_lo = domain_or_lo.slice 0
-    config_add_var_value config, name, domain_or_lo
-    return
+      domain = domain_or_lo
+      if domain.length is 2 and domain[0] is domain[1]
+        if name
+          return config_add_var config, name, domain[0]
+        else
+          return config_add_constant config, domain[0]
+      domain_or_lo = domain.slice 0
 
-  config_add_var_value = (config, name, domain) ->
-    ASSERT config._class is 'config'
+    else if typeof domain_or_lo is 'number'
+      lo = domain_or_lo
+      if typeof hi is 'number'
+        if !name and lo is hi
+          return config_add_constant config, lo
+        domain_or_lo = [lo, hi]
+      else unless name
+        return config_add_constant config, lo
+
+    unless name
+      name = String ++config.constant_uid
+
+    _config_add_var_value config, name, domain_or_lo
+    return name
+
+  # This is the core var adding function
+  # Preprocessing of parameters should be done here
+  # All parameters are mandatory and assumed scrubbed
+  #
+  # @param {Config} config
+  # @param {string} name
+  # @param {number[]} domain
+  # @param {undefined} _forbidden_arg Sanity check, do not use this arg
+
+  _config_add_var_value = (config, name, domain, _forbidden_arg) ->
+    ASSERT config._class is 'config', 'wants config', config._class, config
     ASSERT name and typeof name is 'string', 'name should be a non-empty string', name
     ASSERT !config.initial_vars[name], 'fdvar should not be defined but was, when would that not be a bug?', config.initial_vars[name], '->', name, '->', domain
+    ASSERT !_forbidden_arg?, 'not expecting a hi, pass on [lo,hi] in array or just lo', _forbidden_arg
+    ASSERT domain instanceof Array or typeof domain is 'number' or domain is undefined, 'domain check', domain
+    ASSERT domain not instanceof Array or domain.length is 0 or domain[0] >= SUB, 'domain lo should be >= SUB', domain
+    ASSERT domain not instanceof Array or domain.length is 0 or domain[domain.length-1] <= SUP, 'domain hi should be <= SUP', domain
+    ASSERT typeof domain isnt 'number' or (domain >= SUB and domain <= SUP), 'single value should be SUB<=value<=SUP', domain
+
     if config.all_var_names.indexOf(name) >= 0
       THROW 'Var name already part of this config. Probably a bug?'
 
@@ -81,6 +119,9 @@ module.exports = do ->
     if domain instanceof Array and domain.length is 2 and domain[0] is domain[1]
       if !config.constant_cache[domain[0]]
         config.constant_cache[domain[0]] = name
+    else if typeof domain is 'number'
+      if !config.constant_cache[domain]
+        config.constant_cache[domain] = name
 
     return
 
@@ -90,7 +131,7 @@ module.exports = do ->
     if config.constant_cache[value]
       return config.constant_cache[value]
     name = String ++config.constant_uid
-    config_add_var_value config, name, value
+    _config_add_var_value config, name, value
     config.constant_cache[value] = name
     return name
 
@@ -180,7 +221,7 @@ module.exports = do ->
   return {
     config_add_constant
     config_add_var
-    config_add_var_value
+    config_add_var_anon
     config_add_vars_a
     config_add_vars_o
     config_create
@@ -189,5 +230,6 @@ module.exports = do ->
     config_set_options
 
     # testing
+    _config_add_var_value
     _config_init_configs_and_fallbacks
   }

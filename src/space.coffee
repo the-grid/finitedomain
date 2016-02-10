@@ -20,6 +20,7 @@ module.exports = do ->
   } = require './config'
 
   {
+    domain_create_range
     domain_create_value
     domain_is_solved
     domain_min
@@ -29,7 +30,6 @@ module.exports = do ->
     fdvar_clone
     fdvar_create
     fdvar_is_solved
-    fdvar_set_domain
   } = require './fdvar'
 
   {
@@ -41,9 +41,6 @@ module.exports = do ->
   } = require './propagators/is_solved'
 
   # BODY_START
-
-  # A monotonically increasing class-global counter for unique temporary variable names.
-  _space_uid_counter = 1
 
   space_create_root = (config) ->
     config ?= config_create()
@@ -112,9 +109,9 @@ module.exports = do ->
     for name in config.all_var_names
       val = initial_vars[name]
       if typeof val is 'number'
-        val = fdvar_create name, [val, val]
+        val = fdvar_create name, domain_create_value val
       else if val is undefined
-        val = fdvar_create name, @defaultDomain.slice(0)
+        val = fdvar_create name, domain_create_range SUB, SUP
       else
         ASSERT val instanceof Array
         ASSERT (val.length % 2) is 0
@@ -269,37 +266,7 @@ module.exports = do ->
       lo = name
       name = undefined
 
-    if typeof lo is 'number' and !hi?
-      if name
-        config_add_var space.config, name, domain_create_value lo
-        return name
-
-    if !name? and typeof lo is 'number'
-      # use special function that caches and dedupes "solved" vars
-      if !hi?
-        return _space_create_var_value space, lo
-      # recursive check. but if a "solved" domain is passed we may want to cache that too
-      if !skip_value_check and lo is hi
-        return _space_create_var_value space, lo
-
-    if lo? and hi?
-      ASSERT typeof lo is 'number', 'if hi is passed lo should be a number', lo, hi
-      domain = [lo, hi]
-    else if lo?
-      ASSERT lo instanceof Array, 'if lo is not a number it must be an array; the domain', lo
-      ASSERT !hi?, 'if lo is the domain, hi should not be given', lo, hi
-      domain = lo.slice 0
-    else
-      ASSERT !lo?, 'expecting no lo/hi at this point', lo, hi
-      ASSERT !hi?, 'expecting no lo/hi at this point', lo, hi
-      domain = [SUB, SUP]
-
-    unless name
-      # create anonymous var
-      name = String _space_uid_counter++
-
-    config_add_var space.config, name, domain
-    return name
+    return config_add_var space.config, name, lo, hi
 
   # add multiple var names with names in arg list
   # See space_add_var for details

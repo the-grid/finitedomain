@@ -196,18 +196,20 @@ module.exports = do ->
   space_is_solved = (space) ->
     ASSERT space._class is 'space'
     vars = space.vars
+    targeted_vars = space.config.targeted_vars
     unsolved_names = space.unsolved_var_names
 
     j = 0
     for name, i in unsolved_names
-      fdvar = vars[name]
-      ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
-      ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
+      if targeted_vars is 'all' or targeted_vars.indexOf(name) >= 0
+        fdvar = vars[name]
+        ASSERT !fdvar.was_solved, 'should not be set yet at this stage' # we may change this though...
+        ASSERT_DOMAIN fdvar.dom, 'is_solved extra domain validation check'
 
-      if fdvar_is_solved fdvar
-        fdvar.was_solved = true # makes space_create_clone faster
-      else
-        unsolved_names[j++] = name
+        if fdvar_is_solved fdvar
+          fdvar.was_solved = true # makes space_create_clone faster
+        else
+          unsolved_names[j++] = name
     unsolved_names.length = j
 
     return j is 0

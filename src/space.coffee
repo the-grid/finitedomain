@@ -3,8 +3,6 @@ module.exports = do ->
   {
     REJECTED
     SOMETHING_CHANGED
-    SUB
-    SUP
 
     ENABLED
     ENABLE_EMPTY_CHECK

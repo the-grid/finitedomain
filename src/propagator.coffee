@@ -1,8 +1,6 @@
 module.exports = do ->
 
   {
-    REJECTED
-
     ASSERT
     THROW
   } = require './helpers'
@@ -11,14 +9,6 @@ module.exports = do ->
     config_add_propagator
     config_add_var_anon
   } = require './config'
-
-  {
-    domain_create_bool
-  } = require './domain'
-
-  {
-    fdvar_constrain
-  } = require './fdvar'
 
   # BODY_START
 

@@ -530,6 +530,7 @@ module.exports = do ->
 
       search_func = @_get_search_func_or_die search
 
+      # create the root node of the search tree (each node is a Space)
       root_space = space_create_from_config @config
 
       # __REMOVE_BELOW_FOR_DIST__

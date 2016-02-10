@@ -38,7 +38,7 @@ module.exports = do ->
 
       # like a blue print for the root space with just primitives/arrays
       initial_vars: {}
-      initial_propagators: {}
+      propagators: []
     }
 
   config_create_with = (obj) ->

@@ -521,8 +521,6 @@ module.exports = do ->
 
       space = @space
 
-      space_init_from_config space
-
       if add_unknown_vars
         unknown_names = space_get_unknown_vars space
         config_add_vars_a @config, unknown_names
@@ -535,6 +533,8 @@ module.exports = do ->
       config_set_options @config, distribution_options
 
       search_func = @_get_search_func_or_die search
+
+      space_init_from_config space
 
       @state.space = space
       @state.more = true
@@ -580,7 +580,7 @@ module.exports = do ->
       if log >= LOG_STATS
         console.time '      - FD Solver Time'
         console.log "      - FD Solver Var Count: #{@state.space.config.all_var_names.length}"
-        console.log "      - FD Solver Prop Count: #{@state.space._propagators.length}"
+        console.log "      - FD Solver Prop Count: #{@state.space.config.propagators.length}"
 
       ASSERT Object.keys(@state.space.vars).sort().join('--') is Object.keys(@state.space.config.initial_vars).sort().join('--'), 'migration test'
 

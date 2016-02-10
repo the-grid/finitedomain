@@ -56,7 +56,7 @@ module.exports = do ->
 
     vars = space.vars
     unsolved_propagators = []
-    for propagator in space._propagators
+    for propagator in space.unsolved_propagators
       unless propagator_is_solved vars, propagator
         unsolved_propagators.push propagator
 
@@ -77,8 +77,8 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (config, _propagators, vars, unsolved_var_names, _depth, _child) ->
-    ASSERT _propagators instanceof Array, 'props should be an array', _propagators
+  _space_create_new = (config, unsolved_propagators, vars, unsolved_var_names, _depth, _child) ->
+    ASSERT unsolved_propagators instanceof Array, 'props should be an array', unsolved_propagators
     ASSERT vars and typeof vars is 'object', 'vars should be an object', vars
     ASSERT unsolved_var_names instanceof Array, 'unsolved_var_names should be an array', unsolved_var_names
 
@@ -93,8 +93,7 @@ module.exports = do ->
 
       vars
       unsolved_var_names
-
-      _propagators
+      unsolved_propagators # by references from space.config.propagators
 
       next_distribution_choice: 0
     }
@@ -117,6 +116,11 @@ module.exports = do ->
       space.vars[name] = val
       if val.length isnt 2 or val[0] isnt val[1]
         space.unsolved_var_names.push name
+
+    # propagators are immutable so share by reference
+    for propagator in config.propagators
+      space.unsolved_propagators.push propagator
+
     return
 
   # Run all the propagators until stability point. Returns the number
@@ -125,11 +129,11 @@ module.exports = do ->
   space_propagate = (space) ->
     ASSERT space._class is 'space'
     changed = true # init (do-while)
-    propagators = space._propagators
-    ASSERT_PROPAGATORS space._propagators
+    unsolved_propagators = space.unsolved_propagators
+    ASSERT_PROPAGATORS unsolved_propagators
     while changed
       changed = false
-      for prop_details in propagators
+      for prop_details in unsolved_propagators
         n = propagator_step_any prop_details, space # TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
         # the domain of either var of a propagator can only be empty if the prop REJECTED
@@ -239,18 +243,19 @@ module.exports = do ->
 
   space_add_propagator = (space, data) ->
     ASSERT space._class is 'space'
-    space._propagators.push data
-    ASSERT_PROPAGATORS space._propagators
+    space.config.propagators.push data
+    ASSERT_PROPAGATORS space.config.propagators
     return
 
   space_get_unknown_vars = (space) ->
+    # TOFIX: move to config
     names = []
-    for p in space._propagators
+    for p in space.config.propagators
       a = p[1][0]
-      if !space.vars[a] and names.indexOf(a) < 0
+      if !space.config.initial_vars[a] and names.indexOf(a) < 0
         names.push a
       b = p[1][1]
-      if !space.vars[b] and names.indexOf(b) < 0
+      if !space.config.initial_vars[b] and names.indexOf(b) < 0
         names.push b
     return names
 
@@ -268,7 +273,7 @@ module.exports = do ->
       things.push 'space_add_var space, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    space._propagators.forEach (c) ->
+    space.unsolved_propagators.forEach (c) ->
       if c[0] is 'reified'
         things.push 'S._cacheReified \''+c[2]+'\', \''+c[1].join('\', \'')+'\''
       else if c[0] is 'ring'
@@ -302,7 +307,7 @@ module.exports = do ->
       things.push 'space_add_var S, \''+name+'\', ['+space.vars[name].dom.join(', ')+']'
     things.push ''
 
-    things.push 'S._propagators = [\n  ' + space._propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
+    things.push 'S.unsolved_propagators = [\n  ' + space.unsolved_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'') + '\n]'
 
     things.push '\nexpect(space_propagate S).to.eql true'
 
@@ -336,9 +341,9 @@ module.exports = do ->
       things.push "Unsolved vars (#{space.unsolved_var_names.length}x):"
       things.push '  ' + space.unsolved_var_names
 
-      things.push "Propagators (#{space._propagators.length}x):"
+      things.push "Propagators (#{space.unsolved_propagators.length}x):"
 
-      space._propagators.forEach (p) ->
+      space.unsolved_propagators.forEach (p) ->
         try
           solved = propagator_is_solved vars, p
         catch e
@@ -353,7 +358,7 @@ module.exports = do ->
           things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
         else
           things.push "  #{p[0]} '#{p[1].join ', '}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[0]} [#{vars[b]?.dom or 'FAIL'}] | solved: #{solved}"
-      unless space._propagators.length
+      unless space.unsolved_propagators.length
         things.push '  - none'
 
       things.push '#########'

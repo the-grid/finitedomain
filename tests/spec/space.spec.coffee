@@ -75,7 +75,7 @@ describe "space.spec", ->
         expect(space.unsolved_var_names).to.not.equal clone.unsolved_var_names
         expect(space.unsolved_var_names.join()).to.equal clone.unsolved_var_names.join()
         expect(space.config).to.equal clone.config
-        expect(space._propagators).to.eql clone._propagators
+        expect(space.unsolved_propagators).to.eql clone.unsolved_propagators
 
     describe 'space_is_solved()', ->
 

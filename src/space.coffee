@@ -44,14 +44,13 @@ module.exports = do ->
   space_create_root = (config) ->
     config ?= config_create()
 
-    return _space_create_new config, [], {}, [], [], 0, 0
+    return _space_create_new config, [], {}, [], 0, 0
 
   # Create a space node that is a child of given space node
 
   space_create_clone = (space) ->
     ASSERT space._class is 'space'
 
-    all_names = space.config.all_var_names
     unsolved_names = []
     clone_vars = {}
 
@@ -61,8 +60,8 @@ module.exports = do ->
       unless propagator_is_solved vars, propagator
         unsolved_propagators.push propagator
 
-    _space_pseudo_clone_vars all_names, vars, clone_vars, unsolved_names
-    return _space_create_new space.config, unsolved_propagators, clone_vars, all_names, unsolved_names, space._depth + 1, space._child_count++
+    _space_pseudo_clone_vars space.config.all_var_names, vars, clone_vars, unsolved_names
+    return _space_create_new space.config, unsolved_propagators, clone_vars, unsolved_names, space._depth + 1, space._child_count++
 
   # Note: it's pseudo because solved vars are not cloned but copied...
 
@@ -78,10 +77,9 @@ module.exports = do ->
 
   # Concept of a space that holds config, some fdvars, and some propagators
 
-  _space_create_new = (config, _propagators, vars, all_var_names, unsolved_var_names, _depth, _child) ->
+  _space_create_new = (config, _propagators, vars, unsolved_var_names, _depth, _child) ->
     ASSERT _propagators instanceof Array, 'props should be an array', _propagators
     ASSERT vars and typeof vars is 'object', 'vars should be an object', vars
-    ASSERT all_var_names instanceof Array, 'all_var_names should be an array', all_var_names
     ASSERT unsolved_var_names instanceof Array, 'unsolved_var_names should be an array', unsolved_var_names
 
     return {

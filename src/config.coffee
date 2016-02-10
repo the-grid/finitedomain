@@ -40,7 +40,7 @@ module.exports = do ->
 
       # "solved" values should be shared with the tree. may refactor this away in the future.
       constant_uid: 0
-      constant_cache: {} # value to var.id, all anonymous
+      constant_cache: {} # value to var.id, usually anonymous
 
       # names of all vars in this search tree
       # optimizes loops because `for-in` is super slow
@@ -49,6 +49,42 @@ module.exports = do ->
       # like a blue print for the root space with just primitives/arrays
       initial_vars: {}
       propagators: []
+    }
+
+  config_clone = (config, new_vars) ->
+    ASSERT config._class = 'config'
+
+    {
+      var_filter_func
+      next_var_func
+      next_value_func
+      targeted_vars
+      var_dist_options
+      timeout_callback
+      constant_uid
+      constant_cache
+      all_var_names
+      initial_vars
+      propagators
+    } = config
+
+    return {
+      _class: 'config'
+
+      var_filter_func
+      next_var_func
+      next_value_func
+      targeted_vars: (targeted_vars instanceof Array and targeted_vars.slice(0)) or targeted_vars
+      var_dist_options: JSON.parse JSON.stringify var_dist_options  # TOFIX: clone this more efficiently
+      timeout_callback # by reference because it's a function if passed on...
+
+      constant_uid
+      constant_cache # is by reference ok?
+
+      all_var_names: config.all_var_names.slice 0
+
+      initial_vars: new_vars or initial_vars
+      propagators: config.propagators.slice 0 # is it okay to share them by ref? i think so...
     }
 
   config_create_with = (obj) ->
@@ -275,6 +311,7 @@ module.exports = do ->
     config_add_var_anon
     config_add_vars_a
     config_add_vars_o
+    config_clone
     config_create
     config_generate_vars
     config_create_with

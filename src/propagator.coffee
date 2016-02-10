@@ -8,7 +8,7 @@ module.exports = do ->
   } = require './helpers'
 
   {
-    config_add_var
+    config_add_propagator
     config_add_var_anon
   } = require './config'
 
@@ -19,10 +19,6 @@ module.exports = do ->
   {
     fdvar_constrain
   } = require './fdvar'
-
-  {
-    space_add_propagator
-  } = require './space'
 
   # BODY_START
 
@@ -87,12 +83,12 @@ module.exports = do ->
       if typeof left_var_name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
+    config_add_propagator space.config, ['reified', [left_var_name, right_var_name, bool_name], opname, nopname]
     return bool_name
 
   propagator_add_callback = (space, var_names, callback) ->
     ASSERT space._class is 'space'
-    space_add_propagator space, ['callback', var_names, callback]
+    config_add_propagator space.config, ['callback', var_names, callback]
     return
 
   # Domain equality propagator. Creates the propagator
@@ -118,7 +114,7 @@ module.exports = do ->
       if typeof v2name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['eq', [v1name, v2name]]
+    config_add_propagator space.config, ['eq', [v1name, v2name]]
     # return either operand var. this allows you to chain eqs -> .eq(.eq(A, B), C)
     # doesnt really matter which operand since they should be equal
     # (though you should probably try to make v1 solved the fastest)
@@ -141,7 +137,7 @@ module.exports = do ->
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['lt', [v1name, v2name]]
+    config_add_propagator space.config, ['lt', [v1name, v2name]]
     return
 
   # Greater than propagator.
@@ -167,7 +163,7 @@ module.exports = do ->
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['lte', [v1name, v2name]]
+    config_add_propagator space.config, ['lte', [v1name, v2name]]
     return
 
   propagator_add_mul = (space, v1name, v2name, result_name) ->
@@ -191,7 +187,7 @@ module.exports = do ->
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['mul', [v1name, v2name, result_name]]
+    config_add_propagator space.config, ['mul', [v1name, v2name, result_name]]
     return result_name
 
   propagator_add_div = (space, v1name, v2name, result_name) ->
@@ -215,7 +211,7 @@ module.exports = do ->
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['div', [v1name, v2name, result_name]]
+    config_add_propagator space.config, ['div', [v1name, v2name, result_name]]
     return result_name
 
   # Greater than or equal to.
@@ -241,7 +237,7 @@ module.exports = do ->
       if typeof v1name is 'number'
         THROW 'must pass in at least one var name'
 
-    space_add_propagator space, ['neq', [v1name, v2name]]
+    config_add_propagator space.config, ['neq', [v1name, v2name]]
     return
 
   # Takes an arbitrary number of FD variables and adds propagators that
@@ -287,7 +283,7 @@ module.exports = do ->
     ASSERT typeof A is 'string', 'number/undefined vars should be handled by caller'
     ASSERT typeof B is 'string', 'number/undefined vars should be handled by caller'
     ASSERT typeof C is 'string', 'number/undefined vars should be handled by caller'
-    space_add_propagator space, ['ring', [A, B, C], op]
+    config_add_propagator space.config, ['ring', [A, B, C], op]
     return
 
   # Bidirectional addition propagator.
@@ -319,7 +315,7 @@ module.exports = do ->
     else if typeof result_var isnt 'string'
       THROW 'expecting result_var to be absent or a number or string: `'+result_var+'`'
 
-    space_add_propagator space, ['min', [v1name, v2name, result_var]]
+    config_add_propagator space.config, ['min', [v1name, v2name, result_var]]
     return result_var
 
   # Bidirectional multiplication propagator.
@@ -404,7 +400,7 @@ module.exports = do ->
   propagator_add_markov = (space, var_name) ->
     ASSERT space._class is 'space'
     ASSERT typeof var_name is 'string'
-    space_add_propagator space, ['markov', [var_name]]
+    config_add_propagator space.config, ['markov', [var_name]]
     return
 
   # BODY_STOP

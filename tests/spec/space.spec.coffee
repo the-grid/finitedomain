@@ -22,13 +22,13 @@ describe "space.spec", ->
   describe 'Space class', ->
 
     {
+      config_add_propagator
       config_add_var
       config_add_var_anon
       config_set_options
     } = FD.config
 
     {
-      space_add_propagator
       space_create_clone
       space_create_root
       space_init_from_config
@@ -225,10 +225,10 @@ describe "space.spec", ->
           config_add_var space.config, 'MAX', 25, 25
           config_add_var space.config, 'MUL', 0, 100
 
-          space_add_propagator space, ['ring', ['A', 'B', 'MUL'], 'mul']
-          space_add_propagator space, ['ring', ['MUL', 'A', 'B'], 'div']
-          space_add_propagator space, ['ring', ['MUL', 'B', 'A'], 'div']
-          space_add_propagator space, ['lt', ['MUL', 'MAX']]
+          config_add_propagator space.config, ['ring', ['A', 'B', 'MUL'], 'mul']
+          config_add_propagator space.config, ['ring', ['MUL', 'A', 'B'], 'div']
+          config_add_propagator space.config, ['ring', ['MUL', 'B', 'A'], 'div']
+          config_add_propagator space.config, ['lt', ['MUL', 'MAX']]
 
           space_init_from_config space
           expect(space_propagate space).to.eql true
@@ -244,7 +244,7 @@ describe "space.spec", ->
           config_add_var space.config, 'A', 0, 10
           config_add_var space.config, 'B', 0, 10
 
-          space_add_propagator space, ['lt', ['A', 'B']]
+          config_add_propagator space.config, ['lt', ['A', 'B']]
 
           space_init_from_config space
           expect(space_propagate space).to.eql true
@@ -256,7 +256,7 @@ describe "space.spec", ->
           config_add_var space.config, 'A', 0, 10
           config_add_var space.config, 'B', 0, 10
 
-          space_add_propagator space, ['lt', ['A', 'B']]
+          config_add_propagator space.config, ['lt', ['A', 'B']]
 
           config_set_options space.config, timeout_callback: -> false
           space_init_from_config space
@@ -270,7 +270,7 @@ describe "space.spec", ->
           config_add_var space.config, 'A', 0, 10
           config_add_var space.config, 'B', 0, 10
 
-          space_add_propagator space, ['lt', ['A', 'B']]
+          config_add_propagator space.config, ['lt', ['A', 'B']]
 
           config_set_options space.config, timeout_callback: -> true
           space_init_from_config space

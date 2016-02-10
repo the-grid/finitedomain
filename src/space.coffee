@@ -241,12 +241,6 @@ module.exports = do ->
 
     return value
 
-  space_add_propagator = (space, data) ->
-    ASSERT space._class is 'space'
-    space.config.propagators.push data
-    ASSERT_PROPAGATORS space.config.propagators
-    return
-
   space_get_unknown_vars = (space) ->
     # TOFIX: move to config
     names = []
@@ -388,7 +382,6 @@ module.exports = do ->
   # BODY_STOP
 
   return {
-    space_add_propagator
     space_create_clone
     space_create_root
     space_get_unknown_vars

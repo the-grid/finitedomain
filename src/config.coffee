@@ -8,6 +8,7 @@ module.exports = do ->
     SUP
 
     ASSERT
+    ASSERT_PROPAGATORS
     THROW
   } = require './helpers'
 
@@ -187,6 +188,12 @@ module.exports = do ->
 
     return
 
+  config_add_propagator = (config, propagator) ->
+    ASSERT config._class is 'config'
+    config.propagators.push propagator
+    ASSERT_PROPAGATORS config.propagators
+    return
+
   # Create a simple lookup hash from an array of strings
   # to an object that looks up the index from the string.
   # This is used for finding the priority of a var elsewhere.
@@ -220,6 +227,7 @@ module.exports = do ->
 
   return {
     config_add_constant
+    config_add_propagator
     config_add_var
     config_add_var_anon
     config_add_vars_a

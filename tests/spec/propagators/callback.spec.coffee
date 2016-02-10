@@ -25,7 +25,7 @@ describe "propagators/callback.spec", ->
     } = FD.helpers
 
     {
-      _domain_get_value: domain_get_value
+      domain_get_value
     } = FD.domain
 
     it 'should be able to access the var names array', ->

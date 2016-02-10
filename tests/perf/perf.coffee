@@ -3,6 +3,8 @@ w = {}
 if typeof window isnt 'undefined'
   w = window
 
+throw new Error 'This file is heavily outdated. Need to rebuild it on the new sources. Find new cases to run without PathFinder, etc.'
+
 PROFILE = false # set to true to profile the slowest perf test here in a browser, devtools should auto-profile it here.
 
 if typeof require is 'function'
@@ -110,7 +112,7 @@ else
         @timeout 20000
 
         solver = new Solver {}
-        solver.space = solver.state.space = space
+        solver.state.space = space
         solver._prepared = true
         solver.run
           search_func: solver._get_search_func_or_die 'depth_first'

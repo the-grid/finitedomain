@@ -1098,7 +1098,6 @@ describe "solver.spec", ->
       solver.minus 'VIEWPORT_MIDDLE_HEIGHT', solver.div('#box2[height]', 2), '#box2[y]'
 
       solutions = solver.solve(max: 3)
-      #console.log FD.space.__space_debug_string solver.space
 
       # viewport is 1200 x 800
       # boxes are 100x100

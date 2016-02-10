@@ -39,8 +39,7 @@ module.exports = do ->
 
   {
     __space_debug_string
-    space_create_root
-    space_init_from_config
+    space_create_from_config
     space_solution
   } = require './space'
 
@@ -97,7 +96,6 @@ module.exports = do ->
       @defaultDomain ?= domain_create_bool()
 
       @config = config_create()
-      @space = space_create_root @config
 
       if typeof @distribute is 'string'
         config_set_defaults @config, @distribute
@@ -519,8 +517,6 @@ module.exports = do ->
       var_names = GET_NAMES bvars
       distribution_options ?= @distribute # TOFIX: this is weird. if @distribute is a string this wont do anything...
 
-      space = @space
-
       if add_unknown_vars
         unknown_names = config_get_unknown_vars @config
         config_add_vars_a @config, unknown_names
@@ -534,11 +530,12 @@ module.exports = do ->
 
       search_func = @_get_search_func_or_die search
 
+      root_space = space_create_from_config @config
 
-
-      space_init_from_config space
-
-      @state.space = space
+      # __REMOVE_BELOW_FOR_DIST__
+      @_space = root_space # only exposed for easy access in tests, and so only available after .prepare()
+      # __REMOVE_ABOVE_FOR_DIST__
+      @state.space = root_space
       @state.more = true
 
       @_prepared = true

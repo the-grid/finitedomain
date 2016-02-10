@@ -61,7 +61,7 @@ describe 'distribution/var.spec', ->
       solver.prepare
         distribute: var: dist_name
 
-      fdvar = distribution_get_next_var solver.space, ['A', 'B']
+      fdvar = distribution_get_next_var solver._space, ['A', 'B']
 
       expect(fdvar.id).to.eql out
 
@@ -186,7 +186,7 @@ describe 'distribution/var.spec', ->
         solver.prepare
           distribute: var: 'size'
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
 
         expect(fdvar.id).to.eql 'A'
 
@@ -202,7 +202,7 @@ describe 'distribution/var.spec', ->
           domain: spec_d_create_ranges([0, 10], [30, 40], [50, 60], [670, 700]) # 64 elements
         solver.prepare
           distribute: var: 'size'
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
 
         expect(fdvar.id).to.eql 'B'
 
@@ -297,7 +297,7 @@ describe 'distribution/var.spec', ->
         solver.prepare
           distribute: var: 'markov'
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B', 'C', 'D']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B', 'C', 'D']
 
         expect(fdvar.id).to.eql 'B'
 
@@ -326,7 +326,7 @@ describe 'distribution/var.spec', ->
         solver.prepare
           distribute: var: 'markov'
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B', 'C', 'D']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B', 'C', 'D']
 
         expect(fdvar.id).to.eql 'C'
 
@@ -530,7 +530,7 @@ describe 'distribution/var.spec', ->
               dist_name: 'list'
               priority_list: ['A', 'B']
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
 
         expect(fdvar.id).to.eql 'A'
 
@@ -548,7 +548,7 @@ describe 'distribution/var.spec', ->
               dist_name: 'list'
               priority_list: ['B', 'A']
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
 
         expect(fdvar.id).to.eql 'B'
 
@@ -564,7 +564,7 @@ describe 'distribution/var.spec', ->
               dist_name: 'list'
               priority_list: []
 
-        fdvar = distribution_get_next_var solver.space, ['A']
+        fdvar = distribution_get_next_var solver._space, ['A']
 
         expect(fdvar.id).to.eql 'A'
 
@@ -583,13 +583,13 @@ describe 'distribution/var.spec', ->
               dist_name: 'list'
               priority_list: ['A', 'C']
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B', 'C']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B', 'C']
         expect(fdvar.id, 'A and C should go before B').to.eql 'A'
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
         expect(fdvar.id, 'A should go before B').to.eql 'A'
-        fdvar = distribution_get_next_var solver.space, ['B', 'C']
+        fdvar = distribution_get_next_var solver._space, ['B', 'C']
         expect(fdvar.id, 'C should go before B').to.eql 'C'
-        fdvar = distribution_get_next_var solver.space, ['B']
+        fdvar = distribution_get_next_var solver._space, ['B']
         expect(fdvar.id, 'B is only one left').to.eql 'B'
 
       it 'should work with list as fallback dist', ->
@@ -609,13 +609,13 @@ describe 'distribution/var.spec', ->
                 dist_name: 'list'
                 priority_list: ['A', 'C']
 
-        fdvar = distribution_get_next_var solver.space, ['A', 'B', 'C']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B', 'C']
         expect(fdvar.id, 'A and C should go before B').to.eql 'A'
-        fdvar = distribution_get_next_var solver.space, ['A', 'B']
+        fdvar = distribution_get_next_var solver._space, ['A', 'B']
         expect(fdvar.id, 'A should go before B').to.eql 'A'
-        fdvar = distribution_get_next_var solver.space, ['B', 'C']
+        fdvar = distribution_get_next_var solver._space, ['B', 'C']
         expect(fdvar.id, 'C should go before B').to.eql 'C'
-        fdvar = distribution_get_next_var solver.space, ['B']
+        fdvar = distribution_get_next_var solver._space, ['B']
         expect(fdvar.id, 'B is only one left').to.eql 'B'
 
 
@@ -659,43 +659,43 @@ describe 'distribution/var.spec', ->
 
     it 'base test: should get highest priority on the list; A_list', ->
 
-      fdvar = distribution_get_next_var solver.space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']
+      fdvar = distribution_get_next_var solver._space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']
 
       expect(fdvar.id).to.equal 'B_list'
 
     it 'missing first item from list', ->
 
-      fdvar = distribution_get_next_var solver.space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']
+      fdvar = distribution_get_next_var solver._space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']
 
       expect(fdvar.id).to.equal 'A_list'
 
     it 'nothing on list, fallback to markov, get last markov', ->
 
-      fdvar = distribution_get_next_var solver.space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']
+      fdvar = distribution_get_next_var solver._space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']
 
       expect(fdvar.id).to.equal 'D_markov'
 
     it 'nothing on list, fallback to markov, get only markov', ->
 
-      fdvar = distribution_get_next_var solver.space, ['C_markov', 'E_pleb', 'F_pleb']
+      fdvar = distribution_get_next_var solver._space, ['C_markov', 'E_pleb', 'F_pleb']
 
       expect(fdvar.id).to.equal 'C_markov'
 
     it 'nothing on list, no markov vars, pick smallest by size', ->
 
-      fdvar = distribution_get_next_var solver.space, ['E_pleb', 'F_pleb']
+      fdvar = distribution_get_next_var solver._space, ['E_pleb', 'F_pleb']
 
       expect(fdvar.id).to.equal 'F_pleb'
 
     it 'nothing on list, no markov vars, pick only var left', ->
 
-      fdvar = distribution_get_next_var solver.space, ['E_pleb']
+      fdvar = distribution_get_next_var solver._space, ['E_pleb']
 
       expect(fdvar.id).to.equal 'E_pleb'
 
     it 'should just return undefined despite config', ->
 
-      fdvar = distribution_get_next_var solver.space, []
+      fdvar = distribution_get_next_var solver._space, []
 
       expect(fdvar.id).to.equal undefined
 
@@ -708,7 +708,7 @@ describe 'distribution/var.spec', ->
         # shuffle list the ugly way
         names.sort -> Math.random() - .5
 
-        expect(-> distribution_get_next_var solver.space, names).not.to.throw()
+        expect(-> distribution_get_next_var solver._space, names).not.to.throw()
 
   describe 'list -> inverted list -> min', ->
 
@@ -744,30 +744,30 @@ describe 'distribution/var.spec', ->
 
     it 'should prioritize list over rest A', ->
 
-      fdvar = distribution_get_next_var solver.space, ['D', 'C', 'A', 'E', 'F']
+      fdvar = distribution_get_next_var solver._space, ['D', 'C', 'A', 'E', 'F']
 
       expect(fdvar.id).to.equal 'A'
 
     it 'should prioritize list over rest B', ->
 
-      fdvar = distribution_get_next_var solver.space, ['D', 'C', 'B', 'E', 'F']
+      fdvar = distribution_get_next_var solver._space, ['D', 'C', 'B', 'E', 'F']
 
       expect(fdvar.id).to.equal 'B'
 
     it 'should prioritize un-blacklisted over rest E', ->
 
-      fdvar = distribution_get_next_var solver.space, ['D', 'E', 'C']
+      fdvar = distribution_get_next_var solver._space, ['D', 'E', 'C']
 
       expect(fdvar.id).to.equal 'E'
 
     it 'should prioritize un-blacklisted over rest F', ->
 
-      fdvar = distribution_get_next_var solver.space, ['D', 'F', 'C']
+      fdvar = distribution_get_next_var solver._space, ['D', 'F', 'C']
 
       expect(fdvar.id).to.equal 'F'
 
     it 'should prioritize C over D in blacklist', ->
 
-      fdvar = distribution_get_next_var solver.space, ['D', 'C']
+      fdvar = distribution_get_next_var solver._space, ['D', 'C']
 
       expect(fdvar.id).to.equal 'C'

@@ -497,7 +497,8 @@ module.exports = do ->
 
     solve: (options, squash) ->
       obj = @prepare options
-      ASSERT !options?.dbg or !console.log __space_debug_string @state.space
+      ASSERT !(options?.dbg is true or options?.dbg & 1) or !console.log __space_debug_string @state.space
+      ASSERT !(options?.dbg & 2) or !console.log '### state.space.config:\n' + @state.space.config
       @run obj
       return @solutions
 

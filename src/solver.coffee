@@ -41,6 +41,7 @@ module.exports = do ->
     __space_debug_string
     space_create_from_config
     space_solution
+    space_to_config
   } = require './space'
 
   {
@@ -81,6 +82,7 @@ module.exports = do ->
     # @property {string} [o.search='depth_first']
     # @property {number[]} [o.defaultDomain=[0,1]]
     # @property {Object} [o.searchDefaults]
+    # @property {Config} [o.config=config_create()]
 
     constructor: (o={}) ->
       @_class = 'solver'
@@ -89,13 +91,13 @@ module.exports = do ->
         @distribute
         @search
         @defaultDomain
+        @config
       } = o
 
       @search ?= 'depth_first'
       @distribute ?= 'naive'
       @defaultDomain ?= domain_create_bool()
-
-      @config = config_create()
+      @config ?= config_create()
 
       if typeof @distribute is 'string'
         config_set_defaults @config, @distribute
@@ -611,6 +613,13 @@ module.exports = do ->
 
     domain_from_list: (list) ->
       return domain_from_list list
+
+    branch_from_current_solution: ->
+      # get the _solved_ space, convert to config,
+      # use new config as base for new solver
+      solved_config = space_to_config @state.space
+      return new Solver
+        config: solved_config
 
     # Visit the branch vars and collect var specific configuration overrides if
     # there are any and put them on the root space. This way we don't need to

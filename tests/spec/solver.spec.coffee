@@ -1212,3 +1212,33 @@ describe "solver.spec", ->
       ]
 
       expect(solutions.length).to.equal 1
+
+  describe 'continue solved space', ->
+
+    it 'should be able to continue a solution with extra vars', ->
+
+      solver = new Solver {}
+
+      solver.addVar 'A', spec_d_create_range 2, 5
+      solver.addVar 'B', spec_d_create_ranges [2, 2], [4, 5]
+      solver.addVar 'C', spec_d_create_range 1, 5
+      solver['<'] 'A', 'B'
+
+      # should find a solution (there are three or four or whatever)
+      solver.solve
+        vars: ['A', 'B']
+        max: 1
+      expect(solver.solutions.length, 'solve count 1').to.eql 1
+      # should not solve C yet because only A and B were targeted
+      expect(solver.solutions[0].C).to.eql [1, 5]
+
+      solver2 = solver.branch_from_current_solution()
+      # add a new constraint to the space and solve it
+      solver2['<'] 'C', 'A'
+
+      # C could be either 1 or 2 to pass all the constraints
+      solver2.solve
+        vars: ['A', 'B', 'C']
+        max: 1
+      expect(solver2.solutions.length, 'solve count 1').to.eql 1
+      expect(solver2.solutions[0].C < solver2.solutions[0].B).to.be.true

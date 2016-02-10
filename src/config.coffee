@@ -13,6 +13,15 @@ module.exports = do ->
   } = require './helpers'
 
   {
+    fdvar_create
+  } = require './fdvar'
+
+  {
+    domain_create_range
+    domain_create_value
+  } = require './domain'
+
+  {
     distribution_get_defaults
   } = require './distribution/defaults'
 
@@ -205,6 +214,29 @@ module.exports = do ->
         names.push b
     return names
 
+  config_generate_vars = (config, vars, unsolved_var_names) ->
+    ASSERT config, 'should have a config'
+    vars ?= {}
+    initial_vars = config.initial_vars
+
+    for name in config.all_var_names
+      val = initial_vars[name]
+      if typeof val is 'number'
+        val = fdvar_create name, domain_create_value val
+      else if val is undefined
+        val = fdvar_create name, domain_create_range SUB, SUP
+      else
+        ASSERT val instanceof Array
+        ASSERT (val.length % 2) is 0
+        val = fdvar_create name, val
+
+      vars[name] = val
+      if unsolved_var_names and val.length isnt 2 or val[0] isnt val[1]
+        unsolved_var_names.push name
+
+    return vars
+
+
   # Create a simple lookup hash from an array of strings
   # to an object that looks up the index from the string.
   # This is used for finding the priority of a var elsewhere.
@@ -244,6 +276,7 @@ module.exports = do ->
     config_add_vars_a
     config_add_vars_o
     config_create
+    config_generate_vars
     config_create_with
     config_set_defaults
     config_set_options

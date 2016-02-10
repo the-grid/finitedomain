@@ -135,7 +135,7 @@ module.exports = do ->
         THROW "Solver#num: expecting a number, got #{num} (a #{typeof num})"
       if isNaN num
         THROW "Solver#num: expecting a number, got NaN"
-      return config_add_var_anon @space.config, num
+      return config_add_var_anon @config, num
 
     addVars: (vs) ->
       ASSERT vs instanceof Array, 'Expecting array', vs
@@ -146,7 +146,7 @@ module.exports = do ->
     decl: (id, domain) ->
       domain ?= @defaultDomain.slice 0
       domain = validate_domain domain
-      return config_add_var @space.config, id, domain
+      return config_add_var @config, id, domain
 
     # Uses @defaultDomain if no domain was given
     # If domain is a number it becomes [dom, dom]
@@ -187,7 +187,7 @@ module.exports = do ->
         domain = domain_create_value domain
       domain = validate_domain domain
 
-      config_add_var @space.config, id, domain
+      config_add_var @config, id, domain
       vars.byId[id] = v
       vars.all.push v
 
@@ -605,7 +605,7 @@ module.exports = do ->
     # exposes internal method config_add_var for subclass
 
     space_add_var_range: (id, lo, hi) ->
-      return config_add_var @space.config, id, lo, hi
+      return config_add_var @config, id, lo, hi
 
     # exposes internal method domain_from_list for subclass
 

@@ -16,18 +16,16 @@ module.exports = do ->
 
   {
     config_create
+    config_generate_vars
   } = require './config'
 
   {
-    domain_create_range
-    domain_create_value
     domain_is_solved
     domain_min
   } = require './domain'
 
   {
     fdvar_clone
-    fdvar_create
     fdvar_is_solved
   } = require './fdvar'
 
@@ -45,6 +43,13 @@ module.exports = do ->
     config ?= config_create()
 
     return _space_create_new config, [], {}, [], 0, 0
+
+  space_create_from_config = (config) ->
+    ASSERT config._class is 'config'
+
+    space = space_create_root config
+    space_init_from_config space
+    return space
 
   # Create a space node that is a child of given space node
 
@@ -100,22 +105,9 @@ module.exports = do ->
 
   space_init_from_config = (space) ->
     config = space.config
-    initial_vars = config.initial_vars
     ASSERT config, 'should have a config'
-    for name in config.all_var_names
-      val = initial_vars[name]
-      if typeof val is 'number'
-        val = fdvar_create name, domain_create_value val
-      else if val is undefined
-        val = fdvar_create name, domain_create_range SUB, SUP
-      else
-        ASSERT val instanceof Array
-        ASSERT (val.length % 2) is 0
-        val = fdvar_create name, val
 
-      space.vars[name] = val
-      if val.length isnt 2 or val[0] isnt val[1]
-        space.unsolved_var_names.push name
+    config_generate_vars config, space.vars, space.unsolved_var_names
 
     # propagators are immutable so share by reference
     for propagator in config.propagators
@@ -371,6 +363,7 @@ module.exports = do ->
 
   return {
     space_create_clone
+    space_create_from_config
     space_create_root
     space_init_from_config
     space_is_solved

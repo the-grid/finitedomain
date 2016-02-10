@@ -45,12 +45,6 @@ describe "propagator.spec", ->
   } = FD.propagator
 
   {
-    config_create
-    config_create_with
-  } = FD.config
-
-  {
-    space_add_var
     space_create_root
   } = FD.space
 
@@ -79,7 +73,6 @@ describe "propagator.spec", ->
     it 'should throw if left and right vars are anonymous vars', ->
 
       space = space_create_root()
-      space_add_var space, 'C'
 
       expect(-> propagator_add_reified space, 'eq', 0, 0, 'C').to.throw()
 
@@ -88,36 +81,24 @@ describe "propagator.spec", ->
       it 'should throw if the boolvar has no zero or one', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C', 2, 3
 
         expect(-> propagator_add_reified space, 'eq', 'A', 'B', 'C').to.throw
 
       it 'should be fine if the boolvar has no one', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C', 0, 0
 
         expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
 
       it 'should be fine if the boolvar has no zero', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C', 1, 5
 
         expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
 
       it 'should be fine if the boolvar has more than zero and one', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C', 0, 3
 
         expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
 
@@ -125,9 +106,6 @@ describe "propagator.spec", ->
       it.skip 'should reduce the domain to bool if not already', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C', 0, 3
         propagator_add_reified space, 'eq', 'A', 'B', 'C'
 
         expect(space.vars.C.dom).to.eql spec_d_create_bool()
@@ -135,25 +113,18 @@ describe "propagator.spec", ->
       it 'should accept a number for boolvar', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
 
         expect(-> propagator_add_reified space, 'eq', 'A', 'B', 0).not.to.throw()
 
       it 'should return the name of the anon boolvar', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
 
         expect(typeof propagator_add_reified space, 'eq', 'A', 'B', 0).to.eql 'string'
 
       it 'should return the name of the named boolvar', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
-        space_add_var space, 'B'
-        space_add_var space, 'C'
 
         expect(propagator_add_reified space, 'eq', 'A', 'B', 'C').to.eql 'C'
 
@@ -164,14 +135,12 @@ describe "propagator.spec", ->
       it 'should accept a number for var1', ->
 
         space = space_create_root()
-        space_add_var space, 'B'
 
         expect(-> propagator_add_eq space, 0, 'B').not.to.throw()
 
       it 'should accept a number for var2', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
 
         expect(-> propagator_add_eq space, 'A', 0).not.to.throw()
 
@@ -188,14 +157,12 @@ describe "propagator.spec", ->
       it 'should accept a number for var1', ->
 
         space = space_create_root()
-        space_add_var space, 'B'
 
         expect(-> propagator_add_lt space, 0, 'B').not.to.throw()
 
       it 'should accept a number for var2', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
 
         expect(-> propagator_add_lt space, 'A', 0).not.to.throw()
 
@@ -212,14 +179,12 @@ describe "propagator.spec", ->
       it 'should accept a number for var1', ->
 
         space = space_create_root()
-        space_add_var space, 'B'
 
         expect(-> propagator_add_lte space, 0, 'B').not.to.throw()
 
       it 'should accept a number for var2', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
 
         expect(-> propagator_add_lte space, 'A', 0).not.to.throw()
 
@@ -236,14 +201,12 @@ describe "propagator.spec", ->
       it 'should accept a number for var1', ->
 
         space = space_create_root()
-        space_add_var space, 'B'
 
         expect(-> propagator_add_gt space, 0, 'B').not.to.throw()
 
       it 'should accept a number for var2', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
 
         expect(-> propagator_add_gt space, 'A', 0).not.to.throw()
 
@@ -260,14 +223,12 @@ describe "propagator.spec", ->
       it 'should accept a number for var1', ->
 
         space = space_create_root()
-        space_add_var space, 'B'
 
         expect(-> propagator_add_gte space, 0, 'B').not.to.throw()
 
       it 'should accept a number for var2', ->
 
         space = space_create_root()
-        space_add_var space, 'A'
 
         expect(-> propagator_add_gte space, 'A', 0).not.to.throw()
 
@@ -282,17 +243,12 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
 
       expect(typeof _propagator_add_ring_plus_or_mul space, 'div', 'mul', 'A', 'B', 0).to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(_propagator_add_ring_plus_or_mul space, 'div', 'mul', 'A', 'B', 'C').to.eql 'C'
 
@@ -301,42 +257,30 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(typeof propagator_add_sum space, ['A', 'B', 'C']).to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
-      space_add_var space, 'D'
 
       expect(propagator_add_sum space, ['A', 'B', 'C'], 'D').to.eql 'D'
 
     it 'should allow anonymous numbers in the list of vars', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'C'
-      space_add_var space, 'D'
 
       expect(propagator_add_sum space, ['A', 5, 'C'], 'D').to.eql 'D'
 
     it 'should throw if you dont pass on any vars', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
 
       expect(-> propagator_add_sum space, [], 'A').to.throw()
 
     it 'should throw if you dont pass on an array', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
 
       expect(-> propagator_add_sum space undefined, 'A').to.throw()
       expect(-> propagator_add_sum space, 'X', 'A').to.throw()
@@ -348,19 +292,12 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(typeof propagator_add_product space, ['A', 'B', 'C']).to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
-      space_add_var space, 'D'
 
       expect(propagator_add_product space, ['A', 'B', 'C'], 'D').to.eql 'D'
 
@@ -369,17 +306,12 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
 
       expect(typeof propagator_add_min space, 'A', 'B').to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(propagator_add_min space, 'A', 'B', 'C').to.eql 'C'
 
@@ -388,17 +320,12 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
 
       expect(typeof propagator_add_div space, 'A', 'B').to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(propagator_add_div space, 'A', 'B', 'C').to.eql 'C'
 
@@ -407,16 +334,11 @@ describe "propagator.spec", ->
     it 'should return the name of the anonymous result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
 
       expect(typeof propagator_add_mul space, 'A', 'B').to.eql 'string'
 
     it 'should return the name of the named result var', ->
 
       space = space_create_root()
-      space_add_var space, 'A'
-      space_add_var space, 'B'
-      space_add_var space, 'C'
 
       expect(propagator_add_mul space, 'A', 'B', 'C').to.eql 'C'

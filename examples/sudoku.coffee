@@ -1,12 +1,14 @@
+#!/usr/bin/env coffee
 try
   FD = require '..' # running from source-tree
 catch e
   FD = require 'finitedomain'
 
 # Setup rules that holds for all Sudoku games
+# https://en.wikipedia.org/wiki/Sudoku
+rows = ['A','B','C','D','E','F','G','H','I']
+cols = ['1','2','3','4','5','6','7','8','9']
 setupSudoku = (S) ->
-  rows = ['A','B','C','D','E','F','G','H','I']
-  cols = ['1','2','3','4','5','6','7','8','9']
   vars = []
 
   # Declare possible board places
@@ -41,11 +43,32 @@ setupSudoku = (S) ->
 
   return vars
 
-solveBoard = (board, o={}) ->
-  throw new Error "Invalid start board" if not board?
+# Parses Sudoku puzzles on format from
+# http://www2.warwick.ac.uk/fac/sci/moac/people/students/peter_cock/python/sudoku
+parseBoard = (vars, str) ->
+  board = {}
+  for char, index in str
+    position = vars[index]
+    board[position] = parseInt(char) if char != '.'
+  return board
+# ASCII rendering
+renderBoard = (board) ->
+  lines = []
+  for i in [0...9]
+    l = ''
+    for j in [0...9]
+      name = rows[i] + cols[j]
+      v = board[name] or ' '
+      l += " #{v} "
+    lines.push l
+  return lines.join '\n'
 
+solveBoard = (board, o={}) ->
   solver = new FD.Solver
-  setupSudoku solver
+  vars = setupSudoku solver
+
+  board = parseBoard vars, board if typeof board == 'string'
+  throw new Error "Invalid start board" if not board?
 
   # Set known values of the board
   for position, value of board
@@ -60,25 +83,24 @@ solveBoard = (board, o={}) ->
   solutions = solver.solve options
   return solutions
 
-# TODO: parse input data in format from http://www2.warwick.ac.uk/fac/sci/moac/people/students/peter_cock/python/sudoku/
-# TODO: render results, for instance like in http://norvig.com/sudoku.html
+example = '.94...13..............76..2.8..1.....32.........2...6.....5.4.......8..7..63.4..8'
 main = () ->
-  board = {
-    A5:8, A8:7, A9:9, 
-    B4:4, B5:1, B6:9, B9:5,
-    C2:6, C7:2, C8:8,
-    D1:7, D5:2, D9:6,
-    E1:4, E4:8, E6:3, E9:1,
-    F1:8, F5:6, F9:3,
-    G2:9, G3:8, G8:6,
-    H1:6, H4:1, H5:9, H6:5,
-    I1:5, I2:3, I5:7
-  }
+  board = process.argv[2]
+  usage = """Usage: coffee finitedomain-sudoku PUZZLE
 
-  solution = solveBoard board
-  throw new Error "No solutions found, not a proper Sudoku puzzle" if not solutions.length
+  Example, from http://www2.warwick.ac.uk/fac/sci/moac/people/students/peter_cock/python/sudoku
+
+    coffee finitedomain-sudoku #{example}
+  """
+  if not board
+    console.log usage
+    process.exit 1
+
+  solutions = solveBoard board
+  throw new Error "No solutions found. Not a proper Sudoku puzzle" if not solutions.length
   throw new Error "Multiple solutions found (#{solutions.length}). Not a proper Sudoku puzzle" if solutions.length > 1
-  console.log solution
+  console.log renderBoard(solutions[0])
 
 module.exports.solveBoard = solveBoard
+module.exports.example = example
 main() if not module.parent

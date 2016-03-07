@@ -111,6 +111,9 @@ testcases =
     H1:3, H4:4, H8:2,
     I3:8, I4:9
   }
+,
+  name: 'example string',
+  board: sudoku.example
 ]
 
 describe 'Example: Sudoku', ->

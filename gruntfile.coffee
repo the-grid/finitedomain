@@ -56,6 +56,10 @@ module.exports = ->
         options:
           timeout: 20000
           reporter: 'spec'
+      examples:
+        src: ['tests/examples/**/*.coffee']
+        options:
+          reporter: 'spec'
 
     # CoffeeScript compilation
     coffee:
@@ -173,7 +177,7 @@ module.exports = ->
   @registerTask 'clean', ['remove']
   @registerTask 'lint', ['coffeelint']
   @registerTask 'build', ['clean', 'coffeelint', 'concat:dist', 'string-replace:strip_for_dist', 'coffee:dist','string-replace:strip_asserts', 'uglify:dist']
-  @registerTask 'test', ['coffeelint', 'mochaTest:all']
+  @registerTask 'test', ['coffeelint', 'mochaTest:all', 'mochaTest:examples']
   @registerTask 'dist', ['build', 'target-dist-file', 'test', 'string-replace:copy_dist']
   @registerTask 'perf', ['build', 'coffee:perf', 'target-dist-file', 'mochaTest:perf', 'string-replace:copy_dist']
   @registerTask 'default', ['lint']

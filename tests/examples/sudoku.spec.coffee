@@ -122,6 +122,7 @@ describe 'Example: Sudoku', ->
     describe "#{testcase.name}", ->
       solutions = null
       it 'should give 1 solution', ->
+        @timeout 5*1000 # for when using dev version
         solutions = sudoku.solveBoard testcase.board
         chai.expect(solutions).to.have.length 1
       it 'should be valid Sudoku solution', ->

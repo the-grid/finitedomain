@@ -1,6 +1,6 @@
 #!/usr/bin/env coffee
 try
-  FD = require '..' # running from source-tree
+  FD = require '../src/index' # running from source-tree
 catch e
   FD = require 'finitedomain'
 

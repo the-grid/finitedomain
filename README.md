@@ -2,9 +2,11 @@
 
 Finite domain [constraint solver](https://en.wikipedia.org/wiki/Constraint_logic_programming), originally based on [FD.js](https://github.com/srikumarks/FD.js/wiki/API).
 
-This is very much a WIP.
+## Status
 
-API is bound to change, consider yourself warned.
+Used in production at [The Grid](http://thegrid.io) since January 2016.
+
+Minor API changes may still happen.
 
 ## Installing
 
@@ -12,7 +14,11 @@ API is bound to change, consider yourself warned.
 
 ## Usage
 
-For now, see the extensive [tests](./tests)
+See the [examples](./examples).
+
+The API is accessed primarily through [Solver](https://github.com/the-grid/finitedomain/blob/master/src/solver.coffee#L78).
+
+Also, see the extensive [tests](./tests)
 
 ## Building
 

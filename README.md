@@ -25,6 +25,7 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 - Dropped support for the `search_defaults` option of `Solver#solve`, you can set the string to the `distribute` option of that call if you need it
 - Disallow vars from being redeclared to prevent possible bugs. Before a var would be clobbered if you declared the same var name twice.
 - Added `Solver#callback` which is used to read the current state and reject a search branch at an arbitrary point
+- Fixed a bug in the value list distributor where `-1` would be picked if no value in the list occurs in the domain. It should notice the negative number as an error and reject but instead it did not scrub the value at all.
 
 1.3.1:
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon

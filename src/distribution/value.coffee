@@ -4,6 +4,8 @@
 module.exports = do ->
 
   {
+    NO_SUCH_VALUE
+
     ASSERT
     THROW
   } = require '../helpers'
@@ -114,7 +116,8 @@ module.exports = do ->
     ASSERT config_var_dist_options, 'space should have config.var_dist_options'
     ASSERT config_var_dist_options[fdvar.id], 'there should be distribution options available for every var', fdvar
     ASSERT config_var_dist_options[fdvar.id].list, 'there should be a distribution list available for every var', fdvar
-    list_source = config_var_dist_options[fdvar.id].list
+    fdvar_dist_options = config_var_dist_options[fdvar.id]
+    list_source = fdvar_dist_options.list
 
     if typeof list_source is 'function'
       # Note: callback should return the actual list
@@ -125,7 +128,10 @@ module.exports = do ->
     switch choice_index
 
       when FIRST_CHOICE
-        return domain_create_value domain_get_value_of_first_contained_value_in_list fdvar.dom, list
+        v = domain_get_value_of_first_contained_value_in_list fdvar.dom, list
+        if v is NO_SUCH_VALUE
+          return undefined # no choice
+        return domain_create_value v
 
       when SECOND_CHOICE
         return domain_remove_next_from_list fdvar.dom, list

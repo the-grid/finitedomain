@@ -955,6 +955,8 @@ module.exports = do ->
     return [SUP, SUP]
 
   domain_create_value = (value) ->
+    ASSERT value >= SUB, 'domain_create_value: value should be within valid range'
+    ASSERT value <= SUP, 'domain_create_value: value should be within valid range'
     return [value, value]
 
   domain_create_range = (lo, hi) ->

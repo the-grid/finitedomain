@@ -118,6 +118,8 @@ module.exports = do ->
     ASSERT config_var_dist_options[fdvar.id].list, 'there should be a distribution list available for every var', fdvar
     fdvar_dist_options = config_var_dist_options[fdvar.id]
     list_source = fdvar_dist_options.list
+    fallback_dist_name = fdvar_dist_options.fallback_dist_name
+    ASSERT fallback_dist_name isnt 'list', 'prevent recursion loops'
 
     if typeof list_source is 'function'
       # Note: callback should return the actual list
@@ -130,11 +132,16 @@ module.exports = do ->
       when FIRST_CHOICE
         v = domain_get_value_of_first_contained_value_in_list fdvar.dom, list
         if v is NO_SUCH_VALUE
+          if fallback_dist_name
+            return _distribute_get_next_domain_for_var fallback_dist_name, space, fdvar, choice_index
           return undefined # no choice
         return domain_create_value v
 
       when SECOND_CHOICE
-        return domain_remove_next_from_list fdvar.dom, list
+        d = domain_remove_next_from_list fdvar.dom, list
+        if not d and fallback_dist_name
+          return _distribute_get_next_domain_for_var fallback_dist_name, space, fdvar, choice_index
+        return d
 
     ASSERT typeof choice_index is 'number', 'should be a number'
     ASSERT choice_index is 2, 'should not keep calling this func after the last choice'

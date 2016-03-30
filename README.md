@@ -26,6 +26,7 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 - Disallow vars from being redeclared to prevent possible bugs. Before a var would be clobbered if you declared the same var name twice.
 - Added `Solver#callback` which is used to read the current state and reject a search branch at an arbitrary point
 - Fixed a bug in the value list distributor where `-1` would be picked if no value in the list occurs in the domain. It should notice the negative number as an error and reject but instead it did not scrub the value at all.
+- Added a fallback distributor option, `fallback_dist_name`, for value list distributors. To be used when none of the values in the list occur in the current domain. This way you can use the list as a priority list instead of just a mask. This option is opt-in.
 
 1.3.1:
 - (Internal) removed scale_div and scale_mul as they were unused and will be replaced by something else soon

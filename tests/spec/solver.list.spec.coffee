@@ -174,3 +174,100 @@ describe 'solver.list.spec', ->
         {V1: 1, V2: 4, STATE: 5}
         {V1: 1, V2: 2, STATE: 5}
       ]
+
+  describe 'list values trump domain values', ->
+
+    it 'should ignore values in the domain that are not in the list', ->
+
+      solver = new Solver {}
+      solver.addVar
+        id: 'V1'
+        domain: spec_d_create_range 0, 5
+        distributeOptions:
+          distributor_name: 'list'
+          list: [0, 3, 4]
+      solver['>'] 'V1', 0
+      solutions = solver.solve()
+
+      expect(solutions.length, 'all solutions').to.equal 2 # list.length
+      expect(strip_anon_vars_a solutions).to.eql [
+        {V1: 3}
+        {V1: 4}
+      ]
+
+    it 'should not solve when the list contains no values in the domain', ->
+
+      solver = new Solver {}
+      solver.addVar
+        id: 'V1'
+        domain: spec_d_create_range 0, 10
+        distributeOptions:
+          distributor_name: 'list'
+          list: [0, 15]
+      solver['>'] 'V1', 0
+      solutions = solver.solve()
+
+      expect(solutions.length, 'all solutions').to.equal 0
+
+    it 'should use the fallback when the list contains no values in the domain', ->
+
+      solver = new Solver {}
+      solver.addVar
+        id: 'V1'
+        domain: spec_d_create_range 0, 5
+        distributeOptions:
+          distributor_name: 'list'
+          list: [0, 15]
+          fallback_dist_name: 'max'
+      solver['>'] 'V1', 0
+      solutions = solver.solve()
+
+      expect(solutions.length, 'all solutions').to.equal 5
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        {V1: 5}
+        {V1: 4}
+        {V1: 3}
+        {V1: 2}
+        {V1: 1}
+      ]
+
+    it 'should prioritize the list before applying the fallback', ->
+
+      solver = new Solver {}
+      solver.addVar
+        id: 'V1'
+        domain: spec_d_create_range 0, 5
+        distributeOptions:
+          distributor_name: 'list'
+          list: [3, 0, 1, 5]
+          fallback_dist_name: 'max'
+      solver['>'] 'V1', 0
+      solutions = solver.solve()
+
+      expect(solutions.length, 'all solutions').to.equal 5
+
+      expect(strip_anon_vars_a solutions).to.eql [
+        {V1: 3}
+        {V1: 1}
+        {V1: 5}
+        {V1: 4}
+        {V1: 2}
+      ]
+
+    it 'should still be able to reject if fallback fails too', ->
+
+      solver = new Solver {}
+      solver.addVar
+        id: 'V1'
+        domain: spec_d_create_range 0, 5
+        distributeOptions:
+          distributor_name: 'list'
+          list: [3, 0, 1, 15, 5]
+          fallback_dist_name: 'max'
+      solver['>'] 'V1', 6
+      solutions = solver.solve()
+
+      # original domain contains 0~5 but constraint requires >6
+      # list contains 15 but since domain doesnt thats irrelevant
+      expect(solutions.length, 'all solutions').to.equal 0

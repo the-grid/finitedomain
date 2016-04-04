@@ -20,6 +20,8 @@ Use `grunt dist` (after `npm install`) to compile everything. Intermediate build
 
 ## Version
 
+unpublished:
+
 1.3.2:
 - (Internal) consolidate shared root space data into a new Config class, should hold static data which is shared between all nodes of a search tree
 - Dropped support for the `search_defaults` option of `Solver#solve`, you can set the string to the `distribute` option of that call if you need it

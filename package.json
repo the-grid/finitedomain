@@ -13,7 +13,7 @@
     "test": "grunt test"
   },
   "devDependencies": {
-    "grunt": "~0.4.1",
+    "grunt": "~1.0.1",
     "grunt-cli": "~0.1.13",
     "error-reporter": "~0.1.0",
     "grunt-contrib-watch": "~0.3.1",

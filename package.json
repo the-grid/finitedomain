@@ -21,7 +21,7 @@
     "coffeeify": "^1.0.0",
     "grunt-contrib-concat": "*",
     "coffeelint": "^1.8.1",
-    "grunt-coffeelint": "0.0.13",
+    "grunt-coffeelint": "0.0.15",
     "grunt-contrib-coffee": "~0.7.0",
     "grunt-string-replace": "*",
     "chai": "~3.5.0",

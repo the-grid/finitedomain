@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "grunt": "~0.4.1",
-    "grunt-cli": "~0.1.13",
+    "grunt-cli": "~1.1.0",
     "error-reporter": "~0.1.0",
     "grunt-contrib-watch": "~0.3.1",
     "grunt-remove": "0.1.0",

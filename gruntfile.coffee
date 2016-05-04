@@ -16,7 +16,7 @@ module.exports = ->
       components: [
         '*.coffee'
         'src/**/*.coffee'
-        'tests/spec/**/*.coffee'
+        'tests/specs/**/*.coffee'
       ]
       options:
         'recursive':
@@ -44,7 +44,7 @@ module.exports = ->
     # BDD tests on Node.js
     mochaTest:
       all:
-        src: ['tests/spec/**/*.coffee']
+        src: ['tests/specs/**/*.coffee']
         options:
           #grep: "FD -"
           #grep: "Harmonics -"

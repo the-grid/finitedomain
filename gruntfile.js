@@ -1,216 +1,220 @@
-export default function () {
+module.exports = function () {
+  var grunt = this;
 
-  let grunt = this;
-
-  // Project configuration
-  this.initConfig({
-    pkg: this.file.readJSON('package.json'),
-
+  grunt.initConfig({
     remove: {
       default_options: {
         trace: true,
-        dirList: ['build', 'dist']
-      }
+        dirList: [
+          'build',
+          'dist',
+        ],
+      },
     },
 
-    // Coding standards
-    coffeelint: {
-      components: [
-        '*.coffee',
-        'src/**/*.coffee',
-        'tests/specs/**/*.coffee'
-      ],
+    // this is so backwards
+    run: {
+      coverage: {
+        cmd: 'npm',
+        args: ['run','coverage','--silent'],
+      },
+      lint: {
+        cmd: 'npm',
+        args: ['run','lint','--silent'],
+      },
+      lintdev: { // allows console/debugger
+        cmd: 'npm',
+        args: ['run','lintdev','--silent'],
+      },
+    },
+
+    // we only use this babel for manual inspection. not part of build chain.
+    babel: {
+      options: { // http://babeljs.io/docs/usage/options/
+        // set from package.json (this way it's global, not just this grunt task)
+      },
+      build: {
+        files: [
+          {
+            expand: true,
+            cwd: 'src/',
+            src: ['**/*.js'],
+            dest: 'build/src/',
+          },
+          {
+            expand: true,
+            cwd: 'tests/specs/',
+            src: ['**/*.js'],
+            dest: 'build/specs/',
+          },
+        ],
+      },
+    },
+
+    jsdoc : {
+      bare: { // out-of-the-box template. very basic.
+        src: [
+          // Sources only. Tests are not very relevant.
+          'src/**/*.js',
+          // Clone git@github.com:design-systems/ds-architecture.git into same dir
+          // as your project (so not the project root! one dir up). Optional.
+          '../ds-architecture/Types/**/*.js',
+        ],
+        options: {
+          destination: 'build/jsdocs',
+        },
+      },
+      dist : { // uses ink-docstrap. prettier than basic.
+        src: [
+          // Sources only. Tests are not very relevant.
+          'src/**/*.js',
+          // Clone git@github.com:design-systems/ds-architecture.git into same dir
+          // as your project (so not the project root! one dir up). Optional.
+          '../ds-architecture/Types/**/*.js',
+        ],
+        options: {
+          destination: 'build/jsdocs',
+          // this requires ink-docstrap in your package.json
+          template : 'node_modules/ink-docstrap/template',
+          configure : 'node_modules/ink-docstrap/template/jsdoc.conf.json',
+        },
+      },
+    },
+
+    watch: {
+      all: {
+        files: ['**/*.js'],
+        tasks: ['build'],
+      },
+    },
+
+    mochaTest: {
+      all: {
+        src: ['tests/specs/**/*.spec.js'],
+        options: {
+          require: [
+            'babel-core/register',  // translate es6 syntax to es5
+            'babel-polyfill',       // babel only translates, doesnt add new libs
+          ],
+          // it appears that babel supports an option to redirect the rc but no idea here
+          // for now it uses a default config inlined into package.json
+          //babelrc: 'config/babelrc',
+          timeout: 6000,
+          reporter: 'spec',
+        },
+      },
+    },
+
+    browserify: {
       options: {
-        'recursive': true,
-        'max_line_length': {
-          'level': 'ignore'
-        }
-      }
+        browserifyOptions: {
+          debug: true,
+          // the `standalone` option allows browserified modules to
+          // be imported through es6 import/babel (browser too). without
+          // this the module would be private and inaccessible forever.
+          standalone: 'module.exports',
+          noParse: [
+            // Include browserified dependency builds
+            // Target the file name directly with absolute path (-> __dirname)
+            __dirname + '/node_modules/gom/browser/gom.js',
+            __dirname + '/node_modules/@the-grid/multiversejson/browser/Multiverse.js',
+
+            // Note: This doesn't work properly in browserify yet but it may just be what we want.
+            //       However in that case we should allow chai for phantomjs builds
+            //function(absPath) {
+            //  var nmPath = __dirname + '/node_modules';
+            //  return absPath.slice(0, nmPath.length) === nmPath;
+            //},
+          ],
+        },
+        transform: [
+          ['babelify', {presets: ['es2015'], sourceMaps: true}],
+          //["reactify", {"es6": true}],
+        ],
+      },
+      phantom: {
+        files: {
+          'build/finitedomain-browserified.js': 'src/index.js',
+          // note: this will include chai and mocha and all that but that's fine (I think?) and workarounds are difficult with es6 static modules anyways
+          'build/specs-browserified.js': 'tests/specs/**/*.spec.js',
+        },
+      },
+      dist: {
+        files: {
+          'build/finitedomain-browserified.js': 'src/index.js',
+        },
+      },
     },
 
-    // JavaScript minification for the browser
+    mocha_phantomjs: {
+      all: ['tests/mocha-runner.html'],
+    },
+
     uglify: {
       dist: {
         options: {
-          report: 'min'
+          report: 'gzip', // false, 'none', 'min', 'gzip'. gzip is a little slower but not significant and good to see.
+          sourceMap: true,
         },
         files: {
-          'build/5.finitedomain.dist.min.js': ['build/4.finitedomain.dist.perf_stripped.js']
-        }
-      }
-    },
-
-    // Automated recompilation and testing when developing
-    watch: {
-      all: {
-        files: ['**/*.coffee'],
-        tasks: ['build']
-      },
-      perf: {
-        files: ['tests/perf/perf.coffee'],
-        tasks: ['coffee:perf']
-      }
-    },
-
-    // BDD tests on Node.js
-    mochaTest: {
-      all: {
-        src: ['tests/specs/**/*.coffee'],
-        options: {
-          //grep: "FD -"
-          //grep: "Harmonics -"
-          // note: you can do `grunt test --grep FD` to grep from cli
-          timeout: 6000,
-          reporter: 'spec'
-        }
-      },
-      perf: {
-        src: ['tests/perf/perf.coffee'],
-        options: {
-          timeout: 20000,
-          reporter: 'spec'
-        }
-      }
-    },
-
-    // CoffeeScript compilation
-    coffee: {
-      // to run perf/perf.html
-      perf: {
-        expand: true,
-        cwd: 'tests/perf',
-        src: ['**/*.coffee'],
-        dest: 'build/perf',
-        ext: '.js'
-      },
-      dist: {
-        options: {
-          bare: true
-        },
-        expand: true,
-        cwd: 'dist',
-        files: {
-          'build/3.finitedomain.dist.coffeed.js': ['build/2.finitedomain.dist.dist_stripped.coffee']
-        }
-      }
-    },
-
-    'string-replace': { // read helpers.coffee for why this is needed and how it works
-      copy_dist: { // just copies final build file to dist...
-        files: {
-          'dist/finitedomain.min.js': 'build/5.finitedomain.dist.min.js'
-        },
-        options: {
-          replacements: [] // nothing...
-        }
-      },
-      strip_for_dist: { // run _before_ coffeefy (because comment gets lost)
-        files: {
-          'build/2.finitedomain.dist.dist_stripped.coffee': 'build/1.finitedomain.dist.coffee'
-        },
-        options: {
-          replacements: [{
-            pattern: /^.*__REMOVE_BELOW_FOR_DIST__(?:.|\n|\r)*?__REMOVE_ABOVE_FOR_DIST__.*$/gm,
-            replacement: '# removed stuff here for dist/perf'
-          }
-          ]
-        }
-      },
-      strip_asserts: { // run _after_ coffeefy (because replaces with `1` and doesnt care about indentation)
-        files: {
-          'build/4.finitedomain.dist.perf_stripped.js': 'build/3.finitedomain.dist.coffeed.js'
-        },
-        options: {
-          replacements: [
-            { // first replace the asserts in an object literal... (exports in helper.coffee)
-              pattern: /ASSERT\w*\s*:\s*ASSERT\w*\s*,?/g,
-              replacement: ''
-            },
-            { // remove the ASSERT functions from helper.coffee
-              pattern: /^.*__REMOVE_BELOW_FOR_ASSERTS__(?:.|\n|\r)*?__REMOVE_ABOVE_FOR_ASSERTS__.*$/gm,
-              replacement: '// removed stuff here for dist/perf'
-            },
-            { // now replace any line starting with ASSERT with a `1`, to be a noop while preserving sub-statements
-              pattern: /^\s*ASSERT.*$/mg,
-              replacement: '1'
-            },
-            { // remove _class references. they should be for debugging only but increase the object footprints
-              pattern: /^.*_class.*$/mg, // should only remove initializations so remove the whole line...
-              replacement: ''
-            },
-            { // turn function expressions into function declarations (coffee by default compiles to expr, perf is better for decl)
-              pattern: /([;}])[\s\n]*(\w+)\s*=\s*function([^\d])/mg, // tricky with regex... kitten sacrificed.
-              replacement: '$1 function $2 $3'
-            },
-            { // remove left-over ASSERT* names
-              pattern: /ASSERT\w*/g,
-              replacement: '\u039B' // lambda
-            },
-            { // artifacts of doing `ASSERT* = helpers.ASSERT*`
-              pattern: /, \u039B = ref\.\u039B/g, // lambdas
-              replacement: ''
-            },
-            { // artifacts of doing `var ASSERT*, ...`
-              pattern: /var \u039B,(?: \u039B,)*/g, // lambdas. seem to always be at the front. lexicographical ordering?
-              replacement: 'var '
-            }
-          ]
-        }
-      }
-    },
-
-    concat: {
-      options: {
-        stripBanners: false,
-        banner: 'FD = ((module? and module) or {}).exports = do ->\n\n',
-        footer: // add external exports here
-        '\n' +
-        '  return {\n' +
-        '    Solver\n' +
-        '  }\n',
-        separator: '\n\n',
-        process(str, fname) {
-          switch (fname) {
-            // ignore some files
-            case 'src/index.coffee':
-              break;
-            default:
-              let m = str.match(/# BODY_START((?:.|\n|\r)*?)# BODY_STOP/)
-              if (m[1]) {
-                m = m[1];
-              } else {
-                console.log("Warning: ${fname} had no body start/stop, unable to include");
-                m = str;
-              }
-              return " ###### file: ${fname} ######\n\n" + m
-          }
+          'dist/finitedomain.dist.min.js': ['build/finitedomain-browserified.js'],
         },
       },
-      dist: {
-        src: ['src/**/*.coffee'],
-        dest: 'build/1.finitedomain.dist.coffee'
-      }
-    }
+    },
   });
 
+  grunt.loadNpmTasks('grunt-babel'); // we dont really need this but can be handy for debugging
+  grunt.loadNpmTasks('grunt-browserify'); // used to build packages for testing in phantomjs
+  grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-mocha-phantomjs');
+  grunt.loadNpmTasks('grunt-mocha-test');
+  grunt.loadNpmTasks('grunt-run'); // runs npm scripts
+  grunt.loadNpmTasks('grunt-remove');
+  grunt.loadNpmTasks('grunt-jsdoc');
 
-  // Grunt plugins used for building
-  this.loadNpmTasks('grunt-remove');
-  this.loadNpmTasks('grunt-contrib-uglify');
-  this.loadNpmTasks('grunt-contrib-concat');
+  grunt.registerTask('clean', ['remove']);
+  grunt.registerTask('build', ['clean', 'browserify:dist', 'browserify:phantom']);
+  grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
+  grunt.registerTask('coverage', ['clean', 'run:coverage']);
+  grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
+  grunt.registerTask('testp', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
+  grunt.registerTask('watch');
 
-  // Grunt plugins used for testing
-  this.loadNpmTasks('grunt-coffeelint');
-  this.loadNpmTasks('grunt-mocha-test');
-  this.loadNpmTasks('grunt-contrib-coffee');
-  this.loadNpmTasks('grunt-contrib-watch');
-  this.loadNpmTasks('grunt-string-replace');
-
-  this.registerTask('clean', ['remove']);
-  this.registerTask('lint', ['coffeelint']);
-  this.registerTask('build', ['clean', 'coffeelint', 'concat:dist', 'string-replace:strip_for_dist', 'coffee:dist', 'string-replace:strip_asserts', 'uglify:dist']);
-  this.registerTask('test', ['coffeelint', 'mochaTest:all']);
-  this.registerTask('dist', ['build', 'test', 'string-replace:copy_dist']);
-  this.registerTask('perf', ['build', 'coffee:perf', 'mochaTest:perf', 'string-replace:copy_dist']);
-  this.registerTask('default', ['lint']);
+  grunt.registerTask('default', ['test']);
 };
+
+
+  //  concat: {
+  //    options: {
+  //      stripBanners: false,
+  //      banner: 'FD = ((module? and module) or {}).exports = do ->\n\n',
+  //      footer: // add external exports here
+  //      '\n' +
+  //      '  return {\n' +
+  //      '    Solver\n' +
+  //      '  }\n',
+  //      separator: '\n\n',
+  //      process(str, fname) {
+  //        switch (fname) {
+  //          // ignore some files
+  //          case 'src/index.coffee':
+  //            break;
+  //          default:
+  //            let m = str.match(/# BODY_START((?:.|\n|\r)*?)# BODY_STOP/)
+  //            if (m[1]) {
+  //              m = m[1];
+  //            } else {
+  //              console.log("Warning: ${fname} had no body start/stop, unable to include");
+  //              m = str;
+  //            }
+  //            return " ###### file: ${fname} ######\n\n" + m
+  //        }
+  //      },
+  //    },
+  //    dist: {
+  //      src: ['src/**/*.coffee'],
+  //      dest: 'build/1.finitedomain.dist.coffee'
+  //    }
+  //  }
+  //});

@@ -14,50 +14,48 @@ import {
 } from './helpers';
 
 import {
-  config_add_var,
-  config_add_var_anon,
-  config_add_vars_a,
+  config_addVar,
+  config_addVarAnon,
+  config_addVarsA,
   config_create,
-  config_get_unknown_vars,
-  config_set_defaults,
-  config_set_options,
+  config_getUnknownVars,
+  config_setDefaults,
+  config_setOptions,
 } from './config';
 
 import {
-  domain_create_bool,
-  domain_create_value,
-  domain_from_list,
+  domain_createBool,
+  domain_createValue,
+  domain_fromList,
 } from './domain';
 
-import {
-  search_depth_first,
-} from './search';
+import search_depthFirst from './search';
 
 import {
-  __space_debug_string,
-  space_create_from_config,
+  __space_debugString,
+  space_createFromConfig,
   space_solution,
-  space_to_config,
+  space_toConfig,
 } from './space';
 
 import {
-  propagator_add_callback,
-  propagator_add_distinct,
-  propagator_add_div,
-  propagator_add_eq,
-  propagator_add_gt,
-  propagator_add_gte,
-  propagator_add_lt,
-  propagator_add_lte,
-  propagator_add_markov,
-  propagator_add_min,
-  propagator_add_mul,
-  propagator_add_neq,
-  propagator_add_plus,
-  propagator_add_product,
-  propagator_add_reified,
-  propagator_add_ring_mul,
-  propagator_add_sum,
+  propagator_addCallback,
+  propagator_addDistinct,
+  propagator_addDiv,
+  propagator_addEq,
+  propagator_addGt,
+  propagator_addGte,
+  propagator_addLt,
+  propagator_addLte,
+  propagator_addMarkov,
+  propagator_addMul,
+  propagator_addNeq,
+  propagator_addPlus,
+  propagator_addMin,
+  propagator_addProduct,
+  propagator_addReified,
+  propagator_addRingMul,
+  propagator_addSum,
 } from './propagator';
 
 // BODY_START
@@ -102,16 +100,16 @@ let Solver = class Solver {
       this.distribute = 'naive';
     }
     if (this.defaultDomain == null) {
-      this.defaultDomain = domain_create_bool();
+      this.defaultDomain = domain_createBool();
     }
     if (this.config == null) {
       this.config = config_create();
     }
 
     if (typeof this.distribute === 'string') {
-      config_set_defaults(this.config, this.distribute);
+      config_setDefaults(this.config, this.distribute);
     } else if (this.distribute) {
-      config_set_options(this.config, this.distribute);
+      config_setOptions(this.config, this.distribute);
     }
 
     this.vars = {
@@ -160,7 +158,7 @@ let Solver = class Solver {
     if (isNaN(num)) {
       THROW("Solver#num: expecting a number, got NaN");
     }
-    return config_add_var_anon(this.config, num);
+    return config_addVarAnon(this.config, num);
   }
 
   /**
@@ -184,7 +182,7 @@ let Solver = class Solver {
       domain = this.defaultDomain.slice(0);
     }
     domain = solver_validateDomain(domain);
-    return config_add_var(this.config, id, domain);
+    return config_addVar(this.config, id, domain);
   }
 
   /**
@@ -234,11 +232,11 @@ let Solver = class Solver {
       domain = this.defaultDomain.slice(0);
     }
     if (typeof domain === 'number') {
-      domain = domain_create_value(domain);
+      domain = domain_createValue(domain);
     }
     domain = solver_validateDomain(domain);
 
-    config_add_var(this.config, id, domain);
+    config_addVar(this.config, id, domain);
     vars.byId[id] = v;
     vars.all.push(v);
 
@@ -282,9 +280,9 @@ let Solver = class Solver {
   }
   plus(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_add_plus(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addPlus(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_add_plus(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addPlus(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['-'](e1, e2, resultVar) {
@@ -295,9 +293,9 @@ let Solver = class Solver {
   }
   min(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_add_min(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addMin(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_add_min(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addMin(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['*'](e1, e2, resultVar) {
@@ -308,9 +306,9 @@ let Solver = class Solver {
   }
   ring_mul(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_add_ring_mul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addRing_mul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_add_ring_mul(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addRing_mul(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['/'](e1, e2, resultVar) {
@@ -318,16 +316,16 @@ let Solver = class Solver {
   }
   div(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_add_div(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addDiv(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_add_div(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addDiv(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   mul(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_add_mul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addMul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_add_mul(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addMul(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['∑'](es, resultVar) {
@@ -336,9 +334,9 @@ let Solver = class Solver {
   sum(es, resultVar) {
     let var_names = GET_NAMES(es);
     if (resultVar) {
-      return propagator_add_sum(this.config, var_names, GET_NAME(resultVar));
+      return propagator_addSum(this.config, var_names, GET_NAME(resultVar));
     }
-    return propagator_add_sum(this.config, var_names);
+    return propagator_addSum(this.config, var_names);
   }
 
   ['∏'](es, resultVar) {
@@ -347,9 +345,9 @@ let Solver = class Solver {
   product(es, resultVar) {
     let var_names = GET_NAMES(es);
     if (resultVar) {
-      return propagator_add_product(this.config, var_names, GET_NAME(resultVar));
+      return propagator_addProduct(this.config, var_names, GET_NAME(resultVar));
     }
-    return propagator_add_product(this.config, var_names);
+    return propagator_addProduct(this.config, var_names);
   }
 
   // TODO
@@ -365,7 +363,7 @@ let Solver = class Solver {
     this.distinct(es);
   }
   distinct(es) {
-    propagator_add_distinct(this.config, GET_NAMES(es));
+    propagator_addDistinct(this.config, GET_NAMES(es));
   }
 
   ['=='](e1, e2) {
@@ -383,7 +381,7 @@ let Solver = class Solver {
     }
   }
   _eq(e1, e2) {
-    return propagator_add_eq(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addEq(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['!='](e1, e2) {
@@ -400,7 +398,7 @@ let Solver = class Solver {
     }
   }
   _neq(e1, e2) {
-    propagator_add_neq(this.config, GET_NAME(e1), GET_NAME(e2));
+    propagator_addNeq(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['>='](e1, e2) {
@@ -417,7 +415,7 @@ let Solver = class Solver {
     }
   }
   _gte(e1, e2) {
-    propagator_add_gte(this.config, GET_NAME(e1), GET_NAME(e2));
+    propagator_addGte(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['<='](e1, e2) {
@@ -434,7 +432,7 @@ let Solver = class Solver {
     }
   }
   _lte(e1, e2) {
-    propagator_add_lte(this.config, GET_NAME(e1), GET_NAME(e2));
+    propagator_addLte(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['>'](e1, e2) {
@@ -451,7 +449,7 @@ let Solver = class Solver {
     }
   }
   _gt(e1, e2) {
-    propagator_add_gt(this.config, GET_NAME(e1), GET_NAME(e2));
+    propagator_addGt(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['<'](e1, e2) {
@@ -468,7 +466,7 @@ let Solver = class Solver {
     }
   }
   _lt(e1, e2) {
-    propagator_add_lt(this.config, GET_NAME(e1), GET_NAME(e2));
+    propagator_addLt(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
 
@@ -477,9 +475,9 @@ let Solver = class Solver {
     e1 = GET_NAME(e1);
     e2 = GET_NAME(e2);
     if (boolVar) {
-      return propagator_add_reified(this.config, op, e1, e2, GET_NAME(boolVar));
+      return propagator_addReified(this.config, op, e1, e2, GET_NAME(boolVar));
     }
-    return propagator_add_reified(this.config, op, e1, e2);
+    return propagator_addReified(this.config, op, e1, e2);
   }
 
   ['!=?'](e1, e2, boolVar) {
@@ -527,7 +525,7 @@ let Solver = class Solver {
   // Various rest
 
   callback(es, cb) {
-    propagator_add_callback(this.config, GET_NAMES(es), cb);
+    propagator_addCallback(this.config, GET_NAMES(es), cb);
   }
 
   /**
@@ -539,12 +537,12 @@ let Solver = class Solver {
    * @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {number} options.search='depth_first' See FD.Search
    * @property {number} options.distribute='naive' Maps to FD.distribution.value
-   * @property {Object} [options.distribute] See config_set_options
+   * @property {Object} [options.distribute] See config_setOptions
    * @return {Array}
    */
   solve(options) {
     let obj = this.prepare(options);
-    ASSERT(!(options && options.dbg === true || options && options.dbg & 1) || !console.log(__space_debug_string(this.state.space)));
+    ASSERT(!(options && options.dbg === true || options && options.dbg & 1) || !console.log(__space_debugString(this.state.space)));
     ASSERT(!(options && options.dbg & 2) || !console.log(`## state.space.config:\n${this.state.space.config}`));
     this.run(obj);
     return this.solutions;
@@ -581,22 +579,22 @@ let Solver = class Solver {
     } // TOFIX: this is weird. if @distribute is a string this wont do anything...
 
     if (addUnknownVars) {
-      let unknown_names = config_get_unknown_vars(this.config);
-      config_add_vars_a(this.config, unknown_names);
+      let unknown_names = config_getUnknownVars(this.config);
+      config_addVars_a(this.config, unknown_names);
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
     if (overrides) {
-      config_set_options(this.config, {var_dist_config: overrides});
+      config_setOptions(this.config, {var_dist_config: overrides});
     }
 
-    config_set_options(this.config, {targeted_var_names: varNames});
-    config_set_options(this.config, distributionOptions);
+    config_setOptions(this.config, {targeted_var_names: varNames});
+    config_setOptions(this.config, distributionOptions);
 
     let searchFunc = this._get_search_func_or_die(search);
 
     // create the root node of the search tree (each node is a Space)
-    let rootSpace = space_create_from_config(this.config);
+    let rootSpace = space_createFromConfig(this.config);
 
     // __REMOVE_BELOW_FOR_DIST__
     this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
@@ -624,7 +622,7 @@ let Solver = class Solver {
 
     switch (search) {
       case 'depth_first':
-        var searchFunc = search_depth_first;
+        var searchFunc = search_depthFirst;
         break;
       default:
         THROW(`Unknown search strategy: ${search}`);
@@ -687,7 +685,7 @@ let Solver = class Solver {
   }
 
   /**
-   * Exposes internal method config_add_var for subclass
+   * Exposes internal method config_addVar for subclass
    * (Used by PathSolver in a private project)
    *
    * @public
@@ -697,18 +695,18 @@ let Solver = class Solver {
    * @returns {string}
    */
   space_add_var_range(id, lo, hi) {
-    return config_add_var(this.config, id, lo, hi);
+    return config_addVar(this.config, id, lo, hi);
   }
 
   /**
-   * Exposes internal method domain_from_list for subclass
+   * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
    *
    * @param {number[]} list
    * @returns {number[]}
    */
-  domain_from_list(list) {
-    return domain_from_list(list);
+  domain_fromList(list) {
+    return domain_fromList(list);
   }
 
   /**
@@ -717,7 +715,7 @@ let Solver = class Solver {
   branch_from_current_solution() {
     // get the _solved_ space, convert to config,
     // use new config as base for new solver
-    let solvedConfig = space_to_config(this.state.space);
+    let solvedConfig = space_toConfig(this.state.space);
     return new Solver({config: solvedConfig});
   }
 };
@@ -756,7 +754,7 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
     }
 
     if (overrides && overrides[bvarName] && overrides[bvarName].distributor_name === 'markov') {
-      propagator_add_markov(config, name);
+      propagator_addMarkov(config, name);
     }
   }
 
@@ -876,8 +874,6 @@ function solver_tryToFixLegacyDomain(domain) {
 
 // BODY_STOP
 
-export default {
-  Solver
-};
+export default Solver;
 
 //#####

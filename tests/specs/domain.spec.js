@@ -1,266 +1,280 @@
 import setup from '../../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_ranges,
-  spec_d_create_value,
-  spec_d_create_zero,
-} from '../../fixtures/domain.spec';
-import finitedomain from '../../../src/index';
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  specDomainCreateValue,
+  specDomainCreateZero,
+} from '../fixtures/domain.spec';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  domain: Domain,
-  helpers,
-} = finitedomain;
-const {
+import {
   NO_SUCH_VALUE,
   SUP,
-} = helpers;
-const {
+} from '../../src/helpers';
+import {
   INLINE,
   NOT_INLINE,
-  _merge_overlapping_inline: merge_overlapping_inline,
+  PREV_CHANGED,
+  SOMETHING_CHANGED,
+
+  domain_sharesNoElements,
   domain_complement,
+  domain_containsValue,
+  domain_createAll,
+  domain_createBool,
+  domain_createOne,
+  domain_createSub,
+  domain_createRange,
+  domain_createSup,
+  domain_createValue,
+  domain_createWithoutValue,
+  domain_createWithoutBounds,
+  domain_createZero,
+  domain_deepCloneWithoutValue,
   domain_divby,
-  domain_is_solved,
-  domain_is_rejected,
-  domain_is_determined,
-  domain_set_to_range_inline,
-  _domain_sort_by_range: domain_sort_by_range,
-  domain_remove_lte_inline,
-  domain_remove_gte_inline,
-  domain_simplify,
-  domain_from_list,
-  domain_to_list,
-  domain_remove_next_from_list,
-  domain_get_value_of_first_contained_value_in_list,
-  is_simplified,
-  domain_remove_value_inline,
-  _domain_range_index_of: domain_range_index_of,
-  domain_contains_value,
-  domain_is_value,
-  domain_minus,
-  domain_mul,
-  domain_plus,
   domain_equal,
+  domain_forceEqInline,
+  domain_fromList,
+  domain_getValue,
+  domain_getValueOfFirstContainedValueInList,
+  domain_intersectBoundsInto,
   domain_intersection,
-  _domain_close_gaps_inline: domain_close_gaps_inline,
-};
+  domain_isDetermined,
+  domain_isRange,
+  domain_isRejected,
+  domain_isSolved,
+  domain_isValue,
+  domain_max,
+  domain_middleElement,
+  domain_min,
+  domain_minus,
+  domain_plus,
+  domain_removeGteInline,
+  domain_removeLteInline,
+  domain_removeNextFromList,
+  domain_removeValueInline,
+  domain_setToRangeInline,
+  domain_simplify,
+  domain_size,
+  domain_mul,
+  domain_toList,
+
+  domain_rangeIndexOf,
+  domain_isSimplified,
+  domain_mergeOverlappingInline,
+  domain_sortByRange,
+} from '../../src/domain';
 
 const FLOOR_FRACTIONS = true;
 const CEIL_FRACTIONS = false;
 
 describe('domain.spec', function() {
 
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
-
   it('should exist', function() {
     expect(Domain).to.be.an('object');
   });
 
-  describe("domain_from_list", function() {
+  describe("domain_fromList", function() {
 
     it('should exist', function() {
-      expect(domain_from_list).to.be.a('function');
+      expect(domain_fromList).to.be.a('function');
     });
 
     it("[[0,0]]", function() {
-      expect(domain_from_list([0])).to.eql(spec_d_create_zero());
-      expect(domain_from_list([0,0])).to.eql(spec_d_create_zero());
+      expect(domain_fromList([0])).to.eql(specDomainCreateZero());
+      expect(domain_fromList([0,0])).to.eql(specDomainCreateZero());
     });
 
     it("[[0,1]]", function() {
-      expect(domain_from_list([0,1])).to.eql(spec_d_create_bool());
-      expect(domain_from_list([1,0])).to.eql(spec_d_create_bool());
-      expect(domain_from_list([0,0,1,1])).to.eql(spec_d_create_bool());
-      expect(domain_from_list([1,1,0,0])).to.eql(spec_d_create_bool());
+      expect(domain_fromList([0,1])).to.eql(specDomainCreateBool());
+      expect(domain_fromList([1,0])).to.eql(specDomainCreateBool());
+      expect(domain_fromList([0,0,1,1])).to.eql(specDomainCreateBool());
+      expect(domain_fromList([1,1,0,0])).to.eql(specDomainCreateBool());
     });
 
     it("negative elements should throw", function() {
-      expect(() => domain_from_list([10,1,-1,0])).to.throw();
-      expect(() => domain_from_list([10,1,-1,0,10,1,-1,0,10,1,-1,0])).to.throw();
+      expect(() => domain_fromList([10,1,-1,0])).to.throw();
+      expect(() => domain_fromList([10,1,-1,0,10,1,-1,0,10,1,-1,0])).to.throw();
     });
   });
 
-  describe("domain_to_list", function() {
+  describe("domain_toList", function() {
 
     it('should exist', function() {
-      expect(domain_to_list).to.be.a('function');
+      expect(domain_toList).to.be.a('function');
     });
 
     it('should require a domain', function() {
-      expect(() => domain_to_list()).to.throw();
+      expect(() => domain_toList()).to.throw();
     });
 
     it("[[0,0]]", function() {
-      expect(domain_to_list(spec_d_create_zero())).to.eql([0])
+      expect(domain_toList(specDomainCreateZero())).to.eql([0])
     });
 
     it("[[0,1]]", function() {
-      expect(domain_to_list(spec_d_create_bool())).to.eql([0,1])
+      expect(domain_toList(specDomainCreateBool())).to.eql([0,1])
     });
   });
 
-  describe("domain_remove_next_from_list", function() {
+  describe("domain_removeNextFromList", function() {
 
     it('should exist', function() {
-      expect(domain_remove_next_from_list).to.be.a('function');
+      expect(domain_removeNextFromList).to.be.a('function');
     });
 
     it('should require an array', function() {
-      expect(() => domain_remove_next_from_list(null, [0])).to.throw();
+      expect(() => domain_removeNextFromList(null, [0])).to.throw();
     });
 
     it('should return a fresh domain', function() {
-      let a = spec_d_create_range(0, 3);
+      let a = specDomainCreateRange(0, 3);
 
-      expect(domain_remove_next_from_list(a, [0])).to.not.equal(a);
+      expect(domain_removeNextFromList(a, [0])).to.not.equal(a);
     });
 
     it('should return undefined if no element in the list was found', function() {
-      expect(domain_remove_next_from_list(spec_d_create_ranges([1, 10], [20, 30]), [0,11, 13, 15, 104])).to.eql(undefined);
+      expect(domain_removeNextFromList(specDomainCreateRanges([1, 10], [20, 30]), [0,11, 13, 15, 104])).to.eql(undefined);
     });
 
     it('should not alter input domain', function() {
-      let a = spec_d_create_range(0, 3);
+      let a = specDomainCreateRange(0, 3);
 
-      expect(domain_remove_next_from_list(a, [0])).to.eql(spec_d_create_range(1, 3));
-      expect(a).to.eql(spec_d_create_range(0, 3));
+      expect(domain_removeNextFromList(a, [0])).to.eql(specDomainCreateRange(1, 3));
+      expect(a).to.eql(specDomainCreateRange(0, 3));
     });
 
     it("1", function() {
-      let dom = spec_d_create_range(0, 3);
+      let dom = specDomainCreateRange(0, 3);
 
-      expect(domain_remove_next_from_list(dom, [0])).to.eql(spec_d_create_range(1, 3));
-      expect(domain_remove_next_from_list(dom, [0,10,9,7])).to.eql(spec_d_create_range(1, 3));
-      expect(domain_remove_next_from_list(dom, [10,9,7,0])).to.eql(spec_d_create_range(1, 3));
-      expect(domain_remove_next_from_list(dom, [1])).to.eql(spec_d_create_ranges([0,0],[2,3]));
-      expect(domain_remove_next_from_list(dom, [2])).to.eql(spec_d_create_ranges([0,1],[3,3]));
-      expect(domain_remove_next_from_list(dom, [3])).to.eql(spec_d_create_range(0, 2));
-      expect(domain_remove_next_from_list(dom, [99,100])).to.eql(undefined);
+      expect(domain_removeNextFromList(dom, [0])).to.eql(specDomainCreateRange(1, 3));
+      expect(domain_removeNextFromList(dom, [0,10,9,7])).to.eql(specDomainCreateRange(1, 3));
+      expect(domain_removeNextFromList(dom, [10,9,7,0])).to.eql(specDomainCreateRange(1, 3));
+      expect(domain_removeNextFromList(dom, [1])).to.eql(specDomainCreateRanges([0,0],[2,3]));
+      expect(domain_removeNextFromList(dom, [2])).to.eql(specDomainCreateRanges([0,1],[3,3]));
+      expect(domain_removeNextFromList(dom, [3])).to.eql(specDomainCreateRange(0, 2));
+      expect(domain_removeNextFromList(dom, [99,100])).to.eql(undefined);
     });
 
     it("2", function() {
-      let dom = spec_d_create_zero();
+      let dom = specDomainCreateZero();
 
-      expect(domain_remove_next_from_list(dom, [0])).to.eql([]);
-      expect(domain_remove_next_from_list(dom, [0,10,11])).to.eql([]);
-      expect(domain_remove_next_from_list(dom, [10,11,0,12])).to.eql([]);
-      expect(domain_remove_next_from_list(dom, [1])).to.eql(undefined);
-      expect(domain_remove_next_from_list(dom, [1,2,3,4,5])).to.eql(undefined);
+      expect(domain_removeNextFromList(dom, [0])).to.eql([]);
+      expect(domain_removeNextFromList(dom, [0,10,11])).to.eql([]);
+      expect(domain_removeNextFromList(dom, [10,11,0,12])).to.eql([]);
+      expect(domain_removeNextFromList(dom, [1])).to.eql(undefined);
+      expect(domain_removeNextFromList(dom, [1,2,3,4,5])).to.eql(undefined);
     });
 
     it("3", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14]);
+      let dom = specDomainCreateRanges([0,4],[10,14]);
 
-      expect(domain_remove_next_from_list(dom, [0])).to.eql(spec_d_create_ranges([1,4],[10,14]));
-      expect(domain_remove_next_from_list(dom, [0,10,11])).to.eql(spec_d_create_ranges([1,4],[10,14]));
-      expect(domain_remove_next_from_list(dom, [10,11,0,12])).to.eql(spec_d_create_ranges([0,4],[11,14]));
-      expect(domain_remove_next_from_list(dom, [1])).to.eql(spec_d_create_ranges([0,0],[2,4],[10,14]));
-      expect(domain_remove_next_from_list(dom, [100,12])).to.eql(spec_d_create_ranges([0,4],[10,11],[13,14]));
-      expect(domain_remove_next_from_list(dom, [12,100])).to.eql(spec_d_create_ranges([0,4],[10,11],[13,14]));
+      expect(domain_removeNextFromList(dom, [0])).to.eql(specDomainCreateRanges([1,4],[10,14]));
+      expect(domain_removeNextFromList(dom, [0,10,11])).to.eql(specDomainCreateRanges([1,4],[10,14]));
+      expect(domain_removeNextFromList(dom, [10,11,0,12])).to.eql(specDomainCreateRanges([0,4],[11,14]));
+      expect(domain_removeNextFromList(dom, [1])).to.eql(specDomainCreateRanges([0,0],[2,4],[10,14]));
+      expect(domain_removeNextFromList(dom, [100,12])).to.eql(specDomainCreateRanges([0,4],[10,11],[13,14]));
+      expect(domain_removeNextFromList(dom, [12,100])).to.eql(specDomainCreateRanges([0,4],[10,11],[13,14]));
     });
 
     it("4", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14],[20,24]);
+      let dom = specDomainCreateRanges([0,4],[10,14],[20,24]);
 
-      expect(domain_remove_next_from_list(dom, [99,5,12,11])).to.eql(spec_d_create_ranges([0,4],[10,11],[13,14],[20,24]));
-      expect(domain_remove_next_from_list(dom, [99,5])).to.eql(undefined);
+      expect(domain_removeNextFromList(dom, [99,5,12,11])).to.eql(specDomainCreateRanges([0,4],[10,11],[13,14],[20,24]));
+      expect(domain_removeNextFromList(dom, [99,5])).to.eql(undefined);
     });
 
     it("should throw for negative values", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14],[20,24]);
+      let dom = specDomainCreateRanges([0,4],[10,14],[20,24]);
 
-      expect(() => domain_remove_next_from_list(dom, [99,-1,12,11])).to.throw();
-      expect(() => domain_remove_next_from_list(dom, [99,-1])).to.throw();
+      expect(() => domain_removeNextFromList(dom, [99,-1,12,11])).to.throw();
+      expect(() => domain_removeNextFromList(dom, [99,-1])).to.throw();
     });
   });
 
-  describe("domain_get_value_of_first_contained_value_in_list ", function() {
+  describe("domain_getValueOfFirstContainedValueInList ", function() {
 
     it("1", function() {
-      let dom = spec_d_create_range(0, 3);
+      let dom = specDomainCreateRange(0, 3);
 
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0,10,9,7]), "[0,10,9,7]").to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[10,9,7,0]), "[10,9,7,0]").to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql(1);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[2]) ).to.eql(2);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[3]) ).to.eql(3);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,100]) ).to.eql(NO_SUCH_VALUE);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0,10,9,7]), "[0,10,9,7]").to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[10,9,7,0]), "[10,9,7,0]").to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[1]) ).to.eql(1);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[2]) ).to.eql(2);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[3]) ).to.eql(3);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[99,100]) ).to.eql(NO_SUCH_VALUE);
     });
 
     it("2", function() {
-      let dom = spec_d_create_zero();
+      let dom = specDomainCreateZero();
 
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0,10,11]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[10,11,0,12]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql(NO_SUCH_VALUE);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1,2,3,4,5]) ).to.eql(NO_SUCH_VALUE);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0,10,11]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[10,11,0,12]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[1]) ).to.eql(NO_SUCH_VALUE);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[1,2,3,4,5]) ).to.eql(NO_SUCH_VALUE);
     });
 
     it("3", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14]);
+      let dom = specDomainCreateRanges([0,4],[10,14]);
 
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[0,10,11]) ).to.eql(0);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[10,11,0,12]) ).to.eql(10);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[1]) ).to.eql(1);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[100,12]) ).to.eql(12);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[12,100]) ).to.eql(12);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[0,10,11]) ).to.eql(0);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[10,11,0,12]) ).to.eql(10);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[1]) ).to.eql(1);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[100,12]) ).to.eql(12);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[12,100]) ).to.eql(12);
     });
 
     it("4", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14],[20,24]);
+      let dom = specDomainCreateRanges([0,4],[10,14],[20,24]);
 
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5,12,11]) ).to.eql(12);
-      expect( domain_get_value_of_first_contained_value_in_list(dom,[99,5]) ).to.eql(NO_SUCH_VALUE);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[99,5,12,11]) ).to.eql(12);
+      expect( domain_getValueOfFirstContainedValueInList(dom,[99,5]) ).to.eql(NO_SUCH_VALUE);
     });
 
     it("should throw for negative values", function() {
-      let dom = spec_d_create_ranges([0,4],[10,14],[20,24]);
+      let dom = specDomainCreateRanges([0,4],[10,14],[20,24]);
 
-      expect(() => domain_get_value_of_first_contained_value_in_list(dom,[99,-1,12,11]) ).to.throw();
-      expect(() => domain_get_value_of_first_contained_value_in_list(dom,[99,-1]) ).to.throw();
+      expect(() => domain_getValueOfFirstContainedValueInList(dom,[99,-1,12,11]) ).to.throw();
+      expect(() => domain_getValueOfFirstContainedValueInList(dom,[99,-1]) ).to.throw();
     });
   });
 
-  describe('domain_contains_value', function() {
+  describe('domain_containsValue', function() {
 
     it('should exist', function() {
-      expect(domain_contains_value).to.be.a('function');
+      expect(domain_containsValue).to.be.a('function');
     });
 
     describe('should return true if domain contains given value', function() {
 
       it('one range in domain', function() {
-        expect(domain_contains_value(spec_d_create_range(0, 10), 5)).to.equal(true);
+        expect(domain_containsValue(specDomainCreateRange(0, 10), 5)).to.equal(true);
       });
 
       it('multiple ranges in domain', function() {
-        expect(domain_contains_value(spec_d_create_ranges([0, 10], [20, 30], [50, 60]), 25)).to.equal(true);
+        expect(domain_containsValue(specDomainCreateRanges([0, 10], [20, 30], [50, 60]), 25)).to.equal(true);
       });
     });
 
     describe('should return false if domain does not contain value', function() {
 
       it('empty array', function() {
-        expect(domain_contains_value([], 0)).to.equal(false);
+        expect(domain_containsValue([], 0)).to.equal(false);
       });
 
       it('one range in domain', function() {
-        expect(domain_contains_value(spec_d_create_range(0, 10), 25)).to.equal(false);
+        expect(domain_containsValue(specDomainCreateRange(0, 10), 25)).to.equal(false);
       });
 
       it('multiple ranges in domain', function() {
-        expect(domain_contains_value(spec_d_create_ranges([0, 10], [20, 30], [50, 60]), 15)).to.equal(false);
+        expect(domain_containsValue(specDomainCreateRanges([0, 10], [20, 30], [50, 60]), 15)).to.equal(false);
       });
     });
   });
@@ -274,12 +288,12 @@ describe('domain.spec', function() {
     describe('should return index of range that encloses value', function() {
 
       it('one range in domain', function() {
-        expect(domain_range_index_of(spec_d_create_range(0, 10), 5)).to.eql(0);
+        expect(domain_range_index_of(specDomainCreateRange(0, 10), 5)).to.eql(0);
       });
 
       it('multiple ranges in domain', function() {
-        expect(domain_range_index_of(spec_d_create_ranges([0, 10], [20, 30], [50, 60]), 25)).to.eql(2);
-        expect(domain_range_index_of(spec_d_create_ranges([0, 10], [20, 30], [50, 60]), 51)).to.eql(4);
+        expect(domain_range_index_of(specDomainCreateRanges([0, 10], [20, 30], [50, 60]), 25)).to.eql(2);
+        expect(domain_range_index_of(specDomainCreateRanges([0, 10], [20, 30], [50, 60]), 51)).to.eql(4);
       });
     });
 
@@ -290,93 +304,93 @@ describe('domain.spec', function() {
       });
 
       it('one range in domain', function() {
-        expect(domain_range_index_of(spec_d_create_range(0, 10), 25)).to.eql(-1);
+        expect(domain_range_index_of(specDomainCreateRange(0, 10), 25)).to.eql(-1);
       });
 
       it('multiple ranges in domain', function() {
-        expect(domain_range_index_of(spec_d_create_ranges([0, 10], [20, 30], [50, 60]), 15)).to.eql(-1);
+        expect(domain_range_index_of(specDomainCreateRanges([0, 10], [20, 30], [50, 60]), 15)).to.eql(-1);
       });
     });
   });
 
-  describe('domain_is_value', function() {
+  describe('domain_isValue', function() {
 
     it('should exist', function() {
-      expect(domain_is_value).to.be.a('function');
+      expect(domain_isValue).to.be.a('function');
     });
 
     it('should require a domain', function() {
-      expect(() => domain_is_value()).to.throw();
+      expect(() => domain_isValue()).to.throw();
     });
 
     it('should return false if domain is empty', function() {
-      expect(domain_is_value([])).to.equal(false);
+      expect(domain_isValue([])).to.equal(false);
     });
 
     it('should throw for invalid domains', function() {
-      expect(() => domain_is_value(spec_d_create_value(undefined))).to.throw();
+      expect(() => domain_isValue(specDomainCreateValue(undefined))).to.throw();
     });
 
     it('should be able to check without arg (but return false)', function() {
-      expect(domain_is_value([])).to.equal(false);
+      expect(domain_isValue([])).to.equal(false);
     });
 
     it('should return false if only range is not one value', function() {
-      expect(domain_is_value(spec_d_create_range(10, 20), 10)).to.equal(false);
+      expect(domain_isValue(specDomainCreateRange(10, 20), 10)).to.equal(false);
     });
 
     it('should return true if the only range is given value', function() {
-      expect(domain_is_value(spec_d_create_range(0, 0), 0)).to.equal(true);
-      expect(domain_is_value(spec_d_create_range(1, 1), 1)).to.equal(true);
-      expect(domain_is_value(spec_d_create_range(10, 10), 10)).to.equal(true);
-      expect(domain_is_value(spec_d_create_range(527, 527), 527)).to.equal(true);
+      expect(domain_isValue(specDomainCreateRange(0, 0), 0)).to.equal(true);
+      expect(domain_isValue(specDomainCreateRange(1, 1), 1)).to.equal(true);
+      expect(domain_isValue(specDomainCreateRange(10, 10), 10)).to.equal(true);
+      expect(domain_isValue(specDomainCreateRange(527, 527), 527)).to.equal(true);
     });
 
     it('should return false if value does not match', function() {
-      expect(domain_is_value(spec_d_create_ranges([0, 0]), 1), 'value 0').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([0, 1]), 0), 'bool domain 0').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([0, 1]), 1), 'bool domain 1').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([1, 1]), 0), 'value 1').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([50, 50]), 25), 'value 50').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([0, 0]), 1), 'value 0').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([0, 1]), 0), 'bool domain 0').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([0, 1]), 1), 'bool domain 1').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([1, 1]), 0), 'value 1').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([50, 50]), 25), 'value 50').to.equal(false);
     });
 
     it('should not even consider domains when range count isnt 1', function() {
-      expect(domain_is_value([]), 'empty').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([1, 1], [3, 3]), 1), 'first range 1 with second range').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([1, 1], [3, 3]), 3), 'first range 1 with second range 3').to.equal(false);
-      expect(domain_is_value(spec_d_create_ranges([10, 20], [50, 50]), 50), 'two ranges').to.equal(false);
+      expect(domain_isValue([]), 'empty').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([1, 1], [3, 3]), 1), 'first range 1 with second range').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([1, 1], [3, 3]), 3), 'first range 1 with second range 3').to.equal(false);
+      expect(domain_isValue(specDomainCreateRanges([10, 20], [50, 50]), 50), 'two ranges').to.equal(false);
     });
   });
 
-  describe('domain_remove_value_inline', function() {
+  describe('domain_removeValueInline', function() {
 
     it('should exist', function() {
-      expect(domain_remove_value_inline).to.be.a('function');
+      expect(domain_removeValueInline).to.be.a('function');
     });
 
     it('should require a domain', function() {
-      expect(() => domain_remove_value_inline(null, 15)).to.throw();
+      expect(() => domain_removeValueInline(null, 15)).to.throw();
     });
 
     it('should accept an empty domain', function() {
       let arr =  [];
-      domain_remove_value_inline(arr, 15);
+      domain_removeValueInline(arr, 15);
 
       expect(arr).to.eql([]);
     });
 
     it('should return a domain without given value', function() {
-      let arr = spec_d_create_range(0, 30);
-      domain_remove_value_inline(arr, 15);
+      let arr = specDomainCreateRange(0, 30);
+      domain_removeValueInline(arr, 15);
 
-      expect(arr).to.eql(spec_d_create_ranges([0, 14], [16, 30]));
+      expect(arr).to.eql(specDomainCreateRanges([0, 14], [16, 30]));
     });
 
     it('should keep unrelated ranges', function() {
-      let arr = spec_d_create_ranges([0, 10], [12, 20], [22, 30]);
-      domain_remove_value_inline(arr, 15);
+      let arr = specDomainCreateRanges([0, 10], [12, 20], [22, 30]);
+      domain_removeValueInline(arr, 15);
 
-      expect(arr).to.eql(spec_d_create_ranges([0, 10], [12, 14], [16, 20], [22, 30]));
+      expect(arr).to.eql(specDomainCreateRanges([0, 10], [12, 14], [16, 20], [22, 30]));
     });
   });
 
@@ -398,40 +412,40 @@ describe('domain.spec', function() {
     describe('single ranged domain', function() {
 
       it('should accept domain with proper range', function() {
-        expect(is_simplified(spec_d_create_bool())).to.be.a('function');
+        expect(is_simplified(specDomainCreateBool())).to.be.a('function');
       });
 
       it('should accept domain with proper range of 1', function() {
-        expect(is_simplified(spec_d_create_range(15, 15))).to.be.a('function');
+        expect(is_simplified(specDomainCreateRange(15, 15))).to.be.a('function');
       });
 
       it('should reject domain with inverted range', function() {
-        expect(() => is_simplified(spec_d_create_range(1, 0))).to.throw();
+        expect(() => is_simplified(specDomainCreateRange(1, 0))).to.throw();
       });
     });
 
     describe('multiple ranges in domain', function() {
 
       it('should accept multiple properly ordered non-overlapping ranges', function() {
-        expect(is_simplified(spec_d_create_ranges([5, 10], [15, 20]))).to.equal(true);
-        //expect(is_simplified spec_d_create_ranges([5, 6], [7, 8], [9, 10])).to.equal(true);
-        //expect(is_simplified spec_d_create_ranges([5, 6], [7, 8], [9, 10], [100, 200])).to.equal(true);
+        expect(is_simplified(specDomainCreateRanges([5, 10], [15, 20]))).to.equal(true);
+        //expect(is_simplified specDomainCreateRanges([5, 6], [7, 8], [9, 10])).to.equal(true);
+        //expect(is_simplified specDomainCreateRanges([5, 6], [7, 8], [9, 10], [100, 200])).to.equal(true);
       });
 
       it('should throw if two ranges overlap despite ordering', function() {
-        expect(is_simplified(spec_d_create_ranges([10, 15], [13, 19], [50, 60]))).to.equal(false); // start
-        expect(is_simplified(spec_d_create_ranges([1, 3], [10, 15], [13, 19], [70, 75]))).to.equal(false); // middle
-        expect(is_simplified(spec_d_create_ranges([1, 3], [10, 15], [16, 19], [18, 25]))).to.equal(false); //end
+        expect(is_simplified(specDomainCreateRanges([10, 15], [13, 19], [50, 60]))).to.equal(false); // start
+        expect(is_simplified(specDomainCreateRanges([1, 3], [10, 15], [13, 19], [70, 75]))).to.equal(false); // middle
+        expect(is_simplified(specDomainCreateRanges([1, 3], [10, 15], [16, 19], [18, 25]))).to.equal(false); //end
       });
 
       it('should reject if two ranges touch', function() {
-        expect(is_simplified(spec_d_create_ranges([0, 1], [1, 2]))).to.equal(false);
+        expect(is_simplified(specDomainCreateRanges([0, 1], [1, 2]))).to.equal(false);
       });
 
       it('should reject if at least one range is inverted', function() {
-        expect(() => is_simplified(spec_d_create_ranges([15, 10], [40, 50], [55, 60]))).to.throw(); // start
-        expect(() => is_simplified(spec_d_create_ranges([10, 15], [50, 40], [55, 60]))).to.throw(); // middle
-        expect(() => is_simplified(spec_d_create_ranges([10, 15], [40, 50], [65, 60]))).to.throw(); // end
+        expect(() => is_simplified(specDomainCreateRanges([15, 10], [40, 50], [55, 60]))).to.throw(); // start
+        expect(() => is_simplified(specDomainCreateRanges([10, 15], [50, 40], [55, 60]))).to.throw(); // middle
+        expect(() => is_simplified(specDomainCreateRanges([10, 15], [40, 50], [65, 60]))).to.throw(); // end
       });
     });
   });
@@ -460,61 +474,61 @@ describe('domain.spec', function() {
       describe('return value', function() {
 
         it('should be same array if unchanged', function() {
-          let arr = spec_d_create_ranges([0, 1], [10, 20], [30, 40]);
+          let arr = specDomainCreateRanges([0, 1], [10, 20], [30, 40]);
 
           expect(merge_overlapping_inline(arr)).to.equal(arr);
-          expect(arr).to.eql(spec_d_create_ranges([0, 1], [10, 20], [30, 40]));
+          expect(arr).to.eql(specDomainCreateRanges([0, 1], [10, 20], [30, 40]));
         });
 
         it('should be same array if changed', function() {
-          let arr = spec_d_create_ranges([0, 1], [10, 20], [20, 40]);
+          let arr = specDomainCreateRanges([0, 1], [10, 20], [20, 40]);
 
           expect(merge_overlapping_inline(arr)).to.equal(arr);
-          expect(arr).to.eql(spec_d_create_ranges([0, 1], [10, 40]));
+          expect(arr).to.eql(specDomainCreateRanges([0, 1], [10, 40]));
         });
 
         it('should be same array for single range', function() {
-          let arr = spec_d_create_bool();
+          let arr = specDomainCreateBool();
 
           expect(merge_overlapping_inline(arr)).to.equal(arr);
-          expect(arr).to.eql(spec_d_create_bool());
+          expect(arr).to.eql(specDomainCreateBool());
         });
       });
 
       it('should return same range for single range domain', function() {
-        expect(merge_overlapping_inline(spec_d_create_range(10, 100))).to.eql(spec_d_create_range(10, 100));
-        expect(merge_overlapping_inline(spec_d_create_range(30, 213))).to.eql(spec_d_create_range(30, 213));
-        expect(merge_overlapping_inline(spec_d_create_bool())).to.eql(spec_d_create_bool());
+        expect(merge_overlapping_inline(specDomainCreateRange(10, 100))).to.eql(specDomainCreateRange(10, 100));
+        expect(merge_overlapping_inline(specDomainCreateRange(30, 213))).to.eql(specDomainCreateRange(30, 213));
+        expect(merge_overlapping_inline(specDomainCreateBool())).to.eql(specDomainCreateBool());
       });
 
       it('should return same if not overlapping', function() {
-        expect(merge_overlapping_inline(spec_d_create_ranges([10, 100], [200, 300]))).to.eql(spec_d_create_ranges([10, 100], [200, 300]));
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 0], [2, 2]))).to.eql(spec_d_create_ranges([0, 0], [2, 2]));
+        expect(merge_overlapping_inline(specDomainCreateRanges([10, 100], [200, 300]))).to.eql(specDomainCreateRanges([10, 100], [200, 300]));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 0], [2, 2]))).to.eql(specDomainCreateRanges([0, 0], [2, 2]));
       });
 
       it('should merge if two domains overlap', function() {
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 1], [1, 2]))).to.eql(spec_d_create_range(0, 2));
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 50], [25, 75]))).to.eql(spec_d_create_range(0, 75));
-        expect(merge_overlapping_inline(spec_d_create_ranges([213, 278], [244, 364]))).to.eql(spec_d_create_range(213, 364));
-        expect(merge_overlapping_inline(spec_d_create_ranges([10, 20], [30, 40], [35, 45], [50, 60]))).to.eql(spec_d_create_ranges([10, 20], [30, 45], [50, 60]));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 1], [1, 2]))).to.eql(specDomainCreateRange(0, 2));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 50], [25, 75]))).to.eql(specDomainCreateRange(0, 75));
+        expect(merge_overlapping_inline(specDomainCreateRanges([213, 278], [244, 364]))).to.eql(specDomainCreateRange(213, 364));
+        expect(merge_overlapping_inline(specDomainCreateRanges([10, 20], [30, 40], [35, 45], [50, 60]))).to.eql(specDomainCreateRanges([10, 20], [30, 45], [50, 60]));
       });
 
       it('should merge if two domains touch', function() {
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 0], [1, 1]))).to.eql(spec_d_create_bool());
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 1], [2, 3]))).to.eql(spec_d_create_range(0, 3));
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 10], [10, 20]))).to.eql(spec_d_create_range(0, 20));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 0], [1, 1]))).to.eql(specDomainCreateBool());
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 1], [2, 3]))).to.eql(specDomainCreateRange(0, 3));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 10], [10, 20]))).to.eql(specDomainCreateRange(0, 20));
       });
 
       it('should chain merges', function() {
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 0], [1, 1], [2, 2]))).to.eql(spec_d_create_range(0, 2));
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 1], [1, 2], [2, 3]))).to.eql(spec_d_create_range(0, 3));
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 0], [1, 2], [2, 3]))).to.eql(spec_d_create_range(0, 3));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 0], [1, 1], [2, 2]))).to.eql(specDomainCreateRange(0, 2));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 1], [1, 2], [2, 3]))).to.eql(specDomainCreateRange(0, 3));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 0], [1, 2], [2, 3]))).to.eql(specDomainCreateRange(0, 3));
       });
 
       it('should make sure resulting range wraps both ranges', function() {
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 0], [0, 1]))).to.eql(spec_d_create_bool());
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 1], [0, 0]))).to.eql(spec_d_create_bool());
-        expect(merge_overlapping_inline(spec_d_create_ranges([0, 10], [14, 16], [15, 20], [16, 19], [17, 18]))).to.eql(spec_d_create_ranges([0, 10], [14, 20]));
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 0], [0, 1]))).to.eql(specDomainCreateBool());
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 1], [0, 0]))).to.eql(specDomainCreateBool());
+        expect(merge_overlapping_inline(specDomainCreateRanges([0, 10], [14, 16], [15, 20], [16, 19], [17, 18]))).to.eql(specDomainCreateRanges([0, 10], [14, 20]));
       });
     });
   });
@@ -552,22 +566,22 @@ describe('domain.spec', function() {
       });
 
       it('should work with single ranged domain', function() {
-        let arr = spec_d_create_bool();
+        let arr = specDomainCreateBool();
 
         expect(domain_simplify(arr, INLINE)).to.equal(arr);
       });
 
       it('should work if domain is not changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [20, 30]);
+        let arr = specDomainCreateRanges([1, 2], [20, 30]);
 
         expect(domain_simplify(arr, INLINE)).to.equal(arr);
       });
 
       it('should work if domain is changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [2, 3]);
+        let arr = specDomainCreateRanges([1, 2], [2, 3]);
 
         expect(domain_simplify(arr, INLINE)).to.equal(arr);
-        expect(arr).to.eql(spec_d_create_range(1, 3));
+        expect(arr).to.eql(specDomainCreateRange(1, 3));
       });
     });
 
@@ -582,27 +596,27 @@ describe('domain.spec', function() {
       });
 
       it('should work with single ranged domain', function() {
-        let arr = spec_d_create_bool();
+        let arr = specDomainCreateBool();
 
         expect(domain_simplify(arr, NOT_INLINE)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_bool());
-        expect(domain_simplify(spec_d_create_bool(), NOT_INLINE)).to.eql(spec_d_create_bool());
+        expect(arr).to.eql(specDomainCreateBool());
+        expect(domain_simplify(specDomainCreateBool(), NOT_INLINE)).to.eql(specDomainCreateBool());
       });
 
       it('should work if domain is not changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [20, 30]);
+        let arr = specDomainCreateRanges([1, 2], [20, 30]);
 
         expect(domain_simplify(arr, NOT_INLINE)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_ranges([1, 2], [20, 30]));
-        expect(domain_simplify(spec_d_create_ranges([1, 2], [20, 30]), NOT_INLINE)).to.eql(spec_d_create_ranges([1, 2], [20, 30]));
+        expect(arr).to.eql(specDomainCreateRanges([1, 2], [20, 30]));
+        expect(domain_simplify(specDomainCreateRanges([1, 2], [20, 30]), NOT_INLINE)).to.eql(specDomainCreateRanges([1, 2], [20, 30]));
       });
 
       it('should work if domain is changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [2, 3]);
+        let arr = specDomainCreateRanges([1, 2], [2, 3]);
 
         expect(domain_simplify(arr, NOT_INLINE)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_ranges([1, 2], [2, 3])); // unchanged
-        expect(domain_simplify(spec_d_create_ranges([1, 2], [2, 3]), NOT_INLINE)).to.eql(spec_d_create_range(1, 3));
+        expect(arr).to.eql(specDomainCreateRanges([1, 2], [2, 3])); // unchanged
+        expect(domain_simplify(specDomainCreateRanges([1, 2], [2, 3]), NOT_INLINE)).to.eql(specDomainCreateRange(1, 3));
       });
     });
 
@@ -618,33 +632,33 @@ describe('domain.spec', function() {
       });
 
       it('should work with single ranged domain', function() {
-        let arr = spec_d_create_bool();
+        let arr = specDomainCreateBool();
 
         expect(domain_simplify(arr)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_bool());
-        expect(domain_simplify(spec_d_create_bool())).to.eql(spec_d_create_bool());
+        expect(arr).to.eql(specDomainCreateBool());
+        expect(domain_simplify(specDomainCreateBool())).to.eql(specDomainCreateBool());
       });
 
       it('should work if domain is not changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [20, 30]);
+        let arr = specDomainCreateRanges([1, 2], [20, 30]);
 
         expect(domain_simplify(arr)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_ranges([1, 2], [20, 30]));
-        expect(domain_simplify(spec_d_create_ranges([1, 2], [20, 30]))).to.eql(spec_d_create_ranges([1, 2], [20, 30]));
+        expect(arr).to.eql(specDomainCreateRanges([1, 2], [20, 30]));
+        expect(domain_simplify(specDomainCreateRanges([1, 2], [20, 30]))).to.eql(specDomainCreateRanges([1, 2], [20, 30]));
       });
 
       it('should work if domain is changed', function() {
-        let arr = spec_d_create_ranges([1, 2], [2, 3]);
+        let arr = specDomainCreateRanges([1, 2], [2, 3]);
 
         expect(domain_simplify(arr)).to.not.equal(arr);
-        expect(arr).to.eql(spec_d_create_ranges([1, 2], [2, 3])); // unchanged
-        expect(domain_simplify(spec_d_create_ranges([1, 2], [2, 3]))).to.eql(spec_d_create_range(1, 3));
+        expect(arr).to.eql(specDomainCreateRanges([1, 2], [2, 3])); // unchanged
+        expect(domain_simplify(specDomainCreateRanges([1, 2], [2, 3]))).to.eql(specDomainCreateRange(1, 3));
       });
     });
 
     it('should merge unordered overlapping ranges', () =>
       // properly tested in sub-function
-      expect(domain_simplify(spec_d_create_ranges([2, 3], [1, 2]))).to.eql(spec_d_create_range(1, 3))
+      expect(domain_simplify(specDomainCreateRanges([2, 3], [1, 2]))).to.eql(specDomainCreateRange(1, 3))
     );
   });
 
@@ -676,59 +690,59 @@ describe('domain.spec', function() {
       });
 
       it('should handle empty domain with single element domain', function() {
-        expect(domain_intersection([], spec_d_create_bool())).to.eql([]);
+        expect(domain_intersection([], specDomainCreateBool())).to.eql([]);
       });
 
       it('should handle empty domain with multi element domain', function() {
-        expect(domain_intersection([], spec_d_create_ranges([0, 1], [3, 5]))).to.eql([]);
+        expect(domain_intersection([], specDomainCreateRanges([0, 1], [3, 5]))).to.eql([]);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(spec_d_create_bool(), [])).to.eql([]);
+        expect(domain_intersection(specDomainCreateBool(), [])).to.eql([]);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(spec_d_create_ranges([0, 1], [3, 5]), [])).to.eql([]);
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [3, 5]), [])).to.eql([]);
       });
 
       it('should handle single element domains', function() {
-        expect(domain_intersection(spec_d_create_bool(), spec_d_create_range(3, 5))).to.eql([]);
+        expect(domain_intersection(specDomainCreateBool(), specDomainCreateRange(3, 5))).to.eql([]);
       });
 
       it('should intersect single element domains', function() {
-        expect(domain_intersection(spec_d_create_range(0, 5), spec_d_create_range(3, 10))).to.eql(spec_d_create_range(3, 5));
+        expect(domain_intersection(specDomainCreateRange(0, 5), specDomainCreateRange(3, 10))).to.eql(specDomainCreateRange(3, 5));
       });
 
       it('should intersect single element domains reversed', function() {
-        expect(domain_intersection(spec_d_create_range(3, 10), spec_d_create_range(0, 5))).to.eql(spec_d_create_range(3, 5));
+        expect(domain_intersection(specDomainCreateRange(3, 10), specDomainCreateRange(0, 5))).to.eql(specDomainCreateRange(3, 5));
       });
 
       it('should handle single element domain with multi element domain', function() {
-        expect(domain_intersection(spec_d_create_bool(), spec_d_create_ranges([10, 20], [30, 40]))).to.eql([]);
+        expect(domain_intersection(specDomainCreateBool(), specDomainCreateRanges([10, 20], [30, 40]))).to.eql([]);
       });
 
       it('should handle multi element domain with single element domain', function() {
-        expect(domain_intersection(spec_d_create_ranges([0, 1], [10, 20]), spec_d_create_range(30, 40))).to.eql([]);
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRange(30, 40))).to.eql([]);
       });
 
       it('should intersect single element domain with multi element domain', function() {
-        expect(domain_intersection(spec_d_create_range(5, 15), spec_d_create_ranges([10, 20], [30, 40]))).to.eql(spec_d_create_range(10, 15));
+        expect(domain_intersection(specDomainCreateRange(5, 15), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainCreateRange(10, 15));
       });
 
       it('should intersect multi element domain with single element domain', function() {
-        expect(domain_intersection(spec_d_create_ranges([0, 1], [25, 35]), spec_d_create_range(30, 40))).to.eql(spec_d_create_range(30, 35));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [25, 35]), specDomainCreateRange(30, 40))).to.eql(specDomainCreateRange(30, 35));
       });
 
       it('should handle multi element domains', function() {
-        expect(domain_intersection(spec_d_create_ranges([0, 1], [10, 20]), spec_d_create_ranges([30, 40], [50, 60]))).to.eql([]);
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRanges([30, 40], [50, 60]))).to.eql([]);
       });
 
       it('should intersect multi element domains', function() {
-        expect(domain_intersection(spec_d_create_ranges([0, 1], [10, 35]), spec_d_create_ranges([30, 40], [50, 60]))).to.eql(spec_d_create_range(30, 35));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 35]), specDomainCreateRanges([30, 40], [50, 60]))).to.eql(specDomainCreateRange(30, 35));
       });
 
       it('should return two ranges if a range in one domain intersects with two ranges of the other domain', function() {
-        expect(domain_intersection(spec_d_create_range(15, 35), spec_d_create_ranges([10, 20], [30, 40]))).to.eql(spec_d_create_ranges([15, 20], [30, 35]));
+        expect(domain_intersection(specDomainCreateRange(15, 35), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainCreateRanges([15, 20], [30, 35]));
       });
 
       it('should divide and conquer some random tests 1', function() {
@@ -743,24 +757,24 @@ describe('domain.spec', function() {
         //   return [Math.min(a[0],a[1]), Math.max(a[0], a[1])];
         // })).replace(/,/g, ', '))
 
-        let a = spec_d_create_ranges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
-        let b = spec_d_create_ranges([1,1],[3,21],[25,38],[54,67],[70,84],[88,107]);
+        let a = specDomainCreateRanges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
+        let b = specDomainCreateRanges([1,1],[3,21],[25,38],[54,67],[70,84],[88,107]);
 
-        expect(domain_intersection(a, b)).to.eql(spec_d_create_ranges([10,21],[29,38],[54,67],[77,78],[84,84],[88,100]));
+        expect(domain_intersection(a, b)).to.eql(specDomainCreateRanges([10,21],[29,38],[54,67],[77,78],[84,84],[88,100]));
       });
 
       it('should divide and conquer some random tests 2', function() {
-        let a = spec_d_create_ranges([17, 23], [37, 78], [85, 104]);
-        let b = spec_d_create_ranges([6,25],[47,56],[58,60],[64,67],[83,103]);
+        let a = specDomainCreateRanges([17, 23], [37, 78], [85, 104]);
+        let b = specDomainCreateRanges([6,25],[47,56],[58,60],[64,67],[83,103]);
 
-        expect(domain_intersection(a, b)).to.eql(spec_d_create_ranges([17,23],[47,56],[58,60],[64,67],[85,103]));
+        expect(domain_intersection(a, b)).to.eql(specDomainCreateRanges([17,23],[47,56],[58,60],[64,67],[85,103]));
       });
 
       it('should divide and conquer some random tests 3', function() {
-        let a = spec_d_create_ranges([9,36],[54,66],[74,77],[84,96]);
-        let b = spec_d_create_range(1, 75);
+        let a = specDomainCreateRanges([9,36],[54,66],[74,77],[84,96]);
+        let b = specDomainCreateRange(1, 75);
 
-        expect(domain_intersection(a, b)).to.eql(spec_d_create_ranges([9,36],[54,66],[74,75]));
+        expect(domain_intersection(a, b)).to.eql(specDomainCreateRanges([9,36],[54,66],[74,75]));
       });
     });
   });
@@ -772,36 +786,36 @@ describe('domain.spec', function() {
     });
 
     it('should return false unconditionally if domain lengths are unequal', function() {
-      expect(domain_equal([], spec_d_create_range(1, 10))).to.equal(false);
-      expect(domain_equal(spec_d_create_range(1, 10), [])).to.equal(false);
-      expect(domain_equal(spec_d_create_ranges([1, 1], [10, 10]), spec_d_create_range(1, 1))).to.equal(false);
+      expect(domain_equal([], specDomainCreateRange(1, 10))).to.equal(false);
+      expect(domain_equal(specDomainCreateRange(1, 10), [])).to.equal(false);
+      expect(domain_equal(specDomainCreateRanges([1, 1], [10, 10]), specDomainCreateRange(1, 1))).to.equal(false);
     });
 
     it('should be able to compare single element domains', function() {
-      expect(domain_equal(spec_d_create_range(32, 84), spec_d_create_range(32, 84))).to.equal(true);
+      expect(domain_equal(specDomainCreateRange(32, 84), specDomainCreateRange(32, 84))).to.equal(true);
     });
 
     it('should return true for same reference', function() {
-      let domain = spec_d_create_range(32, 84);
+      let domain = specDomainCreateRange(32, 84);
 
       expect(domain_equal(domain, domain)).to.equal(true);
     });
 
     it('should reject if any bound is different', function() {
-      expect(domain_equal(spec_d_create_range(1, 84), spec_d_create_range(32, 84))).to.equal(false);
-      expect(domain_equal(spec_d_create_range(1, 84), spec_d_create_range(1, 34))).to.equal(false);
-      expect(domain_equal(spec_d_create_range(32, 100), spec_d_create_range(132, 184))).to.equal(false);
+      expect(domain_equal(specDomainCreateRange(1, 84), specDomainCreateRange(32, 84))).to.equal(false);
+      expect(domain_equal(specDomainCreateRange(1, 84), specDomainCreateRange(1, 34))).to.equal(false);
+      expect(domain_equal(specDomainCreateRange(32, 100), specDomainCreateRange(132, 184))).to.equal(false);
     });
 
     it('should be able to deep comparison accept', function() {
-      let A = spec_d_create_ranges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
-      let B = spec_d_create_ranges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
+      let A = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
+      let B = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
       expect(domain_equal(A, B)).to.equal(true);
     });
 
     it('should be able to deep comparison reject', function() {
-      let A = spec_d_create_ranges([1,1],[3,21],[26,39],[54,67],[70,84],[88,107]);
-      let B = spec_d_create_ranges([1,1],[3,21],[25,38],[54,67],[70,84],[88,107]);
+      let A = specDomainCreateRanges([1,1],[3,21],[26,39],[54,67],[70,84],[88,107]);
+      let B = specDomainCreateRanges([1,1],[3,21],[25,38],[54,67],[70,84],[88,107]);
 
       expect(domain_equal(A, B)).to.equal(false);
     });
@@ -819,59 +833,59 @@ describe('domain.spec', function() {
     });
 
     it('should accept an empty array', function() {
-      expect(domain_complement([])).to.eql(spec_d_create_ranges([0, SUP]));
+      expect(domain_complement([])).to.eql(specDomainCreateRanges([0, SUP]));
     });
 
     it('should invert a domain', function() {
-      let A = spec_d_create_ranges([5, 10], [100, 200]);
-      let E = spec_d_create_ranges([0,4],[11,99],[201,SUP]);
+      let A = specDomainCreateRanges([5, 10], [100, 200]);
+      let E = specDomainCreateRanges([0,4],[11,99],[201,SUP]);
 
       expect(domain_complement(A)).to.eql(E);
     });
 
     it('should handle domains starting at 0 properly', function() {
-      let A = spec_d_create_range(0, 100);
-      let E = spec_d_create_ranges([101, SUP]);
+      let A = specDomainCreateRange(0, 100);
+      let E = specDomainCreateRanges([101, SUP]);
 
       expect(domain_complement(A)).to.eql(E);
     });
 
     it('should handle domains ending at SUP properly', function() {
-      let A = spec_d_create_ranges([100, SUP]);
-      let E = spec_d_create_range(0, 99);
+      let A = specDomainCreateRanges([100, SUP]);
+      let E = specDomainCreateRange(0, 99);
 
       expect(domain_complement(A)).to.eql(E);
     });
 
     it('should handle domains starting at 0 and ending at SUP properly', function() {
-      let A = spec_d_create_ranges([0, 500], [600, 900], [1000, SUP]);
-      let E = spec_d_create_ranges([501, 599], [901, 999]);
+      let A = specDomainCreateRanges([0, 500], [600, 900], [1000, SUP]);
+      let E = specDomainCreateRanges([501, 599], [901, 999]);
 
       expect(domain_complement(A)).to.eql(E)
     });
 
     it('should add 0 if starting at 1', function() {
-      let A = spec_d_create_range(1, 100);
-      let E = spec_d_create_ranges([0,0],[101, SUP]);
+      let A = specDomainCreateRange(1, 100);
+      let E = specDomainCreateRanges([0,0],[101, SUP]);
 
       expect(domain_complement(A)).to.eql(E);
     });
 
     it('should add SUP if ending at SUP-1', function() {
-      let A = spec_d_create_range(100, SUP-1);
-      let E = spec_d_create_ranges([0, 99], [SUP, SUP]);
+      let A = specDomainCreateRange(100, SUP-1);
+      let E = specDomainCreateRanges([0, 99], [SUP, SUP]);
 
       expect(domain_complement(A)).to.eql(E);
     });
 
     it('should return a fresh array', function() {
-      let A = spec_d_create_ranges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
+      let A = specDomainCreateRanges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
 
       expect(domain_complement(A)).to.not.equal(A);
     });
 
     it('should not change the input domain', function() {
-      let A = spec_d_create_ranges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
+      let A = specDomainCreateRanges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
       let E = A.slice(0);
 
       domain_complement(A);
@@ -880,7 +894,7 @@ describe('domain.spec', function() {
     });
 
     it('should return same value when applied twice', function() {
-      let A = spec_d_create_ranges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
+      let A = specDomainCreateRanges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
       let E = A.slice(0);
 
       expect(domain_complement(domain_complement(A))).to.eql(E);
@@ -906,7 +920,7 @@ describe('domain.spec', function() {
 
     it('should not change anything if left domain is empty', function() {
       let a = [];
-      let b = spec_d_create_ranges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
+      let b = specDomainCreateRanges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
       let a_clone = a.slice(0);
       let b_clone = b.slice(0);
 
@@ -916,7 +930,7 @@ describe('domain.spec', function() {
     });
 
     it('should not change anything if right domain is empty', function() {
-      let a = spec_d_create_ranges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
+      let a = specDomainCreateRanges([10,23],[29,38],[49,49],[54,68],[77,78],[84,100]);
       let b = [];
       let a_clone = a.slice(0);
       let b_clone = b.slice(0);
@@ -927,51 +941,51 @@ describe('domain.spec', function() {
     });
 
     it('should close gaps in right domain of len of only range in left domain', function() {
-      let a = spec_d_create_range(10, 20); // note: len is 11 because ranges are inclusive
-      let b = spec_d_create_ranges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
+      let a = specDomainCreateRange(10, 20); // note: len is 11 because ranges are inclusive
+      let b = specDomainCreateRanges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
 
       expect(domain_close_gaps_inline(a, b)).to.eql(undefined);
-      expect(a).to.eql(spec_d_create_range(10, 20)); // had no gaps to close
-      expect(b).to.eql(spec_d_create_ranges([100, 200], [300, 400]));
+      expect(a).to.eql(specDomainCreateRange(10, 20)); // had no gaps to close
+      expect(b).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
     });
 
     it('should not close bigger gaps', function() {
-      let a = spec_d_create_range(10, 20); // note: len is 11 because ranges are inclusive
-      let b = spec_d_create_ranges([300, 310], [322, 400]); // gap is 12
+      let a = specDomainCreateRange(10, 20); // note: len is 11 because ranges are inclusive
+      let b = specDomainCreateRanges([300, 310], [322, 400]); // gap is 12
 
       expect(domain_close_gaps_inline(a, b)).to.eql(undefined);
-      expect(a).to.eql(spec_d_create_range(10, 20));
-      expect(b).to.eql(spec_d_create_ranges([300, 310], [322, 400]));
+      expect(a).to.eql(specDomainCreateRange(10, 20));
+      expect(b).to.eql(specDomainCreateRanges([300, 310], [322, 400]));
     });
 
     it('should close gaps in left domain of len of only range in right domain', function() {
-      let a = spec_d_create_ranges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
-      let b = spec_d_create_range(10, 20); // note: len is 11 because ranges are inclusive
+      let a = specDomainCreateRanges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
+      let b = specDomainCreateRange(10, 20); // note: len is 11 because ranges are inclusive
 
       expect(domain_close_gaps_inline(a, b)).to.eql(undefined);
-      expect(a).to.eql(spec_d_create_ranges([100, 200], [300, 400]));
-      expect(b).to.eql(spec_d_create_range(10, 20)); // had no gaps to close
+      expect(a).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
+      expect(b).to.eql(specDomainCreateRange(10, 20)); // had no gaps to close
     });
 
     it('should close gaps in left and right', function() {
-      let a = spec_d_create_ranges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
-      let b = spec_d_create_range(10, 20); // note: len is 11 because ranges are inclusive
+      let a = specDomainCreateRanges([100, 110], [120, 200], [300, 310], [321, 400]); // both gaps should be closed
+      let b = specDomainCreateRange(10, 20); // note: len is 11 because ranges are inclusive
 
       expect(domain_close_gaps_inline(a, b)).to.eql(undefined);
-      expect(a).to.eql(spec_d_create_ranges([100, 200], [300, 400]));
-      expect(b).to.eql(spec_d_create_range(10, 20)); // had no gaps to close
+      expect(a).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
+      expect(b).to.eql(specDomainCreateRange(10, 20)); // had no gaps to close
     });
 
     return it('should revisit domains after one (double) cycle if min size grew', function() {
-      let a = spec_d_create_ranges([1,2],[4,5],[8,900]);
-      let b = spec_d_create_ranges([1,2],[4,5],[8,900]);
+      let a = specDomainCreateRanges([1,2],[4,5],[8,900]);
+      let b = specDomainCreateRanges([1,2],[4,5],[8,900]);
 
       expect(domain_close_gaps_inline(a, b)).to.eql(undefined);
       // first min size is 2, so 1~2..4~5 is closed but not 4~5-8~900,
       // then min size becomes 5 and 1~5..8~900 is closed.
       // (that holds both ways) so we end up with 1~900
-      expect(a).to.eql(spec_d_create_range(1, 900));
-      expect(b).to.eql(spec_d_create_range(1, 900));
+      expect(a).to.eql(specDomainCreateRange(1, 900));
+      expect(b).to.eql(specDomainCreateRange(1, 900));
     });
   });
 
@@ -1002,25 +1016,25 @@ describe('domain.spec', function() {
     });
 
     it('should add two ranges', function() {
-      let A = spec_d_create_range(5, 10);
-      let B = spec_d_create_range(50, 60);
-      let E = spec_d_create_range(55, 70);
+      let A = specDomainCreateRange(5, 10);
+      let B = specDomainCreateRange(50, 60);
+      let E = specDomainCreateRange(55, 70);
 
       expect(domain_plus(A, B)).to.eql(E);
     });
 
     it('should add two domains', function() {
-      let A = spec_d_create_ranges([5, 10], [20, 35]);
-      let B = spec_d_create_ranges([50, 60], [110, 128]);
-      let E = spec_d_create_ranges([55, 95], [115, 163]);
+      let A = specDomainCreateRanges([5, 10], [20, 35]);
+      let B = specDomainCreateRanges([50, 60], [110, 128]);
+      let E = specDomainCreateRanges([55, 95], [115, 163]);
 
       expect(domain_plus(A, B)).to.eql(E);
     });
 
     it('should add two domains', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_ranges([0, 2], [4, 34]);
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRanges([0, 2], [4, 34]);
 
       expect(domain_plus(A, B)).to.eql(E);
     });
@@ -1051,32 +1065,32 @@ describe('domain.spec', function() {
 
     it('should return empty domain if one is empty', function() {
 
-      let a = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
+      let a = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
       expect(domain_mul((a.slice(0)), [])).to.eql([]);
       expect(domain_mul([], (a.slice(0)))).to.eql([]);
       expect(domain_mul(a, [])).to.not.equal(a);
     });
 
     it('should multiply two ranges', function() {
-      let A = spec_d_create_range(5, 10);
-      let B = spec_d_create_range(50, 60);
-      let E = spec_d_create_range(250, 600);
+      let A = specDomainCreateRange(5, 10);
+      let B = specDomainCreateRange(50, 60);
+      let E = specDomainCreateRange(250, 600);
 
       expect(domain_mul(A, B)).to.eql(E);
     });
 
     it('should multiply two domains', function() {
-      let A = spec_d_create_ranges([5, 10], [20, 35]);
-      let B = spec_d_create_ranges([50, 60], [110, 128]);
-      let E = spec_d_create_ranges([250, 2100], [2200, 4480]);
+      let A = specDomainCreateRanges([5, 10], [20, 35]);
+      let B = specDomainCreateRanges([50, 60], [110, 128]);
+      let E = specDomainCreateRanges([250, 2100], [2200, 4480]);
 
       expect(domain_mul(A, B)).to.eql(E);
     });
 
     it('should multiply two domains', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_ranges([0, 204], [225, 289]);
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRanges([0, 204], [225, 289]);
 
       expect(domain_mul(A, B)).to.eql(E);
     });
@@ -1109,7 +1123,7 @@ describe('domain.spec', function() {
     });
 
     it('should return empty domain if one is empty', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
+      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
 
       expect(domain_minus((A.slice(0)), [])).to.eql([]);
       expect(domain_minus([], (A.slice(0)))).to.eql([]);
@@ -1117,23 +1131,23 @@ describe('domain.spec', function() {
     });
 
     it('should subtract one range by another', function() {
-      let A = spec_d_create_range(5, 10);
-      let B = spec_d_create_range(50, 60);
+      let A = specDomainCreateRange(5, 10);
+      let B = specDomainCreateRange(50, 60);
 
       expect(domain_minus(A, B)).to.eql([]);
     });
 
     it('should subtract one domain by another', function() {
-      let A = spec_d_create_ranges([5, 10], [20, 35]);
-      let B = spec_d_create_ranges([50, 60], [110, 128]);
+      let A = specDomainCreateRanges([5, 10], [20, 35]);
+      let B = specDomainCreateRanges([50, 60], [110, 128]);
 
       expect(domain_minus(A, B)).to.eql([]);
     });
 
     it('should multiply one domain by another', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_range(0, 17);
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRange(0, 17);
 
       expect(domain_minus(A, B)).to.eql(E);
     });
@@ -1167,7 +1181,7 @@ describe('domain.spec', function() {
     });
 
     it('should return empty domain if one is empty', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
+      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
 
       expect(domain_divby((A.slice(0)), [])).to.eql([]);
       expect(domain_divby([], (A.slice(0)))).to.eql([]);
@@ -1175,49 +1189,49 @@ describe('domain.spec', function() {
     });
 
     it('should divide one range from another', function() {
-      let A = spec_d_create_range(50, 60);
-      let B = spec_d_create_range(5, 10);
-      let E = spec_d_create_range(5, 12);
+      let A = specDomainCreateRange(50, 60);
+      let B = specDomainCreateRange(5, 10);
+      let E = specDomainCreateRange(5, 12);
 
       expect(domain_divby(A, B)).to.eql(E);
     });
 
     it('should divide one domain from another; floored', function() {
-      let A = spec_d_create_ranges([5, 10], [20, 35]);
-      let b = spec_d_create_ranges([50, 60], [110, 128]);
-      let E = spec_d_create_range(0, 0);
+      let A = specDomainCreateRanges([5, 10], [20, 35]);
+      let b = specDomainCreateRanges([50, 60], [110, 128]);
+      let E = specDomainCreateRange(0, 0);
 
       expect(domain_divby(A, b, FLOOR_FRACTIONS)).to.eql(E); // would be [0.0390625, 0.7] which gets floored to [0, 0.7] so [0,0]
     });
 
     it('should divide one domain from another (2); floored', function() {
-      let A = spec_d_create_ranges([1, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([1, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_ranges([0, 12], [15, 17]);
+      let A = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRanges([0, 12], [15, 17]);
 
       expect(domain_divby(A, B, FLOOR_FRACTIONS)).to.eql(E);
     });
 
     it('should divide one domain from another; integer', function() {
-      let A = spec_d_create_ranges([5, 10], [20, 35]);
-      let B = spec_d_create_ranges([50, 60], [110, 128]);
+      let A = specDomainCreateRanges([5, 10], [20, 35]);
+      let B = specDomainCreateRanges([50, 60], [110, 128]);
       let E = [];
 
       expect(domain_divby(A, B, CEIL_FRACTIONS)).to.eql(E); // would be [0.0390625, 0.7] but there are no ints in between that so its empty
     });
 
     it('should divide one domain from another (2); integer', function() {
-      let A = spec_d_create_ranges([1, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([1, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_ranges([1, 12], [15, 17]);
+      let A = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRanges([1, 12], [15, 17]);
 
       expect(domain_divby(A, B, CEIL_FRACTIONS)).to.eql(E);
     });
 
     it('divide by zero should blow up', function() {
-      let A = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let B = spec_d_create_ranges([0, 1], [4, 12], [15, 17]);
-      let E = spec_d_create_ranges([0, SUP]);
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let E = specDomainCreateRanges([0, SUP]);
 
       expect(domain_divby(A, B)).to.eql(E);
     });
@@ -1241,61 +1255,61 @@ describe('domain.spec', function() {
     });
   });
 
-  describe('domain_is_solved', function() {
+  describe('domain_isSolved', function() {
 
     it('should exist', function() {
-      expect(domain_is_solved).to.be.a('function');
+      expect(domain_isSolved).to.be.a('function');
     });
 
     it('should return true if a domain covers exactly one value', function() {
-      expect(domain_is_solved(spec_d_create_value(0))).to.equal(true);
-      expect(domain_is_solved(spec_d_create_value(1))).to.equal(true);
-      expect(domain_is_solved(spec_d_create_value(18))).to.equal(true);
-      expect(domain_is_solved(spec_d_create_value(SUP))).to.equal(true);
+      expect(domain_isSolved(specDomainCreateValue(0))).to.equal(true);
+      expect(domain_isSolved(specDomainCreateValue(1))).to.equal(true);
+      expect(domain_isSolved(specDomainCreateValue(18))).to.equal(true);
+      expect(domain_isSolved(specDomainCreateValue(SUP))).to.equal(true);
     });
 
     it('should return false if a domain is empty', function() {
-      expect(domain_is_solved([])).to.equal(false);
+      expect(domain_isSolved([])).to.equal(false);
     });
 
     it('should return false if a domain covers more than one value', function() {
-      expect(domain_is_solved(spec_d_create_range(0, 1))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_range(18, 20))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_range(50, SUP))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_range(0, SUP))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_ranges([0, 1], [5, 10]))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_ranges([0, 1], [5, SUP]))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_ranges([5, 8], [50, SUP]))).to.equal(false);
-      expect(domain_is_solved(spec_d_create_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRange(0, 1))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRange(18, 20))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRange(50, SUP))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRange(0, SUP))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRanges([0, 1], [5, 10]))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(false);
+      expect(domain_isSolved(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
     });
   });
 
-  describe('domain_is_rejected', function() {
+  describe('domain_isRejected', function() {
 
     it('should exist', function() {
-      expect(domain_is_rejected).to.be.a('function');
+      expect(domain_isRejected).to.be.a('function');
     });
 
     it('should return true if a domain is empty', function() {
-      expect(domain_is_rejected([])).to.equal(true);
+      expect(domain_isRejected([])).to.equal(true);
     });
 
     it('should return false if a domain covers exactly one value', function() {
-      expect(domain_is_rejected(spec_d_create_value(0))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_value(1))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_value(18))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_value(SUP))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateValue(0))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateValue(1))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateValue(18))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateValue(SUP))).to.equal(false);
     });
 
     it('should return false if a domain covers more than one value', function() {
-      expect(domain_is_rejected(spec_d_create_range(0, 1))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_range(18, 20))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_range(50, SUP))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_range(0, SUP))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_ranges([0, 1], [5, 10]))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_ranges([0, 1], [5, SUP]))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_ranges([5, 8], [50, SUP]))).to.equal(false);
-      expect(domain_is_rejected(spec_d_create_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRange(0, 1))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRange(18, 20))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRange(50, SUP))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRange(0, SUP))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRanges([0, 1], [5, 10]))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(false);
+      expect(domain_isRejected(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
     });
   });
 
@@ -1310,75 +1324,75 @@ describe('domain.spec', function() {
     });
 
     it('should return true if a domain covers exactly one value', function() {
-      expect(domain_is_determined(spec_d_create_value(0))).to.equal(true);
-      expect(domain_is_determined(spec_d_create_value(1))).to.equal(true);
-      expect(domain_is_determined(spec_d_create_value(18))).to.equal(true);
-      expect(domain_is_determined(spec_d_create_value(SUP))).to.equal(true);
+      expect(domain_is_determined(specDomainCreateValue(0))).to.equal(true);
+      expect(domain_is_determined(specDomainCreateValue(1))).to.equal(true);
+      expect(domain_is_determined(specDomainCreateValue(18))).to.equal(true);
+      expect(domain_is_determined(specDomainCreateValue(SUP))).to.equal(true);
     });
 
     it('should return false if a domain covers more than one value', function() {
-      expect(domain_is_determined(spec_d_create_range(0, 1))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_range(18, 20))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_range(50, SUP))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_range(0, SUP))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_ranges([0, 1], [5, 10]))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_ranges([0, 1], [5, SUP]))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_ranges([5, 8], [50, SUP]))).to.equal(false);
-      expect(domain_is_determined(spec_d_create_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRange(0, 1))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRange(18, 20))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRange(50, SUP))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRange(0, SUP))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRanges([0, 1], [5, 10]))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(false);
+      expect(domain_is_determined(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
     });
   });
 
-  describe('domain_set_to_range_inline', function() {
+  describe('domain_setToRangeInline', function() {
 
     it('should exist', function() {
-      expect(domain_set_to_range_inline).to.be.a('function');
+      expect(domain_setToRangeInline).to.be.a('function');
     });
 
     it('should update a domain to given range', function() {
       let arr = [];
-      domain_set_to_range_inline(arr, 0, 0);
-      expect(arr).to.eql(spec_d_create_range(0, 0));
+      domain_setToRangeInline(arr, 0, 0);
+      expect(arr).to.eql(specDomainCreateRange(0, 0));
 
       arr = [];
-      domain_set_to_range_inline(arr, 0, 1);
-      expect(arr).to.eql(spec_d_create_range(0, 1));
+      domain_setToRangeInline(arr, 0, 1);
+      expect(arr).to.eql(specDomainCreateRange(0, 1));
 
       arr = [];
-      domain_set_to_range_inline(arr, 50, 100);
-      expect(arr).to.eql(spec_d_create_range(50, 100));
+      domain_setToRangeInline(arr, 50, 100);
+      expect(arr).to.eql(specDomainCreateRange(50, 100));
 
       arr = [];
-      domain_set_to_range_inline(arr, 0, SUP);
-      expect(arr).to.eql(spec_d_create_range(0, SUP));
+      domain_setToRangeInline(arr, 0, SUP);
+      expect(arr).to.eql(specDomainCreateRange(0, SUP));
 
       arr = [];
-      domain_set_to_range_inline(arr, SUP, SUP);
-      expect(arr).to.eql(spec_d_create_range(SUP, SUP));
+      domain_setToRangeInline(arr, SUP, SUP);
+      expect(arr).to.eql(specDomainCreateRange(SUP, SUP));
     });
 
     it('should throw for imblalanced ranges', function() {
-      expect(() => domain_set_to_range_inline([], 27, 0)).to.throw();
+      expect(() => domain_setToRangeInline([], 27, 0)).to.throw();
     });
 
     it('should update the array inline', function() {
       let arr = [];
-      domain_set_to_range_inline(arr, 0, 1);
+      domain_setToRangeInline(arr, 0, 1);
 
-      expect(arr).to.eql(spec_d_create_range(0, 1));
+      expect(arr).to.eql(specDomainCreateRange(0, 1));
     });
 
     it('should clobber existing values', function() {
-      let arr = spec_d_create_range(50, 100);
-      domain_set_to_range_inline(arr, 0, 1);
+      let arr = specDomainCreateRange(50, 100);
+      domain_setToRangeInline(arr, 0, 1);
 
-      expect(arr).to.eql(spec_d_create_range(0, 1));
+      expect(arr).to.eql(specDomainCreateRange(0, 1));
     });
 
     it('should ensure the result is one range', function() {
-      let arr = spec_d_create_ranges([50, 100], [150, 200], [300, 500]);
-      domain_set_to_range_inline(arr, 110, 175);
+      let arr = specDomainCreateRanges([50, 100], [150, 200], [300, 500]);
+      domain_setToRangeInline(arr, 110, 175);
 
-      expect(arr).to.eql(spec_d_create_range(110, 175));
+      expect(arr).to.eql(specDomainCreateRange(110, 175));
     });
   });
 
@@ -1484,167 +1498,167 @@ describe('domain.spec', function() {
     });
   });
 
-  describe('domain_remove_gte_inline', function() {
+  describe('domain_removeGteInline', function() {
 
     it('should exist', function() {
-      expect(domain_remove_gte_inline).to.be.a('function');
+      expect(domain_removeGteInline).to.be.a('function');
     });
 
     it('should accept an empty domain', function() {
-      expect(() => domain_remove_gte_inline([], 5)).not.to.throw();
+      expect(() => domain_removeGteInline([], 5)).not.to.throw();
     });
 
     it('should return bool', function() {
-      expect(domain_remove_gte_inline([], 5), 'empty').to.equal(false);
-      expect(domain_remove_gte_inline([0, 10], 5), 'range change').to.equal(true);
-      expect(domain_remove_gte_inline([50, 100], 5), 'range cut').to.equal(true);
+      expect(domain_removeGteInline([], 5), 'empty').to.equal(false);
+      expect(domain_removeGteInline([0, 10], 5), 'range change').to.equal(true);
+      expect(domain_removeGteInline([50, 100], 5), 'range cut').to.equal(true);
     });
 
     it('should trim domain until all values are lt to arg', function() {
-      let domain = spec_d_create_range(100, 200);
-      domain_remove_gte_inline(domain, 150);
+      let domain = specDomainCreateRange(100, 200);
+      domain_removeGteInline(domain, 150);
 
-      expect(domain).to.eql(spec_d_create_range(100, 149));
+      expect(domain).to.eql(specDomainCreateRange(100, 149));
     });
 
     it('should remove excess ranges', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_gte_inline(domain, 150);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeGteInline(domain, 150);
 
-      expect(domain).to.eql(spec_d_create_range(100, 149));
+      expect(domain).to.eql(specDomainCreateRange(100, 149));
     });
 
     it('should not require a range to contain the value', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_gte_inline(domain, 250);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeGteInline(domain, 250);
 
-      expect(domain).to.eql(spec_d_create_range(100, 200));
+      expect(domain).to.eql(specDomainCreateRange(100, 200));
     });
 
     it('should not require a domain to contain value at all', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_gte_inline(domain, 500);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeGteInline(domain, 500);
 
-      expect(domain).to.eql(spec_d_create_ranges([100, 200], [300, 400]));
+      expect(domain).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
     });
 
     it('should be able to empty a single domain', function() {
-      let domain = spec_d_create_range(100, 200);
-      domain_remove_gte_inline(domain, 50);
+      let domain = specDomainCreateRange(100, 200);
+      domain_removeGteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a multi domain', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_gte_inline(domain, 50);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeGteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a domain containing only given value', function() {
-      let domain = spec_d_create_value(50);
-      domain_remove_gte_inline(domain, 50);
+      let domain = specDomainCreateValue(50);
+      domain_removeGteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a domain containing only given value+1', function() {
-      let domain = spec_d_create_value(51);
-      domain_remove_gte_inline(domain, 50);
+      let domain = specDomainCreateValue(51);
+      domain_removeGteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should ignore a domain with only value-1', function() {
-      let domain = spec_d_create_value(49);
-      domain_remove_gte_inline(domain, 50);
+      let domain = specDomainCreateValue(49);
+      domain_removeGteInline(domain, 50);
 
-      expect(domain).to.eql(spec_d_create_value(49));
+      expect(domain).to.eql(specDomainCreateValue(49));
     });
   });
 
-  describe('domain_remove_lte_inline', function() {
+  describe('domain_removeLteInline', function() {
 
     it('should exist', function() {
-      expect(domain_remove_lte_inline).to.a('function');
+      expect(domain_removeLteInline).to.a('function');
     });
 
     it('should accept an empty domain', function() {
-      expect(() => domain_remove_lte_inline([], 5)).not.to.throw();
+      expect(() => domain_removeLteInline([], 5)).not.to.throw();
     });
 
     it('should return bool', function() {
-      expect(domain_remove_lte_inline([], 5), 'empty').to.equal(false);
-      expect(domain_remove_lte_inline([0, 10], 5), 'range change').to.equal(true);
-      expect(domain_remove_lte_inline([50, 100], 500), 'range cut').to.equal(true);
+      expect(domain_removeLteInline([], 5), 'empty').to.equal(false);
+      expect(domain_removeLteInline([0, 10], 5), 'range change').to.equal(true);
+      expect(domain_removeLteInline([50, 100], 500), 'range cut').to.equal(true);
     });
 
     it('should trim domain until all values are gt to arg', function() {
-      let domain = spec_d_create_range(100, 200);
-      domain_remove_lte_inline(domain, 150);
+      let domain = specDomainCreateRange(100, 200);
+      domain_removeLteInline(domain, 150);
 
-      expect(domain).to.eql(spec_d_create_range(151, 200));
+      expect(domain).to.eql(specDomainCreateRange(151, 200));
     });
 
     it('should remove excess ranges', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_lte_inline(domain, 350);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeLteInline(domain, 350);
 
-      expect(domain).to.eql(spec_d_create_range(351, 400));
+      expect(domain).to.eql(specDomainCreateRange(351, 400));
     });
 
     it('should not require a range to contain the value', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_lte_inline(domain, 250);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeLteInline(domain, 250);
 
-      expect(domain).to.eql(spec_d_create_range(300, 400));
+      expect(domain).to.eql(specDomainCreateRange(300, 400));
     });
 
     it('should not require a domain to contain value at all', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_lte_inline(domain, 50);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeLteInline(domain, 50);
 
-      expect(domain).to.eql(spec_d_create_ranges([100, 200], [300, 400]));
+      expect(domain).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
     });
 
     it('should be able to empty a single domain', function() {
-      let domain = spec_d_create_range(100, 200);
-      domain_remove_lte_inline(domain, 250);
+      let domain = specDomainCreateRange(100, 200);
+      domain_removeLteInline(domain, 250);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a multi domain', function() {
-      let domain = spec_d_create_ranges([100, 200], [300, 400]);
-      domain_remove_lte_inline(domain, 450);
+      let domain = specDomainCreateRanges([100, 200], [300, 400]);
+      domain_removeLteInline(domain, 450);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a domain containing only given value', function() {
-      let domain = spec_d_create_value(50);
-      domain_remove_lte_inline(domain, 50);
+      let domain = specDomainCreateValue(50);
+      domain_removeLteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should be able to empty a domain containing only given value-1', function() {
-      let domain = spec_d_create_value(49);
-      domain_remove_lte_inline(domain, 50);
+      let domain = specDomainCreateValue(49);
+      domain_removeLteInline(domain, 50);
 
       expect(domain).to.eql([]);
     });
 
     it('should ignore a domain with only value+1', function() {
-      let domain = spec_d_create_value(51);
-      domain_remove_lte_inline(domain, 50);
+      let domain = specDomainCreateValue(51);
+      domain_removeLteInline(domain, 50);
 
-      expect(domain).to.eql(spec_d_create_value(51));
+      expect(domain).to.eql(specDomainCreateValue(51));
     });
   });
 
-  describe.skip('domain_shares_no_elements', function() {
+  describe.skip('domain_sharesNoElements', function() {
 
   });
 });

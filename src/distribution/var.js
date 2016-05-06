@@ -4,10 +4,10 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_is_undetermined,
-  fdvar_lower_bound,
+  fdvar_isUndetermined,
+  fdvar_lowerBound,
   fdvar_size,
-  fdvar_upper_bound
+  fdvar_upperBound
 } from '../fdvar';
 
 // BODY_START
@@ -44,19 +44,19 @@ function distribution_getNextVar(space, targetVars) {
     case 'naive':
       break;
     case 'size':
-      isBetterVar = _distribution_varByMinSize;
+      isBetterVar = distribution_varByMinSize;
       break;
     case 'min':
-      isBetterVar = _distribution_varByMin;
+      isBetterVar = distribution_varByMin;
       break;
     case 'max':
-      isBetterVar = _distribution_varByMax;
+      isBetterVar = distribution_varByMax;
       break;
     case 'markov':
-      isBetterVar = _distribution_varByMarkov;
+      isBetterVar = distribution_varByMarkov;
       break;
     case 'list':
-      isBetterVar = _distribution_varByList;
+      isBetterVar = distribution_varByList;
       break;
     case 'throw':
       return THROW('not expecting to pick this distributor');
@@ -68,7 +68,7 @@ function distribution_getNextVar(space, targetVars) {
   if (configVarFilter && typeof configVarFilter !== 'function') {
     switch (configVarFilter) {
       case 'unsolved':
-        configVarFilter = fdvar_is_undetermined;
+        configVarFilter = fdvar_isUndetermined;
         break;
       default:
         THROW('unknown var filter', configVarFilter);
@@ -110,28 +110,28 @@ function _distribution_varFindBest(fdvars, names, fitnessFunc, filterFunc, confi
 // preset fitness functions
 //#####
 
-function _distribution_varByMinSize(v1, v2) {
+function distribution_varByMinSize(v1, v2) {
   let n = fdvar_size(v1) - fdvar_size(v2);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
 }
 
-function _distribution_varByMin(v1, v2) {
-  let n = fdvar_lower_bound(v1) - fdvar_lower_bound(v2);
+function distribution_varByMin(v1, v2) {
+  let n = fdvar_lowerBound(v1) - fdvar_lowerBound(v2);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
 }
 
-function _distribution_varByMax(v1, v2) {
-  let n = fdvar_upper_bound(v1) - fdvar_upper_bound(v2);
+function distribution_varByMax(v1, v2) {
+  let n = fdvar_upperBound(v1) - fdvar_upperBound(v2);
   if (n > 0) return BETTER;
   if (n < 0) return WORSE;
   return SAME;
 }
 
-function _distribution_varByMarkov(v1, v2, space, configNextVarFunc) {
+function distribution_varByMarkov(v1, v2, space, configNextVarFunc) {
   // v1 is only, but if so always, better than v2 if v1 is a markov var
   if (space.config.var_dist_options[v1.id] && space.config.var_dist_options[v1.id].distributor_name === 'markov') {
     return BETTER;
@@ -140,10 +140,10 @@ function _distribution_varByMarkov(v1, v2, space, configNextVarFunc) {
     return WORSE;
   }
 
-  return _distribution_varFallback(v1, v2, space, configNextVarFunc.fallback_config);
+  return distribution_varFallback(v1, v2, space, configNextVarFunc.fallback_config);
 }
 
-function _distribution_varByList(v1, v2, space, configNextVarFunc) {
+function distribution_varByList(v1, v2, space, configNextVarFunc) {
   // note: config.priority_hash is compiled by Solver#prepare from given priority_list
   // if in the list, lowest prio can be 1. if not in the list, prio will be undefined
   let hash = configNextVarFunc.priority_hash;
@@ -157,7 +157,7 @@ function _distribution_varByList(v1, v2, space, configNextVarFunc) {
 
   if (!p1 && !p2) {
     // either p1 and p2 both dont exist on the list, or ... well no that's it
-    return _distribution_varFallback(v1, v2, space, configNextVarFunc.fallback_config);
+    return distribution_varFallback(v1, v2, space, configNextVarFunc.fallback_config);
   }
 
   // invert this operation? ("deprioritizing").
@@ -190,7 +190,7 @@ function _distribution_varByList(v1, v2, space, configNextVarFunc) {
   return SAME;
 }
 
-function _distribution_varFallback(v1, v2, space, fallbackConfig) {
+function distribution_varFallback(v1, v2, space, fallbackConfig) {
   if (!fallbackConfig) {
     return SAME;
   }
@@ -216,19 +216,19 @@ function _distribution_varFallback(v1, v2, space, fallbackConfig) {
 
   switch (distName) {
     case 'size':
-      return _distribution_varByMinSize(v1, v2);
+      return distribution_varByMinSize(v1, v2);
       break;
     case 'min':
-      return _distribution_varByMin(v1, v2);
+      return distribution_varByMin(v1, v2);
       break;
     case 'max':
-      return _distribution_varByMax(v1, v2);
+      return distribution_varByMax(v1, v2);
       break;
     case 'markov':
-      return _distribution_varByMarkov(v1, v2, space, fallbackConfig);
+      return distribution_varByMarkov(v1, v2, space, fallbackConfig);
       break;
     case 'list':
-      return _distribution_varByList(v1, v2, space, fallbackConfig);
+      return distribution_varByList(v1, v2, space, fallbackConfig);
       break;
     case 'throw':
       return THROW('nope');
@@ -239,23 +239,26 @@ function _distribution_varFallback(v1, v2, space, fallbackConfig) {
   THROW('should not reach here');
 }
 
+function distribution_varThrow(s) {
+  return THROW(s);
+}
+
 // BODY_STOP
 
-export default {
+export default distribution_getNextVar;
+export {
   BETTER,
   SAME,
   WORSE,
 
-  distribution_getNextVar,
-
   // __REMOVE_BELOW_FOR_DIST__
   // for testing
-  _distribution_varByList,
-  _distribution_varByMax,
-  _distribution_varByMarkov,
-  _distribution_varByMin,
-  _distribution_varByMinSize,
-  _distribution_varThrow(s) { return THROW(s); },
-  _distribution_varFallback
+  distribution_varByList,
+  distribution_varByMax,
+  distribution_varByMarkov,
+  distribution_varByMin,
+  distribution_varByMinSize,
+  distribution_varThrow,
+  distribution_varFallback,
   // __REMOVE_ABOVE_FOR_DIST__
 };

@@ -1,47 +1,36 @@
 import setup from '../../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_one,
-  spec_d_create_range,
-  spec_d_create_ranges,
-  spec_d_create_zero,
+  specDomainCreateBool,
+  specDomainCreateOne,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  specDomainCreateZero,
 } from '../../fixtures/domain.spec';
-import finitedomain from '../../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
+import {
   SOMETHING_CHANGED,
   ZERO_CHANGES,
-} = finitedomain.helpers;
+} from '../../../src/helpers';
 
-const {
+import {
   fdvar_create,
-} = finitedomain.fdvar;
-
-const {
-  Solver
-} = finitedomain;
-
-const {
-  propagator_reified_step_bare,
-} = finitedomain.propagators.reified;
+} from '../../../src/fdvar';
+import Solver from '../../../src/solver';
+import propagator_reifiedStepBare from '../../../src/propagators/reified';
 
 describe('propagators/reified.spec', function() {
 
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
-
   // constants (tests must copy args)
-  let zero = spec_d_create_zero();
-  let one = spec_d_create_one();
-  let bool = spec_d_create_bool();
+  let zero = specDomainCreateZero();
+  let one = specDomainCreateOne();
+  let bool = specDomainCreateBool();
 
   it('should exist', function() {
-    expect(propagator_reified_step_bare).to.be.a('function');
+    expect(propagator_reifiedStepBare).to.be.a('function');
   });
 
   describe('enforce=false', function() {
@@ -59,7 +48,7 @@ describe('propagators/reified.spec', function() {
           }
         };
 
-        let out = propagator_reified_step_bare(space, 'A', 'B', 'bool', op, invop);
+        let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
 
         expect(out, 'should reflect changed state').to.equal(expected_out);
         expect(space.vars.A.dom, 'A should be unchanged').to.eql(A_in);
@@ -90,17 +79,17 @@ describe('propagators/reified.spec', function() {
     });
 
     describe('eq/neq with non-bools', function() {
-      riftest(spec_d_create_range(0, 5), spec_d_create_range(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
-      riftest(spec_d_create_range(0, 5), spec_d_create_range(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
-      riftest(spec_d_create_range(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-      riftest(spec_d_create_range(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq');
+      riftest(specDomainCreateRange(0, 5), specDomainCreateRange(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
+      riftest(specDomainCreateRange(0, 5), specDomainCreateRange(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
+      riftest(specDomainCreateRange(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
+      riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq');
     });
   });
 
   describe('solver test', function() {
 
     it('a == (b == c)', function() {
-      let solver = new Solver({defaultDomain: spec_d_create_bool()});
+      let solver = new Solver({defaultDomain: specDomainCreateBool()});
 
       solver.decl('A');
       solver.decl('B');

@@ -1443,8 +1443,8 @@ function domain_createSup() {
  * @returns {$domain}
  */
 function domain_createValue(value) {
-  ASSERT(value >= SUB, 'domain_create_value: value should be within valid range');
-  ASSERT(value <= SUP, 'domain_create_value: value should be within valid range');
+  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
+  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
   return [value, value];
 }
 

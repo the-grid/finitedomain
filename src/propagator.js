@@ -4,8 +4,8 @@ import {
 } from './helpers';
 
 import {
-  config_add_propagator,
-  config_add_var_anon
+  config_addPropagator,
+  config_addVarAnon
 } from './config';
 
 // BODY_START
@@ -72,25 +72,25 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
   }
 
   if (!boolName) {
-    boolName = config_add_var_anon(config, 0, 1);
+    boolName = config_addVarAnon(config, 0, 1);
   }
   // TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
-  //else if fdvar_constrain(space.vars[boolName], domain_create_bool()) is REJECTED
+  //else if fdvar_constrain(space.vars[boolName], domain_createBool()) is REJECTED
   //  THROW 'boolean var should start with a domain containing zero, one, or both'
 
   if (typeof leftVarName === 'number') {
-    leftVarName = config_add_var_anon(config, leftVarName);
+    leftVarName = config_addVarAnon(config, leftVarName);
     if (typeof rightVarName === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof rightVarName === 'number') {
-    rightVarName = config_add_var_anon(config, rightVarName);
+    rightVarName = config_addVarAnon(config, rightVarName);
     if (typeof leftVarName === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['reified', [leftVarName, rightVarName, boolName], opname, nopname]);
+  config_addPropagator(config, ['reified', [leftVarName, rightVarName, boolName], opname, nopname]);
   return boolName;
 }
 
@@ -101,7 +101,7 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
  */
 function propagator_addCallback(config, varNames, callback) {
   ASSERT(config._class === 'config');
-  config_add_propagator(config, ['callback', varNames, callback]);
+  config_addPropagator(config, ['callback', varNames, callback]);
 }
 
 /**
@@ -122,12 +122,12 @@ function propagator_addEq(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    let t = config_add_var_anon(config, v2name);
+    let t = config_addVarAnon(config, v2name);
     // swap such that v1 is the solved var. order is irrelevant to eq itself.
     v2name = v1name;
     v1name = t;
@@ -136,7 +136,7 @@ function propagator_addEq(config, v1name, v2name) {
     }
   }
 
-  config_add_propagator(config, ['eq', [v1name, v2name]]);
+  config_addPropagator(config, ['eq', [v1name, v2name]]);
   // return either operand var. this allows you to chain eqs -> .eq(.eq(A, B), C)
   // doesnt really matter which operand since they should be equal
   // (though you should probably try to make v1 solved the fastest)
@@ -157,18 +157,18 @@ function propagator_addLt(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['lt', [v1name, v2name]]);
+  config_addPropagator(config, ['lt', [v1name, v2name]]);
 }
 
 /**
@@ -196,18 +196,18 @@ function propagator_addLte(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['lte', [v1name, v2name]]);
+  config_addPropagator(config, ['lte', [v1name, v2name]]);
 }
 
 /**
@@ -223,26 +223,26 @@ function propagator_addMul(config, v1name, v2name, resultName) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof resultName === 'undefined') {
-    resultName = config_add_var_anon(config);
+    resultName = config_addVarAnon(config);
   } else if (typeof resultName === 'number') {
-    resultName = config_add_var_anon(config, resultName);
+    resultName = config_addVarAnon(config, resultName);
   } else if (typeof resultName !== 'string') {
     THROW(`expecting result_name to be absent or a number or string: \`${resultName}\``);
   }
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['mul', [v1name, v2name, resultName]]);
+  config_addPropagator(config, ['mul', [v1name, v2name, resultName]]);
   return resultName;
 }
 
@@ -259,26 +259,26 @@ function propagator_addDiv(config, v1name, v2name, resultName) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof resultName === 'undefined') {
-    resultName = config_add_var_anon(config);
+    resultName = config_addVarAnon(config);
   } else if (typeof resultName === 'number') {
-    resultName = config_add_var_anon(config, resultName);
+    resultName = config_addVarAnon(config, resultName);
   } else if (typeof resultName !== 'string') {
     THROW(`expecting result_name to be absent or a number or string: \`${resultName}\``);
   }
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['div', [v1name, v2name, resultName]]);
+  config_addPropagator(config, ['div', [v1name, v2name, resultName]]);
   return resultName;
 }
 
@@ -307,18 +307,18 @@ function propagator_addNeq(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
-  config_add_propagator(config, ['neq', [v1name, v2name]]);
+  config_addPropagator(config, ['neq', [v1name, v2name]]);
 }
 
 /**
@@ -332,9 +332,7 @@ function propagator_addDistinct(config, varNames) {
   ASSERT(config._class === 'config');
   for (let i = 0; i < varNames.length; i++) {
     let varNameI = varNames[i];
-    let iterable = __range__(0, i, false);
-    for (let k = 0; k < iterable.length; k++) {
-      let j = iterable[k];
+    for (let j = 0; j < i; ++j) {
       propagator_addNeq(config, varNameI, varNames[j]);
     }
   }
@@ -349,35 +347,35 @@ function propagator_addDistinct(config, varNames) {
  * @param {string} sumName
  * @returns {string}
  */
-function _propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2name, sumName) {
+function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2name, sumName) {
   ASSERT(config._class === 'config');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
   ASSERT(typeof sumName === 'string' || typeof sumName === 'number' || typeof sumName === 'undefined', 'expecting sumName to be number, string, or undefined', sumName);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
   if (typeof sumName === 'undefined') {
-    sumName = config_add_var_anon(config);
+    sumName = config_addVarAnon(config);
   } else if (typeof sumName === 'number') {
-    sumName = config_add_var_anon(config, sumName);
+    sumName = config_addVarAnon(config, sumName);
   } else if (typeof sumName !== 'string') {
     THROW(`expecting sumname to be absent or a number or string: \`${sumName}\``);
   }
 
-  _propagator_addRing(config, v1name, v2name, sumName, targetOpName);
-  _propagator_addRing(config, sumName, v2name, v1name, invOpName);
-  _propagator_addRing(config, sumName, v1name, v2name, invOpName);
+  propagator_addRing(config, v1name, v2name, sumName, targetOpName);
+  propagator_addRing(config, sumName, v2name, v1name, invOpName);
+  propagator_addRing(config, sumName, v1name, v2name, invOpName);
 
   return sumName;
 }
@@ -389,12 +387,12 @@ function _propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v
  * @param {string} C
  * @param {string} op
  */
-function _propagator_addRing(config, A, B, C, op) {
+function propagator_addRing(config, A, B, C, op) {
   ASSERT(config._class === 'config');
   ASSERT(typeof A === 'string', 'number/undefined vars should be handled by caller');
   ASSERT(typeof B === 'string', 'number/undefined vars should be handled by caller');
   ASSERT(typeof C === 'string', 'number/undefined vars should be handled by caller');
-  config_add_propagator(config, ['ring', [A, B, C], op]);
+  config_addPropagator(config, ['ring', [A, B, C], op]);
 }
 
 /**
@@ -407,7 +405,7 @@ function _propagator_addRing(config, A, B, C, op) {
  * @param {string} sumname
  */
 function propagator_addPlus(config, v1name, v2name, sumname) {
-  return _propagator_addRingPlusOrMul(config, 'plus', 'min', v1name, v2name, sumname);
+  return propagator_addRingPlusOrMul(config, 'plus', 'min', v1name, v2name, sumname);
 }
 
 /**
@@ -424,26 +422,26 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
   ASSERT(typeof resultVar === 'string' || typeof resultVar === 'number' || typeof resultVar === 'undefined', 'expecting resultVar to be number, string, or undefined', resultVar);
 
   if (typeof v1name === 'number') {
-    v1name = config_add_var_anon(config, v1name);
+    v1name = config_addVarAnon(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_add_var_anon(config, v2name);
+    v2name = config_addVarAnon(config, v2name);
     if (typeof v1name === 'number') {
       THROW('must pass in at least one var name');
     }
   }
 
   if (typeof resultVar === 'undefined') {
-    resultVar = config_add_var_anon(config);
+    resultVar = config_addVarAnon(config);
   } else if (typeof resultVar === 'number') {
-    resultVar = config_add_var_anon(config, resultVar);
+    resultVar = config_addVarAnon(config, resultVar);
   } else if (typeof resultVar !== 'string') {
     THROW(`expecting result_var to be absent or a number or string: \`${resultVar}\``);
   }
 
-  config_add_propagator(config, ['min', [v1name, v2name, resultVar]]);
+  config_addPropagator(config, ['min', [v1name, v2name, resultVar]]);
   return resultVar;
 }
 
@@ -458,7 +456,7 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
  * @returns {string} (iirc)
  */
 function propagator_addRingMul(config, v1name, v2name, prodName) {
-  return _propagator_addRingPlusOrMul(config, 'mul', 'div', v1name, v2name, prodName);
+  return propagator_addRingPlusOrMul(config, 'mul', 'div', v1name, v2name, prodName);
 }
 
 /**
@@ -476,7 +474,7 @@ function propagator_addSum(config, vars, resultVarName) {
   ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
-    resultVarName = config_add_var_anon(config);
+    resultVarName = config_addVarAnon(config);
   }
 
   let len = vars.length;
@@ -497,13 +495,13 @@ function propagator_addSum(config, vars, resultVarName) {
 
       let n = Math.floor(vars.length / 2);
       if (n > 1) {
-        var t1 = config_add_var_anon(config);
+        var t1 = config_addVarAnon(config);
         propagator_addSum(config, vars.slice(0, n), t1);
       } else {
         var t1 = vars[0];
       }
 
-      let t2 = config_add_var_anon(config);
+      let t2 = config_addVarAnon(config);
 
       propagator_addSum(config, vars.slice(n), t2);
       propagator_addPlus(config, t1, t2, resultVarName);
@@ -525,7 +523,7 @@ function propagator_addProduct(config, vars, resultVarName) {
   ASSERT(config._class === 'config');
 
   if (!resultVarName) {
-    resultVarName = config_add_var_anon(config);
+    resultVarName = config_addVarAnon(config);
   }
 
   switch (vars.length) {
@@ -544,12 +542,12 @@ function propagator_addProduct(config, vars, resultVarName) {
     default:
       let n = Math.floor(vars.length / 2);
       if (n > 1) {
-        var t1 = config_add_var_anon(config);
+        var t1 = config_addVarAnon(config);
         propagator_addProduct(config, vars.slice(0, n), t1);
       } else {
         var t1 = vars[0];
       }
-      let t2 = config_add_var_anon(config);
+      let t2 = config_addVarAnon(config);
 
       propagator_addProduct(config, vars.slice(n), t2);
       propagator_addRingMul(config, t1, t2, resultVarName);
@@ -565,17 +563,7 @@ function propagator_addProduct(config, vars, resultVarName) {
 function propagator_addMarkov(config, varName) {
   ASSERT(config._class === 'config');
   ASSERT(typeof varName === 'string');
-  config_add_propagator(config, ['markov', [varName]]);
-}
-
-function __range__(left, right, inclusive) {
-  let range = [];
-  let ascending = left < right;
-  let end = !inclusive ? right : ascending ? right + 1 : right - 1;
-  for (let i = left; ascending ? i < end : i > end; ascending ? i++ : i--) {
-    range.push(i);
-  }
-  return range;
+  config_addPropagator(config, ['markov', [varName]]);
 }
 
 // BODY_STOP
@@ -600,6 +588,6 @@ export default {
   propagator_addSum,
 
   // for testing
-  _propagator_addRing,
-  _propagator_addRingPlusOrMul
+  propagator_addRing,
+  propagator_addRingPlusOrMul,
 };

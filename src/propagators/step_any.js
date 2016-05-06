@@ -11,36 +11,16 @@ import {
   domain_mul,
 } from '../domain';
 
-import {
-  propagator_callback_step_bare,
-} from './callback';
+import propagator_callbackStepBare from './callback';
+import propagator_markovStepBare from './markov';
+import propagator_reifiedStepBare from './reified';
+import propagator_ringStepBare from './ring';
+import propagator_minStep from './min';
+import propagator_mulStep from './mul';
+import propagator_divStep from './div';
 
 import {
-  propagator_markov_step_bare,
-} from './markov';
-
-import {
-  propagator_reified_step_bare,
-} from './reified';
-
-import {
-  propagator_ring_step_bare,
-} from './ring';
-
-import {
-  propagator_min_step,
-} from './min';
-
-import {
-  propagator_mul_step,
-} from './mul';
-
-import {
-  propagator_div_step,
-} from './div';
-
-import {
-  propagator_step_comparison,
+  propagator_stepComparison,
 } from './step_comparison';
 
 // BODY_START
@@ -77,16 +57,16 @@ function _propagator_stepAny(space, opName, propVarNames, propDatails) {
 
   switch (opName) {
     case 'lt':
-      return propagator_step_comparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, vn1, vn2);
 
     case 'lte':
-      return propagator_step_comparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, vn1, vn2);
 
     case 'eq':
-      return propagator_step_comparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, vn1, vn2);
 
     case 'neq':
-      return propagator_step_comparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, vn1, vn2);
 
     case 'callback':
       return _propagator_cb(space, propVarNames, propDatails);
@@ -116,12 +96,12 @@ function _propagator_stepAny(space, opName, propVarNames, propDatails) {
 };
 
 function _propagator_cb(space, propVarNames, propDetails) {
-  return propagator_callback_step_bare(space, propVarNames, propDetails[PROP_CALLBACK]);
+  return propagator_callbackStepBare(space, propVarNames, propDetails[PROP_CALLBACK]);
 }
 
 function _propagator_reified(space, vn1, vn2, propVarNames, propDetails) {
   let vn3 = propVarNames[2];
-  return propagator_reified_step_bare(space, vn1, vn2, vn3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
+  return propagator_reifiedStepBare(space, vn1, vn2, vn3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
 }
 
 function _propagator_min(space, vn1, vn2, propVarNames) {
@@ -129,7 +109,7 @@ function _propagator_min(space, vn1, vn2, propVarNames) {
   let { vars } = space;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_min_step(vars[vn1], vars[vn2], vars[vn3]);
+  return propagator_minStep(vars[vn1], vars[vn2], vars[vn3]);
 }
 
 function _propagator_mul(space, vn1, vn2, propVarNames) {
@@ -137,7 +117,7 @@ function _propagator_mul(space, vn1, vn2, propVarNames) {
   let { vars } = space;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_mul_step(vars[vn1], vars[vn2], vars[vn3]);
+  return propagator_mulStep(vars[vn1], vars[vn2], vars[vn3]);
 }
 
 function _propagator_div(space, vn1, vn2, propVarNames) {
@@ -145,7 +125,7 @@ function _propagator_div(space, vn1, vn2, propVarNames) {
   let { vars } = space;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_div_step(vars[vn1], vars[vn2], vars[vn3]);
+  return propagator_divStep(vars[vn1], vars[vn2], vars[vn3]);
 }
 
 function _propagator_ring(space, vn1, vn2, propVarNames, propDetails) {
@@ -155,31 +135,30 @@ function _propagator_ring(space, vn1, vn2, propVarNames, propDetails) {
 
   switch (op_name) {
     case 'plus':
-      return propagator_ring_step_bare(vars[vn1], vars[vn2], vars[vn3], domain_plus);
+      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_plus);
     case 'min':
-      return propagator_ring_step_bare(vars[vn1], vars[vn2], vars[vn3], domain_minus);
+      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_minus);
     case 'mul':
-      return propagator_ring_step_bare(vars[vn1], vars[vn2], vars[vn3], domain_mul);
+      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_mul);
     case 'div':
-      return propagator_ring_step_bare(vars[vn1], vars[vn2], vars[vn3], domain_divby);
+      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_divby);
     default:
       THROW('UNKNOWN ring opname', op_name);
   }
 }
 
 function _propagator_markov(space, vn1) {
-  return propagator_markov_step_bare(space, vn1);
+  return propagator_markovStepBare(space, vn1);
 }
 
 // BODY_STOP
 
-return {
+export default propagator_stepAny;
+export {
   PROP_NAME,
   PROP_VAR_NAMES,
   PROP_OP_NAME,
   PROP_NOP_NAME,
   PROP_CALLBACK,
   PROP_OP_FUNC,
-
-  propagator_stepAny
 };

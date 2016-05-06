@@ -17,13 +17,11 @@ export default (function() {
   } from './fdvar';
 
   import {
-    domain_create_range,
-    domain_create_value,
+    domain_createRange,
+    domain_createValue,
   } from './domain';
 
-  import {
-    distribution_get_defaults,
-  } from './distribution/defaults';
+  import distribution_getDefaults from './distribution/defaults';
 
   // BODY_START
 
@@ -148,7 +146,7 @@ export default (function() {
       name = String(++config.constant_uid);
     }
 
-    _config_addVarValue(config, name, domainOrLo);
+    config_addVarValue(config, name, domainOrLo);
     return name;
   }
 
@@ -161,7 +159,7 @@ export default (function() {
   // @param {number[]} domain
   // @param {undefined} _forbidden_arg Sanity check, do not use this arg
 
-  function _config_addVarValue(config, name, domain, _forbiddenArg) {
+  function config_addVarValue(config, name, domain, _forbiddenArg) {
     ASSERT(config._class === 'config', 'wants config', config._class, config);
     ASSERT(name && typeof name === 'string', 'name should be a non-empty string', name);
     ASSERT(!config.initial_vars[name], 'fdvar should not be defined but was, when would that not be a bug?', config.initial_vars[name], '->', name, '->', domain);
@@ -197,7 +195,7 @@ export default (function() {
       return config.constant_cache[value];
     }
     let name = String(++config.constant_uid);
-    _config_addVarValue(config, name, value);
+    config_addVarValue(config, name, value);
     config.constant_cache[value] = name;
     return name;
   }
@@ -210,7 +208,7 @@ export default (function() {
    */
   function config_setDefaults(space, name) {
     ASSERT(space._class === 'config');
-    config_setOptions(space, distribution_get_defaults(name));
+    config_setOptions(space, distribution_getDefaults(name));
   }
 
   // Set solving options on this config. Only required for the root.
@@ -232,7 +230,7 @@ export default (function() {
       // fallback_config has the same struct as the main config.next_var_func and is used when the dist returns SAME
       // this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
       config.next_var_func = options.var;
-      _config_initConfigsAndFallbacks(options.var);
+      config_initConfigsAndFallbacks(options.var);
     }
     if (options && options.val) {
       // see distribution.value
@@ -293,9 +291,9 @@ export default (function() {
       let name = config.all_var_names[i];
       let val = initial_vars[name];
       if (typeof val === 'number') {
-        val = fdvar_create(name, domain_create_value(val));
+        val = fdvar_create(name, domain_createValue(val));
       } else if (val === undefined) {
-        val = fdvar_create(name, domain_create_range(SUB, SUP));
+        val = fdvar_create(name, domain_createRange(SUB, SUP));
       } else {
         ASSERT(val instanceof Array);
         ASSERT((val.length % 2) === 0);
@@ -319,7 +317,7 @@ export default (function() {
    * @param {$config} [config] This is the var dist config (-> space.config.next_var_func)
    * @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
    */
-  function _config_initConfigsAndFallbacks(config) {
+  function config_initConfigsAndFallbacks(config) {
     // populate the priority hashes for all (sub)configs
     while (config != null) {
       // explicit list of priorities. vars not in this list have equal
@@ -360,7 +358,7 @@ export default (function() {
     config_setOptions,
 
     // testing
-    _config_addVarValue,
-    _config_initConfigsAndFallbacks,
+    config_addVarValue,
+    config_initConfigsAndFallbacks,
   });
 })();

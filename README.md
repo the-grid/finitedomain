@@ -44,7 +44,7 @@ unpublished:
 
 1.3.0:
 - The reified methods on Solver can no longer return REJECTED state for using a boolean var without zero or one in its domain, instead it simply throws when this happens.
-- Support numbers or strings on some internal propagator creators and make them return more consistent values (`propagator_add_reified`, `propagator_add_eq`, `propagator_add_lt`, `propagator_add_gt`, `_propagator_add_ring`, `propagator_add_scale`).
+- Support numbers or strings on some internal propagator creators and make them return more consistent values (`propagator_addReified`, `propagator_addEq`, `propagator_addLt`, `propagator_addGt`, `_propagator_addRing`, `propagator_add_scale`).
 - Removed the PathSolver subclass and Bvar class and moved it to the right (private) repo
 
 1.2.2:

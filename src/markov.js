@@ -1,11 +1,11 @@
 // markov helper functions
 
 import {
-  domain_to_list,
+  domain_toList,
 } from './domain';
 
 import {
-  fdvar_is_value,
+  fdvar_isValue,
 } from './fdvar';
 
 // BODY_START
@@ -24,7 +24,7 @@ function markov_getNextRowToSolve(space, matrix) {
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
     let boolVar = vars[row.booleanId];
-    if (!boolVar || fdvar_is_value(boolVar, 1)) {
+    if (!boolVar || fdvar_isValue(boolVar, 1)) {
       break;
     }
   }
@@ -45,7 +45,7 @@ function markov_mergeDomainAndLegend(inputLegend, domain) {
     var legend = [];
   }
 
-  let listed = domain_to_list(domain);
+  let listed = domain_toList(domain);
   for (let i = 0; i < listed; ++i) {
     let val = listed[i];
     if (legend.indexOf(val) < 0) {

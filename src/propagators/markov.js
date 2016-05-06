@@ -6,13 +6,13 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_is_solved,
-  fdvar_lower_bound,
+  fdvar_isSolved,
+  fdvar_lowerBound,
 } from '../fdvar';
 
 import {
-  markov_create_legend,
-  markov_create_prob_vector,
+  markov_createLegend,
+  markov_createProbVector,
 } from '../markov';
 
 // BODY_START
@@ -39,11 +39,11 @@ function propagator_markovStepBare(space, varName) {
 
   let fdvar = space.vars[varName];
 
-  if (!fdvar_is_solved(fdvar)) {
+  if (!fdvar_isSolved(fdvar)) {
     return ZERO_CHANGES;
   }
 
-  let value = fdvar_lower_bound(fdvar); // note: solved so lo=hi=value
+  let value = fdvar_lowerBound(fdvar); // note: solved so lo=hi=value
 
   let configVarDistOptions = space.config.var_dist_options;
   let distributionOptions = configVarDistOptions[varName];
@@ -56,8 +56,8 @@ function propagator_markovStepBare(space, varName) {
   ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(distributionOptions));
 
   // note: expandVectorsWith can be 0, so check with null
-  let values = markov_create_legend((expandVectorsWith != null), distributionOptions.legend, fdvar.dom);
-  let probabilities = markov_create_prob_vector(space, distributionOptions.matrix, expandVectorsWith, values.length);
+  let values = markov_createLegend((expandVectorsWith != null), distributionOptions.legend, fdvar.dom);
+  let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, values.length);
 
   let pos = values.indexOf(value);
   if (pos >= 0 && pos < probabilities.length && probabilities[pos] !== 0) {
@@ -68,6 +68,4 @@ function propagator_markovStepBare(space, varName) {
 
 // BODY_STOP
 
-export {
-  propagator_markovStepBare,
-};
+export default propagator_markovStepBare;

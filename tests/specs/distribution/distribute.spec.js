@@ -4,11 +4,11 @@ import {
 } from 'chai';
 import {Solver} from '../../../src/';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
-  strip_anon_vars,
-  strip_anon_vars_a
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
+  stripAnonVars,
+  stripAnonVarsFromArrays
 } from '../../fixtures/domain.spec';
 
 describe('distribution/distribute.spec', function() {
@@ -20,12 +20,12 @@ describe('distribution/distribute.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'min',
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'max',
       });
       solver['>']('V1', solver.constant(0));
@@ -35,7 +35,7 @@ describe('distribution/distribute.spec', function() {
       expect(solutions.length, 'all solutions').to.equal(16);
 
       // (basically V1 solves lo to hi, V2 goes hi to lo)
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 1, V2: 4},
         {V1: 1, V2: 3},
         {V1: 1, V2: 2},
@@ -62,12 +62,12 @@ describe('distribution/distribute.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 4),
+        domain: specDomainCreateRange(0, 4),
         distribute: 'min'
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(0, 4),
+        domain: specDomainCreateRange(0, 4),
         distribute: 'max'
       });
       solver['>']('V1', solver.constant(0));
@@ -77,7 +77,7 @@ describe('distribution/distribute.spec', function() {
       expect(solutions.length, 'all solutions').to.equal(16);
 
       // (basically V1 solves lo to hi, V2 goes hi to lo)
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 1, V2: 4},
         {V1: 1, V2: 3},
         {V1: 1, V2: 2},
@@ -105,7 +105,7 @@ describe('distribution/distribute.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 4),
+        domain: specDomainCreateRange(0, 4),
         distribute: 'markov',
         distributeOptions: {
           legend: [1, 2, 3, 4],
@@ -117,7 +117,7 @@ describe('distribution/distribute.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(0, 4),
+        domain: specDomainCreateRange(0, 4),
         distribute: 'markov',
         distributeOptions: {
           legend: [1, 2, 3, 4],
@@ -132,7 +132,7 @@ describe('distribution/distribute.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 1, V2: 4},
         {V1: 1, V2: 3},
         {V1: 1, V2: 2},

@@ -7,7 +7,7 @@ import {
 } from '../domain';
 
 import {
-  fdvar_set_domain,
+  fdvar_setDomain,
 } from '../fdvar';
 
 // BODY_START
@@ -22,11 +22,9 @@ function propagator_ringStepBare(fdvar1, fdvar2, fdvarResult, opFunc) {
     return REJECTED;
   }
 
-  return fdvar_set_domain(fdvarResult, domain);
+  return fdvar_setDomain(fdvarResult, domain);
 }
 
 // BODY_STOP
 
-export {
-  propagator_ringStepBare
-};
+export default propagator_ringStepBare;

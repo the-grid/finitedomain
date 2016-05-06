@@ -1,15 +1,15 @@
 const SUP = 100000;
 
-function spec_d_create_range(lo, hi) {
+function specDomainCreateRange(lo, hi) {
   if (typeof lo !== 'number') {
-    throw new Error('spec_d_create_value requires a number');
+    throw new Error('specDomainCreateValue requires a number');
   }
   if (typeof hi !== 'number') {
-    throw new Error('spec_d_create_value requires a number');
+    throw new Error('specDomainCreateValue requires a number');
   }
-  return spec_d_create_ranges([lo, hi]);
+  return specDomainCreateRanges([lo, hi]);
 }
-function spec_d_create_ranges(...ranges) {
+function specDomainCreateRanges(...ranges) {
   let arr = [];
   ranges.forEach(function(range) {
     if (range instanceof Array) {
@@ -30,31 +30,31 @@ function spec_d_create_ranges(...ranges) {
   // hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr;
 }
-function spec_d_create_value(value) {
+function specDomainCreateValue(value) {
   if (typeof value !== 'number') {
-    throw new Error('spec_d_create_value requires a number');
+    throw new Error('specDomainCreateValue requires a number');
   }
-  return spec_d_create_ranges([value, value]);
+  return specDomainCreateRanges([value, value]);
 }
-function spec_d_create_list(list) {
+function specDomainCreateList(list) {
   let arr = [];
   list.forEach(value => arr.push(value, value));
   return arr;
 }
-function spec_d_create_zero() {
-  return spec_d_create_range(0, 0);
+function specDomainCreateZero() {
+  return specDomainCreateRange(0, 0);
 }
-function spec_d_create_one() {
-  return spec_d_create_range(1, 1);
+function specDomainCreateOne() {
+  return specDomainCreateRange(1, 1);
 }
-function spec_d_create_full() {
-  return spec_d_create_range(0, SUP);
+function specDomainCreateFull() {
+  return specDomainCreateRange(0, SUP);
 }
-function spec_d_create_bool() {
-  return spec_d_create_range(0, 1);
+function specDomainCreateBool() {
+  return specDomainCreateRange(0, 1);
 }
 
-function strip_anon_vars(solution) {
+function stripAnonVars(solution) {
   for (let name in solution) {
     if (String(parseFloat(name)) === name) { // only true of name is a number
       delete solution[name];
@@ -62,24 +62,23 @@ function strip_anon_vars(solution) {
   }
   return solution;
 }
-
-function strip_anon_vars_a(solutions) {
+function stripAnonVarsFromArrays(solutions) {
   for (let i = 0; i < solutions.length; i++) {
     let solution = solutions[i];
-    strip_anon_vars(solution);
+    stripAnonVars(solution);
   }
   return solutions;
 }
 
 export {
-  spec_d_create_range,
-  spec_d_create_ranges,
-  spec_d_create_value,
-  spec_d_create_list,
-  spec_d_create_zero,
-  spec_d_create_one,
-  spec_d_create_full,
-  spec_d_create_bool,
-  strip_anon_vars,
-  strip_anon_vars_a,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  specDomainCreateValue,
+  specDomainCreateList,
+  specDomainCreateZero,
+  specDomainCreateOne,
+  specDomainCreateFull,
+  specDomainCreateBool,
+  stripAnonVars,
+  stripAnonVarsFromArrays,
 };

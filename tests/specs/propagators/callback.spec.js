@@ -1,27 +1,23 @@
 import setup from '../../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
 } from '../../fixtures/domain.spec';
-import {
-  Solver,
-  finitedomain_helpers,
-  finitedomain_domain,
-} from '../../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const NO_SUCH_VALUE = finitedomain_helpers.NO_SUCH_VALUE;
-const domain_get_value = finitedomain_domain.domain_get_value;
+import Solver from '../../../src/solver';
+import {
+  NO_SUCH_VALUE,
+} from '../../../src/helpers';
+import {
+  domain_getValue,
+} from '../../../src/domain';
 
 describe("propagators/callback.spec", function() {
-
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
 
   describe('integration tests', function() {
 
@@ -33,9 +29,9 @@ describe("propagators/callback.spec", function() {
 
         let { vars } = space;
 
-        let rv = domain_get_value(vars[var_names[0]].dom);
-        let gv = domain_get_value(vars[var_names[1]].dom);
-        let bv = domain_get_value(vars[var_names[2]].dom);
+        let rv = domain_getValue(vars[var_names[0]].dom);
+        let gv = domain_getValue(vars[var_names[1]].dom);
+        let bv = domain_getValue(vars[var_names[2]].dom);
 
         if (rv === NO_SUCH_VALUE || gv === NO_SUCH_VALUE || bv === NO_SUCH_VALUE) {
           return true; // at least one domain isnt a single value; keep searching

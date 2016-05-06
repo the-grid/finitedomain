@@ -18,6 +18,4 @@ function propagator_divStep(fdvar1, fdvar2, fdvarResult) {
 
 // BODY_STOP
 
-export default {
-  propagator_divStep,
-};
+export default propagator_divStep;

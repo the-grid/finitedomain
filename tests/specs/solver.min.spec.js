@@ -1,22 +1,19 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  Solver
-} = finitedomain;
+import Solver from '../../src/solver';
 
 describe("solver.min.spec", function() {
 
-  it('finitedomain.Solver?', function() {
+  it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
@@ -27,11 +24,11 @@ describe("solver.min.spec", function() {
         let solver = new Solver(o);
         solver.addVar({
           id: 'Hello',
-          domain: spec_d_create_range(1, 99)
+          domain: specDomainCreateRange(1, 99)
         });
         solver.addVar({
           id: 'World',
-          domain: spec_d_create_value(0)
+          domain: specDomainCreateValue(0)
         });
         solver['>']('Hello', 'World');
 

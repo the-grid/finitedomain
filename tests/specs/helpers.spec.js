@@ -1,30 +1,36 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_ranges,
-  spec_d_create_value,
-  spec_d_create_zero,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  specDomainCreateValue,
+  specDomainCreateZero,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
+import {
   helpers,
-} = finitedomain;
-
-const {
+} from '../../src/helpers';
+import {
   ASSERT,
-} = helpers;
+  ASSERT_DOMAIN,
+  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_DOMAIN_EMPTY_SET,
+  ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
+  ASSERT_PROPAGATOR,
+  ASSERT_PROPAGATORS,
+  ASSERT_SPACE,
+  ASSERT_UNUSED_DOMAIN,
+  ASSERT_VARS,
+  GET_NAME,
+  GET_NAMES,
+  THROW,
+} from '../../src/helpers';
 
 describe("helpers.spec", function() {
-
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
 
   it('should exist', function() {
     expect(helpers).to.be.an('object');

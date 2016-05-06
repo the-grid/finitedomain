@@ -1,31 +1,27 @@
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
-  strip_anon_vars
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
+  stripAnonVars
 } from '../../fixtures/domain.spec';
-import finitedomain from '../../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
+import distribution_markovSampleNextFromDomain from '../../../src/distribution/markov';
+
 const RNG_UNNORMALIZED = false;
 const RNG_NORMALIZED = true;
 
-const distribution_markovSampleNextFromDomain = finitedomain.distribution.markov.distribution_markov_sampleNextFromDomain;
 const funcRngMin = function() { return 0; }
 const rngFuncMid = function() { return .5; } // middle (ok, technically slightly above the middle... is that bug?)
 const funcRngMax = function() { return 1 - Number.EPSILON; } // always pick last in legend
 
 describe('distribution/markov.spec', function() {
 
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
-
   it('should return a number', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [5];
     let probVector = [1];
 
@@ -33,7 +29,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return first value in legend if rng is 0', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [2, 5];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
 
@@ -41,7 +37,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return first value in legend if rng is 1', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
 
@@ -49,7 +45,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns 1', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1; // not a valid normalized value
@@ -58,7 +54,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns 1.1', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1.1; // not a valid normalized value
@@ -67,7 +63,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns -1', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => -1; // not a valid normalized value
@@ -76,7 +72,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return middle value in legend if rng is .5 with equal probs', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [1, 2, 3];
     let probVector = [1, 1, 1]; // equal odds (irrelevant for this test)
 
@@ -84,7 +80,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should not consider values with zero probability', function() {
-    let domain = spec_d_create_range(0, 10);
+    let domain = specDomainCreateRange(0, 10);
     let valueLegend = [1, 2, 3, 4, 5, 6];
     let probVector = [0, 0, 0, 0, 1, 0]; // only `5` has non-zero chance
 
@@ -92,7 +88,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should ignore values not in current domain', function() {
-    let domain = spec_d_create_range(3, 10); // note: 1 and 2 are not part of domain!
+    let domain = specDomainCreateRange(3, 10); // note: 1 and 2 are not part of domain!
     let valueLegend = [1, 2, 3, 4, 5, 6];
     let probVector = [1, 1, 0, 0, 1, 0]; // 1, 2, and 5 have non-zero probability
 
@@ -106,7 +102,7 @@ describe('distribution/markov.spec', function() {
       // so since `2` has probability of `5/total` and the only value before it has a prob of
       // `1/total`, the `2` will be chosen if rng outcome is one of [1, 6]. We'll fix it to `4`
       // in this test so we'll know this must be the case.
-      let domain = spec_d_create_range(0, 10);
+      let domain = specDomainCreateRange(0, 10);
       let valueLegend = [1, 2, 3, 4, 5, 6];
       let probVector = [1, 5, 1, 1, 1, 1]; // total probability is 10
       let rngFunc = () => 4; // whole number to prevent precision errors (-> RNG_UNNORMALIZED)
@@ -123,7 +119,7 @@ describe('distribution/markov.spec', function() {
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
-          let domain = spec_d_create_range(0, 10);
+          let domain = specDomainCreateRange(0, 10);
           let valueLegend = [1, 2, 3, 4, 5, 6];
           let rngFunc = function() { return rngRoll; };
 
@@ -153,7 +149,7 @@ describe('distribution/markov.spec', function() {
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
-          let domain = spec_d_create_range(0, 10);
+          let domain = specDomainCreateRange(0, 10);
           let valueLegend = [1, 2, 3, 4, 5, 6];
           let rng_func = _ => rngRoll;
           expect(distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rng_func, RNG_NORMALIZED)).to.equal(outcome);
@@ -181,7 +177,7 @@ describe('distribution/markov.spec', function() {
     };
 
     for (var i = 0; i < 100; ++i) {
-      let domain = spec_d_create_value(100);
+      let domain = specDomainCreateValue(100);
       let valueLegend = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]; // 16x 100
       let probVector = generateNormalizedProbs(1, 4); // 16 values
       let r = Math.random();

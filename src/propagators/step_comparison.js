@@ -11,35 +11,35 @@ import {
 } from '../helpers';
 
 import {
-  propagator_lt_step_would_reject,
+  propagator_ltStepWouldReject,
 } from './lt';
 
 import {
-  propagator_lte_step_would_reject,
+  propagator_lteStepWouldReject,
 } from './lte';
 
 import {
-  propagator_eq_step_would_reject,
+  propagator_eqStepWouldReject,
 } from './eq';
 
 import {
-  propagator_neq_step_would_reject,
+  propagator_neqStepWouldReject,
 } from './neq';
 
 import {
-  propagator_lt_step_bare,
+  propagator_ltStepBare,
 } from './lt';
 
 import {
-  propagator_lte_step_bare,
+  propagator_lteStepBare,
 } from './lte';
 
 import {
-  propagator_eq_step_bare,
+  propagator_eqStepBare,
 } from './eq';
 
 import {
-  propagator_neq_step_bare,
+  propagator_neqStepBare,
 } from './neq';
 
 // BODY_START
@@ -57,10 +57,10 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
 
   switch (opName) {
     case 'lt':
-      return propagator_lt_step_bare(v1, v2);
+      return propagator_ltStepBare(v1, v2);
 
     case 'lte':
-      return propagator_lte_step_bare(v1, v2);
+      return propagator_lteStepBare(v1, v2);
 
     case 'gt':
       // TOFIX: should go to lte
@@ -71,10 +71,10 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
       return propagator_stepComparison(space, 'lte', varName2, varName1);
 
     case 'eq':
-      return propagator_eq_step_bare(v1, v2);
+      return propagator_eqStepBare(v1, v2);
 
     case 'neq':
-      return propagator_neq_step_bare(v1, v2);
+      return propagator_neqStepBare(v1, v2);
 
     default:
       return THROW(`unsupported propagator: [${opName}]`);
@@ -93,23 +93,23 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
 function propagator_stepWouldReject(opName, fdvar1, fdvar2) {
   switch (opName) {
     case 'lt':
-      return propagator_lt_step_would_reject(fdvar1, fdvar2);
+      return propagator_ltStepWouldReject(fdvar1, fdvar2);
 
     case 'lte':
-      return propagator_lte_step_would_reject(fdvar1, fdvar2);
+      return propagator_lteStepWouldReject(fdvar1, fdvar2);
 
     case 'gt':
       // TOFIX: should go to lte
-      return propagator_lt_step_would_reject(fdvar2, fdvar1); // swapped vars!
+      return propagator_ltStepWouldReject(fdvar2, fdvar1); // swapped vars!
 
     case 'gte':
-      return propagator_lte_step_would_reject(fdvar2, fdvar1); // swapped vars!
+      return propagator_lteStepWouldReject(fdvar2, fdvar1); // swapped vars!
 
     case 'eq':
-      return propagator_eq_step_would_reject(fdvar1, fdvar2);
+      return propagator_eqStepWouldReject(fdvar1, fdvar2);
 
     case 'neq':
-      return propagator_neq_step_would_reject(fdvar1, fdvar2);
+      return propagator_neqStepWouldReject(fdvar1, fdvar2);
 
     default:
       THROW(`stepper_step_read_only: unsupported propagator: [${opName}]`);

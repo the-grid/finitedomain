@@ -1,78 +1,73 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
-  spec_d_create_ranges,
-  strip_anon_vars,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
+  specDomainCreateRanges,
+  stripAnonVars,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  propagator_add_callback,
-  propagator_add_distinct,
-  propagator_add_div,
-  propagator_add_eq,
-  propagator_add_gt,
-  propagator_add_gte,
-  propagator_add_lt,
-  propagator_add_lte,
-  propagator_add_markov,
-  propagator_add_min,
-  propagator_add_mul,
-  propagator_add_neq,
-  propagator_add_plus,
-  propagator_add_product,
-  propagator_add_reified,
-  propagator_add_scale,
-  propagator_add_ring_mul,
-  propagator_add_sum,
-  _propagator_add_ring_plus_or_mul,
-} = finitedomain.propagator;
+import {
+  propagator_addCallback,
+  propagator_addDistinct,
+  propagator_addDiv,
+  propagator_addEq,
+  propagator_addGt,
+  propagator_addGte,
+  propagator_addLt,
+  propagator_addLte,
+  propagator_addMarkov,
+  propagator_addMul,
+  propagator_addNeq,
+  propagator_addPlus,
+  propagator_addMin,
+  propagator_addProduct,
+  propagator_addReified,
+  propagator_addRingMul,
+  propagator_addSum,
 
-const {
-  config_create
-} = finitedomain.config;
+  // for testing
+  propagator_addRing,
+  propagator_addRingPlusOrMul,
+} from '../../src/propagator';
+import {
+  config_create,
+} from '../../src/config';
 
 
 describe("propagator.spec", function() {
-
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
-
   // TOFIX: add tests for all these propagators. there never have been but most functions here are trivial to test.
 
-  describe('propagator_add_markov', function() {
+  describe('propagator_addMarkov', function() {
     it('should not crash', function() {
-      propagator_add_markov(config_create(), 'foo');
+      propagator_addMarkov(config_create(), 'foo');
       expect(true).to.equal(true);
     });
   });
 
-  describe('propagator_add_reified', function() {
+  describe('propagator_addReified', function() {
 
     it('should accept numbers for anonymous var A', function() {
       let config = config_create();
-      propagator_add_reified(config, 'eq', 0, 'B', 'C');
+      propagator_addReified(config, 'eq', 0, 'B', 'C');
 
-      expect(() => propagator_add_reified(config, 'eq', 0, 'B', 'C')).not.to.throw();
+      expect(() => propagator_addReified(config, 'eq', 0, 'B', 'C')).not.to.throw();
     });
 
     it('should accept numbers for anonymous var B', function() {
       let config = config_create();
 
-      expect(() => propagator_add_reified(config, 'eq', 'A', 0, 'C')).not.to.throw();
+      expect(() => propagator_addReified(config, 'eq', 'A', 0, 'C')).not.to.throw();
     });
 
     it('should throw if left and right vars are anonymous vars', function() {
       let config = config_create();
 
-      expect(() => propagator_add_reified(config, 'eq', 0, 0, 'C')).to.throw();
+      expect(() => propagator_addReified(config, 'eq', 0, 0, 'C')).to.throw();
     });
 
     describe('bool var domain', function() {
@@ -80,283 +75,283 @@ describe("propagator.spec", function() {
       it('should throw if the boolvar has no zero or one', function() {
         let config = config_create();
 
-        expect(() => propagator_add_reified(config, 'eq', 'A', 'B', 'C')).to.throw();
+        expect(() => propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.throw();
       });
 
       it('should be fine if the boolvar has no one', function() {
         let config = config_create();
 
-        expect(propagator_add_reified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
+        expect(propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
       });
 
       it('should be fine if the boolvar has no zero', function() {
         let config = config_create();
 
-        expect(propagator_add_reified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
+        expect(propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
       });
 
       it('should be fine if the boolvar has more than zero and one', function() {
         let config = config_create();
 
-        expect(propagator_add_reified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
+        expect(propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
       });
 
       // TOFIX: re-enable this test when the check is back in place
       it.skip('should reduce the domain to bool if not already', function() {
         let config = config_create();
-        propagator_add_reified(config, 'eq', 'A', 'B', 'C');
+        propagator_addReified(config, 'eq', 'A', 'B', 'C');
 
-        expect(config.initial_vars.C).to.eql(spec_d_create_bool());
+        expect(config.initial_vars.C).to.eql(specDomainCreateBool());
       });
 
       it('should accept a number for boolvar', function() {
         let config = config_create();
 
-        expect(() => propagator_add_reified(config, 'eq', 'A', 'B', 0)).not.to.throw();
+        expect(() => propagator_addReified(config, 'eq', 'A', 'B', 0)).not.to.throw();
       });
 
       it('should return the name of the anon boolvar', function() {
         let config = config_create();
 
-        expect(typeof propagator_add_reified(config, 'eq', 'A', 'B', 0)).to.eql('string');
+        expect(typeof propagator_addReified(config, 'eq', 'A', 'B', 0)).to.eql('string');
       });
 
       it('should return the name of the named boolvar', function() {
         let config = config_create();
 
-        expect(propagator_add_reified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
+        expect(propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.eql('C');
       });
     });
   });
 
-  describe('propagator_add_eq', () =>
+  describe('propagator_addEq', () =>
 
     describe('numbers as anonymous vars', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
 
-        expect(() => propagator_add_eq(config, 0, 'B')).not.to.throw();
+        expect(() => propagator_addEq(config, 0, 'B')).not.to.throw();
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_add_eq(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addEq(config, 'A', 0)).not.to.throw();
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_add_eq(config, 0, 0)).to.throw();
+        expect(() => propagator_addEq(config, 0, 0)).to.throw();
       });
     })
   );
 
-  describe('propagator_add_lt', () =>
+  describe('propagator_addLt', () =>
 
     describe('numbers as anonymous vars', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lt(config, 0, 'B')).not.to.throw();
+        expect(() => propagator_addLt(config, 0, 'B')).not.to.throw();
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lt(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addLt(config, 'A', 0)).not.to.throw();
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lt(config, 0, 0)).to.throw();
+        expect(() => propagator_addLt(config, 0, 0)).to.throw();
       });
     })
   );
 
-  describe('propagator_add_lte', () =>
+  describe('propagator_addLte', () =>
 
     describe('numbers as anonymous vars', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lte(config, 0, 'B')).not.to.throw();
+        expect(() => propagator_addLte(config, 0, 'B')).not.to.throw();
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lte(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addLte(config, 'A', 0)).not.to.throw();
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_add_lte(config, 0, 0)).to.throw();
+        expect(() => propagator_addLte(config, 0, 0)).to.throw();
       });
     })
   );
 
-  describe('propagator_add_gt', () =>
+  describe('propagator_addGt', () =>
 
     describe('numbers as anonymous vars', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gt(config, 0, 'B')).not.to.throw();
+        expect(() => propagator_addGt(config, 0, 'B')).not.to.throw();
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gt(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addGt(config, 'A', 0)).not.to.throw();
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gt(config, 0, 0)).to.throw();
+        expect(() => propagator_addGt(config, 0, 0)).to.throw();
       });
     })
   );
 
-  describe('propagator_add_gte', () =>
+  describe('propagator_addGte', () =>
 
     describe('numbers as anonymous vars', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gte(config, 0, 'B')).not.to.throw();
+        expect(() => propagator_addGte(config, 0, 'B')).not.to.throw();
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gte(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addGte(config, 'A', 0)).not.to.throw();
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_add_gte(config, 0, 0)).to.throw();
+        expect(() => propagator_addGte(config, 0, 0)).to.throw();
       });
     })
   );
 
-  describe('_propagator_add_ring_plus_or_mul', function() {
+  describe('_propagator_addRing_plus_or_mul', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof _propagator_add_ring_plus_or_mul(config, 'div', 'mul', 'A', 'B', 0)).to.eql('string');
+      expect(typeof _propagator_addRing_plus_or_mul(config, 'div', 'mul', 'A', 'B', 0)).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(_propagator_add_ring_plus_or_mul(config, 'div', 'mul', 'A', 'B', 'C')).to.eql('C');
+      expect(_propagator_addRing_plus_or_mul(config, 'div', 'mul', 'A', 'B', 'C')).to.eql('C');
     });
   });
 
-  describe('propagator_add_sum', function() {
+  describe('propagator_addSum', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof propagator_add_sum(config, ['A', 'B', 'C'])).to.eql('string');
+      expect(typeof propagator_addSum(config, ['A', 'B', 'C'])).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(propagator_add_sum(config, ['A', 'B', 'C'], 'D')).to.eql('D');
+      expect(propagator_addSum(config, ['A', 'B', 'C'], 'D')).to.eql('D');
     });
 
     it('should allow anonymous numbers in the list of vars', function() {
       let config = config_create();
 
-      expect(propagator_add_sum(config, ['A', 5, 'C'], 'D')).to.eql('D');
+      expect(propagator_addSum(config, ['A', 5, 'C'], 'D')).to.eql('D');
     });
 
     it('should throw if you dont pass on any vars', function() {
       let config = config_create();
 
-      expect(() => propagator_add_sum(config, [], 'A')).to.throw();
+      expect(() => propagator_addSum(config, [], 'A')).to.throw();
     });
 
     it('should throw if you dont pass on an array', function() {
       let config = config_create();
 
-      expect(() => propagator_add_sum(config(undefined, 'A'))).to.throw();
-      expect(() => propagator_add_sum(config, 'X', 'A')).to.throw();
-      expect(() => propagator_add_sum(config, 5, 'A')).to.throw();
-      expect(() => propagator_add_sum(config, null, 'A')).to.throw();
+      expect(() => propagator_addSum(config(undefined, 'A'))).to.throw();
+      expect(() => propagator_addSum(config, 'X', 'A')).to.throw();
+      expect(() => propagator_addSum(config, 5, 'A')).to.throw();
+      expect(() => propagator_addSum(config, null, 'A')).to.throw();
     });
   });
 
-  describe('propagator_add_product', function() {
+  describe('propagator_addProduct', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof propagator_add_product(config, ['A', 'B', 'C'])).to.eql('string');
+      expect(typeof propagator_addProduct(config, ['A', 'B', 'C'])).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(propagator_add_product(config, ['A', 'B', 'C'], 'D')).to.eql('D');
+      expect(propagator_addProduct(config, ['A', 'B', 'C'], 'D')).to.eql('D');
     });
   });
 
-  describe('propagator_add_min', function() {
+  describe('propagator_addMin', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof propagator_add_min(config, 'A', 'B')).to.eql('string');
+      expect(typeof propagator_addMin(config, 'A', 'B')).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(propagator_add_min(config, 'A', 'B', 'C')).to.eql('C');
+      expect(propagator_addMin(config, 'A', 'B', 'C')).to.eql('C');
     });
   });
 
-  describe('propagator_add_div', function() {
+  describe('propagator_addDiv', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof propagator_add_div(config, 'A', 'B')).to.eql('string');
+      expect(typeof propagator_addDiv(config, 'A', 'B')).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(propagator_add_div(config, 'A', 'B', 'C')).to.eql('C');
+      expect(propagator_addDiv(config, 'A', 'B', 'C')).to.eql('C');
     });
   });
 
-  describe('propagator_add_mul', function() {
+  describe('propagator_addMul', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof propagator_add_mul(config, 'A', 'B')).to.eql('string');
+      expect(typeof propagator_addMul(config, 'A', 'B')).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(propagator_add_mul(config, 'A', 'B', 'C')).to.eql('C');
+      expect(propagator_addMul(config, 'A', 'B', 'C')).to.eql('C');
     });
   });
 });

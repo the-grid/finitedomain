@@ -25,6 +25,4 @@ function propagator_callbackStepBare(space, varNames, func) {
 
 // BODY_STOP
 
-export {
-  propagator_callbackStepBare,
-};
+export default propagator_callbackStepBare;

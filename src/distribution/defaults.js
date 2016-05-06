@@ -31,13 +31,12 @@ const PRESETS = {
   },
 };
 
-function distribution_get_defaults(name) {
+function distribution_getDefaults(name) {
   if (PRESETS[name]) return PRESETS[name];
+
   THROW("distribution.get_defaults: Unknown preset: #{name}");
 }
 
 // BODY_STOP
 
-export default {
-  distribution_get_defaults
-};
+export default distribution_getDefaults;

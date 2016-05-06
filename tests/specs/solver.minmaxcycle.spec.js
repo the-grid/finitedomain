@@ -1,22 +1,19 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  Solver
-} = finitedomain;
+import Solver from '../../src/solver';
 
 describe("solver.minmaxcycle.spec", function() {
 
-  it('finitedomain.Solver?', function() {
+  it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
@@ -26,18 +23,18 @@ describe("solver.minmaxcycle.spec", function() {
       let solver = new Solver({distribute: {val: 'minMaxCycle'}});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(1, 4)
+        domain: specDomainCreateRange(1, 4)
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(1, 4)
+        domain: specDomainCreateRange(1, 4)
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 1, V2: 4},
         {V1: 1, V2: 3},
         {V1: 1, V2: 2},

@@ -15,28 +15,23 @@ import {
 import {
   config_clone,
   config_create,
-  config_generate_vars,
+  config_generateVars,
 } from './config';
 
 import {
-  domain_get_value,
-  domain_is_range,
-  domain_is_solved,
+  domain_getValue,
+  domain_isRange,
+  domain_isSolved,
   domain_min,
 } from './domain';
 
 import {
   fdvar_clone,
-  fdvar_is_solved,
+  fdvar_isSolved,
 } from './fdvar';
 
-import {
-  propagator_step_any,
-} from './propagators/step_any';
-
-import {
-  propagator_is_solved,
-} from './propagators/is_solved';
+import propagator_stepAny from './propagators/step_any';
+import propagator_isSolved from './propagators/is_solved';
 
 // BODY_START
 
@@ -81,7 +76,7 @@ function space_createClone(space) {
   let props = space.unsolved_propagators;
   for (let i = 0; i < props.length; i++) {
     let propagator = props[i];
-    if (!propagator_is_solved(vars, propagator)) {
+    if (!propagator_isSolved(vars, propagator)) {
       unsolvedPropagators.push(propagator);
     }
   }
@@ -107,9 +102,9 @@ function space_toConfig(space) {
     let name = names[i];
     let fdvar = fdvars[name];
     let dom = fdvar.dom;
-    if (domain_is_solved(dom)) {
-      dom = domain_get_value(dom);
-    } else if (domain_is_range(dom, SUB, SUP)) {
+    if (domain_isSolved(dom)) {
+      dom = domain_getValue(dom);
+    } else if (domain_isRange(dom, SUB, SUP)) {
       dom = undefined;
     } else {
       dom = dom.slice(0);
@@ -181,7 +176,7 @@ function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
 
-  config_generate_vars(config, space.vars, space.unsolved_var_names);
+  config_generateVars(config, space.vars, space.unsolved_var_names);
 
   // propagators are immutable so share by reference
   for (let i = 0; i < config.propagators.length; i++) {
@@ -206,7 +201,7 @@ function space_propagate(space) {
     let changed = false;
     for (let i = 0; i < unsolvedPropagators.length; i++) {
       let propDetails = unsolvedPropagators[i];
-      let n = propagator_step_any(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+      let n = propagator_stepAny (propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
       // the domain of either var of a propagator can only be empty if the prop REJECTED
       ASSERT(n === REJECTED || space.vars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
@@ -277,7 +272,7 @@ function space_isSolved(space) {
       ASSERT(!fdvar.was_solved, 'should not be set yet at this stage'); // we may change this though...
       ASSERT_DOMAIN(fdvar.dom, 'is_solved extra domain validation check');
 
-      if (fdvar_is_solved(fdvar)) {
+      if (fdvar_isSolved(fdvar)) {
         fdvar.was_solved = true; // makes space_createClone faster
       } else {
         unsolvedNames[j++] = name;
@@ -351,7 +346,7 @@ function space_getsetVarSolveState(varName, vars, result) {
   let value = domain;
   if (domain.length === 0) {
     value = false;
-  } else if (domain_is_solved(domain)) {
+  } else if (domain_isSolved(domain)) {
     value = domain_min(domain);
   }
   result[varName] = value;
@@ -385,13 +380,13 @@ function __space_toSolverTestCase(space) {
       switch (c[2]) {
         case 'plus':
           // doesnt really exist. merely artifact of ring
-          return things.push(`propagator_add_plus S, '${c[1].join('\', \'')}'`);
+          return things.push(`propagator_addPlus S, '${c[1].join('\', \'')}'`);
         case 'min':
           // doesnt really exist. merely artifact of plus
           return things.push(`# S.minus '${c[1].join('\', \'')}' # (artifact from .plus)`);
         case 'mul':
           // doesnt really exist. merely artifact of ring
-          return things.push(`propagator_add_mul S, '${c[1].join('\', \'')}'`);
+          return things.push(`propagator_addMul S, '${c[1].join('\', \'')}'`);
         case 'div':
           // doesnt really exist. merely artifact of ring
           return things.push(`# S.divby '${c[1].join('\', \'')}' # (artifact from .mul)`);
@@ -466,7 +461,7 @@ function __space_debugString(space) {
     /*
      space.unsolved_propagators.forEach (p) ->
      try
-     solved = propagator_is_solved vars, p
+     solved = propagator_isSolved vars, p
      catch e
      solved = '(unknown; crashes when checked)'
 
@@ -486,7 +481,7 @@ function __space_debugString(space) {
 
     things.push('## ## ## ##');
   } catch (e) {
-    things.push(`(Crashed inside __space_debug_string!)(${e.toString()})`);
+    things.push(`(Crashed inside __space_debugString!)(${e.toString()})`);
     throw new Error(things.join('\n'));
   }
 
@@ -514,7 +509,7 @@ function __space_getUnsolved(space) {
   let unsolved_names = [];
   for (let name in vars) {
     let fdvar = vars[name];
-    if (!fdvar_is_solved(fdvar)) {
+    if (!fdvar_isSolved(fdvar)) {
       unsolved_names.push(name);
     }
   }
@@ -537,7 +532,9 @@ export {
   space_toConfig,
 
   // debugging
+  __space_debugString
+  __space_debugVarDomains,
+  __space_getUnsolved,
   __space_toSolverTestCase,
   __space_toSpaceTestCase,
-  __space_debugString
 };

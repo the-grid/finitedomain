@@ -9,15 +9,11 @@ import {
 // BODY_START
 
 function propagator_mulStep(fdvar1, fdvar2, fdvar_result) {
-
   let output = domain_mul(fdvar1.dom, fdvar2.dom);
   let changeStatus = fdvar_constrain(fdvar_result, output);
-
   return changeStatus;
 }
 
 // BODY_STOP
 
-return {
-  propagator_mulStep,
-};
+export default propagator_mulStep;

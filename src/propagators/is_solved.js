@@ -11,25 +11,25 @@ import {
 } from '../helpers';
 
 import {
-  propagator_lt_solved,
+  propagator_ltSolved,
 } from './lt';
 
 import {
-  propagator_lte_solved,
+  propagator_lteSolved,
 } from './lte';
 
 import {
-  propagator_eq_solved,
+  propagator_eqSolved,
 } from './eq';
 
 import {
-  propagator_neq_solved,
+  propagator_neqSolved,
 } from './neq';
 
 import {
-  fdvar_is_solved,
-  fdvar_lower_bound,
-  fdvar_upper_bound,
+  fdvar_isSolved,
+  fdvar_lowerBound,
+  fdvar_upperBound,
 } from '../fdvar';
 
 // BODY_START
@@ -45,18 +45,18 @@ function propagator_isSolved(vars, propagator) {
       // the original op or inv op (depending on bool_var) resolves
       let varName3 = propagator[1][2];
       let v3 = vars[varName3];
-      if (!fdvar_is_solved(v3)) {
+      if (!fdvar_isSolved(v3)) {
         return false;
       }
-      if (fdvar_lower_bound(v3) === 1) {
+      if (fdvar_lowerBound(v3) === 1) {
         return _propagator_comparisonIsSolved(propagator[2], v1, v2);
       }
-      ASSERT(fdvar_upper_bound(v3) === 0, 'if bool_var is solved and lower is not 1 then upper should be 0', v3);
+      ASSERT(fdvar_upperBound(v3) === 0, 'if bool_var is solved and lower is not 1 then upper should be 0', v3);
       return _propagator_comparisonIsSolved(propagator[3], v1, v2);
 
     case 'ring':
-      if (fdvar_is_solved(v1) && fdvar_is_solved(v2)) {
-        ASSERT(!propagator[1][2] || fdvar_is_solved(vars[propagator[1][2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
+      if (fdvar_isSolved(v1) && fdvar_isSolved(v2)) {
+        ASSERT(!propagator[1][2] || fdvar_isSolved(vars[propagator[1][2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
         return true;
       }
       return false;
@@ -86,22 +86,22 @@ function propagator_isSolved(vars, propagator) {
 function _propagator_comparisonIsSolved(op, v1, v2) {
   switch (op) {
     case 'lt':
-      return propagator_lt_solved(v1, v2);
+      return propagator_ltSolved(v1, v2);
 
     case 'lte':
-      return propagator_lte_solved(v1, v2);
+      return propagator_lteSolved(v1, v2);
 
     case 'gt':
-      return propagator_lt_solved(v2, v1);
+      return propagator_ltSolved(v2, v1);
 
     case 'gte':
-      return propagator_lte_solved(v2, v1);
+      return propagator_lteSolved(v2, v1);
 
     case 'eq':
-      return propagator_eq_solved(v1, v2);
+      return propagator_eqSolved(v1, v2);
 
     case 'neq':
-      return propagator_neq_solved(v1, v2);
+      return propagator_neqSolved(v1, v2);
 
     default:
       return THROW('unknown comparison op', op);
@@ -110,7 +110,5 @@ function _propagator_comparisonIsSolved(op, v1, v2) {
 
 // BODY_STOP
 
-export {
-  propagator_isSolved,
-};
+export default propagator_isSolved;
 

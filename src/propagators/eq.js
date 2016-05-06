@@ -3,12 +3,12 @@ import {
 } from '../helpers';
 
 import {
-  domain_shares_no_elements,
+  domain_sharesNoElements,
 } from '../domain';
 
 import {
-  fdvar_force_eq_inline,
-  fdvar_is_solved,
+  fdvar_forceEqInline,
+  fdvar_isSolved,
 } from '../fdvar';
 
 // BODY_START
@@ -27,7 +27,7 @@ import {
  * @returns {*}
  */
 function propagator_eqStepBare(fdvar1, fdvar2) {
-  return fdvar_force_eq_inline(fdvar1, fdvar2);
+  return fdvar_forceEqInline(fdvar1, fdvar2);
 }
 
 /**
@@ -47,10 +47,10 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
 
   ASSERT_DOMAIN_EMPTY_CHECK(dom1);
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
-//    if domain_is_rejected dom1 or domain_is_rejected dom2
+//    if domain_isRejected dom1 or domain_isRejected dom2
 //      return true
 
-  return domain_shares_no_elements(dom1, dom2);
+  return domain_sharesNoElements(dom1, dom2);
 }
 
 /**
@@ -62,7 +62,7 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(fdvar1, fdvar2) {
-  return fdvar_is_solved(fdvar1) && fdvar_is_solved(fdvar2);
+  return fdvar_isSolved(fdvar1) && fdvar_isSolved(fdvar2);
 }
 
 // BODY_STOP

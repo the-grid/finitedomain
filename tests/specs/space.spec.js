@@ -1,43 +1,56 @@
 import setup from '../fixtures/helpers.spec';
 import {
-    spec_d_create_bool,
-    spec_d_create_range,
-    spec_d_create_value,
-    spec_d_create_ranges,
-    strip_anon_vars,
+    specDomainCreateBool,
+    specDomainCreateRange,
+    specDomainCreateValue,
+    specDomainCreateRanges,
+    stripAnonVars,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  Space,
-} = finitedomain;
+import Solver from '../../src/solver';
+import {
+  config_addConstant,
+  config_addPropagator,
+  config_addVar,
+  config_addVarAnon,
+  config_addVarsA,
+  config_addVarsO,
+  config_clone,
+  config_create,
+  config_generateVars,
+  config_getUnknownVars,
+  config_createWith,
+  config_setDefaults,
+  config_setOptions,
 
-const {
-  config_add_propagator,
-  config_add_var,
-  config_add_var_anon,
-  config_set_options
-} = finitedomain.config;
-
-const {
-  space_create_clone,
-  space_create_root,
-  space_init_from_config,
-  space_is_solved,
+  // testing
+  config_addVarValue,
+  config_initConfigsAndFallbacks,
+} from '../../src/config';
+import {
+  space_createClone,
+  space_createFromConfig,
+  space_createRoot,
+  space_initFromConfig,
+  space_isSolved,
   space_propagate,
   space_solution,
-  space_solution_for
-} = finitedomain.space;
+  space_solutionFor,
+  space_toConfig,
+
+  // debugging
+  __space_debugString
+  __space_debugVarDomains,
+  __space_getUnsolved,
+  __space_toSolverTestCase,
+  __space_toSpaceTestCase,
+} from '../../src/space';
 
 describe("space.spec", function() {
-
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
 
   describe('Space class', function() {
 
@@ -59,10 +72,10 @@ describe("space.spec", function() {
       });
     });
 
-    describe('space_create_clone()', function() {
+    describe('space_createClone()', function() {
 
       let space = space_create_root();
-      let clone = space_create_clone(space);
+      let clone = space_createClone(space);
 
       it('should return a new space', function() {
         expect(clone).to.not.equal(space)
@@ -90,54 +103,54 @@ describe("space.spec", function() {
       });
     });
 
-    describe('space_is_solved()', function() {
+    describe('space_isSolved()', function() {
 
       it('should return true if there are no vars', function() {
-        expect(space_is_solved(space_create_root())).to.equal(true);
+        expect(space_isSolved(space_create_root())).to.equal(true);
       });
 
       it('should return true if all 1 vars are solved', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 1);
+        config_addVarAnon(space.config, 1);
         space_init_from_config(space);
 
-        expect(space_is_solved(space), 'only one solved var').to.equal(true);
+        expect(space_isSolved(space), 'only one solved var').to.equal(true);
       });
 
       it('should return true if all 2 vars are solved', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 1);
-        config_add_var_anon(space.config, 1);
+        config_addVarAnon(space.config, 1);
+        config_addVarAnon(space.config, 1);
         space_init_from_config(space);
 
-        expect(space_is_solved(space), 'two solved vars').to.equal(true);
+        expect(space_isSolved(space), 'two solved vars').to.equal(true);
       });
 
       it('should return false if at least one var is not solved', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 0, 1);
+        config_addVarAnon(space.config, 0, 1);
         space_init_from_config(space);
 
-        expect(space_is_solved(space), 'only one unsolved var').to.equal(false);
+        expect(space_isSolved(space), 'only one unsolved var').to.equal(false);
       });
 
       it('should return false if at least one var of two is not solved', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 0, 1);
-        config_add_var_anon(space.config, 0, 1);
+        config_addVarAnon(space.config, 0, 1);
+        config_addVarAnon(space.config, 0, 1);
         space_init_from_config(space);
 
-        expect(space_is_solved(space), 'two unsolved vars').to.equal(false);
+        expect(space_isSolved(space), 'two unsolved vars').to.equal(false);
       });
 
       it('should return false if at least one var of three is not solved', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 0, 1);
-        config_add_var_anon(space.config, 0, 1);
-        config_add_var_anon(space.config, 1);
+        config_addVarAnon(space.config, 0, 1);
+        config_addVarAnon(space.config, 0, 1);
+        config_addVarAnon(space.config, 1);
         space_init_from_config(space);
 
-        expect(space_is_solved(space), 'two unsolved vars and a solved var').to.equal(false);
+        expect(space_isSolved(space), 'two unsolved vars and a solved var').to.equal(false);
       });
     });
 
@@ -154,7 +167,7 @@ describe("space.spec", function() {
 
       it('should return false if a var covers no (more) elements', function() {
         let space = space_create_root();
-        config_add_var(space.config, 'test', []);
+        config_addVar(space.config, 'test', []);
         space_init_from_config(space);
 
         expect(space_solution(space)).to.eql({test: false});
@@ -162,7 +175,7 @@ describe("space.spec", function() {
 
       it('should return the value of a var is solved', function() {
         let space = space_create_root();
-        config_add_var(space.config, 'test', 5);
+        config_addVar(space.config, 'test', 5);
         space_init_from_config(space);
 
         expect(space_solution(space)).to.eql({test: 5});
@@ -170,25 +183,25 @@ describe("space.spec", function() {
 
       it('should return the domain of a var if not yet determined', function() {
         let space = space_create_root();
-        config_add_var(space.config, 'single_range', 10, 20);
-        config_add_var(space.config, 'multi_range', spec_d_create_ranges([10, 20], [30, 40]));
-        config_add_var(space.config, 'multi_range_with_solved', spec_d_create_ranges([10, 20], [25, 25], [30, 40]));
+        config_addVar(space.config, 'single_range', 10, 20);
+        config_addVar(space.config, 'multi_range', specDomainCreateRanges([10, 20], [30, 40]));
+        config_addVar(space.config, 'multi_range_with_solved', specDomainCreateRanges([10, 20], [25, 25], [30, 40]));
         space_init_from_config(space);
 
         expect(space_solution(space)).to.eql({
-          single_range: spec_d_create_range(10, 20),
-          multi_range: spec_d_create_ranges([10, 20], [30, 40]),
-          multi_range_with_solved: spec_d_create_ranges([10, 20], [25, 25], [30, 40])
+          single_range: specDomainCreateRange(10, 20),
+          multi_range: specDomainCreateRanges([10, 20], [30, 40]),
+          multi_range_with_solved: specDomainCreateRanges([10, 20], [25, 25], [30, 40])
         });
       });
 
       it('should not add anonymous vars to the result', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 15);
-        config_add_var(space.config, 'addme', 20);
+        config_addVarAnon(space.config, 15);
+        config_addVar(space.config, 'addme', 20);
         space_init_from_config(space);
 
-        expect(strip_anon_vars(space_solution(space))).to.eql({addme: 20});
+        expect(stripAnonVars(space_solution(space))).to.eql({addme: 20});
       });
     });
 
@@ -196,11 +209,11 @@ describe("space.spec", function() {
 
       it('should only collect results for given var names', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 10); // should be ignored
-        config_add_var(space.config, 'nope', 10, 20);
-        config_add_var(space.config, 'yep10', 10);
-        config_add_var(space.config, 'yep20', 20);
-        config_add_var(space.config, 'yep30', 30);
+        config_addVarAnon(space.config, 10); // should be ignored
+        config_addVar(space.config, 'nope', 10, 20);
+        config_addVar(space.config, 'yep10', 10);
+        config_addVar(space.config, 'yep20', 20);
+        config_addVar(space.config, 'yep30', 30);
         space_init_from_config(space);
 
         expect(space_solution_for(space, ['yep10', 'yep20', 'yep30'])).to.eql({yep10: 10, yep20: 20, yep30: 30});
@@ -208,10 +221,10 @@ describe("space.spec", function() {
 
       it('should return normal even if a var is unsolved when complete=false', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 10); // should be ignored
-        config_add_var(space.config, 'yep10', 10);
-        config_add_var(space.config, 'oops20', []);
-        config_add_var(space.config, 'yep30', 30);
+        config_addVarAnon(space.config, 10); // should be ignored
+        config_addVar(space.config, 'yep10', 10);
+        config_addVar(space.config, 'oops20', []);
+        config_addVar(space.config, 'yep30', 30);
         space_init_from_config(space);
 
         expect(space_solution_for(space, ['yep10', 'oops20', 'yep30'])).to.eql({yep10: 10, oops20: false, yep30: 30});
@@ -219,10 +232,10 @@ describe("space.spec", function() {
 
       it('should return false if a var is unsolved when complete=true', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 10); // should be ignored
-        config_add_var(space.config, 'yep10', 10);
-        config_add_var(space.config, 'oops20', []);
-        config_add_var(space.config, 'yep30', 30);
+        config_addVarAnon(space.config, 10); // should be ignored
+        config_addVar(space.config, 'yep10', 10);
+        config_addVar(space.config, 'oops20', []);
+        config_addVar(space.config, 'yep30', 30);
         space_init_from_config(space);
 
         expect(space_solution_for(space, ['yep10', 'oops20', 'yep30'], true)).to.equal(false);
@@ -230,10 +243,10 @@ describe("space.spec", function() {
 
       it('should return true if a var is unsolved that was not requested when complete=true', function() {
         let space = space_create_root();
-        config_add_var_anon(space.config, 10); // should be ignored
-        config_add_var(space.config, 'yep10', 10);
-        config_add_var(space.config, 'nope20', []);
-        config_add_var(space.config, 'yep30', 30);
+        config_addVarAnon(space.config, 10); // should be ignored
+        config_addVar(space.config, 'yep10', 10);
+        config_addVar(space.config, 'nope20', []);
+        config_addVar(space.config, 'yep30', 30);
         space_init_from_config(space);
 
         expect(space_solution_for(space, ['yep10', 'yep30'], true)).to.eql({yep10: 10, yep30: 30});
@@ -247,15 +260,15 @@ describe("space.spec", function() {
         it('should not reject this multiply case', function() {
           let space = space_create_root();
 
-          config_add_var(space.config, 'A', 0, 10);
-          config_add_var(space.config, 'B', 0, 10);
-          config_add_var(space.config, 'MAX', 25, 25);
-          config_add_var(space.config, 'MUL', 0, 100);
+          config_addVar(space.config, 'A', 0, 10);
+          config_addVar(space.config, 'B', 0, 10);
+          config_addVar(space.config, 'MAX', 25, 25);
+          config_addVar(space.config, 'MUL', 0, 100);
 
-          config_add_propagator(space.config, ['ring', ['A', 'B', 'MUL'], 'mul']);
-          config_add_propagator(space.config, ['ring', ['MUL', 'A', 'B'], 'div']);
-          config_add_propagator(space.config, ['ring', ['MUL', 'B', 'A'], 'div']);
-          config_add_propagator(space.config, ['lt', ['MUL', 'MAX']]);
+          config_addPropagator(space.config, ['ring', ['A', 'B', 'MUL'], 'mul']);
+          config_addPropagator(space.config, ['ring', ['MUL', 'A', 'B'], 'div']);
+          config_addPropagator(space.config, ['ring', ['MUL', 'B', 'A'], 'div']);
+          config_addPropagator(space.config, ['lt', ['MUL', 'MAX']]);
 
           space_init_from_config(space);
           expect(space_propagate(space)).to.eql(true);
@@ -269,10 +282,10 @@ describe("space.spec", function() {
 
           let space = space_create_root();
 
-          config_add_var(space.config, 'A', 0, 10);
-          config_add_var(space.config, 'B', 0, 10);
+          config_addVar(space.config, 'A', 0, 10);
+          config_addVar(space.config, 'B', 0, 10);
 
-          config_add_propagator(space.config, ['lt', ['A', 'B']]);
+          config_addPropagator(space.config, ['lt', ['A', 'B']]);
 
           space_init_from_config(space);
           expect(space_propagate(space)).to.eql(true);
@@ -281,12 +294,12 @@ describe("space.spec", function() {
         it('should not break early if callback doesnt return true', function() {
           let space = space_create_root();
 
-          config_add_var(space.config, 'A', 0, 10);
-          config_add_var(space.config, 'B', 0, 10);
+          config_addVar(space.config, 'A', 0, 10);
+          config_addVar(space.config, 'B', 0, 10);
 
-          config_add_propagator(space.config, ['lt', ['A', 'B']]);
+          config_addPropagator(space.config, ['lt', ['A', 'B']]);
 
-          config_set_options(space.config, {timeout_callback() { return false; }});
+          config_setOptions(space.config, {timeout_callback() { return false; }});
           space_init_from_config(space);
 
           expect(space_propagate(space)).to.eql(true);
@@ -295,12 +308,12 @@ describe("space.spec", function() {
         it('should break early if callback returns true', function() {
           let space = space_create_root();
 
-          config_add_var(space.config, 'A', 0, 10);
-          config_add_var(space.config, 'B', 0, 10);
+          config_addVar(space.config, 'A', 0, 10);
+          config_addVar(space.config, 'B', 0, 10);
 
-          config_add_propagator(space.config, ['lt', ['A', 'B']]);
+          config_addPropagator(space.config, ['lt', ['A', 'B']]);
 
-          config_set_options(space.config, {timeout_callback() { return true; }});
+          config_setOptions(space.config, {timeout_callback() { return true; }});
           space_init_from_config(space);
 
           expect(space_propagate(space)).to.eql(false);

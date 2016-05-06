@@ -50,7 +50,7 @@ import {
 } from '../helpers';
 
 import {
-  domain_contains_value,
+  domain_containsValue,
 } from '../domain';
 
 // BODY_START
@@ -71,7 +71,7 @@ import {
  * @param {boolean} [rngIsNormalized=true] Is 0<=rng()<1 or 0<=rng()<total_prob ? The latter is only used for testing to avoid rounding errors.
  * @return {number | undefined}
  */
-function distribution_markov_sampleNextFromDomain(domain, probVector, valLegend, randomFunc, rngIsNormalized=true) {
+function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, randomFunc, rngIsNormalized=true) {
   ASSERT(!!valLegend, 'expecting val_legend thanks to expandVectorsWith', valLegend);
   ASSERT(probVector.length <= valLegend.length, 'expecting prob_vector to be smaller or equal length of val_legend', probVector, valLegend);
 
@@ -83,7 +83,7 @@ function distribution_markov_sampleNextFromDomain(domain, probVector, valLegend,
     let prob = probVector[index];
     if (prob > 0) {
       let value = valLegend[index];
-      if (domain_contains_value(domain, value)) {
+      if (domain_containsValue(domain, value)) {
         totalProb += prob;
         cumulativeFilteredProbVector.push(totalProb);
         filteredLegend.push(value);
@@ -141,6 +141,4 @@ function _distribution_markovRoll(rng, totalProb, cumulativeProbVector, valueLeg
 
 // BODY_STOP
 
-export default {
-  distribution_markov_sampleNextFromDomain,
-};
+export default distribution_markovSampleNextFromDomain;

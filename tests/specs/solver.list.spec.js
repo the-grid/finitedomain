@@ -1,28 +1,24 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_value,
-  strip_anon_vars,
-  strip_anon_vars_a,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateValue,
+  stripAnonVars,
+  stripAnonVarsFromArrays,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  Solver
-} = finitedomain;
-
-const {
-  space_solution_for
-} = finitedomain.space;
+import Solver from '../../src/solver';
+import {
+  space_solution_for,
+} from '../../src/space';
 
 describe('solver.list.spec', function() {
 
-  it('finitedomain.Solver?', function() {
+  it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
@@ -32,7 +28,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
           list: [2, 4, 3, 1]
@@ -40,7 +36,7 @@ describe('solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
           list: [3, 1, 4, 2]
@@ -51,7 +47,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3},
         {V1: 2, V2: 1},
         {V1: 2, V2: 4},
@@ -101,7 +97,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3},
         {V1: 2, V2: 1},
         {V1: 2, V2: 4},
@@ -125,12 +121,7 @@ describe('solver.list.spec', function() {
     });
 
     it("should call the list if it is a function", function() {
-
-      if (!finitedomain.__DEV_BUILD) {
-        return;
-      }
-
-      let listCallback = function(space, v) {
+      function listCallback(space, v) {
         let solution = space_solution_for(space, ['STATE', 'STATE2', 'V1', 'V2'], false);
         if (solution['STATE'] === 5) {
           if (v === 'V1') {
@@ -142,16 +133,16 @@ describe('solver.list.spec', function() {
           }
         }
         return [1, 2, 3, 4];
-      };
+      }
 
       let solver = new Solver({});
       solver.addVar({
         id: 'STATE',
-        domain: spec_d_create_range(0, 10)
+        domain: specDomainCreateRange(0, 10)
       });
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
           list: listCallback
@@ -159,7 +150,7 @@ describe('solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_range(1, 4),
+        domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
           list: listCallback
@@ -171,7 +162,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3, STATE: 5},
         {V1: 2, V2: 1, STATE: 5},
         {V1: 2, V2: 4, STATE: 5},
@@ -201,7 +192,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 5),
+        domain: specDomainCreateRange(0, 5),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 3, 4]
@@ -211,7 +202,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(2); // list.length
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 3},
         {V1: 4}
       ]);
@@ -221,7 +212,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 10),
+        domain: specDomainCreateRange(0, 10),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15]
@@ -237,7 +228,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 5),
+        domain: specDomainCreateRange(0, 5),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
@@ -248,7 +239,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(5);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 5},
         {V1: 4},
         {V1: 3},
@@ -261,7 +252,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 5),
+        domain: specDomainCreateRange(0, 5),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 5],
@@ -272,7 +263,7 @@ describe('solver.list.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(5);
-      expect(strip_anon_vars_a(solutions)).to.eql([
+      expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 3},
         {V1: 1},
         {V1: 5},
@@ -285,7 +276,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_range(0, 5),
+        domain: specDomainCreateRange(0, 5),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 15, 5],

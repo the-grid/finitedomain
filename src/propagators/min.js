@@ -16,6 +16,4 @@ function propagator_minStep(fdvar1, fdvar2, fdvarResult) {
 
 // BODY_STOP
 
-export {
-  propagator_minStep,
-};
+export default propagator_minStep;

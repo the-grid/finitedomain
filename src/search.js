@@ -2,20 +2,13 @@ import {
   ASSERT,
   ASSERT_SPACE,
 } from './helpers';
-
 import {
-  space_create_clone,
-  space_is_solved,
+  space_createClone,
+  space_isSolved,
   space_propagate,
 } from './space';
-
-import {
-  distribution_get_next_var,
-} from './distribution/var';
-
-import {
-  distribute_get_next_domain_for_var,
-} from './distribution/value';
+import distribution_getNextVar from './distribution/var';
+import distribute_getNextDomainForVar from './distribution/value';
 
 // BODY_START
 
@@ -54,7 +47,7 @@ function search_depthFirst(state) {
   // this function clones the current space and then restricts an unsolved
   // var in the clone to see whether this breaks anything. The loop below
   // keeps doing this until something breaks or all target vars are solved.
-  let createNextSpaceNode = state.next_choice || _search_defaultSpaceFactory;
+  let createNextSpaceNode = state.next_choice || search_defaultSpaceFactory;
 
   let {
     space,
@@ -69,7 +62,7 @@ function search_depthFirst(state) {
     if (!space_propagate(space)) {
       _search_onReject(state, space, stack);
 
-    } else if (space_is_solved(space)) {
+    } else if (space_isSolved(space)) {
       _search_onSolve(state, space, stack);
       return;
 
@@ -103,13 +96,13 @@ function search_depthFirst(state) {
  * @param {Space} space
  * @returns {Space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
-function _search_defaultSpaceFactory(space) {
+function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
-  let fdvar = distribution_get_next_var(space, targetVars);
+  let fdvar = distribution_getNextVar(space, targetVars);
   if (fdvar) {
-    let nextDomain = distribute_get_next_domain_for_var(space, fdvar);
+    let nextDomain = distribute_getNextDomainForVar(space, fdvar);
     if (nextDomain) {
-      let clone = space_create_clone(space);
+      let clone = space_createClone(space);
       clone.vars[fdvar.id].dom = nextDomain;
       return clone;
     }
@@ -173,11 +166,4 @@ function _search_onSolve(state, space, stack) {
 
 // BODY_STOP
 
-export {
-  search_depthFirst,
-
-  // __REMOVE_BELOW_FOR_DIST__
-  // for testing
-  _search_defaultSpaceFactory,
-  // __REMOVE_ABOVE_FOR_DIST__
-};
+export default search_depthFirst;

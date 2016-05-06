@@ -1,46 +1,36 @@
 import setup from '../../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_value,
-  spec_d_create_range,
-  spec_d_create_ranges,
-  spec_d_create_zero,
+  specDomainCreateBool,
+  specDomainCreateValue,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  specDomainCreateZero,
 } from '../../fixtures/domain.spec';
-import {
-  Solver,
-  finitedomain_fdvar,
-  finitedomain_distribution,
-} from '../../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
+import distribution_getNextVar, {
   BETTER,
   SAME,
   WORSE,
 
-  distribution_get_next_var,
-  _distribution_var_min: by_min,
-  _distribution_var_max: by_max,
-  _distribution_var_size: by_min_size,
-  _distribution_var_markov: by_markov,
-  _distribution_var_list: by_list
-} = finitedomain_distribution.var;
-
-const fdvar_create = finitedomain_fdvar.fdvar_create;
-
+  _distribution_var_min as by_min,
+  _distribution_var_max as by_max,
+  _distribution_var_size as by_min_size,
+  _distribution_var_markov as by_markov,
+  _distribution_var_list as by_list,
+} from '../../../src/distribution/var';
+import {
+  fdvar_create,
+} from '../../../src/fdvar';
 
 describe('distribution/var.spec', function() {
 
-  if (!finitedomain.__DEV_BUILD) {
-    return;
-  }
-
   describe('distribution_var_by_throw', function() {
     it('should throw', function () {
-      expect(_ => distribution_get_next_var({config: {next_var_func: 'throw'}}, {})).to.throw('not expecting to pick this distributor');
+      expect(_ => distribution_getNextVar({config: {next_var_func: 'throw'}}, {})).to.throw('not expecting to pick this distributor');
     });
   });
 
@@ -49,11 +39,11 @@ describe('distribution/var.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: spec_d_create_ranges(range_a),
+        domain: specDomainCreateRanges(range_a),
       });
       solver.addVar({
         id: 'B',
-        domain: spec_d_create_ranges(range_b),
+        domain: specDomainCreateRanges(range_b),
       });
       solver.prepare({
         distribute: {
@@ -61,7 +51,7 @@ describe('distribution/var.spec', function() {
         },
       });
 
-      let fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+      let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
       expect(fdvar.id).to.eql(out);
     });
@@ -153,15 +143,15 @@ describe('distribution/var.spec', function() {
       });
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
-        let v1 = fdvar_create('1', spec_d_create_ranges([11, 11], [15, 19]));
-        let v2 = fdvar_create('2', spec_d_create_ranges([8, 10], [12, 14]));
+        let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [15, 19]));
+        let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 14]));
 
         expect(by_min_size(v1, v2)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
-        let v1 = fdvar_create('1', spec_d_create_ranges([11, 11], [13, 14], [18, 19]));
-        let v2 = fdvar_create('2', spec_d_create_ranges([8, 10], [12, 13]));
+        let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
+        let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 13]));
 
         expect(by_min_size(v1, v2)).to.equal(SAME);
       });
@@ -185,17 +175,17 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: spec_d_create_ranges([30, 100]) // 71 elements
+          domain: specDomainCreateRanges([30, 100]) // 71 elements
         });
         solver.addVar({
           id: 'B',
-          domain: spec_d_create_ranges([0, 50], [60, 90]) // 82 elements
+          domain: specDomainCreateRanges([0, 50], [60, 90]) // 82 elements
         });
         solver.prepare(
           {distribute: { var: 'size'
         }});
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
         expect(fdvar.id).to.eql('A');
       });
@@ -206,16 +196,16 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: spec_d_create_ranges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]) // 69 elements
+          domain: specDomainCreateRanges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]) // 69 elements
         });
         solver.addVar({
           id: 'B',
-          domain: spec_d_create_ranges([0, 10], [30, 40], [50, 60], [670, 700]) // 64 elements
+          domain: specDomainCreateRanges([0, 10], [30, 40], [50, 60], [670, 700]) // 64 elements
         });
         solver.prepare(
           {distribute: { var: 'size'
         }});
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
         expect(fdvar.id).to.eql('B');
       });
@@ -336,11 +326,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: spec_d_create_ranges([0, 1]),
+          domain: specDomainCreateRanges([0, 1]),
         });
         solver.addVar({
           id: 'B',
-          domain: spec_d_create_ranges([10, 12]),
+          domain: specDomainCreateRanges([10, 12]),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -348,11 +338,11 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: spec_d_create_ranges([5, 17]),
+          domain: specDomainCreateRanges([5, 17]),
         });
         solver.addVar({
           id: 'D',
-          domain: spec_d_create_ranges([13, 13]),
+          domain: specDomainCreateRanges([13, 13]),
         });
         solver.prepare({
           distribute: {
@@ -360,7 +350,7 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B', 'C', 'D']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
 
         expect(fdvar.id).to.eql('B');
       });
@@ -371,11 +361,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: spec_d_create_ranges([0, 1])
+          domain: specDomainCreateRanges([0, 1])
         });
         solver.addVar({
           id: 'B',
-          domain: spec_d_create_ranges([10, 12]),
+          domain: specDomainCreateRanges([10, 12]),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1
@@ -383,7 +373,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: spec_d_create_ranges([5, 17]),
+          domain: specDomainCreateRanges([5, 17]),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1
@@ -391,7 +381,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'D',
-          domain: spec_d_create_ranges([13, 13])
+          domain: specDomainCreateRanges([13, 13])
         });
         solver.prepare({
           distribute: {
@@ -399,7 +389,7 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B', 'C', 'D']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
 
         expect(fdvar.id).to.eql('C');
       });
@@ -637,7 +627,7 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
         expect(fdvar.id).to.eql('A');
       });
@@ -655,7 +645,7 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
         expect(fdvar.id).to.eql('B');
       });
@@ -672,7 +662,7 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A']);
+        let fdvar = distribution_getNextVar(solver._space, ['A']);
 
         expect(fdvar.id).to.eql('A');
       });
@@ -691,13 +681,13 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B', 'C']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
         expect(fdvar.id, 'A and C should go before B').to.eql('A');
-        fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
         expect(fdvar.id, 'A should go before B').to.eql('A');
-        fdvar = distribution_get_next_var(solver._space, ['B', 'C']);
+        fdvar = distribution_getNextVar(solver._space, ['B', 'C']);
         expect(fdvar.id, 'C should go before B').to.eql('C');
-        fdvar = distribution_get_next_var(solver._space, ['B']);
+        fdvar = distribution_getNextVar(solver._space, ['B']);
         expect(fdvar.id, 'B is only one left').to.eql('B');
       });
 
@@ -718,13 +708,13 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_get_next_var(solver._space, ['A', 'B', 'C']);
+        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
         expect(fdvar.id, 'A and C should go before B').to.eql('A');
-        fdvar = distribution_get_next_var(solver._space, ['A', 'B']);
+        fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
         expect(fdvar.id, 'A should go before B').to.eql('A');
-        fdvar = distribution_get_next_var(solver._space, ['B', 'C']);
+        fdvar = distribution_getNextVar(solver._space, ['B', 'C']);
         expect(fdvar.id, 'C should go before B').to.eql('C');
-        fdvar = distribution_get_next_var(solver._space, ['B']);
+        fdvar = distribution_getNextVar(solver._space, ['B']);
         expect(fdvar.id, 'B is only one left').to.eql('B');
       });
     });
@@ -782,43 +772,43 @@ describe('distribution/var.spec', function() {
     });
 
     it('base test: should get highest priority on the list; A_list', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
       expect(fdvar.id).to.equal('B_list');
     });
 
     it('missing first item from list', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
       expect(fdvar.id).to.equal('A_list');
     });
 
     it('nothing on list, fallback to markov, get last markov', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
       expect(fdvar.id).to.equal('D_markov');
     });
 
     it('nothing on list, fallback to markov, get only markov', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['C_markov', 'E_pleb', 'F_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['C_markov', 'E_pleb', 'F_pleb']);
 
       expect(fdvar.id).to.equal('C_markov');
     });
 
     it('nothing on list, no markov vars, pick smallest by size', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['E_pleb', 'F_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['E_pleb', 'F_pleb']);
 
       expect(fdvar.id).to.equal('F_pleb');
     });
 
     it('nothing on list, no markov vars, pick only var left', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['E_pleb']);
+      let fdvar = distribution_getNextVar(solver._space, ['E_pleb']);
 
       expect(fdvar.id).to.equal('E_pleb');
     });
 
     it('should just return undefined despite config', function() {
-      let fdvar = distribution_get_next_var(solver._space, []);
+      let fdvar = distribution_getNextVar(solver._space, []);
 
       expect(fdvar.id).to.equal(undefined);
     });
@@ -831,7 +821,7 @@ describe('distribution/var.spec', function() {
         // shuffle list the ugly way
         names.sort(() => Math.random() - .5);
 
-        expect(() => distribution_get_next_var(solver._space, names)).not.to.throw();
+        expect(() => distribution_getNextVar(solver._space, names)).not.to.throw();
       }
     });
   });
@@ -878,31 +868,31 @@ describe('distribution/var.spec', function() {
     });
 
     it('should prioritize list over rest A', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['D', 'C', 'A', 'E', 'F']);
+      let fdvar = distribution_getNextVar(solver._space, ['D', 'C', 'A', 'E', 'F']);
 
       expect(fdvar.id).to.equal('A');
     });
 
     it('should prioritize list over rest B', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['D', 'C', 'B', 'E', 'F']);
+      let fdvar = distribution_getNextVar(solver._space, ['D', 'C', 'B', 'E', 'F']);
 
       expect(fdvar.id).to.equal('B');
     });
 
     it('should prioritize un-blacklisted over rest E', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['D', 'E', 'C']);
+      let fdvar = distribution_getNextVar(solver._space, ['D', 'E', 'C']);
 
       expect(fdvar.id).to.equal('E');
     });
 
     it('should prioritize un-blacklisted over rest F', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['D', 'F', 'C']);
+      let fdvar = distribution_getNextVar(solver._space, ['D', 'F', 'C']);
 
       expect(fdvar.id).to.equal('F');
     });
 
     it('should prioritize C over D in blacklist', function() {
-      let fdvar = distribution_get_next_var(solver._space, ['D', 'C']);
+      let fdvar = distribution_getNextVar(solver._space, ['D', 'C']);
 
       expect(fdvar.id).to.equal('C');
     });

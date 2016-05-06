@@ -1,25 +1,22 @@
 import setup from '../fixtures/helpers.spec';
 import {
-  spec_d_create_bool,
-  spec_d_create_range,
-  spec_d_create_ranges,
-  strip_anon_vars,
-  strip_anon_vars_a,
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateRanges,
+  stripAnonVars,
+  stripAnonVarsFromArrays,
 } from '../fixtures/domain.spec';
-import finitedomain from '../../src/index';
 import {
   expect,
   assert,
 } from 'chai';
 
-const {
-  Solver,
-} = finitedomain;
+import Solver from '../../src/solver';
 
 // These Solver specs focus on using Markov
 describe("solver.markov.spec", function() {
 
-  it('finitedomain.Solver?', function() {
+  it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
@@ -27,7 +24,7 @@ describe("solver.markov.spec", function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V',
-      domain: spec_d_create_bool(),
+      domain: specDomainCreateBool(),
       distribute: 'markov',
       distributeOptions: {
         legend: [0, 0],
@@ -72,11 +69,11 @@ describe("solver.markov.spec", function() {
 
       solver.addVar({
         id: 'STATE',
-        domain: spec_d_create_range(0, 10)
+        domain: specDomainCreateRange(0, 10)
       });
       solver.addVar({
         id: 'V1',
-        domain: spec_d_create_bool(),
+        domain: specDomainCreateBool(),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -95,7 +92,7 @@ describe("solver.markov.spec", function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: spec_d_create_bool(),
+        domain: specDomainCreateBool(),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -190,11 +187,11 @@ describe("solver.markov.spec", function() {
 
     solver.addVar({
       id: 'STATE',
-      domain: spec_d_create_range(0, 10)
+      domain: specDomainCreateRange(0, 10)
     });
     solver.addVar({
       id: 'V1',
-      domain: spec_d_create_range(0, 100),
+      domain: specDomainCreateRange(0, 100),
       distribute: 'markov',
       distributeOptions: {
         legend: [10, 100],
@@ -212,7 +209,7 @@ describe("solver.markov.spec", function() {
     });
     solver.addVar({
       id: 'V2',
-      domain: spec_d_create_range(0, 100),
+      domain: specDomainCreateRange(0, 100),
       distribute: 'markov',
       distributeOptions: {
         legend: [10, 100],
@@ -238,7 +235,7 @@ describe("solver.markov.spec", function() {
     // vector [0,1] on [10,100], meaning 100. so the only valid
     // solution can be STATE=5,V1=10,V2=100
     expect(solutions.length, 'solution count').to.equal(1);
-    expect(strip_anon_vars(solutions[0])).to.eql({
+    expect(stripAnonVars(solutions[0])).to.eql({
       STATE: 5,
       V1: 10,
       V2: 100
@@ -251,7 +248,7 @@ describe("solver.markov.spec", function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: spec_d_create_range(1, 4),
+      domain: specDomainCreateRange(1, 4),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -265,7 +262,7 @@ describe("solver.markov.spec", function() {
 
     solver.addVar({
       id: 'V2',
-      domain: spec_d_create_range(1, 4),
+      domain: specDomainCreateRange(1, 4),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -281,7 +278,7 @@ describe("solver.markov.spec", function() {
 
     let solutions = solver.solve();
     expect(solutions.length, 'all solutions').to.equal(16);
-    expect(strip_anon_vars_a(solutions)).to.eql([
+    expect(stripAnonVarsFromArrays(solutions)).to.eql([
       {V1: 1, V2: 4},
       {V1: 1, V2: 3},
       {V1: 1, V2: 2},
@@ -305,7 +302,7 @@ describe("solver.markov.spec", function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: spec_d_create_range(1, 4),
+      domain: specDomainCreateRange(1, 4),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -316,7 +313,7 @@ describe("solver.markov.spec", function() {
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
     solver.addVar({
       id: 'V2',
-      domain: spec_d_create_range(1, 4),
+      domain: specDomainCreateRange(1, 4),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -330,7 +327,7 @@ describe("solver.markov.spec", function() {
 
     let solutions = solver.solve();
     expect(solutions.length, 'all solutions').to.equal(16);
-    expect(strip_anon_vars_a(solutions)).to.eql([
+    expect(stripAnonVarsFromArrays(solutions)).to.eql([
       {V1: 1, V2: 4},
       {V1: 1, V2: 3},
       {V1: 1, V2: 2},
@@ -359,11 +356,11 @@ describe("solver.markov.spec", function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A_NORM',
-        domain: spec_d_create_range(0, 1)
+        domain: specDomainCreateRange(0, 1)
       });
       solver.addVar({
         id: 'B_MARK',
-        domain: spec_d_create_range(0, 1),
+        domain: specDomainCreateRange(0, 1),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [2],

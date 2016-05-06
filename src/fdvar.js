@@ -10,24 +10,24 @@ import {
 } from './helpers';
 
 import {
-  domain_create_all,
-  domain_create_bool,
-  domain_create_range,
-  domain_create_value,
+  domain_createAll,
+  domain_createBool,
+  domain_createRange,
+  domain_createValue,
   domain_intersection,
   domain_equal,
-  domain_force_eq_inline,
-  domain_is_determined,
-  domain_is_rejected,
-  domain_is_solved,
-  domain_is_value,
+  domain_forceEqInline,
+  domain_isDetermined,
+  domain_isRejected,
+  domain_isSolved,
+  domain_isValue,
   domain_max,
-  domain_middle_element,
+  domain_middleElement,
   domain_min,
-  domain_remove_gte_inline,
-  domain_remove_lte_inline,
-  domain_remove_value_inline,
-  domain_set_to_range_inline,
+  domain_removeGteInline,
+  domain_removeLteInline,
+  domain_removeValueInline,
+  domain_setToRangeInline,
   domain_size,
 } from './domain';
 
@@ -38,19 +38,19 @@ function fdvar_create(id, dom) {
 }
 
 function fdvar_createBool(id) {
-  return fdvar_new(id, domain_create_bool(), 0);
+  return fdvar_new(id, domain_createBool(), 0);
 }
 
 function fdvar_createRange(id, lo, hi) {
-  return fdvar_new(id, domain_create_range(lo, hi), 0);
+  return fdvar_new(id, domain_createRange(lo, hi), 0);
 }
 
 function fdvar_createValue(id, val) {
-  return fdvar_new(id, domain_create_value(val), 0);
+  return fdvar_new(id, domain_createValue(val), 0);
 }
 
 function fdvar_createWide(id) {
-  return fdvar_new(id, domain_create_all(), 0);
+  return fdvar_new(id, domain_createAll(), 0);
 }
 
 function fdvar_new(id, dom) {
@@ -61,7 +61,7 @@ function fdvar_new(id, dom) {
     _class: 'fdvar',
     id,
     dom,
-    was_solved: false // for space_create_clone
+    was_solved: false // for space_createClone
   };
 }
 
@@ -76,19 +76,19 @@ function fdvar_isUndetermined(fdvar) {
 // A var is solved if it has only one range that spans only one value.
 
 function fdvar_isSolved(fdvar) {
-  return domain_is_solved(fdvar.dom);
+  return domain_isSolved(fdvar.dom);
 }
 
 // Is given var [value, value] ?
 function fdvar_isValue(fdvar, value) {
-  return domain_is_value(fdvar.dom, value);
+  return domain_isValue(fdvar.dom, value);
 }
 
 // A var is rejected if its domain is empty. This means none of the
 // possible values for this var could satisfy all the constraints.
 
 function fdvar_isRejected(fdvar) {
-  return domain_is_rejected(fdvar.dom);
+  return domain_isRejected(fdvar.dom);
 }
 
 function fdvar_clone(fdvar) {
@@ -108,11 +108,11 @@ function fdvar_setDomain(fdvar, domain) {
 }
 
 function fdvar_setValueInline(fdvar, value) {
-  domain_set_to_range_inline(fdvar.dom, value, value);
+  domain_setToRangeInline(fdvar.dom, value, value);
 }
 
 function fdvar_setRangeInline(fdvar, lo, hi) {
-  domain_set_to_range_inline(fdvar.dom, lo, hi);
+  domain_setToRangeInline(fdvar.dom, lo, hi);
 }
 
 // TODO: rename to intersect for that's what it is.
@@ -125,11 +125,11 @@ function fdvar_constrain(fdvar, domain) {
 }
 
 function fdvar_constrainToRange(fdvar, lo, hi) {
-  return fdvar_constrain(fdvar, domain_create_range(lo, hi));
+  return fdvar_constrain(fdvar, domain_createRange(lo, hi));
 }
 
 function fdvar_constrainToValue(fdvar, value) {
-  return fdvar_constrain(fdvar, domain_create_value(value));
+  return fdvar_constrain(fdvar, domain_createValue(value));
 }
 
 function fdvar_size(fdvar) {
@@ -148,18 +148,18 @@ function fdvar_upperBound(fdvar) {
 // Middle here means the middle index, not hi-lo/2
 
 function fdvar_middleElement(fdvar) {
-  return domain_middle_element(fdvar.dom);
+  return domain_middleElement(fdvar.dom);
 }
 
 function fdvar_removeGteInline(fdvar, value) {
-  if (domain_remove_gte_inline(fdvar.dom, value)) {
+  if (domain_removeGteInline(fdvar.dom, value)) {
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
 }
 
 function fdvar_removeLteInline(fdvar, value) {
-  if (domain_remove_lte_inline(fdvar.dom, value)) {
+  if (domain_removeLteInline(fdvar.dom, value)) {
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
@@ -171,7 +171,7 @@ function fdvar_removeLteInline(fdvar, value) {
 // SOMETHING_CHANGED
 
 function fdvar_forceEqInline(fdvar1, fdvar2) {
-  let changeState = domain_force_eq_inline(fdvar1.dom, fdvar2.dom);
+  let changeState = domain_forceEqInline(fdvar1.dom, fdvar2.dom);
 
   // if this assert fails, update the following checks accordingly!
   ASSERT(changeState >= -1 && changeState <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', changeState);
@@ -192,15 +192,15 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 
   if (fdvar1.was_solved || fdvar_isSolved(fdvar1)) {
-    r = domain_remove_value_inline(dom2, domain_min(dom1));
+    r = domain_removeValueInline(dom2, domain_min(dom1));
     ASSERT(r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!');
   } else if (fdvar2.was_solved || fdvar_isSolved(fdvar2)) {
-    r = domain_remove_value_inline(dom1, domain_min(dom2));
+    r = domain_removeValueInline(dom1, domain_min(dom2));
     ASSERT(r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!');
   }
 
   ASSERT(r === REJECTED || r === ZERO_CHANGES || r === SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values');
-  ASSERT((r === REJECTED) === (domain_is_rejected(dom1) || domain_is_rejected(dom2)), 'if either domain is rejected, r should reflect this already');
+  ASSERT((r === REJECTED) === (domain_isRejected(dom1) || domain_isRejected(dom2)), 'if either domain is rejected, r should reflect this already');
 
   return r;
 }

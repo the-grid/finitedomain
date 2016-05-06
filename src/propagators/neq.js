@@ -1,11 +1,11 @@
 import {
   domain_max,
   domain_min,
-  domain_shares_no_elements,
+  domain_sharesNoElements,
 } from '../domain';
 
 import {
-  fdvar_force_neq_inline,
+  fdvar_forceNeqInline,
 } from '../fdvar';
 
 // BODY_START
@@ -18,7 +18,7 @@ let PAIR_SIZE = 2;
  * @returns {*}
  */
 function propagator_neqStepBare(fdvar1, fdvar2) {
-  return fdvar_force_neq_inline(fdvar1, fdvar2);
+  return fdvar_forceNeqInline(fdvar1, fdvar2);
 }
 
 /**
@@ -57,7 +57,7 @@ function propagator_neqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_neqSolved(fdvar1, fdvar2) {
-  return domain_shares_no_elements(fdvar1.dom, fdvar2.dom);
+  return domain_sharesNoElements(fdvar1.dom, fdvar2.dom);
 }
 
 // BODY_STOP

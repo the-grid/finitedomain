@@ -1,7 +1,0 @@
-verbose: false
-reporting:
-  dir: './build/coverage'
-  reports:
-    - html
-    - text-summary
-    - text

@@ -17,7 +17,6 @@ import {
   config_create,
   //config_generateVars,
   //config_getUnknownVars,
-  //config_createWith,
   //config_setDefaults,
   //config_setOptions,
 } from '../../src/config';

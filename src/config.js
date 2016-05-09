@@ -82,15 +82,6 @@ function config_clone(config, newVars) {
   };
 }
 
-function config_createWith(obj) {
-  let config = config_create();
-  for (let name in obj) {
-    let domain = obj[name];
-    config_addVar(config, name, domain);
-  }
-  return config;
-}
-
 function config_addVarsA(config, arr, domainOrLo, hi) {
   for (let i = 0; i < arr.length; i++) {
     let name = arr[i];
@@ -347,7 +338,6 @@ export {
   config_create,
   config_generateVars,
   config_getUnknownVars,
-  config_createWith,
   config_setDefaults,
   config_setOptions,
 

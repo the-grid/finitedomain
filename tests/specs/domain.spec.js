@@ -39,7 +39,7 @@ import {
   //domain_intersectBoundsInto,
   domain_intersection,
   domain_isDetermined,
-  //domain_isRange,
+  domain_isRange,
   domain_isRejected,
   domain_isSolved,
   domain_isValue,
@@ -1330,6 +1330,29 @@ describe('domain.spec', function() {
       expect(domain_isDetermined(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(false);
       expect(domain_isDetermined(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(false);
       expect(domain_isDetermined(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+    });
+  });
+
+  describe('domain_isRange', function() {
+
+    it('should exist', function() {
+      expect(domain_isRange).to.be.a('function');
+    });
+
+    it('should return false for domains that are not len=2', function() {
+      expect(domain_isRange([10, 30, 40, 50], 10, 50)).to.equal(false);
+    });
+
+    it('should return false if domain low is not the same', function() {
+      expect(domain_isRange([34, 87], 35, 87)).to.equal(false);
+    });
+
+    it('should return false if domain low is not the same', function() {
+      expect(domain_isRange([35, 88], 35, 87)).to.equal(false);
+    });
+
+    it('should return false if domain is same as range', function() {
+      expect(domain_isRange([35, 88], 35, 88)).to.equal(true);
     });
   });
 

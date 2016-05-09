@@ -92,8 +92,6 @@ function fdvar_clone(fdvar) {
   return fdvar_new(fdvar.id, fdvar.dom.slice(0));
 }
 
-let fdvar_isEqual = (fdvar1, fdvar2) => domain_equal(fdvar1.dom, fdvar2.dom);
-
 function fdvar_setDomain(fdvar, domain) {
   ASSERT_UNUSED_DOMAIN(domain);
   if (!domain_equal(fdvar.dom, domain)) {
@@ -200,7 +198,6 @@ export {
   fdvar_createWide,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
-  fdvar_isEqual,
   fdvar_isRejected,
   fdvar_isSolved,
   fdvar_isUndetermined,

@@ -21,7 +21,6 @@ import {
 //  fdvar_createWide,
 //  fdvar_forceEqInline,
 //  fdvar_forceNeqInline,
-//  fdvar_isEqual,
 //  fdvar_isRejected,
 //  fdvar_isSolved,
 //  fdvar_isUndetermined,

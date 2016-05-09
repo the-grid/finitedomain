@@ -1393,25 +1393,6 @@ function domain_createAll() {
 }
 
 /**
- * This is basically 0,0 but safer for the future
- * if we decide to change SUB to a negative number.
- *
- * @returns {$domain} sub,sub
- */
-function domain_createSub() {
-  return [SUB, SUB];
-}
-
-/**
- * Safer than some large number in case SUP ever changes.
- *
- * @returns {$domain} sup,sup
- */
-function domain_createSup() {
-  return [SUP, SUP];
-}
-
-/**
  * @param {number} value
  * @returns {$domain}
  */
@@ -1446,9 +1427,7 @@ export {
   domain_createAll,
   domain_createBool,
   domain_createOne,
-  domain_createSub,
   domain_createRange,
-  domain_createSup,
   domain_createValue,
   domain_createZero,
   domain_deepCloneWithoutValue,

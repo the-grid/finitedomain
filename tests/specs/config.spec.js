@@ -124,6 +124,15 @@ describe('config.spec', function() {
 
       expect(A).to.equal(B);
     });
+
+    it('should return a constant for an anonymous var with two numbers', function() {
+      let config = config_create();
+      let A = config_addVar(config, undefined, 50, 50);
+      let B = config_addConstant(config, 50);
+
+      expect(A).to.equal(B);
+
+    });
   });
 
 

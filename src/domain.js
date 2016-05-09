@@ -1016,7 +1016,9 @@ function domain_firstRangeIsDetermined(domain) {
  * Since domains are assumed to be in CSIS form, we can start from the back and
  * search for the first range that is smaller or contains given value. Prune
  * any range that follows it and trim the found range if it contains the value.
- * Returns whether the domain was changed somehow
+ * Returns whether the domain was changed somehow. Does not returned REJECTED
+ * because propagator_ltStepBare will check this... I don't like that but it
+ * still is the reason.
  *
  * @param {$domain} domain
  * @param {number} value
@@ -1365,20 +1367,6 @@ function domain_sharesNoElements(domain1, domain2) {
 }
 
 /**
- * @returns {$domain} 0,0
- */
-function domain_createZero() {
-  return [0, 0];
-}
-
-/**
- * @returns {$domain} 1,1
- */
-function domain_createOne() {
-  return [1, 1];
-}
-
-/**
  * @returns {$domain} 0,1
  */
 function domain_createBool() {
@@ -1426,10 +1414,8 @@ export {
   domain_containsValue,
   domain_createAll,
   domain_createBool,
-  domain_createOne,
   domain_createRange,
   domain_createValue,
-  domain_createZero,
   domain_deepCloneWithoutValue,
   domain_divby,
   domain_equal,

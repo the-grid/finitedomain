@@ -45,10 +45,6 @@ function fdvar_createRange(id, lo, hi) {
   return fdvar_new(id, domain_createRange(lo, hi), 0);
 }
 
-function fdvar_createValue(id, val) {
-  return fdvar_new(id, domain_createValue(val), 0);
-}
-
 function fdvar_createWide(id) {
   return fdvar_new(id, domain_createAll(), 0);
 }
@@ -111,10 +107,6 @@ function fdvar_setValueInline(fdvar, value) {
   domain_setToRangeInline(fdvar.dom, value, value);
 }
 
-function fdvar_setRangeInline(fdvar, lo, hi) {
-  domain_setToRangeInline(fdvar.dom, lo, hi);
-}
-
 // TODO: rename to intersect for that's what it is.
 function fdvar_constrain(fdvar, domain) {
   domain = domain_intersection(fdvar.dom, domain);
@@ -122,14 +114,6 @@ function fdvar_constrain(fdvar, domain) {
     return REJECTED;
   }
   return fdvar_setDomain(fdvar, domain);
-}
-
-function fdvar_constrainToRange(fdvar, lo, hi) {
-  return fdvar_constrain(fdvar, domain_createRange(lo, hi));
-}
-
-function fdvar_constrainToValue(fdvar, value) {
-  return fdvar_constrain(fdvar, domain_createValue(value));
 }
 
 function fdvar_size(fdvar) {
@@ -210,12 +194,9 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
 export {
   fdvar_clone,
   fdvar_constrain,
-  fdvar_constrainToRange,
-  fdvar_constrainToValue,
   fdvar_create,
   fdvar_createBool,
   fdvar_createRange,
-  fdvar_createValue,
   fdvar_createWide,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
@@ -231,6 +212,5 @@ export {
   fdvar_removeLteInline,
   fdvar_setDomain,
   fdvar_setValueInline,
-  fdvar_setRangeInline,
   fdvar_size,
 };

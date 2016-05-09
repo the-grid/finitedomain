@@ -312,8 +312,7 @@ function config_initConfigsAndFallbacks(config) {
     if (list) {
       let hash = {};
       config.priority_hash = hash;
-      let max = list.length;
-      for (let index = 0; index < list.length; index++) {
+      for (let index = 0, max = list.length; index < max; index++) {
         // note: lowest priority still in the list is one, not zero
         // this way you dont have to check -1 for non-existing, later
         let name = list[index];

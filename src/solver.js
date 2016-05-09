@@ -560,7 +560,7 @@ let Solver = class Solver {
       vars: branchVars,
       search,
       distribute: distributionOptions,
-      add_unknown_vars: addUnknownVars, // bool
+      add_unknown_vars: addUnknownVars, // bool, TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
     } = options;
 
     if (typeof log === 'undefined' || log === null) {

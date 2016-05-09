@@ -18,7 +18,7 @@ import {
   //config_generateVars,
   //config_getUnknownVars,
   //config_setDefaults,
-  //config_setOptions,
+  config_setOptions,
 } from '../../src/config';
 import {
   SUB,
@@ -244,6 +244,115 @@ describe('config.spec', function() {
       expect(config.all_var_names).to.contain('A');
       expect(config.all_var_names).to.contain('B');
       expect(config.all_var_names).to.contain('C');
+    });
+  });
+
+  describe('config_setOptions', function() {
+
+    it('should exist', function() {
+      expect(config_setOptions).to.be.a('function');
+    });
+
+    it('should not require an object', function() {
+      let config = config_create();
+      config_setOptions(config);
+
+      expect(true, 'no crash').to.equal(true);
+    });
+
+    it('should copy the filter', function() {
+      let config = config_create();
+      config_setOptions(config, {filter: 'A'});
+
+      expect(config.var_filter_func).to.equal('A');
+    });
+
+    it('should copy the var', function() {
+      let config = config_create();
+      config_setOptions(config, {var: 'A'});
+
+      expect(config.next_var_func).to.equal('A');
+    });
+
+    it('should init the var config of a single level without priority_list', function() {
+      let config = config_create();
+      let opt = {
+        dist_name: 'max',
+      };
+      config_setOptions(config, {
+        var: opt,
+      });
+
+      expect(config.next_var_func).to.eql({dist_name: 'max'});
+      expect(opt.priority_hash).to.equal(undefined);
+    });
+
+    it('should init the var config of a single level and a priority_list', function() {
+      let config = config_create();
+      let opt = {
+        dist_name: 'list',
+        priority_list: ['B_list', 'A_list'],
+      };
+      config_setOptions(config, {
+        var: opt,
+      });
+      console.log(config)
+
+      expect(config.next_var_func, 'next var func').to.equal(opt);
+      expect(opt.priority_hash, 'priority hash').to.eql({B_list: 2, A_list: 1});
+    });
+
+    it('should init the var config with a fallback level', function() {
+      let config = config_create();
+      let opt = {
+        dist_name: 'list',
+        priority_list: ['B_list', 'A_list'],
+        fallback_config: {
+          dist_name: 'markov',
+          fallback_config: 'size',
+        },
+      };
+      config_setOptions(config, {var: opt});
+
+      expect(config.next_var_func).to.equal(opt);
+      expect(opt.priority_hash).to.eql({B_list: 2, A_list: 1});
+    });
+
+    it('should put the priority hash on the var opts even if fallback', function() {
+      let config = config_create();
+      let opt = {
+        dist_name: 'max',
+        fallback_config: {
+          dist_name: 'list',
+          priority_list: ['B_list', 'A_list'],
+        },
+      };
+      config_setOptions(config, {var: opt});
+
+      expect(config.next_var_func).to.equal(opt);
+      expect(opt.priority_hash).to.eql(undefined);
+      expect(opt.fallback_config.priority_hash).to.eql({B_list: 2, A_list: 1});
+    });
+
+    it('should copy the targeted var names', function() {
+      let config = config_create();
+      config_setOptions(config, {targeted_var_names: 'A'});
+
+      expect(config.targetedVars).to.equal('A');
+    });
+
+    it('should copy the var distribution config', function() {
+      let config = config_create();
+      config_setOptions(config, {var_dist_config: 'A'});
+
+      expect(config.var_dist_options).to.equal('A');
+    });
+
+    it('should copy the timeout callback', function() {
+      let config = config_create();
+      config_setOptions(config, {timeout_callback: 'A'});
+
+      expect(config.timeout_callback).to.equal('A');
     });
   });
 

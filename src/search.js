@@ -61,22 +61,23 @@ function search_depthFirst(state) {
 
     if (!space_propagate(space)) {
       _search_onReject(state, space, stack);
-
     } else if (space_isSolved(space)) {
       _search_onSolve(state, space, stack);
       return;
-
-    } else if (next_space = createNextSpaceNode(space, state)) {
-      ASSERT_SPACE(next_space);
-      // Now this space is neither solved nor failed but since
-      // no constraints are rejecting we must look further.
-      // Push on to the stack and explore further.
-      stack.push(next_space);
     } else {
-      // Finished exploring branches of this space. Continue with the previous spaces.
-      // This is a stable space, but isn't a solution. Neither is it a failed space.
-      space.stable_children++;
-      stack.pop();
+      next_space = createNextSpaceNode(space, state);
+      if (next_space) {
+        ASSERT_SPACE(next_space);
+        // Now this space is neither solved nor failed but since
+        // no constraints are rejecting we must look further.
+        // Push on to the stack and explore further.
+        stack.push(next_space);
+      } else {
+        // Finished exploring branches of this space. Continue with the previous spaces.
+        // This is a stable space, but isn't a solution. Neither is it a failed space.
+        space.stable_children++;
+        stack.pop();
+      }
     }
   }
 
@@ -99,8 +100,10 @@ function search_depthFirst(state) {
 function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
   let fdvar = distribution_getNextVar(space, targetVars);
+
   if (fdvar) {
     let nextDomain = distribute_getNextDomainForVar(space, fdvar);
+
     if (nextDomain) {
       let clone = space_createClone(space);
       clone.vars[fdvar.id].dom = nextDomain;
@@ -121,18 +124,18 @@ function search_defaultSpaceFactory(space) {
  * @returns {string[]} The names of targeted fdvars on given space
  */
 function _search_getVarsUnfiltered(space) {
-  let configTargetedVars = space.config.targeted_vars;
+  let configTargetedVars = space.config.targetedVars;
 
   if (configTargetedVars === 'all') {
-    return space.unsolved_var_names;
+    return space.unsolvedVarNames;
   }
 
   if (configTargetedVars instanceof Array) {
     return configTargetedVars;
   }
 
-  ASSERT(typeof configTargetedVars === 'function', 'config.targeted_vars should be a func at this point', configTargetedVars);
-  return config_target_vars(space);
+  ASSERT(typeof configTargetedVars === 'function', 'config.targetedVars should be a func at this point', configTargetedVars);
+  return configTargetedVars(space);
 }
 
 /**

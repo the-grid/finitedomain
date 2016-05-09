@@ -1,19 +1,12 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
-  specDomainCreateValue,
-  stripAnonVars,
   stripAnonVarsFromArrays,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 import {
-  space_solution_for,
+  space_solutionFor,
 } from '../../src/space';
 
 describe('solver.list.spec', function() {
@@ -31,16 +24,16 @@ describe('solver.list.spec', function() {
         domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
-          list: [2, 4, 3, 1]
-        }
+          list: [2, 4, 3, 1],
+        },
       });
       solver.addVar({
         id: 'V2',
         domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
-          list: [3, 1, 4, 2]
-        }
+          list: [3, 1, 4, 2],
+        },
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
@@ -66,11 +59,11 @@ describe('solver.list.spec', function() {
         {V1: 1, V2: 3},
         {V1: 1, V2: 1},
         {V1: 1, V2: 4},
-        {V1: 1, V2: 2}
+        {V1: 1, V2: 2},
       ]);
     });
 
-    it("should solve markov according to the list in order when random=0", function() {
+    it('should solve markov according to the list in order when random=0', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
@@ -79,18 +72,18 @@ describe('solver.list.spec', function() {
         distributeOptions: {
           legend: [2, 4, 3, 1],
           expandVectorsWith: 1,
-          random() { return 0; } // causes first element in legend to be picked
-        }
+          random() { return 0; }, // causes first element in legend to be picked
+        },
       });
       solver.addVar({
         id: 'V2',
-        domain: [[1, 4]],
+        domain: [1, 4],
         distribute: 'markov',
         distributeOptions: {
           legend: [3, 1, 4, 2],
           expandVectorsWith: 1,
-          random() { return 0; } // causes first element in legend to be picked
-        }
+          random() { return 0; }, // causes first element in legend to be picked
+        },
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
@@ -116,13 +109,13 @@ describe('solver.list.spec', function() {
         {V1: 1, V2: 3},
         {V1: 1, V2: 1},
         {V1: 1, V2: 4},
-        {V1: 1, V2: 2}
+        {V1: 1, V2: 2},
       ]);
     });
 
-    it("should call the list if it is a function", function() {
+    it('should call the list if it is a function', function() {
       function listCallback(space, v) {
-        let solution = space_solution_for(space, ['STATE', 'STATE2', 'V1', 'V2'], false);
+        let solution = space_solutionFor(space, ['STATE', 'STATE2', 'V1', 'V2'], false);
         if (solution['STATE'] === 5) {
           if (v === 'V1') {
             return [2, 4, 3, 1];
@@ -138,23 +131,23 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10)
+        domain: specDomainCreateRange(0, 10),
       });
       solver.addVar({
         id: 'V1',
         domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
-          list: listCallback
-        }
+          list: listCallback,
+        },
       });
       solver.addVar({
         id: 'V2',
         domain: specDomainCreateRange(1, 4),
         distribute: 'list',
         distributeOptions: {
-          list: listCallback
-        }
+          list: listCallback,
+        },
       });
       solver['==']('STATE', solver.constant(5));
       solver['>']('V1', solver.constant(0));
@@ -181,7 +174,7 @@ describe('solver.list.spec', function() {
         {V1: 1, V2: 3, STATE: 5},
         {V1: 1, V2: 1, STATE: 5},
         {V1: 1, V2: 4, STATE: 5},
-        {V1: 1, V2: 2, STATE: 5}
+        {V1: 1, V2: 2, STATE: 5},
       ]);
     });
   });
@@ -195,8 +188,8 @@ describe('solver.list.spec', function() {
         domain: specDomainCreateRange(0, 5),
         distributeOptions: {
           distributor_name: 'list',
-          list: [0, 3, 4]
-        }
+          list: [0, 3, 4],
+        },
       });
       solver['>']('V1', 0);
 
@@ -204,7 +197,7 @@ describe('solver.list.spec', function() {
       expect(solutions.length, 'all solutions').to.equal(2); // list.length
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 3},
-        {V1: 4}
+        {V1: 4},
       ]);
     });
 
@@ -215,8 +208,8 @@ describe('solver.list.spec', function() {
         domain: specDomainCreateRange(0, 10),
         distributeOptions: {
           distributor_name: 'list',
-          list: [0, 15]
-        }
+          list: [0, 15],
+        },
       });
       solver['>']('V1', 0);
 
@@ -232,19 +225,35 @@ describe('solver.list.spec', function() {
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
-          fallback_dist_name: 'max'
-        }
+          fallback_dist_name: 'max',
+        },
       });
       solver['>']('V1', 0);
-
       let solutions = solver.solve();
+
+      // Ok. First the propagators run. this will reduce
+      // V1 to [1, 5] because there's a constraint that
+      // says [0,5]>0 meaning the 0 is removed from the
+      // domain. So [1,5]. Then the propagators run into
+      // a stalemate and a choice has to be made. There
+      // is a value distributor based on a list. This
+      // means a value from the domain to be picked has
+      // to exist in that list. Since the list is [0,15]
+      // and we just eliminated the 0, so we may only
+      // pick 15 except the domain doesn't have that so
+      // it ends up picking no value. That means the
+      // fallback distributor will kick in, which is
+      // "max". Since there are no other constraints it
+      // will solve V1 for all remaining values of it
+      // in descending order (5,4,3,2,1).
+
       expect(solutions.length, 'all solutions').to.equal(5);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 5},
         {V1: 4},
         {V1: 3},
         {V1: 2},
-        {V1: 1}
+        {V1: 1},
       ]);
     });
 
@@ -256,8 +265,8 @@ describe('solver.list.spec', function() {
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 5],
-          fallback_dist_name: 'max'
-        }
+          fallback_dist_name: 'max',
+        },
       });
       solver['>']('V1', 0);
 
@@ -268,7 +277,7 @@ describe('solver.list.spec', function() {
         {V1: 1},
         {V1: 5},
         {V1: 4},
-        {V1: 2}
+        {V1: 2},
       ]);
     });
 
@@ -280,8 +289,8 @@ describe('solver.list.spec', function() {
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 15, 5],
-          fallback_dist_name: 'max'
-        }
+          fallback_dist_name: 'max',
+        },
       });
       solver['>']('V1', 6);
 

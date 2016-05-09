@@ -123,7 +123,7 @@ let {
         solver.state.space = space;
         solver._prepared = true;
         solver.run({
-          search_func: solver._get_search_func_or_die('depth_first'),
+          searchFunc: solver._get_search_func_or_die('depth_first'),
           max,
           log: 0
         });

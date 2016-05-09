@@ -1,9 +1,9 @@
 import {
-  domain_mul
+  domain_mul,
 } from '../domain';
 
 import {
-  fdvar_constrain
+  fdvar_constrain,
 } from '../fdvar';
 
 // BODY_START

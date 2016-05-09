@@ -1,19 +1,9 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateBool,
-  specDomainCreateRange,
-  specDomainCreateValue,
-  specDomainCreateRanges,
-  stripAnonVars,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import {
-  propagator_addCallback,
-  propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,
   propagator_addGt,
@@ -22,16 +12,10 @@ import {
   propagator_addLte,
   propagator_addMarkov,
   propagator_addMul,
-  propagator_addNeq,
-  propagator_addPlus,
   propagator_addMin,
   propagator_addProduct,
   propagator_addReified,
-  propagator_addRingMul,
   propagator_addSum,
-
-  // for testing
-  propagator_addRing,
   propagator_addRingPlusOrMul,
 } from '../../src/propagator';
 import {
@@ -39,7 +23,7 @@ import {
 } from '../../src/config';
 
 
-describe("propagator.spec", function() {
+describe('propagator.spec', function() {
   // TOFIX: add tests for all these propagators. there never have been but most functions here are trivial to test.
 
   describe('propagator_addMarkov', function() {
@@ -71,12 +55,6 @@ describe("propagator.spec", function() {
     });
 
     describe('bool var domain', function() {
-
-      it('should throw if the boolvar has no zero or one', function() {
-        let config = config_create();
-
-        expect(() => propagator_addReified(config, 'eq', 'A', 'B', 'C')).to.throw();
-      });
 
       it('should be fine if the boolvar has no one', function() {
         let config = config_create();
@@ -244,18 +222,18 @@ describe("propagator.spec", function() {
     })
   );
 
-  describe('_propagator_addRing_plus_or_mul', function() {
+  describe('propagator_addRingPlusOrMul', function() {
 
     it('should return the name of the anonymous result var', function() {
       let config = config_create();
 
-      expect(typeof _propagator_addRing_plus_or_mul(config, 'div', 'mul', 'A', 'B', 0)).to.eql('string');
+      expect(typeof propagator_addRingPlusOrMul(config, 'div', 'mul', 'A', 'B', 0)).to.eql('string');
     });
 
     it('should return the name of the named result var', function() {
       let config = config_create();
 
-      expect(_propagator_addRing_plus_or_mul(config, 'div', 'mul', 'A', 'B', 'C')).to.eql('C');
+      expect(propagator_addRingPlusOrMul(config, 'div', 'mul', 'A', 'B', 'C')).to.eql('C');
     });
   });
 

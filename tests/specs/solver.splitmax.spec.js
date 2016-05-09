@@ -1,34 +1,29 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateValue,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 
-describe("solver.splitmax.spec", function() {
+describe('solver.splitmax.spec', function() {
 
-  it('should exist', function () {
+  it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
-  describe('process values by divide and conquer, high split first', function () {
+  describe('process values by divide and conquer, high split first', function() {
 
     function itDistributes(solutionMap, options) {
-      it(`$tDistributes(o = #{JSON.stringify(options)})`, function () {
+      it(`itDistributes(o = ${JSON.stringify(options)})`, function() {
         let solver = new Solver(options);
         solver.addVar({
           id: 'Hello',
-          domain: specDomainCreateRange(1, 99)
+          domain: specDomainCreateRange(1, 99),
         });
         solver.addVar({
           id: 'World',
-          domain: specDomainCreateValue(0)
+          domain: specDomainCreateValue(0),
         });
         solver['>']('Hello', 'World');
 
@@ -37,7 +32,7 @@ describe("solver.splitmax.spec", function() {
 
         for (let i = 0; i < solutionMap.length; ++i) {
           let val = solutionMap[i];
-          expect(solutions[key].Hello, "nth: #{n} solution").to.equal(val);
+          expect(solutions[i].Hello, `nth: ${i} solution`).to.equal(val);
         }
         //for n, val of solutionMap
         //  expect(solutions[n].Hello, "nth: #{n} solution").to.equal val

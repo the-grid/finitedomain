@@ -1,28 +1,23 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainCreateValue,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import {
   REJECTED,
+  SOMETHING_CHANGED,
   ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
   fdvar_create,
-  fdvar_create_wide,
+  fdvar_createWide,
 } from '../../../src/fdvar';
 import {
   propagator_lteStepBare,
 } from '../../../src/propagators/lte';
 
-describe("propagators/lte.spec", function() {
+describe('propagators/lte.spec', function() {
   // in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
   // it makes sure v1 and v2 have no values that can't possibly result in fulfilling <
 
@@ -31,7 +26,7 @@ describe("propagators/lte.spec", function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_create_wide('x');
+    let v = fdvar_createWide('x');
 
     expect(() => propagator_lteStepBare()).to.throw();
     expect(() => propagator_lteStepBare(v)).to.throw();
@@ -47,13 +42,13 @@ describe("propagators/lte.spec", function() {
   //
   //it('should reject for empty left domain', function() {
   //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_create_wide('y');
+  //  let v2 = fdvar_createWide('y');
   //
   //  expect(lte_step_bare(v1, v2)).to.eql(REJECTED);
   //});
   //
   //it('should reject for empty right domain', function() {
-  //  let v1 = fdvar_create_wide('x');
+  //  let v1 = fdvar_createWide('x');
   //  let v2 = fdvar_create('y', []);
   //
   //  expect(lte_step_bare(v1, v2)).to.eql(REJECTED);
@@ -88,7 +83,7 @@ describe("propagators/lte.spec", function() {
   describe('when max(v1) > max(v2)', function() {
 
     function test(lo1, hi1, lo2, hi2, resultLo, resultHi, result) {
-      it(`should (only) trunc values from v1 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function () {
+      it(`should (only) trunc values from v1 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function() {
         let v1 = fdvar_create('x', specDomainCreateRange(lo1, hi1));
         let v2 = fdvar_create('y', specDomainCreateRange(lo2, hi2));
         let r = propagator_lteStepBare(v1, v2);
@@ -99,9 +94,9 @@ describe("propagators/lte.spec", function() {
       });
     }
 
-    test(0,20, 5,15, 0,15);
-    test(0,15, 5,15, 0,15, ZERO_CHANGES);
-    test(0,10, 5,15, 0,10, ZERO_CHANGES);
+    test(0, 20, 5, 15, 0, 15);
+    test(0, 15, 5, 15, 0, 15, ZERO_CHANGES);
+    test(0, 10, 5, 15, 0, 10, ZERO_CHANGES);
   });
 
   it('should reject when v1 and v2 are solved and v1>v2', function() {
@@ -117,7 +112,7 @@ describe("propagators/lte.spec", function() {
 
   describe('when min(v1) > min(v2)', function() {
     function test(lo1, hi1, lo2, hi2, resultLo, resultHi, result) {
-      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function () {
+      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function() {
         let v1 = fdvar_create('x', specDomainCreateRange(lo1, hi1));
         let v2 = fdvar_create('y', specDomainCreateRange(lo2, hi2));
         let r = propagator_lteStepBare(v1, v2);
@@ -128,9 +123,9 @@ describe("propagators/lte.spec", function() {
       });
     }
 
-    test(5,14, 0,15, 5,15);
-    test(5,10, 5,15, 5,15, ZERO_CHANGES);
-    test(5,10, 7,15, 7,15, ZERO_CHANGES);
+    test(5, 14, 0, 15, 5, 15);
+    test(5, 10, 5, 15, 5, 15, ZERO_CHANGES);
+    test(5, 10, 7, 15, 7, 15, ZERO_CHANGES);
   });
   //test 10,10, 5,5, 5,5, REJECTED # note: this is the same test as in v1>=v2 because v1 is checked first. so not possible here.
 
@@ -138,10 +133,9 @@ describe("propagators/lte.spec", function() {
     let v1 = fdvar_create('x', specDomainCreateRange(1, 3));
     let v2 = fdvar_create('y', specDomainCreateRange(0, 2));
     let r = propagator_lteStepBare(v1, v2);
-
     expect(v1.dom, 'v1 after').to.eql(specDomainCreateRange(1, 2));
     expect(v2.dom, 'v2 after').to.eql(specDomainCreateRange(1, 2));
-    if (result != null) expect(r).to.eql(ZERO_CHANGES);
+    expect(r).to.eql(SOMETHING_CHANGED);
   });
 
   it('should pass two equal domains', function() {
@@ -151,7 +145,7 @@ describe("propagators/lte.spec", function() {
 
     expect(v1.dom, 'v1 after').to.eql(specDomainCreateRange(0, 1));
     expect(v2.dom, 'v2 after').to.eql(specDomainCreateRange(0, 1));
-    if (result != null) expect(r).to.eql(ZERO_CHANGES);
+    expect(r).to.eql(ZERO_CHANGES);
   });
 
   it('should handle multiple ranges too', function() {

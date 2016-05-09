@@ -8,6 +8,7 @@
 
 import {
   ASSERT,
+  THROW,
 } from '../helpers';
 
 import {
@@ -102,10 +103,9 @@ function _propagator_comparisonIsSolved(op, v1, v2) {
 
     case 'neq':
       return propagator_neqSolved(v1, v2);
-
-    default:
-      return THROW('unknown comparison op', op);
   }
+
+  return THROW('unknown comparison op', op);
 }
 
 // BODY_STOP

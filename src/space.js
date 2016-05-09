@@ -73,7 +73,7 @@ function space_createClone(space) {
 
   let vars = space.vars;
   let unsolvedPropagators = [];
-  let props = space.unsolved_propagators;
+  let props = space.unsolvedPropagators;
   for (let i = 0; i < props.length; i++) {
     let propagator = props[i];
     if (!propagator_isSolved(vars, propagator)) {
@@ -165,7 +165,7 @@ function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, _d
     unsolvedVarNames,
     unsolvedPropagators, // by references from space.config.propagators
 
-    next_distribution_choice: 0
+    next_distribution_choice: 0,
   });
 }
 
@@ -176,12 +176,12 @@ function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
 
-  config_generateVars(config, space.vars, space.unsolved_var_names);
+  config_generateVars(config, space.vars, space.unsolvedVarNames);
 
   // propagators are immutable so share by reference
   for (let i = 0; i < config.propagators.length; i++) {
     let propagator = config.propagators[i];
-    space.unsolved_propagators.push(propagator);
+    space.unsolvedPropagators.push(propagator);
   }
 }
 
@@ -194,14 +194,15 @@ function space_initFromConfig(space) {
  */
 function space_propagate(space) {
   ASSERT(space._class === 'space');
-  let unsolvedPropagators = space.unsolved_propagators;
+  let unsolvedPropagators = space.unsolvedPropagators;
   ASSERT_PROPAGATORS(unsolvedPropagators);
 
+  let changed;
   do {
-    let changed = false;
+    changed = false;
     for (let i = 0; i < unsolvedPropagators.length; i++) {
       let propDetails = unsolvedPropagators[i];
-      let n = propagator_stepAny (propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+      let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
       // the domain of either var of a propagator can only be empty if the prop REJECTED
       ASSERT(n === REJECTED || space.vars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
@@ -261,8 +262,8 @@ function space_abortSearch(space) {
 function space_isSolved(space) {
   ASSERT(space._class === 'space');
   let vars = space.vars;
-  let targetedVars = space.config.targeted_vars;
-  let unsolvedNames = space.unsolved_var_names;
+  let targetedVars = space.config.targetedVars;
+  let unsolvedNames = space.unsolvedVarNames;
 
   let j = 0;
   for (let i = 0; i < unsolvedNames.length; i++) {
@@ -369,11 +370,11 @@ function __space_toSolverTestCase(space) {
   let things = ['S = new Solver {}\n'];
 
   for (let name in space.vars) {
-    things.push(`space_add_var space, '${name}', [${space.vars[name].dom.join(', ')}]`);
+    things.push(`space_addVar space, '${name}', [${space.vars[name].dom.join(', ')}]`);
   }
   things.push('');
 
-  space.unsolved_propagators.forEach(function(c) {
+  space.unsolvedPropagators.forEach(function(c) {
     if (c[0] === 'reified') {
       return things.push(`S._cacheReified '${c[2]}', '${c[1].join('\', \'')}'`);
     } else if (c[0] === 'ring') {
@@ -412,11 +413,11 @@ function __space_toSpaceTestCase(space) {
   let things = ['S = space_createRoot()\n'];
 
   for (let name in space.vars) {
-    things.push(`space_add_var S, '${name}', [${space.vars[name].dom.join(', ')}]`);
+    things.push(`space_addVar S, '${name}', [${space.vars[name].dom.join(', ')}]`);
   }
   things.push('');
 
-  things.push(`S.unsolved_propagators = [\n  ${space.unsolved_propagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'')}\n]`);
+  things.push(`S.unsolvedPropagators = [\n  ${space.unsolvedPropagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'')}\n]`);
 
   things.push('\nexpect(space_propagate S).to.eql true');
 
@@ -436,30 +437,30 @@ function __space_debugString(space) {
     things.push(`- config.var_filter_func: ${space.config.var_filter_func}`);
     things.push(`- config.next_var_func: ${space.config.next_var_func}`);
     things.push(`- config.next_value_func: ${space.config.next_value_func}`);
-    things.push(`- config.targeted_vars: ${space.config.targeted_vars}`);
+    things.push(`- config.targetedVars: ${space.config.targetedVars}`);
 
-    things.push(`$ars (#{space.config.all_var_names.length}x):`);
+    things.push(`Vars (${space.config.all_var_names.length}x):`);
 
-    let { vars } = space;
     /*
+      let { vars } = space;
      for name, fdvar of vars
      options = space.config.var_dist_options[name]
-     things.push "  #{name}: [#{fdvar.dom.join(', ')}] #{options and ('Options: '+JSON.stringify(options)) or ''}"
+     things.push "  ${name}: [${fdvar.dom.join(', ')}] ${options and ('Options: '+JSON.stringify(options)) or ''}"
 
      things.push 'config.var_dist_options:'
      for key, val of space.config.var_dist_options
-     things.push "  #{key}: #{JSON.stringify val}"
+     things.push "  ${key}: ${JSON.stringify val}"
      */
 
-    things.push(`$ar (#{space.config.all_var_names.length}x):`);
+    things.push(`Var (${space.config.all_var_names.length}x):`);
     things.push(`  ${space.config.all_var_names}`);
-    things.push(`$nsolved vars (#{space.unsolved_var_names.length}x):`);
-    things.push(`  ${space.unsolved_var_names}`);
+    things.push(`Unsolved vars (${space.unsolvedVarNames.length}x):`);
+    things.push(`  ${space.unsolvedVarNames}`);
 
-    things.push(`$ropagators (#{space.unsolved_propagators.length}x):`);
+    things.push(`Propagators (${space.unsolvedPropagators.length}x):`);
 
     /*
-     space.unsolved_propagators.forEach (p) ->
+     space.unsolvedPropagators.forEach (p) ->
      try
      solved = propagator_isSolved vars, p
      catch e
@@ -469,13 +470,13 @@ function __space_debugString(space) {
      b = p[1]?[1]
      c = p[1]?[2]
      if p[0] is 'reified'
-     things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
+     things.push "  ${p[0]}: '${p[2]}', '${p[1].join '\', \''}' \# [${vars[a]?.dom or 'FAIL'}] ${p[2]} [${vars[b]?.dom or 'FAIL'}] -> [${vars[c]?.dom or 'FAIL'}] | solved: ${solved}"
      else if p[0] is 'ring'
-     things.push "  #{p[0]}: '#{p[2]}', '#{p[1].join '\', \''}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[2]} [#{vars[b]?.dom or 'FAIL'}] -> [#{vars[c]?.dom or 'FAIL'}] | solved: #{solved}"
+     things.push "  ${p[0]}: '${p[2]}', '${p[1].join '\', \''}' \# [${vars[a]?.dom or 'FAIL'}] ${p[2]} [${vars[b]?.dom or 'FAIL'}] -> [${vars[c]?.dom or 'FAIL'}] | solved: ${solved}"
      else
-     things.push "  #{p[0]} '#{p[1].join ', '}' \# [#{vars[a]?.dom or 'FAIL'}] #{p[0]} [#{vars[b]?.dom or 'FAIL'}] | solved: #{solved}"
+     things.push "  ${p[0]} '${p[1].join ', '}' \# [${vars[a]?.dom or 'FAIL'}] ${p[0]} [${vars[b]?.dom or 'FAIL'}] | solved: ${solved}"
      */
-    if (!space.unsolved_propagators.length) {
+    if (!space.unsolvedPropagators.length) {
       things.push('  - none');
     }
 
@@ -495,7 +496,7 @@ function __space_debugString(space) {
 function __space_debugVarDomains(space) {
   let things = [];
   for (let name in space.vars) {
-    things.push(name+': ['+space.vars[name].dom+']');
+    things.push(name + ': [' + space.vars[name].dom + ']');
   }
   return things;
 }
@@ -532,7 +533,7 @@ export {
   space_toConfig,
 
   // debugging
-  __space_debugString
+  __space_debugString,
   __space_debugVarDomains,
   __space_getUnsolved,
   __space_toSolverTestCase,

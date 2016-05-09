@@ -1,24 +1,20 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool
-  specDomainCreateRange
-  specDomainCreateRanges
+  specDomainCreateBool,
+  specDomainCreateRange,
+  specDomainCreateRanges,
   stripAnonVarsFromArrays,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 
-describe("solver.spec", function() {
+describe('solver.spec', function() {
 
   it('should exist', () => expect(typeof Solver).to.be.equal('function'));
 
-  describe('API integration tests', function () {
+  describe('API integration tests', function() {
 
-    it('4 branch 2 level example w/ string vars (binary)', function () {
+    it('4 branch 2 level example w/ string vars (binary)', function() {
 
       /*
       A
@@ -74,7 +70,7 @@ describe("solver.spec", function() {
       expect(solver.solve().length).to.equal(19);
     });
 
-    it('4 branch 2 level example w/ var objs (binary)', function () {
+    it('4 branch 2 level example w/ var objs (binary)', function() {
 
       /*
       A
@@ -93,14 +89,19 @@ describe("solver.spec", function() {
 
       let solver = new Solver({defaultDomain: specDomainCreateBool()});
 
-      let branches = {A: 3, B: 3, C: 3, D: 3};
+      let branches = {
+        A: 3,
+        B: 3,
+        C: 3,
+        D: 3,
+      };
 
+      let pathCount = 3;
       for (let branchId in branches) {
-        let pathCount = branches[branchId];
-        let branchVar = {id: branchId};
+        let branchVar = {id: branchId}; // A B C D
         solver.addVar(branchVar);
         let pathVars = [];
-        for (let i = 0; i < pathCount; ++i) {
+        for (let i = 1; i <= pathCount; ++i) {
           pathVars.push({id: branchId + i});
         }
         solver.addVars(pathVars);
@@ -129,7 +130,7 @@ describe("solver.spec", function() {
       expect(solutions.length, 'solution count').to.equal(19);
     });
 
-    it('4 branch 2 level example w/ var objs (non-binary)', function () {
+    it('4 branch 2 level example w/ var objs (non-binary)', function() {
 
       /*
       A
@@ -181,9 +182,9 @@ describe("solver.spec", function() {
     });
   });
 
-  describe('plain tests', function () {
+  describe('plain tests', function() {
 
-    it('should solve a sparse domain', function () {
+    it('should solve a sparse domain', function() {
       let solver = new Solver({});
 
       solver.decl('item1', specDomainCreateRange(1, 5));
@@ -204,7 +205,7 @@ describe("solver.spec", function() {
       expect(solutions[0].item2, 'item2').to.equal(2);
     });
 
-    it("should reject a simple > test (regression)", function () {
+    it('should reject a simple > test (regression)', function() {
       // regression: x>y was wrongfully mapped to y<=x
       let solver = new Solver({});
 
@@ -226,7 +227,7 @@ describe("solver.spec", function() {
       expect(solutions.length, 'solution count').to.equal(0);
     });
 
-    it("should solve a simple >= test", function () {
+    it('should solve a simple >= test', function() {
       let solver = new Solver({});
 
       solver.decl('item5', specDomainCreateRange(1, 5));
@@ -247,7 +248,7 @@ describe("solver.spec", function() {
       expect(solutions.length, 'solution count').to.equal(1);
     });
 
-    it("should solve a simple < test", function () {
+    it('should solve a simple < test', function() {
       let solver = new Solver({});
 
       solver.decl('item5', specDomainCreateRange(1, 5));
@@ -268,7 +269,7 @@ describe("solver.spec", function() {
       expect(solutions.length, 'solution count').to.equal(1);
     });
 
-    it("should solve a simple / test", function () {
+    it('should solve a simple / test', function() {
       let solver = new Solver({});
 
       solver.addVar('A', specDomainCreateRange(50, 100));
@@ -288,51 +289,51 @@ describe("solver.spec", function() {
       expect(stripAnonVarsFromArrays(solutions)).to.eql([{
         A: 75,
         B: 5,
-        C: 15
+        C: 15,
       }, {
         A: 76,
         B: 5,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 77,
         B: 5,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 78,
         B: 5,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 79,
         B: 5,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 90,
         B: 6,
-        C: 15
+        C: 15,
       }, {
         A: 91,
         B: 6,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 92,
         B: 6,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 93,
         B: 6,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 94,
         B: 6,
-        C: 15 // floored
+        C: 15, // floored
       }, {
         A: 95,
         B: 6,
-        C: 15 // floored
+        C: 15, // floored
       }]);
     });
 
-    it('should solve another simple / test', function () {
+    it('should solve another simple / test', function() {
       let solver = new Solver({});
 
       solver.addVar('A', specDomainCreateRange(3, 5));
@@ -352,15 +353,15 @@ describe("solver.spec", function() {
       expect(stripAnonVarsFromArrays(solutions)).to.eql([{
         A: 4,
         B: 2,
-        C: 2
+        C: 2,
       }, {
         A: 5,
         B: 2,
-        C: 2 // floored
+        C: 2, // floored
       }]);
     });
 
-    it('should solve a simple * test', function () {
+    it('should solve a simple * test', function() {
       let solver = new Solver({});
 
       solver.addVar('A', specDomainCreateRange(3, 8));
@@ -380,19 +381,19 @@ describe("solver.spec", function() {
       expect(stripAnonVarsFromArrays(solutions)).to.eql([{
         A: 3,
         B: 10,
-        C: 30
+        C: 30,
       }, {
         A: 5,
         B: 6,
-        C: 30
+        C: 30,
       }, {
         A: 6,
         B: 5,
-        C: 30
+        C: 30,
       }]);
     });
 
-    it('should solve a simple - test', function () {
+    it('should solve a simple - test', function() {
       let solver = new Solver({});
       solver.addVar('A', 400);
       solver.addVar('B', 50);
@@ -405,21 +406,21 @@ describe("solver.spec", function() {
       expect(solutions).to.eql([{
         A: 400,
         B: 50,
-        C: 350
+        C: 350,
       }]);
     });
   });
 
-  describe('brute force entire space', function () {
+  describe('brute force entire space', function() {
 
-    it('should solve a single unconstrainted var', function () {
+    it('should solve a single unconstrainted var', function() {
       let solver = new Solver({});
       solver.addVar('A', [1, 2]);
 
       expect(solver.solve().length, 'solution count').to.eql(2);
     });
 
-    it('should combine multiple unconstrained vars', function () {
+    it('should combine multiple unconstrained vars', function() {
       let solver = new Solver({});
 
       solver.addVar('2', [1, 1]);
@@ -446,7 +447,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912);
     });
 
-    it('should constrain one var to be equal to another', function () {
+    it('should constrain one var to be equal to another', function() {
       let solver = new Solver({});
 
       solver.addVar('2', [1, 1]);
@@ -474,7 +475,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912 / 2);
     });
 
-    it('should allow useless constraints', function () {
+    it('should allow useless constraints', function() {
       let solver = new Solver({});
 
       solver.addVar('2', [1, 1]);
@@ -524,7 +525,7 @@ describe("solver.spec", function() {
     });
 
     // there was a "sensible reason" why this test doesnt work but I forgot about it right now... :)
-    it.skip('should resolve a simple sum with times case', function () {
+    it.skip('should resolve a simple sum with times case', function() {
       let solver = new Solver({});
 
       solver.addVar('A', [0, 10]);
@@ -557,7 +558,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000, vars: ['A', 'B', 'MUL']}).length).to.eql(73);
     });
 
-    it('should solve a simplified case from old PathBinarySolver tests', function () {
+    it('should solve a simplified case from old PathBinarySolver tests', function() {
       let solver = new Solver({});
 
       solver.addVar('2', [1, 1]);
@@ -621,30 +622,30 @@ describe("solver.spec", function() {
 
       // 2×2×2×2×2×2×2×2=256
       expect(solver.solve({
-          max: 10000,
-          vars: [
-            '_ROOT_BRANCH_',
-            'SECTION',
-            'VERSE_INDEX',
-            'ITEM_INDEX',
-            'align',
-            'text_align',
-            'SECTION&n=1',
-            'VERSE_INDEX&n=1',
-            'ITEM_INDEX&n=1',
-            'align&n=1',
-            'text_align&n=1',
-            'SECTION&n=2',
-            'VERSE_INDEX&n=2',
-            'ITEM_INDEX&n=2',
-            'align&n=2',
-            'text_align&n=2'
-          ]
-        }
+        max: 10000,
+        vars: [
+          '_ROOT_BRANCH_',
+          'SECTION',
+          'VERSE_INDEX',
+          'ITEM_INDEX',
+          'align',
+          'text_align',
+          'SECTION&n=1',
+          'VERSE_INDEX&n=1',
+          'ITEM_INDEX&n=1',
+          'align&n=1',
+          'text_align&n=1',
+          'SECTION&n=2',
+          'VERSE_INDEX&n=2',
+          'ITEM_INDEX&n=2',
+          'align&n=2',
+          'text_align&n=2',
+        ],
+      }
       ).length).to.eql(256);
     });
 
-    it('should solve 4 branch 2 level example (binary)', function () {
+    it('should solve 4 branch 2 level example (binary)', function() {
 
       /*
       A
@@ -696,16 +697,16 @@ describe("solver.spec", function() {
 
       solver.solve({
         distribute: 'fail_first',
-        vars: pathVars
+        vars: pathVars,
       });
 
       expect(solver.solutions.length, 'solution count').to.equal(19);
     });
   });
 
-  describe('reifiers', function () {
+  describe('reifiers', function() {
 
-    it('should resolve a simple reified eq case', function () {
+    it('should resolve a simple reified eq case', function() {
       let solver = new Solver({});
 
       solver.addVar('ONE', [1, 1]);
@@ -725,7 +726,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple reified !eq case', function () {
+    it('should resolve a simple reified !eq case', function() {
       let solver = new Solver({});
 
       solver.addVar('ZERO', [0, 0]);
@@ -745,7 +746,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(2);
     });
 
-    it('should resolve a simple reified neq case', function () {
+    it('should resolve a simple reified neq case', function() {
       let solver = new Solver({});
 
       solver.addVar('ONE', [1, 1]);
@@ -765,7 +766,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(2);
     });
 
-    it('should resolve a simple reified !neq case', function () {
+    it('should resolve a simple reified !neq case', function() {
       let solver = new Solver({});
 
       solver.addVar('ZERO', [0, 0]);
@@ -785,7 +786,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple reified lt case', function () {
+    it('should resolve a simple reified lt case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [1, 1]);
@@ -805,7 +806,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(8);
     });
 
-    it('should resolve a simple reified !lt case', function () {
+    it('should resolve a simple reified !lt case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [0, 0]);
@@ -826,7 +827,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple reified lte case', function () {
+    it('should resolve a simple reified lte case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [1, 1]);
@@ -846,7 +847,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(11);
     });
 
-    it('should resolve a simple reified !lte case', function () {
+    it('should resolve a simple reified !lte case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [0, 0]);
@@ -867,7 +868,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple reified gt case', function () {
+    it('should resolve a simple reified gt case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [1, 1]);
@@ -887,7 +888,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(8);
     });
 
-    it('should resolve a simple reified !gt case', function () {
+    it('should resolve a simple reified !gt case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [0, 0]);
@@ -908,7 +909,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple reified gte case', function () {
+    it('should resolve a simple reified gte case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [1, 1]);
@@ -928,7 +929,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(11);
     });
 
-    it('should resolve a simple reified !gte case', function () {
+    it('should resolve a simple reified !gte case', function() {
       let solver = new Solver({});
 
       solver.addVar('STATE', [0, 0]);
@@ -949,7 +950,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
-    it('should resolve a simple sum with lte case', function () {
+    it('should resolve a simple sum with lte case', function() {
       let solver = new Solver({});
 
       solver.addVar('A', [0, 10]);
@@ -969,7 +970,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(21);
     });
 
-    it('should resolve a simple sum with lt case', function () {
+    it('should resolve a simple sum with lt case', function() {
       let solver = new Solver({});
 
       solver.addVar('A', [0, 10]);
@@ -989,7 +990,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(15);
     });
 
-    it('should resolve a simple sum with gt case', function () {
+    it('should resolve a simple sum with gt case', function() {
       let solver = new Solver({});
 
       solver.addVar('A', [0, 10]);
@@ -1007,7 +1008,7 @@ describe("solver.spec", function() {
       expect(solver.solve({max: 10000}).length).to.eql(100);
     });
 
-    it('should resolve a simple sum with gte case', function () {
+    it('should resolve a simple sum with gte case', function() {
       let solver = new Solver({});
 
       solver.addVar('A', [0, 10]);
@@ -1026,9 +1027,9 @@ describe("solver.spec", function() {
     });
   });
 
-  describe('gss poc', function () {
+  describe('gss poc', function() {
 
-    it('with everything in finitedomain', function () {
+    it('with everything in finitedomain', function() {
 
       /*
 
@@ -1055,11 +1056,11 @@ describe("solver.spec", function() {
       let solver = new Solver({defaultDomain: specDomainCreateRange(0, 10000)});
       solver.addVar({
         id: 'VIEWPORT_WIDTH',
-        domain: 1200
+        domain: 1200,
       });
       solver.addVar({
         id: 'VIEWPORT_HEIGHT',
-        domain: 800
+        domain: 800,
       });
       solver.addVars([
         // box1
@@ -1074,7 +1075,7 @@ describe("solver.spec", function() {
         '#box2[height]',
         // middle of the viewport, to be computed later
         'VIEWPORT_MIDDLE_HEIGHT',
-        'VIEWPORT_MIDDLE_WIDTH'
+        'VIEWPORT_MIDDLE_WIDTH',
       ]);
 
       // simple constraints
@@ -1124,16 +1125,16 @@ describe("solver.spec", function() {
         '#box2[y]': 350,
         '#box2[height]': 100,
 
-        "VIEWPORT_WIDTH": 1200,
-        "VIEWPORT_HEIGHT": 800,
-        "VIEWPORT_MIDDLE_WIDTH": 600,
-        "VIEWPORT_MIDDLE_HEIGHT": 400
+        'VIEWPORT_WIDTH': 1200,
+        'VIEWPORT_HEIGHT': 800,
+        'VIEWPORT_MIDDLE_WIDTH': 600,
+        'VIEWPORT_MIDDLE_HEIGHT': 400,
       }]);
 
       expect(solutions.length).to.equal(1);
     });
 
-    it('with viewport constants hardcoded', function () {
+    it('with viewport constants hardcoded', function() {
 
       /*
 
@@ -1172,7 +1173,7 @@ describe("solver.spec", function() {
         '#box2[x]',
         '#box2[width]',
         '#box2[y]',
-        '#box2[height]'
+        '#box2[height]',
       ]);
 
       // simple constraints
@@ -1220,7 +1221,7 @@ describe("solver.spec", function() {
         '#box2[x]': 610,
         '#box2[width]': 100,
         '#box2[y]': 350,
-        '#box2[height]': 100
+        '#box2[height]': 100,
       }]);
 
       expect(solutions.length).to.equal(1);
@@ -1229,7 +1230,7 @@ describe("solver.spec", function() {
 
   describe('continue solved space', function() {
 
-    it('should be able to continue a solution with extra vars', function () {
+    it('should be able to continue a solution with extra vars', function() {
       let solver = new Solver({});
 
       solver.addVar('A', specDomainCreateRange(2, 5));
@@ -1240,7 +1241,7 @@ describe("solver.spec", function() {
       // should find a solution (there are three or four or whatever)
       solver.solve({
         vars: ['A', 'B'],
-        max: 1
+        max: 1,
       });
       expect(solver.solutions.length, 'solve count 1').to.eql(1);
       // should not solve C yet because only A and B were targeted
@@ -1253,10 +1254,10 @@ describe("solver.spec", function() {
       // C could be either 1 or 2 to pass all the constraints
       solver2.solve({
         vars: ['A', 'B', 'C'],
-        max: 1
+        max: 1,
       });
       expect(solver2.solutions.length, 'solve count 1').to.eql(1);
       expect(solver2.solutions[0].C < solver2.solutions[0].B).to.equal(true);
-    })
+    });
   });
 });

@@ -16,7 +16,6 @@ import {
 import {
   config_addVar,
   config_addVarAnon,
-  config_addVarsA,
   config_create,
   config_getUnknownVars,
   config_setDefaults,
@@ -54,7 +53,7 @@ import {
   propagator_addMin,
   propagator_addProduct,
   propagator_addReified,
-  propagator_addRingMul,
+  propagator_addRing_mul,
   propagator_addSum,
 } from './propagator';
 
@@ -117,14 +116,14 @@ let Solver = class Solver {
       byName: {},
       all: [],
       byClass: {},
-      root: undefined // see PathSolver
+      root: undefined, // see PathSolver
     };
 
     this.solutions = [];
 
     this.state = {
       space: null,
-      more: false
+      more: false,
     };
 
     this._prepared = false;
@@ -153,10 +152,10 @@ let Solver = class Solver {
    */
   num(num) {
     if (typeof num !== 'number') {
-      THROW(`Solver#num: expecting a number, got ${num}$(a #{typeof num})`);
+      THROW(`Solver#num: expecting a number, got ${num} (a ${typeof num})`);
     }
     if (isNaN(num)) {
-      THROW("Solver#num: expecting a number, got NaN");
+      THROW('Solver#num: expecting a number, got NaN');
     }
     return config_addVarAnon(this.config, num);
   }
@@ -208,7 +207,7 @@ let Solver = class Solver {
     if (typeof v === 'string') {
       v = {
         id: v,
-        domain: dom
+        domain: dom,
       };
     }
 
@@ -216,11 +215,11 @@ let Solver = class Solver {
       id,
       domain,
       name,
-      distribute
+      distribute,
     } = v;
 
     if (id == null) {
-      THROW("Solver#addVar: requires id ");
+      THROW('Solver#addVar: requires id ');
     }
 
     let vars = this.vars;
@@ -256,17 +255,17 @@ let Solver = class Solver {
           THROW(`Solver#addVar: markov distribution requires SolverVar ${JSON.stringify(v)} w/ distributeOptions:{matrix:[]}`);
         }
       }
-    }
 
-    for (let i = 0; i < matrix.length; ++i) {
-      let row = matrix[i];
-      let boolFunc = row.boolean;
-      if (typeof boolFunc === 'function') {
-        row.booleanId = boolFunc(this, v);
-      } else if (typeof boolFunc === 'string') {
-        row.booleanId = boolFunc;
-      } else {
-        ASSERT(!boolFunc, 'row.boolean should be a function returning a var name or just a var name');
+      for (let i = 0; i < matrix.length; ++i) {
+        let row = matrix[i];
+        let boolFunc = row.boolean;
+        if (typeof boolFunc === 'function') {
+          row.booleanId = boolFunc(this, v);
+        } else if (typeof boolFunc === 'string') {
+          row.booleanId = boolFunc;
+        } else {
+          ASSERT(!boolFunc, 'row.boolean should be a function returning a var name or just a var name');
+        }
       }
     }
 
@@ -561,7 +560,7 @@ let Solver = class Solver {
       vars: branchVars,
       search,
       distribute: distributionOptions,
-      add_unknown_vars: addUnknownVars // bool
+      add_unknown_vars: addUnknownVars, // bool
     } = options;
 
     if (typeof log === 'undefined' || log === null) {
@@ -580,7 +579,7 @@ let Solver = class Solver {
 
     if (addUnknownVars) {
       let unknown_names = config_getUnknownVars(this.config);
-      config_addVars_a(this.config, unknown_names);
+      config_addVarAnon(this.config, unknown_names);
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -607,7 +606,7 @@ let Solver = class Solver {
     return ({
       searchFunc,
       max,
-      log
+      log,
     });
   }
 
@@ -635,15 +634,15 @@ let Solver = class Solver {
    * Run the solver. You should call @prepare before calling this function.
    *
    * @param {Object} options
-   * @property {Function} options.search_func
+   * @property {Function} options.searchFunc
    * @property {number} options.max
    * @property {number} options.log
    * @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
    */
-  run({search_func: searchFunc, max, log}, squash) {
-    ASSERT(typeof searchFunc === 'function');
-    ASSERT(typeof max === 'number');
-    ASSERT(log >= LOG_MIN && log <= LOG_MAX);
+  run({searchFunc, max, log}, squash) {
+    ASSERT(typeof searchFunc === 'function', 'search func should be a function');
+    ASSERT(typeof max === 'number', 'max should be a number');
+    ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
     ASSERT(this._prepared, 'must run #prepare before #run');
     this._prepared = false;
@@ -671,7 +670,7 @@ let Solver = class Solver {
           let solution = space_solution(state.space);
           solutions.push(solution);
           if (log >= LOG_SOLVES) {
-            console.log("      - FD solution() ::::::::::::::::::::::::::::");
+            console.log('      - FD solution() ::::::::::::::::::::::::::::');
             console.log(JSON.stringify(solution));
           }
         }
@@ -732,34 +731,31 @@ let Solver = class Solver {
  * @returns {Object|null} Contains data for each var that has dist options
  */
 function solver_collectDistributionOverrides(varNames, bvarsById, config) {
-  let overrides = null;
-  for (let i = 0; i < varNames.length; ++i) {
-    let bvarName = varNames[i];
-    let branchVar = bvarsById[bvarName];
-    let distributeOptions = branchVar && branchVar.distributeOptions;
+  let overrides;
+  for (var i = 0; i < varNames.length; ++i) {
+    var name = varNames[i];
+    var bvar = bvarsById[name];
+    let distributeOptions = bvar && bvar.distributeOptions;
     if (distributeOptions) {
       if (!overrides) overrides = {};
-      if (!overrides) overrides[bvarName] = {};
+      if (!overrides[name]) overrides[name] = {};
       for (let key in distributeOptions) {
-        let val = distributeOptions[key];
-        overrides[bvarName][key] = val;
+        overrides[name][key] = distributeOptions[key];
       }
     }
     // TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
-    let distribute = branchVar && branchVar.distribute;
-    if (distribute) {
+    if (bvar && bvar.distribute) {
       if (!overrides) overrides = {};
-      if (!overrides) overrides[bvarName] = {};
-      overrides[bvarName].distributor_name = distribute;
+      if (!overrides[name]) overrides[name] = {};
+      overrides[name].distributor_name = bvar.distribute;
     }
-
-    if (overrides && overrides[bvarName] && overrides[bvarName].distributor_name === 'markov') {
+    if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
       propagator_addMarkov(config, name);
     }
   }
-
   return overrides;
 }
+
 
 /**
  * validate domains, filter and fix legacy domains, throw for bad inputs
@@ -806,7 +802,7 @@ function solver_confirmDomain(domain) {
     if (e) {
       return e;
     }
-    let f = solver_confirmDomainElement(hi)
+    let f = solver_confirmDomainElement(hi);
     if (f) {
       return f;
     }
@@ -832,7 +828,7 @@ function solver_confirmDomainElement(n) {
     if (n instanceof Array) {
       return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
     }
-    return `Expecting array of numbers, found something else (#{n}), this is probably a bug`;
+    return 'Expecting array of numbers, found something else (#{n}), this is probably a bug';
   }
   if (n < SUB) {
     return `Domain contains a number lower than SUB (#{n} < ${SUB}), this is probably a bug`;
@@ -841,7 +837,7 @@ function solver_confirmDomainElement(n) {
     return `Domain contains a number higher than SUP (#{n} > ${SUP}), this is probably a bug`;
   }
   if (isNaN(n)) {
-    return "Domain contains an actual NaN, this is probably a bug";
+    return 'Domain contains an actual NaN, this is probably a bug';
   }
 }
 
@@ -857,7 +853,7 @@ function solver_tryToFixLegacyDomain(domain) {
   let fixed = [];
   for (let i = 0; i < domain.length; i++) {
     let a = domain[i];
-    if (a instanceof Array) {
+    if (!(a instanceof Array)) {
       return;
     }
     if (a.length !== 2) {
@@ -875,5 +871,3 @@ function solver_tryToFixLegacyDomain(domain) {
 // BODY_STOP
 
 export default Solver;
-
-//#####

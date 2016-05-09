@@ -1,23 +1,16 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import Solver from '../../../src/solver';
 import {
   REJECTED,
   ZERO_CHANGES,
 } from '../../../src/helpers';
-import propagator_markovStepBare from'../../../src/propagators/markov';
+import propagator_markovStepBare from '../../../src/propagators/markov';
 
-describe("propagators/markov.spec", function() {
+describe('propagators/markov.spec', function() {
 
   it('should exist', function() {
     expect(propagator_markovStepBare).to.be.a('function');

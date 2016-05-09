@@ -56,7 +56,7 @@ function propagator_markovStepBare(space, varName) {
   ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(distributionOptions));
 
   // note: expandVectorsWith can be 0, so check with null
-  let values = markov_createLegend((expandVectorsWith != null), distributionOptions.legend, fdvar.dom);
+  let values = markov_createLegend(expandVectorsWith != null, distributionOptions.legend, fdvar.dom);
   let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, values.length);
 
   let pos = values.indexOf(value);

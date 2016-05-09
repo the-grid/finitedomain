@@ -1,15 +1,10 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateBool,
   specDomainCreateOne,
   specDomainCreateRange,
-  specDomainCreateRanges,
   specDomainCreateZero,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import {
   SOMETHING_CHANGED,
@@ -38,14 +33,14 @@ describe('propagators/reified.spec', function() {
     // rif -> reified ;)
     function riftest(A_in, B_in, bool_in, op, invop, expected_out, bool_after, msg) {
       // test one step call with two vars and an op and check results
-      it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `out=${expected_out}`, `result=[${bool_after}]`]}`, function () {
+      it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `out=${expected_out}`, `result=[${bool_after}]`]}`, function() {
 
         let space = {
           vars: {
             A: fdvar_create('A', A_in.slice(0)),
             B: fdvar_create('B', B_in.slice(0)),
-            bool: fdvar_create('bool', bool_in.slice(0))
-          }
+            bool: fdvar_create('bool', bool_in.slice(0)),
+          },
         };
 
         let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
@@ -88,15 +83,13 @@ describe('propagators/reified.spec', function() {
 
   describe('solver test', function() {
 
-    it('a == (b == c)', function() {
+    it('should not let reifiers influence results if they are not forced', function() {
       let solver = new Solver({defaultDomain: specDomainCreateBool()});
 
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
-      solver['==?']('C', 'AnotB', solver.decl('CnotAnotB'));
-      solver['==']('AnotB', solver.constant(1));
 
       let solutions = solver.solve({vars: ['A', 'B', 'C']});
 
@@ -115,9 +108,40 @@ describe('propagators/reified.spec', function() {
       //});
       //console.log(arr);
 
-      // 3 vars, all solutions because nothing actually restricts it, so: 2^3
+      // a, b, c are not constrainted in any way, so 2^3=8
       expect(solutions.length).to.equal(8);
     });
 
+    it('should be able to force a reifier to be true and affect the outcome', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateBool()});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AisB'));
+      solver['==']('AisB', solver.constant(1));
+
+      let solutions = solver.solve({vars: ['A', 'B', 'C']});
+
+      //// visualize solutions
+      //let names = '';
+      //for (var name in solutions[0]) {
+      //  names += name+' ';
+      //}
+      //console.log(names);
+      //let arr = solutions.map(function(sol) {
+      //  let out = '';
+      //  for (name in sol) {
+      //    out += sol[name]+' ';
+      //  }
+      //  return out;
+      //});
+      //console.log(arr);
+
+      // the a==?b reifier is bound to be 1
+      // a cannot be b, so 1 0 1, 0 1 1, 1 0 0, and 0 1 0, = 4 solutions
+      // TODO: verify this is correct and why this was 8 before...
+      expect(solutions.length).to.equal(4);
+    });
   });
 });

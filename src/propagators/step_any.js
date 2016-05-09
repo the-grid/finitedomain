@@ -82,7 +82,6 @@ function _propagator_stepAny(space, opName, propVarNames, propDatails) {
 
     case 'min':
       return _propagator_min(space, vn1, vn2, propVarNames);
-      break;
 
     case 'mul':
       return _propagator_mul(space, vn1, vn2, propVarNames, propDatails);

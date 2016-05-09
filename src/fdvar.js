@@ -61,7 +61,7 @@ function fdvar_new(id, dom) {
     _class: 'fdvar',
     id,
     dom,
-    was_solved: false // for space_createClone
+    was_solved: false, // for space_createClone
   };
 }
 
@@ -70,7 +70,7 @@ function fdvar_new(id, dom) {
 // or that the only range spans at least two elements.
 
 function fdvar_isUndetermined(fdvar) {
-  return !domain_is_determined(fdvar.dom);
+  return !domain_isDetermined(fdvar.dom);
 }
 
 // A var is solved if it has only one range that spans only one value.

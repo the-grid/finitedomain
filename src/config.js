@@ -27,7 +27,7 @@ function config_create() {
     var_filter_func: 'unsolved',
     next_var_func: 'naive',
     next_value_func: 'min',
-    targeted_vars: 'all',
+    targetedVars: 'all',
     var_dist_options: {},
     timeout_callback: undefined,
 
@@ -41,7 +41,7 @@ function config_create() {
 
     // like a blue print for the root space with just primitives/arrays
     initial_vars: {},
-    propagators: []
+    propagators: [],
   };
 }
 
@@ -52,14 +52,14 @@ function config_clone(config, newVars) {
     var_filter_func,
     next_var_func,
     next_value_func,
-    targeted_vars,
+    targetedVars,
     var_dist_options,
     timeout_callback,
     constant_uid,
     constant_cache,
     all_var_names,
     initial_vars,
-    propagators
+    propagators,
   } = config;
 
   return {
@@ -68,7 +68,7 @@ function config_clone(config, newVars) {
     var_filter_func,
     next_var_func,
     next_value_func,
-    targeted_vars: (targeted_vars instanceof Array && targeted_vars.slice(0)) || targeted_vars,
+    targetedVars: (targetedVars instanceof Array && targetedVars.slice(0)) || targetedVars,
     var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
     timeout_callback, // by reference because it's a function if passed on...
 
@@ -78,7 +78,7 @@ function config_clone(config, newVars) {
     all_var_names: all_var_names.slice(0),
 
     initial_vars: newVars || initial_vars,
-    propagators: propagators.slice(0) // is it okay to share them by ref? i think so...
+    propagators: propagators.slice(0), // is it okay to share them by ref? i think so...
   };
 }
 
@@ -124,7 +124,6 @@ function config_addVar(config, name, domainOrLo, hi) {
       }
     }
     domainOrLo = domain.slice(0);
-
   } else if (typeof domainOrLo === 'number') {
     let lo = domainOrLo;
     if (typeof hi === 'number') {
@@ -161,7 +160,7 @@ function config_addVarValue(config, name, domain, _forbiddenArg) {
   ASSERT(!(_forbiddenArg != null), 'not expecting a hi, pass on [lo,hi] in array or just lo', _forbiddenArg);
   ASSERT(domain instanceof Array || typeof domain === 'number' || domain === undefined, 'domain check', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length-1] <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= SUB && domain <= SUP), 'single value should be SUB<=value<=SUP', domain);
 
   if (config.all_var_names.indexOf(name) >= 0) {
@@ -236,7 +235,7 @@ function config_setOptions(config, options) {
     // string: 'all'
     // string[]: list of vars that must be solved
     // function: callback to return list of names to be solved
-    config.targeted_vars = options.targeted_var_names;
+    config.targetedVars = options.targeted_var_names;
   }
   if (options && options.var_dist_config) {
     // An object which defines a value distributor per variable

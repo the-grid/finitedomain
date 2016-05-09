@@ -12,7 +12,7 @@ function specDomainCreateRange(lo, hi) {
 function specDomainCreateRanges(...ranges) {
   let arr = [];
   ranges.forEach(function(range) {
-    if (range instanceof Array) {
+    if (!(range instanceof Array)) {
       throw new Error('Expecting each range to be an array');
     }
     if (range.length !== 2) {

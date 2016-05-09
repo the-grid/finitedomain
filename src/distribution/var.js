@@ -1,13 +1,13 @@
 import {
   ASSERT,
-  THROW
+  THROW,
 } from '../helpers';
 
 import {
   fdvar_isUndetermined,
   fdvar_lowerBound,
   fdvar_size,
-  fdvar_upperBound
+  fdvar_upperBound,
 } from '../fdvar';
 
 // BODY_START
@@ -36,7 +36,7 @@ function distribution_getNextVar(space, targetVars) {
   let distName = configNextVarFunc;
   // if it's an object it's a more complex config
   if (typeof configNextVarFunc === 'object') {
-    distName = configNextVarFunc.distName;
+    distName = configNextVarFunc.dist_name;
   }
 
   let isBetterVar = null;
@@ -201,7 +201,7 @@ function distribution_varFallback(v1, v2, space, fallbackConfig) {
       break;
 
     case 'object':
-      distName = fallbackConfig.distName;
+      distName = fallbackConfig.dist_name;
       if (!distName) {
         THROW(`Missing fallback var distribution name: ${JSON.stringify(fallbackConfig)}`);
       }
@@ -217,26 +217,24 @@ function distribution_varFallback(v1, v2, space, fallbackConfig) {
   switch (distName) {
     case 'size':
       return distribution_varByMinSize(v1, v2);
-      break;
+
     case 'min':
       return distribution_varByMin(v1, v2);
-      break;
+
     case 'max':
       return distribution_varByMax(v1, v2);
-      break;
+
     case 'markov':
       return distribution_varByMarkov(v1, v2, space, fallbackConfig);
-      break;
+
     case 'list':
       return distribution_varByList(v1, v2, space, fallbackConfig);
-      break;
+
     case 'throw':
       return THROW('nope');
-    default:
-      THROW(`Unknown var dist fallback name: ${distName}`);
   }
 
-  THROW('should not reach here');
+  return THROW(`Unknown var dist fallback name: ${distName}`);
 }
 
 function distribution_varThrow(s) {

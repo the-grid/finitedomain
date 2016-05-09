@@ -1,23 +1,19 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateBool,
   specDomainCreateValue,
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainCreateZero,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import distribute_getNextDomainForVar, {
-  distribution_valueByList,
-  distribution_valueByMarkov,
+  _distribute_getNextDomainForVar,
+  //distribution_valueByList,
+  //distribution_valueByMarkov,
   distribution_valueByMax,
   distribution_valueByMid,
   distribution_valueByMin,
-  distribution_valueByMinMaxCycle,
+  //distribution_valueByMinMaxCycle,
   distribution_valueBySplitMax,
   distribution_valueBySplitMin,
 } from '../../../src/distribution/value';
@@ -32,8 +28,12 @@ describe('distribution/value.spec', function() {
     expect(fdvar_createBool).to.be.a('function');
   });
 
-  describe('distribution_value_by_throw', function() {
-    it('should throw', () => expect(_ => _distribute_getNextDomainForVar('throw')).to.throw('not expecting to pick this distributor'))
+  describe('distribution_valueByThrow', function() {
+
+    it('should throw', function() {
+      expect(_ => _distribute_getNextDomainForVar('throw')).to.throw('not expecting to pick this distributor');
+    });
+
   });
 
   describe('distribution_valueByMin', function() {
@@ -92,120 +92,120 @@ describe('distribution/value.spec', function() {
     });
   });
 
-  describe('distribution_value_by_max', function() {
+  describe('distribution_valueByMax', function() {
     it('should exist', function() {
-      expect(distribution_value_by_max).to.be.a('function');
+      expect(distribution_valueByMax).to.be.a('function');
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_max(fdvar, 0)).to.eql(specDomainCreateValue(1));
+      expect(distribution_valueByMax(fdvar, 0)).to.eql(specDomainCreateValue(1));
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_max(fdvar, 1)).to.eql(specDomainCreateValue(0));
+      expect(distribution_valueByMax(fdvar, 1)).to.eql(specDomainCreateValue(0));
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should return undefined for third choice', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_max(fdvar, 2)).to.eql(undefined);
+      expect(distribution_valueByMax(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
       let fdvar = fdvar_create('A', specDomainCreateRanges([10, 17], [19, 20]));
 
-      expect(distribution_value_by_max(fdvar, 0)).to.eql(specDomainCreateValue(20));
+      expect(distribution_valueByMax(fdvar, 0)).to.eql(specDomainCreateValue(20));
     });
 
     it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
       let fdvar = fdvar_create('A', specDomainCreateRanges([10, 17], [19, 20]));
 
-      expect(distribution_value_by_max(fdvar, 1)).to.eql(specDomainCreateRanges([10, 17], [19, 19]));
+      expect(distribution_valueByMax(fdvar, 1)).to.eql(specDomainCreateRanges([10, 17], [19, 19]));
     });
 
     it('should reject a "solved" var', function() {
       // note: only rejects with ASSERTs
       let fdvar = fdvar_create('A', specDomainCreateValue(20));
 
-      expect(() => distribution_value_by_max(fdvar, 0)).to.throw();
-      expect(() => distribution_value_by_max(fdvar, 1)).to.throw();
+      expect(() => distribution_valueByMax(fdvar, 0)).to.throw();
+      expect(() => distribution_valueByMax(fdvar, 1)).to.throw();
     });
 
     it('should reject a "rejected" var', function() {
       // note: only rejects with ASSERTs
       let fdvar = fdvar_create('A', []);
 
-      expect(() => distribution_value_by_max(fdvar, 0)).to.throw();
-      expect(() => distribution_value_by_max(fdvar, 1)).to.throw();
+      expect(() => distribution_valueByMax(fdvar, 0)).to.throw();
+      expect(() => distribution_valueByMax(fdvar, 1)).to.throw();
     });
   });
 
-  describe('distribution_value_by_mid', function() {
+  describe('distribution_valueByMid', function() {
     it('should exist', function() {
-      expect(distribution_value_by_mid).to.be.a('function');
+      expect(distribution_valueByMid).to.be.a('function');
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_mid(fdvar, 0)).to.eql(specDomainCreateValue(1));
+      expect(distribution_valueByMid(fdvar, 0)).to.eql(specDomainCreateValue(1));
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_mid(fdvar, 1)).to.eql(specDomainCreateValue(0));
+      expect(distribution_valueByMid(fdvar, 1)).to.eql(specDomainCreateValue(0));
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should return undefined for third choice', function() {
       let fdvar = fdvar_createBool('A');
 
-      expect(distribution_value_by_mid(fdvar, 2)).to.eql(undefined);
+      expect(distribution_valueByMid(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainCreateBool());
     });
 
     it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
       let fdvar = fdvar_create('A', specDomainCreateRanges([10, 12], [18, 20]));
 
-      expect(distribution_value_by_mid(fdvar, 0)).to.eql(specDomainCreateValue(18));
+      expect(distribution_valueByMid(fdvar, 0)).to.eql(specDomainCreateValue(18));
     });
 
     it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
       let fdvar = fdvar_create('A', specDomainCreateRanges([10, 12], [18, 20]));
 
-      expect(distribution_value_by_mid(fdvar, 1)).to.eql(specDomainCreateRanges([10, 12], [19, 20]));
+      expect(distribution_valueByMid(fdvar, 1)).to.eql(specDomainCreateRanges([10, 12], [19, 20]));
     });
 
     it('should pick middle out', function() {
       let fdvar = fdvar_create('A', specDomainCreateRange(1, 3));
 
-      expect(distribution_value_by_mid(fdvar, 0)).to.eql(specDomainCreateRanges([2, 2]));
-      expect(distribution_value_by_mid(fdvar, 1)).to.eql(specDomainCreateRanges([1, 1], [3, 3]));
+      expect(distribution_valueByMid(fdvar, 0)).to.eql(specDomainCreateRanges([2, 2]));
+      expect(distribution_valueByMid(fdvar, 1)).to.eql(specDomainCreateRanges([1, 1], [3, 3]));
     });
 
     it('should reject a "solved" var', function() {
       // note: only rejects with ASSERTs
       let fdvar = fdvar_create('A', specDomainCreateValue(20));
 
-      expect(() => distribution_value_by_mid(fdvar, 0)).to.throw();
-      expect(() => distribution_value_by_mid(fdvar, 1)).to.throw();
+      expect(() => distribution_valueByMid(fdvar, 0)).to.throw();
+      expect(() => distribution_valueByMid(fdvar, 1)).to.throw();
     });
 
     it('should reject a "rejected" var', function() {
       // note: only rejects with ASSERTs
       let fdvar = fdvar_create('A', []);
 
-      expect(() => distribution_value_by_mid(fdvar, 0)).to.throw();
-      expect(() => distribution_value_by_mid(fdvar, 1)).to.throw();
+      expect(() => distribution_valueByMid(fdvar, 0)).to.throw();
+      expect(() => distribution_valueByMid(fdvar, 1)).to.throw();
     });
   });
 

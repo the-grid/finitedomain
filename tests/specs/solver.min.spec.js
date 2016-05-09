@@ -1,17 +1,12 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateValue,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 
-describe("solver.min.spec", function() {
+describe('solver.min.spec', function() {
 
   it('should exist', function() {
     expect(Solver).to.be.a('function');
@@ -24,11 +19,11 @@ describe("solver.min.spec", function() {
         let solver = new Solver(o);
         solver.addVar({
           id: 'Hello',
-          domain: specDomainCreateRange(1, 99)
+          domain: specDomainCreateRange(1, 99),
         });
         solver.addVar({
           id: 'World',
-          domain: specDomainCreateValue(0)
+          domain: specDomainCreateValue(0),
         });
         solver['>']('Hello', 'World');
 
@@ -37,22 +32,22 @@ describe("solver.min.spec", function() {
 
         for (let i = 0; i < solutionMap.length; ++i) {
           let val = solutionMap[i];
-          expect(solutions[key].Hello, "nth: #{n} solution").to.equal(val);
+          expect(solutions[i].Hello, `nth: ${i} solution`).to.equal(val);
         }
         //for n, val of solutionMap
         //  expect(solutions[n].Hello, "nth: #{n} solution").to.equal val
       });
     }
 
-    itDistributes({0:1, 98:99}, {});
-    itDistributes({0:1, 98:99}, {distribute: 'naive'});
-    itDistributes({0:1, 98:99}, {distribute: 'fail_first'});
-    itDistributes({0:1, 98:99}, {distribute: 'split'});
-    itDistributes({0:1, 98:99}, {distribute: { var: 'naive'}});
-    itDistributes({0:1, 98:99}, {distribute: { val: 'min'}});
-    itDistributes({0:1, 98:99}, {distribute: { val: 'min', var: 'naive'}});
-    itDistributes({0:1, 98:99}, {distribute: { val: 'min', var: 'size'}});
-    itDistributes({0:1, 98:99}, {distribute: { val: 'min', var: 'min'}});
-    itDistributes({0:1, 98:99}, {distribute: { val: 'min', var: 'max'}});
+    itDistributes({0: 1, 98: 99}, {});
+    itDistributes({0: 1, 98: 99}, {distribute: 'naive'});
+    itDistributes({0: 1, 98: 99}, {distribute: 'fail_first'});
+    itDistributes({0: 1, 98: 99}, {distribute: 'split'});
+    itDistributes({0: 1, 98: 99}, {distribute: {var: 'naive'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'naive'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'size'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'min'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'max'}});
   });
 });

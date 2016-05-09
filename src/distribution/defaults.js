@@ -34,7 +34,7 @@ const PRESETS = {
 function distribution_getDefaults(name) {
   if (PRESETS[name]) return PRESETS[name];
 
-  THROW("distribution.get_defaults: Unknown preset: #{name}");
+  THROW(`distribution.get_defaults: Unknown preset: ${name}`);
 }
 
 // BODY_STOP

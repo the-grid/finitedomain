@@ -1,13 +1,4 @@
-import setup from '../../fixtures/helpers.spec';
-import {
-  specDomainCreateBool,
-  specDomainCreateRange,
-  specDomainCreateValue,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+import expect from '../../fixtures/mocha_proxy.fixt';
 
 import Solver from '../../../src/solver';
 import {
@@ -17,7 +8,7 @@ import {
   domain_getValue,
 } from '../../../src/domain';
 
-describe("propagators/callback.spec", function() {
+describe('propagators/callback.spec', function() {
 
   describe('integration tests', function() {
 
@@ -52,7 +43,7 @@ describe("propagators/callback.spec", function() {
       solver.solve({
         distribute: 'naive',
         vars: ['R', 'G', 'B'],
-        max: 10 // should only find 1
+        max: 10, // should only find 1
       });
 
       // note: there are a few solutions for the sum(), but only one passes the callback

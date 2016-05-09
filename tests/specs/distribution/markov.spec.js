@@ -1,22 +1,17 @@
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateValue,
-  stripAnonVars
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import distribution_markovSampleNextFromDomain from '../../../src/distribution/markov';
 
 const RNG_UNNORMALIZED = false;
 const RNG_NORMALIZED = true;
 
-const funcRngMin = function() { return 0; }
-const rngFuncMid = function() { return .5; } // middle (ok, technically slightly above the middle... is that bug?)
-const funcRngMax = function() { return 1 - Number.EPSILON; } // always pick last in legend
+const funcRngMin = function() { return 0; };
+const rngFuncMid = function() { return 0.5; }; // middle (ok, technically slightly above the middle... is that bug?)
+const funcRngMax = function() { return 1 - Number.EPSILON; }; // always pick last in legend
 
 describe('distribution/markov.spec', function() {
 
@@ -114,8 +109,8 @@ describe('distribution/markov.spec', function() {
       // Make sure that: rngRoll < sum(probVector).
       // The roll must be less! Not lte.
       function caseIt(probVector, rngRoll, outcome, desc) {
-        if (rngRoll >= probVector.reduce((a,b) => a + b)) {
-          throw new Error(`Test fail, roll must be < prob sum (${rngRoll} >= ${probVector.reduce((a,b) => a + b)})`);
+        if (rngRoll >= probVector.reduce((a, b) => a + b)) {
+          throw new Error(`Test fail, roll must be < prob sum (${rngRoll} >= ${probVector.reduce((a, b) => a + b)})`);
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
@@ -144,8 +139,8 @@ describe('distribution/markov.spec', function() {
         if (rngRoll >= 1) {
           throw new Error(`Test fail, roll must be < 1 (${rngRoll} >= 1`);
         }
-        if (Math.abs(probVector.reduce((a,b) => a + b) - 1) > 1e-4) {
-          throw new Error(`Test fail, prob total should be 1 (1-${probVector.reduce(function(a,b) { return a + b; })} > ${1e-4})`);
+        if (Math.abs(probVector.reduce((a, b) => a + b) - 1) > 1e-4) {
+          throw new Error(`Test fail, prob total should be 1 (1-${probVector.reduce(function(a, b) { return a + b; })} > ${1e-4})`);
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
@@ -156,11 +151,11 @@ describe('distribution/markov.spec', function() {
         });
       };
 
-      case_it([1/6, 1/6, 1/6, 1/6, 1/6, 1/6], 0, 1);
-      case_it([1/6, 1/6, 1/6, 1/6, 1/6, 1/6], 1 - 1e-6, 6);
+      case_it([1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6], 0, 1);
+      case_it([1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6, 1 / 6], 1 - 1e-6, 6);
       //case_it [1/6, 1/6, 1/6, 1/6, 1/6, 1/6], 1/6, 2 # rounding makes this test difficult
       //case_it [1/6, 0, 2/6, 1/6, 1/6, 1/6], 1/6, 3, 'Second index has zero prob so it becomes 3' # rounding makes this test difficult
-      case_it([1/6, 0, 2/6, 1/6, 1/6, 1/6], 2/6, 3, 'Second index has zero prob so it becomes 3');
+      case_it([1 / 6, 0, 2 / 6, 1 / 6, 1 / 6, 1 / 6], 2 / 6, 3, 'Second index has zero prob so it becomes 3');
     });
   });
 

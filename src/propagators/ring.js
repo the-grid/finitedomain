@@ -1,5 +1,5 @@
 import {
-  REJECTED
+  REJECTED,
 } from '../helpers';
 
 import {

@@ -1,14 +1,8 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainCreateValue,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import {
   REJECTED,
@@ -16,13 +10,13 @@ import {
 } from '../../../src/helpers';
 import {
   fdvar_create,
-  fdvar_create_wide,
+  fdvar_createWide,
 } from '../../../src/fdvar';
 import {
   propagator_ltStepBare,
 } from '../../../src/propagators/lt';
 
-describe("propagators/lt.spec", function() {
+describe('propagators/lt.spec', function() {
   // in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
   // it makes sure v1 and v2 have no values that can't possibly result in fulfilling <
 
@@ -31,7 +25,7 @@ describe("propagators/lt.spec", function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_create_wide('x');
+    let v = fdvar_createWide('x');
 
     expect(() => propagator_ltStepBare()).to.throw();
     expect(() => propagator_ltStepBare(v)).to.throw();
@@ -48,13 +42,13 @@ describe("propagators/lt.spec", function() {
   //it('should reject for empty left domain', function() {
   //
   //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_create_wide('y');
+  //  let v2 = fdvar_createWide('y');
   //  expect(lt_step_bare(v1, v2)).to.eql(REJECTED);
   //});
   //
   //it('should reject for empty right domain', function() {
   //
-  //  let v1 = fdvar_create_wide('x');
+  //  let v1 = fdvar_createWide('x');
   //  let v2 = fdvar_create('y', []);
   //  expect(lt_step_bare(v1, v2)).to.eql(REJECTED);
   //});
@@ -80,7 +74,7 @@ describe("propagators/lt.spec", function() {
   describe('when max(v1) >= max(v2)', function() {
 
     function test(lo1, hi1, lo2, hi2, resultLo, resultHi, result) {
-      it(`should (only) trunc values from v1 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function () {
+      it(`should (only) trunc values from v1 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function() {
         let v1 = fdvar_create('x', specDomainCreateRange(lo1, hi1));
         let v2 = fdvar_create('y', specDomainCreateRange(lo2, hi2));
         let r = propagator_ltStepBare(v1, v2);
@@ -92,8 +86,8 @@ describe("propagators/lt.spec", function() {
       });
     }
 
-    test(0,20, 5,15, 0,14);
-    test(0,10, 5,15, 0,10, ZERO_CHANGES);
+    test(0, 20, 5, 15, 0, 14);
+    test(0, 10, 5, 15, 0, 10, ZERO_CHANGES);
   });
 
   it('should reject when v1 and v2 are solved and v1>v2', function() {
@@ -110,7 +104,7 @@ describe("propagators/lt.spec", function() {
   describe('when min(v1) >= min(v2)', function() {
 
     function test(lo1, hi1, lo2, hi2, resultLo, resultHi, result) {
-      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function () {
+      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo, resultHi]}]`, function() {
         let v1 = fdvar_create('x', specDomainCreateRange(lo1, hi1));
         let v2 = fdvar_create('y', specDomainCreateRange(lo2, hi2));
         let r = propagator_ltStepBare(v1, v2);
@@ -122,15 +116,15 @@ describe("propagators/lt.spec", function() {
       });
     }
 
-    test(5,14, 0,15, 6,15);
-    test(5,10, 7,15, 7,15, ZERO_CHANGES);
+    test(5, 14, 0, 15, 6, 15);
+    test(5, 10, 7, 15, 7, 15, ZERO_CHANGES);
   });
   //test 10,10, 5,5, 5,5, REJECTED # note: this is the same test as in v1>=v2 because v1 is checked first. so not possible here.
 
   describe('when both min/max v1 >= min/max v2', function() {
 
     function test(lo1, hi1, lo2, hi2, resultLo1, resultHi1, resultLo2, resultHi2, result) {
-      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo1, resultHi1, resultLo2, resultHi2, result]}]`, function () {
+      it(`should (only) trunc values from v2 [${[lo1, hi1, lo2, hi2, resultLo1, resultHi1, resultLo2, resultHi2, result]}]`, function() {
         let v1 = fdvar_create('x', specDomainCreateRange(lo1, hi1));
         let v2 = fdvar_create('y', specDomainCreateRange(lo2, hi2));
         let r = propagator_ltStepBare(v1, v2);
@@ -140,8 +134,8 @@ describe("propagators/lt.spec", function() {
       });
     }
 
-    test(5,20, 0,10, 5,9, 6,10);
-    test(5,20, 5,20, 5,19, 6,20);
+    test(5, 20, 0, 10, 5, 9, 6, 10);
+    test(5, 20, 5, 20, 5, 19, 6, 20);
   });
 
   it('should handle multiple ranges too', function() {

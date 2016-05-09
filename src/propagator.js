@@ -1,11 +1,11 @@
 import {
   ASSERT,
-  THROW
+  THROW,
 } from './helpers';
 
 import {
   config_addPropagator,
-  config_addVarAnon
+  config_addVarAnon,
 } from './config';
 
 // BODY_START
@@ -493,12 +493,13 @@ function propagator_addSum(config, vars, resultVarName) {
     default: // "divide and conquer" ugh. feels like there is a better way to do this
       ASSERT(len > 2, 'expecting at least 3 elements in the list...', vars);
 
+      let t1;
       let n = Math.floor(vars.length / 2);
       if (n > 1) {
-        var t1 = config_addVarAnon(config);
+        t1 = config_addVarAnon(config);
         propagator_addSum(config, vars.slice(0, n), t1);
       } else {
-        var t1 = vars[0];
+        t1 = vars[0];
       }
 
       let t2 = config_addVarAnon(config);
@@ -528,8 +529,7 @@ function propagator_addProduct(config, vars, resultVarName) {
 
   switch (vars.length) {
     case 0:
-      return retval;
-      break;
+      return THROW('PRODUCT_REQUIRES_VARS');
 
     case 1:
       propagator_addEq(config, vars[0], resultVarName);
@@ -541,11 +541,12 @@ function propagator_addProduct(config, vars, resultVarName) {
 
     default:
       let n = Math.floor(vars.length / 2);
+      let t1;
       if (n > 1) {
-        var t1 = config_addVarAnon(config);
+        t1 = config_addVarAnon(config);
         propagator_addProduct(config, vars.slice(0, n), t1);
       } else {
-        var t1 = vars[0];
+        t1 = vars[0];
       }
       let t2 = config_addVarAnon(config);
 
@@ -568,7 +569,7 @@ function propagator_addMarkov(config, varName) {
 
 // BODY_STOP
 
-export default {
+export {
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,

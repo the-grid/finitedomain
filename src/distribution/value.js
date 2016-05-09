@@ -36,6 +36,7 @@ import {
   fdvar_isUndetermined,
   fdvar_lowerBound,
   fdvar_middleElement,
+  fdvar_min,
   fdvar_upperBound,
 } from '../fdvar';
 
@@ -72,37 +73,36 @@ function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceInde
   switch (valueFuncName) {
     case 'max':
       return distribution_valueByMax(fdvar, choiceIndex);
-      break;
+
     case 'markov':
       return distribution_valueByMarkov(space, fdvar, choiceIndex);
-      break;
+
     case 'mid':
       return distribution_valueByMid(fdvar, choiceIndex);
-      break;
+
     case 'min':
       return distribution_valueByMin(fdvar, choiceIndex);
-      break;
+
     case 'minMaxCycle':
       return distribution_valueByMinMaxCycle(space, fdvar, choiceIndex);
-      break;
+
     case 'list':
       return distribution_valueByList(space, fdvar, choiceIndex);
-      break;
+
     case 'naive':
       return domain_createValue(fdvar_min(fdvar));
-      break;
+
     case 'splitMax':
       return distribution_valueBySplitMax(fdvar, choiceIndex);
-      break;
+
     case 'splitMin':
       return distribution_valueBySplitMin(fdvar, choiceIndex);
-      break;
+
     case 'throw':
-      ASSERT(false, 'not expecting to pick this distributor');
-      break;
+      return ASSERT(false, 'not expecting to pick this distributor');
   }
 
-  THROW('unknown next var func', config_next_value_func);
+  THROW('unknown next var func', valueFuncName);
 }
 
 /**
@@ -126,7 +126,7 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
   let fdvarDistOptions = configVarDistOptions[fdvar.id];
   let listSource = fdvarDistOptions.list;
 
-  let { fallbackDistName } = fdvarDistOptions;
+  let { fallback_dist_name: fallbackDistName } = fdvarDistOptions;
   ASSERT(fallbackDistName !== 'list', 'prevent recursion loops');
 
   let list = listSource;
@@ -370,7 +370,7 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
   ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   switch (choiceIndex) {
-    case FIRST_CHOICE:
+    case FIRST_CHOICE: {
       // THIS IS AN EXPENSIVE STEP!
 
       let domain = fdvar.dom;
@@ -378,22 +378,22 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
 
       let configVarDistOptions = space.config.var_dist_options;
       ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
-      let distributionOptions = configVarDistOptions[varName];
-      ASSERT(distributionOptions, 'markov vars should have  distribution options', JSON.stringify(fdvar));
-      let expandVectorsWith = distributionOptions.expandVectorsWith;
-      ASSERT(distributionOptions.matrix, 'there should be a matrix available for every var', distributionOptions.matrix || JSON.stringify(fdvar), distributionOptions.matrix || JSON.stringify(configVarDistOptions[varName]));
-      ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(distributionOptions));
+      let distOptions = configVarDistOptions[varName];
+      ASSERT(distOptions, 'markov vars should have  distribution options', JSON.stringify(fdvar));
+      let expandVectorsWith = distOptions.expandVectorsWith;
+      ASSERT(distOptions.matrix, 'there should be a matrix available for every var', distOptions.matrix || JSON.stringify(fdvar), distOptions.matrix || JSON.stringify(configVarDistOptions[varName]));
+      ASSERT(distOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distOptions.legend || (expandVectorsWith != null) || JSON.stringify(distOptions));
 
-      let random = distributionOptions.random || MATH_RANDOM;
+      let random = distOptions.random || MATH_RANDOM;
 
-      // note: expandVectorsWith can be 0, so check with ?
-      let values = markov_createLegend((expandVectorsWith != null), distributionOptions.legend, domain);
+      // note: expandVectorsWith can be 0, so check with null
+      let values = markov_createLegend(expandVectorsWith != null, distOptions.legend, domain);
       let valueCount = values.length;
       if (!valueCount) {
         return NO_CHOICE;
       }
 
-      let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, valueCount);
+      let probabilities = markov_createProbVector(space, distOptions.matrix, expandVectorsWith, valueCount);
       let value = distribution_markovSampleNextFromDomain(domain, probabilities, values, random);
       if (value == null) {
         return NO_CHOICE;
@@ -403,8 +403,9 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
       space._markov_last_value = value;
 
       return domain_createValue(value);
+    }
 
-    case SECOND_CHOICE:
+    case SECOND_CHOICE: {
       ASSERT((space._markov_last_value != null), 'should have cached previous value');
       let lastValue = space._markov_last_value;
       let lo = fdvar_lowerBound(fdvar);
@@ -423,6 +424,7 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
       let domain = domain_intersection(fdvar.dom, arr);
       if (domain.length) return domain;
       return NO_CHOICE;
+    }
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -439,6 +441,7 @@ export {
 
   // __REMOVE_BELOW_FOR_DIST__
   // for testing:
+  _distribute_getNextDomainForVar,
   distribution_valueByList,
   distribution_valueByMarkov,
   distribution_valueByMax,

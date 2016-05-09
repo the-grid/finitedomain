@@ -1,6 +1,9 @@
 // markov helper functions
 
 import {
+  THROW,
+} from './helpers';
+import {
   domain_toList,
 } from './domain';
 
@@ -39,14 +42,15 @@ function markov_createLegend(merge, inputLegend, domain) {
 }
 
 function markov_mergeDomainAndLegend(inputLegend, domain) {
+  let legend;
   if (inputLegend) {
-    var legend = inputLegend.slice(0);
+    legend = inputLegend.slice(0);
   } else {
-    var legend = [];
+    legend = [];
   }
 
   let listed = domain_toList(domain);
-  for (let i = 0; i < listed; ++i) {
+  for (let i = 0; i < listed.length; ++i) {
     let val = listed[i];
     if (legend.indexOf(val) < 0) {
       legend.push(val);
@@ -58,9 +62,10 @@ function markov_mergeDomainAndLegend(inputLegend, domain) {
 
 function markov_createProbVector(space, matrix, expandVectorsWith, valueCount) {
   let row = markov_getNextRowToSolve(space, matrix);
+  let probVector = row.vector;
 
   if (expandVectorsWith != null) { // could be 0
-    var probVector = row.vector && row.vector.slice(0) || [];
+    probVector = probVector ? probVector.slice(0) : [];
     let delta = valueCount - probVector.length;
 
     if (delta > 0) {
@@ -72,12 +77,11 @@ function markov_createProbVector(space, matrix, expandVectorsWith, valueCount) {
     return probVector;
   }
 
-  var probVector = row.vector;
   if (!probVector) {
-    THROW("distribution_value_by_markov error, each markov var must have a prob vector or use `expandVectorsWith:{Number}`");
+    THROW('distribution_value_by_markov error, each markov var must have a prob vector or use `expandVectorsWith:{Number}`');
   }
   if (probVector.length !== valueCount) {
-    THROW("distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`");
+    THROW('distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`');
   }
   return probVector;
 }

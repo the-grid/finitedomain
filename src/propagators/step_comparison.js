@@ -120,5 +120,5 @@ function propagator_stepWouldReject(opName, fdvar1, fdvar2) {
 
 export {
   propagator_stepComparison,
-  propagator_stepWouldReject
+  propagator_stepWouldReject,
 };

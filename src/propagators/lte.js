@@ -23,7 +23,7 @@ import {
 /**
  * @param {Fdvar} fdvar1
  * @param {Fdvar} fdvar2
- * @returns {*}
+ * @returns {number}
  */
 function propagator_lteStepBare(fdvar1, fdvar2) {
   let lo1 = fdvar_lowerBound(fdvar1);
@@ -37,7 +37,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
   if (hi1 > hi2) {
-    var leftChanged = fdvar_removeGteInline(fdvar1, hi2+1);
+    var leftChanged = fdvar_removeGteInline(fdvar1, hi2 + 1);
     if (fdvar_isRejected(fdvar1)) {
       leftChanged = REJECTED;
     }
@@ -46,7 +46,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
   if (lo1 > lo2) {
-    var rightChanged = fdvar_removeLteInline(fdvar2, lo1-1);
+    var rightChanged = fdvar_removeLteInline(fdvar2, lo1 - 1);
     if (fdvar_isRejected(fdvar2)) {
       rightChanged = REJECTED;
     }

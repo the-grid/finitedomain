@@ -1,15 +1,10 @@
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  expect,
-  assert,
-} from 'chai';
-import {Solver} from '../../../src/';
-import {
-  specDomainCreateBool,
   specDomainCreateRange,
-  specDomainCreateValue,
-  stripAnonVars,
-  stripAnonVarsFromArrays
-} from '../../fixtures/domain.spec';
+  stripAnonVarsFromArrays,
+} from '../../fixtures/domain.fixt';
+
+import Solver from '../../../src/solver';
 
 describe('distribution/distribute.spec', function() {
 
@@ -51,7 +46,7 @@ describe('distribution/distribute.spec', function() {
         {V1: 4, V2: 4},
         {V1: 4, V2: 3},
         {V1: 4, V2: 2},
-        {V1: 4, V2: 1}
+        {V1: 4, V2: 1},
       ]);
     });
 
@@ -63,12 +58,12 @@ describe('distribution/distribute.spec', function() {
       solver.addVar({
         id: 'V1',
         domain: specDomainCreateRange(0, 4),
-        distribute: 'min'
+        distribute: 'min',
       });
       solver.addVar({
         id: 'V2',
         domain: specDomainCreateRange(0, 4),
-        distribute: 'max'
+        distribute: 'max',
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
@@ -93,7 +88,7 @@ describe('distribution/distribute.spec', function() {
         {V1: 4, V2: 4},
         {V1: 4, V2: 3},
         {V1: 4, V2: 2},
-        {V1: 4, V2: 1}
+        {V1: 4, V2: 1},
       ]);
     });
 
@@ -111,9 +106,9 @@ describe('distribution/distribute.spec', function() {
           legend: [1, 2, 3, 4],
           random() { return 0; }, // always take the first element
           matrix: [
-            {vector: [1, 1, 1, 1]}
-          ]
-        }
+            {vector: [1, 1, 1, 1]},
+          ],
+        },
       });
       solver.addVar({
         id: 'V2',
@@ -123,9 +118,9 @@ describe('distribution/distribute.spec', function() {
           legend: [1, 2, 3, 4],
           random() { return 1 - 1e-5; }, // always take the last element
           matrix: [
-            {vector: [1, 1, 1, 1]}
-          ]
-        }
+            {vector: [1, 1, 1, 1]},
+          ],
+        },
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
@@ -148,7 +143,7 @@ describe('distribution/distribute.spec', function() {
         {V1: 4, V2: 4},
         {V1: 4, V2: 3},
         {V1: 4, V2: 2},
-        {V1: 4, V2: 1}
+        {V1: 4, V2: 1},
       ]);
     });
   });

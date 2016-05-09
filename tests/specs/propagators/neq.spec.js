@@ -1,14 +1,8 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainCreateValue,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import {
   SUB,
@@ -19,13 +13,13 @@ import {
 } from '../../../src/helpers';
 import {
   fdvar_create,
-  fdvar_create_wide,
+  fdvar_createWide,
 } from '../../../src/fdvar';
 import {
   propagator_neqStepBare,
 } from '../../../src/propagators/neq';
 
-describe("propagators/neq.spec", function() {
+describe('propagators/neq.spec', function() {
   // in general after call v1 and v2 should be equal
 
   it('should exist', function() {
@@ -33,7 +27,7 @@ describe("propagators/neq.spec", function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_create_wide('x');
+    let v = fdvar_createWide('x');
 
     expect(() => propagator_neqStepBare()).to.throw();
     expect(() => propagator_neqStepBare(v)).to.throw();
@@ -49,13 +43,13 @@ describe("propagators/neq.spec", function() {
   //
   //it('should reject for empty left domain', function() {
   //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_create_wide('y');
+  //  let v2 = fdvar_createWide('y');
   //
   //  expect(neq_step_bare(v1, v2)).to.eql(REJECTED);
   //});
   //
   //it('should reject for empty right domain', function() {
-  //  let v1 = fdvar_create_wide('x');
+  //  let v1 = fdvar_createWide('x');
   //  let v2 = fdvar_create('y', []);
   //
   //  expect(neq_step_bare(v1, v2)).to.eql(REJECTED);
@@ -63,16 +57,14 @@ describe("propagators/neq.spec", function() {
 
   describe('should not change anything as long as both domains are unsolved', function() {
 
-    function test(domain1, domain2=domain1.slice(0)) {
+    function test(domain1, domain2 = domain1.slice(0)) {
       for (let i = 0; i < domain1.length; i++) {
-        var n = domain1[i];
-        if (typeof(n) !== 'number') {
+        if (typeof domain1[i] !== 'number') {
           throw new Error(`bad test, fixme! neq.spec.1: [${domain1}] [${domain2}]`);
         }
       }
       for (let j = 0; j < domain2.length; j++) {
-        var n = domain2[j];
-        if (typeof(n) !== 'number') {
+        if (typeof domain2[j] !== 'number') {
           throw new Error(`bad test, fixme! neq.spec.2: [${domain1}] [${domain2}]`);
         }
       }
@@ -102,11 +94,11 @@ describe("propagators/neq.spec", function() {
     test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
     test(specDomainCreateRanges([0, 0], [2, 2]));
     test(specDomainCreateRanges([0, 0], [2, 3]));
-    test(specDomainCreateRange(SUB, 1),  specDomainCreateRange(1, SUP));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]),  specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]),  specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-    test(specDomainCreateRanges([0, 0], [2, 2]),  specDomainCreateRanges([1, 1], [3, 3]), [], REJECTED);
-    test(specDomainCreateRanges([0, 0], [2, 2]),  specDomainCreateRanges([1, 2], [4, 4]), specDomainCreateRange(2,2));
+    test(specDomainCreateRange(SUB, 1), specDomainCreateRange(1, SUP));
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]));
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
+    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 1], [3, 3]), [], REJECTED);
+    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 2], [4, 4]), specDomainCreateRange(2, 2));
   });
 
   describe('with one solved domain', function() {
@@ -133,12 +125,12 @@ describe("propagators/neq.spec", function() {
 
     test(0, specDomainCreateRange(0, 1), specDomainCreateRanges([1, 1]));
     test(1, specDomainCreateRange(0, 1), specDomainCreateRanges([0, 0]));
-    test(SUB, specDomainCreateRange(SUB, 50), specDomainCreateRanges([SUB+1, 50]));
-    test(SUP, specDomainCreateRange(20, SUP), specDomainCreateRanges([20, SUP-1]));
+    test(SUB, specDomainCreateRange(SUB, 50), specDomainCreateRanges([SUB + 1, 50]));
+    test(SUP, specDomainCreateRange(20, SUP), specDomainCreateRanges([20, SUP - 1]));
     test(10, specDomainCreateRanges([10, 10], [12, 50]), specDomainCreateRanges([12, 50]));
     test(10, specDomainCreateRanges([0, 8], [10, 10], [12, 20]), specDomainCreateRanges([0, 8], [12, 20]));
     test(10, specDomainCreateRanges([0, 10], [12, 50]), specDomainCreateRanges([0, 9], [12, 50]));
-    test(1, specDomainCreateRange(0, 3), specDomainCreateRanges([0,0], [2,3]));
+    test(1, specDomainCreateRange(0, 3), specDomainCreateRanges([0, 0], [2, 3]));
   });
 
   describe('two solved domains', function() {

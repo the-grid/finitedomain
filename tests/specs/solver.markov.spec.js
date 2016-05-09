@@ -1,37 +1,38 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateBool,
   specDomainCreateRange,
-  specDomainCreateRanges,
   stripAnonVars,
   stripAnonVarsFromArrays,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 
 // These Solver specs focus on using Markov
-describe("solver.markov.spec", function() {
+describe('solver.markov.spec', function() {
 
   it('should exist', function() {
     expect(Solver).to.be.a('function');
   });
 
-  it('should solve an unconstrained Markov matrix', function() {
+  it('should enforce markov which should only allow values from the legend', function() {
+    // if this test fails, the default markov propagator is probably not added
+    // any markov var should only allow solutions with values of the legend.
+    // this markov config has only zeroes, your test probably failed with two
+    // solutions where should only be one; that where V=0.
+    // See solver_collectDistributionOverrides for the markov propagator.
+
     let solver = new Solver({});
     solver.addVar({
       id: 'V',
       domain: specDomainCreateBool(),
       distribute: 'markov',
       distributeOptions: {
-        legend: [0, 0],
+        legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
         matrix: [
-          {vector: [1, 1]}
-        ]
-      }
+          {vector: [1, 1]},
+        ],
+      },
     });
 
     let solutions = solver.solve();
@@ -61,7 +62,7 @@ describe("solver.markov.spec", function() {
 
       MAX_FIRST() {
         return 1 - 1e-5;
-      }
+      },
     };
 
     function setupSolverForRandomTest(random_func) {
@@ -69,7 +70,7 @@ describe("solver.markov.spec", function() {
 
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10)
+        domain: specDomainCreateRange(0, 10),
       });
       solver.addVar({
         id: 'V1',
@@ -80,15 +81,15 @@ describe("solver.markov.spec", function() {
           random: random_func,
           matrix: [
             {
-              vector: [.1, 1],
+              vector: [0.1, 1],
               boolean(S) {
                 return S['==?']('STATE', S.constant(5));
-              }
+              },
             }, {
-              vector: [1, 1]
-            }
-          ]
-        }
+              vector: [1, 1],
+            },
+          ],
+        },
       });
       solver.addVar({
         id: 'V2',
@@ -99,15 +100,15 @@ describe("solver.markov.spec", function() {
           random: random_func,
           matrix: [
             {
-              vector: [.1, 1],
+              vector: [0.1, 1],
               boolean(Solver) {
                 return Solver['==?']('STATE', solver.constant(100));
-              }
+              },
             }, {
-              vector: [1, 1]
-            }
-          ]
-        }
+              vector: [1, 1],
+            },
+          ],
+        },
       });
 
       solver['==']('STATE', solver.constant(5));
@@ -152,7 +153,7 @@ describe("solver.markov.spec", function() {
               let v1_c = (v1_count[0] / v1_count[1]) - (1 / 10);
               //let v2_c = (v2_count[0] / v2_count[1]) - (1 / 10);
 
-              expect(v1_c < .15, `${v1_c} < .15`).to.equal(true);
+              expect(v1_c < 0.15, `${v1_c} < .15`).to.equal(true);
               //expect(v2_c > .85, `${v2_c} > .85`).to.equal(true); // TOFIX: confirm and fix this line....
           }
         });
@@ -173,8 +174,8 @@ describe("solver.markov.spec", function() {
             }
           }
 
-          assert(v1_count[0] === v1_count[1]);
-          assert(v2_count[0] === v2_count[1]);
+          expect(v1_count[0] === v1_count[1]).to.equal(true);
+          expect(v2_count[0] === v2_count[1]).to.equal(true);
         });
       });
     }
@@ -187,7 +188,7 @@ describe("solver.markov.spec", function() {
 
     solver.addVar({
       id: 'STATE',
-      domain: specDomainCreateRange(0, 10)
+      domain: specDomainCreateRange(0, 10),
     });
     solver.addVar({
       id: 'V1',
@@ -200,12 +201,12 @@ describe("solver.markov.spec", function() {
             vector: [1, 0],
             boolean(S) {
               return S['==?']('STATE', S.constant(5));
-            }
+            },
           }, {
-            vector: [0, 1]
-          }
-        ]
-      }
+            vector: [0, 1],
+          },
+        ],
+      },
     });
     solver.addVar({
       id: 'V2',
@@ -218,12 +219,12 @@ describe("solver.markov.spec", function() {
             vector: [1, 0],
             boolean(S) {
               return S['==?']('STATE', solver.constant(100));
-            }
+            },
           }, {
-            vector: [0, 1]
-          }
-        ]
-      }
+            vector: [0, 1],
+          },
+        ],
+      },
     });
 
     solver['==']('STATE', solver.constant(5));
@@ -238,7 +239,7 @@ describe("solver.markov.spec", function() {
     expect(stripAnonVars(solutions[0])).to.eql({
       STATE: 5,
       V1: 10,
-      V2: 100
+      V2: 100,
     });
   });
 
@@ -255,9 +256,9 @@ describe("solver.markov.spec", function() {
         expandVectorsWith: 1,
         random() { return 0; }, // always pick first element
         matrix: [
-          {vector: [1, 1]} // 1,1] padded by expandVectorsWith
-        ]
-      }
+          {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
+        ],
+      },
     });
 
     solver.addVar({
@@ -269,9 +270,9 @@ describe("solver.markov.spec", function() {
         expandVectorsWith: 1,
         random() { return 1 - 1e-5; }, // always pick last element
         matrix: [
-          {vector: [1, 1]} // 1,1] padded by expandVectorsWith
-        ]
-      }
+          {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
+        ],
+      },
     });
     solver['>']('V1', solver.constant(0));
     solver['>']('V2', solver.constant(0));
@@ -294,11 +295,11 @@ describe("solver.markov.spec", function() {
       {V1: 4, V2: 4},
       {V1: 4, V2: 3},
       {V1: 4, V2: 2},
-      {V1: 4, V2: 1}
+      {V1: 4, V2: 1},
     ]);
   });
 
-  it("Markov expandVectorsWith w/o any legend or vector", function() {
+  it('Markov expandVectorsWith w/o any legend or vector', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
@@ -307,8 +308,8 @@ describe("solver.markov.spec", function() {
       distributeOptions: {
         // legend: [1,2,3,4]
         expandVectorsWith: 1,
-        random() { return 0; } // pick first eligible legend value
-      }
+        random() { return 0; }, // pick first eligible legend value
+      },
     });
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
     solver.addVar({
@@ -318,8 +319,8 @@ describe("solver.markov.spec", function() {
       distributeOptions: {
         // legend: [1,2,3,4]
         expandVectorsWith: 1,
-        random() { return 1 - 1e-5; } // pick last eligible legend value
-      }
+        random() { return 1 - 1e-5; }, // pick last eligible legend value
+      },
     });
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
     solver['>']('V1', solver.constant(0));
@@ -343,7 +344,7 @@ describe("solver.markov.spec", function() {
       {V1: 4, V2: 4},
       {V1: 4, V2: 3},
       {V1: 4, V2: 2},
-      {V1: 4, V2: 1}
+      {V1: 4, V2: 1},
     ]);
   });
 
@@ -356,7 +357,7 @@ describe("solver.markov.spec", function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A_NORM',
-        domain: specDomainCreateRange(0, 1)
+        domain: specDomainCreateRange(0, 1),
       });
       solver.addVar({
         id: 'B_MARK',
@@ -365,9 +366,9 @@ describe("solver.markov.spec", function() {
           distributor_name: 'markov',
           legend: [2],
           matrix: [
-            {vector: [1]}
-          ]
-        }
+            {vector: [1]},
+          ],
+        },
       });
       solver['>']('B_MARK', 'A_NORM');
 
@@ -379,8 +380,8 @@ describe("solver.markov.spec", function() {
         distribute: {
           // distribute should be ignored as it should reject immediately
           var: 'throw',
-          val: 'throw'
-        }
+          val: 'throw',
+        },
       });
 
       expect(solver.solutions.length, 'solution count').to.eql(0);

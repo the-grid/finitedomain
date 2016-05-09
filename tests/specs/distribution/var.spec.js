@@ -1,27 +1,20 @@
-import setup from '../../fixtures/helpers.spec';
+import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
-  specDomainCreateValue,
-  specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainCreateZero,
-} from '../../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+} from '../../fixtures/domain.fixt';
 
 import distribution_getNextVar, {
   BETTER,
   SAME,
   WORSE,
 
-  _distribution_var_min as by_min,
-  _distribution_var_max as by_max,
-  _distribution_var_size as by_min_size,
-  _distribution_var_markov as by_markov,
-  _distribution_var_list as by_list,
+  distribution_varByMin,
+  distribution_varByMax,
+  distribution_varByMinSize,
+  distribution_varByMarkov,
+  distribution_varByList,
 } from '../../../src/distribution/var';
+import Solver from '../../../src/solver';
 import {
   fdvar_create,
 } from '../../../src/fdvar';
@@ -29,13 +22,13 @@ import {
 describe('distribution/var.spec', function() {
 
   describe('distribution_var_by_throw', function() {
-    it('should throw', function () {
+    it('should throw', function() {
       expect(_ => distribution_getNextVar({config: {next_var_func: 'throw'}}, {})).to.throw('not expecting to pick this distributor');
     });
   });
 
   function itAvsB(dist_name, range_a, range_b, out, desc) {
-    it(desc, function () {
+    it(desc, function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
@@ -65,21 +58,21 @@ describe('distribution/var.spec', function() {
         let v1 = fdvar_create('1', [10, 11]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_min(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMin(v1, v2)).to.equal(BETTER);
       });
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
         let v1 = fdvar_create('1', [11, 11]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_min(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMin(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
         let v1 = fdvar_create('1', [12, 11]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_min(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMin(v1, v2)).to.equal(WORSE);
       });
     });
 
@@ -98,21 +91,21 @@ describe('distribution/var.spec', function() {
         let v1 = fdvar_create('1', [11, 12]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_max(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMax(v1, v2)).to.equal(BETTER);
       });
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
         let v1 = fdvar_create('1', [11, 11]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_max(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMax(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
         let v1 = fdvar_create('1', [11, 10]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_max(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMax(v1, v2)).to.equal(WORSE);
       });
     });
 
@@ -132,35 +125,35 @@ describe('distribution/var.spec', function() {
         let v1 = fdvar_create('1', [5, 5]);
         let v2 = fdvar_create('2', [11, 12]);
 
-        expect(by_min_size(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMinSize(v1, v2)).to.equal(BETTER);
       });
 
       it('should return SAME if size(v1) = size(v2) with single range', function() {
         let v1 = fdvar_create('1', [11, 11]);
         let v2 = fdvar_create('2', [8, 8]);
 
-        expect(by_min_size(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
         let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [15, 19]));
         let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 14]));
 
-        expect(by_min_size(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
         let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
         let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 13]));
 
-        expect(by_min_size(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if size(v1) > size(v2)', function() {
         let v1 = fdvar_create('1', [11, 12]);
         let v2 = fdvar_create('2', [11, 11]);
 
-        expect(by_min_size(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMinSize(v1, v2)).to.equal(WORSE);
       });
     });
 
@@ -175,14 +168,14 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([30, 100]) // 71 elements
+          domain: specDomainCreateRanges([30, 100]), // 71 elements
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([0, 50], [60, 90]) // 82 elements
+          domain: specDomainCreateRanges([0, 50], [60, 90]), // 82 elements
         });
         solver.prepare(
-          {distribute: { var: 'size'
+          {distribute: { var: 'size',
         }});
 
         let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
@@ -196,14 +189,14 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]) // 69 elements
+          domain: specDomainCreateRanges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]), // 69 elements
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([0, 10], [30, 40], [50, 60], [670, 700]) // 64 elements
+          domain: specDomainCreateRanges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
         });
         solver.prepare(
-          {distribute: { var: 'size'
+          {distribute: { var: 'size',
         }});
         let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
 
@@ -229,7 +222,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_markov(v1, v2, fake_space)).to.equal(BETTER);
+        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(BETTER);
       });
 
       it('should say v2 is WORSE if v1 not a markov but v2 is', function() {
@@ -245,7 +238,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_markov(v1, v2, fake_space)).to.equal(WORSE);
+        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(WORSE);
       });
 
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
@@ -264,7 +257,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_markov(v1, v2, fake_space)).to.equal(BETTER);
+        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(BETTER);
       });
 
       it('should say v1 is SAME as v2 if neither is a markov var', function() {
@@ -277,7 +270,7 @@ describe('distribution/var.spec', function() {
         };
         let fake_config = {}; // its okay to expect this to exist
 
-        expect(by_markov(v1, v2, fake_space, fake_config)).to.equal(SAME);
+        expect(distribution_varByMarkov(v1, v2, fake_space, fake_config)).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return BETTER', function() {
@@ -290,7 +283,7 @@ describe('distribution/var.spec', function() {
         };
         let fallback_config = {fallback_config: 'size'};
 
-        expect(by_markov(v1, v2, fake_space, fallback_config)).to.equal(BETTER);
+        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(BETTER);
       });
 
       it('should use fallback if available and vars are SAME but then still return SAME', function() {
@@ -303,7 +296,7 @@ describe('distribution/var.spec', function() {
         };
         let fallback_config = {fallback_config: 'size'};
 
-        expect(by_markov(v1, v2, fake_space, fallback_config)).to.equal(SAME);
+        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return WORSE', function() {
@@ -316,7 +309,7 @@ describe('distribution/var.spec', function() {
         };
         let fallback_config = {fallback_config: 'size'};
 
-        expect(by_markov(v1, v2, fake_space, fallback_config)).to.equal(WORSE);
+        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(WORSE);
       });
     });
 
@@ -334,7 +327,7 @@ describe('distribution/var.spec', function() {
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
-          }
+          },
         });
         solver.addVar({
           id: 'C',
@@ -361,27 +354,27 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([0, 1])
+          domain: specDomainCreateRanges([0, 1]),
         });
         solver.addVar({
           id: 'B',
           domain: specDomainCreateRanges([10, 12]),
           distributeOptions: {
             distributor_name: 'markov',
-            expandVectorsWith: 1
-          }
+            expandVectorsWith: 1,
+          },
         });
         solver.addVar({
           id: 'C',
           domain: specDomainCreateRanges([5, 17]),
           distributeOptions: {
             distributor_name: 'markov',
-            expandVectorsWith: 1
-          }
+            expandVectorsWith: 1,
+          },
         });
         solver.addVar({
           id: 'D',
-          domain: specDomainCreateRanges([13, 13])
+          domain: specDomainCreateRanges([13, 13]),
         });
         solver.prepare({
           distribute: {
@@ -410,7 +403,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should return WORSE if the inverted priority hash says A is higher than B', function() {
@@ -424,7 +417,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
       });
 
       it('should THROW if the priority hash says A is equal to B', function() {
@@ -437,7 +430,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(() => by_list(v1, v2, {}, config)).to.throw();
+        expect(() => distribution_varByList(v1, v2, {}, config)).to.throw();
       });
 
       it('should return WORSE if the priority hash says A is lower than B', function() {
@@ -450,7 +443,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
       });
 
       it('should return BETTER if the inverted priority hash says A is lower than B', function() {
@@ -464,7 +457,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should return BETTER if A is in the hash but B is not', function() {
@@ -476,7 +469,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should return WORSE if A is in the inverted hash but B is not', function() {
@@ -489,7 +482,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
       });
 
       it('should return WORSE if B is in the hash but A is not', function() {
@@ -501,7 +494,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
       });
 
       it('should return BETTER if B is in the inverted hash but A is not', function() {
@@ -514,7 +507,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should throw if A gets value 0 from the hash', function() {
@@ -530,7 +523,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(() => by_list(v1, v2, fake_space, {})).to.throw();
+        expect(() => distribution_varByList(v1, v2, fake_space, {})).to.throw();
       });
 
       it('should throw if B gets value 0 from the hash', function() {
@@ -542,7 +535,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(() => by_list(v1, v2, {}, config)).to.throw();
+        expect(() => distribution_varByList(v1, v2, {}, config)).to.throw();
       });
 
       it('should return SAME if neither A nor B is in the hash without fallback', function() {
@@ -552,7 +545,7 @@ describe('distribution/var.spec', function() {
           priority_hash: {},
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
       });
 
       it('should return SAME if neither A nor B is in the inverted hash without fallback', function() {
@@ -563,7 +556,7 @@ describe('distribution/var.spec', function() {
           priority_hash: {},
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
       });
 
       it('should return BETTER if neither is in the hash and fallback is size with A smaller', function() {
@@ -574,7 +567,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should return BETTER if neither is in the inverted hash and fallback is size with A smaller', function() {
@@ -586,7 +579,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
       });
 
       it('should return SAME if neither is in the hash and fallback is size with A same size as B', function() {
@@ -597,7 +590,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
       });
 
       it('should return WORSE if neither is in the hash and fallback is size with A larger', function() {
@@ -608,7 +601,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(by_list(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
       });
     });
 
@@ -819,7 +812,7 @@ describe('distribution/var.spec', function() {
         // randomly remove elements from the list
         let names = all.filter(() => Math.random() > 0.3);
         // shuffle list the ugly way
-        names.sort(() => Math.random() - .5);
+        names.sort(() => Math.random() - 0.5);
 
         expect(() => distribution_getNextVar(solver._space, names)).not.to.throw();
       }

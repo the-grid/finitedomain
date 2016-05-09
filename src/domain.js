@@ -23,7 +23,7 @@ let PREV_CHANGED = true;
 // Basically means the ranges in the domain are ordered
 // ascending and no ranges overlap. We call this "simplified"
 
-let FIRST_RANGE = 0;
+//let FIRST_RANGE = 0;
 let FIRST_RANGE_LO = 0;
 let FIRST_RANGE_HI = 1;
 let LO_BOUND = 0;
@@ -48,7 +48,7 @@ let CEIL = Math.ceil;
  */
 function domain_containsValue(domain, value) {
   ASSERT_DOMAIN(domain);
-  return (_domain_rangeIndexOf(domain, value)) !== NOT_FOUND;
+  return (domain_rangeIndexOf(domain, value)) !== NOT_FOUND;
 }
 
 /**
@@ -59,11 +59,11 @@ function domain_containsValue(domain, value) {
  * @param {number} value
  * @returns {number}
  */
-function _domain_rangeIndexOf(domain, value) {
+function domain_rangeIndexOf(domain, value) {
   ASSERT_DOMAIN(domain);
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
-    if (value >= lo && value <= domain[index+1]) {
+    if (value >= lo && value <= domain[index + 1]) {
       return index;
     }
   }
@@ -107,7 +107,7 @@ function domain_getValue(domain) {
     return NOT_FOUND;
   }
   let [lo, hi] = domain;
-  if (domain[LO_BOUND] === domain[HI_BOUND]) {
+  if (lo === hi) {
     return lo;
   }
   return NO_SUCH_VALUE;
@@ -131,20 +131,22 @@ function domain_fromList(list, clone = true, sort = true) {
   }
 
   let domain = [];
+  let hi;
+  let lo;
   for (let index = 0; index < list.length; index++) {
     let value = list[index];
     ASSERT(value >= SUB, 'fd values range SUB~SUP');
     ASSERT(value <= SUP, 'fd values range SUB~SUP');
     if (index === 0) {
-      var lo = value;
-      var hi = value;
+      lo = value;
+      hi = value;
     } else {
       ASSERT(value >= hi, 'list should be ordered'); // imo it should not even contain dupe elements... but that may happen anyways
-      if (value > hi+1) {
+      if (value > hi + 1) {
         domain.push(lo, hi);
-        var lo = value;
+        lo = value;
       }
-      var hi = value;
+      hi = value;
     }
   }
   domain.push(lo, hi);
@@ -162,12 +164,12 @@ let domain_toList = function(domain) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let list = [];
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
-    for (let n = domain[i], m = domain[i + 1]; n < m; ++n) {
+    for (let n = domain[i], m = domain[i + 1]; n <= m; ++n) {
       list.push(n);
     }
   }
   return list;
-}
+};
 
 /**
  * Given a list and domain, search items in the list in the domain and remove
@@ -184,7 +186,7 @@ function domain_removeNextFromList(domain, list) {
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
-    let index = _domain_rangeIndexOf(domain, value);
+    let index = domain_rangeIndexOf(domain, value);
     if (index >= 0) {
       return _domain_deepCloneWithoutValue(domain, value, index);
     }
@@ -202,7 +204,7 @@ function domain_removeNextFromList(domain, list) {
  */
 function domain_deepCloneWithoutValue(domain, value) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  let index = _domain_rangeIndexOf(domain, value);
+  let index = domain_rangeIndexOf(domain, value);
   if (index >= 0) {
     return _domain_deepCloneWithoutValue(domain, value, index);
   }
@@ -223,24 +225,24 @@ function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   // we have the range offset that should contain the value. the clone wont
   // affect ranges before or after. but we want to prevent a splice or shifts, so:
+  let result;
   if (rangeIndex) {
-    var result = domain.slice(0, rangeIndex);
+    result = domain.slice(0, rangeIndex);
   } else {
-    var result = [];
+    result = [];
   }
 
   for (let i = rangeIndex; i < domain.length; i += PAIR_SIZE) {
-    let index = iterable[i];
-    let lo = domain[index];
-    let hi = domain[index+1];
-    if (index !== rangeIndex) {
+    let lo = domain[i];
+    let hi = domain[i + 1];
+    if (i !== rangeIndex) {
       result.push(lo, hi);
     } else { // so index is rangeIndex, so split
       if (lo !== value) {
-        result.push(lo, value-1);
+        result.push(lo, value - 1);
       }
       if (hi !== value) {
-        result.push(value+1, hi);
+        result.push(value + 1, hi);
       }
     }
   }
@@ -284,10 +286,10 @@ function domain_createWithoutValue(value) {
 function domain_createWithoutBounds(lo, hi) {
   let domain = [];
   if (lo > SUB) {
-    domain.push(SUB, lo-1);
+    domain.push(SUB, lo - 1);
   }
   if (hi < SUP) {
-    domain.push(hi+1, SUP);
+    domain.push(hi + 1, SUP);
   }
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   return domain;
@@ -315,7 +317,7 @@ function domain_complement(domain) {
     if (lo > SUB) { // prevent [SUB,SUB] if first range starts at SUB; that'd be bad
       result.push(end, lo - 1);
     }
-    end = domain[index+1] + 1;
+    end = domain[index + 1] + 1;
   }
 
   if (end <= SUP) { // <= so SUP is inclusive...
@@ -335,7 +337,7 @@ function domain_complement(domain) {
  * @param {boolean} replaceInline
  * @returns {$domain}
  */
-function domain_simplify(domain, replaceInline=NOT_INLINE) {
+function domain_simplify(domain, replaceInline = NOT_INLINE) {
   // ASSERT_DOMAIN domain # the whole point of this func is to simplify so this assert wont hold
 
   // deep clone if not inline because ranges are adjusted inline when merging
@@ -349,7 +351,7 @@ function domain_simplify(domain, replaceInline=NOT_INLINE) {
   }
 
   // TODO: perf check; before there was a large memory overhead but i think that's taken care of now. the extra check-loop may not be worth it
-  if (!_domain_isSimplified(domain)) {
+  if (!domain_isSimplified(domain)) {
     domain_simplifyInline(domain);
   }
 
@@ -366,19 +368,19 @@ function domain_simplify(domain, replaceInline=NOT_INLINE) {
  */
 function domain_simplifyInline(domain) {
   // order ranges by lower bound, ascending (inline regardless)
-  _domain_sortByRange(domain);
+  domain_sortByRange(domain);
 
-  return _domain_mergeOverlappingInline(domain);
+  return domain_mergeOverlappingInline(domain);
 }
 
 /**
  * @param {$domain} domain
  */
-function _domain_sortByRange(domain) {
+function domain_sortByRange(domain) {
   let len = domain.length;
   ASSERT(len > 0, 'input domain should not be empty', domain);
   if (len >= 4) {
-    _domain_quickSortInline(domain, 0, domain.length-PAIR_SIZE);
+    _domain_quickSortInline(domain, 0, domain.length - PAIR_SIZE);
   }
 }
 
@@ -390,8 +392,8 @@ function _domain_sortByRange(domain) {
 function _domain_quickSortInline(domain, first, last) {
   if (first < last) {
     let pivot = _domain_partition(domain, first, last);
-    _domain_quickSortInline(domain, first, pivot-PAIR_SIZE);
-    _domain_quickSortInline(domain, pivot+PAIR_SIZE, last);
+    _domain_quickSortInline(domain, first, pivot - PAIR_SIZE);
+    _domain_quickSortInline(domain, pivot + PAIR_SIZE, last);
   }
 }
 
@@ -402,14 +404,14 @@ function _domain_quickSortInline(domain, first, last) {
  * @returns {number}
  */
 function _domain_partition(domain, first, last) {
-  let pivot_index = last;
-  let pivot = domain[pivot_index]; // TODO: i think we'd be better off with a different pivot? middle probably performs better
-  let pivot_r = domain[pivot_index+1];
+  let pivotIndex = last;
+  let pivot = domain[pivotIndex]; // TODO: i think we'd be better off with a different pivot? middle probably performs better
+  let pivotR = domain[pivotIndex + 1];
 
   let index = first;
   for (let i = first; i < last; i += PAIR_SIZE) {
     let L = domain[i];
-    if (L < pivot || (L === pivot && domain[i+1] < pivot_r)) {
+    if (L < pivot || (L === pivot && domain[i + 1] < pivotR)) {
       _domain_swapRangeInline(domain, index, i);
       index += PAIR_SIZE;
     }
@@ -427,13 +429,13 @@ function _domain_partition(domain, first, last) {
 let _domain_swapRangeInline = function(domain, A, B) {
   if (A !== B) {
     let x = domain[A];
-    let y = domain[A+1];
+    let y = domain[A + 1];
     domain[A] = domain[B];
-    domain[A+1] = domain[B+1];
+    domain[A + 1] = domain[B + 1];
     domain[B] = x;
-    domain[B+1] = y;
+    domain[B + 1] = y;
   }
-}
+};
 
 /**
  * Check if given domain is in simplified, CSIS form
@@ -441,7 +443,7 @@ let _domain_swapRangeInline = function(domain, A, B) {
  * @param {$domain} domain
  * @returns {boolean}
  */
-function _domain_isSimplified(domain) {
+function domain_isSimplified(domain) {
   if (domain.length === PAIR_SIZE) {
     ASSERT(domain[FIRST_RANGE_LO] >= SUB);
     ASSERT(domain[FIRST_RANGE_HI] <= SUP);
@@ -455,14 +457,14 @@ function _domain_isSimplified(domain) {
   let phi = SUB;
   for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
     let lo = domain[index];
-    let hi = domain[index+1];
+    let hi = domain[index + 1];
     ASSERT(lo >= SUB);
     ASSERT(hi >= SUB);
     ASSERT(lo <= hi, 'ranges should be ascending', domain);
     // we need to simplify if the lo of the next range goes before or touches the hi of the previous range
     // TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
     //       this function could return the offset to continue at... or -1 to signal "true"
-    if (lo <= phi+1) {
+    if (lo <= phi + 1) {
       return false;
     }
     phi = hi;
@@ -474,34 +476,35 @@ function _domain_isSimplified(domain) {
  * @param {$domain} domain
  * @returns {$domain}
  */
-function _domain_mergeOverlappingInline(domain) {
+function domain_mergeOverlappingInline(domain) {
   // assumes domain is sorted
   // assumes all ranges are "sound" (lo<=hi)
-  let prev_hi = SUB;
-  let write_index = 0;
-  for (let read_index = 0, step = PAIR_SIZE; read_index < domain.length; read_index += step) {
-    let lo = domain[read_index];
-    let hi = domain[read_index+1];
+  let prevHi = SUB;
+  let prevHiIndex = 0;
+  let writeIndex = 0;
+  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
+    let lo = domain[i];
+    let hi = domain[i + 1];
     ASSERT(lo <= hi, 'ranges should be ascending');
 
     // in an ordered domain two consecutive ranges touch or overlap if the left-hi+1 is higher or equal to the right-lo
-    if (prev_hi+1 >= lo && read_index !== 0) {
+    if (prevHi + 1 >= lo && i !== 0) {
       // touching or overlapping.
       // note: prev and curr may completely enclose one another
       // Update the prev hi so prev covers both ranges, in any case
-      if (hi > prev_hi) {
-        domain[prev_hi_index] = hi;
-        prev_hi = hi;
+      if (hi > prevHi) {
+        domain[prevHiIndex] = hi;
+        prevHi = hi;
       }
     } else {
-      domain[write_index] = lo;
-      domain[write_index+1] = hi;
-      prev_hi_index = write_index + 1;
-      write_index += PAIR_SIZE;
-      prev_hi = hi;
+      domain[writeIndex] = lo;
+      domain[writeIndex + 1] = hi;
+      prevHiIndex = writeIndex + 1;
+      writeIndex += PAIR_SIZE;
+      prevHi = hi;
     }
   }
-  domain.length = write_index; // if `domain` was a larger at the start this ensures extra elements are dropped from it
+  domain.length = writeIndex; // if `domain` was a larger at the start this ensures extra elements are dropped from it
   for (let i = 0; i < domain.length; i++) {
     let test = domain[i];
     ASSERT(test >= SUB, 'merge should not result in sparse array');
@@ -562,10 +565,10 @@ function _domain_intersection(dom1, dom2, result) {
     // Worst case. Both lengths are > 1. Divide and conquer.
     // Note: since the array contains pairs, make sure i and j are even.
     // but since they can only contain pairs, they must be even
-    let i = ((len1/PAIR_SIZE) >> 1) *PAIR_SIZE;
-    let j = ((len2/PAIR_SIZE) >> 1) *PAIR_SIZE;
-    ASSERT(i%PAIR_SIZE === 0, `i should be even ${i}`);
-    ASSERT(j%PAIR_SIZE === 0, `j should be even ${j}`);
+    let i = ((len1 / PAIR_SIZE) >> 1) * PAIR_SIZE;
+    let j = ((len2 / PAIR_SIZE) >> 1) * PAIR_SIZE;
+    ASSERT(i % PAIR_SIZE === 0, `i should be even ${i}`);
+    ASSERT(j % PAIR_SIZE === 0, `j should be even ${j}`);
     // TODO: get rid of this slicing, use index ranges instead
     let d1 = dom1.slice(0, i);
     let d2 = dom1.slice(i);
@@ -602,7 +605,7 @@ function _domain_intersectRangeBound(lo1, hi1, lo2, hi2, result) {
 function domain_intersectBoundsInto(domain, lo, hi, result) {
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo2 = domain[index];
-    let hi2 = domain[index+1];
+    let hi2 = domain[index + 1];
     if (lo2 <= hi && hi2 >= lo) {
       result.push(MAX(lo, lo2), MIN(hi, hi2));
     }
@@ -660,13 +663,13 @@ function domain_closeGapsFresh(domain, gap) {
   let result = [];
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
-    let hi = domain[index+1];
+    let hi = domain[index + 1];
     if (index === 0) {
       result.push(lo, hi);
       var plo = lo;
     } else {
       if (hi - plo < gap) {
-        result[result.length-1] = hi;
+        result[result.length - 1] = hi;
       } else {
         result.push(lo, hi);
         plo = lo;
@@ -685,7 +688,7 @@ function _domain_smallestIntervalWidth(domain) {
   let min_width = SUP;
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
-    let hi = domain[index+1];
+    let hi = domain[index + 1];
     let width = 1 + hi - lo;
     if (width < min_width) {
       min_width = width;
@@ -694,26 +697,26 @@ function _domain_smallestIntervalWidth(domain) {
   return min_width;
 }
 
-/**
- * @param {$domain} domain
- * @returns {number}
- */
-function _domain_largestIntervalWidth(domain) {
-  let max_width = SUP;
-  for (let index = 0; index < domain.length; index += PAIR_SIZE) {
-    let lo = domain[index];
-    let hi = domain[index+1];
-    let width = 1 + hi - lo;
-    if (width > max_width) {
-      max_width = width;
-    }
-  }
-  return max_width;
-}
+///**
+// * @param {$domain} domain
+// * @returns {number}
+// */
+//function _domain_largestIntervalWidth(domain) {
+//  let max_width = SUP;
+//  for (let index = 0; index < domain.length; index += PAIR_SIZE) {
+//    let lo = domain[index];
+//    let hi = domain[index + 1];
+//    let width = 1 + hi - lo;
+//    if (width > max_width) {
+//      max_width = width;
+//    }
+//  }
+//  return max_width;
+//}
 
 /**
  * The idea behind this function - which is primarily
- * intended for domain_plus and domain_minus and porbably applies
+ * intended for domain_plus and domain_minus and probably applies
  * to nothing else - is that when adding two intervals,
  * both intervals expand by the other's amount. This means
  * that when given two segmented domains, each continuous
@@ -750,7 +753,7 @@ function _domain_closeGaps2(dom1, dom2) {
 
   return [
     dom1,
-    dom2
+    dom2,
   ];
 }
 
@@ -772,7 +775,7 @@ function domain_plus(domain1, domain2) {
   let result = [];
   for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
     let loi = domain1[index];
-    let hii = domain1[index+1];
+    let hii = domain1[index + 1];
 
     for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
       let loj = domain2[index2];
@@ -797,13 +800,12 @@ function domain_mul(domain1, domain2) {
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null));
 
-  let len = domain.length;
   let result = [];
-  for (let i = 0; i < len; i += PAIR_SIZE) {
+  for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
     let loi = domain1[i];
-    let hii = domain1[i+1];
+    let hii = domain1[i + 1];
 
-    for (let j = 0; j < len; j += PAIR_SIZE) {
+    for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
       let loj = domain2[j];
       let hij = domain2[j + 1];
 
@@ -830,11 +832,11 @@ function domain_minus(domain1, domain2) {
   [domain1, domain2] = _domain_closeGaps2(domain1, domain2);
 
   let result = [];
-  for (let i = 0; i < len; i += PAIR_SIZE) {
+  for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
     let loi = domain1[i];
-    let hii = domain1[i+1];
+    let hii = domain1[i + 1];
 
-    for (let j = 0; j < len; j += PAIR_SIZE) {
+    for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
       let loj = domain2[j];
       let hij = domain2[j + 1];
 
@@ -863,18 +865,18 @@ function domain_minus(domain1, domain2) {
  *         <2,2>, otherwise it will not include anything for that division.
  * @returns {$domain}
  */
-function domain_divby(domain1, domain2, floorFractions=true) {
+function domain_divby(domain1, domain2, floorFractions = true) {
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null), 'domain 1 and 2?', domain1, domain2);
 
   let result = [];
 
-  for (let i = 0; i < len; i += PAIR_SIZE) {
+  for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
     let loi = domain1[i];
     let hii = domain1[i + 1];
 
-    for (let j = 0; j < len; j += PAIR_SIZE) {
+    for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
       let loj = domain2[j];
       let hij = domain2[j + 1];
 
@@ -920,9 +922,9 @@ function domain_divby(domain1, domain2, floorFractions=true) {
 function domain_size(domain) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let count = 0;
-  for (let i = 0; i < len; i += PAIR_SIZE) {
+  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
     let lo = domain[i];
-    count += 1 + domain[i+1] - lo; // TODO: add test to confirm this still works fine if SUB is negative
+    count += 1 + domain[i + 1] - lo; // TODO: add test to confirm this still works fine if SUB is negative
   }
   return count;
 }
@@ -936,23 +938,23 @@ function domain_size(domain) {
 function domain_middleElement(domain) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let size = domain_size(domain);
-  let target_value = FLOOR(size / 2);
+  let targetValue = FLOOR(size / 2);
 
-  for (let i = 0; i < len; i += PAIR_SIZE) {
+  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
     var lo = domain[i];
-    let hi = domain[i+1];
+    let hi = domain[i + 1];
 
-    let count =  1 + hi - lo;
-    if (target_value < count) {
+    let count = 1 + hi - lo;
+    if (targetValue < count) {
       break;
     }
 
-    target_value -= count;
+    targetValue -= count;
   }
 
-  // `target_value` should be the `nth` element in the current range (`lo-hi`)
-  // so we can use `lo` and add the remainder of `target_value` to get the mid value
-  return lo + target_value;
+  // `targetValue` should be the `nth` element in the current range (`lo-hi`)
+  // so we can use `lo` and add the remainder of `targetValue` to get the mid value
+  return lo + targetValue;
 }
 
 /**
@@ -1061,13 +1063,13 @@ function domain_removeGteInline(domain, value) {
     return len !== 0;
   }
 
-  domain.length = i+PAIR_SIZE;
-  if (domain[i+1] >= value) {
-    domain[i+1] = value-1; // we already know domain[i] < value so value-1 >= SUB
+  domain.length = i + PAIR_SIZE;
+  if (domain[i + 1] >= value) {
+    domain[i + 1] = value - 1; // we already know domain[i] < value so value-1 >= SUB
     return true;
   }
 
-  return len !== i+PAIR_SIZE;
+  return len !== i + PAIR_SIZE;
 }
 
 /**
@@ -1086,7 +1088,7 @@ function domain_removeLteInline(domain, value) {
 
   let len = domain.length;
   let i = 0;
-  while (i < len && domain[i+1] <= value) {
+  while (i < len && domain[i + 1] <= value) {
     i += PAIR_SIZE;
   }
 
@@ -1105,7 +1107,7 @@ function domain_removeLteInline(domain, value) {
 
   // note: first range should be lt or lte to value now since we moved everything
   if (domain[FIRST_RANGE_LO] <= value) {
-    domain[FIRST_RANGE_LO] = value+1;
+    domain[FIRST_RANGE_LO] = value + 1;
     return true;
   }
 
@@ -1123,9 +1125,9 @@ function domain_findDiffIndex(domain1, domain2, len) {
   let index = 0;
   while (index < len) {
     let lo1 = domain1[index];
-    let hi1 = domain1[index+1];
+    let hi1 = domain1[index + 1];
     let lo2 = domain2[index];
-    let hi2 = domain2[index+1];
+    let hi2 = domain2[index + 1];
     if (lo1 !== lo2 || hi1 !== hi2) {
       return index;
     }
@@ -1147,34 +1149,32 @@ function domain_applyEqInlineFrom(index, domain1, domain2, len1, len2) {
   let p2 = index;
 
   let lo1 = domain1[p1];
-  let hi1 = domain1[p1+1];
+  let hi1 = domain1[p1 + 1];
   let lo2 = domain2[p2];
-  let hi2 = domain2[p2+1];
+  let hi2 = domain2[p2 + 1];
 
   while (p1 < len1 && p2 < len2) {
     if (hi1 < lo2) { // R1 < R2 completely; drop R1
       p1 += PAIR_SIZE;
       lo1 = domain1[p1];
-      hi1 = domain1[p1+1];
-
+      hi1 = domain1[p1 + 1];
     } else if (hi2 < lo1) { // R2 < R1 completely; drop R1
       p2 += PAIR_SIZE;
       lo2 = domain2[p2];
-      hi2 = domain2[p2+1];
+      hi2 = domain2[p2 + 1];
 
       // hi1 >= lo2 and hi2 >= lo1
     } else if (lo1 < lo2) { // R1 < R2 partial; update R1 lo to R2 lo
       lo1 = lo2;
     } else if (lo2 < lo1) { // R2 < R1 partial; update R2 lo to R1 lo
       lo2 = lo1;
-
     } else {
       // add a range with MIN hi1, hi2
       // then move lo to that hi and drop a range on at least one side
       ASSERT(lo1 === lo2, 'the lows should be equal');
       let hi = MIN(hi1, hi2);
       domain1[index] = domain2[index] = lo1;
-      domain1[index+1] = domain2[index+1] = hi;
+      domain1[index + 1] = domain2[index + 1] = hi;
       index += PAIR_SIZE;
 
       // if the current range on either side was fully copied, move its pointer
@@ -1183,17 +1183,17 @@ function domain_applyEqInlineFrom(index, domain1, domain2, len1, len2) {
       if (hi === hi1) {
         p1 += PAIR_SIZE;
         lo1 = domain1[p1];
-        hi1 = domain1[p1+1];
+        hi1 = domain1[p1 + 1];
       } else {
-        lo1 = hi+1;
+        lo1 = hi + 1;
       }
 
       if (hi === hi2) {
         p2 += PAIR_SIZE;
         lo2 = domain2[p2];
-        hi2 = domain2[p2+1];
+        hi2 = domain2[p2 + 1];
       } else {
-        lo2 = hi+1;
+        lo2 = hi + 1;
       }
     }
   }
@@ -1255,20 +1255,20 @@ function domain_forceEqInline(domain1, domain2) {
  * @param {number} index
  */
 function domain_spliceOutRangeAt(domain, index) {
-  for (let i = index; i < domain.length; i += PAIR_SIZE) {
-    domain[i] = domain[i+PAIR_SIZE];
-    domain[i+1] = domain[i+PAIR_SIZE+1];
+  for (; index < domain.length; index += PAIR_SIZE) {
+    domain[index] = domain[index + PAIR_SIZE];
+    domain[index + 1] = domain[index + PAIR_SIZE + 1];
   }
-  domain.length = i-PAIR_SIZE;
+  domain.length = index - PAIR_SIZE;
 }
 
-/**
- * @param {$domain} domain
- * @param {number} index
- */
-function domain_spliceInRangeAt(domain, index) {
-  _domain_spliceInRangeAt(domain, index, domain[index], domain[index+1]);
-}
+///**
+// * @param {$domain} domain
+// * @param {number} index
+// */
+//function domain_spliceInRangeAt(domain, index) {
+//  _domain_spliceInRangeAt(domain, index, domain[index], domain[index + 1]);
+//}
 
 /**
  * Insert given range at given index, moving all other ranges up by one (index+2)
@@ -1280,28 +1280,28 @@ function domain_spliceInRangeAt(domain, index) {
  */
 function _domain_spliceInRangeAt(domain, index, pLo, pHi) {
   // from here on out we must first stash the cur range, then pop the prev range
-  for (let i = index; i < domain.length; i += PAIR_SIZE) {
-    let lo = domain[i];
-    let hi = domain[i+1];
-    domain[i] = pLo;
-    domain[i+1] = pHi;
+  for (; index < domain.length; index += PAIR_SIZE) {
+    let lo = domain[index];
+    let hi = domain[index + 1];
+    domain[index] = pLo;
+    domain[index + 1] = pHi;
     pLo = lo;
     pHi = hi;
   }
   // and one more time now at the end
-  domain[i] = pLo;
-  domain[i+1] = pHi;
-  domain.length = i+PAIR_SIZE;
+  domain[index] = pLo;
+  domain[index + 1] = pHi;
+  domain.length = index + PAIR_SIZE;
 }
 
-/**
- * @param {$domain} domain
- * @param {number} value
- * @param {number} index
- */
-function domain_removeValueAt(domain, value, index) {
-  return _domain_removeValueAt(domain, value, index, domain[index], domain[index+1]);
-}
+///**
+// * @param {$domain} domain
+// * @param {number} value
+// * @param {number} index
+// */
+//function domain_removeValueAt(domain, value, index) {
+//  return _domain_removeValueAt(domain, value, index, domain[index], domain[index + 1]);
+//}
 
 /**
  * assumes value was found in range at index
@@ -1324,20 +1324,20 @@ function _domain_removeValueAt(domain, value, index, lo, hi) {
       domain_spliceOutRangeAt(domain, index);
       return;
     }
-    domain[index] = value+1; // update lo
+    domain[index] = value + 1; // update lo
     return;
   }
   if (hi === value) {
-    domain[index+1] = value-1; // update hi
+    domain[index + 1] = value - 1; // update hi
     return;
   }
 
   // must be last case now: value is inside range
   // split range. update current range with new hi
-  domain[index+1] = value - 1;
+  domain[index + 1] = value - 1;
 
   // create a new range of value+1 to old hi, then splice it in
-  let p_lo = value+1;
+  let p_lo = value + 1;
   let p_hi = hi;
   ASSERT(p_lo <= p_hi, 'value shouldve been below hi');
 
@@ -1353,7 +1353,7 @@ function domain_removeValueInline(domain, value) {
   ASSERT(typeof value === 'number', 'value should be a num', value);
   for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
     let lo = domain[index];
-    let hi = domain[index+1];
+    let hi = domain[index + 1];
     if (value >= lo && value <= hi) {
       _domain_removeValueAt(domain, value, index, lo, hi);
       ASSERT_DOMAIN(domain);
@@ -1378,10 +1378,10 @@ function domain_removeValueInline(domain, value) {
 function domain_sharesNoElements(domain1, domain2) {
   for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
     let lo = domain1[i];
-    let hi = domain1[i+1];
+    let hi = domain1[i + 1];
     for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
       // if range A is not before or after range B there is overlap
-      if (hi >= domain2[j] && lo <= domain2[j+1]) {
+      if (hi >= domain2[j] && lo <= domain2[j + 1]) {
         // if there is overlap both domains share at least one element
         return false;
       }
@@ -1509,9 +1509,9 @@ export {
 
   // __REMOVE_BELOW_FOR_DIST__
   // testing only:
-  _domain_rangeIndexOf,
-  _domain_isSimplified,
-  _domain_mergeOverlappingInline,
-  _domain_sortByRange,
+  domain_rangeIndexOf,
+  domain_isSimplified,
+  domain_mergeOverlappingInline,
+  domain_sortByRange,
   // __REMOVE_ABOVE_FOR_DIST__
 };

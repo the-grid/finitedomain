@@ -34,7 +34,8 @@ let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha s
 let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos
 let PAIR_SIZE = 2;
 
-[].__REMOVE_BELOW_FOR_ASSERTS__ = this.foo; // local var would cause a problem!
+
+// __REMOVE_BELOW_FOR_ASSERTS__
 
 // For unit tests
 // Should be removed in production. Obviously.
@@ -53,10 +54,10 @@ function ASSERT(bool, msg = '', ...args) {
 
   let suffix = '';
   if (args && args.length) {
-    suffix = `$Args (#{args.length}$): [#{_stringify(args).join(', ')}]`;
+    suffix = `Args (${args.length}x): [${_stringify(args).join(', ')}]`;
   }
 
-  THROW(`Assertion fail: ${msg}${suffix}`);
+  THROW(`Assertion fail: ${msg} ${suffix}`);
 }
 
 function _stringify(o) {
@@ -87,8 +88,8 @@ function ASSERT_DOMAIN(domain) {
     ASSERT(hi <= SUP, `hi should be lte to SUP [${hi}]`, domain);
     ASSERT(lo <= hi, `pairs should be lo<=hi ${lo} <= ${hi}`, domain);
     ASSERT(lo > phi + 1, `domains should be in csis form internally, end point apis should normalize input to this: ${domain}`, domain);
-    ASSERT((lo%1) === 0, 'domain should only contain integers', domain);
-    ASSERT((hi%1) === 0, 'domain should only contain integers', domain);
+    ASSERT((lo % 1) === 0, 'domain should only contain integers', domain);
+    ASSERT((hi % 1) === 0, 'domain should only contain integers', domain);
     phi = hi;
   }
 }
@@ -101,7 +102,7 @@ function ASSERT_UNUSED_DOMAIN(domain) {
     return;
   }
 
-  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
+  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
   ASSERT(!domain._fdvar_in_use, 'domains should be unique and not shared');
   domain._fdvar_in_use = true; // asserted just so automatic removal strips this line as well
 }
@@ -162,7 +163,7 @@ function ASSERT_DOMAIN_EMPTY_SET(domain) {
   if (domain._trace) {
     THROW(`Domain already marked as set to empty...: ${domain._trace}`);
   }
-  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.spec.coffee in your test file!
+  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
   domain._trace = new Error().stack();
 }
 
@@ -195,7 +196,7 @@ function ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(domain) {
   }
 }
 
-[].__REMOVE_ABOVE_FOR_ASSERTS__ = this.foo;  // local var would cause a problem!
+//__REMOVE_ABOVE_FOR_ASSERTS__
 
 // given a value return value.id or value
 // intended to return the name of a variable where the

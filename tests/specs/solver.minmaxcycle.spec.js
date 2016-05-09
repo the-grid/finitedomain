@@ -1,17 +1,12 @@
-import setup from '../fixtures/helpers.spec';
+import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
-  specDomainCreateValue,
-} from '../fixtures/domain.spec';
-import {
-  expect,
-  assert,
-} from 'chai';
+  stripAnonVarsFromArrays,
+} from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
 
-describe("solver.minmaxcycle.spec", function() {
+describe('solver.minmaxcycle.spec', function() {
 
   it('should exist', function() {
     expect(Solver).to.be.a('function');
@@ -19,15 +14,15 @@ describe("solver.minmaxcycle.spec", function() {
 
   describe('process values by alternating between picking the lowest and highest value', function() {
 
-    it('should cycle', function () {
+    it('should cycle', function() {
       let solver = new Solver({distribute: {val: 'minMaxCycle'}});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4)
+        domain: specDomainCreateRange(1, 4),
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4)
+        domain: specDomainCreateRange(1, 4),
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));
@@ -50,7 +45,7 @@ describe("solver.minmaxcycle.spec", function() {
         {V1: 4, V2: 4},
         {V1: 4, V2: 3},
         {V1: 4, V2: 2},
-        {V1: 4, V2: 1}
+        {V1: 4, V2: 1},
       ]);
     });
   });

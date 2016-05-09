@@ -71,7 +71,7 @@ import {
  * @param {boolean} [rngIsNormalized=true] Is 0<=rng()<1 or 0<=rng()<total_prob ? The latter is only used for testing to avoid rounding errors.
  * @return {number | undefined}
  */
-function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, randomFunc, rngIsNormalized=true) {
+function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, randomFunc, rngIsNormalized = true) {
   ASSERT(!!valLegend, 'expecting val_legend thanks to expandVectorsWith', valLegend);
   ASSERT(probVector.length <= valLegend.length, 'expecting prob_vector to be smaller or equal length of val_legend', probVector, valLegend);
 
@@ -116,7 +116,6 @@ function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, 
  * @returns {number}
  */
 function _distribution_markovRoll(rng, totalProb, cumulativeProbVector, valueLegend, rngIsNormalized) {
-
   let rngRoll = rng();
   let probVal = rngRoll;
   if (rngIsNormalized) { // 0 <= rng < 1

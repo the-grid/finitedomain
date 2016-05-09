@@ -9,6 +9,7 @@ import {
 
 import {
   NO_SUCH_VALUE,
+  REJECTED,
   SUP,
 } from '../../src/helpers';
 import {
@@ -31,7 +32,7 @@ import {
   //domain_deepCloneWithoutValue,
   domain_divby,
   domain_equal,
-  //domain_forceEqInline,
+  domain_forceEqInline,
   domain_fromList,
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
@@ -869,6 +870,46 @@ describe('domain.spec', function() {
       let B = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
 
       expect(domain_equal(A, B)).to.equal(false);
+    });
+  });
+
+  describe('domain_forceEqInline', function() {
+
+    it('should exist', function() {
+      expect(domain_forceEqInline).to.be.a('function');
+    });
+
+    describe('empty domains', function() {
+
+      it('should quickly deal with an empty array left', function () {
+        let A = [];
+        let B = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
+        let R = domain_forceEqInline(A, B);
+
+        expect(R).to.eql(REJECTED);
+        expect(A).to.eql([]);
+        expect(B).to.eql([]);
+      });
+
+      it('should quickly deal with an empty array right', function () {
+        let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
+        let B = [];
+        let R = domain_forceEqInline(A, B);
+
+        expect(R).to.eql(REJECTED);
+        expect(A).to.eql([]);
+        expect(B).to.eql([]);
+      });
+
+      it('should quickly deal with two empty arrays', function () {
+        let A = [];
+        let B = [];
+        let R = domain_forceEqInline(A, B);
+
+        expect(R).to.eql(REJECTED);
+        expect(A).to.eql([]);
+        expect(B).to.eql([]);
+      });
     });
   });
 

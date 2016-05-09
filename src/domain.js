@@ -1433,6 +1433,7 @@ function domain_createRange(lo, hi) {
 // BODY_STOP
 
 export {
+  DOMAINS_NOT_CHANGED,
   INLINE,
   NOT_FOUND,
   NOT_INLINE,

@@ -76,21 +76,55 @@ describe('domain.spec', function() {
       expect(domain_fromList).to.be.a('function');
     });
 
-    it('[[0,0]]', function() {
+    it('should work with [0,0]', function() {
       expect(domain_fromList([0])).to.eql(specDomainCreateZero());
       expect(domain_fromList([0, 0])).to.eql(specDomainCreateZero());
     });
 
-    it('[[0,1]]', function() {
+    it('should work with [0,1]', function() {
       expect(domain_fromList([0, 1])).to.eql(specDomainCreateBool());
       expect(domain_fromList([1, 0])).to.eql(specDomainCreateBool());
       expect(domain_fromList([0, 0, 1, 1])).to.eql(specDomainCreateBool());
       expect(domain_fromList([1, 1, 0, 0])).to.eql(specDomainCreateBool());
     });
 
-    it('negative elements should throw', function() {
+    it('should throw with negative elements', function() {
       expect(() => domain_fromList([10, 1, -1, 0])).to.throw();
       expect(() => domain_fromList([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw();
+    });
+
+    it('should work with clone=true, sort=true', function() {
+      let list = [4, 3, 8, 2];
+      domain_fromList(list, true, true);
+
+      expect(list).to.eql([4, 3, 8, 2]);
+    });
+
+    it('should work with clone=false, sort=true', function() {
+      let list = [4, 3, 8, 2];
+      domain_fromList(list, false, true);
+
+      expect(list).to.eql([2, 3, 4, 8]);
+    });
+
+    it('should work with clone=true, sort=false, provided the list is sorted', function() {
+      let list = [2, 3, 4, 8];
+      domain_fromList(list, true, false);
+
+      expect(list).to.eql([2, 3, 4, 8]);
+    });
+
+    it('should throw with sort=false if the list is unsorted', function() {
+      let list = [2, 3, 8, 4];
+
+      expect(_ => domain_fromList(list, false, false)).to.throw();
+    });
+
+    it('should work with clone=false, sort=false, provided the list is sorted', function() {
+      let list = [2, 3, 4, 8];
+      domain_fromList(list, true, false);
+
+      expect(list).to.eql([2, 3, 4, 8]);
     });
   });
 

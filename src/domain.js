@@ -123,10 +123,10 @@ function domain_getValue(domain) {
  * @returns {number[]}
  */
 function domain_fromList(list, clone = true, sort = true) {
-  if (clone) {
-    list = list.slice(0); // TBD: this was broken. do we need it?
-  }
   if (sort) { // note: the list must be sorted for the algorithm below to work...
+    if (clone) { // clone before sorting?
+      list = list.slice(0);
+    }
     list.sort((a, b) => a - b);
   }
 

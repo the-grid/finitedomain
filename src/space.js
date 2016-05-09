@@ -40,9 +40,7 @@ import propagator_isSolved from './propagators/is_solved';
  * @returns {$space}
  */
 function space_createRoot(config) {
-  if (typeof config === 'undefined' || config === null) {
-    config = config_create();
-  }
+  if (!config) config = config_create();
 
   return space_createNew(config, [], {}, [], 0, 0);
 }

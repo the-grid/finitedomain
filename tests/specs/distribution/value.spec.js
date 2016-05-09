@@ -24,6 +24,10 @@ import {
 
 describe('distribution/value.spec', function() {
 
+  it('should exist', function() {
+    expect(distribute_getNextDomainForVar).to.be.a('function'); // TODO: test this function properly
+  });
+
   it('fdvar_createBool should exist', function() {
     expect(fdvar_createBool).to.be.a('function');
   });

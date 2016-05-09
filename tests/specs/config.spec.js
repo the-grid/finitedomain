@@ -15,7 +15,7 @@ import {
   config_addVarsO,
   //config_clone,
   config_create,
-  //config_generateVars,
+  config_generateVars,
   //config_getUnknownVars,
   //config_setDefaults,
   config_setOptions,
@@ -26,7 +26,7 @@ import {
 } from '../../src/helpers';
 import {
   fdvar_create,
-  fdvar_create_range,
+  fdvar_createRange,
 } from '../../src/fdvar';
 import {
   domain_createRange,
@@ -41,12 +41,72 @@ import {
 
 describe('config.spec', function() {
 
-  describe('config_create', () => {
+  describe('config_create', function() {
 
     it('should return an object', function() {
       expect(config_create()).to.be.an('object');
     });
 
+  });
+
+  describe('config_generateVars', function() {
+
+    it('should exist', function() {
+      expect(config_generateVars).to.be.a('function');
+    });
+
+    it('should not require a vars object', function() {
+      let config = config_create();
+
+      config_generateVars(config);
+      expect(true, 'no throw').to.equal(true);
+    });
+
+    it('should return an object if no vars obj was given', function() {
+      let config = config_create();
+      let out = config_generateVars(config);
+
+      expect(out).to.be.an('object');
+    });
+
+    it('should work with empty object', function() {
+      let config = config_create();
+
+      config_generateVars(config, {});
+      expect(true, 'no throw').to.equal(true);
+    });
+
+    it('should return given vars object', function() {
+      let config = config_create();
+      let obj = {};
+      let out = config_generateVars(config, obj);
+
+      expect(out).to.equal(obj);
+    });
+
+    it('should create a constant', function() {
+      let config = config_create();
+      let name = config_addConstant(config, 10);
+      let vars = config_generateVars(config);
+
+      expect(vars[name]).to.eql(fdvar_createRange(name, 10, 10));
+    });
+
+    it('should create a full width var', function() {
+      let config = config_create();
+      let name = config_addVar(config);
+      let vars = config_generateVars(config);
+
+      expect(vars[name]).to.eql(fdvar_createRange(name, SUB, SUP));
+    });
+
+    it('should clone a domained var', function() {
+      let config = config_create();
+      let name = config_addVar(config, undefined, 32, 55);
+      let vars = config_generateVars(config);
+
+      expect(vars[name]).to.eql(fdvar_createRange(name, 32, 55));
+    });
   });
 
   describe('config_addConstant', function() {
@@ -408,7 +468,7 @@ describe('config.spec', function() {
         config_addVar(space.config, 'A', 0, 1);
         space_initFromConfig(space);
 
-        expect(space.vars.A).to.eql(fdvar_create_range('A', 0, 1));
+        expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 1));
       });
 
       it('should accept only lo and assume [lo,lo] for domain', function() {
@@ -416,7 +476,7 @@ describe('config.spec', function() {
         config_addVar(space.config, 'A', 0);
         space_initFromConfig(space);
 
-        expect(space.vars.A).to.eql(fdvar_create_range('A', 0, 0));
+        expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 0));
       });
 
       it('should accept lo as the domain if array', function() {
@@ -425,7 +485,7 @@ describe('config.spec', function() {
         config_addVar(space.config, 'A', input_domain);
         space_initFromConfig(space);
 
-        expect(space.vars.A).to.eql(fdvar_create_range('A', 0, 1));
+        expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 1));
         expect(space.vars.A.dom).to.not.equal(input_domain); // should clone
       });
 
@@ -460,7 +520,7 @@ describe('config.spec', function() {
         config_addVar(space.config, 'A');
         space_initFromConfig(space);
 
-        expect(space.vars.A).to.eql(fdvar_create_range('A', SUB, SUP));
+        expect(space.vars.A).to.eql(fdvar_createRange('A', SUB, SUP));
       });
 
       it('should create a full wide domain for anonymous var', function() {
@@ -586,9 +646,9 @@ describe('config.spec', function() {
           ['D', [5, 8, 20, 30]]);
         space_initFromConfig(space);
 
-        expect(space.vars.A).to.eql(fdvar_create_range('A', SUB, SUP));
-        expect(space.vars.B).to.eql(fdvar_create_range('B', 0, 0));
-        expect(space.vars.C).to.eql(fdvar_create_range('C', 10, 20));
+        expect(space.vars.A).to.eql(fdvar_createRange('A', SUB, SUP));
+        expect(space.vars.B).to.eql(fdvar_createRange('B', 0, 0));
+        expect(space.vars.C).to.eql(fdvar_createRange('C', 10, 20));
         expect(space.vars.D).to.eql(fdvar_create('D', specDomainCreateRanges([5, 8], [20, 30])));
       });
     });

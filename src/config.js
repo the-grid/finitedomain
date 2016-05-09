@@ -268,14 +268,16 @@ function config_getUnknownVars(config) {
   return names;
 }
 
-function config_generateVars(config, vars, unsolvedVarNames) {
+function config_generateVars(config, vars = {}, unsolvedVarNames) {
   ASSERT(config, 'should have a config');
-  if (typeof vars === 'undefined' || vars === null) { vars = {}; }
-  let { initial_vars } = config;
+  let initialVars = config.initial_vars;
+  ASSERT(initialVars, 'config should have initial vars');
+  let allVarNames = config.all_var_names;
+  ASSERT(allVarNames, 'config should have a list of vars');
 
-  for (let i = 0; i < config.all_var_names.length; i++) {
-    let name = config.all_var_names[i];
-    let val = initial_vars[name];
+  for (let i = 0; i < allVarNames.length; i++) {
+    let name = allVarNames[i];
+    let val = initialVars[name];
     if (typeof val === 'number') {
       val = fdvar_create(name, domain_createValue(val));
     } else if (val === undefined) {

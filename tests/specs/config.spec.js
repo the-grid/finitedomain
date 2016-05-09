@@ -116,6 +116,14 @@ describe('config.spec', function() {
 
       expect(config.initial_vars.A).to.eql(undefined);
     });
+
+    it('should return a constant for an anonymous solved domain', function() {
+      let config = config_create();
+      let A = config_addVar(config, undefined, [1, 1]);
+      let B = config_addConstant(config, 1);
+
+      expect(A).to.equal(B);
+    });
   });
 
 

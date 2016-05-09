@@ -135,7 +135,6 @@ describe('config.spec', function() {
     });
   });
 
-
   describe('config_addVarValue', function() {
 
     it('should accept domain as param', function() {
@@ -173,6 +172,25 @@ describe('config.spec', function() {
 
       expect(config.initial_vars.A).to.eql(undefined);
       expect(config.all_var_names).to.contain('A');
+    });
+
+    it('should throw if the name is already registered', function() {
+      // either prevents you from double registering vars or internal sanity protection
+
+      let config = config_create();
+      config_addVarValue(config, 'A');
+
+      expect(config.initial_vars.A).to.eql(undefined);
+      expect(config.all_var_names).to.contain('A');
+      expect(_ => config_addVarValue(config, 'A')).to.throw('Var name already part of this config. Probably a bug?');
+    });
+
+    it('should only add an unkown constant once', function() {
+      let config = config_create();
+      config_addVarValue(config, 'A', [34, 34]);
+      config_addVarValue(config, 'B', [34, 34]);
+
+      expect(config.constant_cache[34]).to.equal('A');
     });
   });
 

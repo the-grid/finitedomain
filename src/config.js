@@ -163,8 +163,9 @@ function config_addVarValue(config, name, domain, _forbiddenArg) {
 
   // we cant change the name here but we can cache the constant if it were one
   if (domain instanceof Array && domain.length === 2 && domain[0] === domain[1]) {
-    if (!config.constant_cache[domain[0]]) {
-      config.constant_cache[domain[0]] = name;
+    let lo = domain[0];
+    if (!config.constant_cache[lo]) {
+      config.constant_cache[lo] = name;
     }
   } else if (typeof domain === 'number') {
     if (!config.constant_cache[domain]) {

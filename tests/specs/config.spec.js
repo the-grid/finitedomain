@@ -13,7 +13,7 @@ import {
   //config_addVarAnon,
   config_addVarsA,
   config_addVarsO,
-  //config_clone,
+  config_clone,
   config_create,
   config_generateVars,
   //config_getUnknownVars,
@@ -706,6 +706,55 @@ describe('config.spec', function() {
           }
         }
       });
+    });
+  });
+
+  describe('config_clone', function() {
+
+    it('should exist', function() {
+      expect(config_clone).to.be.a('function');
+    });
+
+    it('should clone a config', function() {
+      let config = config_create();
+      let clone = config_clone(config);
+
+      expect(clone).to.eql(config);
+    });
+
+    it('should clone a config with targetedVars as an array', function() {
+      let config = config_create();
+      let vars = ['a', 'b'];
+      config.targetedVars = vars;
+      let clone = config_clone(config);
+
+      expect(clone.targetedVars).to.eql(vars);
+    });
+
+    it('should clone a config with targetedVars as a string', function() {
+      let config = config_create();
+      let vars = 'foobala';
+      config.targetedVars = vars;
+      let clone = config_clone(config);
+
+      expect(clone.targetedVars).to.eql(vars);
+    });
+
+    it('should clone a config with targetedVars as an undefined', function() {
+      let config = config_create();
+      let vars = undefined;
+      config.targetedVars = vars;
+      let clone = config_clone(config);
+
+      expect(clone.targetedVars).to.eql(vars);
+    });
+
+    it('should accept a new set of new vars', function() {
+      let config = config_create();
+      let newVars = {};
+      let clone = config_clone(config, newVars);
+
+      expect(clone.initial_vars).to.eql(newVars);
     });
   });
 });

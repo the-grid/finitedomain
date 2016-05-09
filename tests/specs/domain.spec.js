@@ -27,7 +27,6 @@ import {
   //domain_createRange,
   //domain_createSup,
   //domain_createValue,
-  //domain_createWithoutBounds,
   //domain_createZero,
   //domain_deepCloneWithoutValue,
   domain_divby,

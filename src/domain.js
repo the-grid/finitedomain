@@ -269,23 +269,6 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
 }
 
 /**
- * @param {number} lo
- * @param {number} hi
- * @returns {$domain}
- */
-function domain_createWithoutBounds(lo, hi) {
-  let domain = [];
-  if (lo > SUB) {
-    domain.push(SUB, lo - 1);
-  }
-  if (hi < SUP) {
-    domain.push(hi + 1, SUP);
-  }
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  return domain;
-}
-
-/**
  * The complement of a domain is such that domain U domain' = [SUB, SUP].
  * Assumes domain is in CSIS form
  * Returns a domain that covers any range in (SUB...SUP) that was not covered by given domain
@@ -1466,7 +1449,6 @@ export {
   domain_createRange,
   domain_createSup,
   domain_createValue,
-  domain_createWithoutBounds,
   domain_createZero,
   domain_deepCloneWithoutValue,
   domain_divby,

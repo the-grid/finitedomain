@@ -13,6 +13,7 @@ import {
 } from '../../src/helpers';
 import {
   INLINE,
+  NOT_FOUND,
   NOT_INLINE,
 
   //domain_sharesNoElements,
@@ -34,7 +35,7 @@ import {
   domain_equal,
   //domain_forceEqInline,
   domain_fromList,
-  //domain_getValue,
+  domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   //domain_intersectBoundsInto,
   domain_intersection,
@@ -90,6 +91,33 @@ describe('domain.spec', function() {
     it('negative elements should throw', function() {
       expect(() => domain_fromList([10, 1, -1, 0])).to.throw();
       expect(() => domain_fromList([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw();
+    });
+  });
+
+  describe('domain_getValue', function() {
+
+    it('should exist', function() {
+      expect(domain_getValue).to.be.a('function');
+    });
+
+    it('should return NOT_FOUND if the domain has more than two values', function() {
+      expect(domain_getValue([10, 20, 30, 40])).to.equal(NOT_FOUND);
+    });
+
+    it('should return NOT_FOUND if the domain is empty', function() {
+      expect(domain_getValue([])).to.equal(NOT_FOUND);
+    });
+
+    it('should return NO_SUCH_VALUE if the two elements are not equal', function() {
+      expect(domain_getValue([321, 1])).to.equal(NO_SUCH_VALUE);
+    });
+
+    it('should return 17 if both elements are 17', function() {
+      expect(domain_getValue([17, 17])).to.equal(17);
+    });
+
+    it('should return 0 if both elements are 0', function() {
+      expect(domain_getValue([0, 0])).to.equal(0);
     });
   });
 

@@ -1461,6 +1461,7 @@ function domain_createRange(lo, hi) {
 
 export {
   INLINE,
+  NOT_FOUND,
   NOT_INLINE,
   PREV_CHANGED,
   SOMETHING_CHANGED,

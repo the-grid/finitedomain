@@ -246,10 +246,8 @@ function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
       }
     }
   }
+
   ASSERT_DOMAIN(result);
-  if (!result) {
-    ASSERT_DOMAIN_EMPTY_SET(result);
-  }
   return result;
 }
 
@@ -268,14 +266,6 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
     }
   }
   return NO_SUCH_VALUE;
-}
-
-/**
- * @param {number} value
- * @returns {$domain}
- */
-function domain_createWithoutValue(value) {
-  return domain_createWithoutBounds(value, value);
 }
 
 /**
@@ -1476,7 +1466,6 @@ export {
   domain_createRange,
   domain_createSup,
   domain_createValue,
-  domain_createWithoutValue,
   domain_createWithoutBounds,
   domain_createZero,
   domain_deepCloneWithoutValue,

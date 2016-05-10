@@ -85,9 +85,6 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
     }
   } else if (typeof rightVarName === 'number') {
     rightVarName = config_addVarAnon(config, rightVarName);
-    if (typeof leftVarName === 'number') {
-      THROW('must pass in at least one var name');
-    }
   }
 
   config_addPropagator(config, ['reified', [leftVarName, rightVarName, boolName], opname, nopname]);

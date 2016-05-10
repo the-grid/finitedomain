@@ -35,23 +35,34 @@ describe('propagator.spec', function() {
 
   describe('propagator_addReified', function() {
 
-    it('should accept numbers for anonymous var A', function() {
-      let config = config_create();
-      propagator_addReified(config, 'eq', 0, 'B', 'C');
-
-      expect(() => propagator_addReified(config, 'eq', 0, 'B', 'C')).not.to.throw();
+    it('should exist', function() {
+      expect(propagator_addReified).to.be.a('function');
     });
 
-    it('should accept numbers for anonymous var B', function() {
+    it('should throw for unknown ops', function() {
       let config = config_create();
-
-      expect(() => propagator_addReified(config, 'eq', 'A', 0, 'C')).not.to.throw();
+      expect(_ => propagator_addReified(config, 'fail', 'A', 'B', 'C')).to.throw('add_reified: Unsupported operator \'fail\'');
     });
 
-    it('should throw if left and right vars are anonymous vars', function() {
-      let config = config_create();
+    describe('with anonymous vars', function() {
 
-      expect(() => propagator_addReified(config, 'eq', 0, 0, 'C')).to.throw();
+      it('should accept numbers for anonymous var A', function () {
+        let config = config_create();
+        propagator_addReified(config, 'eq', 0, 'B', 'C');
+        propagator_addReified(config, 'eq', 0, 'B', 'C');
+        expect(true).to.equal(true);
+      });
+
+      it('should accept numbers for anonymous var B', function () {
+        let config = config_create();
+        propagator_addReified(config, 'eq', 'A', 0, 'C');
+        expect(true).to.equal(true);
+      });
+
+      it('should throw if left and right vars are anonymous vars', function () {
+        let config = config_create();
+        expect(_ => propagator_addReified(config, 'eq', 0, 0, 'C')).to.throw();
+      });
     });
 
     describe('bool var domain', function() {

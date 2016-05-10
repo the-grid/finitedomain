@@ -119,19 +119,18 @@ describe('propagator.spec', function() {
 
       it('should accept a number for var1', function() {
         let config = config_create();
-
-        expect(() => propagator_addEq(config, 0, 'B')).not.to.throw();
+        propagator_addEq(config, 0, 'B');
+        expect(true).to.equal(true);
       });
 
       it('should accept a number for var2', function() {
         let config = config_create();
-
-        expect(() => propagator_addEq(config, 'A', 0)).not.to.throw();
+        propagator_addEq(config, 'A', 0);
+        expect(true).to.equal(true);
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
-
         expect(() => propagator_addEq(config, 0, 0)).to.throw();
       });
     })

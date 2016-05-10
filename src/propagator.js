@@ -85,6 +85,7 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
     }
   } else if (typeof rightVarName === 'number') {
     rightVarName = config_addVarAnon(config, rightVarName);
+    ASSERT(typeof leftVarName !== 'number', 'this should have been confirmed by an earlier check');
   }
 
   config_addPropagator(config, ['reified', [leftVarName, rightVarName, boolName], opname, nopname]);
@@ -128,9 +129,7 @@ function propagator_addEq(config, v1name, v2name) {
     // swap such that v1 is the solved var. order is irrelevant to eq itself.
     v2name = v1name;
     v1name = t;
-    if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v2name !== 'number', 'v1name is not a number because that should have been caught by the other condition');
   }
 
   config_addPropagator(config, ['eq', [v1name, v2name]]);
@@ -160,9 +159,7 @@ function propagator_addLt(config, v1name, v2name) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   config_addPropagator(config, ['lt', [v1name, v2name]]);
@@ -199,9 +196,7 @@ function propagator_addLte(config, v1name, v2name) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   config_addPropagator(config, ['lte', [v1name, v2name]]);
@@ -234,9 +229,7 @@ function propagator_addMul(config, v1name, v2name, resultName) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   config_addPropagator(config, ['mul', [v1name, v2name, resultName]]);
@@ -270,9 +263,7 @@ function propagator_addDiv(config, v1name, v2name, resultName) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   config_addPropagator(config, ['div', [v1name, v2name, resultName]]);
@@ -310,9 +301,7 @@ function propagator_addNeq(config, v1name, v2name) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   config_addPropagator(config, ['neq', [v1name, v2name]]);
@@ -357,9 +346,7 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   if (typeof sumName === 'undefined') {
@@ -425,9 +412,7 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnon(config, v2name);
-    if (typeof v1name === 'number') {
-      THROW('must pass in at least one var name');
-    }
+    ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   if (typeof resultVar === 'undefined') {

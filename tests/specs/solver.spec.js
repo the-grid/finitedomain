@@ -19,6 +19,8 @@ import {
 
 describe('solver.spec', function() {
 
+  this.timeout(60000); // takes long under istanbul / even longer under travis
+
   describe('api', function() {
 
     describe('solver constructor', function() {
@@ -1185,8 +1187,6 @@ describe('solver.spec', function() {
     });
 
     it('should combine multiple unconstrained vars', function() {
-      this.timeout(10000); // takes long under istanbul
-
       let solver = new Solver({});
 
       solver.addVar('2', [1, 1]);

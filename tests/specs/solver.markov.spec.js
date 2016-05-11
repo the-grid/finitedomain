@@ -11,6 +11,8 @@ import Solver from '../../src/solver';
 // These Solver specs focus on using Markov
 describe('solver.markov.spec', function() {
 
+  this.timeout(60000); // takes long under istanbul / even longer under travis
+
   it('should exist', function() {
     expect(Solver).to.be.a('function');
   });

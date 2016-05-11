@@ -134,7 +134,9 @@ describe('domain.spec', function() {
     });
 
     it('should return NOT_FOUND if the domain is empty', function() {
-      expect(domain_getValue([])).to.equal(NOT_FOUND);
+      let A = [];
+      A.__skipEmptyCheck = true; // circumvents certain protections
+      expect(domain_getValue(A)).to.equal(NOT_FOUND);
     });
 
     it('should return NO_SUCH_VALUE if the two elements are not equal', function() {
@@ -877,30 +879,38 @@ describe('domain.spec', function() {
 
     describe('empty domains', function() {
 
-      it('should quickly deal with an empty array left', function () {
+      it('should quickly deal with an empty array left', function() {
         let A = [];
+        A.__skipEmptyCheck = true; // circumvents certain protections
         let B = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
         let R = domain_forceEqInline(A, B);
+        delete A.__skipEmptyCheck; // else assertion blows up
 
         expect(R).to.eql(REJECTED);
         expect(A).to.eql([]);
         expect(B).to.eql([]);
       });
 
-      it('should quickly deal with an empty array right', function () {
+      it('should quickly deal with an empty array right', function() {
         let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
         let B = [];
+        B.__skipEmptyCheck = true; // circumvents certain protections
         let R = domain_forceEqInline(A, B);
+        delete B.__skipEmptyCheck; // else assertion blows up
 
         expect(R).to.eql(REJECTED);
         expect(A).to.eql([]);
         expect(B).to.eql([]);
       });
 
-      it('should quickly deal with two empty arrays', function () {
+      it('should quickly deal with two empty arrays', function() {
         let A = [];
+        A.__skipEmptyCheck = true; // circumvents certain protections
         let B = [];
+        B.__skipEmptyCheck = true; // circumvents certain protections
         let R = domain_forceEqInline(A, B);
+        delete A.__skipEmptyCheck; // else assertion blows up
+        delete B.__skipEmptyCheck; // else assertion blows up
 
         expect(R).to.eql(REJECTED);
         expect(A).to.eql([]);

@@ -958,7 +958,7 @@ function domain_max(domain) {
  * @param {number} hi
  */
 function domain_setToRangeInline(domain, lo, hi) {
-  ASSERT_DOMAIN(domain, 'should be sound domain');
+  ASSERT_DOMAIN(domain);
   ASSERT(lo <= hi, 'lo/hi should be ordered!', [lo, hi]);
   domain[LO_BOUND] = lo;
   domain[HI_BOUND] = hi;
@@ -1025,7 +1025,7 @@ function domain_firstRangeIsDetermined(domain) {
  * @returns {boolean}
  */
 function domain_removeGteInline(domain, value) {
-  ASSERT_DOMAIN(domain, 'needs to be csis for this trick to work');
+  ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
 
   let len = domain.length;
   let i = len - PAIR_SIZE;
@@ -1059,7 +1059,7 @@ function domain_removeGteInline(domain, value) {
  * @returns {boolean}
  */
 function domain_removeLteInline(domain, value) {
-  ASSERT_DOMAIN(domain, 'needs to be csis for this trick to work');
+  ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
 
   let len = domain.length;
   let i = 0;
@@ -1406,6 +1406,7 @@ export {
   INLINE,
   NOT_FOUND,
   NOT_INLINE,
+  PAIR_SIZE,
   PREV_CHANGED,
   SOMETHING_CHANGED,
 

@@ -4,12 +4,8 @@ import {
   SUB,
   SUP,
 
-  ENABLED,
-  ENABLE_EMPTY_CHECK,
-
   ASSERT,
   ASSERT_DOMAIN,
-  ASSERT_PROPAGATORS,
 } from './helpers';
 
 import {
@@ -61,7 +57,7 @@ function space_createFromConfig(config) {
  * Create a space node that is a child of given space node
  *
  * @param {Space} space
- * @returns {Space}
+ * @returns {$space}
  */
 function space_createClone(space) {
   ASSERT(space._class === 'space');
@@ -147,7 +143,7 @@ function space_pseudoCloneVars(allNames, parentVars, cloneVars, cloneUnsolvedVar
  */
 function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, _depth, _child) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
-  ASSERT(vars && typeof vars === 'object', 'vars should be an object', vars);
+  ASSERT(typeof vars === 'object' && vars, 'vars should be an object', vars);
   ASSERT(unsolvedVarNames instanceof Array, 'unsolvedVarNames should be an array', unsolvedVarNames);
 
   return ({
@@ -193,7 +189,6 @@ function space_initFromConfig(space) {
 function space_propagate(space) {
   ASSERT(space._class === 'space');
   let unsolvedPropagators = space.unsolvedPropagators;
-  ASSERT_PROPAGATORS(unsolvedPropagators);
 
   let changed;
   do {
@@ -207,8 +202,8 @@ function space_propagate(space) {
       ASSERT(n === REJECTED || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
       // if a domain was set empty and the flag is on the property should be set or
       // the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
-      ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || space.vars[propDetails[1][0]].dom.length || space.vars[propDetails[1][0]].dom._trace, 'domain empty but not marked');
-      ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length || space.vars[propDetails[1][1]].dom._trace, 'domain empty but not marked');
+      //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || space.vars[propDetails[1][0]].dom.length || space.vars[propDetails[1][0]].dom._trace, 'domain empty but not marked');
+      //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length || space.vars[propDetails[1][1]].dom._trace, 'domain empty but not marked');
 
       if (n === SOMETHING_CHANGED) {
         changed = true;
@@ -269,7 +264,7 @@ function space_isSolved(space) {
     if (targetedVars === 'all' || targetedVars.indexOf(name) >= 0) {
       let fdvar = vars[name];
       ASSERT(!fdvar.was_solved, 'should not be set yet at this stage'); // we may change this though...
-      ASSERT_DOMAIN(fdvar.dom, 'is_solved extra domain validation check');
+      ASSERT_DOMAIN(fdvar.dom);
 
       if (fdvar_isSolved(fdvar)) {
         fdvar.was_solved = true; // makes space_createClone faster
@@ -358,69 +353,6 @@ function space_getsetVarSolveState(varName, vars, result) {
 //# ## Debugging
 
 // debug stuff (should be stripped from dist)
-
-/**
- * @param {Space} space
- * @returns {string}
- */
-function __space_toSolverTestCase(space) {
-  ASSERT(space._class === 'space');
-  let things = ['S = new Solver {}\n'];
-
-  for (let name in space.vars) {
-    things.push(`space_addVar space, '${name}', [${space.vars[name].dom.join(', ')}]`);
-  }
-  things.push('');
-
-  space.unsolvedPropagators.forEach(function(c) {
-    if (c[0] === 'reified') {
-      return things.push(`S._cacheReified '${c[2]}', '${c[1].join('\', \'')}'`);
-    } else if (c[0] === 'ring') {
-      switch (c[2]) {
-        case 'plus':
-          // doesnt really exist. merely artifact of ring
-          return things.push(`propagator_addPlus S, '${c[1].join('\', \'')}'`);
-        case 'min':
-          // doesnt really exist. merely artifact of plus
-          return things.push(`# S.minus '${c[1].join('\', \'')}' # (artifact from .plus)`);
-        case 'mul':
-          // doesnt really exist. merely artifact of ring
-          return things.push(`propagator_addMul S, '${c[1].join('\', \'')}'`);
-        case 'div':
-          // doesnt really exist. merely artifact of ring
-          return things.push(`# S.divby '${c[1].join('\', \'')}' # (artifact from .mul)`);
-        default:
-          return ASSERT(false, 'unknown ring op name', c[2]);
-      }
-    } else {
-      return things.push(`S.${c[0]} '${c[1].join('\', \'')}'`);
-    }
-  });
-
-  things.push('\nexpect(S.solve({max:10000}).length).to.eql 666');
-
-  return things.join('\n');
-}
-
-/**
- * @param {Space} space
- * @returns {string}
- */
-function __space_toSpaceTestCase(space) {
-  ASSERT(space._class === 'space');
-  let things = ['S = space_createRoot()\n'];
-
-  for (let name in space.vars) {
-    things.push(`space_addVar S, '${name}', [${space.vars[name].dom.join(', ')}]`);
-  }
-  things.push('');
-
-  things.push(`S.unsolvedPropagators = [\n  ${space.unsolvedPropagators.map(JSON.stringify).join('\n  ').replace(/"/g, '\'')}\n]`);
-
-  things.push('\nexpect(space_propagate S).to.eql true');
-
-  return things.join('\n');
-}
 
 /**
  * @param {Space} space
@@ -530,10 +462,8 @@ export {
   space_solutionFor,
   space_toConfig,
 
-  // debugging
+  // debugging / testing
   __space_debugString,
   __space_debugVarDomains,
   __space_getUnsolved,
-  __space_toSolverTestCase,
-  __space_toSpaceTestCase,
 };

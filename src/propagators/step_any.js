@@ -1,6 +1,5 @@
 import {
   ASSERT,
-  ASSERT_PROPAGATOR,
   THROW,
 } from '../helpers';
 
@@ -37,7 +36,6 @@ let PROP_OP_FUNC = 2;
  * @param {Space} space
  */
 function propagator_stepAny(propDatails, space) {
-  ASSERT_PROPAGATOR(propDatails);
   ASSERT(!!space, 'requires a space');
 
   return _propagator_stepAny(space, propDatails[PROP_NAME], propDatails[PROP_VAR_NAMES], propDatails);

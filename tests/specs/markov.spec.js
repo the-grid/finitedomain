@@ -1,14 +1,14 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import {
-  specDomainCreateBool,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainCreateZero,
-} from '../fixtures/domain.fixt';
+//import {
+//  specDomainCreateBool,
+//  specDomainCreateRange,
+//  specDomainCreateRanges,
+//  specDomainCreateValue,
+//  specDomainCreateZero,
+//} from '../fixtures/domain.fixt';
 
 import {
-  markov_createLegend,
+  //markov_createLegend,
   markov_createProbVector,
 } from '../../src/markov';
 import {
@@ -25,7 +25,7 @@ describe('markov.spec', function() {
 
     it('should return an array', function() {
       let space = space_createRoot();
-      let R = markov_createProbVector(space, [{vector:[]}], undefined, 0);
+      let R = markov_createProbVector(space, [{vector: []}], undefined, 0);
 
       expect(R instanceof Array).to.equal(true);
     });

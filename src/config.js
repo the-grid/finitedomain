@@ -6,7 +6,6 @@ import {
   SUP,
 
   ASSERT,
-  ASSERT_PROPAGATORS,
   THROW,
 } from './helpers';
 import {
@@ -103,6 +102,7 @@ function config_addVarAnon(config, domain_or_lo, hi) {
 }
 
 function config_addVar(config, name, domainOrLo, hi) {
+  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
   ASSERT(domainOrLo instanceof Array || typeof domainOrLo === 'number' || domainOrLo === undefined, 'arr/num/undef', domainOrLo);
 
   if (domainOrLo instanceof Array) {
@@ -127,6 +127,7 @@ function config_addVar(config, name, domainOrLo, hi) {
     }
   }
 
+  ASSERT(typeof name !== 'number', 'WRONG_API_NOT_EXPECTING_NUMBER_AS_NAME');
   if (!name) {
     name = String(++config.constant_uid);
   }
@@ -141,7 +142,7 @@ function config_addVar(config, name, domainOrLo, hi) {
 //
 // @param {Config} config
 // @param {string} name
-// @param {number[]} domain
+// @param {number[]|undefined} domain
 // @param {undefined} _forbidden_arg Sanity check, do not use this arg
 
 function config_addVarValue(config, name, domain, _forbiddenArg) {
@@ -248,7 +249,6 @@ function config_setOptions(config, options) {
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === 'config');
   config.propagators.push(propagator);
-  ASSERT_PROPAGATORS(config.propagators);
 }
 
 // TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.

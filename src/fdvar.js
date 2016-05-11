@@ -13,7 +13,6 @@ import {
   domain_createAll,
   domain_createBool,
   domain_createRange,
-  domain_createValue,
   domain_intersection,
   domain_equal,
   domain_forceEqInline,
@@ -51,7 +50,7 @@ function fdvar_createWide(id) {
 
 function fdvar_new(id, dom) {
   ASSERT(!!dom, 'should init to a domain', [id, dom]);
-  ASSERT_DOMAIN(dom, 'new domain should be CSIS', [id, dom]);
+  ASSERT_DOMAIN(dom);
   ASSERT_UNUSED_DOMAIN(dom);
   return {
     _class: 'fdvar',

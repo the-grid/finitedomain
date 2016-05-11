@@ -29,11 +29,10 @@ let LOG_MAX = LOG_SOLVES;
 // different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
 // while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
 let NO_SUCH_VALUE = SUB - 1; // make sure NO_SUCH_VALUE is not a value that may be valid in a domain
-let ENABLED = false; // override for most tests (but not regular ASSERTs) like full domains and space validations
+let ENABLED = true; // override for most tests (but not regular ASSERTs) like full domains and space validations
 let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha sees the expandos
 let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos
 let PAIR_SIZE = 2;
-
 
 // __REMOVE_BELOW_FOR_ASSERTS__
 
@@ -71,10 +70,14 @@ function _stringify(o) {
 // Should be removed in production. Obviously.
 
 function ASSERT_DOMAIN(domain) {
-  if (!ENABLED || !ENABLE_DOMAIN_CHECK) {
-    return;
+  /* istanbul ignore if */
+  if (ENABLED) {
+    if (ENABLE_DOMAIN_CHECK) {
+      _ASSERT_DOMAIN(domain);
+    }
   }
-
+}
+function _ASSERT_DOMAIN(domain) {
   ASSERT(!!domain, 'domains should be an array', domain);
   ASSERT(domain.length % PAIR_SIZE === 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % PAIR_SIZE);
   let phi = SUB - 2; // this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
@@ -98,81 +101,43 @@ function ASSERT_DOMAIN(domain) {
 // are "fresh", and at least not in use by any fdvar yet
 
 function ASSERT_UNUSED_DOMAIN(domain) {
-  if (!ENABLED || !ENABLE_DOMAIN_CHECK) {
-    return;
+  /* istanbul ignore if */
+  if (ENABLED) {
+    if (ENABLE_DOMAIN_CHECK) {
+      _ASSERT_UNUSED_DOMAIN(domain);
+    }
   }
-
+}
+function _ASSERT_UNUSED_DOMAIN(domain) {
   // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
   ASSERT(!domain._fdvar_in_use, 'domains should be unique and not shared');
   domain._fdvar_in_use = true; // asserted just so automatic removal strips this line as well
 }
 
-function ASSERT_VARS(vars) {
-  if (!ENABLED) {
-    return;
-  }
-
-  for (let name in vars) {
-    let fdvar = vars[name];
-    ASSERT_DOMAIN(fdvar.dom);
-  }
-}
-
-function ASSERT_SPACE(space) {
-  if (!ENABLED) {
-    return;
-  }
-
-  // TBD: expand with other assertions...
-  ASSERT_VARS(space.vars);
-}
-
-function ASSERT_PROPAGATORS(propagators) {
-  if (!ENABLED) {
-    return;
-  }
-
-  ASSERT(!!propagators, 'propagators should exist', propagators);
-  for (let i = 0; i < propagators.length; i++) {
-    let p = propagators[i];
-    ASSERT_PROPAGATOR(p);
-  }
-}
-
-function ASSERT_PROPAGATOR(propagator) {
-  if (!ENABLED) {
-    return;
-  }
-
-  ASSERT(!!propagator, 'propagators should not be sparse', propagator);
-  if (propagator instanceof Array) {
-    ASSERT(propagator.length >= 2, 'should at least have a name and vars', propagator);
-    ASSERT(typeof propagator[0] === 'string', 'name should be a string', propagator);
-    ASSERT(propagator[1] instanceof Array, 'second value should be a list of fdvar names', propagator);
-    ASSERT(propagator[1].filter(x => typeof x !== 'string').length === 0, 'should all be strings', propagator);
-  } else {
-    ASSERT(false, 'propagator should be either a Propagator instance or an Array', propagator);
-  }
-}
-
 function ASSERT_DOMAIN_EMPTY_SET(domain) {
-  if (!ENABLED || !ENABLE_EMPTY_CHECK) {
-    return;
+  /* istanbul ignore if */
+  if (ENABLED) {
+    if (ENABLE_EMPTY_CHECK) {
+      _ASSERT_DOMAIN_EMPTY_SET(domain);
+    }
   }
-
+}
+function _ASSERT_DOMAIN_EMPTY_SET(domain) {
   if (domain._trace) {
     THROW(`Domain already marked as set to empty...: ${domain._trace}`);
   }
   // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
-  domain._trace = new Error().stack();
+  domain._trace = new Error().stack;
 }
 
 function ASSERT_DOMAIN_EMPTY_CHECK(domain) {
+  /* istanbul ignore if */
   if (!ENABLED) {
     return;
   }
 
-  if (!domain.length) {
+  if (!domain.length && !domain.__skipEmptyCheck) { // __skipEmptyCheck is to circumvent this check in tests
+    /* istanbul ignore if */
     if (ENABLE_EMPTY_CHECK) {
       if (domain._trace) {
         THROW(`Domain should not be empty but was set empty at: ${domain._trace}`);
@@ -185,6 +150,7 @@ function ASSERT_DOMAIN_EMPTY_CHECK(domain) {
 }
 
 function ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(domain) {
+  /* istanbul ignore if */
   if (!ENABLED) {
     return;
   }
@@ -256,14 +222,13 @@ export {
 
   ASSERT,
   ASSERT_DOMAIN,
+  _ASSERT_DOMAIN,
   ASSERT_DOMAIN_EMPTY_CHECK,
   ASSERT_DOMAIN_EMPTY_SET,
+  _ASSERT_DOMAIN_EMPTY_SET,
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
-  ASSERT_PROPAGATOR,
-  ASSERT_PROPAGATORS,
-  ASSERT_SPACE,
   ASSERT_UNUSED_DOMAIN,
-  ASSERT_VARS,
+  _ASSERT_UNUSED_DOMAIN,
   GET_NAME,
   GET_NAMES,
   THROW,

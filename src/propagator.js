@@ -31,9 +31,9 @@ import {
  *
  * @param {$config} config
  * @param {string} opname
- * @param {string} leftVarName
- * @param {string} rightVarName
- * @param {string} boolName
+ * @param {string|number} leftVarName
+ * @param {string|number} rightVarName
+ * @param {string|number} [boolName]
  * @returns {string}
  */
 function propagator_addReified(config, opname, leftVarName, rightVarName, boolName) {
@@ -73,6 +73,8 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
 
   if (!boolName) {
     boolName = config_addVarAnon(config, 0, 1);
+  } else if (typeof boolName === 'number') {
+    boolName = config_addVarAnon(config, 0, 1);
   }
   // TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
   //else if fdvar_constrain(space.vars[boolName], domain_createBool()) is REJECTED
@@ -110,9 +112,9 @@ function propagator_addCallback(config, varNames, callback) {
  * propagator would be useless otherwise.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
- * @returns {*}
+ * @param {string|number} v1name
+ * @param {string|number} v2name
+ * @returns {string} the name for v1 (!) The result var for some other propagators
  */
 function propagator_addEq(config, v1name, v2name) {
   ASSERT(config._class === 'config');
@@ -144,8 +146,8 @@ function propagator_addEq(config, v1name, v2name) {
  * for fdeq which also apply to this one.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
+ * @param {string|number} v1name
+ * @param {string|number} v2name
  */
 function propagator_addLt(config, v1name, v2name) {
   ASSERT(config._class === 'config');
@@ -169,8 +171,8 @@ function propagator_addLt(config, v1name, v2name) {
  * Greater than propagator.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
+ * @param {string|number} v1name
+ * @param {string|number} v2name
  */
 function propagator_addGt(config, v1name, v2name) {
   // _swap_ v1 and v2 because: a>b is b<a
@@ -181,8 +183,8 @@ function propagator_addGt(config, v1name, v2name) {
  * Less than or equal to propagator.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
+ * @param {string|number} v1name
+ * @param {string|number} v2name
  */
 function propagator_addLte(config, v1name, v2name) {
   ASSERT(config._class === 'config');
@@ -204,9 +206,9 @@ function propagator_addLte(config, v1name, v2name) {
 
 /**
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
- * @param {string} resultName
+ * @param {string|number} v1name
+ * @param {string|number} v2name
+ * @param {string|number} [resultName]
  * @returns {string}
  */
 function propagator_addMul(config, v1name, v2name, resultName) {
@@ -238,9 +240,9 @@ function propagator_addMul(config, v1name, v2name, resultName) {
 
 /**
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
- * @param {string} resultName
+ * @param {string|number} v1name
+ * @param {string|number} v2name
+ * @param {string|number} [resultName]
  * @returns {string}
  */
 function propagator_addDiv(config, v1name, v2name, resultName) {
@@ -274,8 +276,8 @@ function propagator_addDiv(config, v1name, v2name, resultName) {
  * Greater than or equal to.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
+ * @param {string|number} v1name
+ * @param {string|number} v2name
  */
 function propagator_addGte(config, v1name, v2name) {
   // _swap_ v1 and v2 because: a>=b is b<=a
@@ -286,8 +288,8 @@ function propagator_addGte(config, v1name, v2name) {
  * Ensures that the two variables take on different values.
  *
  * @param {$config} config
- * @param {string} v1name
- * @param {string} v2name
+ * @param {string|number} v1name
+ * @param {string|number} v2name
  */
 function propagator_addNeq(config, v1name, v2name) {
   ASSERT(config._class === 'config');
@@ -312,7 +314,7 @@ function propagator_addNeq(config, v1name, v2name) {
  * ensure that they are pairwise distinct.
  *
  * @param {$config} config
- * @param {string[]} varNames
+ * @param {Array.<string|number>} varNames
  */
 function propagator_addDistinct(config, varNames) {
   ASSERT(config._class === 'config');
@@ -337,7 +339,6 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2
   ASSERT(config._class === 'config');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
-  ASSERT(typeof sumName === 'string' || typeof sumName === 'number' || typeof sumName === 'undefined', 'expecting sumName to be number, string, or undefined', sumName);
 
   if (typeof v1name === 'number') {
     v1name = config_addVarAnon(config, v1name);
@@ -403,7 +404,6 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
   ASSERT(config._class === 'config');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
-  ASSERT(typeof resultVar === 'string' || typeof resultVar === 'number' || typeof resultVar === 'undefined', 'expecting resultVar to be number, string, or undefined', resultVar);
 
   if (typeof v1name === 'number') {
     v1name = config_addVarAnon(config, v1name);
@@ -447,8 +447,9 @@ function propagator_addRingMul(config, v1name, v2name, prodName) {
  * Returns the sumname
  *
  * @param {$config} config
- * @param {string[]} vars
- * @param {string} resultVarName
+ * @param {Array.<string|number>} vars
+ * @param {string|number} [resultVarName]
+ * @returns {string} The var name of the result var (relevant if you passed a number or nothing)
  * @returns {string}
  */
 function propagator_addSum(config, vars, resultVarName) {
@@ -462,35 +463,31 @@ function propagator_addSum(config, vars, resultVarName) {
   let len = vars.length;
   switch (len) {
     case 0:
-      return THROW('propagator_addSum: Nothing to sum!');
+      return THROW('SUM_REQUIRES_VARS');
 
     case 1:
-      propagator_addEq(config, vars[0], resultVarName);
-      break;
+      return propagator_addEq(config, resultVarName, vars[0]);
 
     case 2:
-      propagator_addPlus(config, vars[0], vars[1], resultVarName);
-      break;
-
-    default: // "divide and conquer" ugh. feels like there is a better way to do this
-      ASSERT(len > 2, 'expecting at least 3 elements in the list...', vars);
-
-      let t1;
-      let n = Math.floor(vars.length / 2);
-      if (n > 1) {
-        t1 = config_addVarAnon(config);
-        propagator_addSum(config, vars.slice(0, n), t1);
-      } else {
-        t1 = vars[0];
-      }
-
-      let t2 = config_addVarAnon(config);
-
-      propagator_addSum(config, vars.slice(n), t2);
-      propagator_addPlus(config, t1, t2, resultVarName);
+      return propagator_addPlus(config, vars[0], vars[1], resultVarName);
   }
 
-  return resultVarName;
+  // "divide and conquer" ugh. feels like there is a better way to do this
+  ASSERT(len > 2, 'expecting at least 3 elements in the list...', vars);
+
+  let t1;
+  let n = Math.floor(vars.length / 2);
+  if (n > 1) {
+    t1 = config_addVarAnon(config);
+    propagator_addSum(config, vars.slice(0, n), t1);
+  } else {
+    t1 = vars[0];
+  }
+
+  let t2 = config_addVarAnon(config);
+
+  propagator_addSum(config, vars.slice(n), t2);
+  return propagator_addPlus(config, t1, t2, resultVarName);
 }
 
 /**
@@ -498,12 +495,13 @@ function propagator_addSum(config, vars, resultVarName) {
  * Create as many anonymous vars as necessary.
  *
  * @param {$config} config
- * @param {string[]} vars
- * @param {string} resultVarName
- * @returns {string}
+ * @param {Array.<string|number>} vars
+ * @param {string|number} [resultVarName]
+ * @returns {string} The var name of the result var (relevant if you passed a number or nothing)
  */
 function propagator_addProduct(config, vars, resultVarName) {
   ASSERT(config._class === 'config');
+  ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
     resultVarName = config_addVarAnon(config);
@@ -514,29 +512,26 @@ function propagator_addProduct(config, vars, resultVarName) {
       return THROW('PRODUCT_REQUIRES_VARS');
 
     case 1:
-      propagator_addEq(config, vars[0], resultVarName);
-      break;
+      // note: by putting the result var first we get
+      // the var name back for it in case it's a number
+      return propagator_addEq(config, resultVarName, vars[0]);
 
     case 2:
-      propagator_addRingMul(config, vars[0], vars[1], resultVarName);
-      break;
-
-    default:
-      let n = Math.floor(vars.length / 2);
-      let t1;
-      if (n > 1) {
-        t1 = config_addVarAnon(config);
-        propagator_addProduct(config, vars.slice(0, n), t1);
-      } else {
-        t1 = vars[0];
-      }
-      let t2 = config_addVarAnon(config);
-
-      propagator_addProduct(config, vars.slice(n), t2);
-      propagator_addRingMul(config, t1, t2, resultVarName);
+      return propagator_addRingMul(config, vars[0], vars[1], resultVarName);
   }
 
-  return resultVarName;
+  let n = Math.floor(vars.length / 2);
+  let t1;
+  if (n > 1) {
+    t1 = config_addVarAnon(config);
+    propagator_addProduct(config, vars.slice(0, n), t1);
+  } else {
+    t1 = vars[0];
+  }
+  let t2 = config_addVarAnon(config);
+
+  propagator_addProduct(config, vars.slice(n), t2);
+  return propagator_addRingMul(config, t1, t2, resultVarName);
 }
 
 /**

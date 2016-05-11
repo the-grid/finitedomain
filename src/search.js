@@ -1,6 +1,5 @@
 import {
   ASSERT,
-  ASSERT_SPACE,
 } from './helpers';
 import {
   space_createClone,
@@ -35,7 +34,6 @@ import distribute_getNextDomainForVar from './distribution/value';
 function search_depthFirst(state) {
   let isStart = !state.stack || state.stack.length === 0;
   if (isStart) {
-    ASSERT_SPACE(state.space);
     // If no stack argument, then search begins with state.space
     if (state.stack) {
       state.stack.push(state.space);
@@ -57,7 +55,6 @@ function search_depthFirst(state) {
   while (stack.length > 0) {
     let next_space;
     space = stack[stack.length - 1];
-    ASSERT_SPACE(space);
 
     if (!space_propagate(space)) {
       _search_onReject(state, space, stack);
@@ -67,7 +64,6 @@ function search_depthFirst(state) {
     } else {
       next_space = createNextSpaceNode(space, state);
       if (next_space) {
-        ASSERT_SPACE(next_space);
         // Now this space is neither solved nor failed but since
         // no constraints are rejecting we must look further.
         // Push on to the stack and explore further.

@@ -32,12 +32,25 @@ describe('distribution/value.spec', function() {
     expect(fdvar_createBool).to.be.a('function');
   });
 
+  it('should throw for unknown name', function() {
+    expect(_ => _distribute_getNextDomainForVar('error')).to.throw('unknown next var func');
+  });
+
   describe('distribution_valueByThrow', function() {
 
     it('should throw', function() {
       expect(_ => _distribute_getNextDomainForVar('throw')).to.throw('not expecting to pick this distributor');
     });
+  });
 
+  describe('distribution naive', function() {
+
+    it('should work', function() {
+      let fdvar = fdvar_createBool('A');
+      let dom = _distribute_getNextDomainForVar('naive', undefined, fdvar);
+
+      expect(dom).to.eql(specDomainCreateValue(0));
+    });
   });
 
   describe('distribution_valueByMin', function() {

@@ -16,6 +16,7 @@ import {
 import {
   config_addVar,
   config_addVarAnon,
+  config_addVarsA,
   config_create,
   config_getUnknownVars,
   config_setDefaults,
@@ -23,6 +24,7 @@ import {
 } from './config';
 
 import {
+  PAIR_SIZE,
   domain_createBool,
   domain_createValue,
   domain_fromList,
@@ -53,7 +55,7 @@ import {
   propagator_addMin,
   propagator_addProduct,
   propagator_addReified,
-  propagator_addRing_mul,
+  propagator_addRingMul,
   propagator_addSum,
 } from './propagator';
 
@@ -68,47 +70,36 @@ import {
  *
  * @type {Solver}
  */
-let Solver = class Solver {
+class Solver {
   /**
-   * @param {Object} options
-   * @property {string} [o.distribute='naive']
-   * @property {string} [o.search='depth_first']
-   * @property {number[]} [o.defaultDomain=[0,1]]
-   * @property {Object} [o.searchDefaults]
-   * @property {Config} [o.config=config_create()]
+   * @param {Object} options = {}
+   * @property {string} [options.distribute='naive']
+   * @property {string} [options.search='depth_first']
+   * @property {number[]} [options.defaultDomain=[0,1]]
+   * @property {Object} [options.searchDefaults]
+   * @property {Config} [options.config=config_create()]
    */
   constructor(options = {}) {
-    this._class = 'solver';
-
     let {
-      distribute,
-      search,
-      defaultDomain,
-      config,
+      distribute = 'naive',
+      search = 'depth_first',
+      defaultDomain = domain_createBool(),
+      config = config_create(),
     } = options;
+
+    this._class = 'solver';
 
     this.distribute = distribute;
     this.search = search;
     this.defaultDomain = defaultDomain;
     this.config = config;
 
-    if (this.search == null) {
-      this.search = 'depth_first';
-    }
-    if (this.distribute == null) {
-      this.distribute = 'naive';
-    }
-    if (this.defaultDomain == null) {
-      this.defaultDomain = domain_createBool();
-    }
-    if (this.config == null) {
-      this.config = config_create();
-    }
-
-    if (typeof this.distribute === 'string') {
+    if (typeof distribute === 'string') {
       config_setDefaults(this.config, this.distribute);
-    } else if (this.distribute) {
+    } else if (typeof distribute === 'object') {
       config_setOptions(this.config, this.distribute);
+    } else {
+      THROW('SOLVER_OPTIONS_UNKNOWN_TYPE');
     }
 
     this.vars = {
@@ -173,13 +164,10 @@ let Solver = class Solver {
 
   /**
    * @param {string} id
-   * @param {number[]} domain
+   * @param {number[]} [domain=this.defaultDomain.slice(0)]
    * @returns {string}
    */
-  decl(id, domain) {
-    if (typeof domain === 'undefined' || domain === null) {
-      domain = this.defaultDomain.slice(0);
-    }
+  decl(id, domain = this.defaultDomain.slice(0)) {
     domain = solver_validateDomain(domain);
     return config_addVar(this.config, id, domain);
   }
@@ -219,7 +207,7 @@ let Solver = class Solver {
     } = v;
 
     if (id == null) {
-      THROW('Solver#addVar: requires id ');
+      THROW('Solver#addVar: requires id');
     }
 
     let vars = this.vars;
@@ -305,9 +293,9 @@ let Solver = class Solver {
   }
   ring_mul(e1, e2, resultVar) {
     if (resultVar) {
-      return propagator_addRing_mul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
+      return propagator_addRingMul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
     }
-    return propagator_addRing_mul(this.config, GET_NAME(e1), GET_NAME(e2));
+    return propagator_addRingMul(this.config, GET_NAME(e1), GET_NAME(e2));
   }
 
   ['/'](e1, e2, resultVar) {
@@ -366,7 +354,7 @@ let Solver = class Solver {
   }
 
   ['=='](e1, e2) {
-    this.eq(e1, e2);
+    return this.eq(e1, e2);
   }
   eq(e1, e2) {
     if (e1 instanceof Array) {
@@ -531,18 +519,21 @@ let Solver = class Solver {
    * Solve this solver. It should be setup with all the constraints.
    *
    * @param {Object} options
-   * @property {number} options.max
-   * @property {number} options.log Logging level; one of: 0, 1 or 2 (see LOG_* constants)
+   * @property {number} [options.max=1000]
+   * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
    * @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
-   * @property {number} options.search='depth_first' See FD.Search
-   * @property {number} options.distribute='naive' Maps to FD.distribution.value
-   * @property {Object} [options.distribute] See config_setOptions
-   * @return {Array}
+   * @property {number} [options.search='depth_first'] See FD.Search
+   * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
+   * @property {boolean} add_unknown_vars
+   * @return {Object[]}
    */
   solve(options) {
     let obj = this.prepare(options);
-    ASSERT(!(options && options.dbg === true || options && options.dbg & 1) || !console.log(__space_debugString(this.state.space)));
-    ASSERT(!(options && options.dbg & 2) || !console.log(`## state.space.config:\n${this.state.space.config}`));
+
+    // logging inside asserts because they are stripped out for dist
+    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(__space_debugString(this.state.space))));
+    ASSERT(!(options && (options.dbg & LOG_STATS) && console.log(`## state.space.config:\n${this.state.space.config}`)));
+
     this.run(obj);
     return this.solutions;
   }
@@ -555,31 +546,19 @@ let Solver = class Solver {
    */
   prepare(options = {}) {
     let {
-      max,
-      log, // 0, 1, 2
-      vars: branchVars,
+      max = 1000,
+      log = LOG_NONE,
+      vars: branchVars = this.vars.all,
       search,
-      distribute: distributionOptions,
-      add_unknown_vars: addUnknownVars, // bool, TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
+      distribute: distributionOptions = this.distribute,
+      add_unknown_vars: addUnknownVars, // TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
     } = options;
 
-    if (typeof log === 'undefined' || log === null) {
-      log = LOG_NONE;
-    }
-    if (typeof max === 'undefined' || max === null) {
-      max = 1000;
-    }
-    if (typeof branchVars === 'undefined' || branchVars === null) {
-      branchVars = this.vars.all;
-    }
     let varNames = GET_NAMES(branchVars);
-    if (typeof distributionOptions === 'undefined' || distributionOptions === null) {
-      distributionOptions = this.distribute;
-    } // TOFIX: this is weird. if @distribute is a string this wont do anything...
 
     if (addUnknownVars) {
       let unknown_names = config_getUnknownVars(this.config);
-      config_addVarAnon(this.config, unknown_names);
+      config_addVarsA(this.config, unknown_names, this.defaultDomain.slice(0));
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -611,14 +590,10 @@ let Solver = class Solver {
   }
 
   /**
-   * @param {string} search
-   * @returns {string} [search]
+   * @param {string} [search=this.search]
+   * @returns {Function}
    */
-  _get_search_func_or_die(search) {
-    if (typeof search === 'undefined' || search === null) {
-      search = this.search;
-    }
-
+  _get_search_func_or_die(search = this.search) {
     switch (search) {
       case 'depth_first':
         var searchFunc = search_depthFirst;
@@ -637,7 +612,7 @@ let Solver = class Solver {
    * @property {Function} options.searchFunc
    * @property {number} options.max
    * @property {number} options.log
-   * @param {boolean} squash If squashed, dont get the actual solutions. They are irrelevant for perf tests.
+   * @param {boolean} [squash] If squashed, dont get the actual solutions. They are irrelevant for perf tests.
    */
   run({searchFunc, max, log}, squash) {
     ASSERT(typeof searchFunc === 'function', 'search func should be a function');
@@ -717,7 +692,7 @@ let Solver = class Solver {
     let solvedConfig = space_toConfig(this.state.space);
     return new Solver({config: solvedConfig});
   }
-};
+}
 
 /**
  * Visit the branch vars and collect var specific configuration overrides if
@@ -738,7 +713,8 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
     let distributeOptions = bvar && bvar.distributeOptions;
     if (distributeOptions) {
       if (!overrides) overrides = {};
-      if (!overrides[name]) overrides[name] = {};
+      ASSERT(!overrides[name], 'each name is visited only once so this key should not yet exist');
+      overrides[name] = {};
       for (let key in distributeOptions) {
         overrides[name][key] = distributeOptions[key];
       }
@@ -792,10 +768,7 @@ function solver_validateDomain(domain) {
  * @returns {string|undefined}
  */
 function solver_confirmDomain(domain) {
-  if ((domain.length % 2) !== 0) {
-    return 'Detected invalid domain, maybe legacy?';
-  }
-  for (let i = 0; i < domain.length; i += 2) {
+  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
     let lo = domain[i];
     let hi = domain[i + 1];
     let e = solver_confirmDomainElement(lo);
@@ -808,15 +781,16 @@ function solver_confirmDomain(domain) {
     }
 
     if (lo < SUB) {
-      return `$omain contains a number lower than SUB (#{n} < ${SUB}), this is probably a bug`;
+      return `Domain contains a number lower than SUB (${lo} < ${SUB}), this is probably a bug`;
     }
     if (hi > SUP) {
-      return `$omain contains a number higher than SUP (#{n} > ${SUP}), this is probably a bug`;
+      return `Domain contains a number higher than SUP (${hi} > ${SUP}), this is probably a bug`;
     }
     if (lo > hi) {
-      return `$ound a lo/hi pair where lo>hi, expecting all pairs lo<=hi (#{lo}>${hi})`;
+      return `Found a lo/hi pair where lo>hi, expecting all pairs lo<=hi (${lo}>${hi})`;
     }
   }
+  ASSERT((domain.length % PAIR_SIZE) === 0, 'other tests should have caught uneven domain lengths');
 }
 
 /**
@@ -829,12 +803,6 @@ function solver_confirmDomainElement(n) {
       return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
     }
     return 'Expecting array of numbers, found something else (#{n}), this is probably a bug';
-  }
-  if (n < SUB) {
-    return `Domain contains a number lower than SUB (#{n} < ${SUB}), this is probably a bug`;
-  }
-  if (n > SUP) {
-    return `Domain contains a number higher than SUP (#{n} > ${SUP}), this is probably a bug`;
   }
   if (isNaN(n)) {
     return 'Domain contains an actual NaN, this is probably a bug';
@@ -856,7 +824,7 @@ function solver_tryToFixLegacyDomain(domain) {
     if (!(a instanceof Array)) {
       return;
     }
-    if (a.length !== 2) {
+    if (a.length !== PAIR_SIZE) {
       return;
     }
     let [lo, hi] = a;

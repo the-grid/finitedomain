@@ -36,7 +36,6 @@ import {
   fdvar_isUndetermined,
   fdvar_lowerBound,
   fdvar_middleElement,
-  fdvar_min,
   fdvar_upperBound,
 } from '../fdvar';
 
@@ -90,7 +89,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceInde
       return distribution_valueByList(space, fdvar, choiceIndex);
 
     case 'naive':
-      return domain_createValue(fdvar_min(fdvar));
+      return domain_createValue(fdvar_lowerBound(fdvar));
 
     case 'splitMax':
       return distribution_valueBySplitMax(fdvar, choiceIndex);
@@ -381,8 +380,8 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
       let distOptions = configVarDistOptions[varName];
       ASSERT(distOptions, 'markov vars should have  distribution options', JSON.stringify(fdvar));
       let expandVectorsWith = distOptions.expandVectorsWith;
-      ASSERT(distOptions.matrix, 'there should be a matrix available for every var', distOptions.matrix || JSON.stringify(fdvar), distOptions.matrix || JSON.stringify(configVarDistOptions[varName]));
-      ASSERT(distOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distOptions.legend || (expandVectorsWith != null) || JSON.stringify(distOptions));
+      ASSERT(distOptions.matrix, 'there should be a matrix available for every var'/*, distOptions.matrix || JSON.stringify(fdvar), distOptions.matrix || JSON.stringify(configVarDistOptions[varName]) */);
+      ASSERT(distOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set'/*, distOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar) || distOptions.legend || (expandVectorsWith != null) || JSON.stringify(distOptions)*/);
 
       let random = distOptions.random || MATH_RANDOM;
 

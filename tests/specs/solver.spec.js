@@ -7,10 +7,774 @@ import {
 } from '../fixtures/domain.fixt';
 
 import Solver from '../../src/solver';
+import {
+  LOG_NONE,
+  LOG_STATS,
+  LOG_SOLVES,
+  LOG_MAX,
+  LOG_MIN,
+  SUB,
+  SUP,
+} from '../../src/helpers';
 
 describe('solver.spec', function() {
 
-  it('should exist', () => expect(typeof Solver).to.be.equal('function'));
+  describe('api', function() {
+
+    describe('solver constructor', function() {
+
+      it('should exist', function() {
+        expect(typeof Solver).to.be.equal('function');
+      });
+
+      it('should not require the options arg', function() {
+        let solver = new Solver();
+
+        expect(solver).to.be.an('object');
+        expect(solver instanceof Solver);
+      });
+
+      it('should accept a string for distribution options', function() {
+        let solver = new Solver({distribute: 'naive'});
+
+        expect(solver).to.be.an('object');
+        expect(solver instanceof Solver);
+      });
+
+      it('should throw for unknown distribute strings', function() {
+        expect(_ => new Solver({distribute: 'fail'})).to.throw('distribution.get_defaults: Unknown preset: fail');
+      });
+
+      it('should throw if options is a function', function() {
+        expect(_ => new Solver({
+          distribute: function() {
+          },
+        })).to.throw('SOLVER_OPTIONS_UNKNOWN_TYPE');
+      });
+
+      it('should accept an object for distribution options', function() {
+        let solver = new Solver({distribute: {}});
+
+        expect(solver).to.be.an('object');
+        expect(solver instanceof Solver);
+      });
+    });
+
+    describe('solver.constant', function() {
+
+      it('constant(false)', function() {
+        let solver = new Solver();
+        let name = solver.constant(false);
+
+        expect(name).to.be.a('string');
+      });
+
+      it('constant(true)', function() {
+        let solver = new Solver();
+        let name = solver.constant(true);
+
+        expect(name).to.be.a('string');
+      });
+
+      it('constant(0)', function() {
+        let solver = new Solver();
+        let name = solver.constant(0);
+
+        expect(name).to.be.a('string');
+      });
+
+      it('constant(10)', function() {
+        let solver = new Solver();
+        let name = solver.constant(10);
+
+        expect(name).to.be.a('string');
+      });
+    });
+
+    describe('solver.num', function() {
+
+      it('num(false)', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.num(false)).to.throw('Solver#num: expecting a number, got false (a boolean)');
+      });
+
+      it('num(true)', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.num(true)).to.throw('Solver#num: expecting a number, got true (a boolean)');
+      });
+
+      it('num(0)', function() {
+        let solver = new Solver();
+        let name = solver.num(0);
+
+        expect(name).to.be.a('string');
+      });
+
+      it('num(10)', function() {
+        let solver = new Solver();
+        let name = solver.num(10);
+
+        expect(name).to.be.a('string');
+      });
+
+      it('should throw for undefined', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.num(undefined)).to.throw('Solver#num: expecting a number, got undefined (a undefined)');
+      });
+
+      it('should throw for null', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.num(null)).to.throw('Solver#num: expecting a number, got null (a object)');
+      });
+
+      it('should throw for NaN', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.num(NaN)).to.throw('Solver#num: expecting a number, got NaN');
+      });
+    });
+
+    describe('solver.decl', function() {
+
+      it('should work', function() {
+        let solver = new Solver();
+
+        expect(solver.decl('foo')).to.equal('foo');
+      });
+
+      it('should accept a flat array for domain', function() {
+        let solver = new Solver();
+        solver.decl('foo', [0, 10, 20, 30]);
+
+        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+      });
+
+      it('should accept a legacy nested array for domain', function() {
+        let solver = new Solver();
+        solver.decl('foo', [[0, 10], [20, 30]]);
+
+        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+      });
+
+      it('should throw for bad legacy domain ', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [[0]])).to.throw('Fatal: unable to fix domain: [[0]]');
+      });
+
+      it('should throw for bad legacy domain with multiple ranges', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [[0], [20, 30]])).to.throw('Fatal: unable to fix domain: [[0],[20,30]]');
+      });
+
+      it('should throw for domains with numbers <SUB', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [SUB - 2, SUB - 1])).to.throw('Fatal: unable to fix domain: [-2,-1]');
+      });
+
+      it('should throw for domains with numbers >SUP', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [SUP + 1, SUP + 2])).to.throw('Fatal: unable to fix domain: [100000001,100000002]');
+      });
+
+      it('should throw for domains with NaNs', function() {
+        let solver = new Solver();
+        expect(_ => solver.decl('foo', [0, NaN])).to.throw('Fatal: unable to fix domain: [0,null]');
+
+        let solver2 = new Solver();
+        expect(_ => solver2.decl('foo', [NaN, 1])).to.throw('Fatal: unable to fix domain: [null,1]');
+
+        let solver3 = new Solver();
+        expect(_ => solver3.decl('foo', [NaN, NaN])).to.throw('Fatal: unable to fix domain: [null,null]');
+      });
+
+      it('should throw for domains with inverted range', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [2, 1])).to.throw('Fatal: unable to fix domain: [2,1]');
+      });
+
+      it('should throw for legacy domains with inverted range', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [[2, 1]])).to.throw('Fatal: unable to fix domain: [[2,1]]');
+      });
+
+      it('should throw for domains with garbage', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [{}, {}])).to.throw('Fatal: unable to fix domain: [{},{}]');
+      });
+
+      it('should throw for legacy domains with garbage', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [[{}]])).to.throw('Fatal: unable to fix domain: [[{}]]');
+      });
+
+      it('should throw for domains with one number', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.decl('foo', [1])).to.throw('Fatal: unable to fix domain: [1]');
+      });
+    });
+
+    describe('solver.addVar', function() {
+
+      it('should throw for addVar with undefined name', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.addVar({id: undefined})).to.throw('Solver#addVar: requires id');
+      });
+
+      it('should throw for addVar twice with the same name', function() {
+        let solver = new Solver();
+        let opts = {id: 'foo'};
+        let opts2 = {id: 'foo'}; // to ensure opts isnt adjusted
+
+        expect(solver.addVar(opts)).to.equal(opts);
+        expect(_ => solver.addVar(opts2)).to.throw('Solver#addVar: var.id already added: foo');
+      });
+
+      it('should update byId', function() {
+        let solver = new Solver();
+        expect(solver.vars.byId).to.eql({});
+        let opt = {id: 'foo'};
+        solver.addVar(opt);
+        expect(solver.vars.byId).to.eql({foo: opt});
+      });
+
+      it('should add the var options to solver.vars.all', function() {
+        let solver = new Solver();
+        expect(solver.vars.all).to.eql([]);
+        let opt = {id: 'foo'};
+        solver.addVar(opt);
+        expect(solver.vars.all).to.eql([opt]);
+      });
+
+      it('should not update byName if name is undefined', function() {
+        let solver = new Solver();
+
+        expect(solver.vars.byName.foo, 'before').to.equal(undefined);
+        solver.addVar({id: 'foo'});
+        expect(solver.vars.byName.foo, 'still unset').to.equal(undefined);
+      });
+
+      it('should add the name to byName if not set', function() {
+        let solver = new Solver();
+        let opt = {id: 'foo', name: 'foo'};
+
+        expect(solver.vars.byName.foo, 'before').to.equal(undefined);
+        solver.addVar(opt);
+        expect(solver.vars.byName.foo).to.be.an('array');
+        expect(solver.vars.byName.foo.length).to.equal(1);
+        expect(solver.vars.byName.foo[0]).to.equal(opt);
+      });
+
+      it('should add the name to the list in byName if already set', function() {
+        let solver = new Solver();
+        let opt = {id: 'foo', name: 'foo'};
+        solver.addVar(opt);
+
+        let opt2 = {id: 'bar', name: 'foo'};
+        solver.addVar(opt2);
+
+        expect(solver.vars.byName.foo).to.eql([opt, opt2]);
+      });
+
+      it('should add two vars with different names to byName', function() {
+        let solver = new Solver();
+        let opt = {id: 'foo', name: 'foo'};
+        solver.addVar(opt);
+        let opt2 = {id: 'bar', name: 'foo'};
+        solver.addVar(opt2);
+        let opt3 = {id: 'boo', name: 'other'};
+        solver.addVar(opt3);
+
+        expect(solver.vars.byName).to.eql({
+          foo: [opt, opt2],
+          other: [opt3],
+        });
+      });
+    });
+
+    describe('solver.plus', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B', 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method]('A', 2, 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method]('A', 'B', 3)).to.be.a('string');
+        });
+      }
+
+      alias('plus');
+      alias('+');
+    });
+
+    describe('solver.minus', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B', 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method]('A', 2, 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method]('A', 'B', 3)).to.be.a('string');
+        });
+      }
+
+      alias('minus');
+      alias('-');
+      alias('min');
+    });
+
+    describe('solver.times', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B', 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method]('A', 2, 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method]('A', 'B', 3)).to.be.a('string');
+        });
+      }
+
+      alias('times');
+      alias('*');
+      alias('ring_mul');
+    });
+
+    describe('solver.div', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B', 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method]('A', 2, 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method]('A', 'B', 3)).to.be.a('string');
+        });
+      }
+
+      alias('div');
+      alias('/');
+    });
+
+    describe('solver.product', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B'])).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B'], 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method]([1, 'B'], 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method](['A', 2], 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
+        });
+      }
+
+      alias('product');
+      alias('∏');
+    });
+
+    describe('solver.mul', function() {
+
+      it('should work without result var', function() {
+        let solver = new Solver();
+        expect(solver.mul('A', 'B')).to.be.a('string');
+      });
+
+      it('should work with a result var', function() {
+        let solver = new Solver();
+        expect(solver.mul('A', 'B', 'C')).to.equal('C');
+      });
+
+      it('should accept numbers on either of the three positions', function() {
+        let solver = new Solver();
+        expect(solver.mul(1, 'B', 'C')).to.equal('C');
+
+        let solver2 = new Solver();
+        expect(solver2.mul('A', 2, 'C')).to.equal('C');
+
+        let solver3 = new Solver();
+        expect(solver3.mul('A', 'B', 3)).to.be.a('string');
+      });
+    });
+
+    describe('solver.sum', function() {
+
+      function alias(method) {
+        it('should work without result var', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B'])).to.be.a('string');
+        });
+
+        it('should work with a result var', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B'], 'C')).to.equal('C');
+        });
+
+        it('should accept numbers on either of the three positions', function() {
+          let solver = new Solver();
+          expect(solver[method]([1, 'B'], 'C')).to.equal('C');
+
+          let solver2 = new Solver();
+          expect(solver2[method](['A', 2], 'C')).to.equal('C');
+
+          let solver3 = new Solver();
+          expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
+        });
+      }
+
+      alias('sum');
+      alias('∑');
+    });
+
+    describe('solver.distinct', function() {
+
+      function alias(method) {
+        it('should work', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B', 'C', 'D'], 'E')).to.equal(undefined);
+        });
+
+        it('accept zero vars', function() {
+          let solver = new Solver();
+          expect(solver[method]([], 'E')).to.equal(undefined);
+        });
+
+        it('accept one var', function() {
+          let solver = new Solver();
+          expect(solver[method](['A'], 'E')).to.equal(undefined);
+        });
+
+        it('accept two vars', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'B'], 'E')).to.equal(undefined);
+        });
+      }
+
+      alias('distinct');
+      alias('{}≠');
+    });
+
+    describe('solver comparison with return .eq', function() {
+
+      function alias(method) {
+        it('should work', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.equal('A'); // returns v1
+        });
+
+        it('should work with a number left', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B')).to.be.a('string');
+        });
+
+        it('should work with a number right', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 2)).to.be.a('string'); // not A!
+        });
+
+        it('should return the new var name for v2 if that was a number', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 2)).not.to.equal('A');
+        });
+
+        it('should work with an empty array', function() {
+          let solver = new Solver();
+          expect(solver[method]([], 'B')).to.equal('B'); // returns v2!
+        });
+
+        it('should work with an array of one element', function() {
+          let solver = new Solver();
+          expect(solver[method](['A'], 'B')).to.equal('B');
+        });
+
+        it('should work with an array of multiple elements', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'C', 'D'], 'B')).to.equal('B');
+        });
+
+        it('should work with a number', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B')).to.be.a('string');
+        });
+      }
+
+      alias('eq');
+      alias('==');
+    });
+
+    describe('solver comparison without return .neq .lt .lte .gt .gte', function() {
+
+      function alias(method) {
+        it('should work', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.equal(undefined);
+        });
+
+        it('should work with a number left', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B')).to.equal(undefined);
+        });
+
+        it('should work with a number right', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 2)).to.equal(undefined);
+        });
+
+        it('should accept a result name', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).equal(undefined);
+        });
+
+        it('should accept a result number', function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 3)).to.equal(undefined);
+        });
+
+        it('should work with an empty array', function() {
+          let solver = new Solver();
+          expect(solver[method]([], 'B')).to.equal(undefined);
+        });
+
+        it('should work with an array of one element', function() {
+          let solver = new Solver();
+          expect(solver[method](['A'], 'B')).to.equal(undefined);
+        });
+
+        it('should work with an array of multiple elements', function() {
+          let solver = new Solver();
+          expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
+        });
+
+        it('should work with a number', function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B')).to.equal(undefined);
+        });
+      }
+
+      alias('neq');
+      alias('!=');
+      alias('gte');
+      alias('>=');
+      alias('gt');
+      alias('>');
+      alias('lte');
+      alias('<=');
+      alias('lt');
+      alias('<');
+    });
+
+    describe('solver reifiers isNeq isEq isLt isLte isGt isGte', function() {
+
+      function alias(method) {
+        it('should work:' + method, function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B')).to.be.a('string');
+        });
+
+        it('should work with a number left: ' + method, function() {
+          let solver = new Solver();
+          expect(solver[method](1, 'B')).to.be.a('string');
+        });
+
+        it('should work with a number right: ' + method, function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 2)).to.be.a('string');
+        });
+
+        it('should accept a result name: ' + method, function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 'C')).to.equal('C');
+        });
+
+        it('should accept a result number: ' + method, function() {
+          let solver = new Solver();
+          expect(solver[method]('A', 'B', 3)).to.be.a('string');
+        });
+      }
+
+      alias('isNeq');
+      alias('!=?');
+      alias('isEq');
+      alias('==?');
+      alias('isGt');
+      alias('>?');
+      alias('isGte');
+      alias('>=?');
+      alias('isLt');
+      alias('<?');
+      alias('isLte');
+      alias('<=?');
+    });
+
+    describe('solver.solve', function() {
+
+      it('should solve a trivial case', function() {
+        let solver = new Solver({});
+        solver.addVar('A', [1, 2]);
+
+        expect(solver.solve()).to.eql([{A: 1}, {A: 2}]);
+      });
+
+      function forLevel(level) {
+        it('should accept all log levels (' + level + ')', function() {
+          let solver = new Solver();
+
+          expect(solver.solve({log: level})).to.eql([{}]);
+        });
+
+        it('should accept all dbg levels (' + level + ')', function() {
+          let solver = new Solver();
+
+          expect(solver.solve({dbg: level})).to.eql([{}]);
+        });
+      }
+
+      forLevel(undefined);
+      forLevel(null);
+      forLevel(false);
+      forLevel(true);
+      forLevel(LOG_NONE);
+      forLevel(LOG_STATS);
+      forLevel(LOG_SOLVES);
+      forLevel(LOG_MAX);
+      forLevel(LOG_MIN);
+    });
+
+    describe('solver.prepare', function() {
+
+      it('should prepare for war', function() {
+        let solver = new Solver();
+
+        solver.prepare({});
+        expect(true).to.equal(true);
+      });
+
+      it('should not require options object', function() {
+        let solver = new Solver();
+
+        solver.prepare();
+        expect(true).to.equal(true);
+      });
+
+      it('should init all undeclared vars with add_unknown_vars', function() {
+        // first without the option
+        let solver = new Solver({defaultDomain: specDomainCreateBool()});
+        solver.eq('A', 'B'); // A and B are not declared so we cant "just" use them
+        expect(_ => solver.solve()).to.throw();
+
+        // now with the option
+        let solver2 = new Solver({defaultDomain: specDomainCreateBool()});
+        solver2.eq('A', 'B'); // A and B are not declared but with the add_unknown_vars option we _can_ use them
+        expect(solver2.solve({add_unknown_vars: true})).to.eql([{
+          A: specDomainCreateBool(),
+          B: specDomainCreateBool(),
+        }]);
+      });
+
+      it('should throw with an unknown search function', function() {
+        let solver = new Solver();
+
+        expect(_ => solver.prepare({search: 'fail'})).to.throw('Unknown search strategy: fail');
+      });
+    });
+
+    describe('solver.space_add_var_range', function() {
+
+      it('should just map to config_addVar', function() {
+        let solver = new Solver();
+
+        expect(solver.space_add_var_range('foo', 1, 2)).to.equal('foo');
+      });
+    });
+
+    describe('solver.domain_fromList', function() {
+
+      it('should just map to domain_fromList', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql(specDomainCreateRanges([1, 2], [4, 5], [7, 7], [9, 13], [15, 15]));
+      });
+    });
+  });
 
   describe('API integration tests', function() {
 

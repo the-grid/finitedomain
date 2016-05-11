@@ -9,16 +9,24 @@ import {
   config_addPropagator,
   config_addVar,
   config_addVarAnon,
+  config_create,
   config_setOptions,
 } from '../../src/config';
 import {
   space_createClone,
+  //space_createFromConfig,
   space_createRoot,
   space_initFromConfig,
   space_isSolved,
   space_propagate,
   space_solution,
   space_solutionFor,
+  space_toConfig,
+
+  // debugging / testing
+  __space_debugString,
+  __space_debugVarDomains,
+  __space_getUnsolved,
 } from '../../src/space';
 
 describe('space.spec', function() {
@@ -224,6 +232,31 @@ describe('space.spec', function() {
       });
     });
 
+    describe('space_toConfig', function() {
+
+      it('should convert a space to its config', function() {
+        let space = space_createRoot(); // fresh space object
+        space_initFromConfig(space);
+        let config = config_create(); // fresh config object
+
+        // if a space has no special things, it should produce a
+        // fresh config... (but it's a fickle test at best)
+        expect(space_toConfig(space)).to.eql(config);
+      });
+
+      it('should convert a space with a var without domain', function() {
+        let space = space_createRoot(); // fresh space object
+        config_addVar(space.config, 'A');
+        space_initFromConfig(space);
+
+        let config = space_toConfig(space);
+        expect(config.all_var_names).to.eql(['A']);
+        expect(config.initial_vars, 'not an empty object').not.to.eql({});
+        expect(config.initial_vars, 'empty property should exist').to.eql({A: undefined});
+
+      });
+    });
+
     describe('space_propagate', function() {
 
       describe('simple cases', () =>
@@ -288,6 +321,14 @@ describe('space.spec', function() {
           space_initFromConfig(space);
 
           expect(space_propagate(space)).to.eql(false);
+        });
+
+        it('debugs', function() {
+          let space = space_createRoot();
+
+          expect(__space_debugString(space)).to.be.a('string');
+          expect(__space_debugVarDomains(space)).to.be.an('array');
+          expect(__space_getUnsolved(space)).to.be.an('array');
         });
       });
     });

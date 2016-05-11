@@ -21,4 +21,4 @@ node_modules
 .lock-wscript
 
 # allow the dist file
-!dist/finitedomain.min.js
+!dist/finitedomain.dist.min.js

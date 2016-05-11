@@ -9,6 +9,7 @@
     "url": "git://github.com/the-grid/finitedomain.git"
   },
   "scripts": {
+    "install": "bin/create-git-hooks.sh",
     "test": "bin/lint.prod.sh && bin/coverage.sh",
     "prepublish": "grunt dist",
     "lint": "bin/lint.prod.sh",

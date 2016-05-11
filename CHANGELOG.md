@@ -1,9 +1,15 @@
 # Changelog for Finite Domain Solver (finitedomain)
 
-## Unreleased, slated for v2.0.0:
+## Unreleased, slated for v2.0.1:
+ 
+- none
+
+## v2.0.0:
 
 - Converted from CoffeeScript (back) to mainly ES5 and some ES6 module stuff
 - Scaffold v0.0.5 (and some new stuff but not the react stuff)
+- Fixed a few small bugs along the way, hopefully no regressions
+- Added many tests and increased code coverage from 89% to 98%
 
 ## v1.3.2:
 

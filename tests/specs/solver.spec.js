@@ -669,7 +669,7 @@ describe('solver.spec', function() {
 
         it('should accept a result number: ' + method, function() {
           let solver = new Solver();
-          expect(solver[method]('A', 'B', 3)).to.be.a('string');
+          expect(solver[method]('A', 'B', 1)).to.be.a('string');
         });
       }
 

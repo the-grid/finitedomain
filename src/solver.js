@@ -461,7 +461,7 @@ class Solver {
   _cacheReified(op, e1, e2, boolVar) {
     e1 = GET_NAME(e1);
     e2 = GET_NAME(e2);
-    if (boolVar) {
+    if (boolVar != null) { // can be 0
       return propagator_addReified(this.config, op, e1, e2, GET_NAME(boolVar));
     }
     return propagator_addReified(this.config, op, e1, e2);

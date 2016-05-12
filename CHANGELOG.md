@@ -2,7 +2,8 @@
 
 ## Unreleased, slated for v2.0.1:
  
-- none
+- Fix `solver.isEq(A, B, 0)` which was ignoring the `0` and using a bool var, anyways
+- Throw if the bool var as a number for any reifier is not zero or one
 
 ## v2.0.0:
 

@@ -1,7 +1,11 @@
 # Changelog for Finite Domain Solver (finitedomain)
 
-## Unreleased, slated for v2.0.1:
+## Unreleased, slated for v2.0.2:
  
+- none
+
+## v2.0.1:
+
 - Fix `solver.isEq(A, B, 0)` which was ignoring the `0` and using a bool var, anyways
 - Throw if the bool var as a number for any reifier is not zero or one
 - Fix package.json not pointing to the right dist file name

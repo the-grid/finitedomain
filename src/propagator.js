@@ -4,6 +4,7 @@ import {
 } from './helpers';
 
 import {
+  config_addConstant,
   config_addPropagator,
   config_addVarAnon,
 } from './config';
@@ -71,9 +72,10 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
       THROW(`add_reified: Unsupported operator '${opname}'`);
   }
 
-  if (!boolName) {
-    boolName = config_addVarAnon(config, 0, 1);
-  } else if (typeof boolName === 'number') {
+  if (typeof boolName === 'number') {
+    if (boolName !== 0 && boolName !== 1) THROW('RESULT_VAR_OOB_MUST_BE_ZERO_OR_ONE_OR_BOTH[' + boolName + ']');
+    boolName = config_addConstant(config, boolName);
+  } else if (!boolName) {
     boolName = config_addVarAnon(config, 0, 1);
   }
   // TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure

@@ -33,7 +33,6 @@ import {
 import search_depthFirst from './search';
 
 import {
-  __space_debugString,
   space_createFromConfig,
   space_solution,
   space_toConfig,
@@ -224,7 +223,9 @@ class Solver {
     domain = solver_validateDomain(domain);
 
     config_addVar(this.config, id, domain);
+    ASSERT(!vars.byId[id], 'var should not yet exist', id, v);
     vars.byId[id] = v;
+    ASSERT(vars.all.indexOf(v) < 0, 'var should not yet be part of vars.all', id, v);
     vars.all.push(v);
 
     if (name != null) {
@@ -461,7 +462,7 @@ class Solver {
   _cacheReified(op, e1, e2, boolVar) {
     e1 = GET_NAME(e1);
     e2 = GET_NAME(e2);
-    if (boolVar) {
+    if (boolVar != null) { // can be 0
       return propagator_addReified(this.config, op, e1, e2, GET_NAME(boolVar));
     }
     return propagator_addReified(this.config, op, e1, e2);
@@ -531,7 +532,7 @@ class Solver {
     let obj = this.prepare(options);
 
     // logging inside asserts because they are stripped out for dist
-    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(__space_debugString(this.state.space))));
+    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
     ASSERT(!(options && (options.dbg & LOG_STATS) && console.log(`## state.space.config:\n${this.state.space.config}`)));
 
     this.run(obj);
@@ -709,24 +710,26 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
   let overrides;
   for (var i = 0; i < varNames.length; ++i) {
     var name = varNames[i];
-    var bvar = bvarsById[name];
-    let distributeOptions = bvar && bvar.distributeOptions;
-    if (distributeOptions) {
-      if (!overrides) overrides = {};
-      ASSERT(!overrides[name], 'each name is visited only once so this key should not yet exist');
-      overrides[name] = {};
-      for (let key in distributeOptions) {
-        overrides[name][key] = distributeOptions[key];
+    if (!overrides || !overrides[name]) {
+      var bvar = bvarsById[name];
+      let distributeOptions = bvar && bvar.distributeOptions;
+      if (distributeOptions) {
+        if (!overrides) overrides = {};
+        ASSERT(!overrides[name], 'each name is visited only once so this key should not yet exist', name, distributeOptions);
+        overrides[name] = {};
+        for (let key in distributeOptions) {
+          overrides[name][key] = distributeOptions[key];
+        }
       }
-    }
-    // TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
-    if (bvar && bvar.distribute) {
-      if (!overrides) overrides = {};
-      if (!overrides[name]) overrides[name] = {};
-      overrides[name].distributor_name = bvar.distribute;
-    }
-    if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
-      propagator_addMarkov(config, name);
+      // TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
+      if (bvar && bvar.distribute) {
+        if (!overrides) overrides = {};
+        if (!overrides[name]) overrides[name] = {};
+        overrides[name].distributor_name = bvar.distribute;
+      }
+      if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
+        propagator_addMarkov(config, name);
+      }
     }
   }
   return overrides;

@@ -1,6 +1,6 @@
 {
   "name": "finitedomain",
-  "main": "./dist/finitedomain.min.js",
+  "main": "./dist/finitedomain.dist.min.js",
   "description": "A fast feature rich finite domain solver",
   "license": "MIT",
   "version": "2.0.0",

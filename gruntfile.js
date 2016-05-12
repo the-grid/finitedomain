@@ -82,10 +82,14 @@ module.exports = function () {
     },
 
     watch: {
-      all: {
-        files: ['**/*.js'],
-        tasks: ['build'],
-      },
+      files: [
+        'src/**/*.js',
+        'tests/**/*',
+      ],
+      tasks: [
+        'browserify:dist',
+        'uglify:dist',
+      ],
     },
 
     mochaTest: {
@@ -179,7 +183,6 @@ module.exports = function () {
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
   grunt.registerTask('testp', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
-  grunt.registerTask('watch');
 
   grunt.registerTask('default', ['test']);
 };

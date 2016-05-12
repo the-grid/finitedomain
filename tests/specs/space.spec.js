@@ -24,7 +24,6 @@ import {
   space_toConfig,
 
   // debugging / testing
-  __space_debugString,
   __space_debugVarDomains,
   __space_getUnsolved,
 } from '../../src/space';
@@ -326,7 +325,6 @@ describe('space.spec', function() {
         it('debugs', function() {
           let space = space_createRoot();
 
-          expect(__space_debugString(space)).to.be.a('string');
           expect(__space_debugVarDomains(space)).to.be.an('array');
           expect(__space_getUnsolved(space)).to.be.an('array');
         });

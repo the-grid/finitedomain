@@ -33,7 +33,6 @@ import {
 import search_depthFirst from './search';
 
 import {
-  __space_debugString,
   space_createFromConfig,
   space_solution,
   space_toConfig,
@@ -533,7 +532,7 @@ class Solver {
     let obj = this.prepare(options);
 
     // logging inside asserts because they are stripped out for dist
-    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(__space_debugString(this.state.space))));
+    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
     ASSERT(!(options && (options.dbg & LOG_STATS) && console.log(`## state.space.config:\n${this.state.space.config}`)));
 
     this.run(obj);

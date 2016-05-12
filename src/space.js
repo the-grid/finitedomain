@@ -356,71 +356,6 @@ function space_getsetVarSolveState(varName, vars, result) {
 
 /**
  * @param {Space} space
- * @returns {string}
- */
-function __space_debugString(space) {
-  ASSERT(space._class === 'space');
-  try {
-    var things = ['## ## ## ##'];
-
-    things.push('Config:');
-    things.push(`- config.var_filter_func: ${space.config.var_filter_func}`);
-    things.push(`- config.next_var_func: ${space.config.next_var_func}`);
-    things.push(`- config.next_value_func: ${space.config.next_value_func}`);
-    things.push(`- config.targetedVars: ${space.config.targetedVars}`);
-
-    things.push(`Vars (${space.config.all_var_names.length}x):`);
-
-    /*
-      let { vars } = space;
-     for name, fdvar of vars
-     options = space.config.var_dist_options[name]
-     things.push "  ${name}: [${fdvar.dom.join(', ')}] ${options and ('Options: '+JSON.stringify(options)) or ''}"
-
-     things.push 'config.var_dist_options:'
-     for key, val of space.config.var_dist_options
-     things.push "  ${key}: ${JSON.stringify val}"
-     */
-
-    things.push(`Var (${space.config.all_var_names.length}x):`);
-    things.push(`  ${space.config.all_var_names}`);
-    things.push(`Unsolved vars (${space.unsolvedVarNames.length}x):`);
-    things.push(`  ${space.unsolvedVarNames}`);
-
-    things.push(`Propagators (${space.unsolvedPropagators.length}x):`);
-
-    /*
-     space.unsolvedPropagators.forEach (p) ->
-     try
-     solved = propagator_isSolved vars, p
-     catch e
-     solved = '(unknown; crashes when checked)'
-
-     a = p[1]?[0]
-     b = p[1]?[1]
-     c = p[1]?[2]
-     if p[0] is 'reified'
-     things.push "  ${p[0]}: '${p[2]}', '${p[1].join '\', \''}' \# [${vars[a]?.dom or 'FAIL'}] ${p[2]} [${vars[b]?.dom or 'FAIL'}] -> [${vars[c]?.dom or 'FAIL'}] | solved: ${solved}"
-     else if p[0] is 'ring'
-     things.push "  ${p[0]}: '${p[2]}', '${p[1].join '\', \''}' \# [${vars[a]?.dom or 'FAIL'}] ${p[2]} [${vars[b]?.dom or 'FAIL'}] -> [${vars[c]?.dom or 'FAIL'}] | solved: ${solved}"
-     else
-     things.push "  ${p[0]} '${p[1].join ', '}' \# [${vars[a]?.dom or 'FAIL'}] ${p[0]} [${vars[b]?.dom or 'FAIL'}] | solved: ${solved}"
-     */
-    if (!space.unsolvedPropagators.length) {
-      things.push('  - none');
-    }
-
-    things.push('## ## ## ##');
-  } catch (e) {
-    things.push(`(Crashed inside __space_debugString!)(${e.toString()})`);
-    throw new Error(things.join('\n'));
-  }
-
-  return things.join('\n');
-}
-
-/**
- * @param {Space} space
  * @returns {string[]}
  */
 function __space_debugVarDomains(space) {
@@ -463,7 +398,6 @@ export {
   space_toConfig,
 
   // debugging / testing
-  __space_debugString,
   __space_debugVarDomains,
   __space_getUnsolved,
 };

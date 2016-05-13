@@ -95,6 +95,7 @@ function _distribution_varFindBest(fdvars, names, fitnessFunc, filterFunc, confi
   for (let i = 0; i < names.length; i++) {
     let name = names[i];
     let fdvar = fdvars[name];
+    ASSERT(fdvar, 'expecting each name to have an fdvar', name);
     // TOFIX: if the name is the empty string this could lead to a problem. Must eliminate the empty string as var name
 
     if (!filterFunc || filterFunc(fdvar)) {

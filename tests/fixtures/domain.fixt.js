@@ -54,6 +54,41 @@ function specDomainCreateBool() {
   return specDomainCreateRange(0, 1);
 }
 
+const ZERO = 1 << 0;
+const ONE = 1 << 1;
+const TWO = 1 << 2;
+const THREE = 1 << 3;
+const FOUR = 1 << 4;
+const FIVE = 1 << 5;
+const SIX = 1 << 6;
+const SEVEN = 1 << 7;
+const EIGHT = 1 << 8;
+const NINE = 1 << 9;
+const TEN = 1 << 10;
+const ELEVEN = 1 << 11;
+const TWELVE = 1 << 12;
+const THIRTEEN = 1 << 13;
+const FOURTEEN = 1 << 14;
+const FIFTEEN = 1 << 15;
+const NUMBER = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
+function specDomainSmallNums(...values) {
+  let d = 0;
+  for (let i = 0; i < values.length; ++i) {
+    d |= NUMBER[values[i]];
+  }
+  return d;
+}
+function specDomainSmallRange(lo, hi) {
+  let d = 0;
+  for (; lo <= hi; ++lo) {
+    d |= NUMBER[lo];
+  }
+  return d;
+}
+function specDomainSmallEmpty() {
+  return 0; // magic value yo. no flags means zero
+}
+
 function stripAnonVars(solution) {
   for (let name in solution) {
     if (String(parseFloat(name)) === name) { // only true of name is a number
@@ -79,6 +114,9 @@ export {
   specDomainCreateOne,
   specDomainCreateFull,
   specDomainCreateBool,
+  specDomainSmallEmpty,
+  specDomainSmallNums,
+  specDomainSmallRange,
   stripAnonVars,
   stripAnonVarsFromArrays,
 };

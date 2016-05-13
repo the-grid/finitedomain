@@ -13,7 +13,8 @@ import {
 } from './step_comparison';
 
 import {
-  fdvar_setValueInline,
+  fdvar_setToOne,
+  fdvar_setToZero,
 } from '../fdvar';
 
 // BODY_START
@@ -42,13 +43,13 @@ function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, 
     if (hi === 0) {
       return REJECTED;
     }
-    fdvar_setValueInline(boolVar, 1);
+    fdvar_setToOne(boolVar);
     return SOMETHING_CHANGED;
   } else if (hi === 1 && propagator_stepWouldReject(opName, fdvar1, fdvar2)) {
     if (lo === 1) {
       return REJECTED;
     }
-    fdvar_setValueInline(boolVar, 0);
+    fdvar_setToZero(boolVar);
     return SOMETHING_CHANGED;
   } else { // boolVar is solved, enforce relevant op
     if (lo === 1) {

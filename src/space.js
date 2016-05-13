@@ -16,8 +16,8 @@ import {
 
 import {
   domain_getValue,
-  domain_isRange,
   domain_isSolved,
+  domain_max,
   domain_min,
 } from './domain';
 
@@ -98,7 +98,7 @@ function space_toConfig(space) {
     let dom = fdvar.dom;
     if (domain_isSolved(dom)) {
       dom = domain_getValue(dom);
-    } else if (domain_isRange(dom, SUB, SUP)) {
+    } else if (domain_min(dom) === SUB && domain_max(dom) === SUP) {
       dom = undefined;
     } else {
       dom = dom.slice(0);

@@ -26,7 +26,8 @@ import {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
 //  fdvar_setDomain,
-//  fdvar_setValueInline,
+//  fdvar_setToOne,
+//  fdvar_setToZero,
 //  fdvar_size,
 } from '../../src/fdvar';
 

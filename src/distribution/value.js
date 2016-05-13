@@ -7,6 +7,7 @@ choice left it should return undefined to signify the end.
 
 import {
   NO_SUCH_VALUE,
+  ZERO_CHANGES,
 
   ASSERT,
   THROW,
@@ -147,7 +148,8 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
 
     case SECOND_CHOICE:
       let d = domain_removeNextFromList(fdvar.dom, list);
-      if (!d && fallbackDistName) {
+      // note: d can be a new array-domain, a new small-domain, or ZERO_CHANGES (0)
+      if (d === ZERO_CHANGES && fallbackDistName) {
         return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar, choiceIndex);
       }
       return d;

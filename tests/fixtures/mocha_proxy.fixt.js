@@ -10,7 +10,7 @@ function expect(...args) {
     delete args[0]._fdvar_in_use;
     // meh.
     for (let key in args[0]) {
-      delete args[0][key]._fdvar_in_use;
+      if (args[0][key]) delete args[0][key]._fdvar_in_use;
     }
   }
 

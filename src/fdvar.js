@@ -16,6 +16,7 @@ import {
   domain_intersection,
   domain_equal,
   domain_forceEqInline,
+  domain_forceEqNumbered,
   domain_isDetermined,
   domain_isRejected,
   domain_isSolved,
@@ -24,10 +25,15 @@ import {
   domain_middleElement,
   domain_min,
   domain_removeGteInline,
+  domain_removeGteNumbered,
   domain_removeLteInline,
+  domain_removeLteNumbered,
   domain_removeValueInline,
-  domain_setToRangeInline,
+  domain_removeValueNumbered,
+  domain_setToOneInline,
+  domain_setToZeroInline,
   domain_size,
+  domain_toList,
 } from './domain';
 
 // BODY_START
@@ -100,8 +106,12 @@ function fdvar_setDomain(fdvar, domain) {
   return ZERO_CHANGES;
 }
 
-function fdvar_setValueInline(fdvar, value) {
-  domain_setToRangeInline(fdvar.dom, value, value);
+function fdvar_setToZero(fdvar) {
+  fdvar.dom = domain_setToZeroInline(fdvar.dom);
+}
+
+function fdvar_setToOne(fdvar) {
+  fdvar.dom = domain_setToOneInline(fdvar.dom);
 }
 
 // TODO: rename to intersect for that's what it is.
@@ -133,14 +143,35 @@ function fdvar_middleElement(fdvar) {
 }
 
 function fdvar_removeGteInline(fdvar, value) {
-  if (domain_removeGteInline(fdvar.dom, value)) {
+  var domain = fdvar.dom;
+  if (typeof domain === 'number') {
+    var result = domain_removeGteNumbered(domain, value);
+    if (result !== domain) {
+      fdvar.dom = result;
+      return SOMETHING_CHANGED;
+    }
+    return ZERO_CHANGES;
+  }
+
+  if (domain_removeGteInline(domain, value)) {
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
 }
 
 function fdvar_removeLteInline(fdvar, value) {
-  if (domain_removeLteInline(fdvar.dom, value)) {
+  var domain = fdvar.dom;
+
+  if (typeof domain === 'number') {
+    var result = domain_removeLteNumbered(domain, value);
+    if (result !== domain) {
+      fdvar.dom = result;
+      return SOMETHING_CHANGED;
+    }
+    return ZERO_CHANGES;
+  }
+
+  if (domain_removeLteInline(domain, value)) {
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
@@ -152,6 +183,34 @@ function fdvar_removeLteInline(fdvar, value) {
 // SOMETHING_CHANGED
 
 function fdvar_forceEqInline(fdvar1, fdvar2) {
+  let domain1 = fdvar1.dom;
+  let domain2 = fdvar2.dom;
+
+  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
+    let result = domain_forceEqNumbered(domain1, domain2);
+    if (!result) {
+      fdvar1.dom = result;
+      fdvar2.dom = result;
+      return REJECTED;
+    }
+    if (result !== domain1 || result !== domain2) {
+      fdvar1.dom = result;
+      fdvar2.dom = result;
+      return SOMETHING_CHANGED;
+    }
+    return ZERO_CHANGES;
+  }
+
+  // TODO: for now, just convert them. but this can be optimized a lot.
+  if (typeof domain1 === 'number') {
+    domain1 = domain_toList(domain1);
+    fdvar1.dom = domain1;
+  }
+  if (typeof domain2 === 'number') {
+    domain2 = domain_toList(domain2);
+    fdvar2.dom = domain2;
+  }
+
   let changeState = domain_forceEqInline(fdvar1.dom, fdvar2.dom);
 
   // if this assert fails, update the following checks accordingly!
@@ -173,11 +232,37 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 
   if (fdvar1.was_solved || fdvar_isSolved(fdvar1)) {
-    r = domain_removeValueInline(dom2, domain_min(dom1));
-    ASSERT(r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!');
+    let value = domain_min(dom1);
+    if (typeof dom2 === 'number') {
+      let result = domain_removeValueNumbered(dom2, value);
+      if (!result) {
+        fdvar2.dom = result;
+        r = REJECTED;
+      } else if (result !== dom2) {
+        fdvar2.dom = result;
+        r = SOMETHING_CHANGED;
+      } else {
+        r = ZERO_CHANGES;
+      }
+    } else {
+      r = domain_removeValueInline(dom2, value);
+    }
   } else if (fdvar2.was_solved || fdvar_isSolved(fdvar2)) {
-    r = domain_removeValueInline(dom1, domain_min(dom2));
-    ASSERT(r < 2, 'should return SOMETHING_CHANGED and not the actual number of changes... test here just in case!');
+    let value = domain_min(dom2);
+    if (typeof dom1 === 'number') {
+      let result = domain_removeValueNumbered(dom1, value);
+      if (!result) {
+        fdvar1.dom = result;
+        r = REJECTED;
+      } else if (result !== dom1) {
+        fdvar1.dom = result;
+        r = SOMETHING_CHANGED;
+      } else {
+        r = ZERO_CHANGES;
+      }
+    } else {
+      r = domain_removeValueInline(dom1, value);
+    }
   }
 
   ASSERT(r === REJECTED || r === ZERO_CHANGES || r === SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values');
@@ -207,6 +292,7 @@ export {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,
-  fdvar_setValueInline,
+  fdvar_setToOne,
+  fdvar_setToZero,
   fdvar_size,
 };

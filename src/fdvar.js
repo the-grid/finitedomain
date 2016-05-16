@@ -1,6 +1,9 @@
 import {
+  EMPTY,
   REJECTED,
   SOMETHING_CHANGED,
+  SUB,
+  SUP,
   ZERO_CHANGES,
 
   ASSERT,
@@ -10,13 +13,14 @@ import {
 } from './helpers';
 
 import {
-  domain_createAll,
-  domain_createBool,
+  domain_clone,
   domain_createRange,
   domain_intersection,
   domain_equal,
+  domain_fromFlags,
   domain_forceEqInline,
   domain_forceEqNumbered,
+  domain_getValue,
   domain_isDetermined,
   domain_isRejected,
   domain_isSolved,
@@ -24,40 +28,39 @@ import {
   domain_max,
   domain_middleElement,
   domain_min,
+  domain_numarr,
   domain_removeGteInline,
   domain_removeGteNumbered,
   domain_removeLteInline,
   domain_removeLteNumbered,
   domain_removeValueInline,
   domain_removeValueNumbered,
-  domain_setToOneInline,
-  domain_setToZeroInline,
   domain_size,
-  domain_toList,
 } from './domain';
 
 // BODY_START
 
 function fdvar_create(id, dom) {
-  return fdvar_new(id, dom, 0);
-}
-
-function fdvar_createBool(id) {
-  return fdvar_new(id, domain_createBool(), 0);
+  return fdvar_new(id, dom);
 }
 
 function fdvar_createRange(id, lo, hi) {
-  return fdvar_new(id, domain_createRange(lo, hi), 0);
-}
+  ASSERT(typeof id === 'string', 'ID_SHOULD_BE_STRING');
+  ASSERT(typeof lo === 'number', 'LO_SHOULD_BE_NUMBER');
+  ASSERT(typeof hi === 'number', 'HI_SHOULD_BE_NUMBER');
+  ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
 
-function fdvar_createWide(id) {
-  return fdvar_new(id, domain_createAll(), 0);
+  return fdvar_new(id, domain_createRange(lo, hi));
 }
 
 function fdvar_new(id, dom) {
-  ASSERT(!!dom, 'should init to a domain', [id, dom]);
-  ASSERT_DOMAIN(dom);
-  ASSERT_UNUSED_DOMAIN(dom);
+  if (typeof dom !== 'number') {
+    ASSERT(!!dom, 'should init to a domain', [id, dom]);
+    ASSERT_DOMAIN(dom);
+    ASSERT_UNUSED_DOMAIN(dom);
+
+    dom = domain_numarr(dom);
+  }
   return {
     _class: 'fdvar',
     id,
@@ -94,33 +97,32 @@ function fdvar_isRejected(fdvar) {
 
 function fdvar_clone(fdvar) {
   ASSERT(!fdvar.was_solved, 'should not clone vars that are already solved...');
-  return fdvar_new(fdvar.id, fdvar.dom.slice(0));
+  return fdvar_new(fdvar.id, domain_clone(fdvar.dom));
 }
 
 function fdvar_setDomain(fdvar, domain) {
+  let fdvarDom = fdvar.dom;
+  if (typeof domain === 'number' && typeof fdvarDom === 'number') {
+    if (fdvarDom !== domain) {
+      fdvar.dom = domain;
+      return SOMETHING_CHANGED;
+    }
+    return ZERO_CHANGES;
+  }
+
   ASSERT_UNUSED_DOMAIN(domain);
-  if (!domain_equal(fdvar.dom, domain)) {
-    fdvar.dom = domain;
+  if (!domain_equal(fdvarDom, domain)) {
+    fdvar.dom = domain_numarr(domain);
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
 }
 
-function fdvar_setToZero(fdvar) {
-  fdvar.dom = domain_setToZeroInline(fdvar.dom);
-}
-
-function fdvar_setToOne(fdvar) {
-  fdvar.dom = domain_setToOneInline(fdvar.dom);
-}
-
 // TODO: rename to intersect for that's what it is.
 function fdvar_constrain(fdvar, domain) {
   domain = domain_intersection(fdvar.dom, domain);
-  if (!domain.length) {
-    return REJECTED;
-  }
-  return fdvar_setDomain(fdvar, domain);
+  if (domain_isRejected(domain)) return REJECTED;
+  return fdvar_setDomain(fdvar, domain_numarr(domain));
 }
 
 function fdvar_size(fdvar) {
@@ -143,6 +145,8 @@ function fdvar_middleElement(fdvar) {
 }
 
 function fdvar_removeGteInline(fdvar, value) {
+  ASSERT(typeof value === 'number', 'VALUE_SHOULD_BE_NUMBER');
+
   var domain = fdvar.dom;
   if (typeof domain === 'number') {
     var result = domain_removeGteNumbered(domain, value);
@@ -154,14 +158,16 @@ function fdvar_removeGteInline(fdvar, value) {
   }
 
   if (domain_removeGteInline(domain, value)) {
+    fdvar.dom = domain_numarr(fdvar.dom);
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
 }
 
 function fdvar_removeLteInline(fdvar, value) {
-  var domain = fdvar.dom;
+  ASSERT(typeof value === 'number', 'VALUE_SHOULD_BE_NUMBER');
 
+  var domain = fdvar.dom;
   if (typeof domain === 'number') {
     var result = domain_removeLteNumbered(domain, value);
     if (result !== domain) {
@@ -172,23 +178,29 @@ function fdvar_removeLteInline(fdvar, value) {
   }
 
   if (domain_removeLteInline(domain, value)) {
+    fdvar.dom = domain_numarr(fdvar.dom);
     return SOMETHING_CHANGED;
   }
   return ZERO_CHANGES;
 }
 
-// for the eq propagator; makes sure all elements in either var
-// are also contained in the other. removes all others. operates
-// inline on the var domains. returns REJECTED, ZERO_CHANGES, or
-// SOMETHING_CHANGED
-
+/**
+ * for the eq propagator; makes sure all elements in either var
+ * are also contained in the other. removes all others. operates
+ * inline on array domains. Returns domain of fdvar1 afterwards.
+ * (Returns the domain because it may be
+ *
+ * @param {$fdvar} fdvar1
+ * @param {$fdvar} fdvar2
+ * @returns {$domain}
+ */
 function fdvar_forceEqInline(fdvar1, fdvar2) {
   let domain1 = fdvar1.dom;
   let domain2 = fdvar2.dom;
 
   if (typeof domain1 === 'number' && typeof domain2 === 'number') {
     let result = domain_forceEqNumbered(domain1, domain2);
-    if (!result) {
+    if (result === EMPTY) {
       fdvar1.dom = result;
       fdvar2.dom = result;
       return REJECTED;
@@ -202,16 +214,14 @@ function fdvar_forceEqInline(fdvar1, fdvar2) {
   }
 
   // TODO: for now, just convert them. but this can be optimized a lot.
-  if (typeof domain1 === 'number') {
-    domain1 = domain_toList(domain1);
-    fdvar1.dom = domain1;
-  }
-  if (typeof domain2 === 'number') {
-    domain2 = domain_toList(domain2);
-    fdvar2.dom = domain2;
-  }
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+  let changeState = domain_forceEqInline(domain1, domain2);
 
-  let changeState = domain_forceEqInline(fdvar1.dom, fdvar2.dom);
+  if (changeState === SOMETHING_CHANGED) {
+    fdvar1.dom = domain_numarr(domain1);
+    fdvar2.dom = domain_numarr(domain2);
+  }
 
   // if this assert fails, update the following checks accordingly!
   ASSERT(changeState >= -1 && changeState <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', changeState);
@@ -231,11 +241,11 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom1);
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 
-  if (fdvar1.was_solved || fdvar_isSolved(fdvar1)) {
-    let value = domain_min(dom1);
+  if (fdvar1.was_solved || domain_isSolved(dom1)) {
+    let value = domain_getValue(dom1);
     if (typeof dom2 === 'number') {
       let result = domain_removeValueNumbered(dom2, value);
-      if (!result) {
+      if (result === EMPTY) {
         fdvar2.dom = result;
         r = REJECTED;
       } else if (result !== dom2) {
@@ -246,12 +256,15 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
       }
     } else {
       r = domain_removeValueInline(dom2, value);
+      if (r !== ZERO_CHANGES) {
+        fdvar2.dom = domain_numarr(dom2);
+      }
     }
-  } else if (fdvar2.was_solved || fdvar_isSolved(fdvar2)) {
-    let value = domain_min(dom2);
+  } else if (fdvar2.was_solved || domain_isSolved(dom2)) {
+    let value = domain_getValue(dom2);
     if (typeof dom1 === 'number') {
       let result = domain_removeValueNumbered(dom1, value);
-      if (!result) {
+      if (result === EMPTY) {
         fdvar1.dom = result;
         r = REJECTED;
       } else if (result !== dom1) {
@@ -262,11 +275,14 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
       }
     } else {
       r = domain_removeValueInline(dom1, value);
+      if (r !== ZERO_CHANGES) {
+        fdvar1.dom = domain_numarr(dom1);
+      }
     }
   }
 
   ASSERT(r === REJECTED || r === ZERO_CHANGES || r === SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values');
-  ASSERT((r === REJECTED) === (domain_isRejected(dom1) || domain_isRejected(dom2)), 'if either domain is rejected, r should reflect this already');
+  ASSERT((r === REJECTED) === (domain_isRejected(fdvar1.dom) || domain_isRejected(fdvar2.dom)), 'if either domain is rejected, r should reflect this already');
 
   return r;
 }
@@ -277,9 +293,7 @@ export {
   fdvar_clone,
   fdvar_constrain,
   fdvar_create,
-  fdvar_createBool,
   fdvar_createRange,
-  fdvar_createWide,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_isRejected,
@@ -292,7 +306,5 @@ export {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,
-  fdvar_setToOne,
-  fdvar_setToZero,
   fdvar_size,
 };

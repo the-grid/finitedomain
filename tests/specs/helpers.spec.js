@@ -1,13 +1,11 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
-  //specDomainCreateRange,
-  //specDomainCreateRanges,
-  //specDomainCreateValue,
-  //specDomainCreateZero,
+  specDomainCreateRange,
 } from '../fixtures/domain.fixt';
 
 import {
+  EMPTY,
+  MAX_SMALL,
   ASSERT,
   _ASSERT_DOMAIN,
   //ASSERT_DOMAIN_EMPTY_CHECK,
@@ -20,8 +18,52 @@ import {
   //GET_NAMES,
   //THROW,
 } from '../../src/helpers';
+import {
+  ZERO,
+  ONE,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  TEN,
+  ELEVEN,
+  TWELVE,
+  THIRTEEN,
+  FOURTEEN,
+  FIFTEEN,
+} from '../../src/domain';
 
 describe('helpers.spec', function() {
+
+  describe('MAX_SMALL', function() {
+
+    it('should equal the value of all flags enabled', function() {
+      let start = EMPTY;
+
+      start |= ZERO;
+      start |= ONE;
+      start |= TWO;
+      start |= THREE;
+      start |= FOUR;
+      start |= FIVE;
+      start |= SIX;
+      start |= SEVEN;
+      start |= EIGHT;
+      start |= NINE;
+      start |= TEN;
+      start |= ELEVEN;
+      start |= TWELVE;
+      start |= THIRTEEN;
+      start |= FOURTEEN;
+      start |= FIFTEEN;
+
+      expect(start).to.equal(MAX_SMALL);
+    });
+  });
 
   describe('ASSERT', function() {
 
@@ -45,7 +87,7 @@ describe('helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      expect(_ASSERT_DOMAIN(specDomainCreateBool())).to.equal(undefined);
+      expect(_ASSERT_DOMAIN(specDomainCreateRange(0, 1, true))).to.equal(undefined);
     });
   });
 
@@ -55,7 +97,7 @@ describe('helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      _ASSERT_UNUSED_DOMAIN(specDomainCreateBool());
+      _ASSERT_UNUSED_DOMAIN(specDomainCreateRange(0, 1, true));
     });
   });
 
@@ -65,7 +107,7 @@ describe('helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      _ASSERT_UNUSED_DOMAIN(specDomainCreateBool());
+      _ASSERT_UNUSED_DOMAIN(specDomainCreateRange(0, 1, true));
     });
   });
 
@@ -76,7 +118,7 @@ describe('helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      _ASSERT_DOMAIN_EMPTY_SET(specDomainCreateBool());
+      _ASSERT_DOMAIN_EMPTY_SET(specDomainCreateRange(0, 1, true));
     });
   });
 });

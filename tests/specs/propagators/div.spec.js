@@ -2,6 +2,8 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateRange,
   specDomainCreateRanges,
+  specDomainSmallNums,
+  specDomainSmallEmpty,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -9,17 +11,21 @@ import {
   SUP,
 
   REJECTED,
+  SOMETHING_CHANGED,
   ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
+  domain_clone,
+} from '../../../src/domain';
+import {
   fdvar_create,
-  fdvar_createWide,
+  fdvar_createRange,
 } from '../../../src/fdvar';
 import {
   propagator_eqStepBare,
 } from '../../../src/propagators/eq';
 
-describe('propagators/eq.spec', function() {
+describe('propagators/div.spec', function() {
   // in general after call v1 and v2 should be equal
 
   it('should exist', function() {
@@ -27,7 +33,7 @@ describe('propagators/eq.spec', function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_createWide('x');
+    let v = fdvar_createRange('x', SUB, SUP);
 
     expect(() => propagator_eqStepBare()).to.throw();
     expect(() => propagator_eqStepBare(v)).to.throw();
@@ -44,19 +50,19 @@ describe('propagators/eq.spec', function() {
   //it('should reject for empty left domain', function() {
   //
   //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_createWide('y');
+  //  let v2 = fdvar_createRange('y', SUB, SUP);
   //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
   //});
   //
   //it('should reject for empty right domain', function() {
   //
-  //  let v1 = fdvar_createWide('x');
+  //  let v1 = fdvar_createRange('x', SUB, SUP);
   //  let v2 = fdvar_create('y', []);
   //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
   //});
 
   it('should split a domain if it covers multiple ranges of other domain', function() {
-    let v1 = fdvar_createWide('x');
+    let v1 = fdvar_createRange('x', SUB, SUP);
     let v2 = fdvar_create('y', specDomainCreateRanges([0, 10], [20, 30]));
 
     expect(propagator_eqStepBare(v1, v2)).to.be.above(0);
@@ -68,64 +74,60 @@ describe('propagators/eq.spec', function() {
 
     function test(domain) {
       it(`should not change anything: ${domain}`, function() {
-        let v1 = fdvar_create('x', domain.slice(0));
-        let v2 = fdvar_create('y', domain.slice(0));
+        let v1 = fdvar_create('x', domain_clone(domain));
+        let v2 = fdvar_create('y', domain_clone(domain));
         expect(propagator_eqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
         expect(v1.dom, 'v1 dom').to.eql(domain);
         expect(v2.dom, 'v2 dom').to.eql(domain);
       });
     }
 
-    test(specDomainCreateRange(SUB, SUB));
-    test(specDomainCreateRange(0, 0));
-    test(specDomainCreateRange(1, 1));
-    test(specDomainCreateRange(0, 1));
-    test(specDomainCreateRange(SUP, SUP));
-    test(specDomainCreateRange(20, 50));
+    describe('with array', function() {
+      test(specDomainSmallNums(SUB));
+      test(specDomainCreateRange(SUP, SUP));
+      test(specDomainCreateRange(20, 50));
 
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-    test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
-    test(specDomainCreateRanges([0, 0], [2, 2]));
-    test(specDomainCreateRanges([0, 0], [2, 3]));
+      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
+      test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
+    });
+    describe('with numbers', function() {
+      test(specDomainSmallNums(0));
+      test(specDomainSmallNums(1));
+      test(specDomainSmallNums(0, 1));
+      test(specDomainSmallNums(0, 2));
+      test(specDomainSmallNums(0, 2, 3));
+    });
   });
 
   describe('when v1 != v2', function() {
 
-    function test(left, right, result, rejects) {
+    function test(left, right, result, changes) {
       it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
-        let v1 = fdvar_create('x', left.slice(0));
-        let v2 = fdvar_create('y', right.slice(0));
+        let v1 = fdvar_create('x', domain_clone(left));
+        let v2 = fdvar_create('y', domain_clone(right));
 
-        if (rejects) {
-          expect(propagator_eqStepBare(v1, v2)).to.eql(REJECTED);
-        } else {
-          expect(propagator_eqStepBare(v1, v2)).to.be.above(0);
-        }
+        expect(propagator_eqStepBare(v1, v2)).to.equal(changes);
         expect(v1.dom, 'v1 dom').to.eql(result);
         expect(v2.dom, 'v2 dom').to.eql(result);
       });
 
       it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
-        let v1 = fdvar_create('x', right.slice(0));
-        let v2 = fdvar_create('y', left.slice(0));
+        let v1 = fdvar_create('x', domain_clone(right));
+        let v2 = fdvar_create('y', domain_clone(left));
 
-        if (rejects) {
-          expect(propagator_eqStepBare(v1, v2)).to.eql(REJECTED);
-        } else {
-          expect(propagator_eqStepBare(v1, v2)).to.be.above(0);
-        }
+        expect(propagator_eqStepBare(v1, v2)).to.equal(changes);
         expect(v1.dom, 'v1 dom').to.eql(result);
         expect(v2.dom, 'v2 dom').to.eql(result);
       });
     }
 
-    test(specDomainCreateRange(0, 1), specDomainCreateRange(0, 0), specDomainCreateRange(0, 0));
-    test(specDomainCreateRange(0, 1), specDomainCreateRange(1, 1), specDomainCreateRange(1, 1));
-    test(specDomainCreateRange(SUB, 1), specDomainCreateRange(1, SUP), specDomainCreateRange(1, 1));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRange(5, 5), specDomainCreateRange(5, 5));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 1], [3, 3]), [], REJECTED);
-    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 2], [4, 4]), specDomainCreateRange(2, 2));
+    test(specDomainSmallNums(0, 1), specDomainSmallNums(0, 0), specDomainSmallNums(0, 0), SOMETHING_CHANGED);
+    test(specDomainSmallNums(0, 1), specDomainSmallNums(1, 1), specDomainSmallNums(1, 1), SOMETHING_CHANGED);
+    test(specDomainSmallNums(SUB, 1), specDomainCreateRange(1, SUP), specDomainSmallNums(1, 1), SOMETHING_CHANGED);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainSmallNums(5), specDomainSmallNums(5), SOMETHING_CHANGED);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]), SOMETHING_CHANGED);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]), SOMETHING_CHANGED);
+    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 3), specDomainSmallEmpty(), REJECTED);
+    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 2, 4), specDomainSmallNums(2), SOMETHING_CHANGED);
   });
 });

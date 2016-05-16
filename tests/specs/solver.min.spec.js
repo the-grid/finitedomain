@@ -19,11 +19,11 @@ describe('solver.min.spec', function() {
         let solver = new Solver(o);
         solver.addVar({
           id: 'Hello',
-          domain: specDomainCreateRange(1, 99),
+          domain: specDomainCreateRange(1, 99, true),
         });
         solver.addVar({
           id: 'World',
-          domain: specDomainCreateValue(0),
+          domain: specDomainCreateValue(0, true),
         });
         solver['>']('Hello', 'World');
 

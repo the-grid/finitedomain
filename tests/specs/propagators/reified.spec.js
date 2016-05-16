@@ -1,9 +1,8 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
-  specDomainCreateOne,
   specDomainCreateRange,
-  specDomainCreateZero,
+  specDomainSmallNums,
+  specDomainSmallRange,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 
@@ -15,15 +14,18 @@ import {
 import {
   fdvar_create,
 } from '../../../src/fdvar';
+import {
+  domain_clone,
+} from '../../../src/domain';
 import Solver from '../../../src/solver';
 import propagator_reifiedStepBare from '../../../src/propagators/reified';
 
 describe('propagators/reified.spec', function() {
 
   // constants (tests must copy args)
-  let zero = specDomainCreateZero();
-  let one = specDomainCreateOne();
-  let bool = specDomainCreateBool();
+  let zero = specDomainSmallNums(0);
+  let one = specDomainSmallNums(1);
+  let bool = specDomainSmallNums(0, 1);
 
   describe('propagator_reifiedStepBare', function() {
     it('should exist', function() {
@@ -39,9 +41,9 @@ describe('propagators/reified.spec', function() {
 
           let space = {
             vars: {
-              A: fdvar_create('A', A_in.slice(0)),
-              B: fdvar_create('B', B_in.slice(0)),
-              bool: fdvar_create('bool', bool_in.slice(0)),
+              A: fdvar_create('A', domain_clone(A_in)),
+              B: fdvar_create('B', domain_clone(B_in)),
+              bool: fdvar_create('bool', domain_clone(bool_in)),
             },
           };
 
@@ -76,9 +78,9 @@ describe('propagators/reified.spec', function() {
       });
 
       describe('eq/neq with non-bools', function() {
-        riftest(specDomainCreateRange(0, 5), specDomainCreateRange(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
-        riftest(specDomainCreateRange(0, 5), specDomainCreateRange(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
-        riftest(specDomainCreateRange(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
+        riftest(specDomainSmallRange(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
         riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
@@ -87,7 +89,7 @@ describe('propagators/reified.spec', function() {
   describe('solver test', function() {
 
     it('should not let reifiers influence results if they are not forced', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateBool()});
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -116,7 +118,7 @@ describe('propagators/reified.spec', function() {
     });
 
     it('should be able to force a reifier to be true and affect the outcome', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateBool()});
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -149,7 +151,7 @@ describe('propagators/reified.spec', function() {
 
     it('should not adjust operands if result var is unconstrained', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq('A', 2);
       solver.solve();
 
@@ -170,7 +172,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 0', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq('A', 2, 0);
       solver.solve();
 
@@ -190,7 +192,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 1', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq(2, 'A', 1);
       solver.solve();
 

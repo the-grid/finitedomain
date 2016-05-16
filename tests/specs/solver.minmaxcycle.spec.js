@@ -18,11 +18,11 @@ describe('solver.minmaxcycle.spec', function() {
       let solver = new Solver({distribute: {val: 'minMaxCycle'}});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));

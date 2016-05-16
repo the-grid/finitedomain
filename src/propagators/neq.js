@@ -1,6 +1,6 @@
 import {
-  domain_max,
-  domain_min,
+  domain_getValue,
+  domain_isSolved,
   domain_sharesNoElements,
 } from '../domain';
 
@@ -9,8 +9,6 @@ import {
 } from '../fdvar';
 
 // BODY_START
-
-let PAIR_SIZE = 2;
 
 /**
  * @param {Fdvar} fdvar1
@@ -32,21 +30,12 @@ function propagator_neqStepBare(fdvar1, fdvar2) {
 function propagator_neqStepWouldReject(fdvar1, fdvar2) {
   let dom1 = fdvar1.dom;
   let dom2 = fdvar2.dom;
-  let len1 = dom1.length;
-  let len2 = dom2.length;
 
-  if (len1 === 0 || len2 === 0) {
-    return true;
-  }
-  if (len1 !== PAIR_SIZE || len2 !== PAIR_SIZE) {
-    return false;
+  if (!domain_isSolved(dom1) || !domain_isSolved(dom2)) {
+    return false; // can not reject if either domain isnt solved
   }
 
-  // reject if domains are solved (lo=hi) and same as other domain
-
-  let lo = domain_min(dom1);
-  let hi = domain_max(dom1);
-  return lo === hi && lo === domain_min(dom2) && lo === domain_max(dom2);
+  return domain_getValue(dom1) === domain_getValue(dom2);
 }
 
 /**

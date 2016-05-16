@@ -1,12 +1,16 @@
 const SUP = 100000;
 
-function specDomainCreateRange(lo, hi) {
+function specDomainCreateRange(lo, hi, _b) {
+  if (_b !== true && lo >= 0 && hi <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+
   if (typeof lo !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
   if (typeof hi !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
+
+  return [lo, hi];
   return specDomainCreateRanges([lo, hi]);
 }
 function specDomainCreateRanges(...ranges) {
@@ -27,31 +31,32 @@ function specDomainCreateRanges(...ranges) {
     return arr.push(range[0], range[1]);
   });
 
+  if (arr[0] >= 0 && arr[arr.length-1] <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN ['+arr+']');
+
   // hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr;
 }
-function specDomainCreateValue(value) {
+function specDomainCreateValue(value, _b) {
+  if (_b !== true && _b !== undefined) throw new Error('ILLEGAL_SECOND_ARG');
+  if (_b !== true && value >= 0 && value <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+
   if (typeof value !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
-  return specDomainCreateRanges([value, value]);
+  return specDomainCreateRange(value, value, _b);
 }
 function specDomainCreateList(list) {
   let arr = [];
-  list.forEach(value => arr.push(value, value));
+  list.forEach(value => {
+    if (value >= 0 && value <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+    arr.push(value, value)
+  });
   return arr;
 }
-function specDomainCreateZero() {
-  return specDomainCreateRange(0, 0);
-}
-function specDomainCreateOne() {
-  return specDomainCreateRange(1, 1);
-}
-function specDomainCreateFull() {
-  return specDomainCreateRange(0, SUP);
-}
-function specDomainCreateBool() {
-  return specDomainCreateRange(0, 1);
+function specDomainCreateEmpty(no) {
+  let A = [];
+  if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
+  return A;
 }
 
 const ZERO = 1 << 0;
@@ -74,11 +79,16 @@ const NUMBER = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN,
 function specDomainSmallNums(...values) {
   let d = 0;
   for (let i = 0; i < values.length; ++i) {
+    if (typeof values[i] !== 'number') throw new Error('EXPECTING_NUMBERS_ONLY ['+values[i]+']');
+    if (values[i] < 0 || values[i] > 15) throw new Error('EXPECTING_SMALL_DOMAIN_VALUES ['+values[i]+']');
     d |= NUMBER[values[i]];
   }
   return d;
 }
 function specDomainSmallRange(lo, hi) {
+  if (typeof lo !== 'number') throw new Error('LO_MUST_BE_NUMBER');
+  if (typeof hi !== 'number') throw new Error('HI_MUST_BE_NUMBER');
+  if (lo < 0 || hi > 15) throw new Error('OOB_FOR_SMALL_DOMAIN');
   let d = 0;
   for (; lo <= hi; ++lo) {
     d |= NUMBER[lo];
@@ -106,14 +116,11 @@ function stripAnonVarsFromArrays(solutions) {
 }
 
 export {
+  specDomainCreateEmpty,
+  specDomainCreateList,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
-  specDomainCreateList,
-  specDomainCreateZero,
-  specDomainCreateOne,
-  specDomainCreateFull,
-  specDomainCreateBool,
   specDomainSmallEmpty,
   specDomainSmallNums,
   specDomainSmallRange,

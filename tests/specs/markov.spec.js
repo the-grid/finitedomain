@@ -1,10 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 //import {
-//  specDomainCreateBool,
 //  specDomainCreateRange,
 //  specDomainCreateRanges,
 //  specDomainCreateValue,
-//  specDomainCreateZero,
 //} from '../fixtures/domain.fixt';
 
 import {

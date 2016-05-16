@@ -11,15 +11,16 @@ import {
   propagator_stepComparison,
   propagator_stepWouldReject,
 } from './step_comparison';
-
 import {
-  fdvar_setToOne,
-  fdvar_setToZero,
+  domain_createValue,
+  domain_max,
+  domain_min,
+} from '../domain';
+import {
+  fdvar_setDomain,
 } from '../fdvar';
 
 // BODY_START
-
-let PAIR_SIZE = 2;
 
 // A boolean variable that represents whether a comparison
 // condition between two variables currently holds or not.
@@ -33,23 +34,24 @@ function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, 
   ASSERT(fdvar1 && fdvar2, 'should have two vars', leftVarName, rightVarName, boolName, opName, invOpName);
   let boolVar = vars[boolName];
 
-  ASSERT(boolVar.dom.length === PAIR_SIZE);
   ASSERT_DOMAIN(boolVar.dom);
 
-  let [lo, hi] = boolVar.dom;
+  let domain = boolVar.dom;
+  let lo = domain_min(domain);
+  let hi = domain_max(domain);
 
   // boolVar can only shrink so we only need to check its current state
   if (lo === 0 && propagator_stepWouldReject(invOpName, fdvar1, fdvar2)) {
     if (hi === 0) {
       return REJECTED;
     }
-    fdvar_setToOne(boolVar);
+    fdvar_setDomain(boolVar, domain_createValue(1));
     return SOMETHING_CHANGED;
   } else if (hi === 1 && propagator_stepWouldReject(opName, fdvar1, fdvar2)) {
     if (lo === 1) {
       return REJECTED;
     }
-    fdvar_setToZero(boolVar);
+    fdvar_setDomain(boolVar, domain_createValue(0));
     return SOMETHING_CHANGED;
   } else { // boolVar is solved, enforce relevant op
     if (lo === 1) {

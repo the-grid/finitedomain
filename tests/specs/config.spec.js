@@ -1,17 +1,20 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateRange,
-  specDomainCreateValue,
+  specDomainSmallNums,
+  specDomainSmallRange,
 } from '../fixtures/domain.fixt';
 
 import {
-  config_addConstant,
   //config_addPropagator,
-  config_addVar,
-  config_addVarValue,
-  //config_addVarAnon,
-  config_addVarsA,
-  config_addVarsO,
+  config_addVarAnonConstant,
+  config_addVarAnonNothing,
+  config_addVarAnonRange,
+  config_addVarConstant,
+  config_addVarDomain,
+  config_addVarNothing,
+  config_addVarRange,
+  config_addVarsWithDomain,
   config_clone,
   config_create,
   config_generateVars,
@@ -26,13 +29,6 @@ import {
 import {
   fdvar_createRange,
 } from '../../src/fdvar';
-import {
-  domain_createRange,
-} from '../../src/domain';
-import {
-  space_createRoot,
-  space_initFromConfig,
-} from '../../src/space';
 
 describe('config.spec', function() {
 
@@ -41,7 +37,6 @@ describe('config.spec', function() {
     it('should return an object', function() {
       expect(config_create()).to.be.an('object');
     });
-
   });
 
   describe('config_generateVars', function() {
@@ -81,7 +76,7 @@ describe('config.spec', function() {
 
     it('should create a constant', function() {
       let config = config_create();
-      let name = config_addConstant(config, 10);
+      let name = config_addVarAnonConstant(config, 10);
       let vars = config_generateVars(config);
 
       expect(vars[name]).to.eql(fdvar_createRange(name, 10, 10));
@@ -89,7 +84,7 @@ describe('config.spec', function() {
 
     it('should create a full width var', function() {
       let config = config_create();
-      let name = config_addVar(config);
+      let name = config_addVarAnonNothing(config);
       let vars = config_generateVars(config);
 
       expect(vars[name]).to.eql(fdvar_createRange(name, SUB, SUP));
@@ -97,208 +92,350 @@ describe('config.spec', function() {
 
     it('should clone a domained var', function() {
       let config = config_create();
-      let name = config_addVar(config, undefined, 32, 55);
+      let name = config_addVarAnonRange(config, 32, 55);
       let vars = config_generateVars(config);
 
       expect(vars[name]).to.eql(fdvar_createRange(name, 32, 55));
     });
   });
 
-  describe('config_addConstant', function() {
+  describe('config_addVarAnonConstant', function() {
 
     it('should add the value', function() {
       let config = config_create();
-      let name = config_addConstant(config, 15);
+      let name = config_addVarAnonConstant(config, 15);
 
       expect(config.all_var_names.indexOf(name)).to.be.at.least(0);
       expect(config.constant_uid).to.be.above(0);
-      expect(config.initial_vars[name]).to.equal(15);
+      expect(config.initial_vars[name]).to.equal(specDomainSmallNums(15));
     });
 
     it('should populate the constant cache', function() {
       let config = config_create();
-      let name = config_addConstant(config, 15);
+      let name = config_addVarAnonConstant(config, 15);
 
       expect(config.constant_cache[15]).to.equal(name);
     });
 
     it('should reuse the constant cache if available', function() {
       let config = config_create();
-      let name1 = config_addConstant(config, 1);
-      let name2 = config_addConstant(config, 2);
-      let name3 = config_addConstant(config, 1);
+      let name1 = config_addVarAnonConstant(config, 1);
+      let name2 = config_addVarAnonConstant(config, 2);
+      let name3 = config_addVarAnonConstant(config, 1);
 
       expect(name1).to.not.equal(name2);
       expect(name1).to.equal(name3);
     });
   });
 
-  describe('config_addVar', function() {
+  describe('config_addVarAnonNothing', function() {
 
-    it('should accept domain as param', function() {
-      let config = config_create();
-      config_addVar(config, 'A', [0, 1]);
-
-      expect(config.initial_vars.A).to.eql([0, 1]);
+    it('should exist', function() {
+      expect(config_addVarAnonNothing).to.be.a('function');
     });
 
-    it('should clone the input domains', function() {
-      let d = [0, 1];
+    it('should create a new var with max range', function() {
       let config = config_create();
-      config_addVar(config, 'A', d);
 
-      expect(config.initial_vars.A).to.eql(d);
-      expect(config.initial_vars.A).not.to.equal(d);
-    });
+      config_addVarAnonNothing(config);
 
-    it('should accept a number', function() {
-      let config = config_create();
-      config_addVar(config, 'A', 5);
-
-      expect(config.initial_vars.A).to.eql(5);
-    });
-
-    it('should accept two numbers', function() {
-      let config = config_create();
-      config_addVar(config, 'A', 5, 20);
-
-      expect(config.initial_vars.A).to.eql([5, 20]);
-    });
-
-    it('should accept undefined', function() {
-      let config = config_create();
-      config_addVar(config, 'A');
-
-      expect(config.initial_vars.A).to.eql(undefined);
-    });
-
-    it('should return a constant for an anonymous solved domain', function() {
-      let config = config_create();
-      let A = config_addVar(config, undefined, [1, 1]);
-      let B = config_addConstant(config, 1);
-
-      expect(A).to.equal(B);
-    });
-
-    it('should return a constant for an anonymous var with two numbers', function() {
-      let config = config_create();
-      let A = config_addVar(config, undefined, 50, 50);
-      let B = config_addConstant(config, 50);
-
-      expect(A).to.equal(B);
-
+      expect(config.all_var_names.length).to.equal(1);
+      expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainCreateRange(SUB, SUP));
     });
   });
 
-  describe('config_addVarValue', function() {
+  describe('config_addVarAnonRange', function() {
 
-    it('should accept domain as param', function() {
-      let config = config_create();
-      config_addVarValue(config, 'A', [0, 1]);
-
-      expect(config.initial_vars.A).to.eql([0, 1]);
+    it('should exist', function() {
+      expect(config_addVarAnonRange).to.be.a('function');
     });
 
-    it('should not clone the input domains', function() {
-      let d = [0, 1];
+    it('should throw if hi is missing', function() {
       let config = config_create();
-      config_addVarValue(config, 'A', d);
 
-      expect(config.initial_vars.A).to.eql(d);
-      expect(config.initial_vars.A).to.equal(d);
+      expect(_ => config_addVarAnonRange(config, 15)).to.throw();
     });
 
-    it('should accept a number', function() {
+    it('should throw if lo is missing', function() {
       let config = config_create();
-      config_addVarValue(config, 'A', 5);
 
-      expect(config.initial_vars.A).to.eql(5);
+      expect(_ => config_addVarAnonRange(config, undefined, 15)).to.throw();
     });
 
-    it('should throw if given lo, hi', function() {
+    it('should throw if lo is an array', function() {
       let config = config_create();
 
-      expect(() => config_addVarValue(config, 'A', 5, 20)).to.throw();
+      expect(_ => config_addVarAnonRange(config, [15, 30], 15)).to.throw();
     });
 
-    it('should accept undefined', function() {
-      let config = config_create();
-      config_addVarValue(config, 'A');
+    describe('with array', function() {
 
-      expect(config.initial_vars.A).to.eql(undefined);
-      expect(config.all_var_names).to.contain('A');
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        let lo = 50;
+        let hi = 100;
+
+        config_addVarAnonRange(config, lo, hi);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainCreateRange(lo, hi));
+      });
     });
 
-    it('should throw if the name is already registered', function() {
-      // either prevents you from double registering vars or internal sanity protection
+    describe('with numbers', function() {
 
-      let config = config_create();
-      config_addVarValue(config, 'A');
+      it('should create a new var with given range', function() {
+        let config = config_create();
 
-      expect(config.initial_vars.A).to.eql(undefined);
-      expect(config.all_var_names).to.contain('A');
-      expect(_ => config_addVarValue(config, 'A')).to.throw('Var name already part of this config. Probably a bug?');
-    });
+        let lo = 5;
+        let hi = 10;
 
-    it('should only add an unkown constant once', function() {
-      let config = config_create();
-      config_addVarValue(config, 'A', [34, 34]);
-      config_addVarValue(config, 'B', [34, 34]);
+        config_addVarAnonRange(config, lo, hi);
 
-      expect(config.constant_cache[34]).to.equal('A');
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainSmallRange(lo, hi));
+      });
     });
   });
 
-  describe('config_addVarsA', function() {
+  describe('config_addVarConstant', function() {
 
-    it('should add all vars in the array with domain', function() {
-      let config = config_create();
-      config_addVarsA(config, [
-        'A', 'B', 'C',
-      ], [0, 1]);
-
-      expect(config.initial_vars.A).to.eql([0, 1]);
-      expect(config.initial_vars.B).to.eql([0, 1]);
-      expect(config.initial_vars.C).to.eql([0, 1]);
+    it('should exist', function() {
+      expect(config_addVarConstant).to.be.a('function');
     });
 
-    it('should add all vars in the array with lo', function() {
+    it('should throw for passing on undefined', function() {
       let config = config_create();
-      config_addVarsA(config, [
-        'A', 'B', 'C',
-      ], 0);
 
-      expect(config.initial_vars.A).to.eql(0);
-      expect(config.initial_vars.B).to.eql(0);
-      expect(config.initial_vars.C).to.eql(0);
+      expect(_ => config_addVarConstant(config, 'A', undefined)).to.throw();
     });
 
-
-    it('should add all vars in the array with lo, hi', function() {
+    it('should throw for passing on an array', function() {
       let config = config_create();
-      config_addVarsA(config, [
-        'A', 'B', 'C',
-      ], 10, 20);
 
-      expect(config.initial_vars.A).to.eql([10, 20]);
-      expect(config.initial_vars.B).to.eql([10, 20]);
-      expect(config.initial_vars.C).to.eql([10, 20]);
-      expect(config.initial_vars.A).to.not.equal(config.initial_vars.B);
-      expect(config.initial_vars.B).to.not.equal(config.initial_vars.C);
+      expect(_ => config_addVarConstant(config, 'A', [10, 15])).to.throw();
     });
 
-    it('should add all vars with the array with no domain', function() {
+    it('should throw for passing on a string', function() {
       let config = config_create();
-      config_addVarsA(config, [
-        'A', 'B', 'C',
-      ]);
 
-      expect(config.initial_vars.A).to.eql(undefined);
-      expect(config.initial_vars.B).to.eql(undefined);
-      expect(config.initial_vars.C).to.eql(undefined);
-      expect(config.all_var_names).to.contain('A');
-      expect(config.all_var_names).to.contain('B');
-      expect(config.all_var_names).to.contain('C');
+      expect(_ => config_addVarConstant(config, 'A', '23')).to.throw();
+    });
+
+    describe('with array', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        let value = 50;
+
+        config_addVarConstant(config, 'A', value);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainCreateRange(value, value));
+      });
+    });
+
+    describe('with numbers', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        let value = 5;
+
+        config_addVarConstant(config, 'A', value);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainSmallRange(value, value));
+      });
+    });
+  });
+
+  describe('config_addVarDomain', function() {
+
+    it('should exist', function() {
+      expect(config_addVarDomain).to.be.a('function');
+    });
+
+    it('should throw for passing on undefined', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarDomain(config, 'A', undefined)).to.throw();
+    });
+
+    it('should throw for passing on a string', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarDomain(config, 'A', '23')).to.throw();
+    });
+
+    it('should throw for an extra param to prevent hi/lo mistakes', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarDomain(config, 'A', 12, 15)).to.throw();
+    });
+
+    describe('with array', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        let value = specDomainCreateRange(50, 55);
+
+        config_addVarDomain(config, 'A', value);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(value);
+      });
+    });
+
+    describe('with numbers', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        let value = specDomainSmallRange(5, 12);
+
+        config_addVarDomain(config, 'A', value);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_vars[config.all_var_names[0]]).to.equal(value);
+      });
+    });
+  });
+
+  describe('config_addVarNothing', function() {
+
+    it('should exist', function() {
+      expect(config_addVarNothing).to.be.a('function');
+    });
+
+    it('should throw for missing the name', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarNothing(config)).to.throw();
+    });
+
+    it('should create a new var with max range', function() {
+      let config = config_create();
+
+      config_addVarNothing(config, 'A');
+
+      expect(config.all_var_names).to.eql(['A']);
+      expect(config.initial_vars.A).to.eql(specDomainCreateRange(SUB, SUP));
+    });
+  });
+
+  describe('config_addVarRange', function() {
+
+    it('should exist', function() {
+      expect(config_addVarRange).to.be.a('function');
+    });
+
+    it('should throw for passing on undefined', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', undefined)).to.throw();
+    });
+
+    it('should throw for passing on a string', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', '23')).to.throw();
+    });
+
+    it('should throw for missing hi', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', 12, undefined)).to.throw();
+    });
+
+    it('should throw for bad hi', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', 12, '12')).to.throw();
+    });
+
+    it('should throw for missing lo', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', undefined, 12)).to.throw();
+    });
+
+    it('should throw for bad hi', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', '10', 12)).to.throw();
+    });
+
+    it('should throw if hi is lower than lo', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', 12, 10)).to.throw();
+    });
+
+    describe('with array', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        config_addVarRange(config, 'A', 50, 55);
+
+        expect(config.all_var_names).to.eql(['A']);
+        expect(config.initial_vars.A).to.eql(specDomainCreateRange(50, 55));
+      });
+    });
+
+    describe('with numbers', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+
+        config_addVarRange(config, 'A', 5, 12);
+
+        expect(config.all_var_names).to.eql(['A']);
+        expect(config.initial_vars.A).to.eql(specDomainSmallRange(5, 12));
+      });
+    });
+  });
+
+  describe('config_addVarsWithDomain', function() {
+
+    it('should exist', function() {
+      expect(config_addVarsWithDomain).to.be.a('function');
+    });
+
+    describe('with array', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+        let domain = specDomainCreateRange(50, 55);
+        var names = ['A', 'B', 'C'];
+
+        config_addVarsWithDomain(config, names, domain);
+
+        expect(config.all_var_names).to.eql(names);
+        expect(config.initial_vars.A).to.eql(domain);
+        expect(config.initial_vars.B).to.eql(domain);
+        expect(config.initial_vars.B).to.eql(domain);
+      });
+    });
+
+    describe('with numbers', function() {
+
+      it('should create a new var with given range', function() {
+        let config = config_create();
+        let domain = specDomainSmallRange(0, 5);
+        var names = ['A', 'B', 'C'];
+
+        config_addVarsWithDomain(config, names, domain);
+
+        expect(config.all_var_names).to.eql(names);
+        expect(config.initial_vars.A).to.eql(domain);
+        expect(config.initial_vars.B).to.eql(domain);
+        expect(config.initial_vars.B).to.eql(domain);
+      });
     });
   });
 
@@ -407,252 +544,6 @@ describe('config.spec', function() {
       config_setOptions(config, {timeout_callback: 'A'});
 
       expect(config.timeout_callback).to.equal('A');
-    });
-  });
-
-  describe('config_addVarsO', function() {
-
-    it('should add all vars in the array with domain', function() {
-      let config = config_create();
-      config_addVarsO(config, {
-        A: [0, 1],
-        B: [0, 1],
-        C: [0, 1],
-      });
-
-      expect(config.initial_vars.A).to.eql([0, 1]);
-      expect(config.initial_vars.B).to.eql([0, 1]);
-      expect(config.initial_vars.C).to.eql([0, 1]);
-    });
-
-    it('should add all vars in the array with lo', function() {
-      let config = config_create();
-      config_addVarsO(config, {
-        A: 20,
-        B: 30,
-        C: 40,
-      });
-
-      expect(config.initial_vars.A).to.eql(20);
-      expect(config.initial_vars.B).to.eql(30);
-      expect(config.initial_vars.C).to.eql(40);
-    });
-
-    it('should add all vars with the array with no domain', function() {
-      let config = config_create();
-      config_addVarsO(config, {
-        A: undefined,
-        B: undefined,
-        C: undefined,
-      });
-
-      expect(config.initial_vars.A).to.eql(undefined);
-      expect(config.initial_vars.B).to.eql(undefined);
-      expect(config.initial_vars.C).to.eql(undefined);
-      expect(config.all_var_names).to.contain('A');
-      expect(config.all_var_names).to.contain('B');
-      expect(config.all_var_names).to.contain('C');
-    });
-
-    describe('config_addVar', function() {
-
-      describe('through config api', function() {
-
-        it('should accept full parameters', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'A', 0, 1);
-          space_initFromConfig(space);
-
-          expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 1));
-        });
-
-        it('should accept only lo and assume [lo,lo] for domain', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'A', 0);
-          space_initFromConfig(space);
-
-          expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 0));
-        });
-
-        it('should accept lo as the domain if array', function() {
-          let input_domain = [0, 1];
-          let space = space_createRoot();
-          config_addVar(space.config, 'A', input_domain);
-          space_initFromConfig(space);
-
-          expect(space.vars.A).to.eql(fdvar_createRange('A', 0, 1));
-          expect(space.vars.A.dom).to.not.equal(input_domain); // should clone
-        });
-
-        it('should create a full wide domain for var without lo/hi', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'A');
-          space_initFromConfig(space);
-
-          expect(space.vars.A).to.eql(fdvar_createRange('A', SUB, SUP));
-        });
-
-        it('should create a full wide domain for anonymous var', function() {
-          let space = space_createRoot();
-          config_addVar(space.config);
-          space_initFromConfig(space);
-
-          expect(space.vars[space.config.all_var_names[0]].dom).to.eql(domain_createRange(SUB, SUP));
-        });
-
-        it('should create a new var', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'foo', 100);
-          space_initFromConfig(space);
-
-          expect(space.config.all_var_names).to.eql(['foo']);
-          expect(space.unsolvedVarNames).to.eql(['foo']);
-          expect((space.vars.foo != null)).to.equal(true);
-        });
-
-        it('should set var to domain', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'foo', 100);
-          space_initFromConfig(space);
-
-          expect(space.vars.foo.dom).to.eql(domain_createRange(100, 100));
-        });
-
-        it('should set var to full domain if none given', function() {
-          let space = space_createRoot();
-          config_addVar(space.config, 'foo');
-          space_initFromConfig(space);
-
-          expect(space.vars.foo.dom).to.eql(specDomainCreateRange(SUB, SUP));
-        });
-
-        it('should throw if var already exists', function() {
-          // this should throw an error instead. when would you _want_ to do this?
-          let space = space_createRoot();
-          config_addVar(space.config, 'foo', 100);
-          space_initFromConfig(space);
-
-          expect(space.vars.foo.dom).to.eql(specDomainCreateValue(100));
-          expect(() => config_addVar(space.config, 'foo', 200)).to.throw();
-        });
-
-        it('should create a var without domain', function() {
-          let config = config_create();
-          config_addVar(config, 'A', undefined);
-
-          expect(config.all_var_names).to.eql(['A']);
-          expect(config.initial_vars.foo).to.eql(undefined);
-        });
-      });
-
-      describe('through space api', function() {
-
-        it('should return the name', function() {
-          let space = space_createRoot();
-          space_initFromConfig(space);
-
-          expect(config_addVar(space.config, 'foo', 100)).to.equal('foo');
-        });
-
-        it('should create a new var', function() {
-          let space = space_createRoot();
-          space_initFromConfig(space);
-          expect(space.config.all_var_names.length, 'before decl').to.eql(0); // no vars... right? :)
-          expect(space.unsolvedVarNames.length, 'before decl').to.eql(0); // no vars... right? :)
-
-          config_addVar(space.config, 'foop', 22);
-          space_initFromConfig(space);
-          expect(space.config.all_var_names.length, 'after decl').to.eql(1);
-          expect(space.unsolvedVarNames.length, 'after decl').to.eql(1);
-        });
-
-        it('should throw if value is OOB', function() {
-          let space = space_createRoot();
-          space_initFromConfig(space);
-
-          expect(() => config_addVar(space.config, SUB - 100)).to.throw();
-          expect(() => config_addVar(space.config, SUP + 100)).to.throw();
-        });
-
-        it('should create a full range var if no name and no domain is given', function() {
-          let space = space_createRoot();
-          let name = config_addVar(space.config);
-          space_initFromConfig(space);
-
-          expect(space.vars[name].dom).to.eql(specDomainCreateRange(SUB, SUP));
-        });
-
-        it('should create a var without domain', function() {
-          let space = space_createRoot();
-          let name = config_addVar(space.config, 'A', undefined);
-          space_initFromConfig(space);
-
-          expect(name).to.equal('A');
-          expect(space.config.all_var_names).to.eql(['A']);
-          expect(space.config.initial_vars.foo).to.eql(undefined);
-        });
-      });
-    });
-
-    describe('config_addVarsA', function() {
-      // to migrate
-
-      it('should create some new vars', function() {
-        let space = space_createRoot();
-        let names = ['foo', 'bar', 'baz'];
-        config_addVarsA(space.config, names, 100);
-        space_initFromConfig(space);
-
-        expect(space.config.all_var_names).to.eql(names);
-        expect(space.unsolvedVarNames).to.eql(names);
-
-        for (let i = 0; i < names.length; ++i) {
-          let name = names[i];
-          expect(space.vars[name]).to.be.an('object');
-          expect(space.vars[name].id).to.equal(name);
-          expect(space.vars[name].dom).to.eql([100, 100]);
-        }
-      });
-
-      it('should set to given domain', function() {
-        let space = space_createRoot();
-        let names = ['foo', 'bar', 'baz'];
-        let domain = specDomainCreateValue(100);
-        config_addVarsA(space.config, names, domain);
-        space_initFromConfig(space);
-
-        expect(space.config.all_var_names).to.eql(names);
-        expect(space.unsolvedVarNames).to.eql(names);
-        for (let i = 0; i < names.length; ++i) {
-          let name = names[i];
-          expect((space.vars[name] != null)).to.equal(true);
-          expect(space.vars[name].dom, 'domain should be cloned').not.to.equal(domain);
-          expect(space.vars[name].dom).to.eql(domain);
-        }
-      });
-      //for name2 in names
-      //  expect(space.vars[name].dom, 'domains should be cloned').not.to.equal space.vars[name2]
-
-      it.skip('should be set to full domain if none given', function() {
-        // TOFIX: this test is broken. the inner loop is checking the wrong thing (dom === var) and therefor always passes
-        let space = space_createRoot();
-        let names = ['foo', 'bar', 'baz'];
-        let domain = specDomainCreateRange(SUB, SUP);
-        config_addVarsA(space.config, names);
-        space_initFromConfig(space);
-
-        expect(space.config.all_var_names).to.eql(names);
-        expect(space.unsolvedVarNames).to.eql(names);
-        for (let i = 0; i < names.length; ++i) {
-          let name = names[i];
-          expect((space.vars[name] != null)).to.equal(true);
-          expect(space.vars[name].dom).to.eql(domain);
-          for (let j = 0; j < names.length; ++j) {
-            let name2 = names[j];
-            expect(space.vars[name].dom, 'domains should be cloned').not.to.equal(space.vars[name2]);
-          }
-        }
-      });
     });
   });
 

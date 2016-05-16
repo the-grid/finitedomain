@@ -4,9 +4,10 @@ import {
 } from './helpers';
 
 import {
-  config_addConstant,
   config_addPropagator,
-  config_addVarAnon,
+  config_addVarAnonConstant,
+  config_addVarAnonNothing,
+  config_addVarAnonRange,
 } from './config';
 
 // BODY_START
@@ -74,21 +75,21 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
 
   if (typeof boolName === 'number') {
     if (boolName !== 0 && boolName !== 1) THROW('RESULT_VAR_OOB_MUST_BE_ZERO_OR_ONE_OR_BOTH[' + boolName + ']');
-    boolName = config_addConstant(config, boolName);
+    boolName = config_addVarAnonConstant(config, boolName);
   } else if (!boolName) {
-    boolName = config_addVarAnon(config, 0, 1);
+    boolName = config_addVarAnonRange(config, 0, 1);
   }
   // TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
-  //else if fdvar_constrain(space.vars[boolName], domain_createBool()) is REJECTED
+  //else if fdvar_constrain(space.vars[boolName], domain_createRange(0, 1)) is REJECTED
   //  THROW 'boolean var should start with a domain containing zero, one, or both'
 
   if (typeof leftVarName === 'number') {
-    leftVarName = config_addVarAnon(config, leftVarName);
+    leftVarName = config_addVarAnonConstant(config, leftVarName);
     if (typeof rightVarName === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof rightVarName === 'number') {
-    rightVarName = config_addVarAnon(config, rightVarName);
+    rightVarName = config_addVarAnonConstant(config, rightVarName);
     ASSERT(typeof leftVarName !== 'number', 'this should have been confirmed by an earlier check');
   }
 
@@ -124,12 +125,12 @@ function propagator_addEq(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    let t = config_addVarAnon(config, v2name);
+    let t = config_addVarAnonConstant(config, v2name);
     // swap such that v1 is the solved var. order is irrelevant to eq itself.
     v2name = v1name;
     v1name = t;
@@ -157,12 +158,12 @@ function propagator_addLt(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
@@ -194,12 +195,12 @@ function propagator_addLte(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
@@ -219,20 +220,20 @@ function propagator_addMul(config, v1name, v2name, resultName) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof resultName === 'undefined') {
-    resultName = config_addVarAnon(config);
+    resultName = config_addVarAnonNothing(config);
   } else if (typeof resultName === 'number') {
-    resultName = config_addVarAnon(config, resultName);
+    resultName = config_addVarAnonConstant(config, resultName);
   } else if (typeof resultName !== 'string') {
     THROW(`expecting result_name to be absent or a number or string: \`${resultName}\``);
   }
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
@@ -253,20 +254,20 @@ function propagator_addDiv(config, v1name, v2name, resultName) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof resultName === 'undefined') {
-    resultName = config_addVarAnon(config);
+    resultName = config_addVarAnonNothing(config);
   } else if (typeof resultName === 'number') {
-    resultName = config_addVarAnon(config, resultName);
+    resultName = config_addVarAnonConstant(config, resultName);
   } else if (typeof resultName !== 'string') {
     THROW(`expecting result_name to be absent or a number or string: \`${resultName}\``);
   }
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
@@ -299,12 +300,12 @@ function propagator_addNeq(config, v1name, v2name) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
@@ -343,19 +344,19 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   if (typeof sumName === 'undefined') {
-    sumName = config_addVarAnon(config);
+    sumName = config_addVarAnonNothing(config);
   } else if (typeof sumName === 'number') {
-    sumName = config_addVarAnon(config, sumName);
+    sumName = config_addVarAnonConstant(config, sumName);
   } else if (typeof sumName !== 'string') {
     THROW(`expecting sumname to be absent or a number or string: \`${sumName}\``);
   }
@@ -408,19 +409,19 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
   if (typeof v1name === 'number') {
-    v1name = config_addVarAnon(config, v1name);
+    v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
       THROW('must pass in at least one var name');
     }
   } else if (typeof v2name === 'number') {
-    v2name = config_addVarAnon(config, v2name);
+    v2name = config_addVarAnonConstant(config, v2name);
     ASSERT(typeof v1name !== 'number', 'should have been confirmed elsewhere');
   }
 
   if (typeof resultVar === 'undefined') {
-    resultVar = config_addVarAnon(config);
+    resultVar = config_addVarAnonNothing(config);
   } else if (typeof resultVar === 'number') {
-    resultVar = config_addVarAnon(config, resultVar);
+    resultVar = config_addVarAnonConstant(config, resultVar);
   } else if (typeof resultVar !== 'string') {
     THROW(`expecting result_var to be absent or a number or string: \`${resultVar}\``);
   }
@@ -459,7 +460,7 @@ function propagator_addSum(config, vars, resultVarName) {
   ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
-    resultVarName = config_addVarAnon(config);
+    resultVarName = config_addVarAnonNothing(config);
   }
 
   let len = vars.length;
@@ -480,13 +481,13 @@ function propagator_addSum(config, vars, resultVarName) {
   let t1;
   let n = Math.floor(vars.length / 2);
   if (n > 1) {
-    t1 = config_addVarAnon(config);
+    t1 = config_addVarAnonNothing(config);
     propagator_addSum(config, vars.slice(0, n), t1);
   } else {
     t1 = vars[0];
   }
 
-  let t2 = config_addVarAnon(config);
+  let t2 = config_addVarAnonNothing(config);
 
   propagator_addSum(config, vars.slice(n), t2);
   return propagator_addPlus(config, t1, t2, resultVarName);
@@ -506,7 +507,7 @@ function propagator_addProduct(config, vars, resultVarName) {
   ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
-    resultVarName = config_addVarAnon(config);
+    resultVarName = config_addVarAnonNothing(config);
   }
 
   switch (vars.length) {
@@ -525,12 +526,12 @@ function propagator_addProduct(config, vars, resultVarName) {
   let n = Math.floor(vars.length / 2);
   let t1;
   if (n > 1) {
-    t1 = config_addVarAnon(config);
+    t1 = config_addVarAnonNothing(config);
     propagator_addProduct(config, vars.slice(0, n), t1);
   } else {
     t1 = vars[0];
   }
-  let t2 = config_addVarAnon(config);
+  let t2 = config_addVarAnonNothing(config);
 
   propagator_addProduct(config, vars.slice(n), t2);
   return propagator_addRingMul(config, t1, t2, resultVarName);

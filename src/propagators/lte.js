@@ -26,13 +26,13 @@ import {
  * @returns {number}
  */
 function propagator_lteStepBare(fdvar1, fdvar2) {
+  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
+  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
+
   let lo1 = fdvar_lowerBound(fdvar1);
   let hi1 = fdvar_upperBound(fdvar1);
   let lo2 = fdvar_lowerBound(fdvar2);
   let hi2 = fdvar_upperBound(fdvar2);
-
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
@@ -65,7 +65,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
  * @param {Fdvar} fdvar2
  * @returns {*}
  */
-let propagator_lteStepWouldReject = function(fdvar1, fdvar2) {
+function propagator_lteStepWouldReject(fdvar1, fdvar2) {
   let dom1 = fdvar1.dom;
   let dom2 = fdvar2.dom;
 
@@ -75,7 +75,7 @@ let propagator_lteStepWouldReject = function(fdvar1, fdvar2) {
 //      return true
 
   return domain_min(dom1) > domain_max(dom2);
-};
+}
 
 /**
  * lte is solved if fdvar1 contains no values that are

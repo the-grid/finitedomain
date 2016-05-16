@@ -4,6 +4,7 @@ import {
 
 import {
   domain_intersection,
+  domain_isRejected,
 } from '../domain';
 
 import {
@@ -18,9 +19,7 @@ function propagator_ringStepBare(fdvar1, fdvar2, fdvarResult, opFunc) {
 
   let fromOp = opFunc(fdvar1.dom, fdvar2.dom);
   let domain = domain_intersection(fromOp, fdvarResult.dom);
-  if (!domain.length) {
-    return REJECTED;
-  }
+  if (domain_isRejected(domain)) return REJECTED;
 
   return fdvar_setDomain(fdvarResult, domain);
 }

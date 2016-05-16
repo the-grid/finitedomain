@@ -14,9 +14,10 @@ import {
 } from './helpers';
 
 import {
-  config_addVar,
-  config_addVarAnon,
-  config_addVarsA,
+  config_addVarAnonConstant,
+  config_addVarDomain,
+  config_addVarRange,
+  config_addVarsWithDomain,
   config_create,
   config_getUnknownVars,
   config_setDefaults,
@@ -25,7 +26,9 @@ import {
 
 import {
   PAIR_SIZE,
-  domain_createBool,
+  domain_clone,
+  domain_isRejected,
+  domain_createRange,
   domain_createValue,
   domain_fromList,
 } from './domain';
@@ -82,7 +85,7 @@ class Solver {
     let {
       distribute = 'naive',
       search = 'depth_first',
-      defaultDomain = domain_createBool(),
+      defaultDomain = domain_createRange(0, 1),
       config = config_create(),
     } = options;
 
@@ -147,7 +150,7 @@ class Solver {
     if (isNaN(num)) {
       THROW('Solver#num: expecting a number, got NaN');
     }
-    return config_addVarAnon(this.config, num);
+    return config_addVarAnonConstant(this.config, num);
   }
 
   /**
@@ -163,12 +166,16 @@ class Solver {
 
   /**
    * @param {string} id
-   * @param {number[]} [domain=this.defaultDomain.slice(0)]
+   * @param {$domain} [domain=this.defaultDomain]
    * @returns {string}
    */
-  decl(id, domain = this.defaultDomain.slice(0)) {
+  decl(id, domain) {
+    if (!domain) {
+      domain = domain_clone(this.defaultDomain);
+    }
+    if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = solver_validateDomain(domain);
-    return config_addVar(this.config, id, domain);
+    return config_addVarDomain(this.config, id, domain);
   }
 
   /**
@@ -186,7 +193,7 @@ class Solver {
    * S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
    *
    * @param v
-   * @param dom
+   * @param [dom=v.domain] Note: this cannot be a "small domain"! Numbers are interpreted to be constants in Solver
    * @returns {*}
    */
   addVar(v, dom) {
@@ -196,6 +203,8 @@ class Solver {
         id: v,
         domain: dom,
       };
+    } else {
+      ASSERT(typeof v === 'object', 'v should be an id or an object containing meta');
     }
 
     let {
@@ -214,15 +223,15 @@ class Solver {
       THROW(`Solver#addVar: var.id already added: ${id}`);
     }
 
-    if (typeof domain === 'undefined' || domain === null) {
-      domain = this.defaultDomain.slice(0);
-    }
     if (typeof domain === 'number') {
       domain = domain_createValue(domain);
+    } else if (!domain) {
+      domain = domain_clone(this.defaultDomain);
+    } else {
+      domain = solver_validateDomain(domain);
     }
-    domain = solver_validateDomain(domain);
 
-    config_addVar(this.config, id, domain);
+    config_addVarDomain(this.config, id, domain);
     ASSERT(!vars.byId[id], 'var should not yet exist', id, v);
     vars.byId[id] = v;
     ASSERT(vars.all.indexOf(v) < 0, 'var should not yet be part of vars.all', id, v);
@@ -559,7 +568,7 @@ class Solver {
 
     if (addUnknownVars) {
       let unknown_names = config_getUnknownVars(this.config);
-      config_addVarsA(this.config, unknown_names, this.defaultDomain.slice(0));
+      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain));
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -670,7 +679,7 @@ class Solver {
    * @returns {string}
    */
   space_add_var_range(id, lo, hi) {
-    return config_addVar(this.config, id, lo, hi);
+    return config_addVarRange(this.config, id, lo, hi);
   }
 
   /**
@@ -739,10 +748,13 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
 /**
  * validate domains, filter and fix legacy domains, throw for bad inputs
  *
- * @param {number[]} domain
+ * @param {$domain} domain
  * @returns {number[]}
  */
 function solver_validateDomain(domain) {
+  // i hope this doesnt trip up implicit constants
+  if (typeof domain === 'number') return domain;
+
   // support legacy domains and validate input here
   let msg = solver_confirmDomain(domain);
   if (msg) {

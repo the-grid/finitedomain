@@ -7,7 +7,6 @@ choice left it should return undefined to signify the end.
 
 import {
   NO_SUCH_VALUE,
-  ZERO_CHANGES,
 
   ASSERT,
   THROW,
@@ -17,11 +16,13 @@ import {
   domain_containsValue,
   domain_createValue,
   domain_createRange,
+  domain_getValueOfFirstContainedValueInList,
   domain_intersection,
+  domain_isRejected,
   domain_max,
   domain_min,
+  domain_numarr,
   domain_removeNextFromList,
-  domain_getValueOfFirstContainedValueInList,
 } from '../domain';
 
 import distribution_markovSampleNextFromDomain from './markov';
@@ -113,7 +114,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceInde
  * @param {Space} space
  * @param {Fdvar} fdvar
  * @param {number} choiceIndex
- * @returns {number[]} The new domain for this fdvar in the next space
+ * @returns {$domain} The new domain for this fdvar in the next space TOFIX: support small domains
  */
 function distribution_valueByList(space, fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
@@ -135,24 +136,26 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
     list = listSource(space, fdvar.id, choiceIndex);
   }
 
+  let domain = fdvar.dom;
+
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      let v = domain_getValueOfFirstContainedValueInList(fdvar.dom, list);
-      if (v === NO_SUCH_VALUE) {
+      let nextValue = domain_getValueOfFirstContainedValueInList(domain, list);
+      if (nextValue === NO_SUCH_VALUE) {
         if (fallbackDistName) {
           return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar, choiceIndex);
         }
         return NO_CHOICE;
       }
-      return domain_createValue(v);
+      return domain_createValue(nextValue);
 
     case SECOND_CHOICE:
-      let d = domain_removeNextFromList(fdvar.dom, list);
-      // note: d can be a new array-domain, a new small-domain, or ZERO_CHANGES (0)
-      if (d === ZERO_CHANGES && fallbackDistName) {
+      let newDomain = domain_removeNextFromList(fdvar.dom, list);
+      // note: d can be a new array-domain, a new small-domain, or NO_SUCH_VALUE (-1)
+      if (newDomain === NO_SUCH_VALUE && fallbackDistName) {
         return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar, choiceIndex);
       }
-      return d;
+      return newDomain;
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -182,7 +185,8 @@ function distribution_valueByMin(fdvar, choiceIndex) {
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      return domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar) + 1, fdvar_upperBound(fdvar)));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar) + 1, fdvar_upperBound(fdvar)));
+      return domain_numarr(domain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -212,7 +216,8 @@ function distribution_valueByMax(fdvar, choiceIndex) {
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      return domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar), fdvar_upperBound(fdvar) - 1));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar), fdvar_upperBound(fdvar) - 1));
+      return domain_numarr(domain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -254,7 +259,8 @@ function distribution_valueByMid(fdvar, choiceIndex) {
       // Note: fdvar is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-      return domain_intersection(fdvar.dom, arr);
+      let domain = domain_intersection(fdvar.dom, arr);
+      return domain_numarr(domain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -277,20 +283,22 @@ function distribution_valueBySplitMin(fdvar, choiceIndex) {
   let domain = fdvar.dom;
   let min = domain_min(domain);
   let max = domain_max(domain);
-  let mmhalf = min + max >> 1;
+  let mmhalf = min + Math.floor((max - min) / 2);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
       // Note: fdvar is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(fdvar.dom, domain_createRange(min, mmhalf));
+      domain = domain_intersection(fdvar.dom, domain_createRange(min, mmhalf));
+      return domain_numarr(domain);
 
     case SECOND_CHOICE:
       // Note: fdvar is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(fdvar.dom, domain_createRange(mmhalf + 1, max));
+      domain = domain_intersection(fdvar.dom, domain_createRange(mmhalf + 1, max));
+      return domain_numarr(domain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -313,20 +321,22 @@ function distribution_valueBySplitMax(fdvar, choiceIndex) {
   let domain = fdvar.dom;
   let min = domain_min(domain);
   let max = domain_max(domain);
-  let mmhalf = min + max >> 1;
+  let mmhalf = min + Math.floor((max - min) / 2);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
       // Note: fdvar is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(fdvar.dom, domain_createRange(mmhalf + 1, max));
+      domain = domain_intersection(fdvar.dom, domain_createRange(mmhalf + 1, max));
+      return domain_numarr(domain);
 
     case SECOND_CHOICE:
       // Note: fdvar is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(fdvar.dom, domain_createRange(min, mmhalf));
+      domain = domain_intersection(fdvar.dom, domain_createRange(min, mmhalf));
+      return domain_numarr(domain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -423,8 +433,8 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
       let domain = domain_intersection(fdvar.dom, arr);
-      if (domain.length) return domain;
-      return NO_CHOICE;
+      if (domain_isRejected(domain)) return NO_CHOICE;
+      return domain_numarr(domain);
     }
   }
 

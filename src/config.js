@@ -2,6 +2,8 @@
 // TOFIX: may want to rename this to "tree-state" or something; it's not just config
 
 import {
+  EMPTY,
+  MAX_SMALL,
   SUB,
   SUP,
 
@@ -13,7 +15,6 @@ import {
 } from './fdvar';
 import {
   domain_createRange,
-  domain_createValue,
 } from './domain';
 import distribution_getDefaults from './distribution/defaults';
 
@@ -81,110 +82,148 @@ function config_clone(config, newVars) {
   };
 }
 
-function config_addVarsA(config, arr, domainOrLo, hi) {
-  for (let i = 0; i < arr.length; i++) {
-    let name = arr[i];
-    config_addVar(config, name, domainOrLo, hi);
-  }
-}
-
-function config_addVarsO(config, obj) {
-  for (let name in obj) {
-    let domain = obj[name];
-    config_addVar(config, name, domain);
-  }
-}
-
-// simply alias to omit the name for complex domains
-
-function config_addVarAnon(config, domain_or_lo, hi) {
-  return config_addVar(config, undefined, domain_or_lo, hi);
-}
-
-function config_addVar(config, name, domainOrLo, hi) {
-  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
-  ASSERT(domainOrLo instanceof Array || typeof domainOrLo === 'number' || domainOrLo === undefined, 'arr/num/undef', domainOrLo);
-
-  if (domainOrLo instanceof Array) {
-    let domain = domainOrLo;
-    if (domain.length === 2 && domain[0] === domain[1]) {
-      if (name) {
-        return config_addVar(config, name, domain[0]);
-      } else {
-        return config_addConstant(config, domain[0]);
-      }
-    }
-    domainOrLo = domain.slice(0);
-  } else if (typeof domainOrLo === 'number') {
-    let lo = domainOrLo;
-    if (typeof hi === 'number') {
-      if (!name && lo === hi) {
-        return config_addConstant(config, lo);
-      }
-      domainOrLo = [lo, hi];
-    } else if (!name) {
-      return config_addConstant(config, lo);
-    }
-  }
-
-  ASSERT(typeof name !== 'number', 'WRONG_API_NOT_EXPECTING_NUMBER_AS_NAME');
-  if (!name) {
-    name = String(++config.constant_uid);
-  }
-
-  config_addVarValue(config, name, domainOrLo);
+/**
+ * Add an anonymous var with max allowed range
+ *
+ * @param {$config} config
+ * @returns {string}
+ */
+function config_addVarAnonNothing(config) {
+  let name = String(++config.constant_uid);
+  config_addVarNothing(config, name);
   return name;
 }
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @returns {string}
+ */
+function config_addVarNothing(config, name) {
+  config_addVarDomain(config, name, domain_createRange(SUB, SUP));
+  return name;
+}
+/**
+ * @param {$config} config
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {string}
+ */
+function config_addVarAnonRange(config, lo, hi) {
+  ASSERT(config._class === 'config');
+  ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
+  ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
 
-// This is the core var adding function
-// Preprocessing of parameters should be done here
-// All parameters are mandatory and assumed scrubbed
-//
-// @param {Config} config
-// @param {string} name
-// @param {number[]|undefined} domain
-// @param {undefined} _forbidden_arg Sanity check, do not use this arg
+  if (lo === hi) return config_addVarAnonConstant(config, lo);
 
-function config_addVarValue(config, name, domain, _forbiddenArg) {
-  ASSERT(config._class === 'config', 'wants config', config._class, config);
-  ASSERT(name && typeof name === 'string', 'name should be a non-empty string', name);
-  ASSERT(!config.initial_vars[name], 'fdvar should not be defined but was, when would that not be a bug?', config.initial_vars[name], '->', name, '->', domain);
-  ASSERT(!(_forbiddenArg != null), 'not expecting a hi, pass on [lo,hi] in array or just lo', _forbiddenArg);
-  ASSERT(domain instanceof Array || typeof domain === 'number' || domain === undefined, 'domain check', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
-  ASSERT(typeof domain !== 'number' || (domain >= SUB && domain <= SUP), 'single value should be SUB<=value<=SUP', domain);
+  let name = String(++config.constant_uid);
+  config_addVarRange(config, name, lo, hi);
 
-  if (config.all_var_names.indexOf(name) >= 0) {
-    THROW('Var name already part of this config. Probably a bug?');
-  }
+  return name;
+}
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {string}
+ */
+function config_addVarRange(config, name, lo, hi) {
+  ASSERT(config._class === 'config');
+  ASSERT(typeof name === 'string', 'name must be a string');
+  ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
+  ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
+  ASSERT(lo <= hi, 'range should be lo<=hi', lo, hi);
 
-  config.initial_vars[name] = domain;
-  config.all_var_names.push(name);
+  let domain = domain_createRange(lo, hi);
+  config_addVarDomain(config, name, domain);
 
-  // we cant change the name here but we can cache the constant if it were one
-  if (domain instanceof Array && domain.length === 2 && domain[0] === domain[1]) {
-    let lo = domain[0];
-    if (!config.constant_cache[lo]) {
-      config.constant_cache[lo] = name;
-    }
-  } else if (typeof domain === 'number') {
-    if (!config.constant_cache[domain]) {
-      config.constant_cache[domain] = name;
-    }
+  return name;
+}
+/**
+ * @param {$config} config
+ * @param {string[]} names
+ * @param {$domain} domain
+ */
+function config_addVarsWithDomain(config, names, domain) {
+  ASSERT(config._class === 'config');
+
+  for (let i = 0, n = names.length; i < n; ++i) {
+    let name = names[i];
+    ASSERT(typeof name === 'string', 'name must be a string');
+    config_addVarDomain(config, name, domain);
   }
 }
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @param {$domain} domain
+ * @param {undefined} [_forbidden] Throws if this is used, prevents bad api mistakes (since domain can be a number)
+ * @returns {string}
+ */
+function config_addVarDomain(config, name, domain, _forbidden) {
+  ASSERT(_forbidden === undefined, 'WRONG_API');
 
-function config_addConstant(config, value) {
+  _config_addVar(config, name, domain);
+  return name;
+}
+/**
+ * @param {$config} config
+ * @param {number} value
+ * @returns {string}
+ */
+function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === 'config');
-  ASSERT(typeof value === 'number', 'constant value should be a number', value);
+  ASSERT(typeof value === 'number', 'value should be a number', value);
+
   if (config.constant_cache[value]) {
     return config.constant_cache[value];
   }
+
   let name = String(++config.constant_uid);
-  config_addVarValue(config, name, value);
-  config.constant_cache[value] = name;
+  config_addVarConstant(config, name, value);
+
   return name;
+}
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @param {number} value
+ * @returns {string}
+ */
+function config_addVarConstant(config, name, value) {
+  ASSERT(config._class === 'config');
+  ASSERT(typeof name === 'string', 'name must be a string');
+  ASSERT(typeof value === 'number', 'value should be a number', value);
+
+  let domain = domain_createRange(value, value);
+
+  config_addVarDomain(config, name, domain);
+
+  config.constant_cache[value] = name;
+
+  return name;
+}
+
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @param {$domain} domain
+ */
+function _config_addVar(config, name, domain) {
+  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
+  ASSERT(name && typeof name === 'string', 'name must be a non-empty string');
+  ASSERT(typeof domain === 'number' || domain instanceof Array, '$domain is a number or array', domain);
+  ASSERT(!config.initial_vars[name], 'Do not declare the same name twice', config.initial_vars[name], '->', name, '->', domain);
+  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= MAX_SMALL), 'domain as value should be within small domain range', domain);
+
+  if (config.all_var_names.indexOf(name) >= 0) THROW('Var name already part of this config. Probably a bug?');
+
+  //domain = domain_maim(domain);
+
+  config.initial_vars[name] = domain;
+  config.all_var_names.push(name);
 }
 
 /**
@@ -279,7 +318,8 @@ function config_generateVars(config, vars = {}, unsolvedVarNames) {
     let name = allVarNames[i];
     let val = initialVars[name];
     if (typeof val === 'number') {
-      val = fdvar_create(name, domain_createValue(val));
+      // NOT a constant (anymore), but a "small domain"; bit flags
+      val = fdvar_create(name, val);
     } else if (val === undefined) {
       val = fdvar_create(name, domain_createRange(SUB, SUP));
     } else {
@@ -330,12 +370,15 @@ function config_initConfigsAndFallbacks(config) {
 // BODY_STOP
 
 export {
-  config_addConstant,
   config_addPropagator,
-  config_addVar,
-  config_addVarAnon,
-  config_addVarsA,
-  config_addVarsO,
+  config_addVarAnonConstant,
+  config_addVarAnonNothing,
+  config_addVarAnonRange,
+  config_addVarConstant,
+  config_addVarDomain,
+  config_addVarNothing,
+  config_addVarRange,
+  config_addVarsWithDomain,
   config_clone,
   config_create,
   config_generateVars,
@@ -344,6 +387,6 @@ export {
   config_setOptions,
 
   // testing
-  config_addVarValue,
+  _config_addVar,
   config_initConfigsAndFallbacks,
 };

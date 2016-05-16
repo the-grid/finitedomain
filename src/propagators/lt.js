@@ -26,13 +26,13 @@ import {
  * @returns {*}
  */
 function propagator_ltStepBare(fdvar1, fdvar2) {
+  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
+  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
+
   let lo1 = fdvar_lowerBound(fdvar1);
   let hi1 = fdvar_upperBound(fdvar1);
   let lo2 = fdvar_lowerBound(fdvar2);
   let hi2 = fdvar_upperBound(fdvar2);
-
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.

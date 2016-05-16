@@ -1,8 +1,6 @@
 import {
   REJECTED,
   SOMETHING_CHANGED,
-  SUB,
-  SUP,
 
   ASSERT,
   ASSERT_DOMAIN,
@@ -15,10 +13,11 @@ import {
 } from './config';
 
 import {
+  domain_clone,
+  domain_fromFlags,
   domain_getValue,
+  domain_isRejected,
   domain_isSolved,
-  domain_max,
-  domain_min,
 } from './domain';
 
 import {
@@ -96,14 +95,7 @@ function space_toConfig(space) {
     let name = names[i];
     let fdvar = fdvars[name];
     let dom = fdvar.dom;
-    if (domain_isSolved(dom)) {
-      dom = domain_getValue(dom);
-    } else if (domain_min(dom) === SUB && domain_max(dom) === SUP) {
-      dom = undefined;
-    } else {
-      dom = dom.slice(0);
-    }
-    varsForClone[name] = dom;
+    varsForClone[name] = domain_clone(dom);
   }
 
   return config_clone(space.config, varsForClone);
@@ -198,8 +190,8 @@ function space_propagate(space) {
       let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
       // the domain of either var of a propagator can only be empty if the prop REJECTED
-      ASSERT(n === REJECTED || space.vars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
-      ASSERT(n === REJECTED || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
+      ASSERT(n === REJECTED || space.vars[propDetails[1][0]].dom > 0 || space.vars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
+      ASSERT(n === REJECTED || !propDetails[1][1] || space.vars[propDetails[1][1]].dom > 0 || space.vars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
       // if a domain was set empty and the flag is on the property should be set or
       // the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
       //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || space.vars[propDetails[1][0]].dom.length || space.vars[propDetails[1][0]].dom._trace, 'domain empty but not marked');
@@ -338,10 +330,12 @@ function space_getsetVarSolveState(varName, vars, result) {
   // don't include those variables in the result.
   let domain = vars[varName].dom;
   let value = domain;
-  if (domain.length === 0) {
+  if (domain_isRejected(domain)) {
     value = false;
   } else if (domain_isSolved(domain)) {
-    value = domain_min(domain);
+    value = domain_getValue(domain);
+  } else {
+    value = domain_fromFlags(domain);
   }
   result[varName] = value;
 

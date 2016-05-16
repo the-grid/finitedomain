@@ -1,6 +1,8 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specDomainCreateRange,
   specDomainCreateRanges,
+  specDomainSmallNums,
 } from '../../fixtures/domain.fixt';
 
 import distribution_getNextVar, {
@@ -32,11 +34,11 @@ describe('distribution/var.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRanges(range_a),
+        domain: specDomainCreateRange(...range_a, true),
       });
       solver.addVar({
         id: 'B',
-        domain: specDomainCreateRanges(range_b),
+        domain: specDomainCreateRange(...range_b, true),
       });
       solver.prepare({
         distribute: {
@@ -55,22 +57,22 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should return BETTER if lo(v1) < lo(v2)', function() {
-        let v1 = fdvar_create('1', [10, 11]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(10));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMin(v1, v2)).to.equal(BETTER);
       });
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
-        let v1 = fdvar_create('1', [11, 11]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(11));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMin(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
-        let v1 = fdvar_create('1', [12, 11]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(12));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMin(v1, v2)).to.equal(WORSE);
       });
@@ -88,22 +90,22 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should return BETTER if hi(v1) > hi(v2)', function() {
-        let v1 = fdvar_create('1', [11, 12]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(12));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMax(v1, v2)).to.equal(BETTER);
       });
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
-        let v1 = fdvar_create('1', [11, 11]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(11));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMax(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
-        let v1 = fdvar_create('1', [11, 10]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(10));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMax(v1, v2)).to.equal(WORSE);
       });
@@ -137,21 +139,21 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
         let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [15, 19]));
-        let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 14]));
+        let v2 = fdvar_create('2', specDomainSmallNums(8, 9, 10, 12, 13, 14));
 
         expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
         let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
-        let v2 = fdvar_create('2', specDomainCreateRanges([8, 10], [12, 13]));
+        let v2 = fdvar_create('2', specDomainSmallNums(8, 9, 10, 13, 14));
 
         expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
       });
 
       it('should return WORSE if size(v1) > size(v2)', function() {
-        let v1 = fdvar_create('1', [11, 12]);
-        let v2 = fdvar_create('2', [11, 11]);
+        let v1 = fdvar_create('1', specDomainSmallNums(11, 12));
+        let v2 = fdvar_create('2', specDomainSmallNums(11));
 
         expect(distribution_varByMinSize(v1, v2)).to.equal(WORSE);
       });
@@ -319,11 +321,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([0, 1]),
+          domain: specDomainCreateRange(0, 1, true),
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([10, 12]),
+          domain: specDomainCreateRange(10, 12, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -335,7 +337,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'D',
-          domain: specDomainCreateRanges([13, 13]),
+          domain: specDomainCreateRange(13, 13, true),
         });
         solver.prepare({
           distribute: {
@@ -354,11 +356,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([0, 1]),
+          domain: specDomainCreateRange(0, 1, true),
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([10, 12]),
+          domain: specDomainCreateRange(10, 12, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -374,7 +376,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'D',
-          domain: specDomainCreateRanges([13, 13]),
+          domain: specDomainCreateRange(13, 13, true),
         });
         solver.prepare({
           distribute: {

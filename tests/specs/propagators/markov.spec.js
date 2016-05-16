@@ -22,7 +22,7 @@ describe('propagators/markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRange(0, 0),
+        domain: specDomainCreateRange(0, 0, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [0],
@@ -41,7 +41,7 @@ describe('propagators/markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRange(0, 0),
+        domain: specDomainCreateRange(0, 0, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [1],
@@ -62,7 +62,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0),
+          domain: specDomainCreateRange(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -81,7 +81,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0),
+          domain: specDomainCreateRange(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -103,7 +103,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0),
+          domain: specDomainCreateRange(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -127,7 +127,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0),
+          domain: specDomainCreateRange(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],

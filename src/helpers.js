@@ -21,6 +21,8 @@ let ZERO_CHANGES = 0;
 let SOMETHING_CHANGED = 1;
 let REJECTED = -1;
 let NOT_FOUND = -1;
+let EMPTY = 0;
+let MAX_SMALL = (1 << 16) - 1; // there are 15 flags. if they are all on, this is the number value
 let LOG_NONE = 0;
 let LOG_STATS = 1;
 let LOG_SOLVES = 2;
@@ -78,7 +80,7 @@ function ASSERT_DOMAIN(domain) {
   }
 }
 function _ASSERT_DOMAIN(domain) {
-  ASSERT(!!domain, 'domains should be an array', domain);
+  ASSERT(domain instanceof Array, 'domains should be an array', domain);
   ASSERT(domain.length % PAIR_SIZE === 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % PAIR_SIZE);
   let phi = SUB - 2; // this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
   for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
@@ -136,7 +138,7 @@ function ASSERT_DOMAIN_EMPTY_CHECK(domain) {
     return;
   }
 
-  if (!domain.length && !domain.__skipEmptyCheck) { // __skipEmptyCheck is to circumvent this check in tests
+  if (typeof domain === 'number' ? domain === EMPTY : (!domain.length && !domain.__skipEmptyCheck)) { // __skipEmptyCheck is to circumvent this check in tests
     /* istanbul ignore if */
     if (ENABLE_EMPTY_CHECK) {
       if (domain._trace) {
@@ -207,6 +209,8 @@ export {
   ENABLE_EMPTY_CHECK,
   // __REMOVE_ABOVE_FOR_DIST__
 
+  EMPTY,
+  MAX_SMALL,
   REJECTED,
   SUB,
   SUP,

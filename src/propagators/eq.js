@@ -1,3 +1,16 @@
+/*
+
+domains, internally, can be either an array or a number
+if its a number then that's a bitwise flag for a range of [0,15]
+
+spaces track var ranges through a single object; name: domain
+domains should probably be tracked centrally
+
+manually computed domains can lead to duplication but that's
+deduping will still lead to saving on cloning
+
+ */
+
 import {
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';

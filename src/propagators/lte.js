@@ -6,12 +6,12 @@ import {
 } from '../helpers';
 
 import {
+  domain_isRejected,
   domain_max,
   domain_min,
 } from '../domain';
 
 import {
-  fdvar_isRejected,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_upperBound,
@@ -37,7 +37,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
   // value in v2. bigger values will never satisfy lt so prune them.
   if (hi1 > hi2) {
     var leftChanged = fdvar_removeGteInline(fdvar1, hi2 + 1);
-    if (fdvar_isRejected(fdvar1)) {
+    if (domain_isRejected(fdvar1.dom)) {
       leftChanged = REJECTED;
     }
   }
@@ -46,7 +46,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
   // smallest value of v1 can never satisfy lt so prune them as well
   if (lo1 > lo2) {
     var rightChanged = fdvar_removeLteInline(fdvar2, lo1 - 1);
-    if (fdvar_isRejected(fdvar2)) {
+    if (domain_isRejected(fdvar2.dom)) {
       rightChanged = REJECTED;
     }
   }

@@ -35,7 +35,6 @@ import {
 } from '../markov';
 
 import {
-  fdvar_isRejected,
   fdvar_middleElement,
   fdvar_upperBound,
 } from '../fdvar';
@@ -58,7 +57,7 @@ function distribute_getNextDomainForVar(space, fdvar) {
   let configNextValueFunc = space.config.next_value_func;
   let varName = fdvar.id;
 
-  ASSERT(!fdvar_isRejected(fdvar), 'fdvar should not be rejected', varName, fdvar.dom, fdvar);
+  ASSERT(!domain_isRejected(fdvar.dom), 'fdvar should not be rejected', varName, fdvar.dom, fdvar);
 
   // each var can override the value distributor
   let configVarDistOptions = space.config.var_dist_options;

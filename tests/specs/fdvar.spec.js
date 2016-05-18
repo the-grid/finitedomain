@@ -22,7 +22,6 @@ import {
   fdvar_createRange,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
-  fdvar_isRejected,
   fdvar_upperBound,
   fdvar_middleElement,
   fdvar_removeGteInline,
@@ -428,73 +427,6 @@ describe('fdvar.spec', function() {
         expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 10, 11, 13)));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRange(8, 100)));
-      });
-    });
-  });
-
-  describe('fdvar_isRejected', function() {
-
-    it('should exist', function() {
-      expect(fdvar_isRejected).to.be.a('function');
-    });
-
-    describe('with array', function() {
-
-      it('should return true for empty array', function() {
-        let A = fdvar_create('A', specDomainCreateEmpty());
-        expect(fdvar_isRejected(A)).to.equal(true);
-      });
-
-      it('should return false for solved array domains', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([90, 90]));
-        expect(fdvar_isRejected(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainCreateRanges([SUP, SUP]));
-        expect(fdvar_isRejected(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainCreateRanges([SUP - 1, SUP - 1]));
-        expect(fdvar_isRejected(C)).to.equal(false);
-      });
-
-      it('should return false for unsolved array domains', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([0, 100]));
-        expect(fdvar_isRejected(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainCreateRanges([1, SUP]));
-        expect(fdvar_isRejected(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainCreateRanges([100, 200], [300, 400]));
-        expect(fdvar_isRejected(C)).to.equal(false);
-      });
-    });
-
-    describe('with numbers', function() {
-
-      it('should return true for 0', function() {
-        let A = fdvar_create('A', specDomainSmallEmpty());
-        expect(fdvar_isRejected(A)).to.equal(true);
-      });
-
-      it('should return false for solved number domains', function() {
-        let A = fdvar_create('A', specDomainSmallNums(0));
-        expect(fdvar_isRejected(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainSmallNums(1));
-        expect(fdvar_isRejected(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainSmallNums(15));
-        expect(fdvar_isRejected(C)).to.equal(false);
-      });
-
-      it('should return false for unsolved number domains', function() {
-        let A = fdvar_create('A', specDomainSmallNums(0, 1, 5, 7, 8, 10, 11));
-        expect(fdvar_isRejected(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainSmallNums(1, 3, 4, 9, 10));
-        expect(fdvar_isRejected(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainSmallNums(14, 15));
-        expect(fdvar_isRejected(C)).to.equal(false);
       });
     });
   });

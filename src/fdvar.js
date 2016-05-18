@@ -65,13 +65,6 @@ function fdvar_new(id, dom) {
   };
 }
 
-// A var is rejected if its domain is empty. This means none of the
-// possible values for this var could satisfy all the constraints.
-
-function fdvar_isRejected(fdvar) {
-  return domain_isRejected(fdvar.dom);
-}
-
 function fdvar_clone(fdvar) {
   return fdvar_new(fdvar.id, domain_clone(fdvar.dom));
 }
@@ -268,7 +261,6 @@ export {
   fdvar_createRange,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
-  fdvar_isRejected,
   fdvar_upperBound,
   fdvar_middleElement,
   fdvar_removeGteInline,

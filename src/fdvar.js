@@ -43,9 +43,6 @@ function fdvar_create(id, dom) {
   };
 }
 
-function fdvar_setDomain(fdvar, domain) {
-}
-
 function fdvar_removeGteInline(fdvar, value) {
   ASSERT(typeof value === 'number', 'VALUE_SHOULD_BE_NUMBER');
 
@@ -197,5 +194,4 @@ export {
   fdvar_forceNeqInline,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
-  fdvar_setDomain,
 };

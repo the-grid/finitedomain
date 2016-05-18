@@ -46,40 +46,48 @@ function search_depthFirst(state) {
   // var in the clone to see whether this breaks anything. The loop below
   // keeps doing this until something breaks or all target vars are solved.
   let createNextSpaceNode = state.next_choice || search_defaultSpaceFactory;
-
-  let {
-    space,
-    stack,
-  } = state;
+  let stack = state.stack;
 
   while (stack.length > 0) {
-    let next_space;
-    space = stack[stack.length - 1];
-
-    if (!space_propagate(space)) {
-      _search_onReject(state, space, stack);
-    } else if (space_isSolved(space)) {
-      _search_onSolve(state, space, stack);
-      return;
-    } else {
-      next_space = createNextSpaceNode(space, state);
-      if (next_space) {
-        // Now this space is neither solved nor failed but since
-        // no constraints are rejecting we must look further.
-        // Push on to the stack and explore further.
-        stack.push(next_space);
-      } else {
-        // Finished exploring branches of this space. Continue with the previous spaces.
-        // This is a stable space, but isn't a solution. Neither is it a failed space.
-        space.stable_children++;
-        stack.pop();
-      }
-    }
+    let solved = search_depthFirstLoop(stack[stack.length - 1], stack, state, createNextSpaceNode);
+    if (solved) return;
   }
 
   // Failed space and no more options to explore.
   state.status = 'end';
   state.more = false;
+}
+
+/**
+ * One search step of the given space
+ *
+ * @param {Space} space
+ * @param {Space[]} stack
+ * @param {Object} state See search_depthFirst
+ * @param {Function} createNextSpaceNode Clones the current space and reduces one var in the new space
+ * @returns {boolean}
+ */
+function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+  if (!space_propagate(space)) {
+    _search_onReject(state, space, stack);
+  } else if (space_isSolved(space)) {
+    _search_onSolve(state, space, stack);
+    return true;
+  } else {
+    let next_space = createNextSpaceNode(space, state);
+    if (next_space) {
+      // Now this space is neither solved nor failed but since
+      // no constraints are rejecting we must look further.
+      // Push on to the stack and explore further.
+      stack.push(next_space);
+    } else {
+      // Finished exploring branches of this space. Continue with the previous spaces.
+      // This is a stable space, but isn't a solution. Neither is it a failed space.
+      space.stable_children++;
+      stack.pop();
+    }
+  }
+  return false;
 }
 
 /**

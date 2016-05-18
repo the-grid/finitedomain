@@ -23,7 +23,6 @@ import {
   domain_isRejected,
   domain_isSolved,
   domain_max,
-  domain_middleElement,
   domain_numarr,
   domain_removeGteInline,
   domain_removeGteNumbered,
@@ -90,13 +89,6 @@ function fdvar_constrain(fdvar, domain) {
 
 function fdvar_upperBound(fdvar) {
   return domain_max(fdvar.dom);
-}
-
-// Get the exact middle value from all values covered by var
-// Middle here means the middle index, not hi-lo/2
-
-function fdvar_middleElement(fdvar) {
-  return domain_middleElement(fdvar.dom);
 }
 
 function fdvar_removeGteInline(fdvar, value) {
@@ -251,7 +243,6 @@ export {
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_upperBound,
-  fdvar_middleElement,
   fdvar_new,
   fdvar_removeGteInline,
   fdvar_removeLteInline,

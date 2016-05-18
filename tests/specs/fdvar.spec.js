@@ -22,7 +22,6 @@ import {
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_upperBound,
-  fdvar_middleElement,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,
@@ -428,29 +427,6 @@ describe('fdvar.spec', function() {
       expect(fdvar_upperBound(fdvar_create('A', specDomainSmallNums(15)))).to.equal(15);
       expect(fdvar_upperBound(fdvar_create('A', specDomainSmallNums(3, 5, 9, 10)))).to.equal(10);
       expect(fdvar_upperBound(fdvar_create('A', specDomainSmallNums(1, 2)))).to.equal(2);
-    });
-  });
-
-  describe('fdvar_middleElement', function() {
-
-    it('should exist', function() {
-      expect(fdvar_middleElement).to.be.a('function');
-    });
-
-    it('should work with array domain', function() {
-      expect(fdvar_middleElement(fdvar_create('A', specDomainCreateRange(SUP, SUP)))).to.equal(SUP);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainCreateRange(SUP - 2, SUP)))).to.equal(SUP - 1);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainCreateRange(SUP - 3, SUP)))).to.equal(SUP - 1);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainCreateRange(300, 400)))).to.equal(350); // or 349
-      expect(fdvar_middleElement(fdvar_create('A', specDomainCreateRanges([1000, 1500], [1600, 2000], [2100, 2101])))).to.equal(1452);
-    });
-
-    it('should work with numbered domain', function() {
-      expect(fdvar_middleElement(fdvar_create('A', specDomainSmallNums(0)))).to.equal(0);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainSmallNums(0, 1, 2)))).to.equal(1);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainSmallNums(0, 1, 2, 3)))).to.equal(2);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainSmallRange(4, 8)))).to.equal(6);
-      expect(fdvar_middleElement(fdvar_create('A', specDomainSmallNums(4, 5, 6, 7, 8, 12, 13, 14)))).to.equal(8);
     });
   });
 

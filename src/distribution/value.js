@@ -22,6 +22,7 @@ import {
   domain_isRejected,
   domain_isSolved,
   domain_max,
+  domain_middleElement,
   domain_min,
   domain_numarr,
   domain_removeNextFromList,
@@ -35,7 +36,6 @@ import {
 } from '../markov';
 
 import {
-  fdvar_middleElement,
   fdvar_upperBound,
 } from '../fdvar';
 
@@ -237,7 +237,7 @@ function distribution_valueByMid(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
   ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
-  let middle = fdvar_middleElement(fdvar);
+  let middle = domain_middleElement(fdvar.dom);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:

@@ -12,13 +12,11 @@ import {
   NO_CHANGES,
   REJECTED,
   SOME_CHANGES,
-  SUB,
   SUP,
 } from '../../src/helpers';
 import {
   fdvar_constrain,
   fdvar_create,
-  fdvar_createRange,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_removeGteInline,
@@ -99,51 +97,6 @@ describe('fdvar.spec', function() {
       let A = fdvar_create('A', specDomainSmallRange(0, 10));
 
       expect(A.dom).to.eql(specDomainSmallRange(0, 10));
-    });
-  });
-
-  describe('fdvar_createRange', function() {
-
-    it('should exist', function() {
-      expect(fdvar_createRange).to.be.a('function');
-    });
-
-    it('should create a number domain', function() {
-      expect(fdvar_createRange('A', 0, 15).dom).to.eql(specDomainSmallRange(0, 15));
-    });
-
-    it('should create a array domain', function() {
-      expect(fdvar_createRange('A', 100, SUP).dom).to.eql(specDomainCreateRange(100, SUP));
-    });
-
-    it('should create a array domain with smaller values', function() {
-      expect(fdvar_createRange('A', 10, 100).dom).to.eql(specDomainCreateRange(10, 100));
-    });
-
-    it('should throw for non-string ids', function() {
-      expect(_ => fdvar_createRange(25, 10, 100)).to.throw('ID_SHOULD_BE_STRING');
-    });
-
-    it('should throw for non-numbered range', function() {
-      expect(_ => fdvar_createRange('A', '10', 100)).to.throw('LO_SHOULD_BE_NUMBER');
-      expect(_ => fdvar_createRange('A', 10, '100')).to.throw('HI_SHOULD_BE_NUMBER');
-      expect(_ => fdvar_createRange('A', '10', '100')).to.throw('LO_SHOULD_BE_NUMBER');
-      expect(_ => fdvar_createRange('A', undefined, 100)).to.throw('LO_SHOULD_BE_NUMBER');
-      expect(_ => fdvar_createRange('A', 10)).to.throw('HI_SHOULD_BE_NUMBER');
-      expect(_ => fdvar_createRange('A')).to.throw('LO_SHOULD_BE_NUMBER');
-    });
-
-    it('should pass on valid lo/hi', function() {
-      expect(_ => fdvar_createRange('A', 1, 2)).not.to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-      expect(_ => fdvar_createRange('A', SUB - 2, 1)).to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-      expect(_ => fdvar_createRange('A', 2, SUB - 1)).to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-      expect(_ => fdvar_createRange('A', SUP + 2, 1)).to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-      expect(_ => fdvar_createRange('A', 2, SUP + 1)).to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-    });
-
-    it('should pass on ordered lo/hi', function() {
-      expect(_ => fdvar_createRange('A', 1, 2)).not.to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
-      expect(_ => fdvar_createRange('A', 2, 1)).to.throw('RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
     });
   });
 

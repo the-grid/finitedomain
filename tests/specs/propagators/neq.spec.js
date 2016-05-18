@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateValue,
   specDomainCreateRange,
   specDomainCreateRanges,
@@ -15,15 +16,14 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
-  fdvar_create,
-  fdvar_createRange,
-} from '../../../src/fdvar';
-import {
   domain_clone,
 } from '../../../src/domain';
 import {
   propagator_neqStepBare,
 } from '../../../src/propagators/neq';
+import {
+  fdvar_create,
+} from '../../../src/fdvar';
 
 describe('propagators/neq.spec', function() {
 
@@ -32,7 +32,7 @@ describe('propagators/neq.spec', function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_createRange('x', SUB, SUP);
+    let v = specCreateFdvarRange('x', SUB, SUP);
 
     expect(() => propagator_neqStepBare()).to.throw();
     expect(() => propagator_neqStepBare(v)).to.throw();

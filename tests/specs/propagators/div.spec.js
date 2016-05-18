@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainSmallNums,
@@ -17,12 +18,11 @@ import {
   domain_clone,
 } from '../../../src/domain';
 import {
-  fdvar_create,
-  fdvar_createRange,
-} from '../../../src/fdvar';
-import {
   propagator_eqStepBare,
 } from '../../../src/propagators/eq';
+import {
+  fdvar_create,
+} from '../../../src/fdvar';
 
 describe('propagators/div.spec', function() {
   // in general after call v1 and v2 should be equal
@@ -32,7 +32,7 @@ describe('propagators/div.spec', function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_createRange('x', SUB, SUP);
+    let v = specCreateFdvarRange('x', SUB, SUP);
 
     expect(() => propagator_eqStepBare()).to.throw();
     expect(() => propagator_eqStepBare(v)).to.throw();
@@ -49,19 +49,19 @@ describe('propagators/div.spec', function() {
   //it('should reject for empty left domain', function() {
   //
   //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_createRange('y', SUB, SUP);
+  //  let v2 = specCreateFdvarRange('y', SUB, SUP);
   //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
   //});
   //
   //it('should reject for empty right domain', function() {
   //
-  //  let v1 = fdvar_createRange('x', SUB, SUP);
+  //  let v1 = specCreateFdvarRange('x', SUB, SUP);
   //  let v2 = fdvar_create('y', []);
   //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
   //});
 
   it('should split a domain if it covers multiple ranges of other domain', function() {
-    let v1 = fdvar_createRange('x', SUB, SUP);
+    let v1 = specCreateFdvarRange('x', SUB, SUP);
     let v2 = fdvar_create('y', specDomainCreateRanges([0, 10], [20, 30]));
 
     expect(propagator_eqStepBare(v1, v2)).to.be.above(0);

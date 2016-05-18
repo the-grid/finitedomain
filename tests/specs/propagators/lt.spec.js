@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainSmallEmpty,
@@ -14,12 +15,11 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
-  fdvar_create,
-  fdvar_createRange,
-} from '../../../src/fdvar';
-import {
   propagator_ltStepBare,
 } from '../../../src/propagators/lt';
+import {
+  fdvar_create,
+} from '../../../src/fdvar';
 
 describe('propagators/lt.spec', function() {
   // in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
@@ -30,7 +30,7 @@ describe('propagators/lt.spec', function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_createRange('x', SUB, SUP);
+    let v = specCreateFdvarRange('x', SUB, SUP);
 
     expect(() => propagator_ltStepBare()).to.throw();
     expect(() => propagator_ltStepBare(v)).to.throw();

@@ -1,5 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateRange,
   specDomainSmallNums,
   specDomainSmallRange,
@@ -26,9 +27,6 @@ import {
   SUB,
   SUP,
 } from '../../src/helpers';
-import {
-  fdvar_createRange,
-} from '../../src/fdvar';
 
 describe('config.spec', function() {
 
@@ -79,7 +77,7 @@ describe('config.spec', function() {
       let name = config_addVarAnonConstant(config, 10);
       let vars = config_generateVars(config);
 
-      expect(vars[name]).to.eql(fdvar_createRange(name, 10, 10));
+      expect(vars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
     });
 
     it('should create a full width var', function() {
@@ -87,7 +85,7 @@ describe('config.spec', function() {
       let name = config_addVarAnonNothing(config);
       let vars = config_generateVars(config);
 
-      expect(vars[name]).to.eql(fdvar_createRange(name, SUB, SUP));
+      expect(vars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
     });
 
     it('should clone a domained var', function() {
@@ -95,7 +93,7 @@ describe('config.spec', function() {
       let name = config_addVarAnonRange(config, 32, 55);
       let vars = config_generateVars(config);
 
-      expect(vars[name]).to.eql(fdvar_createRange(name, 32, 55));
+      expect(vars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
     });
   });
 

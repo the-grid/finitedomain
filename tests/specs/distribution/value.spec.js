@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateValue,
   specDomainCreateRange,
   specDomainCreateRanges,
@@ -20,7 +21,6 @@ import distribute_getNextDomainForVar, {
 } from '../../../src/distribution/value';
 import {
   fdvar_create,
-  fdvar_createRange,
 } from '../../../src/fdvar';
 
 describe('distribution/value.spec', function() {
@@ -43,7 +43,7 @@ describe('distribution/value.spec', function() {
   describe('distribution naive', function() {
 
     it('should work', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
       console.log(fdvar);
       let dom = _distribute_getNextDomainForVar('naive', undefined, fdvar);
 
@@ -58,21 +58,21 @@ describe('distribution/value.spec', function() {
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMin(fdvar, 0)).to.eql(specDomainSmallNums(0));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMin(fdvar, 1)).to.eql(specDomainSmallNums(1));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMin(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
@@ -113,21 +113,21 @@ describe('distribution/value.spec', function() {
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMax(fdvar, 0)).to.eql(specDomainSmallNums(1));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMax(fdvar, 1)).to.eql(specDomainSmallNums(0));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMax(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
@@ -168,21 +168,21 @@ describe('distribution/value.spec', function() {
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMid(fdvar, 0)).to.eql(specDomainSmallNums(1));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMid(fdvar, 1)).to.eql(specDomainSmallNums(0));
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueByMid(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
@@ -246,7 +246,7 @@ describe('distribution/value.spec', function() {
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueBySplitMin(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
@@ -319,7 +319,7 @@ describe('distribution/value.spec', function() {
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       expect(distribution_valueBySplitMin(fdvar, 2)).to.eql(undefined);
       expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
@@ -390,7 +390,7 @@ describe('distribution/value.spec', function() {
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = fdvar_createRange('A', 0, 1);
+      let fdvar = specCreateFdvarRange('A', 0, 1);
 
       // TODO: splitmin used to take half of the array of ranges but with number domains that'll be different
       expect(distribution_valueBySplitMax(fdvar, 2)).to.eql(undefined);

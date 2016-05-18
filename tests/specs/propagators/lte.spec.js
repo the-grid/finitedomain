@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specCreateFdvarRange,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainSmallEmpty,
@@ -14,12 +15,11 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
-  fdvar_create,
-  fdvar_createRange,
-} from '../../../src/fdvar';
-import {
   propagator_lteStepBare,
 } from '../../../src/propagators/lte';
+import {
+  fdvar_create,
+} from '../../../src/fdvar';
 
 describe('propagators/lte.spec', function() {
   // in general after call, max(v1) should be < max(v2) and min(v2) should be > min(v1)
@@ -30,7 +30,7 @@ describe('propagators/lte.spec', function() {
   });
 
   it('should require two vars', function() {
-    let v = fdvar_createRange('x', SUB, SUP);
+    let v = specCreateFdvarRange('x', SUB, SUP);
 
     expect(() => propagator_lteStepBare()).to.throw();
     expect(() => propagator_lteStepBare(v)).to.throw();

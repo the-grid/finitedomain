@@ -13,7 +13,6 @@ import {
 } from './helpers';
 
 import {
-  domain_clone,
   domain_createRange,
   domain_intersection,
   domain_equal,
@@ -63,10 +62,6 @@ function fdvar_new(id, dom) {
     id,
     dom,
   };
-}
-
-function fdvar_clone(fdvar) {
-  return fdvar_new(fdvar.id, domain_clone(fdvar.dom));
 }
 
 function fdvar_setDomain(fdvar, domain) {
@@ -255,7 +250,6 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
 // BODY_STOP
 
 export {
-  fdvar_clone,
   fdvar_constrain,
   fdvar_create,
   fdvar_createRange,
@@ -263,6 +257,7 @@ export {
   fdvar_forceNeqInline,
   fdvar_upperBound,
   fdvar_middleElement,
+  fdvar_new,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,

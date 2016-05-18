@@ -16,7 +16,6 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
-  fdvar_clone,
   fdvar_constrain,
   fdvar_create,
   fdvar_createRange,
@@ -31,25 +30,6 @@ import {
 } from '../../src/fdvar';
 
 describe('fdvar.spec', function() {
-
-  describe('fdvar_clone', function() {
-
-    it('should exist', function() {
-      expect(fdvar_clone).to.be.a('function');
-    });
-
-    it('should work with array domain', function() {
-      let A = fdvar_create('A', specDomainCreateRange(30, SUP));
-
-      expect(fdvar_clone(A)).to.eql(A);
-    });
-
-    it('should work with numbered domain', function() {
-      let A = fdvar_create('A', specDomainSmallRange(0, 10));
-
-      expect(fdvar_clone(A)).to.eql(A);
-    });
-  });
 
   describe('fdvar_constrain', function() {
 

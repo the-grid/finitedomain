@@ -124,12 +124,8 @@ function space_pseudoCloneVars(allNames, parentVars, cloneVars, cloneUnsolvedVar
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
     let fdvar = parentVars[varName];
-    if (fdvar.was_solved) {
-      cloneVars[varName] = fdvar;
-    } else { // copy by reference
-      cloneVars[varName] = fdvar_clone(fdvar);
-      cloneUnsolvedVarNames.push(varName);
-    }
+    cloneVars[varName] = fdvar_clone(fdvar);
+    cloneUnsolvedVarNames.push(varName);
   }
 }
 
@@ -266,12 +262,9 @@ function space_isSolved(space) {
     let name = unsolvedNames[i];
     if (targetedVars === 'all' || targetedVars.indexOf(name) >= 0) {
       let fdvar = vars[name];
-      ASSERT(!fdvar.was_solved, 'should not be set yet at this stage'); // we may change this though...
       ASSERT_DOMAIN(fdvar.dom);
 
-      if (fdvar_isSolved(fdvar)) {
-        fdvar.was_solved = true; // makes space_createClone faster
-      } else {
+      if (!fdvar_isSolved(fdvar)) {
         unsolvedNames[j++] = name;
       }
     }

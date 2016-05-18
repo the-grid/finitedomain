@@ -65,7 +65,6 @@ function fdvar_new(id, dom) {
     _class: 'fdvar',
     id,
     dom,
-    was_solved: false, // for space_createClone
   };
 }
 
@@ -96,7 +95,6 @@ function fdvar_isRejected(fdvar) {
 }
 
 function fdvar_clone(fdvar) {
-  ASSERT(!fdvar.was_solved, 'should not clone vars that are already solved...');
   return fdvar_new(fdvar.id, domain_clone(fdvar.dom));
 }
 
@@ -241,7 +239,7 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom1);
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 
-  if (fdvar1.was_solved || domain_isSolved(dom1)) {
+  if (domain_isSolved(dom1)) {
     let value = domain_getValue(dom1);
     if (typeof dom2 === 'number') {
       let result = domain_removeValueNumbered(dom2, value);
@@ -260,7 +258,7 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
         fdvar2.dom = domain_numarr(dom2);
       }
     }
-  } else if (fdvar2.was_solved || domain_isSolved(dom2)) {
+  } else if (domain_isSolved(dom2)) {
     let value = domain_getValue(dom2);
     if (typeof dom1 === 'number') {
       let result = domain_removeValueNumbered(dom1, value);

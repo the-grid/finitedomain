@@ -31,7 +31,6 @@ import {
   domain_removeLteNumbered,
   domain_removeValueInline,
   domain_removeValueNumbered,
-  domain_size,
 } from './domain';
 
 // BODY_START
@@ -87,10 +86,6 @@ function fdvar_constrain(fdvar, domain) {
   domain = domain_intersection(fdvar.dom, domain);
   if (domain_isRejected(domain)) return REJECTED;
   return fdvar_setDomain(fdvar, domain_numarr(domain));
-}
-
-function fdvar_size(fdvar) {
-  return domain_size(fdvar.dom);
 }
 
 function fdvar_upperBound(fdvar) {
@@ -261,5 +256,4 @@ export {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,
-  fdvar_size,
 };

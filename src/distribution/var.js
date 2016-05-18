@@ -4,13 +4,13 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_size,
   fdvar_upperBound,
 } from '../fdvar';
 
 import {
   domain_isDetermined,
   domain_min,
+  domain_size,
 } from '../domain';
 
 // BODY_START
@@ -117,7 +117,7 @@ function _distribution_varFindBest(fdvars, names, fitnessFunc, filterFunc, confi
 //#####
 
 function distribution_varByMinSize(v1, v2) {
-  let n = fdvar_size(v1) - fdvar_size(v2);
+  let n = domain_size(v1.dom) - domain_size(v2.dom);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;

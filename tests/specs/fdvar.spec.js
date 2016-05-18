@@ -26,7 +26,6 @@ import {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,
-  fdvar_size,
 } from '../../src/fdvar';
 
 describe('fdvar.spec', function() {
@@ -709,26 +708,6 @@ describe('fdvar.spec', function() {
 
       expect(A).to.eql(fdvar_create('A', C));
       expect(out).to.eql(SOME_CHANGES);
-    });
-  });
-
-  describe('fdvar_size', function() {
-    // simple tests because it just maps to domain_size
-
-    it('should exist', function() {
-      expect(fdvar_size).to.be.a('function');
-    });
-
-    it('should work with array domain', function() {
-      let A = fdvar_create('A', specDomainCreateRange(30, SUP));
-
-      expect(fdvar_size(A)).to.eql(SUP - 29);
-    });
-
-    it('should work with numbered domain', function() {
-      let A = fdvar_create('A', specDomainSmallRange(0, 10));
-
-      expect(fdvar_size(A)).to.eql(11);
     });
   });
 });

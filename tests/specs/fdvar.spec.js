@@ -21,7 +21,6 @@ import {
   fdvar_forceNeqInline,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
-  fdvar_setDomain,
 } from '../../src/fdvar';
 
 describe('fdvar.spec', function() {
@@ -568,53 +567,6 @@ describe('fdvar.spec', function() {
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
         expect(R).to.equal(SOME_CHANGES);
       });
-    });
-  });
-
-  describe('fdvar_setDomain', function() {
-
-    it('should exist', function() {
-      expect(fdvar_setDomain).to.be.a('function');
-    });
-
-    it('should work with an array domain on a array domain', function() {
-      let A = fdvar_create('A', specDomainCreateRange(5, 90));
-      let B = specDomainCreateRange(70, 100);
-      let C = specDomainCreateRange(70, 100);
-      let out = fdvar_setDomain(A, B);
-
-      expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOME_CHANGES);
-    });
-
-    it('should work with an number domain on a array domain', function() {
-      let A = fdvar_create('A', specDomainCreateRange(5, 90));
-      let B = specDomainSmallRange(4, 11);
-      let C = specDomainSmallRange(4, 11);
-      let out = fdvar_setDomain(A, B);
-
-      expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOME_CHANGES);
-    });
-
-    it('should work with an array domain on a number domain', function() {
-      let A = fdvar_create('A', specDomainSmallRange(4, 11));
-      let B = specDomainCreateRange(5, 90);
-      let C = specDomainCreateRange(5, 90);
-      let out = fdvar_setDomain(A, B);
-
-      expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOME_CHANGES);
-    });
-
-    it('should work with an number domain on a number domain', function() {
-      let A = fdvar_create('A', specDomainSmallRange(4, 11));
-      let B = specDomainSmallRange(0, 8);
-      let C = specDomainSmallRange(0, 8);
-      let out = fdvar_setDomain(A, B);
-
-      expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOME_CHANGES);
     });
   });
 });

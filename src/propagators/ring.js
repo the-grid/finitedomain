@@ -1,15 +1,17 @@
 import {
+  NO_CHANGES,
   REJECTED,
+  SOME_CHANGES,
+
+  ASSERT_UNUSED_DOMAIN,
 } from '../helpers';
 
 import {
+  domain_equal,
   domain_intersection,
   domain_isRejected,
+  domain_numarr,
 } from '../domain';
-
-import {
-  fdvar_setDomain,
-} from '../fdvar';
 
 // BODY_START
 
@@ -21,7 +23,21 @@ function propagator_ringStepBare(fdvar1, fdvar2, fdvarResult, opFunc) {
   let domain = domain_intersection(fromOp, fdvarResult.dom);
   if (domain_isRejected(domain)) return REJECTED;
 
-  return fdvar_setDomain(fdvarResult, domain);
+  let fdvarDom = fdvarResult.dom;
+  if (typeof domain === 'number' && typeof fdvarDom === 'number') {
+    if (fdvarDom !== domain) {
+      fdvarResult.dom = domain;
+      return SOME_CHANGES;
+    }
+    return NO_CHANGES;
+  }
+
+  ASSERT_UNUSED_DOMAIN(domain);
+  if (!domain_equal(fdvarDom, domain)) {
+    fdvarResult.dom = domain_numarr(domain);
+    return SOME_CHANGES;
+  }
+  return NO_CHANGES;
 }
 
 // BODY_STOP

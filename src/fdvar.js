@@ -46,6 +46,15 @@ function fdvar_create(id, dom) {
 }
 
 function fdvar_setDomain(fdvar, domain) {
+}
+
+// TODO: rename to intersect for that's what it is.
+function fdvar_constrain(fdvar, domain) {
+  domain = domain_numarr(domain);
+  domain = domain_intersection(fdvar.dom, domain);
+  if (domain_isRejected(domain)) return REJECTED;
+  domain = domain_numarr(domain);
+
   let fdvarDom = fdvar.dom;
   if (typeof domain === 'number' && typeof fdvarDom === 'number') {
     if (fdvarDom !== domain) {
@@ -57,17 +66,10 @@ function fdvar_setDomain(fdvar, domain) {
 
   ASSERT_UNUSED_DOMAIN(domain);
   if (!domain_equal(fdvarDom, domain)) {
-    fdvar.dom = domain_numarr(domain);
+    fdvar.dom = domain;
     return SOME_CHANGES;
   }
   return NO_CHANGES;
-}
-
-// TODO: rename to intersect for that's what it is.
-function fdvar_constrain(fdvar, domain) {
-  domain = domain_intersection(fdvar.dom, domain);
-  if (domain_isRejected(domain)) return REJECTED;
-  return fdvar_setDomain(fdvar, domain_numarr(domain));
 }
 
 function fdvar_removeGteInline(fdvar, value) {

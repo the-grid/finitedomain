@@ -1,4 +1,5 @@
 import {
+  EMPTY,
   NO_CHANGES,
   REJECTED,
   SOME_CHANGES,
@@ -12,13 +13,12 @@ import {
   propagator_stepWouldReject,
 } from './step_comparison';
 import {
-  domain_createValue,
+  ZERO,
+  ONE,
+
   domain_max,
   domain_min,
 } from '../domain';
-import {
-  fdvar_setDomain,
-} from '../fdvar';
 
 // BODY_START
 
@@ -42,16 +42,18 @@ function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, 
 
   // boolVar can only shrink so we only need to check its current state
   if (lo === 0 && propagator_stepWouldReject(invOpName, fdvar1, fdvar2)) {
-    if (hi === 0) {
-      return REJECTED;
-    }
-    fdvar_setDomain(boolVar, domain_createValue(1));
+    if (hi === 0) return REJECTED;
+
+    ASSERT(typeof boolVar.dom === 'number', 'BOOL_VAR_SHOULD_ALWAYS_BE_NUMBER');
+    boolVar.dom &= ONE;
+    if (boolVar.dom === EMPTY) return REJECTED;
     return SOME_CHANGES;
   } else if (hi === 1 && propagator_stepWouldReject(opName, fdvar1, fdvar2)) {
-    if (lo === 1) {
-      return REJECTED;
-    }
-    fdvar_setDomain(boolVar, domain_createValue(0));
+    if (lo === 1) return REJECTED;
+
+    ASSERT(typeof boolVar.dom === 'number', 'BOOL_VAR_SHOULD_ALWAYS_BE_NUMBER');
+    boolVar.dom &= ZERO;
+    if (boolVar.dom === EMPTY) return REJECTED;
     return SOME_CHANGES;
   } else { // boolVar is solved, enforce relevant op
     if (lo === 1) {

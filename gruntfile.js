@@ -26,6 +26,14 @@ module.exports = function () {
         cmd: 'npm',
         args: ['run','lintdev','--silent'],
       },
+      jsbeautify: {
+        cmd: 'node_modules/.bin/js-beautify',
+        args: [
+          '-s 4',
+          '-f', 'build/finitedomain-browserified.js',
+          '-o', 'build/finitedomain-browserified-beautified.js',
+        ],
+      },
     },
 
     // we only use this babel for manual inspection. not part of build chain.
@@ -48,6 +56,11 @@ module.exports = function () {
             dest: 'build/specs/',
           },
         ],
+      },
+      concat: {
+        files: {
+          'build/finitedomain-browserified.js': ['build/finitedomain.es6.concat.js'],
+        },
       },
     },
 
@@ -87,7 +100,7 @@ module.exports = function () {
         'tests/**/*',
       ],
       tasks: [
-        'browserify:dist',
+        'buildf',
         'uglify:dist',
       ],
     },
@@ -165,6 +178,42 @@ module.exports = function () {
         },
       },
     },
+
+    concat: {
+      build: {
+        options: {
+          // https://github.com/gruntjs/grunt-contrib-concat
+          banner: '',
+          footer: '\nexport default Solver;',
+          sourceMap: true,
+          sourceMapStyle: 'inline', // embed link inline
+          process: function(code, path){
+            if (path === 'src/index.js') return '';
+            console.log('concatting', path);
+            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
+            if (!match) {
+              console.error('unable to find body start/stop pragmas in '+path);
+              throw 'No body found in '+path;
+            }
+            code = match[1];
+            match = code.match(/^([\s\S]*?)\/\/ __REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?\/\/__REMOVE_ABOVE_FOR_ASSERTS__([\s\S]*)$/);
+            if (match) {
+              console.log(' - removing for asserts');
+              code = match[1] + match[2];
+            }
+            code = code.replace(/^\s*ASSERT.*$/gm, '');
+
+            return '' +
+              '// from: ' + path + '\n\n' +
+              code +
+              '\n\n// end of ' + path;
+          },
+        },
+        files: {
+          'build/finitedomain.es6.concat.js': ['src/**/*'],
+        },
+      },
+    },
   });
 
   grunt.loadNpmTasks('grunt-babel'); // we dont really need this but can be handy for debugging
@@ -176,9 +225,11 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-run'); // runs npm scripts
   grunt.loadNpmTasks('grunt-remove');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-contrib-concat');
 
   grunt.registerTask('clean', ['remove']);
-  grunt.registerTask('build', ['clean', 'browserify:dist', 'browserify:phantom']);
+  grunt.registerTask('build', ['clean', 'browserify:dist', 'browserify:phantom', 'run:jsbeautify']);
+  grunt.registerTask('buildf', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
   grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);

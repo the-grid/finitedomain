@@ -21,7 +21,7 @@ import {
 } from './domain';
 
 import {
-  fdvar_new,
+  fdvar_create,
 } from './fdvar';
 
 import propagator_stepAny from './propagators/step_any';
@@ -123,7 +123,7 @@ function space_pseudoCloneVars(allNames, parentVars, cloneVars, cloneUnsolvedVar
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
     let fdvar = parentVars[varName];
-    cloneVars[varName] = fdvar_new(fdvar.id, domain_clone(fdvar.dom));
+    cloneVars[varName] = fdvar_create(fdvar.id, domain_clone(fdvar.dom));
     cloneUnsolvedVarNames.push(varName);
   }
 }

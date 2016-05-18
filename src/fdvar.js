@@ -33,20 +33,16 @@ import {
 
 // BODY_START
 
-function fdvar_create(id, dom) {
-  return fdvar_new(id, dom);
-}
-
 function fdvar_createRange(id, lo, hi) {
   ASSERT(typeof id === 'string', 'ID_SHOULD_BE_STRING');
   ASSERT(typeof lo === 'number', 'LO_SHOULD_BE_NUMBER');
   ASSERT(typeof hi === 'number', 'HI_SHOULD_BE_NUMBER');
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED');
 
-  return fdvar_new(id, domain_createRange(lo, hi));
+  return fdvar_create(id, domain_createRange(lo, hi));
 }
 
-function fdvar_new(id, dom) {
+function fdvar_create(id, dom) {
   if (typeof dom !== 'number') {
     ASSERT(!!dom, 'should init to a domain', [id, dom]);
     ASSERT_DOMAIN(dom);
@@ -237,7 +233,6 @@ export {
   fdvar_createRange,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
-  fdvar_new,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,

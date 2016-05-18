@@ -12,7 +12,6 @@ import {
 
 import {
   fdvar_isRejected,
-  fdvar_lowerBound,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_upperBound,
@@ -29,9 +28,9 @@ function propagator_ltStepBare(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
   ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
 
-  let lo1 = fdvar_lowerBound(fdvar1);
+  let lo1 = domain_min(fdvar1.dom);
   let hi1 = fdvar_upperBound(fdvar1);
-  let lo2 = fdvar_lowerBound(fdvar2);
+  let lo2 = domain_min(fdvar2.dom);
   let hi2 = fdvar_upperBound(fdvar2);
 
   // every number in v1 can only be smaller than or equal to the biggest
@@ -88,7 +87,7 @@ function propagator_ltStepWouldReject(fdvar1, fdvar2) {
  * @returns {*}
  */
 function propagator_ltSolved(fdvar1, fdvar2) {
-  return fdvar_upperBound(fdvar1) < fdvar_lowerBound(fdvar2);
+  return fdvar_upperBound(fdvar1) < domain_min(fdvar2.dom);
 }
 
 // BODY_STOP

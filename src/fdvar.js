@@ -27,7 +27,6 @@ import {
   domain_isValue,
   domain_max,
   domain_middleElement,
-  domain_min,
   domain_numarr,
   domain_removeGteInline,
   domain_removeGteNumbered,
@@ -125,10 +124,6 @@ function fdvar_constrain(fdvar, domain) {
 
 function fdvar_size(fdvar) {
   return domain_size(fdvar.dom);
-}
-
-function fdvar_lowerBound(fdvar) {
-  return domain_min(fdvar.dom);
 }
 
 function fdvar_upperBound(fdvar) {
@@ -300,7 +295,6 @@ export {
   fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,
-  fdvar_lowerBound,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
   fdvar_setDomain,

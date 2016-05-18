@@ -5,10 +5,13 @@ import {
 
 import {
   fdvar_isUndetermined,
-  fdvar_lowerBound,
   fdvar_size,
   fdvar_upperBound,
 } from '../fdvar';
+
+import {
+  domain_min,
+} from '../domain';
 
 // BODY_START
 
@@ -121,7 +124,7 @@ function distribution_varByMinSize(v1, v2) {
 }
 
 function distribution_varByMin(v1, v2) {
-  let n = fdvar_lowerBound(v1) - fdvar_lowerBound(v2);
+  let n = domain_min(v1.dom) - domain_min(v2.dom);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;

@@ -36,7 +36,6 @@ import {
   fdvar_isRejected,
   fdvar_isSolved,
   fdvar_isUndetermined,
-  fdvar_lowerBound,
   fdvar_middleElement,
   fdvar_upperBound,
 } from '../fdvar';
@@ -91,7 +90,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceInde
       return distribution_valueByList(space, fdvar, choiceIndex);
 
     case 'naive':
-      return domain_createValue(fdvar_lowerBound(fdvar));
+      return domain_createValue(domain_min(fdvar.dom));
 
     case 'splitMax':
       return distribution_valueBySplitMax(fdvar, choiceIndex);
@@ -178,14 +177,14 @@ function distribution_valueByMin(fdvar, choiceIndex) {
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      return domain_createValue(fdvar_lowerBound(fdvar));
+      return domain_createValue(domain_min(fdvar.dom));
 
     case SECOND_CHOICE:
       // Cannot lead to empty domain because lo can only be SUP if
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let domain = domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar) + 1, fdvar_upperBound(fdvar)));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom) + 1, fdvar_upperBound(fdvar)));
       return domain_numarr(domain);
   }
 
@@ -216,7 +215,7 @@ function distribution_valueByMax(fdvar, choiceIndex) {
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let domain = domain_intersection(fdvar.dom, domain_createRange(fdvar_lowerBound(fdvar), fdvar_upperBound(fdvar) - 1));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom), fdvar_upperBound(fdvar) - 1));
       return domain_numarr(domain);
   }
 
@@ -246,7 +245,7 @@ function distribution_valueByMid(fdvar, choiceIndex) {
       return domain_createValue(middle);
 
     case SECOND_CHOICE:
-      let lo = fdvar_lowerBound(fdvar);
+      let lo = domain_min(fdvar.dom);
       let hi = fdvar_upperBound(fdvar);
       let arr = [];
       if (middle > lo) {
@@ -419,7 +418,7 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
     case SECOND_CHOICE: {
       ASSERT((space._markov_last_value != null), 'should have cached previous value');
       let lastValue = space._markov_last_value;
-      let lo = fdvar_lowerBound(fdvar);
+      let lo = domain_min(fdvar.dom);
       let hi = fdvar_upperBound(fdvar);
       let arr = [];
       if (lastValue > lo) {

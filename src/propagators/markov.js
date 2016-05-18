@@ -7,8 +7,10 @@ import {
 
 import {
   fdvar_isSolved,
-  fdvar_lowerBound,
 } from '../fdvar';
+import {
+  domain_min,
+} from '../domain';
 
 import {
   markov_createLegend,
@@ -43,7 +45,7 @@ function propagator_markovStepBare(space, varName) {
     return NO_CHANGES;
   }
 
-  let value = fdvar_lowerBound(fdvar); // note: solved so lo=hi=value
+  let value = domain_min(fdvar.dom); // note: solved so lo=hi=value
 
   let configVarDistOptions = space.config.var_dist_options;
   let distributionOptions = configVarDistOptions[varName];

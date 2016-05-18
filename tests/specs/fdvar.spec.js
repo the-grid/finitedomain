@@ -16,7 +16,6 @@ import {
 } from '../../src/helpers';
 import {
   fdvar_create,
-  fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_removeGteInline,
   fdvar_removeLteInline,
@@ -40,99 +39,6 @@ describe('fdvar.spec', function() {
       let A = fdvar_create('A', specDomainSmallRange(0, 10));
 
       expect(A.dom).to.eql(specDomainSmallRange(0, 10));
-    });
-  });
-
-  describe('fdvar_forceEqInline', function() {
-
-    it('should exist', function() {
-      expect(fdvar_forceEqInline).to.be.a('function');
-    });
-
-    describe('with array', function() {
-
-      it('should get start end', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40]));
-        let B = fdvar_create('B', specDomainCreateRanges([20, 30]));
-        let C = specDomainCreateRanges([20, 20], [30, 30]);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(SOME_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-
-      it('should return SOME_CHANGES if domains are not equal and update them inline', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-        let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
-        let C = specDomainCreateRanges([15, 20], [30, 35], [40, 40], [50, 50]);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(SOME_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-
-      it('should return NO_CHANGES if domains are equal', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-        let B = fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-        let C = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(NO_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-    });
-
-    describe('with numbers', function() {
-
-      it('should return SOME_CHANGES if domains are not equal and update them inline', function() {
-        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
-        let B = fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7));
-        let C = specDomainSmallNums(2, 3, 6, 7);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(SOME_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-
-      it('should return NO_CHANGES if domains are equal', function() {
-        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
-        let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
-        let C = specDomainSmallNums(1, 2, 3, 6, 7, 8);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(NO_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-    });
-
-    describe('with array and numbers', function() {
-
-      it('should work with an array and a number', function() {
-        let A = fdvar_create('A', specDomainCreateRange(10, 100));
-        let B = fdvar_create('B', specDomainSmallRange(5, 15));
-        let C = specDomainSmallRange(10, 15);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(SOME_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
-
-      it('should work with a number and an array', function() {
-        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 10, 11, 13));
-        let B = fdvar_create('B', specDomainCreateRange(8, 100));
-        let C = specDomainSmallNums(10, 11, 13);
-        let R = fdvar_forceEqInline(A, B);
-
-        expect(R).to.eql(SOME_CHANGES);
-        expect(A).to.eql(fdvar_create('A', C));
-        expect(B).to.eql(fdvar_create('B', C));
-      });
     });
   });
 

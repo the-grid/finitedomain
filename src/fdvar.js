@@ -11,9 +11,6 @@ import {
 } from './helpers';
 
 import {
-  domain_fromFlags,
-  domain_forceEqInline,
-  domain_forceEqNumbered,
   domain_getValue,
   domain_isRejected,
   domain_isSolved,
@@ -83,55 +80,6 @@ function fdvar_removeLteInline(fdvar, value) {
   return NO_CHANGES;
 }
 
-/**
- * for the eq propagator; makes sure all elements in either var
- * are also contained in the other. removes all others. operates
- * inline on array domains. Returns domain of fdvar1 afterwards.
- * (Returns the domain because it may be
- *
- * @param {$fdvar} fdvar1
- * @param {$fdvar} fdvar2
- * @returns {$domain}
- */
-function fdvar_forceEqInline(fdvar1, fdvar2) {
-  let domain1 = fdvar1.dom;
-  let domain2 = fdvar2.dom;
-
-  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
-    let result = domain_forceEqNumbered(domain1, domain2);
-    if (result === EMPTY) {
-      fdvar1.dom = result;
-      fdvar2.dom = result;
-      return REJECTED;
-    }
-    if (result !== domain1 || result !== domain2) {
-      fdvar1.dom = result;
-      fdvar2.dom = result;
-      return SOME_CHANGES;
-    }
-    return NO_CHANGES;
-  }
-
-  // TODO: for now, just convert them. but this can be optimized a lot.
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
-  let changeState = domain_forceEqInline(domain1, domain2);
-
-  if (changeState === SOME_CHANGES) {
-    fdvar1.dom = domain_numarr(domain1);
-    fdvar2.dom = domain_numarr(domain2);
-  }
-
-  // if this assert fails, update the following checks accordingly!
-  ASSERT(changeState >= -1 && changeState <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', changeState);
-
-  if (changeState === REJECTED) {
-    return REJECTED;
-  }
-
-  return changeState;
-}
-
 function fdvar_forceNeqInline(fdvar1, fdvar2) {
   let r = NO_CHANGES;
   let dom1 = fdvar1.dom;
@@ -190,7 +138,6 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
 
 export {
   fdvar_create,
-  fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_removeGteInline,
   fdvar_removeLteInline,

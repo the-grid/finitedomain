@@ -12,17 +12,23 @@ deduping will still lead to saving on cloning
  */
 
 import {
+  EMPTY,
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
+
+  ASSERT,
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
 
 import {
+  domain_forceEqInline,
+  domain_forceEqNumbered,
+  domain_fromFlags,
   domain_isSolved,
+  domain_numarr,
   domain_sharesNoElements,
 } from '../domain';
-
-import {
-  fdvar_forceEqInline,
-} from '../fdvar';
 
 // BODY_START
 
@@ -40,7 +46,42 @@ import {
  * @returns {$domain}
  */
 function propagator_eqStepBare(fdvar1, fdvar2) {
-  return fdvar_forceEqInline(fdvar1, fdvar2);
+  let domain1 = fdvar1.dom;
+  let domain2 = fdvar2.dom;
+
+  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
+    let result = domain_forceEqNumbered(domain1, domain2);
+    if (result === EMPTY) {
+      fdvar1.dom = result;
+      fdvar2.dom = result;
+      return REJECTED;
+    }
+    if (result !== domain1 || result !== domain2) {
+      fdvar1.dom = result;
+      fdvar2.dom = result;
+      return SOME_CHANGES;
+    }
+    return NO_CHANGES;
+  }
+
+  // TODO: for now, just convert them. but this can be optimized a lot.
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+  let changeState = domain_forceEqInline(domain1, domain2);
+
+  if (changeState === SOME_CHANGES) {
+    fdvar1.dom = domain_numarr(domain1);
+    fdvar2.dom = domain_numarr(domain2);
+  }
+
+  // if this assert fails, update the following checks accordingly!
+  ASSERT(changeState >= -1 && changeState <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', changeState);
+
+  if (changeState === REJECTED) {
+    return REJECTED;
+  }
+
+  return changeState;
 }
 
 /**

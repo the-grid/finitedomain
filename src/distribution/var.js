@@ -39,30 +39,7 @@ function distribution_getNextVar(space, targetVars) {
     distName = configNextVarFunc.dist_name;
   }
 
-  let isBetterVar = null;
-  switch (distName) {
-    case 'naive':
-      break;
-    case 'size':
-      isBetterVar = distribution_varByMinSize;
-      break;
-    case 'min':
-      isBetterVar = distribution_varByMin;
-      break;
-    case 'max':
-      isBetterVar = distribution_varByMax;
-      break;
-    case 'markov':
-      isBetterVar = distribution_varByMarkov;
-      break;
-    case 'list':
-      isBetterVar = distribution_varByList;
-      break;
-    case 'throw':
-      return THROW('not expecting to pick this distributor');
-    default:
-      THROW('unknown next var func', distName);
-  }
+  let isBetterVar = distribution_getFunc(distName);
 
   let configVarFilter = space.config.var_filter_func;
   if (configVarFilter && typeof configVarFilter !== 'function') {
@@ -76,6 +53,31 @@ function distribution_getNextVar(space, targetVars) {
   }
 
   return _distribution_varFindBest(fdvars, targetVars, isBetterVar, configVarFilter, configNextVarFunc, space);
+}
+
+/**
+ * @param {string} distName
+ * @returns {Function|undefined}
+ */
+function distribution_getFunc(distName) {
+  switch (distName) {
+    case 'naive':
+      return null;
+    case 'size':
+      return distribution_varByMinSize;
+    case 'min':
+      return distribution_varByMin;
+    case 'max':
+      return distribution_varByMax;
+    case 'markov':
+      return distribution_varByMarkov;
+    case 'list':
+      return distribution_varByList;
+    case 'throw':
+      return THROW('not expecting to pick this distributor');
+  }
+
+  return THROW('unknown next var func', distName);
 }
 
 /**

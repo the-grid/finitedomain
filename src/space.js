@@ -64,6 +64,19 @@ function space_createClone(space) {
   let unsolvedNames = [];
   let cloneVars = {};
 
+  let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
+
+  space_pseudoCloneVars(space.config.all_var_names, space.vars, cloneVars, unsolvedNames);
+  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, space._depth + 1, space._child_count++);
+}
+
+/**
+ * Find and return all propagators whose args have not been resolved
+ *
+ * @param {Space} space
+ * @returns {$propagator[]}
+ */
+function space_collectCurrentUnsolvedPropagators(space) {
   let vars = space.vars;
   let unsolvedPropagators = [];
   let props = space.unsolvedPropagators;
@@ -73,9 +86,7 @@ function space_createClone(space) {
       unsolvedPropagators.push(propagator);
     }
   }
-
-  space_pseudoCloneVars(space.config.all_var_names, vars, cloneVars, unsolvedNames);
-  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, space._depth + 1, space._child_count++);
+  return unsolvedPropagators;
 }
 
 /**

@@ -17,8 +17,8 @@
 
 let SUB = 0; // WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
 let SUP = 100000000;
-let ZERO_CHANGES = 0;
-let SOMETHING_CHANGED = 1;
+let NO_CHANGES = 0;
+let SOME_CHANGES = 1;
 let REJECTED = -1;
 let SOLVED = 1;
 let UNDETERMINED = 0;
@@ -223,11 +223,11 @@ export {
   PAIR_SIZE,
   REJECTED,
   SOLVED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
   SUB,
   SUP,
   UNDETERMINED,
-  ZERO_CHANGES,
+  NO_CHANGES,
 
   ASSERT,
   ASSERT_DOMAIN,

@@ -7,11 +7,11 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
   SUB,
   SUP,
-  REJECTED,
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
   fdvar_create,
@@ -51,7 +51,7 @@ describe('propagators/lt.spec', function() {
     it('should remove any value from v1 that is gte to max(v2)', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(90, 100));
       let v2 = fdvar_create('y', specDomainCreateRange(95, 99));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(90, 98));
       expect(v2.dom).to.eql(specDomainCreateRange(95, 99));
     });
@@ -59,7 +59,7 @@ describe('propagators/lt.spec', function() {
     it('should remove SUP if both ranges end there', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(90, SUP));
       let v2 = fdvar_create('y', specDomainCreateRange(95, SUP));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(90, SUP - 1));
       expect(v2.dom).to.eql(specDomainCreateRange(95, SUP));
     });
@@ -67,7 +67,7 @@ describe('propagators/lt.spec', function() {
     it('should not affect domains when v1 < v2', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(90, 100));
       let v2 = fdvar_create('y', specDomainCreateRange(101, 101));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(NO_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(90, 100));
       expect(v2.dom).to.eql(specDomainCreateRange(101, 101));
     });
@@ -75,7 +75,7 @@ describe('propagators/lt.spec', function() {
     it('should not affect overlapping ranges when max(v1) < max(v2)', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(90, 150));
       let v2 = fdvar_create('y', specDomainCreateRange(100, 200));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(NO_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(90, 150));
       expect(v2.dom).to.eql(specDomainCreateRange(100, 200));
     });
@@ -91,7 +91,7 @@ describe('propagators/lt.spec', function() {
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(200, 200));
       let v2 = fdvar_create('y', specDomainCreateRange(100, 300));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(200, 200));
       expect(v2.dom).to.eql(specDomainCreateRange(201, 300));
     });
@@ -99,7 +99,7 @@ describe('propagators/lt.spec', function() {
     it('should not change if v1 is solved and == min(v2)', function() {
       let v1 = fdvar_create('x', specDomainCreateRange(200, 200));
       let v2 = fdvar_create('y', specDomainCreateRange(200, 300));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainCreateRange(200, 200));
       expect(v2.dom).to.eql(specDomainCreateRange(201, 300));
     });
@@ -160,7 +160,7 @@ describe('propagators/lt.spec', function() {
     it('should remove any value from v1 that is gte to max(v2)', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(0, 10));
       let v2 = fdvar_create('y', specDomainSmallRange(5, 9));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(0, 8));
       expect(v2.dom).to.eql(specDomainSmallRange(5, 9));
     });
@@ -168,7 +168,7 @@ describe('propagators/lt.spec', function() {
     it('should remove SUP if both ranges end there', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(0, 15));
       let v2 = fdvar_create('y', specDomainSmallRange(5, 15));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(0, 14));
       expect(v2.dom).to.eql(specDomainSmallRange(5, 15));
     });
@@ -176,7 +176,7 @@ describe('propagators/lt.spec', function() {
     it('should not affect domains when v1 < v2', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(0, 10));
       let v2 = fdvar_create('y', specDomainSmallRange(11, 15));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(NO_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(0, 10));
       expect(v2.dom).to.eql(specDomainSmallRange(11, 15));
     });
@@ -184,7 +184,7 @@ describe('propagators/lt.spec', function() {
     it('should not affect overlapping ranges when min(v2) <= max(v1) < max(v2)', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(0, 13));
       let v2 = fdvar_create('y', specDomainSmallRange(10, 15));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(NO_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(0, 13));
       expect(v2.dom).to.eql(specDomainSmallRange(10, 15));
     });
@@ -200,7 +200,7 @@ describe('propagators/lt.spec', function() {
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(8, 8));
       let v2 = fdvar_create('y', specDomainSmallRange(5, 10));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(8, 8));
       expect(v2.dom).to.eql(specDomainSmallRange(9, 10));
     });
@@ -208,7 +208,7 @@ describe('propagators/lt.spec', function() {
     it('should reduce if v1 is solved and == min(v2)', function() {
       let v1 = fdvar_create('x', specDomainSmallRange(7, 7));
       let v2 = fdvar_create('y', specDomainSmallRange(7, 13));
-      expect(propagator_ltStepBare(v1, v2)).to.eql(SOMETHING_CHANGED);
+      expect(propagator_ltStepBare(v1, v2)).to.eql(SOME_CHANGES);
       expect(v1.dom).to.eql(specDomainSmallRange(7, 7));
       expect(v2.dom).to.eql(specDomainSmallRange(8, 13));
     });

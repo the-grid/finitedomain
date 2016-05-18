@@ -1,7 +1,7 @@
 import {
+  NO_CHANGES,
   REJECTED,
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
+  SOME_CHANGES,
 
   ASSERT,
   ASSERT_DOMAIN,
@@ -46,13 +46,13 @@ function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, 
       return REJECTED;
     }
     fdvar_setDomain(boolVar, domain_createValue(1));
-    return SOMETHING_CHANGED;
+    return SOME_CHANGES;
   } else if (hi === 1 && propagator_stepWouldReject(opName, fdvar1, fdvar2)) {
     if (lo === 1) {
       return REJECTED;
     }
     fdvar_setDomain(boolVar, domain_createValue(0));
-    return SOMETHING_CHANGED;
+    return SOME_CHANGES;
   } else { // boolVar is solved, enforce relevant op
     if (lo === 1) {
       return propagator_stepComparison(space, opName, leftVarName, rightVarName);
@@ -73,7 +73,7 @@ function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, 
   ASSERT(lo === 0 || (!opReject && invOpReject), 'if bool=1 then opName should not reject');
   ASSERT(hi === 1 || (opReject && !invOpReject), 'if bool=0 then invOpName should not reject');
 
-  return ZERO_CHANGES;
+  return NO_CHANGES;
 }
 
 // BODY_STOP

@@ -8,12 +8,11 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
   SUB,
   SUP,
-
-  REJECTED,
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
   fdvar_create,
@@ -48,7 +47,7 @@ describe('propagators/neq.spec', function() {
         it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v1, v2)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -56,7 +55,7 @@ describe('propagators/neq.spec', function() {
         it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v2, v1)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v2, v1)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -95,14 +94,14 @@ describe('propagators/neq.spec', function() {
         });
       }
 
-      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP - 1), SOMETHING_CHANGED);
-      test(specDomainCreateRange(SUP - 1, SUP - 1), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP, SUP), SOMETHING_CHANGED);
-      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 50, SUP), specDomainCreateRange(SUP - 50, SUP - 1), SOMETHING_CHANGED);
-      test(specDomainCreateRange(20, 20), specDomainCreateRanges([20, SUP - 1]), specDomainCreateRange(21, SUP - 1), SOMETHING_CHANGED);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([910, 910], [912, 950]), specDomainCreateRanges([912, 950]), SOMETHING_CHANGED);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 98], [910, 910], [912, 920]), specDomainCreateRanges([90, 98], [912, 920]), SOMETHING_CHANGED);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 910], [912, 950]), specDomainCreateRanges([90, 909], [912, 950]), SOMETHING_CHANGED);
-      test(specDomainCreateRange(91, 91), specDomainCreateRange(90, 93), specDomainCreateRanges([90, 90], [92, 93]), SOMETHING_CHANGED);
+      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(SUP - 1, SUP - 1), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP, SUP), SOME_CHANGES);
+      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 50, SUP), specDomainCreateRange(SUP - 50, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(20, 20), specDomainCreateRanges([20, SUP - 1]), specDomainCreateRange(21, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([910, 910], [912, 950]), specDomainCreateRanges([912, 950]), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 98], [910, 910], [912, 920]), specDomainCreateRanges([90, 98], [912, 920]), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 910], [912, 950]), specDomainCreateRanges([90, 909], [912, 950]), SOME_CHANGES);
+      test(specDomainCreateRange(91, 91), specDomainCreateRange(90, 93), specDomainCreateRanges([90, 90], [92, 93]), SOME_CHANGES);
     });
 
     describe('two solved domains', function() {
@@ -111,7 +110,7 @@ describe('propagators/neq.spec', function() {
         it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v1, v2)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -119,7 +118,7 @@ describe('propagators/neq.spec', function() {
         it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v2, v1)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v2, v1)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -153,7 +152,7 @@ describe('propagators/neq.spec', function() {
         it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v1, v2)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -161,7 +160,7 @@ describe('propagators/neq.spec', function() {
         it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v2, v1)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v2, v1)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -194,14 +193,14 @@ describe('propagators/neq.spec', function() {
         });
       }
 
-      test(specDomainSmallNums(0), specDomainSmallRange(0, 1), specDomainSmallRange(1, 1), SOMETHING_CHANGED);
-      test(specDomainSmallNums(1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 0), SOMETHING_CHANGED);
-      test(specDomainSmallNums(0), specDomainSmallRange(0, 15), specDomainSmallRange(1, 15), SOMETHING_CHANGED);
-      test(specDomainSmallNums(2), specDomainSmallRange(2, 5), specDomainSmallRange(3, 5), SOMETHING_CHANGED);
-      test(specDomainSmallNums(10), specDomainSmallNums(10, 13, 14, 15), specDomainSmallRange(13, 15), SOMETHING_CHANGED);
-      test(specDomainSmallNums(10), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOMETHING_CHANGED);
-      test(specDomainSmallNums(4), specDomainSmallNums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOMETHING_CHANGED);
-      test(specDomainSmallNums(1), specDomainSmallRange(0, 3), specDomainSmallNums(0, 2, 3), SOMETHING_CHANGED);
+      test(specDomainSmallNums(0), specDomainSmallRange(0, 1), specDomainSmallRange(1, 1), SOME_CHANGES);
+      test(specDomainSmallNums(1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 0), SOME_CHANGES);
+      test(specDomainSmallNums(0), specDomainSmallRange(0, 15), specDomainSmallRange(1, 15), SOME_CHANGES);
+      test(specDomainSmallNums(2), specDomainSmallRange(2, 5), specDomainSmallRange(3, 5), SOME_CHANGES);
+      test(specDomainSmallNums(10), specDomainSmallNums(10, 13, 14, 15), specDomainSmallRange(13, 15), SOME_CHANGES);
+      test(specDomainSmallNums(10), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOME_CHANGES);
+      test(specDomainSmallNums(4), specDomainSmallNums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOME_CHANGES);
+      test(specDomainSmallNums(1), specDomainSmallRange(0, 3), specDomainSmallNums(0, 2, 3), SOME_CHANGES);
     });
 
     describe('two solved domains', function() {
@@ -210,7 +209,7 @@ describe('propagators/neq.spec', function() {
         it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v1, v2)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });
@@ -218,7 +217,7 @@ describe('propagators/neq.spec', function() {
         it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
           let v1 = fdvar_create('x', domain_clone(domain1));
           let v2 = fdvar_create('y', domain_clone(domain2));
-          expect(propagator_neqStepBare(v2, v1)).to.eql(ZERO_CHANGES);
+          expect(propagator_neqStepBare(v2, v1)).to.eql(NO_CHANGES);
           expect(v1.dom, 'v1 dom').to.eql(domain1);
           expect(v2.dom, 'v2 dom').to.eql(domain2);
         });

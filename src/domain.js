@@ -1,16 +1,16 @@
 import {
   EMPTY,
   MAX_SMALL,
+  NO_CHANGES,
   NO_SUCH_VALUE,
   NOT_FOUND,
   PAIR_SIZE,
   REJECTED,
   SOLVED,
+  SOME_CHANGES,
   UNDETERMINED,
-  SOMETHING_CHANGED,
   SUB,
   SUP,
-  ZERO_CHANGES,
 
   ASSERT,
   ASSERT_DOMAIN,
@@ -871,7 +871,7 @@ function _domain_closeGaps2(dom1, dom2) {
   ASSERT_DOMAIN(dom1);
   ASSERT_DOMAIN(dom2);
   while (true) {
-    let change = ZERO_CHANGES;
+    let change = NO_CHANGES;
 
     let domain = domain_closeGapsFresh(dom1, _domain_smallestIntervalWidth(dom2));
     change += dom1.length - domain.length;
@@ -881,7 +881,7 @@ function _domain_closeGaps2(dom1, dom2) {
     change += dom2.length - domain.length;
     dom2 = domain;
 
-    if (change === ZERO_CHANGES) {
+    if (change === NO_CHANGES) {
       break;
     }
   }
@@ -1554,7 +1554,7 @@ function domain_applyEqInlineFrom(index, domain1, domain2, len1, len2) {
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
 
-  return SOMETHING_CHANGED;
+  return SOME_CHANGES;
 }
 
 function domain_forceEqNumbered(domain1, domain2) {
@@ -1567,7 +1567,7 @@ function domain_forceEqNumbered(domain1, domain2) {
 /**
  * @param {$domain} domain1
  * @param {$domain} domain2
- * @returns {number} REJECTED SOMETHING_CHANGED ZERO_CHANGES
+ * @returns {number} REJECTED SOME_CHANGES NO_CHANGES
  */
 function domain_forceEqInline(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
@@ -1590,7 +1590,7 @@ function domain_forceEqInline(domain1, domain2) {
   ASSERT(index >= 0 && index <= len, 'target index should be within the range of the array len+1');
   ASSERT(index % 2 === 0, 'target index should be even because it should find a range offset');
 
-  if (index === len) return ZERO_CHANGES;
+  if (index === len) return NO_CHANGES;
 
   return domain_applyEqInlineFrom(index, domain1, domain2, len1, len2);
 }
@@ -1710,10 +1710,10 @@ function domain_removeValueInline(domain, value) {
         ASSERT_DOMAIN_EMPTY_SET(domain);
         return REJECTED;
       }
-      return SOMETHING_CHANGED;
+      return SOME_CHANGES;
     }
   }
-  return ZERO_CHANGES;
+  return NO_CHANGES;
 }
 
 /**
@@ -1827,13 +1827,13 @@ function domain_numarr(domain) {
 // BODY_STOP
 
 export {
-  ZERO_CHANGES,
+  NO_CHANGES,
   INLINE,
   NOT_FOUND,
   NOT_INLINE,
   PAIR_SIZE,
   PREV_CHANGED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
 
   ZERO,
   ONE,

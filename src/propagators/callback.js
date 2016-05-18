@@ -1,6 +1,6 @@
 import {
+  NO_CHANGES,
   REJECTED,
-  ZERO_CHANGES,
 } from '../helpers';
 
 // BODY_START
@@ -18,7 +18,7 @@ import {
 function propagator_callbackStepBare(space, varNames, func) {
   // the callback should return `false` if the state should be rejected, `true` otherwise
   if (func(space, varNames)) {
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
   return REJECTED;
 }

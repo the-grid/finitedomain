@@ -1,6 +1,6 @@
 import {
+  NO_CHANGES,
   REJECTED,
-  ZERO_CHANGES,
 
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
@@ -52,7 +52,7 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
     }
   }
 
-  return leftChanged || rightChanged || ZERO_CHANGES;
+  return leftChanged || rightChanged || NO_CHANGES;
 }
 
 /**

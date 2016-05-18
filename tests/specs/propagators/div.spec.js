@@ -7,12 +7,11 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
   SUB,
   SUP,
-
-  REJECTED,
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
   domain_clone,
@@ -76,7 +75,7 @@ describe('propagators/div.spec', function() {
       it(`should not change anything: ${domain}`, function() {
         let v1 = fdvar_create('x', domain_clone(domain));
         let v2 = fdvar_create('y', domain_clone(domain));
-        expect(propagator_eqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
+        expect(propagator_eqStepBare(v1, v2)).to.eql(NO_CHANGES);
         expect(v1.dom, 'v1 dom').to.eql(domain);
         expect(v2.dom, 'v2 dom').to.eql(domain);
       });
@@ -121,13 +120,13 @@ describe('propagators/div.spec', function() {
       });
     }
 
-    test(specDomainSmallNums(0, 1), specDomainSmallNums(0, 0), specDomainSmallNums(0, 0), SOMETHING_CHANGED);
-    test(specDomainSmallNums(0, 1), specDomainSmallNums(1, 1), specDomainSmallNums(1, 1), SOMETHING_CHANGED);
-    test(specDomainSmallNums(SUB, 1), specDomainCreateRange(1, SUP), specDomainSmallNums(1, 1), SOMETHING_CHANGED);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainSmallNums(5), specDomainSmallNums(5), SOMETHING_CHANGED);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]), SOMETHING_CHANGED);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]), SOMETHING_CHANGED);
+    test(specDomainSmallNums(0, 1), specDomainSmallNums(0, 0), specDomainSmallNums(0, 0), SOME_CHANGES);
+    test(specDomainSmallNums(0, 1), specDomainSmallNums(1, 1), specDomainSmallNums(1, 1), SOME_CHANGES);
+    test(specDomainSmallNums(SUB, 1), specDomainCreateRange(1, SUP), specDomainSmallNums(1, 1), SOME_CHANGES);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainSmallNums(5), specDomainSmallNums(5), SOME_CHANGES);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]), SOME_CHANGES);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
     test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 3), specDomainSmallEmpty(), REJECTED);
-    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 2, 4), specDomainSmallNums(2), SOMETHING_CHANGED);
+    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 2, 4), specDomainSmallNums(2), SOME_CHANGES);
   });
 });

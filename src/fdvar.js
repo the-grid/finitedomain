@@ -1,10 +1,10 @@
 import {
   EMPTY,
+  NO_CHANGES,
   REJECTED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
   SUB,
   SUP,
-  ZERO_CHANGES,
 
   ASSERT,
   ASSERT_DOMAIN,
@@ -105,17 +105,17 @@ function fdvar_setDomain(fdvar, domain) {
   if (typeof domain === 'number' && typeof fdvarDom === 'number') {
     if (fdvarDom !== domain) {
       fdvar.dom = domain;
-      return SOMETHING_CHANGED;
+      return SOME_CHANGES;
     }
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
 
   ASSERT_UNUSED_DOMAIN(domain);
   if (!domain_equal(fdvarDom, domain)) {
     fdvar.dom = domain_numarr(domain);
-    return SOMETHING_CHANGED;
+    return SOME_CHANGES;
   }
-  return ZERO_CHANGES;
+  return NO_CHANGES;
 }
 
 // TODO: rename to intersect for that's what it is.
@@ -152,16 +152,16 @@ function fdvar_removeGteInline(fdvar, value) {
     var result = domain_removeGteNumbered(domain, value);
     if (result !== domain) {
       fdvar.dom = result;
-      return SOMETHING_CHANGED;
+      return SOME_CHANGES;
     }
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
 
   if (domain_removeGteInline(domain, value)) {
     fdvar.dom = domain_numarr(fdvar.dom);
-    return SOMETHING_CHANGED;
+    return SOME_CHANGES;
   }
-  return ZERO_CHANGES;
+  return NO_CHANGES;
 }
 
 function fdvar_removeLteInline(fdvar, value) {
@@ -172,16 +172,16 @@ function fdvar_removeLteInline(fdvar, value) {
     var result = domain_removeLteNumbered(domain, value);
     if (result !== domain) {
       fdvar.dom = result;
-      return SOMETHING_CHANGED;
+      return SOME_CHANGES;
     }
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
 
   if (domain_removeLteInline(domain, value)) {
     fdvar.dom = domain_numarr(fdvar.dom);
-    return SOMETHING_CHANGED;
+    return SOME_CHANGES;
   }
-  return ZERO_CHANGES;
+  return NO_CHANGES;
 }
 
 /**
@@ -208,9 +208,9 @@ function fdvar_forceEqInline(fdvar1, fdvar2) {
     if (result !== domain1 || result !== domain2) {
       fdvar1.dom = result;
       fdvar2.dom = result;
-      return SOMETHING_CHANGED;
+      return SOME_CHANGES;
     }
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
 
   // TODO: for now, just convert them. but this can be optimized a lot.
@@ -218,7 +218,7 @@ function fdvar_forceEqInline(fdvar1, fdvar2) {
   if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
   let changeState = domain_forceEqInline(domain1, domain2);
 
-  if (changeState === SOMETHING_CHANGED) {
+  if (changeState === SOME_CHANGES) {
     fdvar1.dom = domain_numarr(domain1);
     fdvar2.dom = domain_numarr(domain2);
   }
@@ -234,7 +234,7 @@ function fdvar_forceEqInline(fdvar1, fdvar2) {
 }
 
 function fdvar_forceNeqInline(fdvar1, fdvar2) {
-  let r = ZERO_CHANGES;
+  let r = NO_CHANGES;
   let dom1 = fdvar1.dom;
   let dom2 = fdvar2.dom;
 
@@ -250,13 +250,13 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
         r = REJECTED;
       } else if (result !== dom2) {
         fdvar2.dom = result;
-        r = SOMETHING_CHANGED;
+        r = SOME_CHANGES;
       } else {
-        r = ZERO_CHANGES;
+        r = NO_CHANGES;
       }
     } else {
       r = domain_removeValueInline(dom2, value);
-      if (r !== ZERO_CHANGES) {
+      if (r !== NO_CHANGES) {
         fdvar2.dom = domain_numarr(dom2);
       }
     }
@@ -269,19 +269,19 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
         r = REJECTED;
       } else if (result !== dom1) {
         fdvar1.dom = result;
-        r = SOMETHING_CHANGED;
+        r = SOME_CHANGES;
       } else {
-        r = ZERO_CHANGES;
+        r = NO_CHANGES;
       }
     } else {
       r = domain_removeValueInline(dom1, value);
-      if (r !== ZERO_CHANGES) {
+      if (r !== NO_CHANGES) {
         fdvar1.dom = domain_numarr(dom1);
       }
     }
   }
 
-  ASSERT(r === REJECTED || r === ZERO_CHANGES || r === SOMETHING_CHANGED, 'turning stuff into enum, must be sure about values');
+  ASSERT(r === REJECTED || r === NO_CHANGES || r === SOME_CHANGES, 'turning stuff into enum, must be sure about values');
   ASSERT((r === REJECTED) === (domain_isRejected(fdvar1.dom) || domain_isRejected(fdvar2.dom)), 'if either domain is rejected, r should reflect this already');
 
   return r;

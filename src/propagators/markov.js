@@ -1,8 +1,8 @@
 import {
-  ASSERT,
-
+  NO_CHANGES,
   REJECTED,
-  ZERO_CHANGES,
+
+  ASSERT,
 } from '../helpers';
 
 import {
@@ -24,7 +24,7 @@ import {
  * based on this domain anyways we will need this extra step to verify
  * whether a solved var is solved to a valid value in current context.
  *
- * Return REJECTED if that is the value is invalid, else ZERO_CHANGES.
+ * Return REJECTED if that is the value is invalid, else NO_CHANGES.
  * Every markov variable should have a propagator. Perhaps later
  * there can be one markov propagator that checks all markov vars.
  *
@@ -40,7 +40,7 @@ function propagator_markovStepBare(space, varName) {
   let fdvar = space.vars[varName];
 
   if (!fdvar_isSolved(fdvar)) {
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
 
   let value = fdvar_lowerBound(fdvar); // note: solved so lo=hi=value
@@ -61,7 +61,7 @@ function propagator_markovStepBare(space, varName) {
 
   let pos = values.indexOf(value);
   if (pos >= 0 && pos < probabilities.length && probabilities[pos] !== 0) {
-    return ZERO_CHANGES;
+    return NO_CHANGES;
   }
   return REJECTED;
 }

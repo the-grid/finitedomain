@@ -7,8 +7,8 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
+  NO_CHANGES,
+  SOME_CHANGES,
 } from '../../../src/helpers';
 
 import {
@@ -57,31 +57,31 @@ describe('propagators/reified.spec', function() {
       }
 
       describe('eq/neq with bools', function() {
-        riftest(bool, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
-        riftest(bool, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
-        riftest(bool, zero, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, zero, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, one, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(zero, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(zero, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, one, bool, 'eq', 'neq', SOMETHING_CHANGED, one, 'A and B are resolved and eq so bool should be 1');
-        riftest(one, one, bool, 'neq', 'eq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(one, zero, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(one, zero, bool, 'neq', 'eq', SOMETHING_CHANGED, one, 'A and B are resolved and neq so bool should be 1');
-        riftest(zero, one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(zero, one, bool, 'neq', 'eq', SOMETHING_CHANGED, one, 'A and B are resolved and neq so bool should be 1');
-        riftest(zero, zero, bool, 'eq', 'neq', SOMETHING_CHANGED, one, 'A and B are resolved and eq so bool should be 1');
-        riftest(zero, zero, bool, 'neq', 'eq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(bool, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
+        riftest(bool, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
+        riftest(bool, zero, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, zero, bool, 'neq', 'eq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, one, bool, 'neq', 'eq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(zero, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(zero, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, one, bool, 'eq', 'neq', SOME_CHANGES, one, 'A and B are resolved and eq so bool should be 1');
+        riftest(one, one, bool, 'neq', 'eq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(one, zero, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(one, zero, bool, 'neq', 'eq', SOME_CHANGES, one, 'A and B are resolved and neq so bool should be 1');
+        riftest(zero, one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(zero, one, bool, 'neq', 'eq', SOME_CHANGES, one, 'A and B are resolved and neq so bool should be 1');
+        riftest(zero, zero, bool, 'eq', 'neq', SOME_CHANGES, one, 'A and B are resolved and eq so bool should be 1');
+        riftest(zero, zero, bool, 'neq', 'eq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
       });
 
       describe('eq/neq with non-bools', function() {
-        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
-        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
-        riftest(specDomainSmallRange(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-        riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(10, 15), bool, 'eq', 'neq', SOME_CHANGES, zero, 'undetermined but can proof eq is impossible');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(3, 8), bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
+        riftest(specDomainSmallRange(0, 5), one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
+        riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
   });

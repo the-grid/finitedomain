@@ -9,11 +9,11 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
   REJECTED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
   SUB,
   SUP,
-  ZERO_CHANGES,
 } from '../../src/helpers';
 import {
   fdvar_clone,
@@ -73,13 +73,13 @@ describe('fdvar.spec', function() {
     }
 
     describe('simple ranges', function() {
-      one(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), ZERO_CHANGES);
-      one(specDomainSmallRange(0, 1), specDomainSmallNums(0), specDomainSmallNums(0), SOMETHING_CHANGED);
-      one(specDomainSmallRange(0, 1), specDomainSmallNums(1), specDomainSmallNums(1), SOMETHING_CHANGED);
-      one(specDomainSmallRange(0, 15), specDomainSmallRange(10, 12), specDomainSmallRange(10, 12), SOMETHING_CHANGED);
-      one(specDomainSmallRange(0, 15), specDomainCreateRange(10, 20), specDomainSmallRange(10, 15), SOMETHING_CHANGED);
-      one(specDomainCreateRange(10, 20), specDomainSmallRange(5, 15), specDomainSmallRange(10, 15), SOMETHING_CHANGED);
-      one(specDomainCreateRange(10, 20), specDomainCreateRange(12, 17), specDomainCreateRange(12, 17), SOMETHING_CHANGED);
+      one(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), NO_CHANGES);
+      one(specDomainSmallRange(0, 1), specDomainSmallNums(0), specDomainSmallNums(0), SOME_CHANGES);
+      one(specDomainSmallRange(0, 1), specDomainSmallNums(1), specDomainSmallNums(1), SOME_CHANGES);
+      one(specDomainSmallRange(0, 15), specDomainSmallRange(10, 12), specDomainSmallRange(10, 12), SOME_CHANGES);
+      one(specDomainSmallRange(0, 15), specDomainCreateRange(10, 20), specDomainSmallRange(10, 15), SOME_CHANGES);
+      one(specDomainCreateRange(10, 20), specDomainSmallRange(5, 15), specDomainSmallRange(10, 15), SOME_CHANGES);
+      one(specDomainCreateRange(10, 20), specDomainCreateRange(12, 17), specDomainCreateRange(12, 17), SOME_CHANGES);
     });
 
     // TODO: need to fix these (I think they should end up empty), see https://github.com/the-grid/finitedomain/issues/72
@@ -94,19 +94,19 @@ describe('fdvar.spec', function() {
         specDomainCreateRanges([10, 20], [30, 40]),
         specDomainCreateRange(15, 35),
         specDomainCreateRanges([15, 20], [30, 35]),
-        SOMETHING_CHANGED
+        SOME_CHANGES
       );
       one(
         specDomainCreateRange(10, 50),
         specDomainCreateRanges([15, 35], [40, 60]),
         specDomainCreateRanges([15, 35], [40, 50]),
-        SOMETHING_CHANGED
+        SOME_CHANGES
       );
       one(
         specDomainCreateRanges([10, 50], [100, 200], [300, 400]),
         specDomainCreateRanges([5, 8], [10, 30], [150, 350], [400, 400]),
         specDomainCreateRanges([10, 30], [150, 200], [300, 350], [400, 400]),
-        SOMETHING_CHANGED
+        SOME_CHANGES
       );
     });
   });
@@ -189,29 +189,29 @@ describe('fdvar.spec', function() {
         let C = specDomainCreateRanges([20, 20], [30, 30]);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
 
-      it('should return SOMETHING_CHANGED if domains are not equal and update them inline', function() {
+      it('should return SOME_CHANGES if domains are not equal and update them inline', function() {
         let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
         let C = specDomainCreateRanges([15, 20], [30, 35], [40, 40], [50, 50]);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
 
-      it('should return ZERO_CHANGES if domains are equal', function() {
+      it('should return NO_CHANGES if domains are equal', function() {
         let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let B = fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let C = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
@@ -219,24 +219,24 @@ describe('fdvar.spec', function() {
 
     describe('with numbers', function() {
 
-      it('should return SOMETHING_CHANGED if domains are not equal and update them inline', function() {
+      it('should return SOME_CHANGES if domains are not equal and update them inline', function() {
         let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let B = fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7));
         let C = specDomainSmallNums(2, 3, 6, 7);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
 
-      it('should return ZERO_CHANGES if domains are equal', function() {
+      it('should return NO_CHANGES if domains are equal', function() {
         let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let C = specDomainSmallNums(1, 2, 3, 6, 7, 8);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
@@ -250,7 +250,7 @@ describe('fdvar.spec', function() {
         let C = specDomainSmallRange(10, 15);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
@@ -261,7 +261,7 @@ describe('fdvar.spec', function() {
         let C = specDomainSmallNums(10, 11, 13);
         let R = fdvar_forceEqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', C));
         expect(B).to.eql(fdvar_create('B', C));
       });
@@ -277,52 +277,52 @@ describe('fdvar.spec', function() {
 
     describe('with array', function() {
 
-      it('should return ZERO_CHANGES if neither domain is solved', function() {
+      it('should return NO_CHANGES if neither domain is solved', function() {
         let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50])));
       });
 
-      it('should return SOMETHING_CHANGED if left domain is solved', function() {
+      it('should return SOME_CHANGES if left domain is solved', function() {
         let A = fdvar_create('A', specDomainCreateRanges([20, 20]));
         let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([20, 20])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([15, 19], [21, 35], [40, 50])));
       });
 
-      it('should return SOMETHING_CHANGED if right domain is solved', function() {
+      it('should return SOME_CHANGES if right domain is solved', function() {
         let A = fdvar_create('A', specDomainCreateRanges([15, 35], [40, 50]));
         let B = fdvar_create('B', specDomainCreateRanges([20, 20]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([15, 19], [21, 35], [40, 50])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([20, 20])));
       });
 
-      it('should return ZERO_CHANGES if domains are equal but not solved (small)', function() {
+      it('should return NO_CHANGES if domains are equal but not solved (small)', function() {
         let A = fdvar_create('A', specDomainCreateRanges([SUP - 1, SUP]));
         let B = fdvar_create('B', specDomainCreateRanges([SUP - 1, SUP]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([SUP - 1, SUP])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([SUP - 1, SUP])));
       });
 
-      it('should return ZERO_CHANGES if domains are equal but not solved (large)', function() {
+      it('should return NO_CHANGES if domains are equal but not solved (large)', function() {
         let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let B = fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
       });
@@ -338,12 +338,12 @@ describe('fdvar.spec', function() {
         expect(B).to.eql(fdvar_create('B', specDomainSmallEmpty()));
       });
 
-      it('should return ZERO_CHANGES both domains solve to different value', function() {
+      it('should return NO_CHANGES both domains solve to different value', function() {
         let A = fdvar_create('A', specDomainCreateRanges([30, 30]));
         let B = fdvar_create('B', specDomainCreateRanges([40, 40]));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([30, 30])));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([40, 40])));
       });
@@ -351,62 +351,62 @@ describe('fdvar.spec', function() {
 
     describe('with numbers', function() {
 
-      it('should return SOMETHING_CHANGED if right side was solved and the left wasnt', function() {
+      it('should return SOME_CHANGES if right side was solved and the left wasnt', function() {
         let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let B = fdvar_create('B', specDomainSmallNums(2));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 3, 6, 7, 8)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(2)));
       });
 
-      it('should return SOMETHING_CHANGED if left side was solved and the right had it', function() {
+      it('should return SOME_CHANGES if left side was solved and the right had it', function() {
         let A = fdvar_create('A', specDomainSmallNums(2));
         let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(SOMETHING_CHANGED);
+        expect(R).to.eql(SOME_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(2)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1, 3, 6, 7, 8)));
       });
 
-      it('should return ZERO_CHANGES if right side was solved and the left already did not have it', function() {
+      it('should return NO_CHANGES if right side was solved and the left already did not have it', function() {
         let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let B = fdvar_create('B', specDomainSmallNums(4));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(4)));
       });
 
-      it('should return ZERO_CHANGES if left side was solved and the right already did not have it', function() {
+      it('should return NO_CHANGES if left side was solved and the right already did not have it', function() {
         let A = fdvar_create('A', specDomainSmallNums(4));
         let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(4)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
       });
 
-      it('should return ZERO_CHANGES if neither domain is solved', function() {
+      it('should return NO_CHANGES if neither domain is solved', function() {
         let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
         let B = fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7)));
       });
 
-      it('should return ZERO_CHANGES if both domains are solved to different value', function() {
+      it('should return NO_CHANGES if both domains are solved to different value', function() {
         let A = fdvar_create('A', specDomainSmallNums(0));
         let B = fdvar_create('B', specDomainSmallNums(1));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(0)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1)));
       });
@@ -419,7 +419,7 @@ describe('fdvar.spec', function() {
         let B = fdvar_create('B', specDomainSmallRange(5, 15));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainCreateRange(10, 100)));
         expect(B).to.eql(fdvar_create('B', specDomainSmallRange(5, 15)));
       });
@@ -429,7 +429,7 @@ describe('fdvar.spec', function() {
         let B = fdvar_create('B', specDomainCreateRange(8, 100));
         let R = fdvar_forceNeqInline(A, B);
 
-        expect(R).to.eql(ZERO_CHANGES);
+        expect(R).to.eql(NO_CHANGES);
         expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 10, 11, 13)));
         expect(B).to.eql(fdvar_create('B', specDomainCreateRange(8, 100)));
       });
@@ -779,7 +779,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 25);
 
         expect(fdvar.dom).to.eql(specDomainCreateRange(10, 20));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should remove an element equal to value as well', function() {
@@ -787,7 +787,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 30);
 
         expect(fdvar.dom).to.eql(specDomainCreateRange(10, 20));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should be able to split up a range', function() {
@@ -795,7 +795,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 15);
 
         expect(fdvar.dom).to.eql(specDomainSmallRange(10, 14));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept zero', function() {
@@ -803,7 +803,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept empty array', function() {
@@ -811,7 +811,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 35);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should remove SUP from SUP', function() {
@@ -819,7 +819,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, SUP);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
     });
 
@@ -830,7 +830,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 9);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(5, 6, 7, 8));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should remove an element equal to value as well', function() {
@@ -838,7 +838,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 6);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(1, 2, 3));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should be able to split up a range', function() {
@@ -846,7 +846,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 4);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(1, 2, 3));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept zero', function() {
@@ -854,7 +854,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept empty array', function() {
@@ -862,7 +862,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 35);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should remove 0 from 0', function() {
@@ -870,7 +870,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeGteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
     });
   });
@@ -888,7 +888,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 25);
 
         expect(fdvar.dom).to.eql(specDomainCreateRange(30, 40));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should be able to split up a range', function() {
@@ -896,7 +896,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 15);
 
         expect(fdvar.dom).to.eql(specDomainCreateRanges([16, 20]));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept zero', function() {
@@ -904,7 +904,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainCreateRanges([10, 20]));
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should accept empty array', function() {
@@ -912,7 +912,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 35);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should remove SUP from SUP', function() {
@@ -920,7 +920,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, SUP);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
     });
 
@@ -931,7 +931,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 9);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(10, 11, 12));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should remove an element equal to value as well', function() {
@@ -939,7 +939,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 6);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(7, 8));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should be able to split up a range', function() {
@@ -947,7 +947,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 4);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(5, 6));
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
 
       it('should accept zero', function() {
@@ -955,7 +955,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainSmallNums(1, 2, 3, 4));
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should accept empty array', function() {
@@ -963,7 +963,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 35);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(ZERO_CHANGES);
+        expect(R).to.equal(NO_CHANGES);
       });
 
       it('should remove 0 from 0', function() {
@@ -971,7 +971,7 @@ describe('fdvar.spec', function() {
         let R = fdvar_removeLteInline(fdvar, 0);
 
         expect(fdvar.dom).to.eql(specDomainSmallEmpty());
-        expect(R).to.equal(SOMETHING_CHANGED);
+        expect(R).to.equal(SOME_CHANGES);
       });
     });
   });
@@ -989,7 +989,7 @@ describe('fdvar.spec', function() {
       let out = fdvar_setDomain(A, B);
 
       expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOMETHING_CHANGED);
+      expect(out).to.eql(SOME_CHANGES);
     });
 
     it('should work with an number domain on a array domain', function() {
@@ -999,7 +999,7 @@ describe('fdvar.spec', function() {
       let out = fdvar_setDomain(A, B);
 
       expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOMETHING_CHANGED);
+      expect(out).to.eql(SOME_CHANGES);
     });
 
     it('should work with an array domain on a number domain', function() {
@@ -1009,7 +1009,7 @@ describe('fdvar.spec', function() {
       let out = fdvar_setDomain(A, B);
 
       expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOMETHING_CHANGED);
+      expect(out).to.eql(SOME_CHANGES);
     });
 
     it('should work with an number domain on a number domain', function() {
@@ -1019,7 +1019,7 @@ describe('fdvar.spec', function() {
       let out = fdvar_setDomain(A, B);
 
       expect(A).to.eql(fdvar_create('A', C));
-      expect(out).to.eql(SOMETHING_CHANGED);
+      expect(out).to.eql(SOME_CHANGES);
     });
   });
 

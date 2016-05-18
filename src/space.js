@@ -1,6 +1,6 @@
 import {
+  SOME_CHANGES,
   REJECTED,
-  SOMETHING_CHANGED,
 
   ASSERT,
   ASSERT_DOMAIN,
@@ -208,7 +208,7 @@ function space_propagate(space) {
       //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || space.vars[propDetails[1][0]].dom.length || space.vars[propDetails[1][0]].dom._trace, 'domain empty but not marked');
       //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length || space.vars[propDetails[1][1]].dom._trace, 'domain empty but not marked');
 
-      if (n === SOMETHING_CHANGED) {
+      if (n === SOME_CHANGES) {
         changed = true;
       } else if (n === REJECTED) {
         return false; // solution impossible

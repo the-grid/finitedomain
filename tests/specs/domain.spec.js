@@ -10,11 +10,11 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
   NO_SUCH_VALUE,
   REJECTED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
   SUP,
-  ZERO_CHANGES,
 } from '../../src/helpers';
 import {
   INLINE,
@@ -1242,24 +1242,24 @@ describe('domain.spec', function() {
       });
     });
 
-    it('should return SOMETHING_CHANGED if domains are not equal and update them inline', function() {
+    it('should return SOME_CHANGES if domains are not equal and update them inline', function() {
       let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let B = specDomainCreateRanges([15, 35], [40, 50]);
       let C = specDomainCreateRanges([15, 20], [30, 35], [40, 40], [50, 50]);
       let R = domain_forceEqInline(A, B);
 
-      expect(R).to.eql(SOMETHING_CHANGED);
+      expect(R).to.eql(SOME_CHANGES);
       expect(A).to.eql(C);
       expect(B).to.eql(C);
     });
 
-    it('should return ZERO_CHANGES if domains are equal', function() {
+    it('should return NO_CHANGES if domains are equal', function() {
       let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let B = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let C = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let R = domain_forceEqInline(A, B);
 
-      expect(R).to.eql(ZERO_CHANGES);
+      expect(R).to.eql(NO_CHANGES);
       expect(A).to.eql(C);
       expect(B).to.eql(C);
     });

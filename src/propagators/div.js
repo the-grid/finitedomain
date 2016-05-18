@@ -8,6 +8,12 @@ import {
 
 // BODY_START
 
+/**
+ * @param {Fdvar} fdvar1
+ * @param {Fdvar} fdvar2
+ * @param {Fdvar} fdvarResult
+ * @returns {number} REJECTED ZERO_CHANGES SOMETHING_CHANGED
+ */
 function propagator_divStep(fdvar1, fdvar2, fdvarResult) {
   let output = domain_divby(fdvar1.dom, fdvar2.dom);
   let changeStatus = fdvar_constrain(fdvarResult, output);

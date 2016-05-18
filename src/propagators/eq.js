@@ -16,12 +16,12 @@ import {
 } from '../helpers';
 
 import {
+  domain_isSolved,
   domain_sharesNoElements,
 } from '../domain';
 
 import {
   fdvar_forceEqInline,
-  fdvar_isSolved,
 } from '../fdvar';
 
 // BODY_START
@@ -37,7 +37,7 @@ import {
  *
  * @param {Fdvar} fdvar1
  * @param {Fdvar} fdvar2
- * @returns {*}
+ * @returns {$domain}
  */
 function propagator_eqStepBare(fdvar1, fdvar2) {
   return fdvar_forceEqInline(fdvar1, fdvar2);
@@ -75,7 +75,7 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(fdvar1, fdvar2) {
-  return fdvar_isSolved(fdvar1) && fdvar_isSolved(fdvar2);
+  return domain_isSolved(fdvar1.dom) && domain_isSolved(fdvar2.dom);
 }
 
 // BODY_STOP

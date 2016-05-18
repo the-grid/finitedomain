@@ -4,12 +4,12 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_isUndetermined,
   fdvar_size,
   fdvar_upperBound,
 } from '../fdvar';
 
 import {
+  domain_isDetermined,
   domain_min,
 } from '../domain';
 
@@ -48,7 +48,7 @@ function distribution_getNextVar(space, targetVars) {
   if (configVarFilter && typeof configVarFilter !== 'function') {
     switch (configVarFilter) {
       case 'unsolved':
-        configVarFilter = fdvar_isUndetermined;
+        configVarFilter = function(fdvar) { return !domain_isDetermined(fdvar.dom); }; // TODO: fix this mess. maybe even eliminate it completely if we dont use the function path
         break;
       default:
         THROW('unknown var filter', configVarFilter);

@@ -21,7 +21,6 @@ import {
   domain_forceEqInline,
   domain_forceEqNumbered,
   domain_getValue,
-  domain_isDetermined,
   domain_isRejected,
   domain_isSolved,
   domain_isValue,
@@ -65,14 +64,6 @@ function fdvar_new(id, dom) {
     id,
     dom,
   };
-}
-
-// A var is undetermined when it is neither rejected nor solved.
-// Basically that means that the domain contains more than one range
-// or that the only range spans at least two elements.
-
-function fdvar_isUndetermined(fdvar) {
-  return !domain_isDetermined(fdvar.dom);
 }
 
 // A var is solved if it has only one range that spans only one value.
@@ -291,7 +282,6 @@ export {
   fdvar_forceNeqInline,
   fdvar_isRejected,
   fdvar_isSolved,
-  fdvar_isUndetermined,
   fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,

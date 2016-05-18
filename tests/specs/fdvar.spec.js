@@ -24,7 +24,6 @@ import {
   fdvar_forceNeqInline,
   fdvar_isRejected,
   fdvar_isSolved,
-  fdvar_isUndetermined,
   fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,
@@ -565,73 +564,6 @@ describe('fdvar.spec', function() {
 
         let C = fdvar_create('C', specDomainSmallNums(14, 15));
         expect(fdvar_isSolved(C)).to.equal(false);
-      });
-    });
-  });
-
-  describe('fdvar_isUndetermined', function() {
-
-    it('should exist', function() {
-      expect(fdvar_isUndetermined).to.be.a('function');
-    });
-
-    describe('with array', function() {
-
-      it('should return false for empty array', function() {
-        let A = fdvar_create('A', specDomainCreateEmpty());
-        expect(fdvar_isUndetermined(A)).to.equal(false);
-      });
-
-      it('should return false for solved array domains', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([90, 90]));
-        expect(fdvar_isUndetermined(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainCreateRanges([SUP, SUP]));
-        expect(fdvar_isUndetermined(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainCreateRanges([SUP - 1, SUP - 1]));
-        expect(fdvar_isUndetermined(C)).to.equal(false);
-      });
-
-      it('should return true for unsolved array domains', function() {
-        let A = fdvar_create('A', specDomainCreateRanges([0, 100]));
-        expect(fdvar_isUndetermined(A)).to.equal(true);
-
-        let B = fdvar_create('B', specDomainCreateRanges([1, SUP]));
-        expect(fdvar_isUndetermined(B)).to.equal(true);
-
-        let C = fdvar_create('C', specDomainCreateRanges([100, 200], [300, 400]));
-        expect(fdvar_isUndetermined(C)).to.equal(true);
-      });
-    });
-
-    describe('with numbers', function() {
-
-      it('should return false for 0', function() {
-        let A = fdvar_create('A', specDomainSmallEmpty());
-        expect(fdvar_isUndetermined(A)).to.equal(false);
-      });
-
-      it('should return false for solved number domains', function() {
-        let A = fdvar_create('A', specDomainSmallNums(0));
-        expect(fdvar_isUndetermined(A)).to.equal(false);
-
-        let B = fdvar_create('B', specDomainSmallNums(1));
-        expect(fdvar_isUndetermined(B)).to.equal(false);
-
-        let C = fdvar_create('C', specDomainSmallNums(15));
-        expect(fdvar_isUndetermined(C)).to.equal(false);
-      });
-
-      it('should return true for unsolved number domains', function() {
-        let A = fdvar_create('A', specDomainSmallNums(0, 1, 5, 7, 8, 10, 11));
-        expect(fdvar_isUndetermined(A)).to.equal(true);
-
-        let B = fdvar_create('B', specDomainSmallNums(1, 3, 4, 9, 10));
-        expect(fdvar_isUndetermined(B)).to.equal(true);
-
-        let C = fdvar_create('C', specDomainSmallNums(14, 15));
-        expect(fdvar_isUndetermined(C)).to.equal(true);
       });
     });
   });

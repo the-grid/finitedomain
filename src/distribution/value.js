@@ -17,6 +17,7 @@ import {
   domain_createValue,
   domain_createRange,
   domain_getValueOfFirstContainedValueInList,
+  domain_isDetermined,
   domain_intersection,
   domain_isRejected,
   domain_max,
@@ -35,7 +36,6 @@ import {
 import {
   fdvar_isRejected,
   fdvar_isSolved,
-  fdvar_isUndetermined,
   fdvar_middleElement,
   fdvar_upperBound,
 } from '../fdvar';
@@ -117,7 +117,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceInde
  */
 function distribution_valueByList(space, fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   let configVarDistOptions = space.config.var_dist_options;
   ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
@@ -173,7 +173,7 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
  */
 function distribution_valueByMin(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
@@ -204,7 +204,7 @@ function distribution_valueByMin(fdvar, choiceIndex) {
  */
 function distribution_valueByMax(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
@@ -236,7 +236,7 @@ function distribution_valueByMax(fdvar, choiceIndex) {
  */
 function distribution_valueByMid(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   let middle = fdvar_middleElement(fdvar);
 
@@ -277,7 +277,7 @@ function distribution_valueByMid(fdvar, choiceIndex) {
  */
 function distribution_valueBySplitMin(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   let domain = fdvar.dom;
   let min = domain_min(domain);
@@ -315,7 +315,7 @@ function distribution_valueBySplitMin(fdvar, choiceIndex) {
  */
 function distribution_valueBySplitMax(fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   let domain = fdvar.dom;
   let min = domain_min(domain);
@@ -377,7 +377,7 @@ function _isEven(n) { return n % 2 === 0; }
  */
 function distribution_valueByMarkov(space, fdvar, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(fdvar_isUndetermined(fdvar), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
 
   switch (choiceIndex) {
     case FIRST_CHOICE: {

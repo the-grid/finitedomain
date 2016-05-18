@@ -2,7 +2,11 @@ import {
   EMPTY,
   MAX_SMALL,
   NO_SUCH_VALUE,
+  NOT_FOUND,
+  PAIR_SIZE,
   REJECTED,
+  SOLVED,
+  UNDETERMINED,
   SOMETHING_CHANGED,
   SUB,
   SUP,
@@ -32,9 +36,6 @@ let FIRST_RANGE_LO = 0;
 let FIRST_RANGE_HI = 1;
 let LO_BOUND = 0;
 let HI_BOUND = 1;
-let PAIR_SIZE = 2;
-
-let NOT_FOUND = -1;
 
 // Cache static Math functions
 let MIN = Math.min;
@@ -44,6 +45,7 @@ let CEIL = Math.ceil;
 
 const ZERO = 1 << 0;
 const ONE = 1 << 1;
+const BOOL = ZERO | ONE;
 const TWO = 1 << 2;
 const THREE = 1 << 3;
 const FOUR = 1 << 4;
@@ -1124,6 +1126,11 @@ function domain_min(domain) {
     ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
     ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'NUMBER_DOMAIN_IS_OOB');
 
+    // we often deal with domains [0, 0], [0, 1], and [1, 1]
+    if (domain === ZERO) return 0;
+    if (domain === ONE) return 1;
+    if (domain === BOOL) return 0;
+
     if (domain & ZERO) return 0;
     if (domain & ONE) return 1;
     if (domain & TWO) return 2;
@@ -1157,6 +1164,11 @@ function domain_max(domain) {
     ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
     ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'SHOULD_BE_FIXED_DOMAIN');
 
+    // we often deal with domains [0, 0], [0, 1], and [1, 1]
+    if (domain === ZERO) return 0;
+    if (domain === ONE) return 1;
+    if (domain === BOOL) return 1;
+
     if (domain & FIFTEEN) return 15;
     if (domain & FOURTEEN) return 14;
     if (domain & THIRTEEN) return 13;
@@ -1172,7 +1184,8 @@ function domain_max(domain) {
     if (domain & THREE) return 3;
     if (domain & TWO) return 2;
     if (domain & ONE) return 1;
-    if (domain & ZERO) return 0;
+    if (domain & ZERO) return 1;
+    ASSERT(false, 'SHOULD_NOT_GET_HERE');
   }
 
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
@@ -1206,6 +1219,38 @@ function domain_hammingWeight(domain) { // "count number of bits set"
   return domain;
 }
 
+function domain_getStateFromFlags(domain) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+
+  switch (domain) {
+    case BOOL:
+      return UNDETERMINED;
+    case EMPTY:
+      return REJECTED;
+
+    case ZERO:
+    case ONE:
+    case TWO:
+    case THREE:
+    case FOUR:
+    case FIVE:
+    case SIX:
+    case SEVEN:
+    case EIGHT:
+    case NINE:
+    case TEN:
+    case ELEVEN:
+    case TWELVE:
+    case THIRTEEN:
+    case FOURTEEN:
+    case FIFTEEN:
+      return SOLVED;
+  }
+
+  // anything else means more than one flag
+  return UNDETERMINED;
+}
+
 /**
  * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
  *
@@ -1214,7 +1259,8 @@ function domain_hammingWeight(domain) { // "count number of bits set"
  */
 function domain_isSolved(domain) {
   if (typeof domain === 'number') {
-    return domain_hammingWeight(domain) === 1;
+    var state = domain_getStateFromFlags(domain);
+    return state === SOLVED;
   }
 
   ASSERT_DOMAIN(domain);
@@ -1229,7 +1275,8 @@ function domain_isSolved(domain) {
  */
 function domain_isDetermined(domain) {
   if (typeof domain === 'number') {
-    return domain_hammingWeight(domain) <= 1;
+    var state = domain_getStateFromFlags(domain);
+    return state === SOLVED || state === REJECTED;
   }
 
   ASSERT_DOMAIN(domain);
@@ -1790,6 +1837,7 @@ export {
 
   ZERO,
   ONE,
+  BOOL,
   TWO,
   THREE,
   FOUR,

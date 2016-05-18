@@ -28,11 +28,11 @@ import {
 } from './neq';
 
 import {
-  fdvar_isSolved,
   fdvar_upperBound,
 } from '../fdvar';
 
 import {
+  domain_isSolved,
   domain_min,
 } from '../domain';
 
@@ -49,7 +49,7 @@ function propagator_isSolved(vars, propagator) {
       // the original op or inv op (depending on bool_var) resolves
       let varName3 = propagator[1][2];
       let v3 = vars[varName3];
-      if (!fdvar_isSolved(v3)) {
+      if (!domain_isSolved(v3.dom)) {
         return false;
       }
       if (domain_min(v3.dom) === 1) {
@@ -59,8 +59,8 @@ function propagator_isSolved(vars, propagator) {
       return _propagator_comparisonIsSolved(propagator[3], v1, v2);
 
     case 'ring':
-      if (fdvar_isSolved(v1) && fdvar_isSolved(v2)) {
-        ASSERT(!propagator[1][2] || fdvar_isSolved(vars[propagator[1][2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
+      if (domain_isSolved(v1.dom) && domain_isSolved(v2.dom)) {
+        ASSERT(!propagator[1][2] || domain_isSolved(vars[propagator[1][2]].dom), 'ring and reified should solve their bool_var immediately after operand vars become solved');
         return true;
       }
       return false;

@@ -20,6 +20,7 @@ import {
   domain_isDetermined,
   domain_intersection,
   domain_isRejected,
+  domain_isSolved,
   domain_max,
   domain_min,
   domain_numarr,
@@ -35,7 +36,6 @@ import {
 
 import {
   fdvar_isRejected,
-  fdvar_isSolved,
   fdvar_middleElement,
   fdvar_upperBound,
 } from '../fdvar';
@@ -49,7 +49,7 @@ const NO_CHOICE = undefined;
 const MATH_RANDOM = Math.random;
 
 function distribute_getNextDomainForVar(space, fdvar) {
-  if (fdvar_isSolved(fdvar)) {
+  if (domain_isSolved(fdvar.dom)) {
     // TOFIX: prevent this case at call sites (var picker)... there is no need for it here
     return; // this var is solved but apparently that did not suffice. continue with next var
   }

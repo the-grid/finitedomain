@@ -66,12 +66,6 @@ function fdvar_new(id, dom) {
   };
 }
 
-// A var is solved if it has only one range that spans only one value.
-
-function fdvar_isSolved(fdvar) {
-  return domain_isSolved(fdvar.dom);
-}
-
 // Is given var [value, value] ?
 function fdvar_isValue(fdvar, value) {
   return domain_isValue(fdvar.dom, value);
@@ -281,7 +275,6 @@ export {
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_isRejected,
-  fdvar_isSolved,
   fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,

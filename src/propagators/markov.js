@@ -6,9 +6,7 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_isSolved,
-} from '../fdvar';
-import {
+  domain_isSolved,
   domain_min,
 } from '../domain';
 
@@ -41,7 +39,7 @@ function propagator_markovStepBare(space, varName) {
 
   let fdvar = space.vars[varName];
 
-  if (!fdvar_isSolved(fdvar)) {
+  if (!domain_isSolved(fdvar.dom)) {
     return NO_CHANGES;
   }
 

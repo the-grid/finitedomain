@@ -22,7 +22,6 @@ import {
 
 import {
   fdvar_clone,
-  fdvar_isSolved,
 } from './fdvar';
 
 import propagator_stepAny from './propagators/step_any';
@@ -264,7 +263,7 @@ function space_isSolved(space) {
       let fdvar = vars[name];
       ASSERT_DOMAIN(fdvar.dom);
 
-      if (!fdvar_isSolved(fdvar)) {
+      if (!domain_isSolved(fdvar.dom)) {
         unsolvedNames[j++] = name;
       }
     }
@@ -373,7 +372,7 @@ function __space_getUnsolved(space) {
   let unsolved_names = [];
   for (let name in vars) {
     let fdvar = vars[name];
-    if (!fdvar_isSolved(fdvar)) {
+    if (!domain_isSolved(fdvar.dom)) {
       unsolved_names.push(name);
     }
   }

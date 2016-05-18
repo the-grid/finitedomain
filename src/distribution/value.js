@@ -35,10 +35,6 @@ import {
   markov_createProbVector,
 } from '../markov';
 
-import {
-  fdvar_upperBound,
-} from '../fdvar';
-
 // BODY_START
 
 const FIRST_CHOICE = 0;
@@ -183,7 +179,7 @@ function distribution_valueByMin(fdvar, choiceIndex) {
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom) + 1, fdvar_upperBound(fdvar)));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom) + 1, domain_max(fdvar.dom)));
       return domain_numarr(domain);
   }
 
@@ -207,14 +203,14 @@ function distribution_valueByMax(fdvar, choiceIndex) {
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      return domain_createValue(fdvar_upperBound(fdvar));
+      return domain_createValue(domain_max(fdvar.dom));
 
     case SECOND_CHOICE:
       // Cannot lead to empty domain because hi can only be SUB if
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom), fdvar_upperBound(fdvar) - 1));
+      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom), domain_max(fdvar.dom) - 1));
       return domain_numarr(domain);
   }
 
@@ -245,7 +241,7 @@ function distribution_valueByMid(fdvar, choiceIndex) {
 
     case SECOND_CHOICE:
       let lo = domain_min(fdvar.dom);
-      let hi = fdvar_upperBound(fdvar);
+      let hi = domain_max(fdvar.dom);
       let arr = [];
       if (middle > lo) {
         arr.push(lo, middle - 1);
@@ -418,7 +414,7 @@ function distribution_valueByMarkov(space, fdvar, choiceIndex) {
       ASSERT((space._markov_last_value != null), 'should have cached previous value');
       let lastValue = space._markov_last_value;
       let lo = domain_min(fdvar.dom);
-      let hi = fdvar_upperBound(fdvar);
+      let hi = domain_max(fdvar.dom);
       let arr = [];
       if (lastValue > lo) {
         arr.push(lo, lastValue - 1);

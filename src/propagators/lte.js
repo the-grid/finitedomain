@@ -14,7 +14,6 @@ import {
 import {
   fdvar_removeGteInline,
   fdvar_removeLteInline,
-  fdvar_upperBound,
 } from '../fdvar';
 
 // BODY_START
@@ -29,9 +28,9 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
   ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
 
   let lo1 = domain_min(fdvar1.dom);
-  let hi1 = fdvar_upperBound(fdvar1);
+  let hi1 = domain_max(fdvar1.dom);
   let lo2 = domain_min(fdvar2.dom);
-  let hi2 = fdvar_upperBound(fdvar2);
+  let hi2 = domain_max(fdvar2.dom);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
@@ -87,7 +86,7 @@ function propagator_lteStepWouldReject(fdvar1, fdvar2) {
  * @returns {*}
  */
 function propagator_lteSolved(fdvar1, fdvar2) {
-  return fdvar_upperBound(fdvar1) <= domain_min(fdvar2.dom);
+  return domain_max(fdvar1.dom) <= domain_min(fdvar2.dom);
 }
 
 // BODY_STOP

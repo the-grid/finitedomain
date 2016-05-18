@@ -4,11 +4,8 @@ import {
 } from '../helpers';
 
 import {
-  fdvar_upperBound,
-} from '../fdvar';
-
-import {
   domain_isDetermined,
+  domain_max,
   domain_min,
   domain_size,
 } from '../domain';
@@ -131,7 +128,7 @@ function distribution_varByMin(v1, v2) {
 }
 
 function distribution_varByMax(v1, v2) {
-  let n = fdvar_upperBound(v1) - fdvar_upperBound(v2);
+  let n = domain_max(v1.dom) - domain_max(v2.dom);
   if (n > 0) return BETTER;
   if (n < 0) return WORSE;
   return SAME;

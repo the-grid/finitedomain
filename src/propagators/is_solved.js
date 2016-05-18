@@ -28,11 +28,8 @@ import {
 } from './neq';
 
 import {
-  fdvar_upperBound,
-} from '../fdvar';
-
-import {
   domain_isSolved,
+  domain_max,
   domain_min,
 } from '../domain';
 
@@ -55,7 +52,7 @@ function propagator_isSolved(vars, propagator) {
       if (domain_min(v3.dom) === 1) {
         return _propagator_comparisonIsSolved(propagator[2], v1, v2);
       }
-      ASSERT(fdvar_upperBound(v3) === 0, 'if bool_var is solved and lower is not 1 then upper should be 0', v3);
+      ASSERT(domain_max(v3.dom) === 0, 'if bool_var is solved and lower is not 1 then upper should be 0', v3);
       return _propagator_comparisonIsSolved(propagator[3], v1, v2);
 
     case 'ring':

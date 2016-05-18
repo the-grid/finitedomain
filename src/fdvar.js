@@ -22,7 +22,6 @@ import {
   domain_getValue,
   domain_isRejected,
   domain_isSolved,
-  domain_max,
   domain_numarr,
   domain_removeGteInline,
   domain_removeGteNumbered,
@@ -85,10 +84,6 @@ function fdvar_constrain(fdvar, domain) {
   domain = domain_intersection(fdvar.dom, domain);
   if (domain_isRejected(domain)) return REJECTED;
   return fdvar_setDomain(fdvar, domain_numarr(domain));
-}
-
-function fdvar_upperBound(fdvar) {
-  return domain_max(fdvar.dom);
 }
 
 function fdvar_removeGteInline(fdvar, value) {
@@ -242,7 +237,6 @@ export {
   fdvar_createRange,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
-  fdvar_upperBound,
   fdvar_new,
   fdvar_removeGteInline,
   fdvar_removeLteInline,

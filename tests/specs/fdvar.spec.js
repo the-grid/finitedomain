@@ -15,7 +15,6 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
-  fdvar_constrain,
   fdvar_create,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
@@ -24,61 +23,6 @@ import {
 } from '../../src/fdvar';
 
 describe('fdvar.spec', function() {
-
-  describe('fdvar_constrain', function() {
-
-    it('should exist', function() {
-      expect(fdvar_constrain).to.be.a('function');
-    });
-
-    function one(fdvarDom, withDom, outDom, changes) {
-      it(`should constrain an fdvar.dom=${fdvarDom} with dom=${withDom} to be ${outDom}`, function() {
-        let A = fdvar_create('A', fdvarDom);
-        let out = fdvar_constrain(A, withDom);
-
-        expect(A.dom).to.eql(outDom);
-        expect(out).to.equal(changes);
-      });
-    }
-
-    describe('simple ranges', function() {
-      one(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 1), NO_CHANGES);
-      one(specDomainSmallRange(0, 1), specDomainSmallNums(0), specDomainSmallNums(0), SOME_CHANGES);
-      one(specDomainSmallRange(0, 1), specDomainSmallNums(1), specDomainSmallNums(1), SOME_CHANGES);
-      one(specDomainSmallRange(0, 15), specDomainSmallRange(10, 12), specDomainSmallRange(10, 12), SOME_CHANGES);
-      one(specDomainSmallRange(0, 15), specDomainCreateRange(10, 20), specDomainSmallRange(10, 15), SOME_CHANGES);
-      one(specDomainCreateRange(10, 20), specDomainSmallRange(5, 15), specDomainSmallRange(10, 15), SOME_CHANGES);
-      one(specDomainCreateRange(10, 20), specDomainCreateRange(12, 17), specDomainCreateRange(12, 17), SOME_CHANGES);
-    });
-
-    // TODO: need to fix these (I think they should end up empty), see https://github.com/the-grid/finitedomain/issues/72
-    describe('some weird cases', function() {
-      one(specDomainSmallRange(0, 1), specDomainSmallNums(2), specDomainSmallRange(0, 1), REJECTED);
-      one(specDomainSmallRange(10, 15), specDomainSmallRange(5, 8), specDomainSmallRange(10, 15), REJECTED);
-      one(specDomainCreateRange(10, 20), specDomainCreateRange(22, 30), specDomainCreateRange(10, 20), REJECTED);
-    });
-
-    describe('multiple ranges', function() {
-      one(
-        specDomainCreateRanges([10, 20], [30, 40]),
-        specDomainCreateRange(15, 35),
-        specDomainCreateRanges([15, 20], [30, 35]),
-        SOME_CHANGES
-      );
-      one(
-        specDomainCreateRange(10, 50),
-        specDomainCreateRanges([15, 35], [40, 60]),
-        specDomainCreateRanges([15, 35], [40, 50]),
-        SOME_CHANGES
-      );
-      one(
-        specDomainCreateRanges([10, 50], [100, 200], [300, 400]),
-        specDomainCreateRanges([5, 8], [10, 30], [150, 350], [400, 400]),
-        specDomainCreateRanges([10, 30], [150, 200], [300, 350], [400, 400]),
-        SOME_CHANGES
-      );
-    });
-  });
 
   describe('fdvar_create', function() {
 

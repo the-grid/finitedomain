@@ -78,10 +78,9 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
     boolName = config_addVarAnonConstant(config, boolName);
   } else if (!boolName) {
     boolName = config_addVarAnonRange(config, 0, 1);
+  } else {
+    // TODO: assert the domain is set to 0,1
   }
-  // TOFIX: trigger this check later somehow. it's not super relevant, mostly a safety procedure
-  //else if fdvar_constrain(space.vars[boolName], domain_createRange(0, 1)) is REJECTED
-  //  THROW 'boolean var should start with a domain containing zero, one, or both'
 
   if (typeof leftVarName === 'number') {
     leftVarName = config_addVarAnonConstant(config, leftVarName);

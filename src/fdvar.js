@@ -11,8 +11,6 @@ import {
 } from './helpers';
 
 import {
-  domain_intersection,
-  domain_equal,
   domain_fromFlags,
   domain_forceEqInline,
   domain_forceEqNumbered,
@@ -46,30 +44,6 @@ function fdvar_create(id, dom) {
 }
 
 function fdvar_setDomain(fdvar, domain) {
-}
-
-// TODO: rename to intersect for that's what it is.
-function fdvar_constrain(fdvar, domain) {
-  domain = domain_numarr(domain);
-  domain = domain_intersection(fdvar.dom, domain);
-  if (domain_isRejected(domain)) return REJECTED;
-  domain = domain_numarr(domain);
-
-  let fdvarDom = fdvar.dom;
-  if (typeof domain === 'number' && typeof fdvarDom === 'number') {
-    if (fdvarDom !== domain) {
-      fdvar.dom = domain;
-      return SOME_CHANGES;
-    }
-    return NO_CHANGES;
-  }
-
-  ASSERT_UNUSED_DOMAIN(domain);
-  if (!domain_equal(fdvarDom, domain)) {
-    fdvar.dom = domain;
-    return SOME_CHANGES;
-  }
-  return NO_CHANGES;
 }
 
 function fdvar_removeGteInline(fdvar, value) {
@@ -218,7 +192,6 @@ function fdvar_forceNeqInline(fdvar1, fdvar2) {
 // BODY_STOP
 
 export {
-  fdvar_constrain,
   fdvar_create,
   fdvar_forceEqInline,
   fdvar_forceNeqInline,

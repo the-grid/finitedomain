@@ -23,7 +23,6 @@ import {
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_isRejected,
-  fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,
   fdvar_removeGteInline,
@@ -496,67 +495,6 @@ describe('fdvar.spec', function() {
 
         let C = fdvar_create('C', specDomainSmallNums(14, 15));
         expect(fdvar_isRejected(C)).to.equal(false);
-      });
-    });
-  });
-
-  describe('fdvar_isValue', function() {
-
-    it('should exist', function() {
-      expect(fdvar_isValue).to.be.a('function');
-    });
-
-    describe('with array', function() {
-
-      it('should return false for empty array', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), 0)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), 1)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), 5)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), 10)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), 15)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateEmpty()), SUP)).to.equal(false);
-      });
-
-      it('should return true for matching solved array domains', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([SUP, SUP])), 10)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([SUP, SUP])), SUP)).to.equal(true);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([90, 90])), 10)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([90, 90])), 90)).to.equal(true);
-      });
-
-      it('should return false for unsolved array domains', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([0, SUP])), 0)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([0, SUP])), 10)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([0, SUP])), SUP)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([90, 190])), 90)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([90, 190])), 190)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainCreateRanges([90, 190], [200, 300], [500, 500])), 500)).to.equal(false);
-      });
-    });
-
-    describe('with numbers', function() {
-
-      it('should return true for 0', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallEmpty()), 0)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallEmpty()), 1)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallEmpty()), 5)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallEmpty()), 10)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallEmpty()), SUP)).to.equal(false);
-      });
-
-      it('should return true for solved number domains', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(0)), 0)).to.equal(true);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(0)), 1)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(5)), 5)).to.equal(true);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(5)), 15)).to.equal(false);
-      });
-
-      it('should return false for unsolved number domains', function() {
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(0, 1)), 0)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(0, 3, 6)), 0)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(0, 1, 2, 3, 5)), 3)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(5, 9, 10, 11)), 9)).to.equal(false);
-        expect(fdvar_isValue(fdvar_create('A', specDomainSmallNums(14, 15)), 15)).to.equal(false);
       });
     });
   });

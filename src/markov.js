@@ -4,12 +4,9 @@ import {
   THROW,
 } from './helpers';
 import {
+  domain_isValue,
   domain_toList,
 } from './domain';
-
-import {
-  fdvar_isValue,
-} from './fdvar';
 
 // BODY_START
 
@@ -27,7 +24,7 @@ function markov_getNextRowToSolve(space, matrix) {
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
     let boolVar = vars[row.booleanId];
-    if (!boolVar || fdvar_isValue(boolVar, 1)) {
+    if (!boolVar || domain_isValue(boolVar.dom, 1)) {
       break;
     }
   }

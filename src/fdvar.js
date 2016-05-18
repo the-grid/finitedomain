@@ -23,7 +23,6 @@ import {
   domain_getValue,
   domain_isRejected,
   domain_isSolved,
-  domain_isValue,
   domain_max,
   domain_middleElement,
   domain_numarr,
@@ -64,11 +63,6 @@ function fdvar_new(id, dom) {
     id,
     dom,
   };
-}
-
-// Is given var [value, value] ?
-function fdvar_isValue(fdvar, value) {
-  return domain_isValue(fdvar.dom, value);
 }
 
 // A var is rejected if its domain is empty. This means none of the
@@ -275,7 +269,6 @@ export {
   fdvar_forceEqInline,
   fdvar_forceNeqInline,
   fdvar_isRejected,
-  fdvar_isValue,
   fdvar_upperBound,
   fdvar_middleElement,
   fdvar_removeGteInline,

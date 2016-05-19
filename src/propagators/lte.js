@@ -1,6 +1,7 @@
 import {
   NO_CHANGES,
   REJECTED,
+  SOME_CHANGES,
 
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
@@ -9,12 +10,12 @@ import {
   domain_isRejected,
   domain_max,
   domain_min,
+  domain_numarr,
+  domain_removeGteNumbered,
+  domain_removeGteInline,
+  domain_removeLteNumbered,
+  domain_removeLteInline,
 } from '../domain';
-
-import {
-  fdvar_removeGteInline,
-  fdvar_removeLteInline,
-} from '../fdvar';
 
 // BODY_START
 
@@ -34,19 +35,59 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
+  var leftChanged = NO_CHANGES;
   if (hi1 > hi2) {
-    var leftChanged = fdvar_removeGteInline(fdvar1, hi2 + 1);
-    if (domain_isRejected(fdvar1.dom)) {
-      leftChanged = REJECTED;
+    let domain = fdvar1.dom;
+    if (typeof domain === 'number') {
+      let result = domain_removeGteNumbered(domain, hi2 + 1);
+      if (result !== domain) {
+        fdvar1.dom = result;
+        if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      }
+    } else {
+      if (domain_removeGteInline(domain, hi2 + 1)) {
+        fdvar1.dom = domain_numarr(fdvar1.dom);
+        if (domain_isRejected(fdvar1.dom)) { // TODO: there is no test throwing when you remove this check
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      } else {
+        leftChanged = NO_CHANGES;
+      }
     }
   }
 
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
+  var rightChanged = NO_CHANGES;
   if (lo1 > lo2) {
-    var rightChanged = fdvar_removeLteInline(fdvar2, lo1 - 1);
-    if (domain_isRejected(fdvar2.dom)) {
-      rightChanged = REJECTED;
+    let domain = fdvar2.dom;
+    if (typeof domain === 'number') {
+      let result = domain_removeLteNumbered(domain, lo1 - 1);
+
+      if (result !== domain) {
+        fdvar2.dom = result;
+        if (domain_isRejected(result)) {
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      }
+    } else {
+      if (domain_removeLteInline(domain, lo1 - 1)) {
+        fdvar2.dom = domain_numarr(domain);
+        rightChanged = SOME_CHANGES;
+        if (domain_isRejected(fdvar1.dom)) { // TODO: there is no test covering this
+          leftChanged = REJECTED;
+        }
+      } else {
+        rightChanged = NO_CHANGES;
+      }
     }
   }
 

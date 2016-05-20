@@ -213,6 +213,33 @@ module.exports = function () {
           'build/finitedomain.es6.concat.js': ['src/**/*'],
         },
       },
+      test: {
+        options: {
+          // https://github.com/gruntjs/grunt-contrib-concat
+          banner: '',
+          footer: '\nexport default Solver;',
+          sourceMap: true,
+          sourceMapStyle: 'inline', // embed link inline
+          process: function(code, path){
+            if (path === 'src/index.js') return '';
+            console.log('concatting', path);
+            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
+            if (!match) {
+              console.error('unable to find body start/stop pragmas in '+path);
+              throw 'No body found in '+path;
+            }
+            code = match[1];
+
+            return '' +
+              '// from: ' + path + '\n\n' +
+              code +
+              '\n\n// end of ' + path;
+          },
+        },
+        files: {
+          'build/finitedomain.es6.concat.js': ['src/**/*'],
+        },
+      },
     },
   });
 
@@ -228,8 +255,8 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-contrib-concat');
 
   grunt.registerTask('clean', ['remove']);
-  grunt.registerTask('build', ['clean', 'browserify:dist', 'browserify:phantom', 'run:jsbeautify']);
-  grunt.registerTask('buildf', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
+  grunt.registerTask('build', 'strips headers but keeps assertions, also makes phantomjs build', ['clean', 'browserify:phantom', 'concat:test', 'babel:concat']);
+  grunt.registerTask('buildf', 'strips headers and asserts, beautifies result (for /perf)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
   grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);

@@ -132,12 +132,13 @@ function propagator_lteStepWouldReject(fdvar1, fdvar2) {
  * shrink we can assume that the lte constraint will not
  * be broken by searching further once this state is seen.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {Space} space
+ * @param {string} varName1
+ * @param {string} varName2
  * @returns {*}
  */
-function propagator_lteSolved(fdvar1, fdvar2) {
-  return domain_max(fdvar1.dom) <= domain_min(fdvar2.dom);
+function propagator_lteSolved(space, varName1, varName2) {
+  return domain_max(space.vars[varName1].dom) <= domain_min(space.vars[varName2].dom);
 }
 
 // BODY_STOP

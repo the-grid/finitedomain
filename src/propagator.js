@@ -12,6 +12,11 @@ import {
 
 // BODY_START
 
+const PROP_PNAME = 0;
+const PROP_VNAMES = 1;
+const PROP_ARG1 = 2;
+const PROP_ARG2 = 3;
+
 /**
  * Adds propagators which reify the given operator application
  * to the given boolean variable.
@@ -549,6 +554,11 @@ function propagator_addMarkov(config, varName) {
 // BODY_STOP
 
 export {
+  PROP_PNAME,
+  PROP_VNAMES,
+  PROP_ARG1,
+  PROP_ARG2,
+
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,

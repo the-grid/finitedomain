@@ -1,10 +1,11 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specCreateFdvarRange,
+  specDomainCreateEmpty,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainSmallEmpty,
   specDomainSmallNums,
+  specDomainSmallRange,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -18,11 +19,16 @@ import {
   domain_clone,
 } from '../../../src/domain';
 import {
+  config_addVarDomain,
+  config_create,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
+import {
   propagator_eqStepBare,
 } from '../../../src/propagators/eq';
-import {
-  fdvar_create,
-} from '../../../src/fdvar';
 
 describe('propagators/eq.spec', function() {
   // in general after call v1 and v2 should be equal
@@ -31,52 +37,72 @@ describe('propagators/eq.spec', function() {
     expect(propagator_eqStepBare).to.be.a('function');
   });
 
-  it('should require two vars', function() {
-    let v = specCreateFdvarRange('x', SUB, SUP);
+  it('should expect args', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainSmallRange(11, 15));
+    config_addVarDomain(config, 'B', specDomainSmallRange(5, 8));
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
 
-    expect(() => propagator_eqStepBare()).to.throw();
-    expect(() => propagator_eqStepBare(v)).to.throw();
-    expect(() => propagator_eqStepBare(undefined, v)).to.throw();
+    expect(_ => propagator_eqStepBare(space, 'A', 'B')).not.to.throw();
+    expect(_ => propagator_eqStepBare()).to.throw('SHOULD_GET_SPACE');
+    expect(_ => propagator_eqStepBare(space)).to.throw('VAR_SHOULD_BE_STRING');
+    expect(_ => propagator_eqStepBare(space, 'A')).to.throw('VAR_SHOULD_BE_STRING');
+    expect(_ => propagator_eqStepBare(space, undefined, 'B')).to.throw('VAR_SHOULD_BE_STRING');
+    expect(_ => propagator_eqStepBare(undefined, 'A', 'B')).to.throw('SHOULD_GET_SPACE');
   });
 
-  //it('should reject for empty domains', function() {
-  //
-  //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_create('y', []);
-  //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
-  //
-  //it('should reject for empty left domain', function() {
-  //
-  //  let v1 = fdvar_create('x', []);
-  //  let v2 = specCreateFdvarRange('y', SUB, SUP);
-  //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
-  //
-  //it('should reject for empty right domain', function() {
-  //
-  //  let v1 = specCreateFdvarRange('x', SUB, SUP);
-  //  let v2 = fdvar_create('y', []);
-  //  expect(eq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
+  it('should throw for empty domains', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainSmallRange(9, 10));
+    config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
+    config_addVarDomain(config, 'C', specDomainCreateEmpty());
+    config_addVarDomain(config, 'D', specDomainCreateEmpty());
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
 
-  it('should split a domain if it covers multiple ranges of other domain', function() {
-    let v1 = specCreateFdvarRange('x', SUB, SUP);
-    let v2 = fdvar_create('y', specDomainCreateRanges([0, 10], [20, 30]));
+    expect(_ => propagator_eqStepBare(space, 'A', 'B')).not.to.throw();
+    expect(_ => propagator_eqStepBare(space, 'A', 'D')).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_eqStepBare(space, 'C', 'B')).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_eqStepBare(space, 'C', 'D')).to.throw('SHOULD_NOT_BE_REJECTED');
+  });
 
-    expect(propagator_eqStepBare(v1, v2)).to.be.above(0);
-    expect(v1.dom).to.eql(specDomainCreateRanges([0, 10], [20, 30]));
-    expect(v2.dom).to.eql(specDomainCreateRanges([0, 10], [20, 30]));
+  it('with array should split a domain if it covers multiple ranges of other domain', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainCreateRange(SUB, SUP));
+    config_addVarDomain(config, 'B', specDomainCreateRanges([0, 10], [20, 300]));
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
+
+    expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(SOME_CHANGES);
+    expect(space.vars.A.dom).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
+    expect(space.vars.B.dom).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
+  });
+
+  it('with number should split a domain if it covers multiple ranges of other domain', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainSmallRange(SUB, 15));
+    config_addVarDomain(config, 'B', specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
+
+    expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(SOME_CHANGES);
+    expect(space.vars.A.dom).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    expect(space.vars.B.dom).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
   });
 
   describe('when v1 == v2', function() {
     function test(domain) {
       it(`should not change anything: ${domain}`, function() {
-        let v1 = fdvar_create('x', domain_clone(domain));
-        let v2 = fdvar_create('y', domain_clone(domain));
-        expect(propagator_eqStepBare(v1, v2)).to.eql(NO_CHANGES);
-        expect(v1.dom, 'v1 dom').to.eql(domain);
-        expect(v2.dom, 'v2 dom').to.eql(domain);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain));
+        config_addVarDomain(config, 'B', domain_clone(domain));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
+        expect(space.vars.A.dom).to.eql(domain);
+        expect(space.vars.B.dom).to.eql(domain);
       });
     }
 
@@ -101,21 +127,27 @@ describe('propagators/eq.spec', function() {
 
     function test(left, right, result, changes) {
       it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain_clone(left));
-        let v2 = fdvar_create('y', domain_clone(right));
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(left));
+        config_addVarDomain(config, 'B', domain_clone(right));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(propagator_eqStepBare(v1, v2)).to.equal(changes);
-        expect(v1.dom, 'v1 dom').to.eql(result);
-        expect(v2.dom, 'v2 dom').to.eql(result);
+        expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(changes);
+        expect(space.vars.A.dom).to.eql(result);
+        expect(space.vars.B.dom).to.eql(result);
       });
 
       it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain_clone(right));
-        let v2 = fdvar_create('y', domain_clone(left));
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(right));
+        config_addVarDomain(config, 'B', domain_clone(left));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(propagator_eqStepBare(v1, v2)).to.equal(changes);
-        expect(v1.dom, 'v1 dom').to.eql(result);
-        expect(v2.dom, 'v2 dom').to.eql(result);
+        expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(changes);
+        expect(space.vars.A.dom).to.eql(result);
+        expect(space.vars.B.dom).to.eql(result);
       });
     }
 

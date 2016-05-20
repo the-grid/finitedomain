@@ -94,7 +94,7 @@ function domain_containsValue(domain, value) {
   }
 
   ASSERT_DOMAIN(domain);
-  return (domain_rangeIndexOf(domain, value)) !== NOT_FOUND;
+  return domain_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
 
 /**

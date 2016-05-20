@@ -52,9 +52,6 @@ import {
  * @returns {*}
  */
 function propagator_stepComparison(space, opName, varName1, varName2) {
-  let v1 = space.vars[varName1];
-  let v2 = space.vars[varName2];
-
   switch (opName) {
     case 'lt':
       return propagator_ltStepBare(space, varName1, varName2);
@@ -71,10 +68,10 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
       return propagator_stepComparison(space, 'lte', varName2, varName1);
 
     case 'eq':
-      return propagator_eqStepBare(v1, v2);
+      return propagator_eqStepBare(space, varName1, varName2);
 
     case 'neq':
-      return propagator_neqStepBare(v1, v2);
+      return propagator_neqStepBare(space, varName1, varName2);
 
     default:
       return THROW(`unsupported propagator: [${opName}]`);

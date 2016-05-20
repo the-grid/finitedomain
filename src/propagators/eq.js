@@ -25,6 +25,7 @@ import {
   domain_forceEqInline,
   domain_forceEqNumbered,
   domain_fromFlags,
+  domain_isRejected,
   domain_isSolved,
   domain_numarr,
   domain_sharesNoElements,
@@ -41,13 +42,24 @@ import {
  * Basically eq is much more efficient compared to neq because we
  * can potentially skip a lot of values early.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {Space} space
+ * @param {string} varName1
+ * @param {string} varName2
  * @returns {$domain}
  */
-function propagator_eqStepBare(fdvar1, fdvar2) {
+function propagator_eqStepBare(space, varName1, varName2) {
+  ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
+  ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
+  ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
+
+  let fdvar1 = space.vars[varName1];
+  let fdvar2 = space.vars[varName2];
+
   let domain1 = fdvar1.dom;
   let domain2 = fdvar2.dom;
+
+  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
 
   if (typeof domain1 === 'number' && typeof domain2 === 'number') {
     let result = domain_forceEqNumbered(domain1, domain2);
@@ -111,12 +123,13 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
  * An eq propagator is solved when both its vars are
  * solved. Any other state may still lead to failure.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {Space} space
+ * @param {string} varName1
+ * @param {string} varName2
  * @returns {boolean}
  */
-function propagator_eqSolved(fdvar1, fdvar2) {
-  return domain_isSolved(fdvar1.dom) && domain_isSolved(fdvar2.dom);
+function propagator_eqSolved(space, varName1, varName2) {
+  return domain_isSolved(space.vars[varName1].dom) && domain_isSolved(space.vars[varName2].dom);
 }
 
 // BODY_STOP

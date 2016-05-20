@@ -77,12 +77,11 @@ function space_createClone(space) {
  * @returns {$propagator[]}
  */
 function space_collectCurrentUnsolvedPropagators(space) {
-  let vars = space.vars;
   let unsolvedPropagators = [];
   let props = space.unsolvedPropagators;
   for (let i = 0; i < props.length; i++) {
     let propagator = props[i];
-    if (!propagator_isSolved(vars, propagator)) {
+    if (!propagator_isSolved(space, propagator)) {
       unsolvedPropagators.push(propagator);
     }
   }

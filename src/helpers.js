@@ -17,8 +17,17 @@
 
 let SUB = 0; // WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
 let SUP = 100000000;
+/**
+ * @type {$fd_changeState}
+ */
 let NO_CHANGES = 0;
+/**
+ * @type {$fd_changeState}
+ */
 let SOME_CHANGES = 1;
+/**
+ * @type {$fd_changeState}
+ */
 let REJECTED = -1;
 let SOLVED = 1;
 let UNDETERMINED = 0;

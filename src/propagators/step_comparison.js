@@ -57,10 +57,10 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
 
   switch (opName) {
     case 'lt':
-      return propagator_ltStepBare(v1, v2);
+      return propagator_ltStepBare(space, varName1, varName2);
 
     case 'lte':
-      return propagator_lteStepBare(v1, v2);
+      return propagator_lteStepBare(space, varName1, varName2);
 
     case 'gt':
       // TOFIX: should go to lte

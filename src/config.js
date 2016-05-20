@@ -15,6 +15,7 @@ import {
 } from './fdvar';
 import {
   domain_createRange,
+  domain_isSolved,
 } from './domain';
 import distribution_getDefaults from './distribution/defaults';
 
@@ -307,7 +308,15 @@ function config_getUnknownVars(config) {
   return names;
 }
 
-function config_generateVars(config, vars = {}, unsolvedVarNames) {
+function config_generateVars(config, space) {
+  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
+  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+
+  let vars = space.vars;
+  let unsolvedVarNames = space.unsolvedVarNames;
+  let vdata = space.vdata;
+
+  ASSERT(vars, 'expecting vars');
   ASSERT(config, 'should have a config');
   let initialVars = config.initial_vars;
   ASSERT(initialVars, 'config should have initial vars');
@@ -316,25 +325,14 @@ function config_generateVars(config, vars = {}, unsolvedVarNames) {
 
   for (let i = 0; i < allVarNames.length; i++) {
     let name = allVarNames[i];
-    let val = initialVars[name];
-    if (typeof val === 'number') {
-      // NOT a constant (anymore), but a "small domain"; bit flags
-      val = fdvar_create(name, val);
-    } else if (val === undefined) {
-      val = fdvar_create(name, domain_createRange(SUB, SUP));
-    } else {
-      ASSERT(val instanceof Array);
-      ASSERT((val.length % 2) === 0);
-      val = fdvar_create(name, val);
-    }
+    let domain = initialVars[name];
+    if (domain === undefined) domain = domain_createRange(SUB, SUP);
+    let fdvar = fdvar_create(name, domain);
 
-    vars[name] = val;
-    if (unsolvedVarNames && val.length !== 2 || val[0] !== val[1]) {
-      unsolvedVarNames.push(name);
-    }
+    if (vdata) vdata[name] = domain;
+    vars[name] = fdvar;
+    if (!domain_isSolved(domain)) unsolvedVarNames.push(name);
   }
-
-  return vars;
 }
 
 /**

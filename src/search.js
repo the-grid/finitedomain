@@ -6,6 +6,9 @@ import {
   space_isSolved,
   space_propagate,
 } from './space';
+import {
+  domain_isSolved,
+} from './domain';
 import distribution_getNextVar from './distribution/var';
 import distribute_getNextDomainForVar from './distribution/value';
 
@@ -105,8 +108,8 @@ function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
   let fdvar = distribution_getNextVar(space, targetVars);
 
-  if (fdvar) {
-    let nextDomain = distribute_getNextDomainForVar(space, fdvar);
+  if (fdvar && !domain_isSolved(fdvar)) {
+    let nextDomain = distribute_getNextDomainForVar(space, fdvar.id);
 
     if (nextDomain) {
       let clone = space_createClone(space);

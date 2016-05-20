@@ -3,6 +3,7 @@ import {
   REJECTED,
   SOME_CHANGES,
 
+  ASSERT,
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
 
@@ -20,18 +21,29 @@ import {
 // BODY_START
 
 /**
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {Space} space
+ * @param {string} varName1
+ * @param {string} varName2
+ * @returns {number} changed status constant
  */
-function propagator_ltStepBare(fdvar1, fdvar2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
+function propagator_ltStepBare(space, varName1, varName2) {
+  ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
+  ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
+  ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let lo1 = domain_min(fdvar1.dom);
-  let hi1 = domain_max(fdvar1.dom);
-  let lo2 = domain_min(fdvar2.dom);
-  let hi2 = domain_max(fdvar2.dom);
+  let fdvar1 = space.vars[varName1];
+  let fdvar2 = space.vars[varName2];
+
+  let domain1 = fdvar1.dom;
+  let domain2 = fdvar2.dom;
+
+  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
+  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
+
+  let lo1 = domain_min(domain1);
+  let hi1 = domain_max(domain1);
+  let lo2 = domain_min(domain2);
+  let hi2 = domain_max(domain2);
 
   // there six possible cases:
   // - 1: v1 already satisfies v2 completely (only case where the constraint is solved)
@@ -58,10 +70,9 @@ function propagator_ltStepBare(fdvar1, fdvar2) {
   // value in v2. bigger values will never satisfy lt so prune them.
   var leftChanged = NO_CHANGES;
   if (hi1 >= hi2) {
-    let domain = fdvar1.dom;
-    if (typeof domain === 'number') {
-      let result = domain_removeGteNumbered(domain, hi2);
-      if (result !== domain) {
+    if (typeof domain1 === 'number') {
+      let result = domain_removeGteNumbered(domain1, hi2);
+      if (result !== domain1) {
         fdvar1.dom = result;
         if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
@@ -70,7 +81,7 @@ function propagator_ltStepBare(fdvar1, fdvar2) {
         }
       }
     } else {
-      if (domain_removeGteInline(domain, hi2)) {
+      if (domain_removeGteInline(domain1, hi2)) {
         fdvar1.dom = domain_numarr(fdvar1.dom);
         if (domain_isRejected(fdvar1.dom)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
@@ -87,11 +98,10 @@ function propagator_ltStepBare(fdvar1, fdvar2) {
   // smallest value of v1 can never satisfy lt so prune them as well
   var rightChanged = NO_CHANGES;
   if (lo1 >= lo2) {
-    let domain = fdvar2.dom;
-    if (typeof domain === 'number') {
-      let result = domain_removeLteNumbered(domain, lo1);
+    if (typeof domain2 === 'number') {
+      let result = domain_removeLteNumbered(domain2, lo1);
 
-      if (result !== domain) {
+      if (result !== domain2) {
         fdvar2.dom = result;
         if (domain_isRejected(result)) {
           leftChanged = REJECTED;
@@ -100,10 +110,10 @@ function propagator_ltStepBare(fdvar1, fdvar2) {
         }
       }
     } else {
-      if (domain_removeLteInline(domain, lo1)) {
-        fdvar2.dom = domain_numarr(domain);
+      if (domain_removeLteInline(domain2, lo1)) {
+        fdvar2.dom = domain_numarr(domain2);
         rightChanged = SOME_CHANGES;
-        if (domain_isRejected(fdvar1.dom)) { // TODO: there is no test covering this
+        if (domain_isRejected(fdvar2.dom)) { // TODO: there is no test covering this
           leftChanged = REJECTED;
         }
       } else {

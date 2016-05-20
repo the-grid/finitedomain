@@ -644,8 +644,6 @@ class Solver {
       console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
     }
 
-    ASSERT(Object.keys(this.state.space.vars).sort().join('--') === Object.keys(this.state.space.config.initial_vars).sort().join('--'), 'migration test');
-
     let count = 0;
     while (state.more && count < max) {
       searchFunc(state);

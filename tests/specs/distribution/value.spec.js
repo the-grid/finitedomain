@@ -22,6 +22,15 @@ import distribute_getNextDomainForVar, {
 import {
   fdvar_create,
 } from '../../../src/fdvar';
+import {
+  config_create,
+  config_addVarRange,
+  config_addVarDomain,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
 
 describe('distribution/value.spec', function() {
 
@@ -43,9 +52,12 @@ describe('distribution/value.spec', function() {
   describe('distribution naive', function() {
 
     it('should work', function() {
-      let fdvar = specCreateFdvarRange('A', 0, 1);
-      console.log(fdvar);
-      let dom = _distribute_getNextDomainForVar('naive', undefined, fdvar);
+      let config = config_create();
+      config_addVarRange(config, 'A', 0, 0);
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
+
+      let dom = _distribute_getNextDomainForVar('naive', space, 'A');
 
       expect(dom).to.eql(specDomainSmallNums(0));
     });
@@ -108,57 +120,81 @@ describe('distribution/value.spec', function() {
   });
 
   describe('distribution_valueByMax', function() {
+
     it('should exist', function() {
       expect(distribution_valueByMax).to.be.a('function');
     });
 
     it('should pick lo for FIRST_CHOICE ', function() {
-      let fdvar = specCreateFdvarRange('A', 0, 1);
+      let config = config_create();
+      config_addVarRange(config, 'A', 0, 1);
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(distribution_valueByMax(fdvar, 0)).to.eql(specDomainSmallNums(1));
-      expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
+      expect(distribution_valueByMax(space, 'A', 0)).to.eql(specDomainSmallNums(1));
+      expect(space.vars.A.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should pick hi for SECOND_CHOICE', function() {
-      let fdvar = specCreateFdvarRange('A', 0, 1);
+      let config = config_create();
+      config_addVarRange(config, 'A', 0, 1);
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(distribution_valueByMax(fdvar, 1)).to.eql(specDomainSmallNums(0));
-      expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
+      expect(distribution_valueByMax(space, 'A', 1)).to.eql(specDomainSmallNums(0));
+      expect(space.vars.A.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should return undefined for third choice', function() {
-      let fdvar = specCreateFdvarRange('A', 0, 1);
+      let config = config_create();
+      config_addVarRange(config, 'A', 0, 1);
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(distribution_valueByMax(fdvar, 2)).to.eql(undefined);
-      expect(fdvar.dom).to.eql(specDomainSmallRange(0, 1));
+      expect(distribution_valueByMax(space, 'A', 2)).to.eql(undefined);
+      expect(space.vars.A.dom).to.eql(specDomainSmallRange(0, 1));
     });
 
     it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
-      let fdvar = fdvar_create('A', specDomainCreateRanges([10, 17], [19, 20]));
+      let config = config_create();
+      config_addVarDomain(config, 'A', specDomainCreateRanges([10, 17], [19, 20]));
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(distribution_valueByMax(fdvar, 0)).to.eql(specDomainCreateValue(20));
+      expect(distribution_valueByMax(space, 'A', 0)).to.eql(specDomainCreateValue(20));
     });
 
     it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
-      let fdvar = fdvar_create('A', specDomainCreateRanges([10, 17], [19, 20]));
+      let config = config_create();
+      config_addVarDomain(config, 'A', specDomainCreateRanges([10, 17], [19, 20]));
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(distribution_valueByMax(fdvar, 1)).to.eql(specDomainCreateRanges([10, 17], [19, 19]));
+      expect(distribution_valueByMax(space, 'A', 1)).to.eql(specDomainCreateRanges([10, 17], [19, 19]));
     });
 
     it('should reject a "solved" var', function() {
-      // note: only rejects with ASSERTs
-      let fdvar = fdvar_create('A', specDomainCreateValue(20));
+      let config = config_create();
+      config_addVarDomain(config, 'A', specDomainCreateValue(20));
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(() => distribution_valueByMax(fdvar, 0)).to.throw();
-      expect(() => distribution_valueByMax(fdvar, 1)).to.throw();
+      // note: only rejects with ASSERTs
+      expect(() => distribution_valueByMax(space, 'A', 0)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
+      expect(() => distribution_valueByMax(space, 'A', 1)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
+      expect(() => distribution_valueByMax(space, 'A', 2)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
     });
 
     it('should reject a "rejected" var', function() {
-      // note: only rejects with ASSERTs
-      let fdvar = fdvar_create('A', []);
+      let config = config_create();
+      config_addVarDomain(config, 'A', []);
+      let space = space_createRoot(config);
+      space_initFromConfig(space);
 
-      expect(() => distribution_valueByMax(fdvar, 0)).to.throw();
-      expect(() => distribution_valueByMax(fdvar, 1)).to.throw();
+      // note: only rejects with ASSERTs
+      expect(() => distribution_valueByMax(space, 'A', 0)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
+      expect(() => distribution_valueByMax(space, 'A', 1)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
+      expect(() => distribution_valueByMax(space, 'A', 2)).to.throw('CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
     });
   });
 

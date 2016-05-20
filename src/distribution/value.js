@@ -20,7 +20,6 @@ import {
   domain_isDetermined,
   domain_intersection,
   domain_isRejected,
-  domain_isSolved,
   domain_max,
   domain_middleElement,
   domain_min,
@@ -43,17 +42,12 @@ const NO_CHOICE = undefined;
 
 const MATH_RANDOM = Math.random;
 
-function distribute_getNextDomainForVar(space, fdvar) {
-  if (domain_isSolved(fdvar.dom)) {
-    // TOFIX: prevent this case at call sites (var picker)... there is no need for it here
-    return; // this var is solved but apparently that did not suffice. continue with next var
-  }
+function distribute_getNextDomainForVar(space, varName) {
+  ASSERT(!domain_isDetermined(space.vars[varName].dom), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
   let choiceIndex = space.next_distribution_choice++;
   let configNextValueFunc = space.config.next_value_func;
-  let varName = fdvar.id;
 
-  ASSERT(!domain_isRejected(fdvar.dom), 'fdvar should not be rejected', varName, fdvar.dom, fdvar);
 
   // each var can override the value distributor
   let configVarDistOptions = space.config.var_dist_options;
@@ -61,37 +55,37 @@ function distribute_getNextDomainForVar(space, fdvar) {
   if (valueDistributorName) configNextValueFunc = valueDistributorName;
 
   if (typeof configNextValueFunc === 'function') return configNextValueFunc;
-  return _distribute_getNextDomainForVar(configNextValueFunc, space, fdvar, choiceIndex);
+  return _distribute_getNextDomainForVar(configNextValueFunc, space, varName, choiceIndex);
 }
 
-function _distribute_getNextDomainForVar(valueFuncName, space, fdvar, choiceIndex) {
+function _distribute_getNextDomainForVar(valueFuncName, space, varName, choiceIndex) {
   switch (valueFuncName) {
     case 'max':
-      return distribution_valueByMax(fdvar, choiceIndex);
+      return distribution_valueByMax(space, varName, choiceIndex);
 
     case 'markov':
-      return distribution_valueByMarkov(space, fdvar, choiceIndex);
+      return distribution_valueByMarkov(space, varName, choiceIndex);
 
     case 'mid':
-      return distribution_valueByMid(fdvar, choiceIndex);
+      return distribution_valueByMid(space.vars[varName], choiceIndex);
 
     case 'min':
-      return distribution_valueByMin(fdvar, choiceIndex);
+      return distribution_valueByMin(space.vars[varName], choiceIndex);
 
     case 'minMaxCycle':
-      return distribution_valueByMinMaxCycle(space, fdvar, choiceIndex);
+      return distribution_valueByMinMaxCycle(space, varName, choiceIndex);
 
     case 'list':
-      return distribution_valueByList(space, fdvar, choiceIndex);
+      return distribution_valueByList(space, space.vars[varName], choiceIndex);
 
     case 'naive':
-      return domain_createValue(domain_min(fdvar.dom));
+      return domain_createValue(domain_min(space.vars[varName].dom));
 
     case 'splitMax':
-      return distribution_valueBySplitMax(fdvar, choiceIndex);
+      return distribution_valueBySplitMax(space.vars[varName], choiceIndex);
 
     case 'splitMin':
-      return distribution_valueBySplitMin(fdvar, choiceIndex);
+      return distribution_valueBySplitMin(space.vars[varName], choiceIndex);
 
     case 'throw':
       return ASSERT(false, 'not expecting to pick this distributor');
@@ -137,7 +131,7 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
       let nextValue = domain_getValueOfFirstContainedValueInList(domain, list);
       if (nextValue === NO_SUCH_VALUE) {
         if (fallbackDistName) {
-          return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar, choiceIndex);
+          return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar.id, choiceIndex);
         }
         return NO_CHOICE;
       }
@@ -147,7 +141,7 @@ function distribution_valueByList(space, fdvar, choiceIndex) {
       let newDomain = domain_removeNextFromList(fdvar.dom, list);
       // note: d can be a new array-domain, a new small-domain, or NO_SUCH_VALUE (-1)
       if (newDomain === NO_SUCH_VALUE && fallbackDistName) {
-        return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar, choiceIndex);
+        return _distribute_getNextDomainForVar(fallbackDistName, space, fdvar.id, choiceIndex);
       }
       return newDomain;
   }
@@ -193,25 +187,30 @@ function distribution_valueByMin(fdvar, choiceIndex) {
  * For each value in the domain it first attempts just
  * that value, then attempts the domain without this value.
  *
- * @param {Fdvar} fdvar
+ * @param {Space} space
+ * @param {string} varName
  * @param {number} choiceIndex
  * @returns {number[]} The new domain this fdvar should get in the next space
  */
-function distribution_valueByMax(fdvar, choiceIndex) {
+function distribution_valueByMax(space, varName, choiceIndex) {
+  let domain = space.vars[varName].dom;
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(domain), 'CALLSITE_SHOULD_HAVE_ASSERTED_THIS');
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      return domain_createValue(domain_max(fdvar.dom));
+      return domain_createValue(domain_max(domain));
 
     case SECOND_CHOICE:
       // Cannot lead to empty domain because hi can only be SUB if
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let domain = domain_intersection(fdvar.dom, domain_createRange(domain_min(fdvar.dom), domain_max(fdvar.dom) - 1));
-      return domain_numarr(domain);
+      let lo = domain_min(domain);
+      let hi = domain_max(domain);
+      let targetDomain = domain_createRange(lo, hi - 1);
+      let newDomain = domain_intersection(domain, targetDomain);
+      return domain_numarr(newDomain);
   }
 
   ASSERT(typeof choiceIndex === 'number', 'should be a number');
@@ -343,15 +342,15 @@ function distribution_valueBySplitMax(fdvar, choiceIndex) {
  * depending on the position of the given var in the list of vars.
  *
  * @param {Space} space
- * @param {Fdvar} fdvar
+ * @param {string} varName
  * @param {number} choiceIndex
  * @returns {number[]} The new domain this fdvar should get in the next space
  */
-function distribution_valueByMinMaxCycle(space, fdvar, choiceIndex) {
-  if (_isEven(space.config.all_var_names.indexOf(fdvar.id))) {
-    return distribution_valueByMin(fdvar, choiceIndex);
+function distribution_valueByMinMaxCycle(space, varName, choiceIndex) {
+  if (_isEven(space.config.all_var_names.indexOf(varName))) {
+    return distribution_valueByMin(space.vars[varName], choiceIndex);
   } else {
-    return distribution_valueByMax(fdvar, choiceIndex);
+    return distribution_valueByMax(space, varName, choiceIndex);
   }
 }
 
@@ -366,20 +365,20 @@ function _isEven(n) { return n % 2 === 0; }
  * checking path.
  *
  * @param {Space} space
- * @param {Fdvar} fdvar
+ * @param {string} varName
  * @param {number} choiceIndex
  * @returns {number[]} The new domain this fdvar should get in the next space
  */
-function distribution_valueByMarkov(space, fdvar, choiceIndex) {
+function distribution_valueByMarkov(space, varName, choiceIndex) {
+  let fdvar = space.vars[varName];
+  let domain = space.vars[varName].dom;
+
   ASSERT(typeof choiceIndex === 'number', 'choiceIndex should be a number');
-  ASSERT(!domain_isDetermined(fdvar.dom), 'caller should ensure fdvar isnt determined', fdvar.id, fdvar.dom, fdvar);
+  ASSERT(!domain_isDetermined(domain), 'caller should ensure fdvar isnt determined', varName, fdvar.dom, fdvar);
 
   switch (choiceIndex) {
     case FIRST_CHOICE: {
       // THIS IS AN EXPENSIVE STEP!
-
-      let domain = fdvar.dom;
-      let varName = fdvar.id;
 
       let configVarDistOptions = space.config.var_dist_options;
       ASSERT(configVarDistOptions, 'space should have config.var_dist_options');

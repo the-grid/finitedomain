@@ -3,6 +3,7 @@ import {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainSmallNums,
+  specDomainSmallRange,
 } from '../../fixtures/domain.fixt';
 
 import distribution_getNextVar, {
@@ -18,8 +19,15 @@ import distribution_getNextVar, {
 } from '../../../src/distribution/var';
 import Solver from '../../../src/solver';
 import {
-  fdvar_create,
-} from '../../../src/fdvar';
+  config_addVarDomain,
+  config_addVarRange,
+  config_create,
+  config_setOptions,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
 
 describe('distribution/var.spec', function() {
 
@@ -57,24 +65,33 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should return BETTER if lo(v1) < lo(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(10));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(10));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMin(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMin('A', 'B', space)).to.equal(BETTER);
       });
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(11));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(11));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMin(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMin('A', 'B', space)).to.equal(SAME);
       });
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(12));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(12));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMin(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMin('A', 'B', space)).to.equal(WORSE);
       });
     });
 
@@ -90,24 +107,33 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should return BETTER if hi(v1) > hi(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(12));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(12));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMax(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMax('A', 'B', space)).to.equal(BETTER);
       });
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(11));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(11));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMax(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMax('A', 'B', space)).to.equal(SAME);
       });
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(10));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(10));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMax(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMax('A', 'B', space)).to.equal(WORSE);
       });
     });
 
@@ -124,38 +150,53 @@ describe('distribution/var.spec', function() {
       // note: further tests should be unit tests on domain_size instead
 
       it('should return BETTER if size(v1) < size(v2)', function() {
-        let v1 = fdvar_create('1', [5, 5]);
-        let v2 = fdvar_create('2', [11, 12]);
+        let config = config_create();
+        config_addVarRange(config, 'A', 5, 5);
+        config_addVarRange(config, 'B', 11, 12);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMinSize(v1, v2)).to.equal(BETTER);
+        expect(distribution_varByMinSize('A', 'B', space)).to.equal(BETTER);
       });
 
       it('should return SAME if size(v1) = size(v2) with single range', function() {
-        let v1 = fdvar_create('1', [11, 11]);
-        let v2 = fdvar_create('2', [8, 8]);
+        let config = config_create();
+        config_addVarRange(config, 'A', 11, 11);
+        config_addVarRange(config, 'B', 8, 8);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
-        let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [15, 19]));
-        let v2 = fdvar_create('2', specDomainSmallNums(8, 9, 10, 12, 13, 14));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [15, 19]));
+        config_addVarDomain(config, 'B', specDomainSmallNums(8, 9, 10, 12, 13, 14));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
-        let v1 = fdvar_create('1', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
-        let v2 = fdvar_create('2', specDomainSmallNums(8, 9, 10, 13, 14));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
+        config_addVarDomain(config, 'B', specDomainSmallNums(8, 9, 10, 13, 14));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMinSize(v1, v2)).to.equal(SAME);
+        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
       });
 
       it('should return WORSE if size(v1) > size(v2)', function() {
-        let v1 = fdvar_create('1', specDomainSmallNums(11, 12));
-        let v2 = fdvar_create('2', specDomainSmallNums(11));
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallNums(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMinSize(v1, v2)).to.equal(WORSE);
+        expect(distribution_varByMinSize('A', 'B', space)).to.equal(WORSE);
       });
     });
 
@@ -212,106 +253,119 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should say v1 is BETTER if v1 is a markov var', function() {
-        let v1 = fdvar_create('A', [11, 12]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
-            var_dist_options: {
-              A: {
-                distributor_name: 'markov',
-              },
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
+            A: {
+              distributor_name: 'markov',
             },
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(BETTER);
+        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(BETTER);
       });
 
-      it('should say v2 is WORSE if v1 not a markov but v2 is', function() {
-        let v1 = fdvar_create('A', [11, 12]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
-            var_dist_options: {
-              B: {
-                distributor_name: 'markov',
-              },
+      it('should say v1 is WORSE if v1 not a markov but v2 is', function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
+            B: {
+              distributor_name: 'markov',
             },
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(WORSE);
+        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(WORSE);
       });
 
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
-        let v1 = fdvar_create('A', [11, 12]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
-            var_dist_options: {
-              A: {
-                distributor_name: 'markov',
-              },
-              B: {
-                distributor_name: 'markov',
-              },
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
+            A: {
+              distributor_name: 'markov',
+            },
+            B: {
+              distributor_name: 'markov',
             },
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMarkov(v1, v2, fake_space)).to.equal(BETTER);
+        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(BETTER);
       });
 
       it('should say v1 is SAME as v2 if neither is a markov var', function() {
-        let v1 = fdvar_create('A', [11, 12]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
-            var_dist_options: {},
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
           },
-        };
-        let fake_config = {}; // its okay to expect this to exist
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-        expect(distribution_varByMarkov(v1, v2, fake_space, fake_config)).to.equal(SAME);
+        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return BETTER', function() {
-        let v1 = fdvar_create('A', [11, 11]);
-        let v2 = fdvar_create('B', [11, 12]);
-        let fake_space = {
-          config: {
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 11));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 12));
+        config_setOptions(config, {
+          var_dist_config: {
             var_dist_options: {}, // neither is markov
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(BETTER);
+        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(BETTER);
       });
 
       it('should use fallback if available and vars are SAME but then still return SAME', function() {
-        let v1 = fdvar_create('A', [11, 11]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 11));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
             var_dist_options: {}, // neither is markov
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(SAME);
+        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return WORSE', function() {
-        let v1 = fdvar_create('A', [11, 12]);
-        let v2 = fdvar_create('B', [11, 11]);
-        let fake_space = {
-          config: {
+        let config = config_create();
+        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
+        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_setOptions(config, {
+          var_dist_config: {
             var_dist_options: {}, // neither is markov
           },
-        };
+        });
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov(v1, v2, fake_space, fallback_config)).to.equal(WORSE);
+        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(WORSE);
       });
     });
 
@@ -396,22 +450,30 @@ describe('distribution/var.spec', function() {
     describe('unit', function() {
 
       it('should return BETTER if the priority hash says A is higher than B', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             A: 2,
             B: 1,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should return WORSE if the inverted priority hash says A is higher than B', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {
             A: 2,
@@ -419,39 +481,51 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
       });
 
       it('should THROW if the priority hash says A is equal to B', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             A: 2,
             B: 2,
           },
         };
 
-        expect(() => distribution_varByList(v1, v2, {}, config)).to.throw();
+        expect(() => distribution_varByList('A', 'B', space, nvconfig)).to.throw();
       });
 
       it('should return WORSE if the priority hash says A is lower than B', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             A: 1,
             B: 2,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
       });
 
       it('should return BETTER if the inverted priority hash says A is lower than B', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {
             A: 1,
@@ -459,151 +533,197 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should return BETTER if A is in the hash but B is not', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             A: 2,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should return WORSE if A is in the inverted hash but B is not', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {
             A: 2,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
       });
 
       it('should return WORSE if B is in the hash but A is not', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             B: 2,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
       });
 
       it('should return BETTER if B is in the inverted hash but A is not', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {
             B: 2,
           },
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should throw if A gets value 0 from the hash', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let fake_space = {
-          config: {
-            var_dist_options: {
-              priority_hash: {
-                A: 0,
-              },
-            },
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
+          priority_hash: {
+            A: 0,
           },
         };
 
-        expect(() => distribution_varByList(v1, v2, fake_space, {})).to.throw();
+        let f = _ => distribution_varByList('A', 'B', space, nvconfig);
+        expect(f).to.throw('SHOULD_NOT_USE_INDEX_ZERO');
       });
 
       it('should throw if B gets value 0 from the hash', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {
             B: 0,
           },
         };
 
-        expect(() => distribution_varByList(v1, v2, {}, config)).to.throw();
+        let f = _ => distribution_varByList('A', 'B', space, nvconfig);
+        expect(f).to.throw('SHOULD_NOT_USE_INDEX_ZERO');
       });
 
       it('should return SAME if neither A nor B is in the hash without fallback', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {},
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
       });
 
       it('should return SAME if neither A nor B is in the inverted hash without fallback', function() {
-        let v1 = fdvar_create('A', []);
-        let v2 = fdvar_create('B', []);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {},
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
       });
 
       it('should return BETTER if neither is in the hash and fallback is size with A smaller', function() {
-        let v1 = fdvar_create('A', [0, 0]);
-        let v2 = fdvar_create('B', [0, 10]);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 10);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {},
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should return BETTER if neither is in the inverted hash and fallback is size with A smaller', function() {
-        let v1 = fdvar_create('A', [0, 0]);
-        let v2 = fdvar_create('B', [0, 10]);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 0);
+        config_addVarRange(config, 'B', 0, 10);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           inverted: true,
           priority_hash: {},
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(BETTER);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
       });
 
       it('should return SAME if neither is in the hash and fallback is size with A same size as B', function() {
-        let v1 = fdvar_create('A', [0, 10]);
-        let v2 = fdvar_create('B', [0, 10]);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 10);
+        config_addVarRange(config, 'B', 0, 10);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {},
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(SAME);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
       });
 
       it('should return WORSE if neither is in the hash and fallback is size with A larger', function() {
-        let v1 = fdvar_create('A', [0, 10]);
-        let v2 = fdvar_create('B', [0, 0]);
-        let config = {
+        let config = config_create();
+        config_addVarRange(config, 'A', 0, 10);
+        config_addVarRange(config, 'B', 0, 0);
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let nvconfig = {
           priority_hash: {},
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList(v1, v2, {}, config)).to.equal(WORSE);
+        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
       });
     });
 
@@ -805,7 +925,7 @@ describe('distribution/var.spec', function() {
     it('should just return undefined despite config', function() {
       let fdvar = distribution_getNextVar(solver._space, []);
 
-      expect(fdvar.id).to.equal(undefined);
+      expect(fdvar).to.equal(undefined);
     });
 
     it('dont crash on randomized inclusion and order', function() {

@@ -1,4 +1,5 @@
 import {
+  NO_SUCH_VALUE,
   SOME_CHANGES,
   REJECTED,
 
@@ -36,7 +37,7 @@ import propagator_isSolved from './propagators/is_solved';
 function space_createRoot(config) {
   if (!config) config = config_create();
 
-  return space_createNew(config, [], {}, [], 0, 0);
+  return space_createNew(config, [], {}, [], {}, 0, 0);
 }
 
 /**
@@ -65,8 +66,8 @@ function space_createClone(space) {
 
   let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
 
-  space_pseudoCloneVars(space.config.all_var_names, space.vars, cloneVars, unsolvedNames);
-  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, space._depth + 1, space._child_count++);
+  space_pseudoCloneVars(space, cloneVars, unsolvedNames);
+  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, Object.assign({}, space.vdata), space._depth + 1, space._child_count++);
 }
 
 /**
@@ -114,16 +115,17 @@ function space_toConfig(space) {
 /**
  * Note: it's pseudo because solved vars are not cloned but copied...
  *
- * @param {string[]} allNames
- * @param {Fdvar[]} parentVars
+ * @param {Space} space
  * @param {Fdvar[]} cloneVars
  * @param {Fdvar[]} cloneUnsolvedVarNames
  */
-function space_pseudoCloneVars(allNames, parentVars, cloneVars, cloneUnsolvedVarNames) {
+function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
+  let allNames = space.config.all_var_names;
+  let parentVars = space.vars;
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
-    let fdvar = parentVars[varName];
-    cloneVars[varName] = fdvar_create(fdvar.id, domain_clone(fdvar.dom));
+    let domain = domain_clone(parentVars[varName].dom);
+    cloneVars[varName] = fdvar_create(varName, domain);
     cloneUnsolvedVarNames.push(varName);
   }
 }
@@ -139,7 +141,7 @@ function space_pseudoCloneVars(allNames, parentVars, cloneVars, cloneUnsolvedVar
  * @param {number} _child
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, _depth, _child) {
+function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, vdata, _depth, _child) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
   ASSERT(typeof vars === 'object' && vars, 'vars should be an object', vars);
   ASSERT(unsolvedVarNames instanceof Array, 'unsolvedVarNames should be an array', unsolvedVarNames);
@@ -153,6 +155,9 @@ function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, _d
 
     config,
 
+    vdata,
+
+    // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     vars,
     unsolvedVarNames,
     unsolvedPropagators, // by references from space.config.propagators
@@ -168,7 +173,7 @@ function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
 
-  config_generateVars(config, space.vars, space.unsolvedVarNames);
+  config_generateVars(config, space);
 
   // propagators are immutable so share by reference
   for (let i = 0; i < config.propagators.length; i++) {
@@ -260,10 +265,10 @@ function space_isSolved(space) {
   for (let i = 0; i < unsolvedNames.length; i++) {
     let name = unsolvedNames[i];
     if (targetedVars === 'all' || targetedVars.indexOf(name) >= 0) {
-      let fdvar = vars[name];
-      ASSERT_DOMAIN(fdvar.dom);
+      let domain = vars[name].dom;
+      ASSERT_DOMAIN(domain);
 
-      if (!domain_isSolved(fdvar.dom)) {
+      if (!domain_isSolved(domain)) {
         unsolvedNames[j++] = name;
       }
     }
@@ -283,12 +288,12 @@ function space_isSolved(space) {
  */
 function space_solution(space) {
   ASSERT(space._class === 'space');
-  let result = {};
-  let vars = space.vars;
   let allVarNames = space.config.all_var_names;
+  let result = {};
   for (let i = 0; i < allVarNames.length; i++) {
     let varName = allVarNames[i];
-    space_getsetVarSolveState(varName, vars, result);
+    let value = space_getVarSolveState(space, varName);
+    result[varName] = value;
   }
   return result;
 }
@@ -301,14 +306,13 @@ function space_solution(space) {
  */
 function space_solutionFor(space, varNames, complete = false) { // todo implement memorize flag
   ASSERT(space._class === 'space');
-  let vars = space.vars;
   let result = {};
   for (let i = 0; i < varNames.length; i++) {
     let varName = varNames[i];
     let value = false;
-    if (vars[varName]) {
-      value = space_getsetVarSolveState(varName, vars, result);
-    }
+    ASSERT(space.vars[varName], 'TARGET_VARS_SHOULD_EXIST[' + varName + ']');
+    value = space_getVarSolveState(space, varName);
+    result[varName] = value;
 
     if (complete && value === false) {
       return false;
@@ -321,28 +325,25 @@ function space_solutionFor(space, varNames, complete = false) { // todo implemen
 }
 
 /**
+ * @param {Space} space
  * @param {string} varName
- * @param {Fdvar[]} vars
- * @param result
  * @returns {number|number[]|boolean} The solve state for given var name, also put into result
  */
-function space_getsetVarSolveState(varName, vars, result) {
+function space_getVarSolveState(space, varName) {
   // Don't include the temporary variables in the "solution".
   // Temporary variables take the form of a numeric property
   // of the object, so we test for the varName to be a number and
   // don't include those variables in the result.
-  let domain = vars[varName].dom;
-  let value = domain;
-  if (domain_isRejected(domain)) {
-    value = false;
-  } else if (domain_isSolved(domain)) {
-    value = domain_getValue(domain);
-  } else {
-    value = domain_fromFlags(domain);
-  }
-  result[varName] = value;
+  let domain = space.vars[varName].dom;
 
-  return value;
+  if (domain_isRejected(domain)) {
+    return false;
+  }
+
+  let value = domain_getValue(domain);
+  if (value !== NO_SUCH_VALUE) return value;
+
+  return domain_fromFlags(domain);
 }
 
 // __REMOVE_BELOW_FOR_DIST__

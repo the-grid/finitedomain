@@ -115,7 +115,7 @@ describe('solver.list.spec', function() {
 
     it('should call the list if it is a function', function() {
       function listCallback(space, v) {
-        let solution = space_solutionFor(space, ['STATE', 'STATE2', 'V1', 'V2'], false);
+        let solution = space_solutionFor(space, ['STATE', 'V1', 'V2'], false);
         if (solution['STATE'] === 5) {
           if (v === 'V1') {
             return [2, 4, 3, 1];

@@ -7,6 +7,10 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
+  SUB,
+  SUP,
+} from '../../src/helpers';
+import {
   //config_addPropagator,
   config_addVarAnonConstant,
   config_addVarAnonNothing,
@@ -24,9 +28,8 @@ import {
   config_setOptions,
 } from '../../src/config';
 import {
-  SUB,
-  SUP,
-} from '../../src/helpers';
+  space_createRoot,
+} from '../../src/space';
 
 describe('config.spec', function() {
 
@@ -43,57 +46,42 @@ describe('config.spec', function() {
       expect(config_generateVars).to.be.a('function');
     });
 
-    it('should not require a vars object', function() {
+    it('should require config and space', function() {
       let config = config_create();
+      let space = space_createRoot(config);
 
-      config_generateVars(config);
-      expect(true, 'no throw').to.equal(true);
-    });
-
-    it('should return an object if no vars obj was given', function() {
-      let config = config_create();
-      let out = config_generateVars(config);
-
-      expect(out).to.be.an('object');
-    });
-
-    it('should work with empty object', function() {
-      let config = config_create();
-
-      config_generateVars(config, {});
-      expect(true, 'no throw').to.equal(true);
-    });
-
-    it('should return given vars object', function() {
-      let config = config_create();
-      let obj = {};
-      let out = config_generateVars(config, obj);
-
-      expect(out).to.equal(obj);
+      expect(_ => config_generateVars({}, space)).to.throw('EXPECTING_CONFIG');
+      expect(_ => config_generateVars(config, {})).to.throw('EXPECTING_SPACE');
     });
 
     it('should create a constant', function() {
       let config = config_create();
       let name = config_addVarAnonConstant(config, 10);
-      let vars = config_generateVars(config);
+      let space = space_createRoot(config);
 
-      expect(vars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
+      config_generateVars(config, space);
+
+      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
     });
 
     it('should create a full width var', function() {
       let config = config_create();
       let name = config_addVarAnonNothing(config);
-      let vars = config_generateVars(config);
+      let space = space_createRoot(config);
 
-      expect(vars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
+      config_generateVars(config, space);
+
+      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
     });
 
     it('should clone a domained var', function() {
       let config = config_create();
       let name = config_addVarAnonRange(config, 32, 55);
-      let vars = config_generateVars(config);
+      let space = space_createRoot(config);
 
-      expect(vars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
+      config_generateVars(config, space);
+
+      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
     });
   });
 

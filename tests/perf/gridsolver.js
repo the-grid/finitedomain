@@ -1,4 +1,21 @@
-let Solver = (typeof require === 'function') ? require('../../src/solver') : module.exports.default;
+/*
+For HeatFiler:
+
+first do `grunt buildf` for a beautified concat build
+Go to heatfiler (on localhost, just clone it, no install needed)
+- go to `http://localhost/heatfiler/src/#run,code,here`
+- select files
+- enter the snippet below
+- press start
+- wait until the spinner spins again (can take a while...), reduce the max to make this go faster
+
+@ console.log('starting now...');
+@ var exports = {};
++ http://localhost/~/finitedomain/build/finitedomain-browserified-beautified.js
+- http://localhost/~/finitedomain/tests/perf/gridsolver.js
+
+ */
+Solver = (typeof require === 'function') ? require('../../src/solver') : exports.default;
 
 let config = {
   _class: 'config',

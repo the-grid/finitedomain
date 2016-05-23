@@ -106,15 +106,17 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  */
 function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
-  let fdvar = distribution_getNextVar(space, targetVars);
+  let varName = distribution_getNextVar(space, targetVars);
 
-  if (fdvar && !domain_isSolved(fdvar)) {
-    let nextDomain = distribute_getNextDomainForVar(space, fdvar.id);
-
-    if (nextDomain) {
-      let clone = space_createClone(space);
-      clone.oldvars[fdvar.id].dom = nextDomain;
-      return clone;
+  if (varName) {
+    let domain = space.vardoms[varName];
+    if (!domain_isSolved(domain)) {
+      let nextDomain = distribute_getNextDomainForVar(space, varName);
+      if (nextDomain) {
+        let clone = space_createClone(space);
+        clone.vardoms[varName] = nextDomain;
+        return clone;
+      }
     }
   }
 
@@ -124,11 +126,11 @@ function search_defaultSpaceFactory(space) {
 /**
  * Return all the targeted variables without filtering them first.
  * The filter can only be applied later because it may be overridden
- * by an fdvar-specific config.
- * One of the returned fdvar names will be picked to restrict.
+ * by a var-specific config.
+ * One of the returned var names will be picked to restrict.
  *
  * @param {Space} space The current node
- * @returns {string[]} The names of targeted fdvars on given space
+ * @returns {string[]} The names of targeted vars on given space
  */
 function _search_getVarsUnfiltered(space) {
   let configTargetedVars = space.config.targetedVars;

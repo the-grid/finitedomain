@@ -1625,7 +1625,26 @@ describe('solver.spec', function() {
       solver._cacheReified('lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
       solver.eq('IS_LTE', 'STATE');
 
-      // two lists, 123 and 345
+      // two lists, 1234 and 345
+      // reified checks whether 1234<=345 which is only the case when
+      // the 4 is dropped from at least one side
+      // IS_LTE is required to have one outcome
+      // since it must be 0, that is only when left is 4 and right is 3
+      // ergo; one solution
+
+      expect(solver.solve({max: 10000}).length).to.eql(1);
+    });
+
+    it('should resolve an even simpler reified !lte case', function() {
+      let solver = new Solver({});
+
+      solver.addVar('A', [4, 5]);
+      solver.addVar('B', [4, 4]);
+      solver.addVar('NO', [0, 0]);
+
+      solver._cacheReified('lte', 'A', 'B', 'NO');
+
+      // two lists, 1234 and 345
       // reified checks whether 1234<=345 which is only the case when
       // the 4 is dropped from at least one side
       // IS_LTE is required to have one outcome
@@ -1687,13 +1706,47 @@ describe('solver.spec', function() {
       solver._cacheReified('gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
       solver.eq('IS_GTE', 'STATE');
 
-      // two lists, 123 and 345
+      // two lists, 1234 and 345
       // reified checks whether 345>=1234 which is only the case when
       // left is not 3 or right is not 4
       // IS_GTE is required to have one outcome
-      // 3 + 3 + 3 + 2 = 11  ->  3:1 4:1 5:1 3:2 4:2 5:2 3:3 4:4 5:4
+      // 3 + 3 + 3 + 2 = 11  ->
+      //     3:1 4:1 5:1
+      //     3:2 4:2 5:2
+      //     3:3 4:3 5:3
+      //     4:4 5:4
+      //     5:5
 
-      expect(solver.solve({max: 10000}).length).to.eql(11);
+      let solutions = solver.solve({max: 10000});
+      expect(solutions.length).to.eql(11);
+    });
+
+    it('should resolve an already solved 5>=4 trivial gte case', function() {
+      let solver = new Solver({});
+
+      solver.addVar('A', [5, 5]);
+      solver.addVar('B', [4, 4]);
+      solver.addVar('YES', 1);
+
+      solver._cacheReified('gte', 'A', 'B', 'YES');
+
+      // the input is already solved and there is only one solution
+
+      expect(solver.solve({max: 10000}).length).to.eql(1);
+    });
+
+    it('should resolve an already solved 4>=4 trivial gte case', function() {
+      let solver = new Solver({});
+
+      solver.addVar('A', [4, 4]);
+      solver.addVar('B', [4, 4]);
+      solver.addVar('YES', 1);
+
+      solver._cacheReified('gte', 'A', 'B', 'YES');
+
+      // the input is already solved and there is only one solution
+
+      expect(solver.solve({max: 10000}).length).to.eql(1);
     });
 
     it('should resolve a simple reified !gte case', function() {

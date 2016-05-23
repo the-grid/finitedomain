@@ -1,39 +1,23 @@
 import {
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
-
-  ASSERT_UNUSED_DOMAIN,
-} from '../helpers';
-import {
   domain_minus,
-  domain_equal,
   domain_intersection,
-  domain_isRejected,
   domain_numarr,
 } from '../domain';
 
 // BODY_START
 
-function propagator_minStep(fdvar1, fdvar2, fdvarResult) {
-  let domain = domain_minus(fdvar1.dom, fdvar2.dom);
+/**
+ * @param {$domain} dom1
+ * @param {$domain} dom2
+ * @param {$domain} domResult
+ * @returns {$domain}
+ */
+function propagator_minStep(dom1, dom2, domResult) {
+  let domain = domain_minus(dom1, dom2);
 
   domain = domain_numarr(domain);
-  domain = domain_intersection(fdvarResult.dom, domain);
-  if (domain_isRejected(domain)) return REJECTED;
-  domain = domain_numarr(domain);
-
-  let fdvarDom = fdvarResult.dom;
-  if (typeof domain === 'number' && typeof fdvarDom === 'number') {
-    if (fdvarDom === domain) return NO_CHANGES;
-    fdvarResult.dom = domain;
-    return SOME_CHANGES;
-  }
-
-  ASSERT_UNUSED_DOMAIN(domain);
-  if (domain_equal(fdvarDom, domain)) return NO_CHANGES;
-  fdvarResult.dom = domain;
-  return SOME_CHANGES;
+  domain = domain_intersection(domResult, domain);
+  return domain_numarr(domain);
 }
 
 // BODY_STOP

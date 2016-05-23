@@ -1828,6 +1828,21 @@ function domain_numarr(domain) {
   return out;
 }
 
+/**
+ * Given two domains compare the new domain to the old domain and
+ * return REJECTED if the new domain is empty, NO_CHANGES if the
+ * new domain is equal to the old domain, and SOME_CHANGES otherwise.
+ *
+ * @param {$domain} newDom
+ * @param {$domain} oldDom
+ * @returns {$fd_changeState}
+ */
+function domain_getChangeState(newDom, oldDom) {
+  if (domain_isRejected(newDom)) return REJECTED;
+  if (domain_equal(newDom, oldDom)) return NO_CHANGES;
+  return SOME_CHANGES;
+}
+
 // BODY_STOP
 
 export {
@@ -1872,6 +1887,7 @@ export {
   domain_forceEqNumbered,
   domain_fromFlags,
   domain_fromList,
+  domain_getChangeState,
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   domain_intersectBoundsInto,

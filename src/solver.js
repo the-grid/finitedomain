@@ -531,7 +531,7 @@ class Solver {
    * @param {Object} options
    * @property {number} [options.max=1000]
    * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
-   * @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
+   * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} add_unknown_vars
@@ -704,9 +704,8 @@ class Solver {
 
 /**
  * Visit the branch vars and collect var specific configuration overrides if
- * there are any and put them on the root space. This way we don't need to
- * burden Fdvar with this. Mainly used for Markov searching.
- * The result is set to be Space#var_dist_config
+ * there are any and put them on the root space. Mainly used for Markov
+ * searching. The result is set to be Space#var_dist_config
  *
  * @param {string[]} varNames
  * @param {Object} bvarsById Maps var names to their Bvar

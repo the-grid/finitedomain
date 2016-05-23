@@ -54,9 +54,9 @@ describe('propagators/reified.spec', function() {
           let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
-          expect(space.oldvars.A.dom, 'A should be unchanged').to.eql(A_in);
-          expect(space.oldvars.B.dom, 'B should be unchanged').to.eql(B_in);
-          expect(space.oldvars.bool.dom, 'bool should reflect expected outcome').to.eql(bool_after);
+          expect(space.vardoms.A, 'A should be unchanged').to.eql(A_in);
+          expect(space.vardoms.B, 'B should be unchanged').to.eql(B_in);
+          expect(space.vardoms.bool, 'bool should reflect expected outcome').to.eql(bool_after);
         });
       }
 

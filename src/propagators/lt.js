@@ -24,15 +24,15 @@ import {
  * @param {Space} space
  * @param {string} varName1
  * @param {string} varName2
- * @returns {number} changed status constant
+ * @returns {$fd_changeState} changed status constant
  */
 function propagator_ltStepBare(space, varName1, varName2) {
   ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
   ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let domain1 = space.oldvars[varName1].dom;
-  let domain2 = space.oldvars[varName2].dom;
+  let domain1 = space.vardoms[varName1];
+  let domain2 = space.vardoms[varName2];
 
   ASSERT_DOMAIN_EMPTY_CHECK(domain1);
   ASSERT_DOMAIN_EMPTY_CHECK(domain2);
@@ -58,8 +58,8 @@ function propagator_ltStepBare(space, varName1, varName2) {
   //  // the domain, then and only then the result will be empty
   //  // TOFIX: the rejection case was not tested before so it probably isn't now.
   //
-  //  fdvar1.dom = EMPTY;
-  //  fdvar2.dom = EMPTY;
+  //  space.vardoms[varName1] = EMPTY;
+  //  space.vardoms[varName2] = EMPTY;
   //  return REJECTED;
   //}
 
@@ -70,7 +70,7 @@ function propagator_ltStepBare(space, varName1, varName2) {
     if (typeof domain1 === 'number') {
       let result = domain_removeGteNumbered(domain1, hi2);
       if (result !== domain1) {
-        space.oldvars[varName1].dom = result;
+        space.vardoms[varName1] = result;
         if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
         } else {
@@ -79,8 +79,8 @@ function propagator_ltStepBare(space, varName1, varName2) {
       }
     } else {
       if (domain_removeGteInline(domain1, hi2)) {
-        space.oldvars[varName1].dom = domain_numarr(space.oldvars[varName1].dom);
-        if (domain_isRejected(space.oldvars[varName1].dom)) { // TODO: there is no test throwing when you remove this check
+        space.vardoms[varName1] = domain_numarr(domain1);
+        if (domain_isRejected(domain1)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
         } else {
           leftChanged = SOME_CHANGES;
@@ -99,7 +99,7 @@ function propagator_ltStepBare(space, varName1, varName2) {
       let result = domain_removeLteNumbered(domain2, lo1);
 
       if (result !== domain2) {
-        space.oldvars[varName2].dom = result;
+        space.vardoms[varName2] = result;
         if (domain_isRejected(result)) {
           leftChanged = REJECTED;
         } else {
@@ -108,9 +108,9 @@ function propagator_ltStepBare(space, varName1, varName2) {
       }
     } else {
       if (domain_removeLteInline(domain2, lo1)) {
-        space.oldvars[varName2].dom = domain_numarr(domain2);
+        space.vardoms[varName2] = domain_numarr(domain2);
         rightChanged = SOME_CHANGES;
-        if (domain_isRejected(space.oldvars[varName2].dom)) { // TODO: there is no test covering this
+        if (domain_isRejected(domain2)) { // TODO: there is no test covering this
           leftChanged = REJECTED;
         }
       } else {
@@ -128,14 +128,11 @@ function propagator_ltStepBare(space, varName1, varName2) {
  * lo bound of left to the high bound of right for that answer.
  * Read-only check
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} dom1
+ * @param {$domain} dom2
+ * @returns {boolean}
  */
-function propagator_ltStepWouldReject(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
-
+function propagator_ltStepWouldReject(dom1, dom2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom1);
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 //    if domain_isRejected dom1 or domain_isRejected dom2
@@ -145,8 +142,8 @@ function propagator_ltStepWouldReject(fdvar1, fdvar2) {
 }
 
 /**
- * lt is solved if fdvar1 contains no values that are equal
- * to or higher than any numbers in fdvar2. Since domains
+ * lt is solved if dom1 contains no values that are equal
+ * to or higher than any numbers in dom2. Since domains
  * only shrink we can assume that the lt constraint will not
  * be broken by searching further once this state is seen.
  *
@@ -156,7 +153,7 @@ function propagator_ltStepWouldReject(fdvar1, fdvar2) {
  * @returns {*}
  */
 function propagator_ltSolved(space, varName1, varName2) {
-  return domain_max(space.oldvars[varName1].dom) < domain_min(space.oldvars[varName2].dom);
+  return domain_max(space.vardoms[varName1]) < domain_min(space.vardoms[varName2]);
 }
 
 // BODY_STOP

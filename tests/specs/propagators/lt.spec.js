@@ -48,8 +48,8 @@ describe('propagators/lt.spec', function() {
       let config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRange(90, 100));
       config_addVarDomain(config, 'B', specDomainCreateRange(200, 300));
-      config_addVarDomain(config, 'C', specDomainCreateEmpty());
-      config_addVarDomain(config, 'D', specDomainCreateEmpty());
+      config_addVarDomain(config, 'C', specDomainCreateEmpty(true));
+      config_addVarDomain(config, 'D', specDomainCreateEmpty(true));
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -67,8 +67,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(90, 98));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(95, 99));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(90, 98));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(95, 99));
     });
 
     it('should remove SUP if both ranges end there', function() {
@@ -79,8 +79,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(90, SUP - 1));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(95, SUP));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(90, SUP - 1));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(95, SUP));
     });
 
     it('should not affect domains when v1 < v2', function() {
@@ -91,8 +91,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(NO_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(90, 100));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(101, 101));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(90, 100));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(101, 101));
     });
 
     it('should not affect overlapping ranges when max(v1) < max(v2)', function() {
@@ -103,8 +103,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(NO_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(90, 150));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(100, 200));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(90, 150));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(100, 200));
     });
 
     it('should reject if min(v1) > max(v2)', function() {
@@ -115,8 +115,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(REJECTED);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallEmpty());
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallEmpty());
+      expect(space.vardoms.A).to.eql(specDomainSmallEmpty());
+      expect(space.vardoms.B).to.eql(specDomainSmallEmpty());
     });
 
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
@@ -127,8 +127,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(200, 200));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(201, 300));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(200, 200));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(201, 300));
     });
 
     it('should not change if v1 is solved and == min(v2)', function() {
@@ -139,8 +139,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(200, 200));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(201, 300));
+      expect(space.vardoms.A).to.eql(specDomainCreateRange(200, 200));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(201, 300));
     });
 
     it('should be able to drop last range in v1', function() {
@@ -150,8 +150,8 @@ describe('propagators/lt.spec', function() {
       let space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(11, 100));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(11, 100));
 
       config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98], [100, 150]));
@@ -159,8 +159,8 @@ describe('propagators/lt.spec', function() {
       space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(11, 100));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(11, 100));
 
       config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
@@ -168,8 +168,8 @@ describe('propagators/lt.spec', function() {
       space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRange(11, 100));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60], [70, 98]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRange(11, 100));
     });
 
     it('should be able to drop first range in v1', function() {
@@ -179,8 +179,8 @@ describe('propagators/lt.spec', function() {
       let space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRanges([20, 100]));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRanges([20, 100]));
 
       config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
@@ -188,8 +188,8 @@ describe('propagators/lt.spec', function() {
       space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRanges([20, 100]));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRanges([20, 100]));
 
       config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
@@ -197,8 +197,8 @@ describe('propagators/lt.spec', function() {
       space = space_createRoot(config);
       space_initFromConfig(space);
       propagator_ltStepBare(space, 'A', 'B');
-      expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
-      expect(space.oldvars.B.dom).to.eql(specDomainCreateRanges([20, 100]));
+      expect(space.vardoms.A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+      expect(space.vardoms.B).to.eql(specDomainCreateRanges([20, 100]));
     });
   });
 
@@ -208,8 +208,8 @@ describe('propagators/lt.spec', function() {
       let config = config_create();
       config_addVarDomain(config, 'A', specDomainSmallRange(9, 10));
       config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
-      config_addVarDomain(config, 'C', specDomainCreateEmpty());
-      config_addVarDomain(config, 'D', specDomainCreateEmpty());
+      config_addVarDomain(config, 'C', specDomainSmallEmpty());
+      config_addVarDomain(config, 'D', specDomainSmallEmpty());
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -227,8 +227,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 8));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(5, 9));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 8));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(5, 9));
     });
 
     it('should remove SUP if both ranges end there', function() {
@@ -239,8 +239,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 14));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(5, 15));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 14));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(5, 15));
     });
 
     it('should not affect domains when v1 < v2', function() {
@@ -251,8 +251,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(NO_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 10));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(11, 15));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 10));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(11, 15));
     });
 
     it('should not affect overlapping ranges when min(v2) <= max(v1) < max(v2)', function() {
@@ -263,8 +263,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(NO_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 13));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(10, 15));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 13));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(10, 15));
     });
 
     it('should reject if min(v1) > max(v2)', function() {
@@ -275,8 +275,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(REJECTED);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallEmpty());
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallEmpty());
+      expect(space.vardoms.A).to.eql(specDomainSmallEmpty());
+      expect(space.vardoms.B).to.eql(specDomainSmallEmpty());
     });
 
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
@@ -287,8 +287,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(8, 8));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(9, 10));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(8, 8));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(9, 10));
     });
 
     it('should reduce if v1 is solved and == min(v2)', function() {
@@ -299,8 +299,8 @@ describe('propagators/lt.spec', function() {
       space_initFromConfig(space);
 
       expect(propagator_ltStepBare(space, 'A', 'B')).to.eql(SOME_CHANGES);
-      expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(7, 7));
-      expect(space.oldvars.B.dom).to.eql(specDomainSmallRange(8, 13));
+      expect(space.vardoms.A).to.eql(specDomainSmallRange(7, 7));
+      expect(space.vardoms.B).to.eql(specDomainSmallRange(8, 13));
     });
   });
 });

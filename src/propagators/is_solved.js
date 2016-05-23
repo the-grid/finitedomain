@@ -53,7 +53,7 @@ function propagator_isSolved(space, propagator) {
       // the original op or inv op (depending on bool_var) resolves
       let varName3 = propagator[PROP_VNAMES][2];
 
-      let domain3 = space.oldvars[varName3].dom;
+      let domain3 = space.vardoms[varName3];
       ASSERT(typeof domain3 === 'number', 'BOOL_VAR_SHOULD_BE_NUMBER_DOMAIN');
       ASSERT(domain3 & BOOL, 'BOOL_SHOULD_BE_ZERO_AND_OR_ONE');
       ASSERT(typeof propagator[PROP_ARG1] === 'string', 'OP_NAME_SHOULD_BE_STRING');
@@ -66,8 +66,8 @@ function propagator_isSolved(space, propagator) {
       return false;
 
     case 'ring':
-      if (domain_isSolved(space.oldvars[varNames[0]].dom) && domain_isSolved(space.oldvars[varNames[1]].dom)) {
-        ASSERT(!varNames[2] || domain_isSolved(space.oldvars[varNames[2]].dom), 'ring and reified should solve their bool_var immediately after operand vars become solved');
+      if (domain_isSolved(space.vardoms[varNames[0]]) && domain_isSolved(space.vardoms[varNames[1]])) {
+        ASSERT(!varNames[2] || domain_isSolved(space.vardoms[varNames[2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
         return true;
       }
       return false;

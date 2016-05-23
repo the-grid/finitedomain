@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specCreateFdvarRange,
   specDomainCreateRange,
   specDomainSmallNums,
   specDomainSmallRange,
@@ -61,7 +60,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
+      expect(space.vardoms[name]).to.eql(specDomainSmallNums(10));
     });
 
     it('should create a full width var', function() {
@@ -71,7 +70,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
+      expect(space.vardoms[name]).to.eql(specDomainCreateRange(SUB, SUP));
     });
 
     it('should clone a domained var', function() {
@@ -81,7 +80,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
+      expect(space.vardoms[name]).to.eql(specDomainCreateRange(32, 55));
     });
   });
 

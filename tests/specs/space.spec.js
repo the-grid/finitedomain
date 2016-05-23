@@ -50,7 +50,7 @@ describe('space.spec', function() {
       });
 
       it('should init vars and var_names', function() {
-        expect(space_createRoot().oldvars).to.be.an('object');
+        expect(space_createRoot().vardoms).to.be.an('object');
         expect(space_createRoot().unsolvedVarNames).to.be.an('array');
         expect(space_createRoot().config.all_var_names).to.be.an('array');
       });
@@ -66,16 +66,16 @@ describe('space.spec', function() {
       });
 
       it('should clone vars', function() {
-        expect(space.oldvars).to.not.equal(clone.oldvars);
+        expect(space.vardoms).to.not.equal(clone.vardoms);
       });
 
       it('should deep clone the vars', function() {
         //for var_name in space.config.all_var_names
         for (let i = 0; i < space.config.all_var_names.length; ++i) {
-          let var_name = space.config.all_var_names[i];
+          let varName = space.config.all_var_names[i];
 
-          expect(clone.oldvars[var_name]).to.not.equal(space.oldvars[var_name]);
-          expect(clone.oldvars[var_name]).to.eql(space.oldvars[var_name]);
+          if (typeof clone.vardoms[varName] !== 'number') expect(clone.vardoms[varName]).to.not.equal(space.vardoms[varName]);
+          expect(clone.vardoms[varName]).to.eql(space.vardoms[varName]);
         }
       });
 

@@ -30,8 +30,8 @@ function propagator_neqStepBare(space, varName1, varName2) {
   ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
   ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let domain1 = space.oldvars[varName1].dom;
-  let domain2 = space.oldvars[varName2].dom;
+  let domain1 = space.vardoms[varName1];
+  let domain2 = space.vardoms[varName2];
 
   ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
   ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
@@ -50,11 +50,11 @@ function propagator_neqStepBare(space, varName1, varName2) {
       newDomain = domain_numarr(domain2);
     }
     if (newDomain === EMPTY) {
-      space.oldvars[varName1].dom = EMPTY;
-      space.oldvars[varName2].dom = EMPTY;
+      space.vardoms[varName1] = EMPTY;
+      space.vardoms[varName2] = EMPTY;
       result = REJECTED;
     } else if (result === SOME_CHANGES) {
-      space.oldvars[varName2].dom = newDomain;
+      space.vardoms[varName2] = newDomain;
     }
   } else {
     // domain1 is not solved, just remove domain2 from domain1 if domain2 is solved
@@ -69,17 +69,17 @@ function propagator_neqStepBare(space, varName1, varName2) {
         newDomain = domain_numarr(domain1);
       }
       if (newDomain === EMPTY) {
-        space.oldvars[varName1].dom = EMPTY;
-        space.oldvars[varName2].dom = EMPTY;
+        space.vardoms[varName1] = EMPTY;
+        space.vardoms[varName2] = EMPTY;
         result = REJECTED;
       } else if (result === SOME_CHANGES) {
-        space.oldvars[varName1].dom = newDomain;
+        space.vardoms[varName1] = newDomain;
       }
     }
   }
 
   ASSERT(result === REJECTED || result === NO_CHANGES || result === SOME_CHANGES, 'turning stuff into enum, must be sure about values');
-  ASSERT((result === REJECTED) === (domain_isRejected(space.oldvars[varName1].dom) || domain_isRejected(space.oldvars[varName2].dom)), 'if either domain is rejected, r should reflect this already');
+  ASSERT((result === REJECTED) === (domain_isRejected(space.vardoms[varName1]) || domain_isRejected(space.vardoms[varName2])), 'if either domain is rejected, r should reflect this already');
   return result;
 }
 
@@ -87,14 +87,11 @@ function propagator_neqStepBare(space, varName1, varName2) {
  * neq will only reject if both domains are solved and equal.
  * This is a read-only check.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {$domain} dom1
+ * @param {$domain} dom2
  * @returns {boolean}
  */
-function propagator_neqStepWouldReject(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
-
+function propagator_neqStepWouldReject(dom1, dom2) {
   if (!domain_isSolved(dom1) || !domain_isSolved(dom2)) {
     return false; // can not reject if either domain isnt solved
   }
@@ -111,7 +108,7 @@ function propagator_neqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_neqSolved(space, varName1, varName2) {
-  return domain_sharesNoElements(space.oldvars[varName1].dom, space.oldvars[varName2].dom);
+  return domain_sharesNoElements(space.vardoms[varName1], space.vardoms[varName2]);
 }
 
 // BODY_STOP

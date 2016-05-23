@@ -54,9 +54,9 @@ describe('distribution/var.spec', function() {
         },
       });
 
-      let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
+      let varName = distribution_getNextVar(solver._space, ['A', 'B']);
 
-      expect(fdvar.id).to.eql(out);
+      expect(varName).to.eql(out);
     });
   }
 
@@ -221,9 +221,9 @@ describe('distribution/var.spec', function() {
           {distribute: { var: 'size',
         }});
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B']);
 
-        expect(fdvar.id).to.eql('A');
+        expect(varName).to.eql('A');
       });
 
       it('should count actual elements in the domain B', function() {
@@ -241,9 +241,9 @@ describe('distribution/var.spec', function() {
         solver.prepare(
           {distribute: { var: 'size',
         }});
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B']);
 
-        expect(fdvar.id).to.eql('B');
+        expect(varName).to.eql('B');
       });
     });
   });
@@ -399,9 +399,9 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
 
-        expect(fdvar.id).to.eql('B');
+        expect(varName).to.eql('B');
       });
 
       it('should get markov vars back to front', function() {
@@ -438,9 +438,9 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B', 'C', 'D']);
 
-        expect(fdvar.id).to.eql('C');
+        expect(varName).to.eql('C');
       });
     });
   });
@@ -742,9 +742,9 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B']);
 
-        expect(fdvar.id).to.eql('A');
+        expect(varName).to.eql('A');
       });
 
       it('should solve vars in the explicit order of the list B', function() {
@@ -760,9 +760,9 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
+        let varName = distribution_getNextVar(solver._space, ['A', 'B']);
 
-        expect(fdvar.id).to.eql('B');
+        expect(varName).to.eql('B');
       });
 
       it('should not crash if a var is not on the list or when list is empty', function() {
@@ -777,9 +777,9 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A']);
+        let varName = distribution_getNextVar(solver._space, ['A']);
 
-        expect(fdvar.id).to.eql('A');
+        expect(varName).to.eql('A');
       });
 
       it('should assume unlisted vars come after listed vars', function() {
@@ -796,14 +796,14 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
-        expect(fdvar.id, 'A and C should go before B').to.eql('A');
-        fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
-        expect(fdvar.id, 'A should go before B').to.eql('A');
-        fdvar = distribution_getNextVar(solver._space, ['B', 'C']);
-        expect(fdvar.id, 'C should go before B').to.eql('C');
-        fdvar = distribution_getNextVar(solver._space, ['B']);
-        expect(fdvar.id, 'B is only one left').to.eql('B');
+        let varName = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
+        expect(varName, 'A and C should go before B').to.eql('A');
+        varName = distribution_getNextVar(solver._space, ['A', 'B']);
+        expect(varName, 'A should go before B').to.eql('A');
+        varName = distribution_getNextVar(solver._space, ['B', 'C']);
+        expect(varName, 'C should go before B').to.eql('C');
+        varName = distribution_getNextVar(solver._space, ['B']);
+        expect(varName, 'B is only one left').to.eql('B');
       });
 
       it('should work with list as fallback dist', function() {
@@ -823,14 +823,14 @@ describe('distribution/var.spec', function() {
           },
         });
 
-        let fdvar = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
-        expect(fdvar.id, 'A and C should go before B').to.eql('A');
-        fdvar = distribution_getNextVar(solver._space, ['A', 'B']);
-        expect(fdvar.id, 'A should go before B').to.eql('A');
-        fdvar = distribution_getNextVar(solver._space, ['B', 'C']);
-        expect(fdvar.id, 'C should go before B').to.eql('C');
-        fdvar = distribution_getNextVar(solver._space, ['B']);
-        expect(fdvar.id, 'B is only one left').to.eql('B');
+        let varName = distribution_getNextVar(solver._space, ['A', 'B', 'C']);
+        expect(varName, 'A and C should go before B').to.eql('A');
+        varName = distribution_getNextVar(solver._space, ['A', 'B']);
+        expect(varName, 'A should go before B').to.eql('A');
+        varName = distribution_getNextVar(solver._space, ['B', 'C']);
+        expect(varName, 'C should go before B').to.eql('C');
+        varName = distribution_getNextVar(solver._space, ['B']);
+        expect(varName, 'B is only one left').to.eql('B');
       });
     });
   });
@@ -887,39 +887,39 @@ describe('distribution/var.spec', function() {
     });
 
     it('base test: should get highest priority on the list; A_list', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['A_list', 'B_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
-      expect(fdvar.id).to.equal('B_list');
+      expect(varName).to.equal('B_list');
     });
 
     it('missing first item from list', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['A_list', 'C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
-      expect(fdvar.id).to.equal('A_list');
+      expect(varName).to.equal('A_list');
     });
 
     it('nothing on list, fallback to markov, get last markov', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['C_markov', 'D_markov', 'E_pleb', 'F_pleb']);
 
-      expect(fdvar.id).to.equal('D_markov');
+      expect(varName).to.equal('D_markov');
     });
 
     it('nothing on list, fallback to markov, get only markov', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['C_markov', 'E_pleb', 'F_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['C_markov', 'E_pleb', 'F_pleb']);
 
-      expect(fdvar.id).to.equal('C_markov');
+      expect(varName).to.equal('C_markov');
     });
 
     it('nothing on list, no markov vars, pick smallest by size', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['E_pleb', 'F_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['E_pleb', 'F_pleb']);
 
-      expect(fdvar.id).to.equal('F_pleb');
+      expect(varName).to.equal('F_pleb');
     });
 
     it('nothing on list, no markov vars, pick only var left', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['E_pleb']);
+      let varName = distribution_getNextVar(solver._space, ['E_pleb']);
 
-      expect(fdvar.id).to.equal('E_pleb');
+      expect(varName).to.equal('E_pleb');
     });
 
     it('should throw for getting the next var without passing on names', function() {
@@ -981,33 +981,33 @@ describe('distribution/var.spec', function() {
     });
 
     it('should prioritize list over rest A', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['D', 'C', 'A', 'E', 'F']);
+      let varName = distribution_getNextVar(solver._space, ['D', 'C', 'A', 'E', 'F']);
 
-      expect(fdvar.id).to.equal('A');
+      expect(varName).to.equal('A');
     });
 
     it('should prioritize list over rest B', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['D', 'C', 'B', 'E', 'F']);
+      let varName = distribution_getNextVar(solver._space, ['D', 'C', 'B', 'E', 'F']);
 
-      expect(fdvar.id).to.equal('B');
+      expect(varName).to.equal('B');
     });
 
     it('should prioritize un-blacklisted over rest E', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['D', 'E', 'C']);
+      let varName = distribution_getNextVar(solver._space, ['D', 'E', 'C']);
 
-      expect(fdvar.id).to.equal('E');
+      expect(varName).to.equal('E');
     });
 
     it('should prioritize un-blacklisted over rest F', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['D', 'F', 'C']);
+      let varName = distribution_getNextVar(solver._space, ['D', 'F', 'C']);
 
-      expect(fdvar.id).to.equal('F');
+      expect(varName).to.equal('F');
     });
 
     it('should prioritize C over D in blacklist', function() {
-      let fdvar = distribution_getNextVar(solver._space, ['D', 'C']);
+      let varName = distribution_getNextVar(solver._space, ['D', 'C']);
 
-      expect(fdvar.id).to.equal('C');
+      expect(varName).to.equal('C');
     });
   });
 });

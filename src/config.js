@@ -11,10 +11,8 @@ import {
   THROW,
 } from './helpers';
 import {
-  fdvar_create,
-} from './fdvar';
-import {
   domain_createRange,
+  domain_numarr,
   domain_isSolved,
 } from './domain';
 import distribution_getDefaults from './distribution/defaults';
@@ -314,7 +312,7 @@ function config_generateVars(config, space) {
 
   let unsolvedVarNames = space.unsolvedVarNames;
 
-  ASSERT(space.oldvars, 'expecting old vars');
+  ASSERT(space.vardoms, 'expecting var domains');
   ASSERT(config, 'should have a config');
   let initialVars = config.initial_vars;
   ASSERT(initialVars, 'config should have initial vars');
@@ -325,9 +323,8 @@ function config_generateVars(config, space) {
     let name = allVarNames[i];
     let domain = initialVars[name];
     if (domain === undefined) domain = domain_createRange(SUB, SUP);
-    let fdvar = fdvar_create(name, domain);
 
-    space.oldvars[name] = fdvar;
+    space.vardoms[name] = domain_numarr(domain);
     if (!domain_isSolved(domain)) unsolvedVarNames.push(name);
   }
 }

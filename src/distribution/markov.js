@@ -64,7 +64,7 @@ import {
  * up to but not including 1), unless the argument says otherwise
  * (that is used for testing only, to get around rounding errors).
  *
- * @param {$domain} domain A regular fdvar domain. It's values only determine whether a legend value can be used, it may have values that can never be picked. It's only a filter mask.
+ * @param {$domain} domain A regular domain. It's values only determine whether a legend value can be used, it may have values that can never be picked. It's only a filter mask.
  * @param {number[]} probVector List of probabilities, maps 1:1 to val_legend.
  * @param {number[]} valLegend List of values eligible for picking. Maps 1:1 to prob_vector. Only values in the current domain are actually eligible.
  * @param {Function} randomFunc

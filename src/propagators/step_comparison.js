@@ -47,9 +47,9 @@ import {
 /**
  * @param {Space} space
  * @param {string} opName
- * @param {Fdvar} varName1
- * @param {Fdvar} varName2
- * @returns {*}
+ * @param {string} varName1
+ * @param {string} varName2
+ * @returns {$fd_changeState}
  */
 function propagator_stepComparison(space, opName, varName1, varName2) {
   switch (opName) {
@@ -60,11 +60,9 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
       return propagator_lteStepBare(space, varName1, varName2);
 
     case 'gt':
-      // TOFIX: should go to lte
       return propagator_stepComparison(space, 'lt', varName2, varName1);
 
     case 'gte':
-      // TOFIX: should go to lt
       return propagator_stepComparison(space, 'lte', varName2, varName1);
 
     case 'eq':
@@ -83,34 +81,32 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
  * true when the step would result in REJECTED. Returns true otherwise.
  *
  * @param {string} opName
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} dom1
+ * @param {$domain} dom2
+ * @returns {boolean}
  */
-function propagator_stepWouldReject(opName, fdvar1, fdvar2) {
+function propagator_stepWouldReject(opName, dom1, dom2) {
   switch (opName) {
     case 'lt':
-      return propagator_ltStepWouldReject(fdvar1, fdvar2);
+      return propagator_ltStepWouldReject(dom1, dom2);
 
     case 'lte':
-      return propagator_lteStepWouldReject(fdvar1, fdvar2);
+      return propagator_lteStepWouldReject(dom1, dom2);
 
-    case 'gt':
-      // TOFIX: should go to lte
-      return propagator_ltStepWouldReject(fdvar2, fdvar1); // swapped vars!
+    case 'gt': // A > B   <=>   B < A
+      return propagator_ltStepWouldReject(dom2, dom1); // swapped vars!
 
-    case 'gte':
-      return propagator_lteStepWouldReject(fdvar2, fdvar1); // swapped vars!
+    case 'gte': // A >= B   <=>   B <= A
+      return propagator_lteStepWouldReject(dom2, dom1); // swapped vars!
 
     case 'eq':
-      return propagator_eqStepWouldReject(fdvar1, fdvar2);
+      return propagator_eqStepWouldReject(dom1, dom2);
 
     case 'neq':
-      return propagator_neqStepWouldReject(fdvar1, fdvar2);
-
-    default:
-      THROW(`stepper_step_read_only: unsupported propagator: [${opName}]`);
+      return propagator_neqStepWouldReject(dom1, dom2);
   }
+
+  THROW(`stepper_step_read_only: unsupported propagator: [${opName}]`);
 }
 
 // BODY_STOP

@@ -1,6 +1,5 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  //specCreateFdvarRange,
   //specDomainCreateRange,
   //specDomainCreateRanges,
   //specDomainSmallNums,

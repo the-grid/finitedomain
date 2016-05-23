@@ -1,7 +1,7 @@
 /*
 The functions in this file are supposed to determine the next
 value while solving a Space. The functions are supposed to
-return the new domain for some given fdvar. If there's no new
+return the new domain for some given var name. If there's no new
 choice left it should return undefined to signify the end.
 */
 
@@ -44,7 +44,7 @@ const NO_CHOICE = undefined;
 const MATH_RANDOM = Math.random;
 
 function distribute_getNextDomainForVar(space, varName) {
-  ASSERT(!domain_isDetermined(space.oldvars[varName].dom), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
+  ASSERT(!domain_isDetermined(space.vardoms[varName]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
   let choiceIndex = space.next_distribution_choice++;
   let configNextValueFunc = space.config.next_value_func;
@@ -80,7 +80,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varName, choiceIn
       return distribution_valueByList(space, varName, choiceIndex);
 
     case 'naive':
-      return domain_createValue(domain_min(space.oldvars[varName].dom));
+      return domain_createValue(domain_min(space.vardoms[varName]));
 
     case 'splitMax':
       return distribution_valueBySplitMax(space, varName, choiceIndex);
@@ -96,17 +96,17 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varName, choiceIn
 }
 
 /**
- * Attempt to solve by setting fdvar to values in the order
+ * Attempt to solve by setting var domain to values in the order
  * given as a list. This may also be a function which should
- * return a new domain given the space, fdvar, and choice index.
+ * return a new domain given the space, var name, and choice index.
  *
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {$domain|undefined} The new domain for this fdvar in the next space TOFIX: support small domains
+ * @returns {$domain|undefined} The new domain for this var name in the next space TOFIX: support small domains
  */
 function distribution_valueByList(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -116,10 +116,10 @@ function distribution_valueByList(space, varName, choiceIndex) {
   ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
   ASSERT(configVarDistOptions[varName], 'there should be distribution options available for every var', varName);
   ASSERT(configVarDistOptions[varName].list, 'there should be a distribution list available for every var', varName);
-  let fdvarDistOptions = configVarDistOptions[varName];
-  let listSource = fdvarDistOptions.list;
+  let varDistOptions = configVarDistOptions[varName];
+  let listSource = varDistOptions.list;
 
-  let fallbackDistName = fdvarDistOptions.fallback_dist_name;
+  let fallbackDistName = varDistOptions.fallback_dist_name;
   ASSERT(fallbackDistName !== 'list', 'prevent recursion loops');
 
   let list = listSource;
@@ -160,10 +160,10 @@ function distribution_valueByList(space, varName, choiceIndex) {
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]} The new domain this fdvar should get in the next space
+ * @returns {number[]} The new domain this var name should get in the next space
  */
 function distribution_valueByMin(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -194,10 +194,10 @@ function distribution_valueByMin(space, varName, choiceIndex) {
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]} The new domain this fdvar should get in the next space
+ * @returns {number[]} The new domain this var name should get in the next space
  */
 function distribution_valueByMax(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -235,7 +235,7 @@ function distribution_valueByMax(space, varName, choiceIndex) {
  * @returns {number[]|undefined} The new domain this var should get in the next space
  */
 function distribution_valueByMid(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -276,10 +276,10 @@ function distribution_valueByMid(space, varName, choiceIndex) {
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]|undefined} The domain this fdvar should get in the next space
+ * @returns {number[]|undefined} The domain this var name should get in the next space
  */
 function distribution_valueBySplitMin(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -316,10 +316,10 @@ function distribution_valueBySplitMin(space, varName, choiceIndex) {
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]} The new domain this fdvar should get in the next space
+ * @returns {number[]} The new domain this var name should get in the next space
  */
 function distribution_valueBySplitMax(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -356,7 +356,7 @@ function distribution_valueBySplitMax(space, varName, choiceIndex) {
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]} The new domain this fdvar should get in the next space
+ * @returns {number[]} The new domain this var name should get in the next space
  */
 function distribution_valueByMinMaxCycle(space, varName, choiceIndex) {
   if (_isEven(space.config.all_var_names.indexOf(varName))) {
@@ -379,10 +379,10 @@ function _isEven(n) { return n % 2 === 0; }
  * @param {Space} space
  * @param {string} varName
  * @param {number} choiceIndex
- * @returns {number[]} The new domain this fdvar should get in the next space
+ * @returns {number[]} The new domain this var name should get in the next space
  */
 function distribution_valueByMarkov(space, varName, choiceIndex) {
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');

@@ -19,13 +19,12 @@ import {
  * @param {?} matrix
  * @returns {*}
  */
-console.log('remove fdvar stuff here');
 function markov_getNextRowToSolve(space, matrix) {
-  let vars = space.oldvars;
+  let vardoms = space.vardoms;
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
-    let boolVar = vars[row.booleanId];
-    if (!boolVar || domain_isValue(boolVar.dom, 1)) {
+    let boolDomain = vardoms[row.booleanId];
+    if (boolDomain === undefined || domain_isValue(boolDomain, 1)) {
       break;
     }
   }

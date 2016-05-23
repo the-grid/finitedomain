@@ -21,10 +21,6 @@ import {
   domain_isSolved,
 } from './domain';
 
-import {
-  fdvar_create,
-} from './fdvar';
-
 import propagator_stepAny from './propagators/step_any';
 import propagator_isSolved from './propagators/is_solved';
 
@@ -98,11 +94,12 @@ function space_collectCurrentUnsolvedPropagators(space) {
 function space_toConfig(space) {
   ASSERT(space._class = 'space');
 
+  let vardoms = space.vardoms;
   let varsForClone = {};
   let names = space.config.all_var_names;
   for (let i = 0; i < names.length; i++) {
     let name = names[i];
-    let domain = space.oldvars[name].dom;
+    let domain = vardoms[name];
     varsForClone[name] = domain_clone(domain);
   }
 
@@ -113,33 +110,36 @@ function space_toConfig(space) {
  * Note: it's pseudo because solved vars are not cloned but copied...
  *
  * @param {Space} space
- * @param {Fdvar[]} cloneVars
- * @param {Fdvar[]} cloneUnsolvedVarNames
+ * @param {$domain[]} cloneVars
+ * @param {string[]} cloneUnsolvedVarNames
  */
 function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
+  let vardoms = space.vardoms;
   let allNames = space.config.all_var_names;
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
-    let domain = domain_clone(space.oldvars[varName].dom);
-    cloneVars[varName] = fdvar_create(varName, domain);
-    cloneUnsolvedVarNames.push(varName);
+    let clone = domain_clone(vardoms[varName]);
+    ASSERT(!domain_isRejected(clone), 'should not be cloning spaces with rejected domains');
+    cloneVars[varName] = clone;
+    // todo: we can tighten this to cycle through only the unsolved names rather than all of them (AND WE SHOULD)
+    if (!domain_isSolved(clone)) cloneUnsolvedVarNames.push(varName);
   }
 }
 
 /**
- * Concept of a space that holds config, some fdvars, and some propagators
+ * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
  * @param {$config} config
  * @param {Object[]} unsolvedPropagators
- * @param {Fdvar[]} oldvars
- * @param {string[]} unsolvedVarNames
+ * @param {Object.<string, $domain>} vardoms Each key represents a variable to work with, the value is a domain
+ * @param {string[]} unsolvedVarNames Note: all var names can be found on the config
  * @param {number} _depth
  * @param {number} _child
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames, _depth, _child) {
+function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarNames, _depth, _child) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
-  ASSERT(typeof oldvars === 'object' && oldvars, 'vars should be an object', oldvars);
+  ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
   ASSERT(unsolvedVarNames instanceof Array, 'unsolvedVarNames should be an array', unsolvedVarNames);
 
   return ({
@@ -152,7 +152,7 @@ function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames,
     config,
 
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
-    oldvars,
+    vardoms,
     unsolvedVarNames,
     unsolvedPropagators, // by references from space.config.propagators
 
@@ -195,8 +195,8 @@ function space_propagate(space) {
       let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
       // the domain of either var of a propagator can only be empty if the prop REJECTED
-      ASSERT(n === REJECTED || space.oldvars[propDetails[1][0]].dom > 0 || space.oldvars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
-      ASSERT(n === REJECTED || !propDetails[1][1] || space.oldvars[propDetails[1][1]].dom > 0 || space.oldvars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
+      ASSERT(n === REJECTED || space.vardoms[propDetails[1][0]] > 0 || space.vardoms[propDetails[1][0]].length, 'prop var empty but it didnt REJECT');
+      ASSERT(n === REJECTED || !propDetails[1][1] || space.vardoms[propDetails[1][1]] > 0 || space.vardoms[propDetails[1][1]].length, 'prop var empty but it didnt REJECT');
 
       if (n === SOME_CHANGES) {
         changed = true;
@@ -228,7 +228,7 @@ function space_abortSearch(space) {
 
 /**
  * Returns true if this space is solved - i.e. when
- * all the fdvars in the space have a singleton domain.
+ * all the vars in the space have a singleton domain.
  *
  * This is a *very* strong condition that might not need
  * to be satisfied for a space to be considered to be
@@ -254,7 +254,7 @@ function space_isSolved(space) {
   for (let i = 0; i < unsolvedNames.length; i++) {
     let name = unsolvedNames[i];
     if (targetedVars === 'all' || targetedVars.indexOf(name) >= 0) {
-      let domain = space.oldvars[name].dom;
+      let domain = space.vardoms[name];
       ASSERT_DOMAIN(domain);
 
       if (!domain_isSolved(domain)) {
@@ -268,7 +268,7 @@ function space_isSolved(space) {
 }
 
 /**
- * Returns an object whose field names are the fdvar names
+ * Returns an object whose field names are the var names
  * and whose values are the solved values. The space *must*
  * be already in a solved state for this to work.
  *
@@ -299,7 +299,7 @@ function space_solutionFor(space, varNames, complete = false) { // todo implemen
   for (let i = 0; i < varNames.length; i++) {
     let varName = varNames[i];
     let value = false;
-    ASSERT(space.oldvars[varName], 'TARGET_VARS_SHOULD_EXIST[' + varName + ']');
+    ASSERT(space.vardoms[varName] !== undefined, 'TARGET_VARS_SHOULD_EXIST', varName);
     value = space_getVarSolveState(space, varName);
     result[varName] = value;
 
@@ -323,7 +323,7 @@ function space_getVarSolveState(space, varName) {
   // Temporary variables take the form of a numeric property
   // of the object, so we test for the varName to be a number and
   // don't include those variables in the result.
-  let domain = space.oldvars[varName].dom;
+  let domain = space.vardoms[varName];
 
   if (domain_isRejected(domain)) {
     return false;

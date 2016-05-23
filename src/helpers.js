@@ -110,23 +110,6 @@ function _ASSERT_DOMAIN(domain) {
   }
 }
 
-// use this to verify that all domains set to an fdvar
-// are "fresh", and at least not in use by any fdvar yet
-
-function ASSERT_UNUSED_DOMAIN(domain) {
-  /* istanbul ignore if */
-  if (ENABLED) {
-    if (ENABLE_DOMAIN_CHECK) {
-      _ASSERT_UNUSED_DOMAIN(domain);
-    }
-  }
-}
-function _ASSERT_UNUSED_DOMAIN(domain) {
-  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
-  ASSERT(!domain._fdvar_in_use, 'domains should be unique and not shared');
-  domain._fdvar_in_use = true; // asserted just so automatic removal strips this line as well
-}
-
 function ASSERT_DOMAIN_EMPTY_SET(domain) {
   /* istanbul ignore if */
   if (ENABLED) {
@@ -245,8 +228,6 @@ export {
   ASSERT_DOMAIN_EMPTY_SET,
   _ASSERT_DOMAIN_EMPTY_SET,
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
-  ASSERT_UNUSED_DOMAIN,
-  _ASSERT_UNUSED_DOMAIN,
   GET_NAME,
   GET_NAMES,
   THROW,

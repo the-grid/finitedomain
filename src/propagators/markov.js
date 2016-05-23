@@ -30,20 +30,20 @@ import {
  *
  * @param {Space} space
  * @param {string} varName
- * @returns {*}
+ * @returns {$fd_changeState}
  */
 function propagator_markovStepBare(space, varName) {
   // THIS IS VERY EXPENSIVE IF expandVectorsWith IS ENABLED
 
   ASSERT(typeof varName === 'string', 'arg should be a string', varName);
 
-  let fdvar = space.oldvars[varName];
+  let domain = space.vardoms[varName];
 
-  if (!domain_isSolved(fdvar.dom)) {
+  if (!domain_isSolved(domain)) {
     return NO_CHANGES;
   }
 
-  let value = domain_min(fdvar.dom); // note: solved so lo=hi=value
+  let value = domain_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = space.config.var_dist_options;
   let distributionOptions = configVarDistOptions[varName];
@@ -52,17 +52,18 @@ function propagator_markovStepBare(space, varName) {
   ASSERT(distributionOptions.distributor_name === 'markov', 'var should be a markov var', distributionOptions.distributor_name);
 
   let expandVectorsWith = distributionOptions.expandVectorsWith;
-  ASSERT(distributionOptions.matrix, 'there should be a matrix available for every var', distributionOptions.matrix || JSON.stringify(fdvar), distributionOptions.matrix || JSON.stringify(distributionOptions));
-  ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set', distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(fdvar), distributionOptions.legend || (expandVectorsWith != null) || JSON.stringify(distributionOptions));
+  ASSERT(distributionOptions.matrix, 'there should be a matrix available for every var');
+  ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set');
 
   // note: expandVectorsWith can be 0, so check with null
-  let values = markov_createLegend(expandVectorsWith != null, distributionOptions.legend, fdvar.dom);
+  let values = markov_createLegend(expandVectorsWith != null, distributionOptions.legend, domain); // TODO: domain is a value, can this be optimized? is that worth the effort? (profile this)
   let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, values.length);
 
   let pos = values.indexOf(value);
   if (pos >= 0 && pos < probabilities.length && probabilities[pos] !== 0) {
     return NO_CHANGES;
   }
+
   return REJECTED;
 }
 

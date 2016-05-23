@@ -81,7 +81,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateValue(101));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -91,7 +91,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateValue(102));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -101,7 +101,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -156,7 +156,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(1));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+        expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -166,7 +166,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(2));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+        expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -176,7 +176,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMin(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+        expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -238,7 +238,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -248,7 +248,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 101));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -258,7 +258,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -313,7 +313,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(10));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -323,7 +323,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallRange(6, 9));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should return NO_CHOICE for third choice', function() {
@@ -333,7 +333,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMax(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -399,7 +399,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
@@ -409,7 +409,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 101));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -419,7 +419,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 102));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 102));
         });
       });
 
@@ -432,7 +432,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 103));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 103));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -442,7 +442,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRanges([101, 101], [103, 103]));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 103));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 103));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -452,7 +452,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 103));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 103));
         });
       });
 
@@ -465,7 +465,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(103, 103));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 104));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 104));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -475,7 +475,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRanges([101, 102], [104, 104]));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 104));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 104));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -485,7 +485,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(101, 104));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(101, 104));
         });
       });
 
@@ -498,7 +498,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(110, 110));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 120));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 120));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -508,7 +508,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRanges([100, 109], [111, 120]));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 120));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 120));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -518,7 +518,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 120));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 120));
         });
       });
 
@@ -531,7 +531,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(111, 111));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 121));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 121));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -541,7 +541,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRanges([100, 110], [112, 121]));
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 121));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 121));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -551,7 +551,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(100, 121));
+          expect(space.vardoms.A).to.eql(specDomainCreateRange(100, 121));
         });
       });
 
@@ -609,7 +609,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(2));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
@@ -619,7 +619,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(1));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -629,7 +629,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2));
         });
       });
 
@@ -642,7 +642,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(2));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -652,7 +652,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 3));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -662,7 +662,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3));
         });
       });
 
@@ -675,7 +675,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(3));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3, 4));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -685,7 +685,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 2, 4));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3, 4));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -695,7 +695,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(space.vardoms.A).to.eql(specDomainSmallNums(1, 2, 3, 4));
         });
       });
 
@@ -708,7 +708,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(5));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 10));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 10));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -718,7 +718,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 10));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 10));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -728,7 +728,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 10));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 10));
         });
       });
 
@@ -741,7 +741,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(6));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 11));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 11));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -751,7 +751,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 11));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 11));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -761,7 +761,7 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
 
           expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 11));
+          expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 11));
         });
       });
 
@@ -772,7 +772,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMid(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(1));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 1));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 1));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -782,7 +782,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMid(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(0));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 1));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 1));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -792,7 +792,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueByMid(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(0, 1));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(0, 1));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -864,7 +864,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallRange(10, 15));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -874,7 +874,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', SECOND_CHOICE)).to.eql(specDomainCreateRange(16, 20));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -884,7 +884,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -976,7 +976,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(6, 7, 8));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -986,7 +986,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(9, 10));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -996,7 +996,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMin(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -1104,7 +1104,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', FIRST_CHOICE)).to.eql(specDomainCreateRange(16, 20));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1114,7 +1114,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallRange(10, 15));
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1124,7 +1124,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainCreateRange(10, 20));
+        expect(space.vardoms.A).to.eql(specDomainCreateRange(10, 20));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -1216,7 +1216,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', FIRST_CHOICE)).to.eql(specDomainSmallNums(9, 10));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1226,7 +1226,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', SECOND_CHOICE)).to.eql(specDomainSmallNums(6, 7, 8));
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1236,7 +1236,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
 
         expect(distribution_valueBySplitMax(space, 'A', THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.oldvars.A.dom).to.eql(specDomainSmallRange(6, 10));
+        expect(space.vardoms.A).to.eql(specDomainSmallRange(6, 10));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {

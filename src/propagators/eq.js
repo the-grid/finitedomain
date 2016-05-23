@@ -45,18 +45,15 @@ import {
  * @param {Space} space
  * @param {string} varName1
  * @param {string} varName2
- * @returns {$domain}
+ * @returns {$fd_changeState}
  */
 function propagator_eqStepBare(space, varName1, varName2) {
   ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
   ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let fdvar1 = space.oldvars[varName1];
-  let fdvar2 = space.oldvars[varName2];
-
-  let domain1 = fdvar1.dom;
-  let domain2 = fdvar2.dom;
+  let domain1 = space.vardoms[varName1];
+  let domain2 = space.vardoms[varName2];
 
   ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
   ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
@@ -64,13 +61,13 @@ function propagator_eqStepBare(space, varName1, varName2) {
   if (typeof domain1 === 'number' && typeof domain2 === 'number') {
     let result = domain_forceEqNumbered(domain1, domain2);
     if (result === EMPTY) {
-      fdvar1.dom = result;
-      fdvar2.dom = result;
+      space.vardoms[varName1] = EMPTY;
+      space.vardoms[varName2] = EMPTY;
       return REJECTED;
     }
     if (result !== domain1 || result !== domain2) {
-      fdvar1.dom = result;
-      fdvar2.dom = result;
+      space.vardoms[varName1] = result;
+      space.vardoms[varName2] = result;
       return SOME_CHANGES;
     }
     return NO_CHANGES;
@@ -82,8 +79,8 @@ function propagator_eqStepBare(space, varName1, varName2) {
   let changeState = domain_forceEqInline(domain1, domain2);
 
   if (changeState === SOME_CHANGES) {
-    fdvar1.dom = domain_numarr(domain1);
-    fdvar2.dom = domain_numarr(domain2);
+    space.vardoms[varName1] = domain_numarr(domain1);
+    space.vardoms[varName2] = domain_numarr(domain2);
   }
 
   // if this assert fails, update the following checks accordingly!
@@ -103,14 +100,11 @@ function propagator_eqStepBare(space, varName1, varName2) {
  * or return false.
  * Read only check
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} dom1
+ * @param {$domain} dom2
+ * @returns {boolean}
  */
-function propagator_eqStepWouldReject(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
-
+function propagator_eqStepWouldReject(dom1, dom2) {
   ASSERT_DOMAIN_EMPTY_CHECK(dom1);
   ASSERT_DOMAIN_EMPTY_CHECK(dom2);
 //    if domain_isRejected dom1 or domain_isRejected dom2
@@ -129,7 +123,7 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(space, varName1, varName2) {
-  return domain_isSolved(space.oldvars[varName1].dom) && domain_isSolved(space.oldvars[varName2].dom);
+  return domain_isSolved(space.vardoms[varName1]) && domain_isSolved(space.vardoms[varName2]);
 }
 
 // BODY_STOP

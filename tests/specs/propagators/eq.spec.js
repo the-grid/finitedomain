@@ -75,8 +75,8 @@ describe('propagators/eq.spec', function() {
     space_initFromConfig(space);
 
     expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(SOME_CHANGES);
-    expect(space.oldvars.A.dom).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
-    expect(space.oldvars.B.dom).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
+    expect(space.vardoms.A).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
+    expect(space.vardoms.B).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
   });
 
   it('with number should split a domain if it covers multiple ranges of other domain', function() {
@@ -87,8 +87,8 @@ describe('propagators/eq.spec', function() {
     space_initFromConfig(space);
 
     expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(SOME_CHANGES);
-    expect(space.oldvars.A.dom).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
-    expect(space.oldvars.B.dom).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    expect(space.vardoms.A).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    expect(space.vardoms.B).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
   });
 
   describe('when v1 == v2', function() {
@@ -101,8 +101,8 @@ describe('propagators/eq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.oldvars.A.dom).to.eql(domain);
-        expect(space.oldvars.B.dom).to.eql(domain);
+        expect(space.vardoms.A).to.eql(domain);
+        expect(space.vardoms.B).to.eql(domain);
       });
     }
 
@@ -134,8 +134,8 @@ describe('propagators/eq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.oldvars.A.dom).to.eql(result);
-        expect(space.oldvars.B.dom).to.eql(result);
+        expect(space.vardoms.A).to.eql(result);
+        expect(space.vardoms.B).to.eql(result);
       });
 
       it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
@@ -146,8 +146,8 @@ describe('propagators/eq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_eqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.oldvars.A.dom).to.eql(result);
-        expect(space.oldvars.B.dom).to.eql(result);
+        expect(space.vardoms.A).to.eql(result);
+        expect(space.vardoms.B).to.eql(result);
       });
     }
 

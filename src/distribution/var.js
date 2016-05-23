@@ -21,8 +21,8 @@ const WORSE = 3;
  * current var distribution configuration and an optional filter condition.
  *
  * @param {Space} space
- * @param {Fdvar[]} targetVars
- * @returns {Fdvar}
+ * @param {string[]} targetVars
+ * @returns {string}
  */
 function distribution_getNextVar(space, targetVars) {
   let configNextVarFunc = space.config.next_var_func;
@@ -84,11 +84,11 @@ function distribution_getFunc(distName) {
  * but only if the filter function is okay with it.
  *
  * @param {Space} space
- * @param {string[]} names A subset of names that are properties on fdvars
- * @param {Function(fdvar,fdvar)} [fitnessFunc] Given two fdvars returns true iif the first var is better than the second var
- * @param {Function(fdvar)} [filterFunc] If given only consider vars where this function returns true
+ * @param {string[]} names A subset of names that are properties on space.vardoms
+ * @param {Function(Space, string, string, Function)} [fitnessFunc] Given two var names returns true iif the first var is better than the second var
+ * @param {Function(Space, string)} [filterFunc] If given only consider vars where this function returns true on it
  * @param {string|Object} configNextVarFunc From Space; either the name of the dist or specific options for a var dist
- * @returns {Fdvar}
+ * @returns {string|undefined} The name of the next var
  */
 function _distribution_varFindBest(space, names, fitnessFunc, filterFunc, configNextVarFunc) {
   ASSERT(names.length, 'SHOULD_HAVE_VARS');
@@ -96,16 +96,16 @@ function _distribution_varFindBest(space, names, fitnessFunc, filterFunc, config
   for (let i = 0; i < names.length; i++) {
     let name = names[i];
 
-    ASSERT(space.oldvars[name], 'expecting each name to have an fdvar', name);
+    ASSERT(space.vardoms[name] !== undefined, 'expecting each name to have an domain', name);
     // TOFIX: if the name is the empty string this could lead to a problem. Must eliminate the empty string as var name
 
-    if (!filterFunc || filterFunc(space.oldvars[name].dom)) {
+    if (!filterFunc || filterFunc(space.vardoms[name])) {
       if (!best || (fitnessFunc && BETTER === fitnessFunc(space, name, best, configNextVarFunc))) {
         best = name;
       }
     }
   }
-  return space.oldvars[best];
+  return best;
 }
 
 //#####
@@ -117,7 +117,7 @@ function distribution_varByMinSize(space, name1, name2) {
   ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let n = domain_size(space.oldvars[name1].dom) - domain_size(space.oldvars[name2].dom);
+  let n = domain_size(space.vardoms[name1]) - domain_size(space.vardoms[name2]);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
@@ -128,7 +128,7 @@ function distribution_varByMin(space, name1, name2) {
   ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let n = domain_min(space.oldvars[name1].dom) - domain_min(space.oldvars[name2].dom);
+  let n = domain_min(space.vardoms[name1]) - domain_min(space.vardoms[name2]);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
@@ -139,7 +139,7 @@ function distribution_varByMax(space, name1, name2) {
   ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let n = domain_max(space.oldvars[name1].dom) - domain_max(space.oldvars[name2].dom);
+  let n = domain_max(space.vardoms[name1]) - domain_max(space.vardoms[name2]);
   if (n > 0) return BETTER;
   if (n < 0) return WORSE;
   return SAME;

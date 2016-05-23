@@ -12,8 +12,6 @@ import {
   //ASSERT_DOMAIN_EMPTY_SET,
   _ASSERT_DOMAIN_EMPTY_SET,
   //ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
-  //ASSERT_UNUSED_DOMAIN,
-  _ASSERT_UNUSED_DOMAIN,
   //GET_NAME,
   //GET_NAMES,
   //THROW,
@@ -88,26 +86,6 @@ describe('helpers.spec', function() {
 
     it('should not throw with valid domain', function() {
       expect(_ASSERT_DOMAIN(specDomainCreateRange(0, 1, true))).to.equal(undefined);
-    });
-  });
-
-  describe('_ASSERT_UNUSED_DOMAIN', function() {
-    it('should exist', function() {
-      expect(_ASSERT_UNUSED_DOMAIN).to.be.a('function');
-    });
-
-    it('should not throw with valid domain', function() {
-      _ASSERT_UNUSED_DOMAIN(specDomainCreateRange(0, 1, true));
-    });
-  });
-
-  describe('_ASSERT_UNUSED_DOMAIN', function() {
-    it('should exist', function() {
-      expect(_ASSERT_UNUSED_DOMAIN).to.be.a('function');
-    });
-
-    it('should not throw with valid domain', function() {
-      _ASSERT_UNUSED_DOMAIN(specDomainCreateRange(0, 1, true));
     });
   });
 

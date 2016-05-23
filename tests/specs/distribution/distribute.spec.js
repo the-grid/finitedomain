@@ -169,7 +169,6 @@ describe('distribution/distribute.spec', function() {
         solver['>']('V2', 0);
 
         let solutions = solver.solve();
-        console.log(solver.config);
         expect(solutions.length, 'all solutions').to.equal(16);
 
         // (basically V1 solves lo to hi, V2 goes hi to lo)

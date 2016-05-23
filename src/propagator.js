@@ -9,6 +9,9 @@ import {
   config_addVarAnonNothing,
   config_addVarAnonRange,
 } from './config';
+import {
+  BOOL,
+} from './domain';
 
 // BODY_START
 
@@ -83,8 +86,10 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
     boolName = config_addVarAnonConstant(config, boolName);
   } else if (!boolName) {
     boolName = config_addVarAnonRange(config, 0, 1);
-  } else {
+  } else if (config.initial_vars[boolName] !== undefined) {
     // TODO: assert the domain is set to 0,1
+    ASSERT(typeof config.initial_vars[boolName] === 'number' || config.initial_vars[boolName] instanceof Array, 'RESULT_SHOULD_BE_NUMBER [was ' + config.initial_vars[boolName] + ']');
+    ASSERT(config.initial_vars[boolName] & BOOL || (config.initial_vars[boolName][0] >= 0 && config.initial_vars[boolName][1] <= 1), 'RESULT_SHOULD_BE_BOOL_BOUND');
   }
 
   if (typeof leftVarName === 'number') {
@@ -449,7 +454,7 @@ function propagator_addRingMul(config, v1name, v2name, prodName) {
 }
 
 /**
- * Sum of N fdvars = resultFDVar
+ * Sum of N domains = resultVar
  * Creates as many anonymous vars as necessary.
  * Returns the sumname
  *
@@ -498,7 +503,7 @@ function propagator_addSum(config, vars, resultVarName) {
 }
 
 /**
- * Product of N fdvars = resultFDvar.
+ * Product of N vars = resultVar.
  * Create as many anonymous vars as necessary.
  *
  * @param {$config} config

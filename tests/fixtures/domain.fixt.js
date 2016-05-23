@@ -116,25 +116,11 @@ function stripAnonVarsFromArrays(solutions) {
   return solutions;
 }
 
-function specCreateFdvarRange(id, lo, hi) {
-  ASSERT(typeof id === 'string', 'ID_SHOULD_BE_STRING['+id+']');
-  ASSERT(typeof lo === 'number', 'LO_SHOULD_BE_NUMBER['+lo+']');
-  ASSERT(typeof hi === 'number', 'HI_SHOULD_BE_NUMBER['+hi+']');
-  ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'RANGE_SHOULD_BE_PROPERLY_BOUND_AND_ORDERED['+lo+','+hi+']');
-
-  return {
-    _class: 'fdvar',
-    id,
-    dom: hi <= 15 ? specDomainSmallRange(lo, hi) : specDomainCreateRange(lo ,hi),
-  };
-}
-
 function ASSERT(b, d) {
   if (!b) throw new Error(d);
 }
 
 export {
-  specCreateFdvarRange,
   specDomainCreateEmpty,
   specDomainCreateList,
   specDomainCreateRange,

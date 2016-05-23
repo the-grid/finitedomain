@@ -5,8 +5,9 @@ import {
 
 import {
   domain_divby,
-  domain_minus,
+  domain_getChangeState,
   domain_plus,
+  domain_minus,
   domain_mul,
 } from '../domain';
 
@@ -45,13 +46,13 @@ function propagator_stepAny(propDatails, space) {
  * @param {Space} space
  * @param {string} opName
  * @param {string[]} propVarNames
- * @param {?} propDatails
+ * @param {?} propDetails
  * @returns {*}
  */
-function _propagator_stepAny(space, opName, propVarNames, propDatails) {
+function _propagator_stepAny(space, opName, propVarNames, propDetails) {
   let [vn1, vn2] = propVarNames;
 
-  ASSERT(vn2 || opName === 'markov' || opName === 'callback', 'vn2 should exist for most props', propDatails);
+  ASSERT(vn2 || opName === 'markov' || opName === 'callback', 'vn2 should exist for most props', propDetails);
 
   switch (opName) {
     case 'lt':
@@ -67,28 +68,28 @@ function _propagator_stepAny(space, opName, propVarNames, propDatails) {
       return propagator_stepComparison(space, opName, vn1, vn2);
 
     case 'callback':
-      return _propagator_cb(space, propVarNames, propDatails);
+      return _propagator_cb(space, propVarNames, propDetails);
 
     case 'reified':
-      return _propagator_reified(space, vn1, vn2, propVarNames, propDatails);
+      return _propagator_reified(space, vn1, vn2, propVarNames, propDetails);
 
     case 'ring':
-      return _propagator_ring(space, vn1, vn2, propVarNames, propDatails);
+      return _propagator_ring(space, vn1, vn2, propVarNames[2], propDetails[PROP_OP_FUNC]);
 
     case 'markov':
       return _propagator_markov(space, vn1);
 
     case 'min':
-      return _propagator_min(space, vn1, vn2, propVarNames);
+      return _propagator_min(space, vn1, vn2, propVarNames[2]);
 
     case 'mul':
-      return _propagator_mul(space, vn1, vn2, propVarNames, propDatails);
+      return _propagator_mul(space, vn1, vn2, propVarNames[2]);
 
     case 'div':
-      return _propagator_div(space, vn1, vn2, propVarNames, propDatails);
+      return _propagator_div(space, vn1, vn2, propVarNames[2]);
 
     default:
-      THROW(`unsupported propagator: [${propDatails}]`);
+      THROW(`unsupported propagator: [${propDetails}]`);
   }
 };
 
@@ -101,48 +102,76 @@ function _propagator_reified(space, vn1, vn2, propVarNames, propDetails) {
   return propagator_reifiedStepBare(space, vn1, vn2, vn3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
 }
 
-console.log('remove fdvar stuff in this file');
-function _propagator_min(space, vn1, vn2, propVarNames) {
-  let vn3 = propVarNames[2];
-  let vars = space.oldvars;
+function _propagator_min(space, vn1, vn2, vn3) {
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_minStep(vars[vn1], vars[vn2], vars[vn3]);
+  let dom1 = space.vardoms[vn1];
+  let dom2 = space.vardoms[vn2];
+  let dom3 = space.vardoms[vn3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+
+  let domNext = propagator_minStep(dom1, dom2, dom3);
+  space.vardoms[vn3] = domNext;
+
+  return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_mul(space, vn1, vn2, propVarNames) {
-  let vn3 = propVarNames[2];
-  let vars = space.oldvars;
+function _propagator_mul(space, vn1, vn2, vn3) {
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_mulStep(vars[vn1], vars[vn2], vars[vn3]);
+  let dom1 = space.vardoms[vn1];
+  let dom2 = space.vardoms[vn2];
+  let dom3 = space.vardoms[vn3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+
+
+  let domNext = propagator_mulStep(dom1, dom2, dom3);
+  space.vardoms[vn3] = domNext;
+
+  return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_div(space, vn1, vn2, propVarNames) {
-  let vn3 = propVarNames[2];
-  let vars = space.oldvars;
+function _propagator_div(space, vn1, vn2, vn3) {
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
-  return propagator_divStep(vars[vn1], vars[vn2], vars[vn3]);
+  let dom1 = space.vardoms[vn1];
+  let dom2 = space.vardoms[vn2];
+  let dom3 = space.vardoms[vn3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+
+  let domNext = propagator_divStep(dom1, dom2, dom3);
+  space.vardoms[vn3] = domNext;
+
+  return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_ring(space, vn1, vn2, propVarNames, propDetails) {
-  let vars = space.oldvars;
-  let vn3 = propVarNames[2];
-  let op_name = propDetails[PROP_OP_FUNC];
+function _propagator_ring(space, vn1, vn2, vn3, opName) {
+  ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
+  ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
+  let dom1 = space.vardoms[vn1];
+  let dom2 = space.vardoms[vn2];
+  let dom3 = space.vardoms[vn3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
 
-  switch (op_name) {
+  let opFunc;
+  switch (opName) {
     case 'plus':
-      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_plus);
+      opFunc = domain_plus;
+      break;
     case 'min':
-      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_minus);
+      opFunc = domain_minus;
+      break;
     case 'mul':
-      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_mul);
+      opFunc = domain_mul;
+      break;
     case 'div':
-      return propagator_ringStepBare(vars[vn1], vars[vn2], vars[vn3], domain_divby);
+      opFunc = domain_divby;
+      break;
     default:
-      THROW('UNKNOWN ring opname', op_name);
+      THROW('UNKNOWN ring opname', opName);
   }
+
+  let domNext = propagator_ringStepBare(dom1, dom2, dom3, opFunc, opName);
+  space.vardoms[vn3] = domNext;
+
+  return domain_getChangeState(domNext, dom3);
 }
 
 function _propagator_markov(space, vn1) {

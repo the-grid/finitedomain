@@ -26,7 +26,7 @@ const PROP_ARG2 = 3;
  * are supported.
  *
  * `leftVarName` and `rightVarName` are the arguments accepted
- * by the comparison operator. These must be existing FDVars in S.vars.
+ * by the comparison operator.
  *
  * `boolName` is the name of the boolean variable to which to
  * reify the comparison operator. Note that this boolean

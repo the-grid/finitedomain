@@ -24,11 +24,11 @@ import {
 
 // A boolean variable that represents whether a comparison
 // condition between two variables currently holds or not.
-
+console.log('still have to translate away from fdvars here');
 function propagator_reifiedStepBare(space, leftVarName, rightVarName, boolName, opName, invOpName) {
   let opReject;
   let invOpReject;
-  let { vars } = space;
+  let vars = space.oldvars;
   let fdvar1 = vars[leftVarName];
   let fdvar2 = vars[rightVarName];
   ASSERT(fdvar1 && fdvar2, 'should have two vars', leftVarName, rightVarName, boolName, opName, invOpName);

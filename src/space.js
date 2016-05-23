@@ -100,12 +100,10 @@ function space_toConfig(space) {
 
   let varsForClone = {};
   let names = space.config.all_var_names;
-  let fdvars = space.vars;
   for (let i = 0; i < names.length; i++) {
     let name = names[i];
-    let fdvar = fdvars[name];
-    let dom = fdvar.dom;
-    varsForClone[name] = domain_clone(dom);
+    let domain = space.oldvars[name].dom;
+    varsForClone[name] = domain_clone(domain);
   }
 
   return config_clone(space.config, varsForClone);
@@ -120,10 +118,9 @@ function space_toConfig(space) {
  */
 function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
   let allNames = space.config.all_var_names;
-  let parentVars = space.vars;
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
-    let domain = domain_clone(parentVars[varName].dom);
+    let domain = domain_clone(space.oldvars[varName].dom);
     cloneVars[varName] = fdvar_create(varName, domain);
     cloneUnsolvedVarNames.push(varName);
   }
@@ -134,15 +131,15 @@ function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
  *
  * @param {$config} config
  * @param {Object[]} unsolvedPropagators
- * @param {Fdvar[]} vars
+ * @param {Fdvar[]} oldvars
  * @param {string[]} unsolvedVarNames
  * @param {number} _depth
  * @param {number} _child
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, vdata, _depth, _child) {
+function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames, vdata, _depth, _child) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
-  ASSERT(typeof vars === 'object' && vars, 'vars should be an object', vars);
+  ASSERT(typeof oldvars === 'object' && oldvars, 'vars should be an object', oldvars);
   ASSERT(unsolvedVarNames instanceof Array, 'unsolvedVarNames should be an array', unsolvedVarNames);
 
   return ({
@@ -157,7 +154,7 @@ function space_createNew(config, unsolvedPropagators, vars, unsolvedVarNames, vd
     vdata,
 
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
-    vars,
+    oldvars,
     unsolvedVarNames,
     unsolvedPropagators, // by references from space.config.propagators
 
@@ -200,12 +197,8 @@ function space_propagate(space) {
       let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
       // the domain of either var of a propagator can only be empty if the prop REJECTED
-      ASSERT(n === REJECTED || space.vars[propDetails[1][0]].dom > 0 || space.vars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
-      ASSERT(n === REJECTED || !propDetails[1][1] || space.vars[propDetails[1][1]].dom > 0 || space.vars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
-      // if a domain was set empty and the flag is on the property should be set or
-      // the unit test setup is unsound and it should be fixed (ASSERT_DOMAIN_EMPTY_SET)
-      //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || space.vars[propDetails[1][0]].dom.length || space.vars[propDetails[1][0]].dom._trace, 'domain empty but not marked');
-      //ASSERT(!ENABLED || !ENABLE_EMPTY_CHECK || !propDetails[1][1] || space.vars[propDetails[1][1]].dom.length || space.vars[propDetails[1][1]].dom._trace, 'domain empty but not marked');
+      ASSERT(n === REJECTED || space.oldvars[propDetails[1][0]].dom > 0 || space.oldvars[propDetails[1][0]].dom.length, 'prop var empty but it didnt REJECT');
+      ASSERT(n === REJECTED || !propDetails[1][1] || space.oldvars[propDetails[1][1]].dom > 0 || space.oldvars[propDetails[1][1]].dom.length, 'prop var empty but it didnt REJECT');
 
       if (n === SOME_CHANGES) {
         changed = true;
@@ -256,7 +249,6 @@ function space_abortSearch(space) {
  */
 function space_isSolved(space) {
   ASSERT(space._class === 'space');
-  let vars = space.vars;
   let targetedVars = space.config.targetedVars;
   let unsolvedNames = space.unsolvedVarNames;
 
@@ -264,7 +256,7 @@ function space_isSolved(space) {
   for (let i = 0; i < unsolvedNames.length; i++) {
     let name = unsolvedNames[i];
     if (targetedVars === 'all' || targetedVars.indexOf(name) >= 0) {
-      let domain = vars[name].dom;
+      let domain = space.oldvars[name].dom;
       ASSERT_DOMAIN(domain);
 
       if (!domain_isSolved(domain)) {
@@ -309,7 +301,7 @@ function space_solutionFor(space, varNames, complete = false) { // todo implemen
   for (let i = 0; i < varNames.length; i++) {
     let varName = varNames[i];
     let value = false;
-    ASSERT(space.vars[varName], 'TARGET_VARS_SHOULD_EXIST[' + varName + ']');
+    ASSERT(space.oldvars[varName], 'TARGET_VARS_SHOULD_EXIST[' + varName + ']');
     value = space_getVarSolveState(space, varName);
     result[varName] = value;
 
@@ -333,7 +325,7 @@ function space_getVarSolveState(space, varName) {
   // Temporary variables take the form of a numeric property
   // of the object, so we test for the varName to be a number and
   // don't include those variables in the result.
-  let domain = space.vars[varName].dom;
+  let domain = space.oldvars[varName].dom;
 
   if (domain_isRejected(domain)) {
     return false;
@@ -344,42 +336,6 @@ function space_getVarSolveState(space, varName) {
 
   return domain_fromFlags(domain);
 }
-
-// __REMOVE_BELOW_FOR_DIST__
-
-//# ## Debugging
-
-// debug stuff (should be stripped from dist)
-
-/**
- * @param {Space} space
- * @returns {string[]}
- */
-function __space_debugVarDomains(space) {
-  let things = [];
-  for (let name in space.vars) {
-    things.push(name + ': [' + space.vars[name].dom + ']');
-  }
-  return things;
-}
-
-/**
- * @param {Space} space
- * @returns {string[]}
- */
-function __space_getUnsolved(space) {
-  let vars = space.vars;
-  let unsolved_names = [];
-  for (let name in vars) {
-    let fdvar = vars[name];
-    if (!domain_isSolved(fdvar.dom)) {
-      unsolved_names.push(name);
-    }
-  }
-  return unsolved_names;
-}
-
-// __REMOVE_ABOVE_FOR_DIST__
 
 // BODY_STOP
 
@@ -393,8 +349,4 @@ export {
   space_solution,
   space_solutionFor,
   space_toConfig,
-
-  // debugging / testing
-  __space_debugVarDomains,
-  __space_getUnsolved,
 };

@@ -52,8 +52,8 @@ function propagator_eqStepBare(space, varName1, varName2) {
   ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
   ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let fdvar1 = space.vars[varName1];
-  let fdvar2 = space.vars[varName2];
+  let fdvar1 = space.oldvars[varName1];
+  let fdvar2 = space.oldvars[varName2];
 
   let domain1 = fdvar1.dom;
   let domain2 = fdvar2.dom;
@@ -129,7 +129,7 @@ function propagator_eqStepWouldReject(fdvar1, fdvar2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(space, varName1, varName2) {
-  return domain_isSolved(space.vars[varName1].dom) && domain_isSolved(space.vars[varName2].dom);
+  return domain_isSolved(space.oldvars[varName1].dom) && domain_isSolved(space.oldvars[varName2].dom);
 }
 
 // BODY_STOP

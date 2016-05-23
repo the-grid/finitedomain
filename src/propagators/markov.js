@@ -37,7 +37,7 @@ function propagator_markovStepBare(space, varName) {
 
   ASSERT(typeof varName === 'string', 'arg should be a string', varName);
 
-  let fdvar = space.vars[varName];
+  let fdvar = space.oldvars[varName];
 
   if (!domain_isSolved(fdvar.dom)) {
     return NO_CHANGES;

@@ -78,8 +78,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vars.A.dom).to.eql(domain1);
-        expect(space.vars.B.dom).to.eql(domain2);
+        expect(space.oldvars.A.dom).to.eql(domain1);
+        expect(space.oldvars.B.dom).to.eql(domain2);
       });
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
@@ -90,8 +90,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vars.A.dom).to.eql(domain2);
-        expect(space.vars.B.dom).to.eql(domain1);
+        expect(space.oldvars.A.dom).to.eql(domain2);
+        expect(space.oldvars.B.dom).to.eql(domain1);
       });
     }
 
@@ -129,8 +129,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.vars.A.dom).to.eql(solvedDomain);
-        expect(space.vars.B.dom).to.eql(unsolvedDomainAfter);
+        expect(space.oldvars.A.dom).to.eql(solvedDomain);
+        expect(space.oldvars.B.dom).to.eql(unsolvedDomainAfter);
       });
 
       it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
@@ -141,8 +141,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.vars.A.dom).to.eql(unsolvedDomainAfter);
-        expect(space.vars.B.dom).to.eql(solvedDomain);
+        expect(space.oldvars.A.dom).to.eql(unsolvedDomainAfter);
+        expect(space.oldvars.B.dom).to.eql(solvedDomain);
       });
     }
 
@@ -180,8 +180,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vars.A.dom).to.eql(domain1);
-        expect(space.vars.B.dom).to.eql(domain2);
+        expect(space.oldvars.A.dom).to.eql(domain1);
+        expect(space.oldvars.B.dom).to.eql(domain2);
       });
 
       it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
@@ -192,8 +192,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vars.A.dom).to.eql(domain2);
-        expect(space.vars.B.dom).to.eql(domain1);
+        expect(space.oldvars.A.dom).to.eql(domain2);
+        expect(space.oldvars.B.dom).to.eql(domain1);
       });
 
       it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
@@ -204,8 +204,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(REJECTED);
-        expect(space.vars.A.dom).to.eql(specDomainSmallEmpty());
-        expect(space.vars.B.dom).to.eql(specDomainSmallEmpty());
+        expect(space.oldvars.A.dom).to.eql(specDomainSmallEmpty());
+        expect(space.oldvars.B.dom).to.eql(specDomainSmallEmpty());
       });
 
       it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
@@ -216,8 +216,8 @@ describe('propagators/neq.spec', function() {
         space_initFromConfig(space);
 
         expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(REJECTED);
-        expect(space.vars.A.dom).to.eql(specDomainSmallEmpty());
-        expect(space.vars.B.dom).to.eql(specDomainSmallEmpty());
+        expect(space.oldvars.A.dom).to.eql(specDomainSmallEmpty());
+        expect(space.oldvars.B.dom).to.eql(specDomainSmallEmpty());
       });
     }
 

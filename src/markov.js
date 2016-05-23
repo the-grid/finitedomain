@@ -19,8 +19,9 @@ import {
  * @param {?} matrix
  * @returns {*}
  */
+console.log('remove fdvar stuff here');
 function markov_getNextRowToSolve(space, matrix) {
-  let { vars } = space;
+  let vars = space.oldvars;
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
     let boolVar = vars[row.booleanId];

@@ -71,7 +71,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMin('A', 'B', space)).to.equal(BETTER);
+        expect(distribution_varByMin(space, 'A', 'B')).to.equal(BETTER);
       });
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
@@ -81,7 +81,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMin('A', 'B', space)).to.equal(SAME);
+        expect(distribution_varByMin(space, 'A', 'B')).to.equal(SAME);
       });
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
@@ -91,7 +91,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMin('A', 'B', space)).to.equal(WORSE);
+        expect(distribution_varByMin(space, 'A', 'B')).to.equal(WORSE);
       });
     });
 
@@ -113,7 +113,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMax('A', 'B', space)).to.equal(BETTER);
+        expect(distribution_varByMax(space, 'A', 'B')).to.equal(BETTER);
       });
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
@@ -123,7 +123,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMax('A', 'B', space)).to.equal(SAME);
+        expect(distribution_varByMax(space, 'A', 'B')).to.equal(SAME);
       });
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
@@ -133,7 +133,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMax('A', 'B', space)).to.equal(WORSE);
+        expect(distribution_varByMax(space, 'A', 'B')).to.equal(WORSE);
       });
     });
 
@@ -156,7 +156,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMinSize('A', 'B', space)).to.equal(BETTER);
+        expect(distribution_varByMinSize(space, 'A', 'B')).to.equal(BETTER);
       });
 
       it('should return SAME if size(v1) = size(v2) with single range', function() {
@@ -166,7 +166,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
+        expect(distribution_varByMinSize(space, 'A', 'B')).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
@@ -176,7 +176,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
+        expect(distribution_varByMinSize(space, 'A', 'B')).to.equal(SAME);
       });
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
@@ -186,7 +186,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMinSize('A', 'B', space)).to.equal(SAME);
+        expect(distribution_varByMinSize(space, 'A', 'B')).to.equal(SAME);
       });
 
       it('should return WORSE if size(v1) > size(v2)', function() {
@@ -196,7 +196,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMinSize('A', 'B', space)).to.equal(WORSE);
+        expect(distribution_varByMinSize(space, 'A', 'B')).to.equal(WORSE);
       });
     });
 
@@ -266,7 +266,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(BETTER);
+        expect(distribution_varByMarkov(space, 'A', 'B', {})).to.equal(BETTER);
       });
 
       it('should say v1 is WORSE if v1 not a markov but v2 is', function() {
@@ -283,7 +283,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(WORSE);
+        expect(distribution_varByMarkov(space, 'A', 'B', {})).to.equal(WORSE);
       });
 
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
@@ -303,7 +303,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(BETTER);
+        expect(distribution_varByMarkov(space, 'A', 'B', {})).to.equal(BETTER);
       });
 
       it('should say v1 is SAME as v2 if neither is a markov var', function() {
@@ -317,7 +317,7 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(distribution_varByMarkov('A', 'B', space, {})).to.equal(SAME);
+        expect(distribution_varByMarkov(space, 'A', 'B', {})).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return BETTER', function() {
@@ -333,7 +333,7 @@ describe('distribution/var.spec', function() {
         space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(BETTER);
+        expect(distribution_varByMarkov(space, 'A', 'B', fallback_config)).to.equal(BETTER);
       });
 
       it('should use fallback if available and vars are SAME but then still return SAME', function() {
@@ -349,7 +349,7 @@ describe('distribution/var.spec', function() {
         space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(SAME);
+        expect(distribution_varByMarkov(space, 'A', 'B', fallback_config)).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return WORSE', function() {
@@ -365,7 +365,7 @@ describe('distribution/var.spec', function() {
         space_initFromConfig(space);
         let fallback_config = {fallback_config: 'size'};
 
-        expect(distribution_varByMarkov('A', 'B', space, fallback_config)).to.equal(WORSE);
+        expect(distribution_varByMarkov(space, 'A', 'B', fallback_config)).to.equal(WORSE);
       });
     });
 
@@ -463,7 +463,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should return WORSE if the inverted priority hash says A is higher than B', function() {
@@ -481,7 +481,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(WORSE);
       });
 
       it('should THROW if the priority hash says A is equal to B', function() {
@@ -498,7 +498,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(() => distribution_varByList('A', 'B', space, nvconfig)).to.throw();
+        expect(() => distribution_varByList(space, 'A', 'B', nvconfig)).to.throw();
       });
 
       it('should return WORSE if the priority hash says A is lower than B', function() {
@@ -515,7 +515,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(WORSE);
       });
 
       it('should return BETTER if the inverted priority hash says A is lower than B', function() {
@@ -533,7 +533,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should return BETTER if A is in the hash but B is not', function() {
@@ -549,7 +549,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should return WORSE if A is in the inverted hash but B is not', function() {
@@ -566,7 +566,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(WORSE);
       });
 
       it('should return WORSE if B is in the hash but A is not', function() {
@@ -582,7 +582,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(WORSE);
       });
 
       it('should return BETTER if B is in the inverted hash but A is not', function() {
@@ -599,7 +599,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should throw if A gets value 0 from the hash', function() {
@@ -615,7 +615,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        let f = _ => distribution_varByList('A', 'B', space, nvconfig);
+        let f = _ => distribution_varByList(space, 'A', 'B', nvconfig);
         expect(f).to.throw('SHOULD_NOT_USE_INDEX_ZERO');
       });
 
@@ -632,7 +632,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        let f = _ => distribution_varByList('A', 'B', space, nvconfig);
+        let f = _ => distribution_varByList(space, 'A', 'B', nvconfig);
         expect(f).to.throw('SHOULD_NOT_USE_INDEX_ZERO');
       });
 
@@ -647,7 +647,7 @@ describe('distribution/var.spec', function() {
           priority_hash: {},
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(SAME);
       });
 
       it('should return SAME if neither A nor B is in the inverted hash without fallback', function() {
@@ -662,7 +662,7 @@ describe('distribution/var.spec', function() {
           priority_hash: {},
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(SAME);
       });
 
       it('should return BETTER if neither is in the hash and fallback is size with A smaller', function() {
@@ -677,7 +677,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should return BETTER if neither is in the inverted hash and fallback is size with A smaller', function() {
@@ -693,7 +693,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(BETTER);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(BETTER);
       });
 
       it('should return SAME if neither is in the hash and fallback is size with A same size as B', function() {
@@ -708,7 +708,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(SAME);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(SAME);
       });
 
       it('should return WORSE if neither is in the hash and fallback is size with A larger', function() {
@@ -723,7 +723,7 @@ describe('distribution/var.spec', function() {
           fallback_config: 'size',
         };
 
-        expect(distribution_varByList('A', 'B', space, nvconfig)).to.equal(WORSE);
+        expect(distribution_varByList(space, 'A', 'B', nvconfig)).to.equal(WORSE);
       });
     });
 
@@ -922,10 +922,8 @@ describe('distribution/var.spec', function() {
       expect(fdvar.id).to.equal('E_pleb');
     });
 
-    it('should just return undefined despite config', function() {
-      let fdvar = distribution_getNextVar(solver._space, []);
-
-      expect(fdvar).to.equal(undefined);
+    it('should throw for getting the next var without passing on names', function() {
+      expect(_ => distribution_getNextVar(solver._space, [])).to.throw('SHOULD_HAVE_VARS');
     });
 
     it('dont crash on randomized inclusion and order', function() {

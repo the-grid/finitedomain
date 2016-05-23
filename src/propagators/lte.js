@@ -31,11 +31,8 @@ function propagator_lteStepBare(space, varName1, varName2) {
   ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
   ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
 
-  let fdvar1 = space.vars[varName1];
-  let fdvar2 = space.vars[varName2];
-
-  let domain1 = fdvar1.dom;
-  let domain2 = fdvar2.dom;
+  let domain1 = space.oldvars[varName1].dom;
+  let domain2 = space.oldvars[varName2].dom;
 
   ASSERT_DOMAIN_EMPTY_CHECK(domain1);
   ASSERT_DOMAIN_EMPTY_CHECK(domain2);
@@ -52,7 +49,7 @@ function propagator_lteStepBare(space, varName1, varName2) {
     if (typeof domain1 === 'number') {
       let result = domain_removeGteNumbered(domain1, hi2 + 1);
       if (result !== domain1) {
-        fdvar1.dom = result;
+        space.oldvars[varName1].dom = result;
         if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
         } else {
@@ -61,8 +58,8 @@ function propagator_lteStepBare(space, varName1, varName2) {
       }
     } else {
       if (domain_removeGteInline(domain1, hi2 + 1)) {
-        fdvar1.dom = domain_numarr(fdvar1.dom);
-        if (domain_isRejected(fdvar1.dom)) { // TODO: there is no test throwing when you remove this check
+        space.oldvars[varName1].dom = domain_numarr(space.oldvars[varName1].dom);
+        if (domain_isRejected(space.oldvars[varName1].dom)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
         } else {
           leftChanged = SOME_CHANGES;
@@ -81,7 +78,7 @@ function propagator_lteStepBare(space, varName1, varName2) {
       let result = domain_removeLteNumbered(domain2, lo1 - 1);
 
       if (result !== domain2) {
-        fdvar2.dom = result;
+        space.oldvars[varName2].dom = result;
         if (domain_isRejected(result)) {
           leftChanged = REJECTED;
         } else {
@@ -90,9 +87,9 @@ function propagator_lteStepBare(space, varName1, varName2) {
       }
     } else {
       if (domain_removeLteInline(domain2, lo1 - 1)) {
-        fdvar2.dom = domain_numarr(domain2);
+        space.oldvars[varName2].dom = domain_numarr(space.oldvars[varName2].dom);
         rightChanged = SOME_CHANGES;
-        if (domain_isRejected(fdvar2.dom)) { // TODO: there is no test covering this
+        if (domain_isRejected(space.oldvars[varName2].dom)) { // TODO: there is no test covering this
           leftChanged = REJECTED;
         }
       } else {
@@ -138,7 +135,7 @@ function propagator_lteStepWouldReject(fdvar1, fdvar2) {
  * @returns {*}
  */
 function propagator_lteSolved(space, varName1, varName2) {
-  return domain_max(space.vars[varName1].dom) <= domain_min(space.vars[varName2].dom);
+  return domain_max(space.oldvars[varName1].dom) <= domain_min(space.oldvars[varName2].dom);
 }
 
 // BODY_STOP

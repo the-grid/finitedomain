@@ -312,11 +312,10 @@ function config_generateVars(config, space) {
   ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
 
-  let vars = space.vars;
   let unsolvedVarNames = space.unsolvedVarNames;
   let vdata = space.vdata;
 
-  ASSERT(vars, 'expecting vars');
+  ASSERT(space.oldvars, 'expecting old vars');
   ASSERT(config, 'should have a config');
   let initialVars = config.initial_vars;
   ASSERT(initialVars, 'config should have initial vars');
@@ -330,7 +329,7 @@ function config_generateVars(config, space) {
     let fdvar = fdvar_create(name, domain);
 
     if (vdata) vdata[name] = domain;
-    vars[name] = fdvar;
+    space.oldvars[name] = fdvar;
     if (!domain_isSolved(domain)) unsolvedVarNames.push(name);
   }
 }

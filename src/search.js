@@ -113,7 +113,7 @@ function search_defaultSpaceFactory(space) {
 
     if (nextDomain) {
       let clone = space_createClone(space);
-      clone.vars[fdvar.id].dom = nextDomain;
+      clone.oldvars[fdvar.id].dom = nextDomain;
       return clone;
     }
   }

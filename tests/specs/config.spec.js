@@ -61,7 +61,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
+      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, 10, 10));
     });
 
     it('should create a full width var', function() {
@@ -71,7 +71,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
+      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, SUB, SUP));
     });
 
     it('should clone a domained var', function() {
@@ -81,7 +81,7 @@ describe('config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
+      expect(space.oldvars[name]).to.eql(specCreateFdvarRange(name, 32, 55));
     });
   });
 

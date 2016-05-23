@@ -101,9 +101,10 @@ function _propagator_reified(space, vn1, vn2, propVarNames, propDetails) {
   return propagator_reifiedStepBare(space, vn1, vn2, vn3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
 }
 
+console.log('remove fdvar stuff in this file');
 function _propagator_min(space, vn1, vn2, propVarNames) {
   let vn3 = propVarNames[2];
-  let { vars } = space;
+  let vars = space.oldvars;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
   return propagator_minStep(vars[vn1], vars[vn2], vars[vn3]);
@@ -111,7 +112,7 @@ function _propagator_min(space, vn1, vn2, propVarNames) {
 
 function _propagator_mul(space, vn1, vn2, propVarNames) {
   let vn3 = propVarNames[2];
-  let { vars } = space;
+  let vars = space.oldvars;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
   return propagator_mulStep(vars[vn1], vars[vn2], vars[vn3]);
@@ -119,14 +120,14 @@ function _propagator_mul(space, vn1, vn2, propVarNames) {
 
 function _propagator_div(space, vn1, vn2, propVarNames) {
   let vn3 = propVarNames[2];
-  let { vars } = space;
+  let vars = space.oldvars;
   ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
   ASSERT(vars[vn1] && vars[vn2] && vars[vn3], 'expecting three vars to exist', vn1, vn2, vn3);
   return propagator_divStep(vars[vn1], vars[vn2], vars[vn3]);
 }
 
 function _propagator_ring(space, vn1, vn2, propVarNames, propDetails) {
-  let { vars } = space;
+  let vars = space.oldvars;
   let vn3 = propVarNames[2];
   let op_name = propDetails[PROP_OP_FUNC];
 

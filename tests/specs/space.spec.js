@@ -32,10 +32,6 @@ import {
   space_solution,
   space_solutionFor,
   space_toConfig,
-
-  // debugging / testing
-  __space_debugVarDomains,
-  __space_getUnsolved,
 } from '../../src/space';
 
 describe('space.spec', function() {
@@ -54,7 +50,7 @@ describe('space.spec', function() {
       });
 
       it('should init vars and var_names', function() {
-        expect(space_createRoot().vars).to.be.an('object');
+        expect(space_createRoot().oldvars).to.be.an('object');
         expect(space_createRoot().unsolvedVarNames).to.be.an('array');
         expect(space_createRoot().config.all_var_names).to.be.an('array');
       });
@@ -70,7 +66,7 @@ describe('space.spec', function() {
       });
 
       it('should clone vars', function() {
-        expect(space.vars).to.not.equal(clone.vars);
+        expect(space.oldvars).to.not.equal(clone.oldvars);
       });
 
       it('should deep clone the vars', function() {
@@ -78,7 +74,8 @@ describe('space.spec', function() {
         for (let i = 0; i < space.config.all_var_names.length; ++i) {
           let var_name = space.config.all_var_names[i];
 
-          expect(clone.vars[var_name]).to.not.equal(space.vars[var_name]);
+          expect(clone.oldvars[var_name]).to.not.equal(space.oldvars[var_name]);
+          expect(clone.oldvars[var_name]).to.eql(space.oldvars[var_name]);
         }
       });
 
@@ -330,13 +327,6 @@ describe('space.spec', function() {
           space_initFromConfig(space);
 
           expect(space_propagate(space)).to.eql(false);
-        });
-
-        it('debugs', function() {
-          let space = space_createRoot();
-
-          expect(__space_debugVarDomains(space)).to.be.an('array');
-          expect(__space_getUnsolved(space)).to.be.an('array');
         });
       });
     });

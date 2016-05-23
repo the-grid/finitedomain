@@ -90,61 +90,63 @@ function distribution_getFunc(distName) {
  * @param {string|Object} configNextVarFunc From Space; either the name of the dist or specific options for a var dist
  * @returns {Fdvar}
  */
+console.log('still need to fix oldvars in this one');
 function _distribution_varFindBest(space, names, fitnessFunc, filterFunc, configNextVarFunc) {
+  ASSERT(names.length, 'SHOULD_HAVE_VARS');
   let best = '';
   for (let i = 0; i < names.length; i++) {
     let name = names[i];
 
-    ASSERT(space.vars[name], 'expecting each name to have an fdvar', name);
+    ASSERT(space.oldvars[name], 'expecting each name to have an fdvar', name);
     // TOFIX: if the name is the empty string this could lead to a problem. Must eliminate the empty string as var name
 
-    if (!filterFunc || filterFunc(space.vars[name].dom)) {
-      if (!best || (fitnessFunc && BETTER === fitnessFunc(name, best, space, configNextVarFunc))) {
+    if (!filterFunc || filterFunc(space.oldvars[name].dom)) {
+      if (!best || (fitnessFunc && BETTER === fitnessFunc(space, name, best, configNextVarFunc))) {
         best = name;
       }
     }
   }
-  return space.vars[best];
+  return space.oldvars[best];
 }
 
 //#####
 // preset fitness functions
 //#####
 
-function distribution_varByMinSize(name1, name2, space) {
+function distribution_varByMinSize(space, name1, name2) {
+  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let v1 = space.vars[name1];
-  let v2 = space.vars[name2];
-
-  let n = domain_size(v1.dom) - domain_size(v2.dom);
+  let n = domain_size(space.oldvars[name1].dom) - domain_size(space.oldvars[name2].dom);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
 }
 
-function distribution_varByMin(name1, name2, space) {
-  let v1 = space.vars[name1];
-  let v2 = space.vars[name2];
+function distribution_varByMin(space, name1, name2) {
+  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
+  ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let n = domain_min(v1.dom) - domain_min(v2.dom);
+  let n = domain_min(space.oldvars[name1].dom) - domain_min(space.oldvars[name2].dom);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
 }
 
-function distribution_varByMax(name1, name2, space) {
-  let v1 = space.vars[name1];
-  let v2 = space.vars[name2];
+function distribution_varByMax(space, name1, name2) {
+  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
+  ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
 
-  let n = domain_max(v1.dom) - domain_max(v2.dom);
+  let n = domain_max(space.oldvars[name1].dom) - domain_max(space.oldvars[name2].dom);
   if (n > 0) return BETTER;
   if (n < 0) return WORSE;
   return SAME;
 }
 
-function distribution_varByMarkov(name1, name2, space, configNextVarFunc) {
+function distribution_varByMarkov(space, name1, name2, configNextVarFunc) {
   let distOptions = space.config.var_dist_options;
 
   // v1 is only, but if so always, better than v2 if v1 is a markov var
@@ -158,7 +160,7 @@ function distribution_varByMarkov(name1, name2, space, configNextVarFunc) {
   return distribution_varFallback(name1, name2, space, configNextVarFunc.fallback_config);
 }
 
-function distribution_varByList(name1, name2, space, configNextVarFunc) {
+function distribution_varByList(space, name1, name2, configNextVarFunc) {
   ASSERT(typeof name1 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(typeof name2 === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(space._class === 'space', 'EXPECTING_SPACE_WAS[' + space._class + ']');
@@ -238,19 +240,19 @@ function distribution_varFallback(name1, name2, space, fallbackConfig) {
 
   switch (distName) {
     case 'size':
-      return distribution_varByMinSize(name1, name2, space);
+      return distribution_varByMinSize(space, name1, name2);
 
     case 'min':
-      return distribution_varByMin(name1, name2, space);
+      return distribution_varByMin(space, name1, name2);
 
     case 'max':
-      return distribution_varByMax(name1, name2, space);
+      return distribution_varByMax(space, name1, name2);
 
     case 'markov':
-      return distribution_varByMarkov(name1, name2, space, fallbackConfig);
+      return distribution_varByMarkov(space, name1, name2, fallbackConfig);
 
     case 'list':
-      return distribution_varByList(name1, name2, space, fallbackConfig);
+      return distribution_varByList(space, name1, name2, fallbackConfig);
 
     case 'throw':
       return THROW('nope');

@@ -18,11 +18,9 @@ describe('propagators/callback.spec', function() {
 
       function callback(space, var_names) {
 
-        let { vars } = space;
-
-        let rv = domain_getValue(vars[var_names[0]].dom);
-        let gv = domain_getValue(vars[var_names[1]].dom);
-        let bv = domain_getValue(vars[var_names[2]].dom);
+        let rv = domain_getValue(space.oldvars[var_names[0]].dom);
+        let gv = domain_getValue(space.oldvars[var_names[1]].dom);
+        let bv = domain_getValue(space.oldvars[var_names[2]].dom);
 
         if (rv === NO_SUCH_VALUE || gv === NO_SUCH_VALUE || bv === NO_SUCH_VALUE) {
           return true; // at least one domain isnt a single value; keep searching

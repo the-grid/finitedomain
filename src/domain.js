@@ -1085,7 +1085,11 @@ function domain_size(domain) {
 }
 
 /**
- * Get the middle element of all elements in domain. Not hi-lo/2.
+ * Get the middle element of all elements in domain.
+ * Not hi-lo/2 but the (size/2)th element.
+ * For domains with an even number of elements it
+ * will take the first value _above_ the middle,
+ * in other words; index=ceil(count/2).
  *
  * @param {$domain} domain
  * @returns {number}

@@ -12,11 +12,16 @@ import {
 } from '../../../src/helpers';
 
 import {
-  fdvar_create,
-} from '../../../src/fdvar';
-import {
   domain_clone,
 } from '../../../src/domain';
+import {
+  config_addVarDomain,
+  config_create,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
 import Solver from '../../../src/solver';
 import propagator_reifiedStepBare from '../../../src/propagators/reified';
 
@@ -39,20 +44,19 @@ describe('propagators/reified.spec', function() {
         // test one step call with two vars and an op and check results
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `out=${expected_out}`, `result=[${bool_after}]`]}`, function() {
 
-          let space = {
-            vars: {
-              A: fdvar_create('A', domain_clone(A_in)),
-              B: fdvar_create('B', domain_clone(B_in)),
-              bool: fdvar_create('bool', domain_clone(bool_in)),
-            },
-          };
+          let config = config_create();
+          config_addVarDomain(config, 'A', domain_clone(A_in));
+          config_addVarDomain(config, 'B', domain_clone(B_in));
+          config_addVarDomain(config, 'bool', domain_clone(bool_in));
+          let space = space_createRoot(config);
+          space_initFromConfig(space);
 
           let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
-          expect(space.vars.A.dom, 'A should be unchanged').to.eql(A_in);
-          expect(space.vars.B.dom, 'B should be unchanged').to.eql(B_in);
-          expect(space.vars.bool.dom, 'bool should reflect expected outcome').to.eql(bool_after);
+          expect(space.oldvars.A.dom, 'A should be unchanged').to.eql(A_in);
+          expect(space.oldvars.B.dom, 'B should be unchanged').to.eql(B_in);
+          expect(space.oldvars.bool.dom, 'bool should reflect expected outcome').to.eql(bool_after);
         });
       }
 

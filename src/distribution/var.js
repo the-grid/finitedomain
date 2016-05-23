@@ -90,7 +90,6 @@ function distribution_getFunc(distName) {
  * @param {string|Object} configNextVarFunc From Space; either the name of the dist or specific options for a var dist
  * @returns {Fdvar}
  */
-console.log('still need to fix oldvars in this one');
 function _distribution_varFindBest(space, names, fitnessFunc, filterFunc, configNextVarFunc) {
   ASSERT(names.length, 'SHOULD_HAVE_VARS');
   let best = '';

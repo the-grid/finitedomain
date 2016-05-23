@@ -313,7 +313,6 @@ function config_generateVars(config, space) {
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
 
   let unsolvedVarNames = space.unsolvedVarNames;
-  let vdata = space.vdata;
 
   ASSERT(space.oldvars, 'expecting old vars');
   ASSERT(config, 'should have a config');
@@ -328,7 +327,6 @@ function config_generateVars(config, space) {
     if (domain === undefined) domain = domain_createRange(SUB, SUP);
     let fdvar = fdvar_create(name, domain);
 
-    if (vdata) vdata[name] = domain;
     space.oldvars[name] = fdvar;
     if (!domain_isSolved(domain)) unsolvedVarNames.push(name);
   }

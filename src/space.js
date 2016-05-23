@@ -37,7 +37,7 @@ import propagator_isSolved from './propagators/is_solved';
 function space_createRoot(config) {
   if (!config) config = config_create();
 
-  return space_createNew(config, [], {}, [], {}, 0, 0);
+  return space_createNew(config, [], {}, [], 0, 0);
 }
 
 /**
@@ -67,7 +67,7 @@ function space_createClone(space) {
   let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
 
   space_pseudoCloneVars(space, cloneVars, unsolvedNames);
-  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, Object.assign({}, space.vdata), space._depth + 1, space._child_count++);
+  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, space._depth + 1, space._child_count++);
 }
 
 /**
@@ -137,7 +137,7 @@ function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
  * @param {number} _child
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames, vdata, _depth, _child) {
+function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames, _depth, _child) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
   ASSERT(typeof oldvars === 'object' && oldvars, 'vars should be an object', oldvars);
   ASSERT(unsolvedVarNames instanceof Array, 'unsolvedVarNames should be an array', unsolvedVarNames);
@@ -150,8 +150,6 @@ function space_createNew(config, unsolvedPropagators, oldvars, unsolvedVarNames,
     _child_count: 0,
 
     config,
-
-    vdata,
 
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     oldvars,

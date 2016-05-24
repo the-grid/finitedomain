@@ -202,13 +202,14 @@ function _config_addVar(config, varName, domain) {
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= MAX_SMALL), 'domain as value should be within small domain range', domain);
+  ASSERT(String(parseInt(varName)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
 
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
     varName = String(config.all_var_names.length); // this var will be assigned to this index
   }
   if (config.all_var_names.indexOf(varName) >= 0) {
-    if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES');
+    if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }
 

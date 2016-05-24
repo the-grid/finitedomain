@@ -1190,8 +1190,6 @@ describe('solver.spec', function() {
     it('should combine multiple unconstrained vars', function() {
       let solver = new Solver({});
 
-      solver.addVar('2', [1, 1]);
-      solver.addVar('3', [0, 0]);
       solver.addVar('_ROOT_BRANCH_', [0, 1]);
       solver.addVar('SECTION', [1, 1]);
       solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]);
@@ -1217,8 +1215,6 @@ describe('solver.spec', function() {
     it('should constrain one var to be equal to another', function() {
       let solver = new Solver({});
 
-      solver.addVar('2', [1, 1]);
-      solver.addVar('3', [0, 0]);
       solver.addVar('_ROOT_BRANCH_', [0, 1]);
       solver.addVar('SECTION', [1, 1]);
       solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]);
@@ -1245,8 +1241,7 @@ describe('solver.spec', function() {
     it('should allow useless constraints', function() {
       let solver = new Solver({});
 
-      solver.addVar('2', [1, 1]);
-      solver.addVar('3', [0, 0]);
+      solver.addVar('x2', [1, 1]);
       solver.addVar('_ROOT_BRANCH_', [0, 1]); // becomes 1
       solver.addVar('SECTION', [1, 1]);
       solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]);
@@ -1266,22 +1261,22 @@ describe('solver.spec', function() {
 
       solver.eq('_ROOT_BRANCH_', 'SECTION'); // root branch can only be 1 because section only has 1
 
-      // these are meaningless since '2' is [0,1] and all the rhs have no zeroes
-      solver.lte('2', 'SECTION');
-      solver.lte('2', 'VERSE_INDEX');
-      solver.lte('2', 'ITEM_INDEX');
-      solver.lte('2', 'align');
-      solver.lte('2', 'text_align');
-      solver.lte('2', 'SECTION&n=1');
-      solver.lte('2', 'VERSE_INDEX&n=1');
-      solver.lte('2', 'ITEM_INDEX&n=1');
-      solver.lte('2', 'align&n=1');
-      solver.lte('2', 'text_align&n=1');
-      solver.lte('2', 'SECTION&n=2');
-      solver.lte('2', 'VERSE_INDEX&n=2');
-      solver.lte('2', 'ITEM_INDEX&n=2');
-      solver.lte('2', 'align&n=2');
-      solver.lte('2', 'text_align&n=2');
+      // these are meaningless since 'x2' is [0,1] and all the rhs have no zeroes
+      solver.lte('x2', 'SECTION');
+      solver.lte('x2', 'VERSE_INDEX');
+      solver.lte('x2', 'ITEM_INDEX');
+      solver.lte('x2', 'align');
+      solver.lte('x2', 'text_align');
+      solver.lte('x2', 'SECTION&n=1');
+      solver.lte('x2', 'VERSE_INDEX&n=1');
+      solver.lte('x2', 'ITEM_INDEX&n=1');
+      solver.lte('x2', 'align&n=1');
+      solver.lte('x2', 'text_align&n=1');
+      solver.lte('x2', 'SECTION&n=2');
+      solver.lte('x2', 'VERSE_INDEX&n=2');
+      solver.lte('x2', 'ITEM_INDEX&n=2');
+      solver.lte('x2', 'align&n=2');
+      solver.lte('x2', 'text_align&n=2');
 
       solver.neq('ITEM_INDEX&n=1', 'ITEM_INDEX'); // the lhs is [2,2] and rhs is [1,2] so rhs must be [2,2]
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX'); // lhs is [3,3] and rhs [1,2] so this is a noop
@@ -1328,19 +1323,19 @@ describe('solver.spec', function() {
     it('should solve a simplified case from old PathBinarySolver tests', function() {
       let solver = new Solver({});
 
-      solver.addVar('2', [1, 1]);
-      solver.addVar('3', [0, 0]);
-      solver.addVar('4', [2, 2]);
-      solver.addVar('5', [4, 4]);
-      solver.addVar('6', [9, 9]);
-      solver.addVar('7', [5, 5]);
-      solver.addVar('8', [6, 6]);
-      solver.addVar('9', [8, 8]);
-      solver.addVar('10', [3, 3]);
-      solver.addVar('11', [7, 7]);
-      solver.addVar('12', [0, 1]); // -> 1
-      solver.addVar('13', [0, 1]); // -> 0
-      solver.addVar('14', [0, 1]); // -> 0
+      solver.addVar('x2', [1, 1]);
+      solver.addVar('x3', [0, 0]);
+      solver.addVar('x4', [2, 2]);
+      solver.addVar('x5', [4, 4]);
+      solver.addVar('x6', [9, 9]);
+      solver.addVar('x7', [5, 5]);
+      solver.addVar('x8', [6, 6]);
+      solver.addVar('x9', [8, 8]);
+      solver.addVar('x10', [3, 3]);
+      solver.addVar('x11', [7, 7]);
+      solver.addVar('x12', [0, 1]); // -> 1
+      solver.addVar('x13', [0, 1]); // -> 0
+      solver.addVar('x14', [0, 1]); // -> 0
       solver.addVar('_ROOT_BRANCH_', [0, 1]); // -> 1
       solver.addVar('SECTION', [1, 1]);
       solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]); // -> 4
@@ -1358,34 +1353,34 @@ describe('solver.spec', function() {
       solver.addVar('align&n=2', [1, 2]);
       solver.addVar('text_align&n=2', [1, 2]);
 
-      solver.eq('_ROOT_BRANCH_', '2'); // root must be 1
+      solver.eq('_ROOT_BRANCH_', 'x2'); // root must be 1
       // these are meaningless
-      solver.lte('2', 'SECTION');
-      solver.lte('2', 'VERSE_INDEX');
-      solver.lte('2', 'ITEM_INDEX');
-      solver.lte('2', 'align');
-      solver.lte('2', 'text_align');
-      solver.lte('2', 'SECTION&n=1');
-      solver.lte('2', 'VERSE_INDEX&n=1');
-      solver.lte('2', 'ITEM_INDEX&n=1');
-      solver.lte('2', 'align&n=1');
-      solver.lte('2', 'text_align&n=1');
-      solver.lte('2', 'SECTION&n=2');
-      solver.lte('2', 'VERSE_INDEX&n=2');
-      solver.lte('2', 'ITEM_INDEX&n=2');
-      solver.lte('2', 'align&n=2');
-      solver.lte('2', 'text_align&n=2');
+      solver.lte('x2', 'SECTION');
+      solver.lte('x2', 'VERSE_INDEX');
+      solver.lte('x2', 'ITEM_INDEX');
+      solver.lte('x2', 'align');
+      solver.lte('x2', 'text_align');
+      solver.lte('x2', 'SECTION&n=1');
+      solver.lte('x2', 'VERSE_INDEX&n=1');
+      solver.lte('x2', 'ITEM_INDEX&n=1');
+      solver.lte('x2', 'align&n=1');
+      solver.lte('x2', 'text_align&n=1');
+      solver.lte('x2', 'SECTION&n=2');
+      solver.lte('x2', 'VERSE_INDEX&n=2');
+      solver.lte('x2', 'ITEM_INDEX&n=2');
+      solver.lte('x2', 'align&n=2');
+      solver.lte('x2', 'text_align&n=2');
       // item_index is 1 so the others cannot be 1
       solver.neq('ITEM_INDEX&n=1', 'ITEM_INDEX'); // 2 (noop)
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX'); // 3 (noop)
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX&n=1'); // 2!=3 (noop)
       // constraints are enforced with an eq below. the first must be on, the second/third must be off.
-      solver._cacheReified('eq', 'VERSE_INDEX', '5', '12');
-      solver._cacheReified('eq', 'VERSE_INDEX&n=1', '8', '13');
-      solver._cacheReified('eq', 'VERSE_INDEX&n=2', '2', '14');
-      solver.eq('12', '2'); // so vi must be 4 (it can be)
-      solver.eq('13', '3'); // so vi1 must not be 6 (so 5 or 8)
-      solver.eq('14', '3'); // so vi2 must not be 1 (so 3 or 7)
+      solver._cacheReified('eq', 'VERSE_INDEX', 'x5', 'x12');
+      solver._cacheReified('eq', 'VERSE_INDEX&n=1', 'x8', 'x13');
+      solver._cacheReified('eq', 'VERSE_INDEX&n=2', 'x2', 'x14');
+      solver.eq('x12', 'x2'); // so vi must be 4 (it can be)
+      solver.eq('x13', 'x3'); // so vi1 must not be 6 (so 5 or 8)
+      solver.eq('x14', 'x3'); // so vi2 must not be 1 (so 3 or 7)
 
       // 2×2×2×2×2×2×2×2=256
       expect(solver.solve({

@@ -25,7 +25,6 @@ let config = {
   targetedVars: 'all',
   var_dist_options: {},
   timeout_callback: undefined,
-  constant_uid: 100,
   constant_cache: {
     '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', '10': '10'
   },

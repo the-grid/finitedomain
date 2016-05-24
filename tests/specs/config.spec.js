@@ -91,7 +91,6 @@ describe('config.spec', function() {
       let name = config_addVarAnonConstant(config, 15);
 
       expect(config.all_var_names.indexOf(name)).to.be.at.least(0);
-      expect(config.constant_uid).to.be.above(0);
       expect(config.initial_vars[name]).to.equal(specDomainSmallNums(15));
     });
 

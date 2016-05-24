@@ -392,8 +392,8 @@ let config = {
 console.log(config);
 
 let solver = new Solver({config});
-console.log('start');
-console.profile('fd-gridsolving');
+console.log('start profile');
+console.profile('gridsolving');
 solver.solve({log: 1, max: 50000, vars: solver.config.all_var_names});
-console.profileEnd();
-console.log('stop');
+console.profileEnd('gridsolving');
+console.log('stop profile');

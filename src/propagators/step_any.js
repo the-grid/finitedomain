@@ -50,105 +50,105 @@ function propagator_stepAny(propDatails, space) {
  * @returns {*}
  */
 function _propagator_stepAny(space, opName, propVarNames, propDetails) {
-  let [vn1, vn2] = propVarNames;
+  let [varName1, varName2] = propVarNames;
 
-  ASSERT(vn2 || opName === 'markov' || opName === 'callback', 'vn2 should exist for most props', propDetails);
+  ASSERT(varName2 || opName === 'markov' || opName === 'callback', 'varName2 should exist for most props', propDetails);
 
   switch (opName) {
     case 'lt':
-      return propagator_stepComparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, varName1, varName2);
 
     case 'lte':
-      return propagator_stepComparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, varName1, varName2);
 
     case 'eq':
-      return propagator_stepComparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, varName1, varName2);
 
     case 'neq':
-      return propagator_stepComparison(space, opName, vn1, vn2);
+      return propagator_stepComparison(space, opName, varName1, varName2);
 
     case 'callback':
       return _propagator_cb(space, propVarNames, propDetails);
 
     case 'reified':
-      return _propagator_reified(space, vn1, vn2, propVarNames, propDetails);
+      return _propagator_reified(space, varName1, varName2, propVarNames, propDetails);
 
     case 'ring':
-      return _propagator_ring(space, vn1, vn2, propVarNames[2], propDetails[PROP_OP_FUNC]);
+      return _propagator_ring(space, varName1, varName2, propVarNames[2], propDetails[PROP_OP_FUNC]);
 
     case 'markov':
-      return _propagator_markov(space, vn1);
+      return _propagator_markov(space, varName1);
 
     case 'min':
-      return _propagator_min(space, vn1, vn2, propVarNames[2]);
+      return _propagator_min(space, varName1, varName2, propVarNames[2]);
 
     case 'mul':
-      return _propagator_mul(space, vn1, vn2, propVarNames[2]);
+      return _propagator_mul(space, varName1, varName2, propVarNames[2]);
 
     case 'div':
-      return _propagator_div(space, vn1, vn2, propVarNames[2]);
+      return _propagator_div(space, varName1, varName2, propVarNames[2]);
 
     default:
       THROW(`unsupported propagator: [${propDetails}]`);
   }
-};
+}
 
 function _propagator_cb(space, propVarNames, propDetails) {
   return propagator_callbackStepBare(space, propVarNames, propDetails[PROP_CALLBACK]);
 }
 
-function _propagator_reified(space, vn1, vn2, propVarNames, propDetails) {
-  let vn3 = propVarNames[2];
-  return propagator_reifiedStepBare(space, vn1, vn2, vn3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
+function _propagator_reified(space, varName1, varName2, propVarNames, propDetails) {
+  let varName3 = propVarNames[2];
+  return propagator_reifiedStepBare(space, varName1, varName2, varName3, propDetails[PROP_OP_NAME], propDetails[PROP_NOP_NAME]);
 }
 
-function _propagator_min(space, vn1, vn2, vn3) {
-  ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  let dom1 = space.vardoms[vn1];
-  let dom2 = space.vardoms[vn2];
-  let dom3 = space.vardoms[vn3];
-  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+function _propagator_min(space, varName1, varName2, varName3) {
+  ASSERT(varName1 && varName2 && varName3, 'expecting three vars', varName1, varName2, varName3);
+  let dom1 = space.vardoms[varName1];
+  let dom2 = space.vardoms[varName2];
+  let dom3 = space.vardoms[varName3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', varName1, varName2, varName3, dom1, dom2, dom3);
 
   let domNext = propagator_minStep(dom1, dom2, dom3);
-  space.vardoms[vn3] = domNext;
+  space.vardoms[varName3] = domNext;
 
   return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_mul(space, vn1, vn2, vn3) {
-  ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  let dom1 = space.vardoms[vn1];
-  let dom2 = space.vardoms[vn2];
-  let dom3 = space.vardoms[vn3];
-  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+function _propagator_mul(space, varName1, varName2, varName3) {
+  ASSERT(varName1 && varName2 && varName3, 'expecting three vars', varName1, varName2, varName3);
+  let dom1 = space.vardoms[varName1];
+  let dom2 = space.vardoms[varName2];
+  let dom3 = space.vardoms[varName3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', varName1, varName2, varName3, dom1, dom2, dom3);
 
 
   let domNext = propagator_mulStep(dom1, dom2, dom3);
-  space.vardoms[vn3] = domNext;
+  space.vardoms[varName3] = domNext;
 
   return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_div(space, vn1, vn2, vn3) {
-  ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
-  let dom1 = space.vardoms[vn1];
-  let dom2 = space.vardoms[vn2];
-  let dom3 = space.vardoms[vn3];
-  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+function _propagator_div(space, varName1, varName2, varName3) {
+  ASSERT(varName1 && varName2 && varName3, 'expecting three vars', varName1, varName2, varName3);
+  let dom1 = space.vardoms[varName1];
+  let dom2 = space.vardoms[varName2];
+  let dom3 = space.vardoms[varName3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', varName1, varName2, varName3, dom1, dom2, dom3);
 
   let domNext = propagator_divStep(dom1, dom2, dom3);
-  space.vardoms[vn3] = domNext;
+  space.vardoms[varName3] = domNext;
 
   return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_ring(space, vn1, vn2, vn3, opName) {
-  ASSERT(vn1 && vn2 && vn3, 'expecting three vars', vn1, vn2, vn3);
+function _propagator_ring(space, varName1, varName2, varName3, opName) {
+  ASSERT(varName1 && varName2 && varName3, 'expecting three vars', varName1, varName2, varName3);
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
-  let dom1 = space.vardoms[vn1];
-  let dom2 = space.vardoms[vn2];
-  let dom3 = space.vardoms[vn3];
-  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', vn1, vn2, vn3, dom1, dom2, dom3);
+  let dom1 = space.vardoms[varName1];
+  let dom2 = space.vardoms[varName2];
+  let dom3 = space.vardoms[varName3];
+  ASSERT(dom1 !== undefined && dom2 !== undefined && dom3 !== undefined, 'expecting three vars to exist', varName1, varName2, varName3, dom1, dom2, dom3);
 
   let opFunc;
   switch (opName) {
@@ -169,13 +169,13 @@ function _propagator_ring(space, vn1, vn2, vn3, opName) {
   }
 
   let domNext = propagator_ringStepBare(dom1, dom2, dom3, opFunc, opName);
-  space.vardoms[vn3] = domNext;
+  space.vardoms[varName3] = domNext;
 
   return domain_getChangeState(domNext, dom3);
 }
 
-function _propagator_markov(space, vn1) {
-  return propagator_markovStepBare(space, vn1);
+function _propagator_markov(space, varName1) {
+  return propagator_markovStepBare(space, varName1);
 }
 
 // BODY_STOP

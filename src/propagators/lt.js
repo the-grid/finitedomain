@@ -147,13 +147,12 @@ function propagator_ltStepWouldReject(dom1, dom2) {
  * only shrink we can assume that the lt constraint will not
  * be broken by searching further once this state is seen.
  *
- * @param {Space} space
- * @param {string} varName1
- * @param {string} varName2
- * @returns {*}
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
  */
-function propagator_ltSolved(space, varName1, varName2) {
-  return domain_max(space.vardoms[varName1]) < domain_min(space.vardoms[varName2]);
+function propagator_ltSolved(domain1, domain2) {
+  return domain_max(domain1) < domain_min(domain2);
 }
 
 // BODY_STOP

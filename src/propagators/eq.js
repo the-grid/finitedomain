@@ -1,16 +1,3 @@
-/*
-
-domains, internally, can be either an array or a number
-if its a number then that's a bitwise flag for a range of [0,15]
-
-spaces track var ranges through a single object; name: domain
-domains should probably be tracked centrally
-
-manually computed domains can lead to duplication but that's
-deduping will still lead to saving on cloning
-
- */
-
 import {
   EMPTY,
   NO_CHANGES,
@@ -117,13 +104,12 @@ function propagator_eqStepWouldReject(dom1, dom2) {
  * An eq propagator is solved when both its vars are
  * solved. Any other state may still lead to failure.
  *
- * @param {Space} space
- * @param {string} varName1
- * @param {string} varName2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_eqSolved(space, varName1, varName2) {
-  return domain_isSolved(space.vardoms[varName1]) && domain_isSolved(space.vardoms[varName2]);
+function propagator_eqSolved(domain1, domain2) {
+  return domain_isSolved(domain1) && domain_isSolved(domain2);
 }
 
 // BODY_STOP

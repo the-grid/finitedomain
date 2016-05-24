@@ -45,9 +45,12 @@ import {
 
 function propagator_isSolved(space, propagator) {
   let varNames = propagator[PROP_VNAMES];
-  let op_name = propagator[PROP_PNAME];
+  let opName = propagator[PROP_PNAME];
 
-  switch (op_name) {
+  let domain1 = space.vardoms[varNames[0]];
+  let domain2 = space.vardoms[varNames[1]];
+
+  switch (opName) {
     case 'reified':
       // once a bool_var resolves its owner reified prop resolves when
       // the original op or inv op (depending on bool_var) resolves
@@ -59,14 +62,14 @@ function propagator_isSolved(space, propagator) {
       ASSERT(typeof propagator[PROP_ARG1] === 'string', 'OP_NAME_SHOULD_BE_STRING');
       ASSERT(typeof propagator[PROP_ARG2] === 'string', 'NOP_NAME_SHOULD_BE_STRING');
 
-      if (domain3 === ONE) return _propagator_comparisonIsSolved(space, propagator[PROP_ARG1], varNames[0], varNames[1]); // untested (ARG2 here wont fail a test)
-      if (domain3 === ZERO) return _propagator_comparisonIsSolved(space, propagator[PROP_ARG2], varNames[0], varNames[1]); // untested (ARG1 here wont fail a test)
+      if (domain3 === ONE) return _propagator_comparisonIsSolved(propagator[PROP_ARG1], domain1, domain2); // untested (ARG2 here wont fail a test)
+      if (domain3 === ZERO) return _propagator_comparisonIsSolved(propagator[PROP_ARG2], domain1, domain2); // untested (ARG1 here wont fail a test)
 
       ASSERT(domain3 === BOOL, 'UNSOLVED_SHOULD_BE_BOOL');
       return false;
 
     case 'ring':
-      if (domain_isSolved(space.vardoms[varNames[0]]) && domain_isSolved(space.vardoms[varNames[1]])) {
+      if (domain_isSolved(domain1) && domain_isSolved(domain2)) {
         ASSERT(!varNames[2] || domain_isSolved(space.vardoms[varNames[2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
         return true;
       }
@@ -90,29 +93,29 @@ function propagator_isSolved(space, propagator) {
       return false;
 
     default:
-      return _propagator_comparisonIsSolved(space, op_name, varNames[0], varNames[1]);
+      return _propagator_comparisonIsSolved(opName, domain1, domain2);
   }
 }
 
-function _propagator_comparisonIsSolved(space, op, varName1, varName2) {
+function _propagator_comparisonIsSolved(op, domain1, domain2) {
   switch (op) {
     case 'lt':
-      return propagator_ltSolved(space, varName1, varName2);
+      return propagator_ltSolved(domain1, domain2);
 
     case 'lte':
-      return propagator_lteSolved(space, varName1, varName2);
+      return propagator_lteSolved(domain1, domain2);
 
     case 'gt':
-      return propagator_ltSolved(space, varName2, varName1);
+      return propagator_ltSolved(domain1, domain2);
 
     case 'gte':
-      return propagator_lteSolved(space, varName1, varName2);
+      return propagator_lteSolved(domain1, domain2);
 
     case 'eq':
-      return propagator_eqSolved(space, varName1, varName2);
+      return propagator_eqSolved(domain1, domain2);
 
     case 'neq':
-      return propagator_neqSolved(space, varName1, varName2);
+      return propagator_neqSolved(domain1, domain2);
   }
 
   return THROW('unknown comparison op', op);

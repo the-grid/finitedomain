@@ -102,13 +102,12 @@ function propagator_neqStepWouldReject(dom1, dom2) {
 /**
  * neq is solved if all values in both vars only occur in one var each
  *
- * @param {Space} space
- * @param {string} varName1
- * @param {string} varName2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_neqSolved(space, varName1, varName2) {
-  return domain_sharesNoElements(space.vardoms[varName1], space.vardoms[varName2]);
+function propagator_neqSolved(domain1, domain2) {
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 // BODY_STOP

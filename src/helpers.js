@@ -177,13 +177,13 @@ function GET_NAME(e) {
 // @returns {string[]}
 
 function GET_NAMES(es) {
-  let var_names = [];
+  let varNames = [];
   for (let i = 0; i < es.length; i++) {
-    let e = es[i];
-    var_names.push(GET_NAME(e));
+    let varName = es[i];
+    varNames.push(GET_NAME(varName));
   }
 
-  return var_names;
+  return varNames;
 }
 
 // Abstraction for throwing because throw statements cause deoptimizations

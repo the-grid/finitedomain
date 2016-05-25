@@ -1298,34 +1298,44 @@ function domain_removeGteNumbered(domain, value) {
  * Returns whether the domain was changed somehow. Does not returned REJECTED
  * because propagator_ltStepBare will check this... I don't like that but it
  * still is the reason.
+ * Does not harm domain.
  *
  * @param {$domain} domain
  * @param {number} value
- * @returns {boolean}
+ * @returns {$domain|number}
  */
-function domain_removeGteInline(domain, value) {
+function domain_removeGte(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
   ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
 
-  let len = domain.length;
-  let i = len - PAIR_SIZE;
-  while (i >= 0 && domain[i] >= value) {
-    i -= PAIR_SIZE;
-  }
+  let i = 0;
+  for (; i < domain.length; i += PAIR_SIZE) {
+    // case: v=5
+    // 012 456 // => 012 4 *
+    // 012 45  // => 012 4 *
+    // 012 567 // => 012 *
+    // 012 5   // => 012 *
+    // 012 678 // => 012 *
+    // 012     // => NONE *
+    // 678     // => empty *
 
-  if (i < 0) {
-    domain.length = 0;
-    return len !== 0;
-  }
+    let lo = domain[i];
+    let hi = domain[i + 1];
 
-  domain.length = i + PAIR_SIZE;
-  if (domain[i + 1] >= value) {
-    domain[i + 1] = value - 1; // we already know domain[i] < value so value-1 >= SUB
-    return true;
+    if (lo > value) {
+      if (!i) return []; // 678 -> empty
+      return domain.slice(0, i); // 012 789
+    }
+    if (lo === value) {
+      return domain.slice(0, i);
+    } // 012 567 -> 012, 012 5 -> 012
+    if (value <= hi) { // 012 456 -> 012 4, 012 45 -> 012 4
+      let newDomain = domain.slice(0, i + 1);
+      newDomain.push(value - 1);
+      return newDomain;
+    }
   }
-
-  return len !== i + PAIR_SIZE;
+  return NO_SUCH_VALUE; // 012 -> 012
 }
 
 function domain_removeLteNumbered(domain, value) {
@@ -1855,7 +1865,7 @@ export {
   domain_mul,
   domain_numarr,
   domain_plus,
-  domain_removeGteInline,
+  domain_removeGte,
   domain_removeGteNumbered,
   domain_removeLteInline,
   domain_removeLteNumbered,

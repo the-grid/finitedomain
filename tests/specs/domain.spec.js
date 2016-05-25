@@ -20,6 +20,7 @@ import {
   NOT_FOUND,
 
   //domain_sharesNoElements,
+  domain_clone,
   domain_closeGapsInline,
   domain_complement,
   domain_containsValue,
@@ -43,7 +44,7 @@ import {
   //domain_min,
   domain_minus,
   domain_plus,
-  domain_removeGteInline,
+  domain_removeGte,
   domain_removeLteInline,
   domain_removeNextFromList,
   domain_removeValueInline,
@@ -2055,83 +2056,64 @@ describe('domain.spec', function() {
     });
   });
 
-  describe('domain_removeGteInline', function() {
+  describe('domain_removeGte', function() {
 
     it('should exist', function() {
-      expect(domain_removeGteInline).to.be.a('function');
+      expect(domain_removeGte).to.be.a('function');
     });
 
     it('should accept an empty domain', function() {
-      expect(() => domain_removeGteInline([], 5)).not.to.throw();
+      expect(() => domain_removeGte([], 5)).not.to.throw();
     });
 
-    it('should return bool', function() {
-      expect(domain_removeGteInline([], 5), 'empty').to.equal(false);
-      expect(domain_removeGteInline([0, 10], 5), 'range change').to.equal(true);
-      expect(domain_removeGteInline([50, 100], 5), 'range cut').to.equal(true);
+
+    // case: v=5
+    // 012 456 // => 012 4 *
+    // 012 45  // => 012 4 *
+    // 012 567 // => 012 *
+    // 012 5   // => 012 *
+    // 012 678 // => 012 *
+    // 012     // => NONE *
+    // 678     // => empty *
+
+    describe('with array', function() {
+
+      function gteTest(domain, value, expected) {
+        it(`should gte [${domain}] >= ${value} -> [${expected}]`, function() {
+          let clone = domain_clone(domain);
+          let result = domain_removeGte(domain, value);
+
+          expect(result).to.eql(expected);
+          expect(domain).to.eql(clone);
+        });
+      }
+
+      gteTest(specDomainCreateRanges([100, 110]), 105, specDomainCreateRanges([100, 104]));
+      gteTest(specDomainCreateRanges([100, 102], [104, 106]), 105, specDomainCreateRanges([100, 102], [104, 104]));
+      gteTest(specDomainCreateRanges([100, 102], [104, 105]), 105, specDomainCreateRanges([100, 102], [104, 104]));
+      gteTest(specDomainCreateRanges([100, 102], [105, 107]), 105, specDomainCreateRanges([100, 102]));
+      gteTest(specDomainCreateRanges([100, 102], [105, 105]), 105, specDomainCreateRanges([100, 102]));
+      gteTest(specDomainCreateRanges([100, 102], [106, 108]), 105, specDomainCreateRanges([100, 102]));
+      gteTest(specDomainCreateRanges([100, 102]), 105, NO_SUCH_VALUE);
+      gteTest(specDomainCreateRanges([106, 108]), 105, []);
     });
 
-    it('should trim domain until all values are lt to arg', function() {
-      let domain = specDomainCreateRange(100, 200);
-      domain_removeGteInline(domain, 150);
+    describe('with numbers', function() {
 
-      expect(domain).to.eql(specDomainCreateRange(100, 149));
-    });
+      function gteTest(domain, value, expected) {
+        it(`should throw for numbered domains gte [${domain}] >= ${value} -> [${expected}]`, function() {
+          expect(_ => domain_removeGte(domain, value)).to.throw('NOT_USED_WITH_NUMBERS');
+        });
+      }
 
-    it('should remove excess ranges', function() {
-      let domain = specDomainCreateRanges([100, 200], [300, 400]);
-      domain_removeGteInline(domain, 150);
-
-      expect(domain).to.eql(specDomainCreateRange(100, 149));
-    });
-
-    it('should not require a range to contain the value', function() {
-      let domain = specDomainCreateRanges([100, 200], [300, 400]);
-      domain_removeGteInline(domain, 250);
-
-      expect(domain).to.eql(specDomainCreateRange(100, 200));
-    });
-
-    it('should not require a domain to contain value at all', function() {
-      let domain = specDomainCreateRanges([100, 200], [300, 400]);
-      domain_removeGteInline(domain, 500);
-
-      expect(domain).to.eql(specDomainCreateRanges([100, 200], [300, 400]));
-    });
-
-    it('should be able to empty a single domain', function() {
-      let domain = specDomainCreateRange(100, 200);
-      domain_removeGteInline(domain, 50);
-
-      expect(domain).to.eql([]);
-    });
-
-    it('should be able to empty a multi domain', function() {
-      let domain = specDomainCreateRanges([100, 200], [300, 400]);
-      domain_removeGteInline(domain, 50);
-
-      expect(domain).to.eql([]);
-    });
-
-    it('should be able to empty a domain containing only given value', function() {
-      let domain = specDomainCreateValue(50);
-      domain_removeGteInline(domain, 50);
-
-      expect(domain).to.eql([]);
-    });
-
-    it('should be able to empty a domain containing only given value+1', function() {
-      let domain = specDomainCreateValue(51);
-      domain_removeGteInline(domain, 50);
-
-      expect(domain).to.eql([]);
-    });
-
-    it('should ignore a domain with only value-1', function() {
-      let domain = specDomainCreateValue(49);
-      domain_removeGteInline(domain, 50);
-
-      expect(domain).to.eql(specDomainCreateValue(49));
+      gteTest(specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 5, specDomainSmallNums(0, 1, 2, 3, 4));
+      gteTest(specDomainSmallNums(0, 1, 2, 4, 5, 6), 5, specDomainSmallNums(0, 1, 2, 4));
+      gteTest(specDomainSmallNums(0, 1, 2, 4, 5), 5, specDomainSmallNums(0, 1, 2, 4));
+      gteTest(specDomainSmallNums(0, 1, 2, 5, 6, 7), 5, specDomainSmallNums(0, 1, 2));
+      gteTest(specDomainSmallNums(0, 1, 2, 5), 5, specDomainSmallNums(0, 1, 2));
+      gteTest(specDomainSmallNums(0, 1, 2, 6, 7, 8), 5, specDomainSmallNums(0, 1, 2));
+      gteTest(specDomainSmallNums(0, 1, 2), 5, NO_SUCH_VALUE);
+      gteTest(specDomainSmallNums(6, 7, 8), 5, specDomainSmallEmpty());
     });
   });
 

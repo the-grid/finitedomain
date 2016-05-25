@@ -1,5 +1,6 @@
 import {
   NO_CHANGES,
+  NO_SUCH_VALUE,
   REJECTED,
   SOME_CHANGES,
 
@@ -13,7 +14,7 @@ import {
   domain_min,
   domain_numarr,
   domain_removeGteNumbered,
-  domain_removeGteInline,
+  domain_removeGte,
   domain_removeLteNumbered,
   domain_removeLteInline,
 } from '../domain';
@@ -78,9 +79,10 @@ function propagator_ltStepBare(space, varName1, varName2) {
         }
       }
     } else {
-      if (domain_removeGteInline(domain1, hi2)) {
-        space.vardoms[varName1] = domain_numarr(domain1);
-        if (domain_isRejected(domain1)) { // TODO: there is no test throwing when you remove this check
+      let newDomain = domain_removeGte(domain1, hi2);
+      if (newDomain !== NO_SUCH_VALUE) {
+        space.vardoms[varName1] = domain_numarr(newDomain);
+        if (domain_isRejected(newDomain)) { // TODO: there is no test throwing when you remove this check
           leftChanged = REJECTED;
         } else {
           leftChanged = SOME_CHANGES;

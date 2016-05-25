@@ -22,8 +22,6 @@ import {
 
 // BODY_START
 
-let INLINE = true;
-let NOT_INLINE = false;
 let PREV_CHANGED = true;
 let FORCE_ARRAY = true;
 
@@ -425,48 +423,20 @@ function domain_complement(domain) {
 /**
  * All ranges will be ordered ascending and overlapping ranges are merged
  * This function first checks whether simplification is needed at all
- * If replaceInline is NOT_INLINE the input domain is deeply cloned first, regardless
  *
- * @param {$pairs|$domain} domain TODO: document a $pairs as number[] and describe their special case (=> not normalized)
- * @param {boolean} replaceInline
+ * @param {$pairs|$domain} domain
  * @returns {$domain}
  */
-function domain_simplify(domain, replaceInline = NOT_INLINE) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS'); // would return itself, anyways
-
-  // ASSERT_DOMAIN domain # the whole point of this func is to simplify so this assert wont hold
-
-  // deep clone if not inline because ranges are adjusted inline when merging
-  // we could interweave this step with domain_mergeOverlappingInline, not sure if it changes much
-  if (replaceInline === NOT_INLINE) {
-    domain = domain_clone(domain);
-  }
+function domain_simplifyInline(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(domain !== undefined, 'DOMAIN_REQUIRED');
 
   if (domain.length === 0) {
     return domain;
   }
 
-  // TODO: perf check; before there was a large memory overhead but i think that's taken care of now. the extra check-loop may not be worth it
-  if (!domain_isSimplified(domain)) {
-    domain_simplifyInline(domain);
-  }
-
-  ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(domain);
-  return domain;
-}
-
-/**
- * Given a set of ranges (domain) turns them into CSIS form
- * This function sorts and loops unconditionally
- *
- * @param {$pairs} domain
- * @returns {$domain}
- */
-function domain_simplifyInline(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
   // order ranges by lower bound, ascending (inline regardless)
-  domain_sortByRange(domain);
+  domain_sortByRangeInline(domain);
 
   return domain_mergeOverlappingInline(domain);
 }
@@ -474,7 +444,7 @@ function domain_simplifyInline(domain) {
 /**
  * @param {$domain} domain
  */
-function domain_sortByRange(domain) {
+function domain_sortByRangeInline(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   let len = domain.length;
@@ -493,7 +463,7 @@ function _domain_quickSortInline(domain, first, last) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   if (first < last) {
-    let pivot = _domain_partition(domain, first, last);
+    let pivot = _domain_partitionInline(domain, first, last);
     _domain_quickSortInline(domain, first, pivot - PAIR_SIZE);
     _domain_quickSortInline(domain, pivot + PAIR_SIZE, last);
   }
@@ -505,7 +475,7 @@ function _domain_quickSortInline(domain, first, last) {
  * @param {number} last
  * @returns {number}
  */
-function _domain_partition(domain, first, last) {
+function _domain_partitionInline(domain, first, last) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   let pivotIndex = last;
@@ -648,7 +618,6 @@ function domain_intersection(domain1, domain2) {
   ASSERT_DOMAIN(domain2);
   let result = [];
   _domain_intersection(domain1, domain2, result);
-  domain_simplify(result); // TODO: make inline
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(result);
   return result;
 }
@@ -910,7 +879,7 @@ function domain_plus(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -942,7 +911,7 @@ function domain_mul(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -981,7 +950,7 @@ function domain_minus(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -1047,7 +1016,7 @@ function domain_divby(domain1, domain2, floorFractions = true) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -1833,9 +1802,7 @@ function domain_getChangeState(newDom, oldDom) {
 
 export {
   NO_CHANGES,
-  INLINE,
   NOT_FOUND,
-  NOT_INLINE,
   PAIR_SIZE,
   PREV_CHANGED,
   SOME_CHANGES,
@@ -1896,7 +1863,7 @@ export {
   domain_removeValueInline,
   domain_removeValueNumbered,
   domain_setToRangeInline,
-  domain_simplify,
+  domain_simplifyInline,
   domain_size,
   domain_toArr,
   domain_toList,
@@ -1906,6 +1873,6 @@ export {
   domain_rangeIndexOf,
   domain_isSimplified,
   domain_mergeOverlappingInline,
-  domain_sortByRange,
+  domain_sortByRangeInline,
   // __REMOVE_ABOVE_FOR_DIST__
 };

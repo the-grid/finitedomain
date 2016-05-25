@@ -26,7 +26,7 @@ import {
   //domain_createRange,
   //domain_createValue,
   domain_divby,
-  domain_equal,
+  domain_isEqual,
   domain_forceEqInline,
   domain_fromList,
   //domain_fromFlags,
@@ -1048,44 +1048,44 @@ describe('domain.spec', function() {
   describe('domain_equal', function() {
 
     it('should exist', function() {
-      expect(domain_equal).to.be.a('function');
+      expect(domain_isEqual).to.be.a('function');
     });
 
     describe('with arrays', function() {
 
       it('should return false unconditionally if domain lengths are unequal', function() {
-        expect(domain_equal(specDomainCreateEmpty(), specDomainCreateRange(91, 910))).to.equal(false);
-        expect(domain_equal(specDomainCreateRange(91, 100), specDomainCreateEmpty())).to.equal(false);
-        expect(domain_equal(specDomainCreateRanges([91, 91], [100, 100]), specDomainCreateRange(91, 91))).to.equal(false);
+        expect(domain_isEqual(specDomainCreateEmpty(), specDomainCreateRange(91, 910))).to.equal(false);
+        expect(domain_isEqual(specDomainCreateRange(91, 100), specDomainCreateEmpty())).to.equal(false);
+        expect(domain_isEqual(specDomainCreateRanges([91, 91], [100, 100]), specDomainCreateRange(91, 91))).to.equal(false);
       });
 
       it('should be able to compare single element domains', function() {
-        expect(domain_equal(specDomainCreateRange(32, 84), specDomainCreateRange(32, 84))).to.equal(true);
+        expect(domain_isEqual(specDomainCreateRange(32, 84), specDomainCreateRange(32, 84))).to.equal(true);
       });
 
       it('should return true for same reference', function() {
         let domain = specDomainCreateRange(32, 84);
 
-        expect(domain_equal(domain, domain)).to.equal(true);
+        expect(domain_isEqual(domain, domain)).to.equal(true);
       });
 
       it('should reject if any bound is different', function() {
-        expect(domain_equal(specDomainCreateRange(1, 84), specDomainCreateRange(32, 84))).to.equal(false);
-        expect(domain_equal(specDomainCreateRange(1, 84), specDomainCreateRange(1, 34))).to.equal(false);
-        expect(domain_equal(specDomainCreateRange(32, 100), specDomainCreateRange(132, 184))).to.equal(false);
+        expect(domain_isEqual(specDomainCreateRange(1, 84), specDomainCreateRange(32, 84))).to.equal(false);
+        expect(domain_isEqual(specDomainCreateRange(1, 84), specDomainCreateRange(1, 34))).to.equal(false);
+        expect(domain_isEqual(specDomainCreateRange(32, 100), specDomainCreateRange(132, 184))).to.equal(false);
       });
 
       it('should be able to deep comparison accept', function() {
         let A = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
         let B = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
-        expect(domain_equal(A, B)).to.equal(true);
+        expect(domain_isEqual(A, B)).to.equal(true);
       });
 
       it('should be able to deep comparison reject', function() {
         let A = specDomainCreateRanges([1, 1], [3, 21], [26, 39], [54, 67], [70, 84], [88, 107]);
         let B = specDomainCreateRanges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
 
-        expect(domain_equal(A, B)).to.equal(false);
+        expect(domain_isEqual(A, B)).to.equal(false);
       });
     });
 
@@ -1095,14 +1095,14 @@ describe('domain.spec', function() {
         let A = specDomainSmallNums(2, 3, 6, 7, 8);
         let B = specDomainSmallNums(2, 3, 6, 7, 8);
 
-        expect(domain_equal(A, B)).to.equal(true);
+        expect(domain_isEqual(A, B)).to.equal(true);
       });
 
       it('should do a direct comparison if both args are numbers', function() {
         let A = specDomainSmallNums(2, 3, 6, 7, 8);
         let B = specDomainSmallNums(1, 3, 6, 7, 8);
 
-        expect(domain_equal(A, B)).to.equal(false);
+        expect(domain_isEqual(A, B)).to.equal(false);
       });
     });
   });

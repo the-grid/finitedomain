@@ -623,6 +623,8 @@ function domain_intersection(domain1, domain2) {
 }
 
 /**
+ * Recursively calls itself
+ *
  * @param {$domain} dom1
  * @param {$domain} dom2
  * @param {$domain} result
@@ -671,11 +673,13 @@ function _domain_intersection(dom1, dom2, result) {
 }
 
 /**
+ * Add the intersection of two domains to result domain
+ *
  * @param {number} lo1
  * @param {number} hi1
  * @param {number} lo2
  * @param {number} hi2
- * @param result
+ * @param {$domain} result
  */
 function _domain_intersectRangeBound(lo1, hi1, lo2, hi2, result) {
   let min = MAX(lo1, lo2);
@@ -686,6 +690,8 @@ function _domain_intersectRangeBound(lo1, hi1, lo2, hi2, result) {
 }
 
 /**
+ * Does not update domain, updates result
+ *
  * @param {$domain} domain
  * @param {number} lo
  * @param {number} hi
@@ -710,7 +716,7 @@ function domain_intersectBoundsInto(domain, lo, hi, result) {
  * @param {$domain} domain2
  * @returns {boolean}
  */
-function domain_equal(domain1, domain2) {
+function domain_isEqual(domain1, domain2) {
   if (domain1 === domain2) return true;
 
   // for simplicity sake, convert them back to arrays
@@ -729,21 +735,21 @@ function domain_equal(domain1, domain2) {
     return true;
   }
 
-  return _domain_equal(domain1, domain2, len);
+  return _domain_isEqual(domain1, domain2, len);
 }
 
 /**
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @param {number} len
  * @returns {boolean}
  */
-function _domain_equal(dom1, dom2, len) {
-  ASSERT(typeof dom1 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof dom2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+function _domain_isEqual(domain1, domain2, len) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   for (let i = 0; i < len; ++i) {
-    if (dom1[i] !== dom2[i]) {
+    if (domain1[i] !== domain2[i]) {
       return false;
     }
   }
@@ -753,6 +759,7 @@ function _domain_equal(dom1, dom2, len) {
 /**
  * Closes all the gaps between the intervals according to
  * the given gap value. All gaps less than this gap are closed.
+ * Domain is not harmed
  *
  * @param {$domain} domain
  * @param {number} gap
@@ -815,26 +822,26 @@ function _domain_smallestIntervalWidth(domain) {
  * number of domain segments helps reduce the N^2 complexity of
  * the subsequent domain consistent interval addition method.
  *
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {$domain}
  */
-function _domain_closeGaps2(dom1, dom2) {
-  ASSERT(typeof dom1 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof dom2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+function _domain_closeGaps2(domain1, domain2) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
 
-  ASSERT_DOMAIN(dom1);
-  ASSERT_DOMAIN(dom2);
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
   while (true) {
     let change = NO_CHANGES;
 
-    let domain = domain_closeGapsFresh(dom1, _domain_smallestIntervalWidth(dom2));
-    change += dom1.length - domain.length;
-    dom1 = domain;
+    let domain = domain_closeGapsFresh(domain1, _domain_smallestIntervalWidth(domain2));
+    change += domain1.length - domain.length;
+    domain1 = domain;
 
-    domain = domain_closeGapsFresh(dom2, _domain_smallestIntervalWidth(dom1));
-    change += dom2.length - domain.length;
-    dom2 = domain;
+    domain = domain_closeGapsFresh(domain2, _domain_smallestIntervalWidth(domain1));
+    change += domain2.length - domain.length;
+    domain2 = domain;
 
     if (change === NO_CHANGES) {
       break;
@@ -842,12 +849,14 @@ function _domain_closeGaps2(dom1, dom2) {
   }
 
   return [
-    dom1,
-    dom2,
+    domain1,
+    domain2,
   ];
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
@@ -883,6 +892,8 @@ function domain_plus(domain1, domain2) {
 }
 
 /**
+ * Does not harm input domains
+ *
  * Note that this one isn't domain consistent.
  *
  * @param {$domain} domain1
@@ -915,6 +926,8 @@ function domain_mul(domain1, domain2) {
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
@@ -960,8 +973,10 @@ function domain_minus(domain1, domain2) {
  * This is an expensive operation.
  * Zero is a special case.
  *
- * @param domain1
- * @param domain2
+ * Does not harm input domains
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
  *         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
  *         <2,2>, otherwise it will not include anything for that division.
@@ -1794,7 +1809,7 @@ function domain_numarr(domain) {
  */
 function domain_getChangeState(newDom, oldDom) {
   if (domain_isRejected(newDom)) return REJECTED;
-  if (domain_equal(newDom, oldDom)) return NO_CHANGES;
+  if (domain_isEqual(newDom, oldDom)) return NO_CHANGES;
   return SOME_CHANGES;
 }
 
@@ -1834,7 +1849,7 @@ export {
   domain_createRange,
   domain_createValue,
   domain_divby,
-  domain_equal,
+  domain_isEqual,
   domain_forceEqInline,
   domain_forceEqNumbered,
   domain_fromFlags,

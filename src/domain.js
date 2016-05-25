@@ -1166,21 +1166,6 @@ function domain_max(domain) {
   return domain[domain.length - 1];
 }
 
-/**
- * @param {$domain} domain
- * @param {number} lo
- * @param {number} hi
- */
-function domain_setToRangeInline(domain, lo, hi) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  ASSERT_DOMAIN(domain);
-  ASSERT(lo <= hi, 'lo/hi should be ordered!', [lo, hi]);
-  domain[LO_BOUND] = lo;
-  domain[HI_BOUND] = hi;
-  domain.length = PAIR_SIZE;
-}
-
 function domain_hammingWeight(domain) { // "count number of bits set"
   // http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer/109025#109025
 
@@ -1877,7 +1862,6 @@ export {
   domain_removeNextFromList,
   domain_removeValueInline,
   domain_removeValueNumbered,
-  domain_setToRangeInline,
   domain_simplifyInline,
   domain_size,
   domain_toArr,

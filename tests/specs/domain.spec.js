@@ -47,7 +47,6 @@ import {
   domain_removeLteInline,
   domain_removeNextFromList,
   domain_removeValueInline,
-  domain_setToRangeInline,
   domain_simplifyInline,
   domain_size,
   domain_mul,
@@ -1951,64 +1950,6 @@ describe('domain.spec', function() {
       it('should return false for empty', function() {
         expect(domain_isDetermined(specDomainSmallEmpty())).to.equal(true);
       });
-    });
-  });
-
-  describe('domain_setToRangeInline', function() {
-
-    it('should exist', function() {
-      expect(domain_setToRangeInline).to.be.a('function');
-    });
-
-    it('should not work with numbered domains', function() {
-      expect(_ => domain_setToRangeInline(specDomainSmallNums(12, 14), 0, 0)).to.throw('NOT_USED_WITH_NUMBERS');
-    });
-
-    it('should update a domain to given range', function() {
-      let arr = [];
-      domain_setToRangeInline(arr, 0, 0);
-      expect(arr).to.eql(specDomainCreateRange(0, 0, true));
-
-      arr = [];
-      domain_setToRangeInline(arr, 0, 1);
-      expect(arr).to.eql(specDomainCreateRange(0, 1, true));
-
-      arr = [];
-      domain_setToRangeInline(arr, 50, 100);
-      expect(arr).to.eql(specDomainCreateRange(50, 100));
-
-      arr = [];
-      domain_setToRangeInline(arr, 0, SUP);
-      expect(arr).to.eql(specDomainCreateRange(0, SUP));
-
-      arr = [];
-      domain_setToRangeInline(arr, SUP, SUP);
-      expect(arr).to.eql(specDomainCreateRange(SUP, SUP));
-    });
-
-    it('should throw for imblalanced ranges', function() {
-      expect(() => domain_setToRangeInline([], 27, 0)).to.throw();
-    });
-
-    it('should update the array inline', function() {
-      let arr = specDomainCreateEmpty(1);
-      domain_setToRangeInline(arr, 90, 91);
-
-      expect(arr).to.eql(specDomainCreateRange(90, 91));
-    });
-
-    it('should clobber existing values', function() {
-      let arr = specDomainCreateRange(50, 100);
-      domain_setToRangeInline(arr, 90, 91);
-
-      expect(arr).to.eql(specDomainCreateRange(90, 91));
-    });
-
-    it('should ensure the result is one range', function() {
-      let arr = specDomainCreateRanges([50, 100], [150, 200], [300, 500]);
-      domain_setToRangeInline(arr, 110, 175);
-
-      expect(arr).to.eql(specDomainCreateRange(110, 175));
     });
   });
 

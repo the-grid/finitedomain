@@ -259,8 +259,8 @@ function domain_fromFlags(domain) {
  */
 function domain_toList(domain) {
   if (typeof domain === 'number') {
-    var a = [];
-    for (var i = 0; i < 16; ++i) {
+    let a = [];
+    for (let i = 0; i < 16; ++i) {
       if ((domain & NUMBER[i]) > 0) a.push(i);
     }
     return a;
@@ -313,28 +313,10 @@ function domain_removeNextFromList(domain, list) {
 }
 
 /**
- * Return a clone of given domain. If value is contained in domain, the clone
- * will not contain it. This is an optimization to basically prevent splicing.
- *
- * @param {$domain} domain
- * @param {number} value
- * @returns {$domain}
- */
-function domain_deepCloneWithoutValue(domain, value) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  let index = domain_rangeIndexOf(domain, value);
-  if (index >= 0) {
-    return _domain_deepCloneWithoutValue(domain, value, index);
-  }
-  // regular slice > *
-  return domain.slice(0);
-}
-
-/**
- * Same as domain_deepCloneWithoutValue but requires the first
- * rangeIndex whose lo is bigger than or equal to value
+ * Return domain but without the value at given rangeIndex.
+ * Does not update inline.
+ * The rangeIndex should already be known and correct and
+ * be the index of the lo of the range containing value.
  *
  * @param {$domain} domain
  * @param {number} value
@@ -343,8 +325,12 @@ function domain_deepCloneWithoutValue(domain, value) {
  */
 function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
+  ASSERT(typeof value === 'number', 'VALUE_MUST_BE_A_NUMBER');
+  ASSERT(typeof rangeIndex === 'number', 'RANGE_INDEX_MUST_BE_A_NUMBER');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT(domain[rangeIndex] <= value, 'RANGE_LO_MUST_BE_LTE_VALUE');
+  ASSERT(domain[rangeIndex + 1] >= value, 'RANGE_HI_MUST_BE_GTE_VALUE');
+
   // we have the range offset that should contain the value. the clone wont
   // affect ranges before or after. but we want to prevent a splice or shifts, so:
   let result;
@@ -1880,7 +1866,6 @@ export {
   domain_containsValue,
   domain_createRange,
   domain_createValue,
-  domain_deepCloneWithoutValue,
   domain_divby,
   domain_equal,
   domain_forceEqInline,

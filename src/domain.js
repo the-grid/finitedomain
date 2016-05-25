@@ -1311,13 +1311,13 @@ function domain_removeGte(domain, value) {
   let i = 0;
   for (; i < domain.length; i += PAIR_SIZE) {
     // case: v=5
-    // 012 456 // => 012 4 *
-    // 012 45  // => 012 4 *
-    // 012 567 // => 012 *
-    // 012 5   // => 012 *
-    // 012 678 // => 012 *
-    // 012     // => NONE *
-    // 678     // => empty *
+    // 012 456 // => 012 4
+    // 012 45  // => 012 4
+    // 012 567 // => 012
+    // 012 5   // => 012
+    // 012 678 // => 012
+    // 012     // => NONE
+    // 678     // => empty
 
     let lo = domain[i];
     let hi = domain[i + 1];
@@ -1362,42 +1362,46 @@ function domain_removeLteNumbered(domain, value) {
  * search for the first range that is smaller or contains given value. Prune
  * any range that preceeds it and trim the found range if it contains the value.
  * Returns whether the domain was changed somehow
+ * Does not harm domain
  *
  * @param {$domain} domain
  * @param {number} value
  * @returns {boolean}
  */
-function domain_removeLteInline(domain, value) {
+function domain_removeLte(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
   ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
 
-  let len = domain.length;
   let i = 0;
-  while (i < len && domain[i + 1] <= value) {
-    i += PAIR_SIZE;
-  }
+  for (; i < domain.length; i += PAIR_SIZE) {
+    // case: v=5
+    // 456 89 => 6 89
+    // 45 89  => 89
+    // 56 89  => 6 89
+    // 5  89  => 5 89
+    // 6788   => 67 9
+    // 789    => NONE
+    // 012    => empty
 
-  if (i >= len) {
-    domain.length = 0;
-    return len !== 0;
-  }
+    let lo = domain[i];
+    let hi = domain[i + 1];
 
-  // move all elements to the front
-  let n = 0;
-  for (let index = i; index < len; ++index) {
-    domain[n++] = domain[index];
+    if (lo > value) {
+      if (!i) return NO_SUCH_VALUE; // 012 -> 012
+      return domain.slice(i); // 678 -> 678
+    }
+    if (hi === value) {
+      // 45 89  => 89, 5  89  => 5 89
+      return domain.slice(i + PAIR_SIZE);
+    }
+    if (value <= hi) {
+      // 456 89 => 6 89, 56 89 => 6 89
+      let newDomain = domain.slice(i);
+      newDomain[0] = value + 1;
+      return newDomain;
+    }
   }
-  // trim excess space. we just moved them
-  domain.length = n;
-
-  // note: first range should be lt or lte to value now since we moved everything
-  if (domain[FIRST_RANGE_LO] <= value) {
-    domain[FIRST_RANGE_LO] = value + 1;
-    return true;
-  }
-
-  return len !== n;
+  return []; // 012 -> empty
 }
 
 /**
@@ -1867,7 +1871,7 @@ export {
   domain_plus,
   domain_removeGte,
   domain_removeGteNumbered,
-  domain_removeLteInline,
+  domain_removeLte,
   domain_removeLteNumbered,
   domain_removeNextFromList,
   domain_removeValueInline,

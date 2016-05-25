@@ -16,7 +16,7 @@ import {
   domain_removeGteNumbered,
   domain_removeGte,
   domain_removeLteNumbered,
-  domain_removeLteInline,
+  domain_removeLte,
 } from '../domain';
 
 // BODY_START
@@ -87,8 +87,6 @@ function propagator_ltStepBare(space, varName1, varName2) {
         } else {
           leftChanged = SOME_CHANGES;
         }
-      } else {
-        leftChanged = NO_CHANGES;
       }
     }
   }
@@ -109,14 +107,14 @@ function propagator_ltStepBare(space, varName1, varName2) {
         }
       }
     } else {
-      if (domain_removeLteInline(domain2, lo1)) {
-        space.vardoms[varName2] = domain_numarr(domain2);
-        rightChanged = SOME_CHANGES;
+      let newDomain = domain_removeLte(domain2, lo1);
+      if (newDomain !== NO_SUCH_VALUE) {
+        space.vardoms[varName2] = domain_numarr(newDomain);
         if (domain_isRejected(domain2)) { // TODO: there is no test covering this
           leftChanged = REJECTED;
+        } else {
+          rightChanged = SOME_CHANGES;
         }
-      } else {
-        rightChanged = NO_CHANGES;
       }
     }
   }

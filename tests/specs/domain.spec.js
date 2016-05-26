@@ -45,7 +45,8 @@ import {
   domain_removeGte,
   domain_removeLte,
   domain_removeNextFromList,
-  domain_removeValueInline,
+  domain_removeValueNumbered,
+  domain_removeValue,
   domain_simplifyInline,
   domain_size,
   domain_mul,
@@ -635,40 +636,98 @@ describe('domain.spec', function() {
     });
   });
 
-  describe('domain_removeValueInline', function() {
+  describe('domain_removeValueNumbered', function() {
 
     it('should exist', function() {
-      expect(domain_removeValueInline).to.be.a('function');
+      expect(domain_removeValueNumbered).to.be.a('function');
     });
 
     it('should require a domain', function() {
-      expect(() => domain_removeValueInline(null, 15)).to.throw();
+      expect(() => domain_removeValueNumbered(null, 15)).to.throw();
+    });
+
+    it('should throw for domains as arrays', function() {
+      expect(_ => domain_removeValueNumbered(specDomainCreateRange(100, 101), 15)).to.throw('ONLY_USED_WITH_NUMBERS');
+    });
+
+    // target: 5
+    // 012 456 89 -> 012 4 6 89
+    // 012 567    -> 012 67
+    // 01 345     -> 01 34
+    // 01 345 89  -> 01 34 89
+    // 012 5 789  -> 012 789
+    // 5 789      -> 789
+    // 012 5      -> 012
+    // 789        -> 789
+    // 012        -> 012
+    // 5          -> empty
+    // empty      -> empty
+
+    function test(domain, value, output) {
+      it(`should remove [${value}] from [${domain}] resulting in [${output}]`, function() {
+        expect(domain_removeValueNumbered(domain, value)).to.eql(output);
+      });
+    }
+
+    test(specDomainSmallNums(0, 1, 2, 4, 5, 6, 8, 9), 5, specDomainSmallNums(0, 1, 2, 4, 6, 8, 9));
+    test(specDomainSmallNums(0, 1, 2, 4, 5, 6), 5, specDomainSmallNums(0, 1, 2, 4, 6));
+    test(specDomainSmallNums(0, 1, 3, 4, 5), 5, specDomainSmallNums(0, 1, 3, 4));
+    test(specDomainSmallNums(0, 1, 3, 4, 5, 8, 9), 5, specDomainSmallNums(0, 1, 3, 4, 8, 9));
+    test(specDomainSmallNums(0, 1, 2, 5, 7, 8, 9), 5, specDomainSmallNums(0, 1, 2, 7, 8, 9));
+    test(specDomainSmallNums(5, 7, 8, 9), 5, specDomainSmallNums(7, 8, 9));
+    test(specDomainSmallNums(0, 1, 2, 5), 5, specDomainSmallNums(0, 1, 2));
+    test(specDomainSmallNums(7, 8, 9), 5, specDomainSmallNums(7, 8, 9));
+    test(specDomainSmallNums(0, 1, 2), 5, specDomainSmallNums(0, 1, 2));
+    test(specDomainSmallNums(5), 5, specDomainSmallNums());
+  });
+
+  describe('domain_removeValueInline', function() {
+
+    it('should exist', function() {
+      expect(domain_removeValue).to.be.a('function');
+    });
+
+    it('should require a domain', function() {
+      expect(() => domain_removeValue(null, 15)).to.throw();
     });
 
     it('should throw for domains as numbers', function() {
-      expect(_ => domain_removeValueInline(specDomainSmallNums(1), 15)).to.throw('NOT_USED_WITH_NUMBERS');
+      expect(_ => domain_removeValue(specDomainSmallNums(1), 15)).to.throw('NOT_USED_WITH_NUMBERS');
     });
 
-    it('should accept an empty domain', function() {
-      let arr = [];
-      domain_removeValueInline(arr, 15);
+    // target: 5
+    // 012 456 89 -> 012 4 6 89
+    // 012 567    -> 012 67
+    // 01 345     -> 01 34
+    // 01 345 89  -> 01 34 89
+    // 012 5 789  -> 012 789
+    // 5 789      -> 789
+    // 012 5      -> 012
+    // 789        -> 789
+    // 012        -> 012
+    // 5          -> empty
+    // empty      -> empty
 
-      expect(arr).to.eql([]);
-    });
+    function test(domain, value, output) {
+      it(`should remove [${value}] from [${domain}] resulting in [${output}]`, function() {
+        let clone = domain_clone(domain);
+        let result = domain_removeValue(domain_clone(domain), value);
 
-    it('should return a domain without given value', function() {
-      let arr = specDomainCreateRange(0, 30);
-      domain_removeValueInline(arr, 15);
+        expect(domain, 'should not change').to.eql(clone);
+        expect(result).to.eql(output);
+      });
+    }
 
-      expect(arr).to.eql(specDomainCreateRanges([0, 14], [16, 30]));
-    });
-
-    it('should keep unrelated ranges', function() {
-      let arr = specDomainCreateRanges([0, 10], [12, 20], [22, 30]);
-      domain_removeValueInline(arr, 15);
-
-      expect(arr).to.eql(specDomainCreateRanges([0, 10], [12, 14], [16, 20], [22, 30]));
-    });
+    test(specDomainCreateRanges([100, 102], [104, 106], [108, 109]), 105, specDomainCreateRanges([100, 102], [104, 104], [106, 106], [108, 109]));
+    test(specDomainCreateRanges([100, 102], [104, 106]), 105, specDomainCreateRanges([100, 102], [104, 104], [106, 106]));
+    test(specDomainCreateRanges([100, 101], [103, 105]), 105, specDomainCreateRanges([100, 101], [103, 104]));
+    test(specDomainCreateRanges([100, 101], [103, 105], [108, 109]), 105, specDomainCreateRanges([100, 101], [103, 104], [108, 109]));
+    test(specDomainCreateRanges([100, 102], [105, 105], [107, 109]), 105, specDomainCreateRanges([100, 102], [107, 109]));
+    test(specDomainCreateRanges([105, 105], [107, 109]), 105, specDomainCreateRanges([107, 109]));
+    test(specDomainCreateRanges([100, 102], [105, 105]), 105, specDomainCreateRanges([100, 102]));
+    test(specDomainCreateRanges([107, 109]), 105, specDomainCreateRanges([107, 109]));
+    test(specDomainCreateRanges([100, 102]), 105, specDomainCreateRanges([100, 102]));
+    test(specDomainCreateRanges([105, 105]), 105, specDomainCreateEmpty(true));
   });
 
   describe('domain_isSimplified', function() {

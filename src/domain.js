@@ -15,7 +15,6 @@ import {
   ASSERT,
   ASSERT_DOMAIN,
   ASSERT_DOMAIN_EMPTY_CHECK,
-  ASSERT_DOMAIN_EMPTY_SET,
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
   THROW,
 } from './helpers';
@@ -1492,92 +1491,6 @@ function domain_forceEq(domain1, domain2) {
   return domain_numarr(domain);
 }
 
-/**
- * Remove one range at given index, inline.
- * Moves all ranges behind it back by one position (index-2)
- *
- * @param {$domain} domain
- * @param {number} index
- */
-function domain_spliceOutRangeAt(domain, index) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  for (; index < domain.length; index += PAIR_SIZE) {
-    domain[index] = domain[index + PAIR_SIZE];
-    domain[index + 1] = domain[index + PAIR_SIZE + 1];
-  }
-  domain.length = index - PAIR_SIZE;
-}
-
-/**
- * Insert given range at given index, moving all other ranges up by one (index+2)
- *
- * @param {$domain} domain
- * @param {number} index
- * @param {number} pLo
- * @param {number} pHi
- */
-function _domain_spliceInRangeAt(domain, index, pLo, pHi) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  // from here on out we must first stash the cur range, then pop the prev range
-  for (; index < domain.length; index += PAIR_SIZE) {
-    let lo = domain[index];
-    let hi = domain[index + 1];
-    domain[index] = pLo;
-    domain[index + 1] = pHi;
-    pLo = lo;
-    pHi = hi;
-  }
-  // and one more time now at the end
-  domain[index] = pLo;
-  domain[index + 1] = pHi;
-  domain.length = index + PAIR_SIZE;
-}
-
-/**
- * assumes value was found in range at index
- * note: make sure to reject at callsite if this results in an empty domain!
- *
- * @param {$domain} domain
- * @param {number} value
- * @param {number} index
- * @param {number} lo
- * @param {number} hi
- */
-function _domain_removeValueAt(domain, value, index, lo, hi) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  // four options:
-  // range is exactly value; remove it, stream rest, update len, return
-  // range starts or ends with value; update it, return
-  // value is inside range; split it, inject carefully, stream, return
-
-  if (lo === value) {
-    if (hi === value) {
-      domain_spliceOutRangeAt(domain, index);
-      return;
-    }
-    domain[index] = value + 1; // update lo
-    return;
-  }
-  if (hi === value) {
-    domain[index + 1] = value - 1; // update hi
-    return;
-  }
-
-  // must be last case now: value is inside range
-  // split range. update current range with new hi
-  domain[index + 1] = value - 1;
-
-  // create a new range of value+1 to old hi, then splice it in
-  let p_lo = value + 1;
-  let p_hi = hi;
-  ASSERT(p_lo <= p_hi, 'value shouldve been below hi');
-
-  _domain_spliceInRangeAt(domain, index + PAIR_SIZE, p_lo, p_hi);
-}
-
 function domain_removeValueNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(typeof value === 'number', 'CAN_ONLY_REMOVE_VALUES');
@@ -1593,24 +1506,53 @@ function domain_removeValueNumbered(domain, value) {
  * @param {number} value
  * @returns {number}
  */
-function domain_removeValueInline(domain, value) {
+function domain_removeValue(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(typeof value === 'number', 'value should be a num', value);
 
-  for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
+  for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
     let hi = domain[index + 1];
-    if (value >= lo && value <= hi) {
-      _domain_removeValueAt(domain, value, index, lo, hi);
-      ASSERT_DOMAIN(domain);
-      if (domain_isRejected(domain)) {
-        ASSERT_DOMAIN_EMPTY_SET(domain);
-        return REJECTED;
-      }
-      return SOME_CHANGES;
+    if (value === lo) {
+      let newDomain = domain.slice(0, index);
+      if (value !== hi) newDomain.push(value + 1, hi);
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
+    }
+    if (value === hi) {
+      let newDomain = domain.slice(0, index + 1);
+      newDomain.push(value - 1); // lo cannot be value as we already checked that
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
+    }
+    if (value < lo) {
+      // value sits between prev range (if not start) and current range so domain
+      // does not have it at all. return the input domain to indicate no change
+      return domain;
+    }
+    if (value < hi) {
+      // split up range to remove the value. we already confirmed that range
+      // does not start or end at value, so just split it
+      let newDomain = domain.slice(0, index + 1);
+      newDomain.push(value - 1, value + 1, hi);
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
     }
   }
-  return NO_CHANGES;
+  // value must be higher than the max of domain so domain does not contain it
+  // return domain to indicate no change
+  ASSERT(domain_isRejected(domain) || domain_max(domain) < value, 'MAX_DOMAIN_SHOULD_BE_UNDER_VALUE');
+  return domain;
+}
+
+/**
+ * Add all elements in source start at index `from` to the target
+ *
+ * @param {$domain} source
+ * @param {$domain} target
+ * @param {number} from
+ * @returns {$domain}
+ */
+function domain_streamFrom(source, target, from) {
+  for (let i = from; i < source.length; ++i) target.push(source[i]);
+  return target;
 }
 
 /**
@@ -1798,7 +1740,7 @@ export {
   domain_removeLte,
   domain_removeLteNumbered,
   domain_removeNextFromList,
-  domain_removeValueInline,
+  domain_removeValue,
   domain_removeValueNumbered,
   domain_simplifyInline,
   domain_size,

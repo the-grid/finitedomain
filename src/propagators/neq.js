@@ -11,8 +11,7 @@ import {
   domain_getValue,
   domain_isRejected,
   domain_isSolved,
-  domain_numarr,
-  domain_removeValueInline,
+  domain_removeValue,
   domain_removeValueNumbered,
   domain_sharesNoElements,
 } from '../domain';
@@ -44,12 +43,11 @@ function propagator_neqStepBare(space, varName1, varName2) {
     let newDomain;
     if (typeof domain2 === 'number') {
       newDomain = domain_removeValueNumbered(domain2, value);
-      if (domain2 !== newDomain) result = SOME_CHANGES;
     } else {
-      result = domain_removeValueInline(domain2, value);
-      newDomain = domain_numarr(domain2);
+      newDomain = domain_removeValue(domain2, value);
     }
-    if (newDomain === EMPTY) {
+    if (domain2 !== newDomain) result = SOME_CHANGES;
+    if (domain_isRejected(newDomain)) {
       space.vardoms[varName1] = EMPTY;
       space.vardoms[varName2] = EMPTY;
       result = REJECTED;
@@ -63,12 +61,11 @@ function propagator_neqStepBare(space, varName1, varName2) {
       let newDomain;
       if (typeof domain1 === 'number') {
         newDomain = domain_removeValueNumbered(domain1, value);
-        if (domain1 !== newDomain) result = SOME_CHANGES;
       } else {
-        result = domain_removeValueInline(domain1, value);
-        newDomain = domain_numarr(domain1);
+        newDomain = domain_removeValue(domain1, value);
       }
-      if (newDomain === EMPTY) {
+      if (domain1 !== newDomain) result = SOME_CHANGES;
+      if (domain_isRejected(newDomain)) {
         space.vardoms[varName1] = EMPTY;
         space.vardoms[varName2] = EMPTY;
         result = REJECTED;

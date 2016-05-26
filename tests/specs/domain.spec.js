@@ -10,10 +10,8 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
-  NO_CHANGES,
+  EMPTY,
   NO_SUCH_VALUE,
-  REJECTED,
-  SOME_CHANGES,
   SUP,
 } from '../../src/helpers';
 import {
@@ -28,7 +26,7 @@ import {
   //domain_createValue,
   domain_divby,
   domain_isEqual,
-  domain_forceEqInline,
+  domain_forceEq,
   domain_fromList,
   //domain_fromFlags,
   domain_getValue,
@@ -1107,17 +1105,17 @@ describe('domain.spec', function() {
     });
   });
 
-  describe('domain_forceEqInline', function() {
+  describe('domain_forceEq', function() {
 
     it('should exist', function() {
-      expect(domain_forceEqInline).to.be.a('function');
+      expect(domain_forceEq).to.be.a('function');
     });
 
     it('should throw for a numbered domain', function() {
-      expect(_ => domain_forceEqInline(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1))).to.throw('NOT_USED_WITH_NUMBERS');
-      expect(_ => domain_forceEqInline(specDomainCreateRange(90, 91), specDomainSmallRange(0, 1))).to.throw('NOT_USED_WITH_NUMBERS');
-      expect(_ => domain_forceEqInline(specDomainSmallRange(0, 1), specDomainCreateRange(90, 91))).to.throw('NOT_USED_WITH_NUMBERS');
-      expect(_ => domain_forceEqInline(specDomainCreateRange(90, 91), specDomainCreateRange(90, 91))).not.to.throw();
+      expect(_ => domain_forceEq(specDomainCreateRange(90, 91), specDomainCreateRange(90, 91))).not.to.throw();
+      expect(_ => domain_forceEq(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1))).to.throw('NOT_USED_WITH_NUMBERS');
+      expect(_ => domain_forceEq(specDomainCreateRange(90, 91), specDomainSmallRange(0, 1))).to.throw('NOT_USED_WITH_NUMBERS');
+      expect(_ => domain_forceEq(specDomainSmallRange(0, 1), specDomainCreateRange(90, 91))).to.throw('NOT_USED_WITH_NUMBERS');
     });
 
     describe('empty domains', function() {
@@ -1125,32 +1123,31 @@ describe('domain.spec', function() {
       it('should quickly deal with an empty array left', function() {
         let A = specDomainCreateEmpty();
         let B = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
-        let R = domain_forceEqInline(A, B);
-        delete A.__skipEmptyCheck; // else assertion blows up
+        let R = domain_forceEq(A, B);
 
-        expect(R).to.eql(REJECTED);
-        expect(A).to.eql(specDomainCreateEmpty(1));
-        expect(B).to.eql(specDomainCreateEmpty(1));
+        expect(A).to.eql(specDomainCreateEmpty());
+        expect(B).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+        expect(R).to.eql(EMPTY);
       });
 
       it('should quickly deal with an empty array right', function() {
         let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
         let B = specDomainCreateEmpty();
-        let R = domain_forceEqInline(A, B);
+        let R = domain_forceEq(A, B);
 
-        expect(R).to.eql(REJECTED);
-        expect(A).to.eql(specDomainCreateEmpty(1));
+        expect(A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
         expect(B).to.eql(specDomainCreateEmpty());
+        expect(R).to.eql(EMPTY);
       });
 
       it('should quickly deal with two empty arrays', function() {
         let A = specDomainCreateEmpty();
         let B = specDomainCreateEmpty();
-        let R = domain_forceEqInline(A, B);
+        let R = domain_forceEq(A, B);
 
-        expect(R).to.eql(REJECTED);
         expect(A).to.eql(specDomainCreateEmpty());
         expect(B).to.eql(specDomainCreateEmpty());
+        expect(R).to.eql(EMPTY);
       });
     });
 
@@ -1158,22 +1155,22 @@ describe('domain.spec', function() {
       let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let B = specDomainCreateRanges([15, 35], [40, 50]);
       let C = specDomainCreateRanges([15, 20], [30, 35], [40, 40], [50, 50]);
-      let R = domain_forceEqInline(A, B);
+      let R = domain_forceEq(A, B);
 
-      expect(R).to.eql(SOME_CHANGES);
-      expect(A).to.eql(C);
-      expect(B).to.eql(C);
+      expect(A).to.eql(specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+      expect(B).to.eql(specDomainCreateRanges([15, 35], [40, 50]));
+      expect(R).to.eql(C);
     });
 
     it('should return NO_CHANGES if domains are equal', function() {
       let A = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let B = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
       let C = specDomainCreateRanges([10, 20], [30, 40], [50, 60]);
-      let R = domain_forceEqInline(A, B);
+      let R = domain_forceEq(A, B);
 
-      expect(R).to.eql(NO_CHANGES);
       expect(A).to.eql(C);
       expect(B).to.eql(C);
+      expect(R).to.eql(C);
     });
   });
 

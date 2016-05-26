@@ -719,12 +719,27 @@ function domain_intersectBoundsInto(domain, lo, hi, result) {
 function domain_isEqual(domain1, domain2) {
   if (domain1 === domain2) return true;
 
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+  let isNum1 = typeof domain1 === 'number';
+  let isNum2 = typeof domain2 === 'number';
 
+  if (isNum1 && isNum2) return false;
+  if (isNum1) {
+    if (domain_max(domain2) <= 15) return domain1 === domain_numarr(domain2);
+    domain1 = domain_fromFlags(domain1);
+  } else if (isNum2) {
+    if (domain_max(domain1) <= 15) return domain2 === domain_numarr(domain1);
+    domain2 = domain_fromFlags(domain2);
+  }
+
+  return domain_isEqualArr(domain1, domain2);
+}
+
+function domain_isEqualArr(domain1, domain2) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
+
   let len = domain1.length;
 
   if (len !== domain2.length) {
@@ -1307,7 +1322,7 @@ function domain_removeGteNumbered(domain, value) {
 function domain_removeGte(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
-
+// TODO: if value<=15 numarr
   let i = 0;
   for (; i < domain.length; i += PAIR_SIZE) {
     // case: v=5
@@ -1404,132 +1419,6 @@ function domain_removeLte(domain, value) {
   return []; // 012 -> empty
 }
 
-/**
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @param {number} len
- * @returns {number} Can be len, which will mean "not found"
- */
-function domain_findDiffIndex(domain1, domain2, len) {
-  ASSERT(typeof dom1 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof dom2 !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  // first check whether the two are different at all
-  let index = 0;
-  while (index < len) {
-    let lo1 = domain1[index];
-    let hi1 = domain1[index + 1];
-    let lo2 = domain2[index];
-    let hi2 = domain2[index + 1];
-    if (lo1 !== lo2 || hi1 !== hi2) {
-      return index;
-    }
-    index += PAIR_SIZE;
-  }
-  return len; // "not found"
-}
-
-/**
- * @param {number} index Any value before this index is already equal in both domains
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @param {number} len1
- * @param {number} len2
- * @returns {number}
- */
-function domain_applyEqInlineFrom(index, domain1, domain2, len1, len2) {
-  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  let p1 = index;
-  let p2 = index;
-
-  let lo1 = domain1[p1];
-  let hi1 = domain1[p1 + 1];
-  let lo2 = domain2[p2];
-  let hi2 = domain2[p2 + 1];
-
-  while (p1 < len1 && p2 < len2) {
-    if (hi1 < lo2) { // R1 < R2 completely; drop R1
-      p1 += PAIR_SIZE;
-      lo1 = domain1[p1];
-      hi1 = domain1[p1 + 1];
-    } else if (hi2 < lo1) { // R2 < R1 completely; drop R1
-      p2 += PAIR_SIZE;
-      lo2 = domain2[p2];
-      hi2 = domain2[p2 + 1];
-
-      // hi1 >= lo2 and hi2 >= lo1
-    } else if (lo1 < lo2) { // R1 < R2 partial; update R1 lo to R2 lo
-      lo1 = lo2;
-    } else if (lo2 < lo1) { // R2 < R1 partial; update R2 lo to R1 lo
-      lo2 = lo1;
-    } else {
-      // add a range with MIN hi1, hi2
-      // then move lo to that hi and drop a range on at least one side
-      ASSERT(lo1 === lo2, 'the lows should be equal');
-      let hi = MIN(hi1, hi2);
-
-      if (index >= p1) {
-        domain1.splice(p1, 0, lo1, hi);
-        len1 += PAIR_SIZE;
-        p1 += PAIR_SIZE;
-      } else {
-        domain1[index] = lo1;
-        domain1[index + 1] = hi;
-      }
-
-      if (index >= p2) {
-        domain2.splice(p2, 0, lo1, hi);
-        len2 += PAIR_SIZE;
-        p2 += PAIR_SIZE;
-      } else {
-        domain2[index] = lo1;
-        domain2[index + 1] = hi;
-      }
-
-      index += PAIR_SIZE;
-
-      // if the current range on either side was fully copied, move its pointer
-      // otherwise update its lo to the last hi+1 and continue
-
-      if (hi === hi1) {
-        p1 += PAIR_SIZE;
-        lo1 = domain1[p1];
-        hi1 = domain1[p1 + 1];
-      } else {
-        lo1 = hi + 1;
-      }
-
-      if (hi === hi2) {
-        p2 += PAIR_SIZE;
-        lo2 = domain2[p2];
-        hi2 = domain2[p2 + 1];
-      } else {
-        lo2 = hi + 1;
-      }
-    }
-  }
-
-  // note: a domain may shrink OR grow.
-  // and a domain that stays the same len may still have changed.
-  if (len1 !== index) {
-    domain1.length = index;
-  }
-  if (len2 !== index) {
-    domain2.length = index;
-  }
-
-  if (index === 0) {
-    return REJECTED;
-  }
-
-  ASSERT_DOMAIN(domain1);
-  ASSERT_DOMAIN(domain2);
-
-  return SOME_CHANGES;
-}
-
 function domain_forceEqNumbered(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_USED_WITH_NUMBERS');
@@ -1538,11 +1427,13 @@ function domain_forceEqNumbered(domain1, domain2) {
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
- * @returns {number} REJECTED SOME_CHANGES NO_CHANGES
+ * @returns {$domain}
  */
-function domain_forceEqInline(domain1, domain2) {
+function domain_forceEq(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
 
@@ -1554,18 +1445,51 @@ function domain_forceEqInline(domain1, domain2) {
   let len = MIN(len1, len2);
 
   if (len === 0) {
-    domain1.length = 0;
-    domain2.length = 0;
-    return REJECTED;
+    return EMPTY;
   }
 
-  let index = domain_findDiffIndex(domain1, domain2, len);
-  ASSERT(index >= 0 && index <= len, 'target index should be within the range of the array len+1');
-  ASSERT(index % 2 === 0, 'target index should be even because it should find a range offset');
+  if (len === 0) return EMPTY;
 
-  if (index === len) return NO_CHANGES;
+  let i = 0;
+  while (i < len) {
+    if (domain1[i] !== domain2[i] || domain1[i + 1] !== domain2[i + 1]) break;
+    i += PAIR_SIZE;
+  }
 
-  return domain_applyEqInlineFrom(index, domain1, domain2, len1, len2);
+  if (i >= len && len1 === len2) {
+    // no changes so both domains are equal. assuming
+    // all domains are immutable, just return either.
+    return domain1;
+  }
+
+  let domain = [];
+  let j = i;
+  let lo1 = domain1[0];
+  let hi1 = domain1[1];
+  let lo2 = domain2[0];
+  let hi2 = domain2[1];
+  while (i < len1 && j < len2) {
+    if (hi1 < lo2 || lo1 > hi1) {
+      i += PAIR_SIZE;
+      lo1 = domain1[i];
+      hi1 = domain1[i + 1];
+    } else if (hi2 < lo1 || lo2 > hi2) {
+      j += PAIR_SIZE;
+      lo2 = domain2[j];
+      hi2 = domain2[j + 1];
+    } else {
+      // both ranges at least overlap because
+      // neither hi is less than the others lo
+
+      let hi = Math.min(hi1, hi2);
+      domain.push(Math.max(lo1, lo2), hi);
+      // the next low must be prev hi+2 (gap)
+      lo1 = hi + 1;
+      lo2 = hi + 1;
+    }
+  }
+
+  return domain_numarr(domain);
 }
 
 /**
@@ -1849,7 +1773,7 @@ export {
   domain_createValue,
   domain_divby,
   domain_isEqual,
-  domain_forceEqInline,
+  domain_forceEq,
   domain_forceEqNumbered,
   domain_fromFlags,
   domain_fromList,

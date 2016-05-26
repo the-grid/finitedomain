@@ -9,12 +9,12 @@ import {
 } from '../helpers';
 
 import {
-  domain_forceEqInline,
+  domain_forceEq,
   domain_forceEqNumbered,
   domain_fromFlags,
+  domain_isEqual,
   domain_isRejected,
   domain_isSolved,
-  domain_numarr,
   domain_sharesNoElements,
 } from '../domain';
 
@@ -45,39 +45,28 @@ function propagator_eqStepBare(space, varName1, varName2) {
   ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
   ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
 
+  let result;
   if (typeof domain1 === 'number' && typeof domain2 === 'number') {
-    let result = domain_forceEqNumbered(domain1, domain2);
-    if (result === EMPTY) {
-      space.vardoms[varName1] = EMPTY;
-      space.vardoms[varName2] = EMPTY;
-      return REJECTED;
-    }
-    if (result !== domain1 || result !== domain2) {
-      space.vardoms[varName1] = result;
-      space.vardoms[varName2] = result;
-      return SOME_CHANGES;
-    }
-    return NO_CHANGES;
+    result = domain_forceEqNumbered(domain1, domain2);
+  } else {
+    // TODO: for now, just convert them. but this can be optimized a lot.
+    result = domain_forceEq(typeof domain1 === 'number' ? domain_fromFlags(domain1) : domain1, typeof domain2 === 'number' ? domain_fromFlags(domain2) : domain2);
   }
 
-  // TODO: for now, just convert them. but this can be optimized a lot.
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
-  let changeState = domain_forceEqInline(domain1, domain2);
-
-  if (changeState === SOME_CHANGES) {
-    space.vardoms[varName1] = domain_numarr(domain1);
-    space.vardoms[varName2] = domain_numarr(domain2);
-  }
-
-  // if this assert fails, update the following checks accordingly!
-  ASSERT(changeState >= -1 && changeState <= 1, 'state should be -1 for reject, 0 for no change, 1 for both changed; but was ?', changeState);
-
-  if (changeState === REJECTED) {
+  if (result === EMPTY) {
+    space.vardoms[varName1] = EMPTY;
+    space.vardoms[varName2] = EMPTY;
     return REJECTED;
   }
 
-  return changeState;
+  if (result !== domain1 || result !== domain2) {
+    space.vardoms[varName1] = result;
+    space.vardoms[varName2] = result;
+    if (!domain_isEqual(domain1, result) || !domain_isEqual(domain2, result)) {
+      return SOME_CHANGES;
+    }
+  }
+  return NO_CHANGES;
 }
 
 /**

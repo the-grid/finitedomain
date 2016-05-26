@@ -19,6 +19,9 @@ import distribution_getDefaults from './distribution/defaults';
 
 // BODY_START
 
+/**
+ * @returns {$finitedomain_config}
+ */
 function config_create() {
   return {
     _class: 'config',
@@ -280,6 +283,10 @@ function config_setOptions(config, options) {
   }
 }
 
+/**
+ * @param {$config} config
+ * @param {$propagator} propagator
+ */
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === 'config');
   config.propagators.push(propagator);
@@ -320,7 +327,7 @@ function config_generateVars(config, space) {
   for (let i = 0; i < allVarNames.length; i++) {
     let varName = allVarNames[i];
     let domain = initialVars[varName];
-    if (domain === undefined) domain = domain_createRange(SUB, SUP);
+    ASSERT(domain !== undefined, 'ALL_VARS_GET_A_DOMAIN'); // 0,1 or sub,sup if nothing else
 
     space.vardoms[varName] = domain_numarr(domain);
     if (!domain_isSolved(domain)) unsolvedVarNames.push(varName);

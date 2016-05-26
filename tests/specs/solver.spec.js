@@ -825,7 +825,7 @@ describe('solver.spec', function() {
       solver['==']('D', 'C2');
 
       // D & B counterpoint
-      solver['==?']('B', 'D', solver.addVar('BsyncD'));
+      solver['==?']('B', 'D', solver.addVar('BsyncD', [0, 1]));
 
       let BD1 = solver['==?']('B1', 'D1');
       solver['>='](BD1, 'BsyncD');
@@ -1451,7 +1451,7 @@ describe('solver.spec', function() {
       solver.eq('D', 'C2');
 
       // D & B counterpoint
-      solver.addVar('BsyncD');
+      solver.addVar('BsyncD', [0, 1]);
       solver['==?']('B', 'D', 'BsyncD');
       solver['>='](solver['==?']('B1', 'D1'), 'BsyncD');
       solver['>='](solver['==?']('B2', 'D2'), 'BsyncD');

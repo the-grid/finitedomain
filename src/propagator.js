@@ -11,6 +11,8 @@ import {
 } from './config';
 import {
   BOOL,
+  ONE,
+  ZERO,
 } from './domain';
 
 // BODY_START
@@ -86,10 +88,9 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
     boolName = config_addVarAnonConstant(config, boolName);
   } else if (!boolName) {
     boolName = config_addVarAnonRange(config, 0, 1);
-  } else if (config.initial_vars[boolName] !== undefined) {
-    // TODO: assert the domain is set to 0,1
-    ASSERT(typeof config.initial_vars[boolName] === 'number' || config.initial_vars[boolName] instanceof Array, 'RESULT_SHOULD_BE_NUMBER [was ' + config.initial_vars[boolName] + ']');
-    ASSERT(config.initial_vars[boolName] & BOOL || (config.initial_vars[boolName][0] >= 0 && config.initial_vars[boolName][1] <= 1), 'RESULT_SHOULD_BE_BOOL_BOUND');
+  } else if (config.initial_vars[boolName] !== undefined) { // lazy test setups rely on this...
+    // note: solver.addVar* should normalize [0, 1] to a small domain number, so there should be no need to check for arrays at this point
+    ASSERT(config.initial_vars[boolName] === ZERO || config.initial_vars[boolName] === ONE || config.initial_vars[boolName] === BOOL, 'RESULT_SHOULD_BE_BOOL_BOUND');
   }
 
   if (typeof leftVarName === 'number') {

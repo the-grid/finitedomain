@@ -55,6 +55,9 @@ function _propagator_stepAny(space, opName, propVarNames, propDetails) {
   ASSERT(varName2 || opName === 'markov' || opName === 'callback', 'varName2 should exist for most props', propDetails);
 
   switch (opName) {
+    case 'reified':
+      return _propagator_reified(space, varName1, varName2, propVarNames, propDetails);
+
     case 'lt':
       return propagator_stepComparison(space, opName, varName1, varName2);
 
@@ -69,9 +72,6 @@ function _propagator_stepAny(space, opName, propVarNames, propDetails) {
 
     case 'callback':
       return _propagator_cb(space, propVarNames, propDetails);
-
-    case 'reified':
-      return _propagator_reified(space, varName1, varName2, propVarNames, propDetails);
 
     case 'ring':
       return _propagator_ring(space, varName1, varName2, propVarNames[2], propDetails[PROP_OP_FUNC]);

@@ -51,19 +51,18 @@ function space_createFromConfig(config) {
 /**
  * Create a space node that is a child of given space node
  *
- * @param {Space} space
+ * @param {$space} space
  * @returns {$space}
  */
 function space_createClone(space) {
   ASSERT(space._class === 'space');
 
-  let unsolvedNames = [];
-  let cloneVars = {};
-
   let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
 
-  space_pseudoCloneVars(space, cloneVars, unsolvedNames);
-  return space_createNew(space.config, unsolvedPropagators, cloneVars, unsolvedNames, space._depth + 1, space._child_count++);
+  let unsolvedNames = space_filterUnsolvedVars(space);
+  let vardomsCopy = space_copyVardoms(space);
+
+  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedNames, space._depth + 1, space._child_count++);
 }
 
 /**
@@ -107,23 +106,31 @@ function space_toConfig(space) {
 }
 
 /**
- * Note: it's pseudo because solved vars are not cloned but copied...
+ * Note: all vars are "immutable" so should be safe to copy them by reference
  *
  * @param {Space} space
- * @param {$domain[]} cloneVars
- * @param {string[]} cloneUnsolvedVarNames
+ * @return {Object.<string,$domain>} cloneVars
  */
-function space_pseudoCloneVars(space, cloneVars, cloneUnsolvedVarNames) {
+function space_copyVardoms(space) {
+  let vardomsCopy = {};
   let vardoms = space.vardoms;
   let allNames = space.config.all_var_names;
   for (let i = 0; i < allNames.length; i++) {
     let varName = allNames[i];
-    let clone = domain_clone(vardoms[varName]);
-    ASSERT(!domain_isRejected(clone), 'should not be cloning spaces with rejected domains');
-    cloneVars[varName] = clone;
-    // todo: we can tighten this to cycle through only the unsolved names rather than all of them (AND WE SHOULD)
-    if (!domain_isSolved(clone)) cloneUnsolvedVarNames.push(varName);
+    vardomsCopy[varName] = vardoms[varName];
   }
+  return vardomsCopy;
+}
+
+function space_filterUnsolvedVars(space) {
+  let unsolvedNames = [];
+  let vardoms = space.vardoms;
+  for (let i = 0; i < space.unsolvedVarNames.length; ++i) {
+    let varName = space.unsolvedVarNames[i];
+    // todo: we can tighten this to cycle through only the unsolved names rather than all of them (AND WE SHOULD)
+    if (!domain_isSolved(vardoms[varName])) unsolvedNames.push(varName);
+  }
+  return unsolvedNames;
 }
 
 /**

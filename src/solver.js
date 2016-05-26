@@ -27,10 +27,11 @@ import {
 import {
   PAIR_SIZE,
   domain_clone,
-  domain_isRejected,
   domain_createRange,
   domain_createValue,
   domain_fromList,
+  domain_isRejected,
+  domain_numarr,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -768,7 +769,7 @@ function solver_validateDomain(domain) {
     }
     domain = fixedDomain;
   }
-  return domain;
+  return domain_numarr(domain);
 }
 
 /**

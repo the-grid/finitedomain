@@ -53,6 +53,9 @@ import {
  */
 function propagator_stepComparison(space, opName, varName1, varName2) {
   switch (opName) {
+    case 'eq':
+      return propagator_eqStepBare(space, varName1, varName2);
+
     case 'lt':
       return propagator_ltStepBare(space, varName1, varName2);
 
@@ -64,9 +67,6 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
 
     case 'gte':
       return propagator_stepComparison(space, 'lte', varName2, varName1);
-
-    case 'eq':
-      return propagator_eqStepBare(space, varName1, varName2);
 
     case 'neq':
       return propagator_neqStepBare(space, varName1, varName2);

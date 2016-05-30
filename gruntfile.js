@@ -260,6 +260,7 @@ module.exports = function () {
   grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
+  grunt.registerTask('testq', ['clean', 'mochaTest:all']);
   grunt.registerTask('testp', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
 
   grunt.registerTask('default', ['test']);

@@ -230,7 +230,7 @@ function _config_addVar(config, varName, domain) {
 /**
  * Initialize the config of this space according to certain presets
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {string} varName
  */
 function config_setDefaults(space, varName) {
@@ -316,7 +316,7 @@ function config_getUnknownVars(config) {
 
 function config_generateVars(config, space) {
   ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 

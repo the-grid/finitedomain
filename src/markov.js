@@ -15,7 +15,7 @@ import {
  * If the boolean condition of a row is 1, return it.
  * If no row meets these conditions, return the last row.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {?} matrix
  * @returns {*}
  */

@@ -50,7 +50,7 @@ describe('src/config.spec', function() {
       let space = space_createRoot(config);
 
       expect(_ => config_generateVars({}, space)).to.throw('EXPECTING_CONFIG');
-      expect(_ => config_generateVars(config, {})).to.throw('EXPECTING_SPACE');
+      expect(_ => config_generateVars(config, {})).to.throw('SPACE_SHOULD_BE_SPACE');
     });
 
     it('should create a constant', function() {

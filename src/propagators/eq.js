@@ -29,13 +29,13 @@ import {
  * Basically eq is much more efficient compared to neq because we
  * can potentially skip a lot of values early.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @returns {$fd_changeState}
  */
 function propagator_eqStepBare(space, varIndex1, varIndex2) {
-  ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
+  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 

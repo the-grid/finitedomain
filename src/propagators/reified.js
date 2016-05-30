@@ -32,7 +32,7 @@ import {
  * @returns {$fd_changeState}
  */
 function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opName, invOpName) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof resultVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');

@@ -28,9 +28,9 @@ import distribute_getNextDomainForVar from './distribution/value';
  * the search can continue and there may be more solutions.
  *
  * @param {Object} state
- * @property {Space} state.space Root space if this is the start of searching
+ * @property {$space} state.space Root space if this is the start of searching
  * @property {boolean} [state.more] Are there spaces left to investigate after the last solve?
- * @property {Space[]} [state.stack]=[state,space] The search stack as initialized by this class
+ * @property {$space[]} [state.stack]=[state,space] The search stack as initialized by this class
  * @property {Function} [state.is_solved] Custom function to tell us whether a space is solved
  * @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
  * @property {string} [state.status] Set to 'solved' or 'end'
@@ -65,8 +65,8 @@ function search_depthFirst(state) {
 /**
  * One search step of the given space
  *
- * @param {Space} space
- * @param {Space[]} stack
+ * @param {$space} space
+ * @param {$space[]} stack
  * @param {Object} state See search_depthFirst
  * @param {Function} createNextSpaceNode Clones the current space and reduces one var in the new space
  * @returns {boolean}
@@ -102,8 +102,8 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  * This takes various search and distribution strategies
  * into account.
  *
- * @param {Space} space
- * @returns {Space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
+ * @param {$space} space
+ * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
 function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
@@ -133,8 +133,8 @@ function search_defaultSpaceFactory(space) {
  * by a var-specific config.
  * One of the returned var names will be picked to restrict.
  *
- * @param {Space} space The current node
- * @returns {string[]} The names of targeted vars on given space
+ * @param {$space} space The current node
+ * @returns {number[]} The var indexes of targeted vars on given space
  */
 function _search_getVarsUnfiltered(space) {
   let configTargetedIndexes = space.config.targetedIndexes;
@@ -156,8 +156,8 @@ function _search_getVarsUnfiltered(space) {
  *
  *
  * @param {Object} state The search state data
- * @param {Space} space The search node to fail
- * @param {Space[]} stack See state.stack
+ * @param {$space} space The search node to fail
+ * @param {$space[]} stack See state.stack
  */
 function _search_onReject(state, space, stack) {
   // Some propagators failed so this is now a failed space and we need

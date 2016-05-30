@@ -44,7 +44,7 @@ const NO_CHOICE = undefined;
 const MATH_RANDOM = Math.random;
 
 function distribute_getNextDomainForVar(space, varIndex) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(!domain_isDetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
@@ -109,7 +109,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varIndex, choiceI
  * @returns {$domain|undefined} The new domain for this var index in the next space TOFIX: support small domains
  */
 function distribution_valueByList(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -169,7 +169,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMin(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -204,7 +204,7 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMax(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -243,7 +243,7 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMid(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -287,7 +287,7 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -330,7 +330,7 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
@@ -396,7 +396,7 @@ function _isEven(n) { return n % 2 === 0; }
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMarkov(space, varIndex, choiceIndex) {
-  ASSERT(space._class === 'space', 'EXPECTING_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 

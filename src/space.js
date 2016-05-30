@@ -42,7 +42,7 @@ function space_createRoot(config) {
 
 /**
  * @param {$config} config
- * @returns {Space}
+ * @returns {$space}
  */
 function space_createFromConfig(config) {
   ASSERT(config._class === 'config');
@@ -59,7 +59,7 @@ function space_createFromConfig(config) {
  * @returns {$space}
  */
 function space_createClone(space) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
 
@@ -72,7 +72,7 @@ function space_createClone(space) {
 /**
  * Find and return all propagators whose args have not been resolved
  *
- * @param {Space} space
+ * @param {$space} space
  * @returns {$propagator[]}
  */
 function space_collectCurrentUnsolvedPropagators(space) {
@@ -91,11 +91,11 @@ function space_collectCurrentUnsolvedPropagators(space) {
  * Create a new config with the configuration of the given Space
  * Basically clones its config but updates the `initial_vars` with fresh state
  *
- * @param {Space} space
- * @returns {Space}
+ * @param {$space} space
+ * @returns {$space}
  */
 function space_toConfig(space) {
-  ASSERT(space._class = 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let vardoms = space.vardoms;
   let varsForClone = {};
@@ -136,7 +136,7 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
   ASSERT(unsolvedVarIndexes instanceof Array, 'unsolvedVarIndexes should be an array', unsolvedVarIndexes);
 
   return ({
-    _class: 'space',
+    _class: '$space',
     // search graph metrics
     _depth,
     _child,
@@ -154,7 +154,7 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
 }
 
 /**
- * @param {Space} space
+ * @param {$space} space
  */
 function space_initFromConfig(space) {
   let config = space.config;
@@ -184,11 +184,11 @@ function space_initFromConfig(space) {
  * Run all the propagators until stability point. Returns the number
  * of changes made or throws a 'fail' if any propagator failed.
  *
- * @param {Space} space
+ * @param {$space} space
  * @returns {boolean}
  */
 function space_propagate(space) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let unsolvedPropagators = space.unsolvedPropagators;
 
   let changed;
@@ -218,11 +218,11 @@ function space_propagate(space) {
 }
 
 /**
- * @param {Space} space
+ * @param {$space} space
  * @returns {boolean}
  */
 function space_abortSearch(space) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let callback = space.config.timeout_callback;
   if (callback) {
     return callback(space);
@@ -250,7 +250,7 @@ function space_abortSearch(space) {
  * @returns {boolean}
  */
 function space_isSolved(space) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let targetedIndexes = space.config.targetedIndexes;
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
@@ -275,11 +275,11 @@ function space_isSolved(space) {
  * and whose values are the solved values. The space *must*
  * be already in a solved state for this to work.
  *
- * @param {Space} space
+ * @param {$space} space
  * @returns {Object}
  */
 function space_solution(space) {
-  ASSERT(space._class === 'space');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let allVarNames = space.config.all_var_names;
   let result = {};
   for (let varIndex = 0; varIndex < allVarNames.length; varIndex++) {
@@ -293,7 +293,7 @@ function space_solution(space) {
  * Note: this is the (shared) second most called function of the library
  * (by a third of most, but still significantly more than the rest)
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {string} varIndex
  * @returns {number|number[]|boolean} The solve state for given var index, also put into result
  */

@@ -28,7 +28,7 @@ import {
  * Every markov variable should have a propagator. Perhaps later
  * there can be one markov propagator that checks all markov vars.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {number} varIndex
  * @returns {$fd_changeState}
  */

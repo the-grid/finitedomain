@@ -21,7 +21,7 @@ const WORSE = 3;
  * Given a list of variables return the next var to consider based on the
  * current var distribution configuration and an optional filter condition.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {string[]} targetVars
  * @returns {number}
  */
@@ -84,10 +84,10 @@ function distribution_getFunc(distName) {
  * Return the best varIndex according to a fitness function
  * but only if the filter function is okay with it.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {number[]} indexes A subset of indexes that are properties on space.vardoms
- * @param {Function(Space, string, string, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
- * @param {Function(Space, string)} [filterFunc] If given only consider vars where this function returns true on it
+ * @param {Function($space, string, string, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
+ * @param {Function($space, string)} [filterFunc] If given only consider vars where this function returns true on it
  * @param {string|Object} configNextVarFunc From Space; either the varIndex of the dist or specific options for a var dist
  * @returns {number} The varIndex of the next var or NO_SUCH_VALUE
  */
@@ -113,7 +113,7 @@ function _distribution_varFindBest(space, indexes, fitnessFunc, filterFunc, conf
 //#####
 
 function distribution_varByMinSize(space, varIndex1, varIndex2) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
@@ -124,7 +124,7 @@ function distribution_varByMinSize(space, varIndex1, varIndex2) {
 }
 
 function distribution_varByMin(space, varIndex1, varIndex2) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
@@ -135,7 +135,7 @@ function distribution_varByMin(space, varIndex1, varIndex2) {
 }
 
 function distribution_varByMax(space, varIndex1, varIndex2) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
@@ -146,7 +146,7 @@ function distribution_varByMax(space, varIndex1, varIndex2) {
 }
 
 function distribution_varByMarkov(space, varIndex1, varIndex2, configNextVarFunc) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
@@ -170,7 +170,7 @@ function distribution_varByMarkov(space, varIndex1, varIndex2, configNextVarFunc
 }
 
 function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
@@ -226,7 +226,7 @@ function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) 
 }
 
 function distribution_varFallback(space, varIndex1, varIndex2, fallbackConfig) {
-  ASSERT(space._class === 'space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 

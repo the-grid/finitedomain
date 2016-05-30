@@ -125,10 +125,7 @@ function domain_isValue(domain, value) {
   }
 
   ASSERT_DOMAIN(domain);
-  if (domain.length !== PAIR_SIZE) {
-    return false;
-  }
-  return domain[LO_BOUND] === value && domain[HI_BOUND] === value;
+  return domain.length === PAIR_SIZE && domain[LO_BOUND] === value && domain[HI_BOUND] === value;
 }
 
 /**
@@ -185,7 +182,7 @@ function domain_getValue(domain) {
 
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   if (domain.length !== PAIR_SIZE) {
-    return NOT_FOUND;
+    return NO_SUCH_VALUE;
   }
   let [lo, hi] = domain;
   if (lo === hi) {

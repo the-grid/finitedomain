@@ -645,21 +645,7 @@ class Solver {
       console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
     }
 
-    let count = 0;
-    while (state.more && count < max) {
-      searchFunc(state);
-      if (state.status !== 'end') {
-        count++;
-        if (!squash) {
-          let solution = space_solution(state.space);
-          solutions.push(solution);
-          if (log >= LOG_SOLVES) {
-            console.log('      - FD solution() ::::::::::::::::::::::::::::');
-            console.log(JSON.stringify(solution));
-          }
-        }
-      }
-    }
+    let count = solver_runLoop(state, searchFunc, max, solutions, log, squash);
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solver Time');
@@ -715,6 +701,51 @@ class Solver {
 }
 
 /**
+ * This is the core search loop. Supports multiple solves although you
+ * probably only need one solution. Won't return more solutions than max.
+ *
+ * @param {Object} state
+ * @param {Function} searchFunc
+ * @param {number} max Stop after finding this many solutions
+ * @param {Object[]} solutions All solutions are pushed into this array
+ * @param {number} log LOG constant
+ * @param {boolean} squash Suppress creating solutions? For testing perf.
+ * @returns {number} Number of solutions found (could be bound by max)
+ */
+function solver_runLoop(state, searchFunc, max, solutions, log, squash) {
+  let count = 0;
+  while (state.more && count < max) {
+    searchFunc(state);
+    if (state.status !== 'end') {
+      count++;
+      solver_handleSolution(state, solutions, log, squash);
+    }
+  }
+  return count;
+}
+
+/**
+ * When the search finds a solution, store and log it
+ *
+ * @param {Object} state
+ * @param {Object[]} solutions
+ * @param {number} log
+ * @param {boolean} squash
+ */
+function solver_handleSolution(state, solutions, log, squash) {
+  if (state.status !== 'end') {
+    if (!squash) {
+      let solution = space_solution(state.space);
+      solutions.push(solution);
+      if (log >= LOG_SOLVES) {
+        console.log('      - FD solution() ::::::::::::::::::::::::::::');
+        console.log(JSON.stringify(solution));
+      }
+    }
+  }
+}
+
+/**
  * Visit the branch vars and collect var specific configuration overrides if
  * there are any and put them on the root space. Mainly used for Markov
  * searching. The result is set to be Space#var_dist_config
@@ -752,7 +783,6 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
   }
   return overrides;
 }
-
 
 /**
  * validate domains, filter and fix legacy domains, throw for bad inputs

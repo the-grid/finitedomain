@@ -212,9 +212,9 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
 
   if (!_forceArray && list[0] >= 0 && list[list.length - 1] <= 15) {
     // create a number.
-    var last = 0; // do confirm whether the list is ordered
-    var d = 0;
-    for (var i = 0; i < list.length; ++i) {
+    let last = 0; // do confirm whether the list is ordered
+    let d = 0;
+    for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= last && (last = value) >= 0, 'LIST_SHOULD_BE_ORDERED_BY_NOW');
       d |= NUMBER[value];
@@ -290,10 +290,10 @@ function domain_toList(domain) {
  */
 function domain_removeNextFromList(domain, list) {
   if (typeof domain === 'number') {
-    for (var i = 0; i < list.length; ++i) {
-      var value = list[i];
+    for (let i = 0; i < list.length; ++i) {
+      let value = list[i];
       ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
-      var n = NUMBER[value];
+      let n = NUMBER[value];
       if (value <= 15 && (domain & n) > 0) {
         return domain ^ n; // the bit is set, this unsets it
       }
@@ -368,7 +368,7 @@ function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
  */
 function domain_getValueOfFirstContainedValueInList(domain, list) {
   if (typeof domain === 'number') {
-    for (var i = 0; i < list.length; ++i) {
+    for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= SUB && value <= SUP, 'OOB values probably indicate a bug in the code', list);
       if (value <= 15 && (domain & NUMBER[value]) > 0) return value;
@@ -789,12 +789,13 @@ function domain_closeGapsFresh(domain, gap) {
 
   ASSERT_DOMAIN(domain);
   let result = [];
+  let plo;
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
     let hi = domain[index + 1];
     if (index === 0) {
       result.push(lo, hi);
-      var plo = lo;
+      plo = lo;
     } else {
       if (hi - plo < gap) {
         result[result.length - 1] = hi;
@@ -1091,9 +1092,11 @@ function domain_middleElement(domain) {
   let size = domain_size(domain);
   let targetValue = FLOOR(size / 2);
 
+  let lo;
+  let hi;
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
-    var lo = domain[i];
-    let hi = domain[i + 1];
+    lo = domain[i];
+    hi = domain[i + 1];
 
     let count = 1 + hi - lo;
     if (targetValue < count) {
@@ -1306,8 +1309,8 @@ function domain_removeGteNumbered(domain, value) {
     value = 0;
   }
 
-  for (var i = value; i <= 15; ++i) {
-    var n = NUMBER[i];
+  for (let i = value; i <= 15; ++i) {
+    let n = NUMBER[i];
     domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
   }
 
@@ -1372,8 +1375,8 @@ function domain_removeLteNumbered(domain, value) {
     value = 15;
   }
 
-  for (var i = 0; i <= value; ++i) {
-    var n = NUMBER[i];
+  for (let i = 0; i <= value; ++i) {
+    let n = NUMBER[i];
     domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
   }
 
@@ -1507,7 +1510,7 @@ function domain_removeValueNumbered(domain, value) {
 
   if (value < 0 || value > 15) return domain;
 
-  var n = NUMBER[value];
+  let n = NUMBER[value];
   return (domain | n) ^ n;
 }
 

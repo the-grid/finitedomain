@@ -5,7 +5,7 @@ import {
 } from '../helpers';
 
 import {
-  domain_isDetermined,
+  domain_isUndetermined,
   domain_max,
   domain_min,
   domain_size,
@@ -44,9 +44,8 @@ function distribution_getNextVar(space, targetVars) {
   if (configVarFilter && typeof configVarFilter !== 'function') {
     switch (configVarFilter) {
       case 'unsolved':
-        configVarFilter = function(domain) {
-          return !domain_isDetermined(domain);
-        }; // TODO: fix this mess. maybe even eliminate it completely if we dont use the function path
+        // TODO: fix this mess. maybe even eliminate it completely if we dont use the function path
+        configVarFilter = domain_isUndetermined;
         break;
       default:
         THROW('unknown var filter', configVarFilter);

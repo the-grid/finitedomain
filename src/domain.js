@@ -6,9 +6,7 @@ import {
   NOT_FOUND,
   PAIR_SIZE,
   REJECTED,
-  SOLVED,
   SOME_CHANGES,
-  UNDETERMINED,
   SUB,
   SUP,
 
@@ -134,11 +132,20 @@ function domain_isValue(domain, value) {
 }
 
 /**
+ * Note: this is the (shared) second most called function of the library
+ * (by a third of most, but still significantly more than the rest)
+ *
  * @param {$domain} domain
  * @returns {number}
  */
 function domain_getValue(domain) {
   if (typeof domain === 'number') {
+    // This function is called relatively often. eg it is the
+    // second-most called function of the whole library. only
+    // topped by isUndetermined
+    // With proper ES6 we could consider benchmarking Math.clz32
+    // but even then we'd need to verify that the value was solved
+
     switch (domain) {
       case ZERO:
         return 0;
@@ -1190,38 +1197,23 @@ function domain_hammingWeight(domain) { // "count number of bits set"
   domain = (((domain + (domain >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
 
   return domain;
-}
 
-function domain_getStateFromFlags(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  /*
+  // lookup table would be the following. doesn't appear to
+  // make a noticeable difference even in stress test.
 
-  switch (domain) {
-    case BOOL:
-      return UNDETERMINED;
-    case EMPTY:
-      return REJECTED;
-
-    case ZERO:
-    case ONE:
-    case TWO:
-    case THREE:
-    case FOUR:
-    case FIVE:
-    case SIX:
-    case SEVEN:
-    case EIGHT:
-    case NINE:
-    case TEN:
-    case ELEVEN:
-    case TWELVE:
-    case THIRTEEN:
-    case FOURTEEN:
-    case FIFTEEN:
-      return SOLVED;
+  // cache this as a constant
+  let BITS_SET = new Uint8Array(0xffff);
+  for (let i = 0, MAX = 0xffff; i <= MAX; ++i) {
+    let domain = i;
+    domain -= ((domain >>> 1) & 0x55555555);
+    domain = (domain & 0x33333333) + ((domain >>> 2) & 0x33333333);
+    domain = (((domain + (domain >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
+    BITS_SET[i] = domain;
   }
-
-  // anything else means more than one flag
-  return UNDETERMINED;
+  // then you can just do
+  return BITS_SET[domain];
+ */
 }
 
 /**
@@ -1232,8 +1224,8 @@ function domain_getStateFromFlags(domain) {
  */
 function domain_isSolved(domain) {
   if (typeof domain === 'number') {
-    var state = domain_getStateFromFlags(domain);
-    return state === SOLVED;
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    return (domain & (domain - 1)) === 0 && domain > 0;
   }
 
   ASSERT_DOMAIN(domain);
@@ -1248,8 +1240,8 @@ function domain_isSolved(domain) {
  */
 function domain_isDetermined(domain) {
   if (typeof domain === 'number') {
-    var state = domain_getStateFromFlags(domain);
-    return state === SOLVED || state === REJECTED;
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    return (domain & (domain - 1)) === 0 || domain === EMPTY;
   }
 
   ASSERT_DOMAIN(domain);
@@ -1261,8 +1253,28 @@ function domain_isDetermined(domain) {
 }
 
 /**
+ * A domain is "determined" if it's either one value (solved) or none at all (rejected)
+ * This is the most called function of the library. 3x more than the number two.
+ *
+ * @param {$domain} domain
+ * @returns {boolean}
+ */
+function domain_isUndetermined(domain) {
+  if (typeof domain === 'number') {
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    // this would check whether a domain has one bit set
+    return (domain & (domain - 1)) !== 0 && domain !== 0;
+  }
+  // it's probably an error if the domain is empty so make that the last check
+  return domain.length > 2 || domain[0] !== domain[1] && domain.length > 0;
+}
+
+/**
  * A domain is "rejected" if it covers no values. This means every given
  * value would break at least one constraint so none could be used.
+ *
+ * Note: this is the (shared) second most called function of the library
+ * (by a third of most, but still significantly more than the rest)
  *
  * @param {$domain} domain
  * @returns {boolean}
@@ -1727,6 +1739,7 @@ export {
   domain_isDetermined,
   domain_isRejected,
   domain_isSolved,
+  domain_isUndetermined,
   domain_isValue,
   domain_max,
   domain_middleElement,

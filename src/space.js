@@ -1,4 +1,5 @@
 import {
+  EMPTY,
   NO_SUCH_VALUE,
   SOME_CHANGES,
   REJECTED,
@@ -17,9 +18,12 @@ import {
   domain_clone,
   domain_fromFlags,
   domain_getValue,
-  domain_isRejected,
   domain_isSolved,
 } from './domain';
+
+import {
+  PROP_VAR_INDEXES,
+} from './propagator';
 
 import propagator_stepAny from './propagators/step_any';
 import propagator_isSolved from './propagators/is_solved';
@@ -59,10 +63,10 @@ function space_createClone(space) {
 
   let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
 
-  let unsolvedNames = space_filterUnsolvedVars(space);
+  let unsolvedVarIndexes = space_filterUnsolvedVarIndexes(space);
   let vardomsCopy = space.vardoms.slice(0);
 
-  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedNames, space._depth + 1, space._child_count++);
+  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedVarIndexes, space._depth + 1, space._child_count++);
 }
 
 /**
@@ -105,7 +109,7 @@ function space_toConfig(space) {
   return config_clone(space.config, varsForClone);
 }
 
-function space_filterUnsolvedVars(space) {
+function space_filterUnsolvedVarIndexes(space) {
   let unsolvedVarIndexes = [];
   let vardoms = space.vardoms;
   for (let i = 0; i < space.unsolvedVarIndexes.length; ++i) {
@@ -121,7 +125,7 @@ function space_filterUnsolvedVars(space) {
  * @param {$config} config
  * @param {Object[]} unsolvedPropagators
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {string[]} unsolvedVarIndexes Note: all var names can be found on the config
+ * @param {string[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
  * @param {number} _depth
  * @param {number} _child
  * @returns {$space}
@@ -162,7 +166,16 @@ function space_initFromConfig(space) {
   for (let i = 0; i < config.propagators.length; i++) {
     let propagator = config.propagators[i];
     let copy = propagator.slice(0);
-    copy[1] = copy[1].map(function(varName) { return config.all_var_names.indexOf(varName); });
+
+    // update the propagator with indexes of the vars.
+    // we did not know all the indexes before this time.
+    let indexes = [];
+    let propVarNames = copy[PROP_VAR_INDEXES];
+    for (let j = 0; j < propVarNames.length; ++j) {
+      indexes[j] = config.all_var_names.indexOf(propVarNames[j]);
+    }
+    copy[PROP_VAR_INDEXES] = indexes; // dont affect the original! only the (deep) clone
+
     space.unsolvedPropagators.push(copy);
   }
 }
@@ -233,27 +246,27 @@ function space_abortSearch(space) {
  * set the "state.is_solved" field at search time to
  * that function.
  *
- * @param {Space} space
+ * @param {$space} space
  * @returns {boolean}
  */
 function space_isSolved(space) {
   ASSERT(space._class === 'space');
   let targetedIndexes = space.config.targetedIndexes;
-  let unsolvedNames = space.unsolvedVarIndexes;
+  let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
   let j = 0;
-  for (let i = 0; i < unsolvedNames.length; i++) {
-    let name = unsolvedNames[i];
-    if (targetedIndexes === 'all' || targetedIndexes.indexOf(name) >= 0) {
-      let domain = space.vardoms[name];
+  for (let i = 0; i < unsolvedVarIndexes.length; i++) {
+    let varIndex = unsolvedVarIndexes[i];
+    if (targetedIndexes === 'all' || targetedIndexes.indexOf(varIndex) >= 0) {
+      let domain = space.vardoms[varIndex];
       ASSERT_DOMAIN(domain);
 
       if (!domain_isSolved(domain)) {
-        unsolvedNames[j++] = name;
+        unsolvedVarIndexes[j++] = varIndex;
       }
     }
   }
-  unsolvedNames.length = j;
+  unsolvedVarIndexes.length = j;
   return j === 0;
 }
 
@@ -269,27 +282,26 @@ function space_solution(space) {
   ASSERT(space._class === 'space');
   let allVarNames = space.config.all_var_names;
   let result = {};
-  for (let i = 0; i < allVarNames.length; i++) {
-    let varName = allVarNames[i];
-    result[varName] = space_getVarSolveState(space, i);
+  for (let varIndex = 0; varIndex < allVarNames.length; varIndex++) {
+    let varName = allVarNames[varIndex];
+    result[varName] = space_getVarSolveState(space, varIndex);
   }
   return result;
 }
 
 /**
+ * Note: this is the (shared) second most called function of the library
+ * (by a third of most, but still significantly more than the rest)
+ *
  * @param {Space} space
- * @param {string} varName
- * @returns {number|number[]|boolean} The solve state for given var name, also put into result
+ * @param {string} varIndex
+ * @returns {number|number[]|boolean} The solve state for given var index, also put into result
  */
-function space_getVarSolveState(space, varName) {
-  ASSERT(typeof varName === 'number', 'VAR_SHOULD_BE_INDEX');
-  // Don't include the temporary variables in the "solution".
-  // Temporary variables take the form of a numeric property
-  // of the object, so we test for the varName to be a number and
-  // don't include those variables in the result.
-  let domain = space.vardoms[varName];
+function space_getVarSolveState(space, varIndex) {
+  ASSERT(typeof varIndex === 'number', 'VAR_SHOULD_BE_INDEX');
+  let domain = space.vardoms[varIndex];
 
-  if (domain_isRejected(domain)) {
+  if (domain === EMPTY) {
     return false;
   }
 

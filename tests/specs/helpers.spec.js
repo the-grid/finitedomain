@@ -35,7 +35,7 @@ import {
   FIFTEEN,
 } from '../../src/domain';
 
-describe('helpers.spec', function() {
+describe('src/helpers.spec', function() {
 
   describe('MAX_SMALL', function() {
 

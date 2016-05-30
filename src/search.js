@@ -1,4 +1,5 @@
 import {
+  NO_SUCH_VALUE,
   ASSERT,
 } from './helpers';
 import {
@@ -106,15 +107,18 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  */
 function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
-  let varName = distribution_getNextVar(space, targetVars);
+  let varIndex = distribution_getNextVar(space, targetVars);
 
-  if (varName) {
-    let domain = space.vardoms[varName];
+  if (varIndex !== NO_SUCH_VALUE) {
+    ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+    ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
+
+    let domain = space.vardoms[varIndex];
     if (!domain_isSolved(domain)) {
-      let nextDomain = distribute_getNextDomainForVar(space, varName);
+      let nextDomain = distribute_getNextDomainForVar(space, varIndex);
       if (nextDomain) {
         let clone = space_createClone(space);
-        clone.vardoms[varName] = nextDomain;
+        clone.vardoms[varIndex] = nextDomain;
         return clone;
       }
     }
@@ -133,18 +137,18 @@ function search_defaultSpaceFactory(space) {
  * @returns {string[]} The names of targeted vars on given space
  */
 function _search_getVarsUnfiltered(space) {
-  let configTargetedVars = space.config.targetedVars;
+  let configTargetedIndexes = space.config.targetedIndexes;
 
-  if (configTargetedVars === 'all') {
-    return space.unsolvedVarNames;
+  if (configTargetedIndexes === 'all') {
+    return space.unsolvedVarIndexes;
   }
 
-  if (configTargetedVars instanceof Array) {
-    return configTargetedVars;
+  if (configTargetedIndexes instanceof Array) {
+    return configTargetedIndexes;
   }
 
-  ASSERT(typeof configTargetedVars === 'function', 'config.targetedVars should be a func at this point', configTargetedVars);
-  return configTargetedVars(space);
+  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
+  return configTargetedIndexes(space);
 }
 
 /**

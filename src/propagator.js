@@ -18,7 +18,7 @@ import {
 // BODY_START
 
 const PROP_PNAME = 0;
-const PROP_VNAMES = 1;
+const PROP_VAR_INDEXES = 1;
 const PROP_ARG1 = 2;
 const PROP_ARG2 = 3;
 
@@ -553,7 +553,7 @@ function propagator_addProduct(config, vars, resultVarName) {
  */
 function propagator_addMarkov(config, varName) {
   ASSERT(config._class === 'config');
-  ASSERT(typeof varName === 'string');
+  ASSERT(typeof varName === 'string', 'VARNAME_SHOULD_BE_STRING'); // comes from external so should not be index yet
   config_addPropagator(config, ['markov', [varName]]);
 }
 
@@ -561,7 +561,7 @@ function propagator_addMarkov(config, varName) {
 
 export {
   PROP_PNAME,
-  PROP_VNAMES,
+  PROP_VAR_INDEXES,
   PROP_ARG1,
   PROP_ARG2,
 

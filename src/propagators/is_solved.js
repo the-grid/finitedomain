@@ -36,7 +36,7 @@ import {
 } from '../domain';
 import {
   PROP_PNAME,
-  PROP_VNAMES,
+  PROP_VAR_INDEXES,
   PROP_ARG1,
   PROP_ARG2,
 } from '../propagator';
@@ -44,20 +44,20 @@ import {
 // BODY_START
 
 function propagator_isSolved(space, propagator) {
-  let varNames = propagator[PROP_VNAMES];
+  let varIndexes = propagator[PROP_VAR_INDEXES];
   let opName = propagator[PROP_PNAME];
 
-  let domain1 = space.vardoms[varNames[0]];
-  let domain2 = space.vardoms[varNames[1]];
+  let domain1 = space.vardoms[varIndexes[0]];
+  let domain2 = space.vardoms[varIndexes[1]];
 
   switch (opName) {
     case 'reified':
       // once a bool_var resolves its owner reified prop resolves when
       // the original op or inv op (depending on bool_var) resolves
-      let varName3 = propagator[PROP_VNAMES][2];
+      let varIndex3 = propagator[PROP_VAR_INDEXES][2];
 
-      let domain3 = space.vardoms[varName3];
-      ASSERT(typeof domain3 === 'number', 'BOOL_VAR_SHOULD_BE_NUMBER_DOMAIN');
+      let domain3 = space.vardoms[varIndex3];
+      ASSERT(typeof domain3 === 'number', 'RESULT_VAR_INDEX_SHOULD_BE_NUMBER_DOMAIN');
       ASSERT(domain3 & BOOL, 'BOOL_SHOULD_BE_ZERO_AND_OR_ONE');
       ASSERT(typeof propagator[PROP_ARG1] === 'string', 'OP_NAME_SHOULD_BE_STRING');
       ASSERT(typeof propagator[PROP_ARG2] === 'string', 'NOP_NAME_SHOULD_BE_STRING');
@@ -70,7 +70,7 @@ function propagator_isSolved(space, propagator) {
 
     case 'ring':
       if (domain_isSolved(domain1) && domain_isSolved(domain2)) {
-        ASSERT(!varNames[2] || domain_isSolved(space.vardoms[varNames[2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
+        ASSERT(!varIndexes[2] || domain_isSolved(space.vardoms[varIndexes[2]]), 'ring and reified should solve their bool_var immediately after operand vars become solved');
         return true;
       }
       return false;

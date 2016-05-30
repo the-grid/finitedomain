@@ -30,6 +30,7 @@ function config_create() {
     next_var_func: 'naive',
     next_value_func: 'min',
     targetedVars: 'all',
+    targetedIndexes: 'all', // function, string or array. initialized by config_generateVars, will contain var index for targetedVars
     var_dist_options: {},
     timeout_callback: undefined,
 
@@ -54,6 +55,7 @@ function config_clone(config, newVars) {
     next_var_func,
     next_value_func,
     targetedVars,
+    targetedIndexes,
     var_dist_options,
     timeout_callback,
     constant_cache,
@@ -68,7 +70,8 @@ function config_clone(config, newVars) {
     var_filter_func,
     next_var_func,
     next_value_func,
-    targetedVars: (targetedVars instanceof Array && targetedVars.slice(0)) || targetedVars,
+    targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
+    targetedIndexes: targetedIndexes instanceof Array ? targetedIndexes.slice(0) : targetedIndexes,
     var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
     timeout_callback, // by reference because it's a function if passed on...
 
@@ -205,7 +208,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= MAX_SMALL), 'domain as value should be within small domain range', domain);
-  ASSERT(String(parseInt(varName)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
+  ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
 
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
@@ -315,7 +318,7 @@ function config_generateVars(config, space) {
   ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
   ASSERT(space._class === 'space', 'EXPECTING_SPACE');
 
-  let unsolvedVarNames = space.unsolvedVarNames;
+  let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
   ASSERT(space.vardoms, 'expecting var domains');
   ASSERT(config, 'should have a config');
@@ -324,13 +327,25 @@ function config_generateVars(config, space) {
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
-  for (let i = 0; i < allVarNames.length; i++) {
-    let varName = allVarNames[i];
+  for (let varIndex = 0; varIndex < allVarNames.length; varIndex++) {
+    let varName = allVarNames[varIndex];
     let domain = initialVars[varName];
     ASSERT(domain !== undefined, 'ALL_VARS_GET_A_DOMAIN'); // 0,1 or sub,sup if nothing else
 
-    space.vardoms[varName] = domain_numarr(domain);
-    if (!domain_isSolved(domain)) unsolvedVarNames.push(varName);
+    space.vardoms[varIndex] = domain_numarr(domain);
+    if (!domain_isSolved(domain)) unsolvedVarIndexes.push(varIndex);
+  }
+
+  if (config.targetedVars === 'all') {
+    config.targetedIndexes = 'all';
+  } else {
+    config.targetedIndexes = [];
+    for (let i = 0; i < config.targetedVars.length; ++i) {
+      let name = config.targetedVars[i];
+      let index = allVarNames.indexOf(name);
+      if (index < 0) THROW('TARGETED_VARS_SHOULD_EXIST_NOW');
+      config.targetedIndexes.push(index);
+    }
   }
 }
 

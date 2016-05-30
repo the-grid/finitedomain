@@ -7,6 +7,6 @@
 //} from '../fixtures/domain.fixt';
 
 // TODO
-describe('search.spec', function() {
+describe('src/search.spec', function() {
 
 });

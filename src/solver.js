@@ -701,6 +701,17 @@ class Solver {
     let solvedConfig = space_toConfig(this.state.space);
     return new Solver({config: solvedConfig});
   }
+
+  /**
+   * Internally finitedomain only uses var indexes. This function can
+   * be used to look them up (externally). Should prevent manual lookups.
+   *
+   * @param {number} varIndex
+   * @returns {string}
+   */
+  getNameForIndex(varIndex) {
+    return this._space.config.all_var_names[varIndex];
+  }
 }
 
 /**

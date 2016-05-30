@@ -51,12 +51,15 @@ describe('propagators/reified.spec', function() {
           let space = space_createRoot(config);
           space_initFromConfig(space);
 
-          let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
+          let A = space.config.all_var_names.indexOf('A');
+          let B = space.config.all_var_names.indexOf('B');
+          let bool = space.config.all_var_names.indexOf('bool');
+          let out = propagator_reifiedStepBare(space, A, B, bool, op, invop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
-          expect(space.vardoms.A, 'A should be unchanged').to.eql(A_in);
-          expect(space.vardoms.B, 'B should be unchanged').to.eql(B_in);
-          expect(space.vardoms.bool, 'bool should reflect expected outcome').to.eql(bool_after);
+          expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);
+          expect(space.vardoms[B], 'B should be unchanged').to.eql(B_in);
+          expect(space.vardoms[bool], 'bool should reflect expected outcome').to.eql(bool_after);
         });
       }
 
@@ -101,22 +104,6 @@ describe('propagators/reified.spec', function() {
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
       let solutions = solver.solve({vars: ['A', 'B', 'C']});
-
-      //// visualize solutions
-      //let names = '';
-      //for (var name in solutions[0]) {
-      //  names += name+' ';
-      //}
-      //console.log(names);
-      //let arr = solutions.map(function(sol) {
-      //  let out = '';
-      //  for (name in sol) {
-      //    out += sol[name]+' ';
-      //  }
-      //  return out;
-      //});
-      //console.log(arr);
-
       // a, b, c are not constrainted in any way, so 2^3=8
       expect(solutions.length).to.equal(8);
     });

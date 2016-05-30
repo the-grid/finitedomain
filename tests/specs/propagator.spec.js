@@ -29,7 +29,7 @@ import {
 } from '../../src/config';
 
 
-describe('propagator.spec', function() {
+describe('src/propagator.spec', function() {
   // TOFIX: add tests for all these propagators. there never have been but most functions here are trivial to test.
 
   describe('propagator_addMarkov', function() {

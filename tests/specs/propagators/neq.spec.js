@@ -44,12 +44,15 @@ describe('propagators/neq.spec', function() {
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
-    expect(_ => propagator_neqStepBare(space, 'A', 'B')).not.to.throw();
+    let A = space.config.all_var_names.indexOf('A');
+    let B = space.config.all_var_names.indexOf('B');
+
+    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
-    expect(_ => propagator_neqStepBare(space)).to.throw('VAR_SHOULD_BE_STRING');
-    expect(_ => propagator_neqStepBare(space, 'A')).to.throw('VAR_SHOULD_BE_STRING');
-    expect(_ => propagator_neqStepBare(space, undefined, 'B')).to.throw('VAR_SHOULD_BE_STRING');
-    expect(_ => propagator_neqStepBare(undefined, 'A', 'B')).to.throw('SHOULD_GET_SPACE');
+    expect(_ => propagator_neqStepBare(space)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, undefined, B)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(undefined, A, B)).to.throw('SHOULD_GET_SPACE');
   });
 
   it('should throw for empty domains', function() {
@@ -61,10 +64,15 @@ describe('propagators/neq.spec', function() {
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
-    expect(_ => propagator_neqStepBare(space, 'A', 'B')).not.to.throw();
-    expect(_ => propagator_neqStepBare(space, 'A', 'D')).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, 'C', 'B')).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, 'C', 'D')).to.throw('SHOULD_NOT_BE_REJECTED');
+    let A = space.config.all_var_names.indexOf('A');
+    let B = space.config.all_var_names.indexOf('B');
+    let C = space.config.all_var_names.indexOf('C');
+    let D = space.config.all_var_names.indexOf('D');
+
+    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
   });
 
   describe('should not change anything as long as both domains are unsolved', function() {
@@ -77,9 +85,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vardoms.A).to.eql(domain1);
-        expect(space.vardoms.B).to.eql(domain2);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain1);
+        expect(space.vardoms[B]).to.eql(domain2);
       });
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
@@ -89,9 +100,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vardoms.A).to.eql(domain2);
-        expect(space.vardoms.B).to.eql(domain1);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain2);
+        expect(space.vardoms[B]).to.eql(domain1);
       });
     }
 
@@ -128,9 +142,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.vardoms.A).to.eql(solvedDomain);
-        expect(space.vardoms.B).to.eql(unsolvedDomainAfter);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        expect(space.vardoms[A]).to.eql(solvedDomain);
+        expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
 
       it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
@@ -140,9 +157,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(changes);
-        expect(space.vardoms.A).to.eql(unsolvedDomainAfter);
-        expect(space.vardoms.B).to.eql(solvedDomain);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
+        expect(space.vardoms[B]).to.eql(solvedDomain);
       });
     }
 
@@ -179,9 +199,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vardoms.A).to.eql(domain1);
-        expect(space.vardoms.B).to.eql(domain2);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain1);
+        expect(space.vardoms[B]).to.eql(domain2);
       });
 
       it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
@@ -191,9 +214,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(NO_CHANGES);
-        expect(space.vardoms.A).to.eql(domain2);
-        expect(space.vardoms.B).to.eql(domain1);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain2);
+        expect(space.vardoms[B]).to.eql(domain1);
       });
 
       it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
@@ -203,9 +229,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(REJECTED);
-        expect(space.vardoms.A).to.eql(specDomainSmallEmpty());
-        expect(space.vardoms.B).to.eql(specDomainSmallEmpty());
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
       });
 
       it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
@@ -215,9 +244,12 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(propagator_neqStepBare(space, 'A', 'B')).to.equal(REJECTED);
-        expect(space.vardoms.A).to.eql(specDomainSmallEmpty());
-        expect(space.vardoms.B).to.eql(specDomainSmallEmpty());
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
       });
     }
 

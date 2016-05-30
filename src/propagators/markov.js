@@ -29,15 +29,15 @@ import {
  * there can be one markov propagator that checks all markov vars.
  *
  * @param {Space} space
- * @param {string} varName
+ * @param {number} varIndex
  * @returns {$fd_changeState}
  */
-function propagator_markovStepBare(space, varName) {
+function propagator_markovStepBare(space, varIndex) {
   // THIS IS VERY EXPENSIVE IF expandVectorsWith IS ENABLED
 
-  ASSERT(typeof varName === 'string', 'arg should be a string', varName);
+  ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  let domain = space.vardoms[varName];
+  let domain = space.vardoms[varIndex];
 
   if (!domain_isSolved(domain)) {
     return NO_CHANGES;
@@ -46,9 +46,9 @@ function propagator_markovStepBare(space, varName) {
   let value = domain_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = space.config.var_dist_options;
-  let distributionOptions = configVarDistOptions[varName];
+  let distributionOptions = configVarDistOptions[space.config.all_var_names[varIndex]];
 
-  ASSERT(distributionOptions, 'var should have a config', varName, distributionOptions || JSON.stringify(configVarDistOptions));
+  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions || JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.distributor_name === 'markov', 'var should be a markov var', distributionOptions.distributor_name);
 
   let expandVectorsWith = distributionOptions.expandVectorsWith;

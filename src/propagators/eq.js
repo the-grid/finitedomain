@@ -30,17 +30,17 @@ import {
  * can potentially skip a lot of values early.
  *
  * @param {Space} space
- * @param {string} varName1
- * @param {string} varName2
+ * @param {number} varIndex1
+ * @param {number} varIndex2
  * @returns {$fd_changeState}
  */
-function propagator_eqStepBare(space, varName1, varName2) {
+function propagator_eqStepBare(space, varIndex1, varIndex2) {
   ASSERT(space && space._class === 'space', 'SHOULD_GET_SPACE');
-  ASSERT(typeof varName1 === 'string', 'VAR_SHOULD_BE_STRING');
-  ASSERT(typeof varName2 === 'string', 'VAR_SHOULD_BE_STRING');
+  ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  let domain1 = space.vardoms[varName1];
-  let domain2 = space.vardoms[varName2];
+  let domain1 = space.vardoms[varIndex1];
+  let domain2 = space.vardoms[varIndex2];
 
   ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
   ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
@@ -54,14 +54,14 @@ function propagator_eqStepBare(space, varName1, varName2) {
   }
 
   if (result === EMPTY) {
-    space.vardoms[varName1] = EMPTY;
-    space.vardoms[varName2] = EMPTY;
+    space.vardoms[varIndex1] = EMPTY;
+    space.vardoms[varIndex2] = EMPTY;
     return REJECTED;
   }
 
   if (result !== domain1 || result !== domain2) {
-    space.vardoms[varName1] = result;
-    space.vardoms[varName2] = result;
+    space.vardoms[varIndex1] = result;
+    space.vardoms[varIndex2] = result;
     if (!domain_isEqual(domain1, result) || !domain_isEqual(domain2, result)) {
       return SOME_CHANGES;
     }
@@ -76,17 +76,15 @@ function propagator_eqStepBare(space, varName1, varName2) {
  * or return false.
  * Read only check
  *
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_eqStepWouldReject(dom1, dom2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(dom1);
-  ASSERT_DOMAIN_EMPTY_CHECK(dom2);
-//    if domain_isRejected dom1 or domain_isRejected dom2
-//      return true
+function propagator_eqStepWouldReject(domain1, domain2) {
+  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
+  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
 
-  return domain_sharesNoElements(dom1, dom2);
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 /**

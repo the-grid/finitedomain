@@ -6,10 +6,10 @@ import {
 
 import Solver from '../../src/solver';
 import {
-  space_solutionFor,
+  space_getVarSolveState,
 } from '../../src/space';
 
-describe('solver.list.spec', function() {
+describe('src/solver.list.spec', function() {
 
   it('should exist', function() {
     expect(Solver).to.be.a('function');
@@ -114,12 +114,22 @@ describe('solver.list.spec', function() {
     });
 
     it('should call the list if it is a function', function() {
-      function listCallback(space, v) {
-        let solution = space_solutionFor(space, ['STATE', 'V1', 'V2'], false);
+      function space_solutionFor(space, varNames) {
+        let result = {};
+        for (let varIndex = 0; varIndex < varNames.length; varIndex++) {
+          let varName = varNames[varIndex];
+          result[varName] = space_getVarSolveState(space, varIndex);
+        }
+
+        return result;
+      }
+
+      function listCallback(space, varName) {
+        let solution = space_solutionFor(space, ['STATE', 'V1', 'V2']);
         if (solution['STATE'] === 5) {
-          if (v === 'V1') {
+          if (varName === 'V1') {
             return [2, 4, 3, 1];
-          } else if (v === 'V2') {
+          } else if (varName === 'V2') {
             if (solution['V1'] > 0) {
               return [3, 1, 4, 2];
             }

@@ -10,14 +10,14 @@ import {
  * space, and return whether their state is acceptable or not. Rejects when not.
  * The callback call will block the FD search (or at least the current "thread").
  *
- * @param space
- * @param varNames
- * @param func
- * @returns {*}
+ * @param {$space} space
+ * @param {number[]} varIndexes
+ * @param {Function} func
+ * @returns {$fd_changeState}
  */
-function propagator_callbackStepBare(space, varNames, func) {
+function propagator_callbackStepBare(space, varIndexes, func) {
   // the callback should return `false` if the state should be rejected, `true` otherwise
-  if (func(space, varNames)) {
+  if (func(space, varIndexes)) {
     return NO_CHANGES;
   }
   return REJECTED;

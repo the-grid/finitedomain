@@ -122,6 +122,21 @@ describe('solver.markov.spec', function() {
 
       describe(`random function: ${random_name}`, function() {
 
+        it(`should have a fixed outcome for ${random_name}`, function() {
+          if (random_name === 'MIN_FIRST') {
+            let solver = setupSolverForRandomTest(random_func);
+            let solutions = solver.solve({max: 1});
+
+            expect(stripAnonVarsFromArrays(solutions)).to.eql([{STATE: 5, V1: 0, V2: 0}]);
+          }
+          if (random_name === 'MAX_FIRST') {
+            let solver = setupSolverForRandomTest(random_func);
+            let solutions = solver.solve({max: 1});
+
+            expect(stripAnonVarsFromArrays(solutions)).to.eql([{STATE: 5, V1: 1, V2: 1}]);
+          }
+        });
+
         it('should have a certain probability distribution of the random function when getting _one_ solution 1000x', function() {
 
           let v1_count = [0, 0];

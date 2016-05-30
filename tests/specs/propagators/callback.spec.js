@@ -16,11 +16,10 @@ describe('propagators/callback.spec', function() {
       // some criteria to search for. callback will reject all but one.
       let [R, G, B] = [2, 120, 201];
 
-      function callback(space, varNames) {
-
-        let rv = domain_getValue(space.vardoms[varNames[0]]);
-        let gv = domain_getValue(space.vardoms[varNames[1]]);
-        let bv = domain_getValue(space.vardoms[varNames[2]]);
+      function callback(space, varIndexes) {
+        let rv = domain_getValue(space.vardoms[varIndexes[0]]);
+        let gv = domain_getValue(space.vardoms[varIndexes[1]]);
+        let bv = domain_getValue(space.vardoms[varIndexes[2]]);
 
         if (rv === NO_SUCH_VALUE || gv === NO_SUCH_VALUE || bv === NO_SUCH_VALUE) {
           return true; // at least one domain isnt a single value; keep searching

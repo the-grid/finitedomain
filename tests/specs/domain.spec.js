@@ -61,7 +61,7 @@ import {
 const FLOOR_FRACTIONS = true;
 const CEIL_FRACTIONS = false;
 
-describe('domain.spec', function() {
+describe('src/domain.spec', function() {
 
   describe('domain_fromList', function() {
 

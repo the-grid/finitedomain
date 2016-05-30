@@ -30,11 +30,10 @@ import {
   space_isSolved,
   space_propagate,
   space_solution,
-  space_solutionFor,
   space_toConfig,
 } from '../../src/space';
 
-describe('space.spec', function() {
+describe('src/space.spec', function() {
 
   describe('Space class', function() {
 
@@ -50,8 +49,8 @@ describe('space.spec', function() {
       });
 
       it('should init vars and var_names', function() {
-        expect(space_createRoot().vardoms).to.be.an('object');
-        expect(space_createRoot().unsolvedVarNames).to.be.an('array');
+        expect(space_createRoot().vardoms).to.be.an('array');
+        expect(space_createRoot().unsolvedVarIndexes).to.be.an('array');
         expect(space_createRoot().config.all_var_names).to.be.an('array');
       });
     });
@@ -81,8 +80,8 @@ describe('space.spec', function() {
 
       // note: the deep clone check is already done above, no need to repeat it
       it('should clone certain props, copy others', function() {
-        expect(space.unsolvedVarNames).to.not.equal(clone.unsolvedVarNames);
-        expect(space.unsolvedVarNames.join()).to.equal(clone.unsolvedVarNames.join());
+        expect(space.unsolvedVarIndexes).to.not.equal(clone.unsolvedVarIndexes);
+        expect(space.unsolvedVarIndexes.join()).to.equal(clone.unsolvedVarIndexes.join());
         expect(space.config).to.equal(clone.config);
         expect(space.unsolvedPropagators).to.eql(clone.unsolvedPropagators);
       });
@@ -190,54 +189,6 @@ describe('space.spec', function() {
       });
     });
 
-    describe('space_solutionFor()', function() {
-
-      it('should only collect results for given var names', function() {
-        let space = space_createRoot();
-        config_addVarAnonConstant(space.config, 10); // should be ignored
-        config_addVarRange(space.config, 'nope', 10, 20);
-        config_addVarConstant(space.config, 'yep10', 10);
-        config_addVarConstant(space.config, 'yep20', 20);
-        config_addVarConstant(space.config, 'yep30', 30);
-        space_initFromConfig(space);
-
-        expect(space_solutionFor(space, ['yep10', 'yep20', 'yep30'])).to.eql({yep10: 10, yep20: 20, yep30: 30});
-      });
-
-      it('should return normal even if a var is unsolved when complete=false', function() {
-        let space = space_createRoot();
-        config_addVarAnonConstant(space.config, 10); // should be ignored
-        config_addVarConstant(space.config, 'yep10', 10);
-        config_addVarDomain(space.config, 'oops20', []);
-        config_addVarConstant(space.config, 'yep30', 30);
-        space_initFromConfig(space);
-
-        expect(space_solutionFor(space, ['yep10', 'oops20', 'yep30'])).to.eql({yep10: 10, oops20: false, yep30: 30});
-      });
-
-      it('should return false if a var is unsolved when complete=true', function() {
-        let space = space_createRoot();
-        config_addVarAnonConstant(space.config, 10); // should be ignored
-        config_addVarConstant(space.config, 'yep10', 10);
-        config_addVarDomain(space.config, 'oops20', []);
-        config_addVarConstant(space.config, 'yep30', 30);
-        space_initFromConfig(space);
-
-        expect(space_solutionFor(space, ['yep10', 'oops20', 'yep30'], true)).to.equal(false);
-      });
-
-      it('should return true if a var is unsolved that was not requested when complete=true', function() {
-        let space = space_createRoot();
-        config_addVarAnonConstant(space.config, 10); // should be ignored
-        config_addVarConstant(space.config, 'yep10', 10);
-        config_addVarDomain(space.config, 'nope20', []);
-        config_addVarConstant(space.config, 'yep30', 30);
-        space_initFromConfig(space);
-
-        expect(space_solutionFor(space, ['yep10', 'yep30'], true)).to.eql({yep10: 10, yep30: 30});
-      });
-    });
-
     describe('space_toConfig', function() {
 
       it('should convert a space to its config', function() {
@@ -256,10 +207,10 @@ describe('space.spec', function() {
         space_initFromConfig(space);
 
         let config = space_toConfig(space);
+
         expect(config.all_var_names).to.eql(['A']);
         expect(config.initial_vars, 'not an empty object').not.to.eql({});
         expect(config.initial_vars, 'empty property should exist').to.eql({A: specDomainCreateRange(SUB, SUP)});
-
       });
     });
 
@@ -281,6 +232,7 @@ describe('space.spec', function() {
           config_addPropagator(space.config, ['lt', ['MUL', 'MAX']]);
 
           space_initFromConfig(space);
+
           expect(space_propagate(space)).to.eql(true);
         })
       );

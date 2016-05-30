@@ -13,7 +13,7 @@ import {
   space_createRoot,
 } from '../../src/space';
 
-describe('markov.spec', function() {
+describe('src/markov.spec', function() {
 
   describe('markov_createProbVector', function() {
 

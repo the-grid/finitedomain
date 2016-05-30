@@ -33,8 +33,10 @@ describe('propagators/markov.spec', function() {
       });
       solver.prepare();
 
+      let Aindex = solver._space.config.all_var_names.indexOf('A');
+
       // A=0, which is in legend and has prob=1
-      expect(propagator_markovStepBare(solver._space, 'A')).to.eql(NO_CHANGES);
+      expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(NO_CHANGES);
     });
 
     it('should reject if solved value is not in legend', function() {
@@ -52,8 +54,10 @@ describe('propagators/markov.spec', function() {
       });
       solver.prepare();
 
+      let Aindex = solver._space.config.all_var_names.indexOf('A');
+
       // A=0, which is not in legend
-      expect(propagator_markovStepBare(solver._space, 'A')).to.eql(REJECTED);
+      expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(REJECTED);
     });
 
     describe('matrix with one row', function() {
@@ -73,8 +77,10 @@ describe('propagators/markov.spec', function() {
         });
         solver.prepare();
 
+        let Aindex = solver._space.config.all_var_names.indexOf('A');
+
         // A=0, which is in legend but has prob=0
-        expect(propagator_markovStepBare(solver._space, 'A')).to.eql(REJECTED);
+        expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(REJECTED);
       });
 
       it('should pass if solved value does has prob>0', function() {
@@ -92,8 +98,10 @@ describe('propagators/markov.spec', function() {
         });
         solver.prepare();
 
+        let Aindex = solver._space.config.all_var_names.indexOf('A');
+
         // A=0, which is in legend and has prob=1
-        expect(propagator_markovStepBare(solver._space, 'A')).to.eql(REJECTED);
+        expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(REJECTED);
       });
     });
 
@@ -117,9 +125,11 @@ describe('propagators/markov.spec', function() {
         });
         solver.prepare();
 
+        let Aindex = solver._space.config.all_var_names.indexOf('A');
+
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
-        expect(propagator_markovStepBare(solver._space, 'A')).to.eql(NO_CHANGES);
+        expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(NO_CHANGES);
       });
 
       it('should reject if second row gives value prob=0', function() {
@@ -141,9 +151,11 @@ describe('propagators/markov.spec', function() {
         });
         solver.prepare();
 
+        let Aindex = solver._space.config.all_var_names.indexOf('A');
+
         // A=0, which is in legend and has prob=1 in first row,
         // but only second row is considered which gives prob=0
-        expect(propagator_markovStepBare(solver._space, 'A')).to.eql(REJECTED);
+        expect(propagator_markovStepBare(solver._space, Aindex)).to.eql(REJECTED);
       });
     });
   });

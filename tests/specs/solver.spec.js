@@ -1182,9 +1182,12 @@ describe('solver.spec', function() {
 
     it('should solve a single unconstrainted var', function() {
       let solver = new Solver({});
-      solver.addVar('A', [1, 2]);
+      solver.addVar('A', specDomainCreateRange(1, 2, true));
+      let solutions = solver.solve();
+      //console.log(solver._space);
+      //console.log(solver._space.config);
 
-      expect(solver.solve().length, 'solution count').to.eql(2);
+      expect(solutions.length, 'solution count').to.eql(2);
     });
 
     it('should combine multiple unconstrained vars', function() {

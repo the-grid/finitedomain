@@ -29,6 +29,11 @@ describe('solver.minmaxcycle.spec', function() {
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
+      // algo starts with 'min'
+      // v1 is first so it gets 'min'
+      // v2 is second so it gets 'max'
+      // on backtracking, v1 remains low and v2 remains 'max'
+      // as a result, v1 should go from 1 to 4 and v2 from 4 to 1
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 1, V2: 4},
         {V1: 1, V2: 3},

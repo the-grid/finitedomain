@@ -41,7 +41,7 @@ let LOG_MIN = LOG_NONE;
 let LOG_MAX = LOG_SOLVES;
 // different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
 // while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
-let NO_SUCH_VALUE = SUB - 1; // make sure NO_SUCH_VALUE is not a value that may be valid in a domain
+let NO_SUCH_VALUE = Math.min(0, SUB) - 1; // make sure NO_SUCH_VALUE is a value that may be neither valid in a domain nor >=0
 let ENABLED = true; // override for most tests (but not regular ASSERTs) like full domains and space validations
 let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha sees the expandos
 let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos

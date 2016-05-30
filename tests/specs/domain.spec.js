@@ -70,7 +70,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should throw for empty lists', function() {
-      expect(domain_fromList([])).to.eql([]);
+      expect(domain_fromList([])).to.eql(EMPTY);
     });
 
     it('should work with [0,0]', function() {
@@ -1044,7 +1044,7 @@ describe('src/domain.spec', function() {
     describe('with number', function() {
 
       it('should handle empty domains', function() {
-        expect(domain_intersection(specDomainSmallEmpty(), [])).to.eql([]);
+        expect(domain_intersection(specDomainSmallEmpty(), [])).to.eql(EMPTY);
       });
 
       it('should return a small domain', function() {

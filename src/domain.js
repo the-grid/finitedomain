@@ -202,7 +202,7 @@ function domain_getValue(domain) {
  * @returns {number[]}
  */
 function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
-  if (!list.length) return []; // TODO: return 0
+  if (!list.length) return EMPTY;
   if (sort) { // note: the list must be sorted for the algorithm below to work...
     if (clone) { // clone before sorting?
       list = list.slice(0);
@@ -247,6 +247,7 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
 }
 
 function domain_fromFlags(domain) {
+  if (domain === EMPTY) return []; // it's just easier this way.
   // TODO: this is just lazypanda
   let list = domain_toList(domain);
   return domain_fromList(list, undefined, undefined, FORCE_ARRAY);
@@ -397,9 +398,7 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
 function domain_complement(domain) {
   // for simplicity sake, convert them back to arrays
   // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
-  if (typeof domain === 'number') {
-    domain = domain_fromFlags(domain);
-  }
+  domain = domain_toArr(domain);
 
   ASSERT_DOMAIN(domain); // should we reject for empty domains?
   if (!domain.length) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
@@ -612,6 +611,8 @@ function domain_intersection(domain1, domain2) {
   if (typeof domain1 === 'number' && typeof domain2 === 'number') {
     return domain1 & domain2;
   }
+  if (domain1 === EMPTY) return EMPTY;
+  if (domain2 === EMPTY) return EMPTY;
 
   // for simplicity sake, convert them back to arrays
   if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);

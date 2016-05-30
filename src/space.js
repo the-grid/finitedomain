@@ -45,7 +45,7 @@ function space_createRoot(config) {
  * @returns {$space}
  */
 function space_createFromConfig(config) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let space = space_createRoot(config);
   space_initFromConfig(space);

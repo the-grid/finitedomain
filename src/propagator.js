@@ -49,7 +49,7 @@ const PROP_ARG2 = 3;
  * @returns {string}
  */
 function propagator_addReified(config, opname, leftVarName, rightVarName, boolName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarName === 'string' || typeof leftVarName === 'number', 'expecting leftVarName', leftVarName);
   ASSERT(typeof rightVarName === 'string' || typeof rightVarName === 'number', 'expecting rightVarName', rightVarName);
   ASSERT(typeof boolName === 'string' || typeof boolName === 'number' || typeof boolName === 'undefined', 'expecting boolName to be string, number, or undefined', boolName);
@@ -113,7 +113,7 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
  * @param {Function} callback
  */
 function propagator_addCallback(config, varNames, callback) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   config_addPropagator(config, ['callback', varNames, callback]);
 }
 
@@ -130,7 +130,7 @@ function propagator_addCallback(config, varNames, callback) {
  * @returns {string} the name for v1 (!) The result var for some other propagators
  */
 function propagator_addEq(config, v1name, v2name) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -163,7 +163,7 @@ function propagator_addEq(config, v1name, v2name) {
  * @param {string|number} v2name
  */
 function propagator_addLt(config, v1name, v2name) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -200,7 +200,7 @@ function propagator_addGt(config, v1name, v2name) {
  * @param {string|number} v2name
  */
 function propagator_addLte(config, v1name, v2name) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -225,7 +225,7 @@ function propagator_addLte(config, v1name, v2name) {
  * @returns {string}
  */
 function propagator_addMul(config, v1name, v2name, resultName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -259,7 +259,7 @@ function propagator_addMul(config, v1name, v2name, resultName) {
  * @returns {string}
  */
 function propagator_addDiv(config, v1name, v2name, resultName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -305,7 +305,7 @@ function propagator_addGte(config, v1name, v2name) {
  * @param {string|number} v2name
  */
 function propagator_addNeq(config, v1name, v2name) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -330,7 +330,7 @@ function propagator_addNeq(config, v1name, v2name) {
  * @param {Array.<string|number>} varNames
  */
 function propagator_addDistinct(config, varNames) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   for (let i = 0; i < varNames.length; i++) {
     let varNameI = varNames[i];
     for (let j = 0; j < i; ++j) {
@@ -349,7 +349,7 @@ function propagator_addDistinct(config, varNames) {
  * @returns {string}
  */
 function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2name, sumName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -386,7 +386,7 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2
  * @param {string} op
  */
 function propagator_addRing(config, A, B, C, op) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof A === 'string', 'number/undefined vars should be handled by caller');
   ASSERT(typeof B === 'string', 'number/undefined vars should be handled by caller');
   ASSERT(typeof C === 'string', 'number/undefined vars should be handled by caller');
@@ -414,7 +414,7 @@ function propagator_addPlus(config, v1name, v2name, sumname) {
  * @returns {string} same as resultVar if given
  */
 function propagator_addMin(config, v1name, v2name, resultVar) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof v1name === 'string' || typeof v1name === 'number', 'expecting var name 1', v1name);
   ASSERT(typeof v2name === 'string' || typeof v2name === 'number', 'expecting var name 2', v2name);
 
@@ -466,7 +466,7 @@ function propagator_addRingMul(config, v1name, v2name, prodName) {
  * @returns {string}
  */
 function propagator_addSum(config, vars, resultVarName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
@@ -513,7 +513,7 @@ function propagator_addSum(config, vars, resultVarName) {
  * @returns {string} The var name of the result var (relevant if you passed a number or nothing)
  */
 function propagator_addProduct(config, vars, resultVarName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(vars instanceof Array, 'vars should be an array of var names', vars);
 
   if (!resultVarName) {
@@ -552,7 +552,7 @@ function propagator_addProduct(config, vars, resultVarName) {
  * @param {string} varName
  */
 function propagator_addMarkov(config, varName) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varName === 'string', 'VARNAME_SHOULD_BE_STRING'); // comes from external so should not be index yet
   config_addPropagator(config, ['markov', [varName]]);
 }

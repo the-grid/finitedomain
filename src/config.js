@@ -24,7 +24,7 @@ import distribution_getDefaults from './distribution/defaults';
  */
 function config_create() {
   return {
-    _class: 'config',
+    _class: '$config',
 
     var_filter_func: 'unsolved',
     next_var_func: 'naive',
@@ -48,7 +48,7 @@ function config_create() {
 }
 
 function config_clone(config, newVars) {
-  ASSERT(config._class = 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let {
     var_filter_func,
@@ -65,7 +65,7 @@ function config_clone(config, newVars) {
   } = config;
 
   return {
-    _class: 'config',
+    _class: '$config',
 
     var_filter_func,
     next_var_func,
@@ -108,7 +108,7 @@ function config_addVarNothing(config, varName) {
  * @returns {string}
  */
 function config_addVarAnonRange(config, lo, hi) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
   ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
 
@@ -124,7 +124,7 @@ function config_addVarAnonRange(config, lo, hi) {
  * @returns {string}
  */
 function config_addVarRange(config, varName, lo, hi) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true');
   ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
   ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
@@ -139,7 +139,7 @@ function config_addVarRange(config, varName, lo, hi) {
  * @param {$domain} domain
  */
 function config_addVarsWithDomain(config, varNames, domain) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   for (let i = 0, n = varNames.length; i < n; ++i) {
     let varName = varNames[i];
@@ -165,7 +165,7 @@ function config_addVarDomain(config, varName, domain, _forbidden) {
  * @returns {string}
  */
 function config_addVarAnonConstant(config, value) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof value === 'number', 'value should be a number', value);
 
   if (config.constant_cache[value]) {
@@ -181,7 +181,7 @@ function config_addVarAnonConstant(config, value) {
  * @returns {string}
  */
 function config_addVarConstant(config, varName, value) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
   ASSERT(typeof value === 'number', 'value should be a number', value);
 
@@ -201,7 +201,7 @@ function config_addVarConstant(config, varName, value) {
  * @returns {string} the var name (you need this for anonymous vars)
  */
 function _config_addVar(config, varName, domain) {
-  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'varName must be a non-empty string');
   ASSERT(typeof domain === 'number' || domain instanceof Array, '$domain is a number or array', domain);
   ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
@@ -230,18 +230,18 @@ function _config_addVar(config, varName, domain) {
 /**
  * Initialize the config of this space according to certain presets
  *
- * @param {$space} space
+ * @param {$config} config
  * @param {string} varName
  */
-function config_setDefaults(space, varName) {
-  ASSERT(space._class === 'config');
-  config_setOptions(space, distribution_getDefaults(varName));
+function config_setDefaults(config, varName) {
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  config_setOptions(config, distribution_getDefaults(varName));
 }
 
 // Set solving options on this config. Only required for the root.
 
 function config_setOptions(config, options) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   if (options && options.filter) {
     // for markov,
     // string: 'none', ignored
@@ -291,7 +291,7 @@ function config_setOptions(config, options) {
  * @param {$propagator} propagator
  */
 function config_addPropagator(config, propagator) {
-  ASSERT(config._class === 'config');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   config.propagators.push(propagator);
 }
 
@@ -315,7 +315,7 @@ function config_getUnknownVars(config) {
 }
 
 function config_generateVars(config, space) {
-  ASSERT(config._class === 'config', 'EXPECTING_CONFIG');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let unsolvedVarIndexes = space.unsolvedVarIndexes;

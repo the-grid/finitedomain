@@ -18,7 +18,7 @@ Go to heatfiler (on localhost, just clone it, no install needed)
 Solver = (typeof require === 'function') ? require('../../src/solver') : exports.default;
 
 let config = {
-  _class: 'config',
+  _class: '$config',
   var_filter_func: 'unsolved',
   next_var_func: 'naive',
   next_value_func: 'min',

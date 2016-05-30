@@ -80,7 +80,7 @@ class Solver {
    * @property {string} [options.search='depth_first']
    * @property {number[]} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
-   * @property {Config} [options.config=config_create()]
+   * @property {$config} [options.config=config_create()]
    */
   constructor(options = {}) {
     let {

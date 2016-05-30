@@ -1302,12 +1302,9 @@ function domain_firstRangeIsDetermined(domain) {
 function domain_removeGteNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
 
-  if (value > 15) {
-    return domain;
-  }
-  if (value < 0) { // TODO: can we just assert this never happens?
-    value = 0;
-  }
+  if (value > 15) return domain;
+  ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
+  ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   for (let i = value; i <= 15; ++i) {
     let n = NUMBER[i];
@@ -1368,12 +1365,9 @@ function domain_removeGte(domain, value) {
 function domain_removeLteNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
 
-  if (value < 0) { // TODO: can we just assert this never happens?
-    return domain;
-  }
-  if (value > 15) {
-    value = 15;
-  }
+  if (value > 15) value = 15;
+  ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
+  ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   for (let i = 0; i <= value; ++i) {
     let n = NUMBER[i];

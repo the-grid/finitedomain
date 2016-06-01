@@ -1,23 +1,24 @@
 /*
-For HeatFiler:
+ For HeatFiler:
 
-first do `grunt buildf` for a beautified concat build
-Go to heatfiler (on localhost, just clone it, no install needed)
-- go to `http://localhost/heatfiler/src/#run,code,here`
-- select files
-- enter the snippet below
-- press start
-- wait until the spinner spins again (can take a while...), reduce the max to make this go faster
+ first do `grunt buildf` for a beautified concat build
+ Go to heatfiler (on localhost, just clone it, no install needed)
+ - go to `http://localhost/heatfiler/src/#run,code,here`
+ - select files
+ - enter the snippet below
+ - press start
+ - wait until the spinner spins again (can take a while...), reduce the max to make this go faster
 
-@ console.log('starting now...');
-@ var exports = {};
-+ http://localhost/~/finitedomain/build/finitedomain-browserified-beautified.js
-- http://localhost/~/finitedomain/tests/perf/gridsolver.js
+ @ console.log('starting now...');
+ @ var exports = {};
+ @ var module = {exports: {}};
+ + http://localhost/~/finitedomain/build/finitedomain-browserified-beautified.js
+ - http://localhost/~/finitedomain/tests/perf/gridsolver/perf.js
+ @ perf(config);
 
- */
-Solver = (typeof require === 'function') ? require('../../src/solver') : exports.default;
+*/
 
-let config = {
+var config = module.exports = {
   _class: '$config',
   var_filter_func: 'unsolved',
   next_var_func: 'naive',
@@ -387,12 +388,3 @@ let config = {
     ['eq', ['99', '100']],
   ],
 };
-
-console.log(config);
-
-let solver = new Solver({config});
-console.log('start profile');
-console.profile('gridsolving');
-solver.solve({log: 1, max: 50000, vars: solver.config.all_var_names});
-console.profileEnd('gridsolving');
-console.log('stop profile');

@@ -1,0 +1,17 @@
+<body>
+  The magic happens in your console.
+  <pre>
+node from repl:
+
+./node_modules/.bin/babel-node
+
+var config = require('./tests/perf/gridsolver/config');
+var perf = require('./tests/perf/perf');
+perf(config, 50000);
+  </pre>  <script>var exports= {};</script>
+  <script>var module = {exports: {}};</script>
+  <script src="config.js"></script>
+  <script src="../../../build/finitedomain-browserified-beautified.js"></script>
+  <script src="../perf.js"></script>
+  <script>perf(config, 50000);</script>
+</body>

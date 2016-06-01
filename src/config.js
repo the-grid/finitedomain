@@ -315,8 +315,8 @@ function config_getUnknownVars(config) {
 }
 
 function config_generateVars(config, space) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space && space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 

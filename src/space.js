@@ -135,7 +135,7 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
   ASSERT(unsolvedVarIndexes instanceof Array, 'unsolvedVarIndexes should be an array', unsolvedVarIndexes);
 
-  return ({
+  let space = {
     _class: '$space',
     // search graph metrics
     _depth,
@@ -150,7 +150,9 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
     unsolvedPropagators, // by references from space.config.propagators
 
     next_distribution_choice: 0,
-  });
+  };
+
+  return space;
 }
 
 /**

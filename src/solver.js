@@ -4,6 +4,7 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  NO_SUCH_VALUE,
   SUB,
   SUP,
 
@@ -31,7 +32,10 @@ import {
   domain_createValue,
   domain_fromList,
   domain_isRejected,
+  domain_max,
   domain_numarr,
+  domain_toArr,
+  domain_toList,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -151,7 +155,8 @@ class Solver {
     if (isNaN(num)) {
       THROW('Solver#num: expecting a number, got NaN');
     }
-    return config_addVarAnonConstant(this.config, num);
+    let name = config_addVarAnonConstant(this.config, num);
+    return name;
   }
 
   /**
@@ -670,12 +675,38 @@ class Solver {
   /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
+   * It will always create an array, never a "small domain"
+   * (number that is bit-wise flags) because that should be
+   * kept an internal finitedomain artifact.
    *
    * @param {number[]} list
    * @returns {number[]}
    */
   domain_fromList(list) {
-    return domain_fromList(list);
+    return domain_toArr(domain_fromList(list));
+  }
+
+  /**
+   * Used by PathSolver in another (private) project
+   * Exposes domain_max
+   *
+   * @param {$domain} domain
+   * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
+   */
+  domain_max(domain) {
+    if (domain_isRejected(domain)) return NO_SUCH_VALUE;
+    return domain_max(domain);
+  }
+
+  /**
+   * Used by PathSolver in another (private) project
+   * Exposes domain_toList
+   *
+   * @param {$domain} domain
+   * @returns {number[]}
+   */
+  domain_toList(domain) {
+    return domain_toList(domain);
   }
 
   /**
@@ -697,6 +728,34 @@ class Solver {
    */
   getNameForIndex(varIndex) {
     return this._space.config.all_var_names[varIndex];
+  }
+
+  _debugConfig() {
+    let inspect = typeof require === 'function' ? function(arg) { return require('util').inspect(arg, false, null); } : function(o) { return o; };
+
+    console.log('## _debugConfig:');
+
+    console.log('# All keys:');
+    let config = this.config;
+    for (let key in config) {
+      console.log(key, ':', inspect(config[key]));
+    }
+
+    console.log('# Variables:');
+    console.log('  index name domain toArr');
+    let names = config.all_var_names;
+    for (let varIndex = 0; varIndex < names.length; ++varIndex) {
+      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
+    }
+
+    console.log('# Propagators:');
+    console.log('  index name vars args');
+    let propagators = config.propagators;
+    for (let i = 0; i < propagators.length; ++i) {
+      console.log('  ', i, ':', propagators[i][0], ':', propagators[i][1], ':', propagators[i].slice(2));
+    }
+
+    console.log('##');
   }
 }
 

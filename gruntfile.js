@@ -95,14 +95,24 @@ module.exports = function () {
     },
 
     watch: {
-      files: [
-        'src/**/*.js',
-        'tests/**/*',
-      ],
-      tasks: [
-        'buildf',
-        'uglify:dist',
-      ],
+      f: { // build for browser
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'buildf',
+        ],
+      },
+      q: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'distq',
+        ],
+      },
     },
 
     mochaTest: {
@@ -159,6 +169,11 @@ module.exports = function () {
       dist: {
         files: {
           'build/finitedomain-browserified.js': 'src/index.js',
+        },
+      },
+      distq: {
+        files: {
+          'dist/finitedomain.dist.min.js': 'src/index.js',
         },
       },
     },
@@ -251,6 +266,7 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-run'); // runs npm scripts
   grunt.loadNpmTasks('grunt-remove');
+  grunt.loadNpmTasks('grunt-replace');
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-contrib-concat');
 
@@ -258,6 +274,7 @@ module.exports = function () {
   grunt.registerTask('build', 'strips headers but keeps assertions, also makes phantomjs build', ['clean', 'browserify:phantom', 'concat:test', 'babel:concat']);
   grunt.registerTask('buildf', 'strips headers and asserts, beautifies result (for /perf)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
   grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
+  grunt.registerTask('distq', ['clean', 'browserify:distq']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
   grunt.registerTask('testq', ['clean', 'mochaTest:all']);
@@ -265,38 +282,3 @@ module.exports = function () {
 
   grunt.registerTask('default', ['test']);
 };
-
-
-  //  concat: {
-  //    options: {
-  //      stripBanners: false,
-  //      banner: 'FD = ((module? and module) or {}).exports = do ->\n\n',
-  //      footer: // add external exports here
-  //      '\n' +
-  //      '  return {\n' +
-  //      '    Solver\n' +
-  //      '  }\n',
-  //      separator: '\n\n',
-  //      process(str, fname) {
-  //        switch (fname) {
-  //          // ignore some files
-  //          case 'src/index.coffee':
-  //            break;
-  //          default:
-  //            let m = str.match(/# BODY_START((?:.|\n|\r)*?)# BODY_STOP/)
-  //            if (m[1]) {
-  //              m = m[1];
-  //            } else {
-  //              console.log("Warning: ${fname} had no body start/stop, unable to include");
-  //              m = str;
-  //            }
-  //            return " ###### file: ${fname} ######\n\n" + m
-  //        }
-  //      },
-  //    },
-  //    dist: {
-  //      src: ['src/**/*.coffee'],
-  //      dest: 'build/1.finitedomain.dist.coffee'
-  //    }
-  //  }
-  //});

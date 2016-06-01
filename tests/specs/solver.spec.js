@@ -2,7 +2,6 @@ import expect from '../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainSmallNums,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 
@@ -770,11 +769,16 @@ describe('solver.spec', function() {
 
     describe('solver.domain_fromList', function() {
 
-      it('should just map to domain_fromList', function() {
+      it('should map to domain_fromList', function() {
         let solver = new Solver();
 
         expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15, 18])).to.eql(specDomainCreateRanges([1, 2], [4, 5], [7, 7], [9, 13], [15, 15], [18, 18]));
-        expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql(specDomainSmallNums(1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15));
+      });
+
+      it('should always return an array even for small domains', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql([1, 2, 4, 5, 7, 7, 9, 13, 15, 15]);
       });
     });
   });

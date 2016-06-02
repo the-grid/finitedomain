@@ -55,7 +55,8 @@ function propagator_stepAny(propagator, space) {
  * @returns {$fd_changeState}
  */
 function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
-  let [varIndex1, varIndex2] = propVarIndexes;
+  let varIndex1 = propVarIndexes[0];
+  let varIndex2 = propVarIndexes[1];
 
   ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'varIndex2 index should exist for most props', propagator);
 

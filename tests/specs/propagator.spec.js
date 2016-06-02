@@ -1,6 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
+  specDomainCreateRange,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -29,7 +29,7 @@ import {
 } from '../../src/config';
 
 
-describe('propagator.spec', function() {
+describe('src/propagator.spec', function() {
   // TOFIX: add tests for all these propagators. there never have been but most functions here are trivial to test.
 
   describe('propagator_addMarkov', function() {
@@ -101,7 +101,7 @@ describe('propagator.spec', function() {
         let config = config_create();
         propagator_addReified(config, 'eq', 'A', 'B', 'C');
 
-        expect(config.initial_vars.C).to.eql(specDomainCreateBool());
+        expect(config.initial_vars.C).to.eql(specDomainCreateRange(0, 1, true));
       });
 
       it('should accept a number for boolvar', function() {

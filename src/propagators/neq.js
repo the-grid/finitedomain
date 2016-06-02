@@ -1,63 +1,110 @@
 import {
-  domain_max,
-  domain_min,
+  EMPTY,
+  NO_CHANGES,
+  NO_SUCH_VALUE,
+  REJECTED,
+  SOME_CHANGES,
+
+  ASSERT,
+} from '../helpers';
+import {
+  domain_getValue,
+  domain_isRejected,
+  domain_isSolved,
+  domain_removeValue,
+  domain_removeValueNumbered,
   domain_sharesNoElements,
 } from '../domain';
 
-import {
-  fdvar_forceNeqInline,
-} from '../fdvar';
-
 // BODY_START
 
-let PAIR_SIZE = 2;
-
 /**
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$space} space
+ * @param {number} varIndex1
+ * @param {number} varIndex2
+ * @returns {$fd_changeState}
  */
-function propagator_neqStepBare(fdvar1, fdvar2) {
-  return fdvar_forceNeqInline(fdvar1, fdvar2);
+function propagator_neqStepBare(space, varIndex1, varIndex2) {
+  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
+  ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+
+  let domain1 = space.vardoms[varIndex1];
+  let domain2 = space.vardoms[varIndex2];
+
+  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+
+  let result = NO_CHANGES;
+
+  // remove solved value from the other domain. confirm neither rejects over it.
+  let value = domain_getValue(domain1);
+  if (value !== NO_SUCH_VALUE) {
+    let newDomain;
+    if (typeof domain2 === 'number') {
+      newDomain = domain_removeValueNumbered(domain2, value);
+    } else {
+      newDomain = domain_removeValue(domain2, value);
+    }
+    if (domain2 !== newDomain) result = SOME_CHANGES;
+    if (domain_isRejected(newDomain)) {
+      space.vardoms[varIndex1] = EMPTY;
+      space.vardoms[varIndex2] = EMPTY;
+      result = REJECTED;
+    } else if (result === SOME_CHANGES) {
+      space.vardoms[varIndex2] = newDomain;
+    }
+  } else {
+    // domain1 is not solved, just remove domain2 from domain1 if domain2 is solved
+    value = domain_getValue(domain2);
+    if (value !== NO_SUCH_VALUE) {
+      let newDomain;
+      if (typeof domain1 === 'number') {
+        newDomain = domain_removeValueNumbered(domain1, value);
+      } else {
+        newDomain = domain_removeValue(domain1, value);
+      }
+      if (domain1 !== newDomain) result = SOME_CHANGES;
+      if (domain_isRejected(newDomain)) {
+        space.vardoms[varIndex1] = EMPTY;
+        space.vardoms[varIndex2] = EMPTY;
+        result = REJECTED;
+      } else if (result === SOME_CHANGES) {
+        space.vardoms[varIndex1] = newDomain;
+      }
+    }
+  }
+
+  ASSERT(result === REJECTED || result === NO_CHANGES || result === SOME_CHANGES, 'turning stuff into enum, must be sure about values');
+  ASSERT((result === REJECTED) === (domain_isRejected(space.vardoms[varIndex1]) || domain_isRejected(space.vardoms[varIndex2])), 'if either domain is rejected, r should reflect this already');
+  return result;
 }
 
 /**
  * neq will only reject if both domains are solved and equal.
  * This is a read-only check.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_neqStepWouldReject(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
-  let len1 = dom1.length;
-  let len2 = dom2.length;
-
-  if (len1 === 0 || len2 === 0) {
-    return true;
-  }
-  if (len1 !== PAIR_SIZE || len2 !== PAIR_SIZE) {
-    return false;
+function propagator_neqStepWouldReject(domain1, domain2) {
+  if (!domain_isSolved(domain1) || !domain_isSolved(domain2)) {
+    return false; // can not reject if either domain isnt solved
   }
 
-  // reject if domains are solved (lo=hi) and same as other domain
-
-  let lo = domain_min(dom1);
-  let hi = domain_max(dom1);
-  return lo === hi && lo === domain_min(dom2) && lo === domain_max(dom2);
+  return domain_getValue(domain1) === domain_getValue(domain2);
 }
 
 /**
  * neq is solved if all values in both vars only occur in one var each
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_neqSolved(fdvar1, fdvar2) {
-  return domain_sharesNoElements(fdvar1.dom, fdvar2.dom);
+function propagator_neqSolved(domain1, domain2) {
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 // BODY_STOP

@@ -1,13 +1,17 @@
-const SUP = 100000;
+const SUB = 0;
+const SUP = 100000000;
 
-function specDomainCreateRange(lo, hi) {
+function specDomainCreateRange(lo, hi, _b) {
+  if (_b !== true && lo >= 0 && hi <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+
   if (typeof lo !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
   if (typeof hi !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
-  return specDomainCreateRanges([lo, hi]);
+
+  return [lo, hi];
 }
 function specDomainCreateRanges(...ranges) {
   let arr = [];
@@ -27,31 +31,99 @@ function specDomainCreateRanges(...ranges) {
     return arr.push(range[0], range[1]);
   });
 
+  if (arr[0] >= 0 && arr[arr.length-1] <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN ['+arr+']');
+
   // hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr;
 }
-function specDomainCreateValue(value) {
+function specDomainCreateValue(value, _b) {
+  if (_b !== true && _b !== undefined) throw new Error('ILLEGAL_SECOND_ARG');
+  if (_b !== true && value >= 0 && value <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+
   if (typeof value !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
-  return specDomainCreateRanges([value, value]);
+  return specDomainCreateRange(value, value, _b);
 }
 function specDomainCreateList(list) {
   let arr = [];
-  list.forEach(value => arr.push(value, value));
+  list.forEach(value => {
+    if (value >= 0 && value <= 15) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
+    arr.push(value, value)
+  });
   return arr;
 }
-function specDomainCreateZero() {
-  return specDomainCreateRange(0, 0);
+function specDomainCreateEmpty(no) {
+  let A = [];
+  if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
+  return A;
 }
-function specDomainCreateOne() {
-  return specDomainCreateRange(1, 1);
+
+function specDomainFromNums(...list) {
+  if (!list.length) return [];
+  list.sort((a, b) => a - b);
+
+  let domain = [];
+  let hi;
+  let lo;
+  for (let index = 0; index < list.length; index++) {
+    let value = list[index];
+    ASSERT(value >= SUB, 'fd values range SUB~SUP');
+    ASSERT(value <= SUP, 'fd values range SUB~SUP');
+    if (index === 0) {
+      lo = value;
+      hi = value;
+    } else {
+      ASSERT(value >= hi, 'LIST_SHOULD_BE_ORDERED_BY_NOW'); // imo it should not even contain dupe elements... but that may happen anyways
+      if (value > hi + 1) {
+        domain.push(lo, hi);
+        lo = value;
+      }
+      hi = value;
+    }
+  }
+  domain.push(lo, hi);
+  return domain;
 }
-function specDomainCreateFull() {
-  return specDomainCreateRange(0, SUP);
+
+const ZERO = 1 << 0;
+const ONE = 1 << 1;
+const TWO = 1 << 2;
+const THREE = 1 << 3;
+const FOUR = 1 << 4;
+const FIVE = 1 << 5;
+const SIX = 1 << 6;
+const SEVEN = 1 << 7;
+const EIGHT = 1 << 8;
+const NINE = 1 << 9;
+const TEN = 1 << 10;
+const ELEVEN = 1 << 11;
+const TWELVE = 1 << 12;
+const THIRTEEN = 1 << 13;
+const FOURTEEN = 1 << 14;
+const FIFTEEN = 1 << 15;
+const NUMBER = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
+function specDomainSmallNums(...values) {
+  let d = 0;
+  for (let i = 0; i < values.length; ++i) {
+    if (typeof values[i] !== 'number') throw new Error('EXPECTING_NUMBERS_ONLY ['+values[i]+']');
+    if (values[i] < 0 || values[i] > 15) throw new Error('EXPECTING_SMALL_DOMAIN_VALUES ['+values[i]+']');
+    d |= NUMBER[values[i]];
+  }
+  return d;
 }
-function specDomainCreateBool() {
-  return specDomainCreateRange(0, 1);
+function specDomainSmallRange(lo, hi) {
+  if (typeof lo !== 'number') throw new Error('LO_MUST_BE_NUMBER');
+  if (typeof hi !== 'number') throw new Error('HI_MUST_BE_NUMBER');
+  if (lo < 0 || hi > 15) throw new Error('OOB_FOR_SMALL_DOMAIN');
+  let d = 0;
+  for (; lo <= hi; ++lo) {
+    d |= NUMBER[lo];
+  }
+  return d;
+}
+function specDomainSmallEmpty() {
+  return 0; // magic value yo. no flags means zero
 }
 
 function stripAnonVars(solution) {
@@ -70,15 +142,20 @@ function stripAnonVarsFromArrays(solutions) {
   return solutions;
 }
 
+function ASSERT(b, d) {
+  if (!b) throw new Error(d);
+}
+
 export {
+  specDomainCreateEmpty,
+  specDomainCreateList,
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
-  specDomainCreateList,
-  specDomainCreateZero,
-  specDomainCreateOne,
-  specDomainCreateFull,
-  specDomainCreateBool,
+  specDomainFromNums,
+  specDomainSmallEmpty,
+  specDomainSmallNums,
+  specDomainSmallRange,
   stripAnonVars,
   stripAnonVarsFromArrays,
 };

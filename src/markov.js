@@ -4,12 +4,9 @@ import {
   THROW,
 } from './helpers';
 import {
+  domain_isValue,
   domain_toList,
 } from './domain';
-
-import {
-  fdvar_isValue,
-} from './fdvar';
 
 // BODY_START
 
@@ -18,16 +15,16 @@ import {
  * If the boolean condition of a row is 1, return it.
  * If no row meets these conditions, return the last row.
  *
- * @param {Space} space
+ * @param {$space} space
  * @param {?} matrix
  * @returns {*}
  */
 function markov_getNextRowToSolve(space, matrix) {
-  let { vars } = space;
+  let vardoms = space.vardoms;
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
-    let boolVar = vars[row.booleanId];
-    if (!boolVar || fdvar_isValue(boolVar, 1)) {
+    let boolDomain = vardoms[row.booleanId];
+    if (boolDomain === undefined || domain_isValue(boolDomain, 1)) {
       break;
     }
   }

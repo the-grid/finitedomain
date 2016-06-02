@@ -4,6 +4,7 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  NO_SUCH_VALUE,
   SUB,
   SUP,
 
@@ -14,9 +15,10 @@ import {
 } from './helpers';
 
 import {
-  config_addVar,
-  config_addVarAnon,
-  config_addVarsA,
+  config_addVarAnonConstant,
+  config_addVarDomain,
+  config_addVarRange,
+  config_addVarsWithDomain,
   config_create,
   config_getUnknownVars,
   config_setDefaults,
@@ -24,10 +26,16 @@ import {
 } from './config';
 
 import {
+  FORCE_ARRAY,
   PAIR_SIZE,
-  domain_createBool,
-  domain_createValue,
+
+  domain_clone,
+  domain_createRange,
   domain_fromList,
+  domain_isRejected,
+  domain_max,
+  domain_toArr,
+  domain_toList,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -76,13 +84,13 @@ class Solver {
    * @property {string} [options.search='depth_first']
    * @property {number[]} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
-   * @property {Config} [options.config=config_create()]
+   * @property {$config} [options.config=config_create()]
    */
   constructor(options = {}) {
     let {
       distribute = 'naive',
       search = 'depth_first',
-      defaultDomain = domain_createBool(),
+      defaultDomain = domain_createRange(0, 1),
       config = config_create(),
     } = options;
 
@@ -147,7 +155,8 @@ class Solver {
     if (isNaN(num)) {
       THROW('Solver#num: expecting a number, got NaN');
     }
-    return config_addVarAnon(this.config, num);
+    let name = config_addVarAnonConstant(this.config, num);
+    return name;
   }
 
   /**
@@ -163,12 +172,23 @@ class Solver {
 
   /**
    * @param {string} id
-   * @param {number[]} [domain=this.defaultDomain.slice(0)]
+   * @param {$domain_arr|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $domain_num!
    * @returns {string}
    */
-  decl(id, domain = this.defaultDomain.slice(0)) {
+  decl(id, domainOrValue) {
+    let domain;
+    if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
+    else domain = domainOrValue;
+
+    if (!domain) {
+      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+    }
+
+    ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
+
+    if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = solver_validateDomain(domain);
-    return config_addVar(this.config, id, domain);
+    return config_addVarDomain(this.config, id, domain);
   }
 
   /**
@@ -186,7 +206,7 @@ class Solver {
    * S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
    *
    * @param v
-   * @param dom
+   * @param [dom=v.domain] Note: this cannot be a "small domain"! Numbers are interpreted to be constants in Solver
    * @returns {*}
    */
   addVar(v, dom) {
@@ -196,6 +216,8 @@ class Solver {
         id: v,
         domain: dom,
       };
+    } else {
+      ASSERT(typeof v === 'object', 'v should be an id or an object containing meta');
     }
 
     let {
@@ -214,15 +236,16 @@ class Solver {
       THROW(`Solver#addVar: var.id already added: ${id}`);
     }
 
-    if (typeof domain === 'undefined' || domain === null) {
-      domain = this.defaultDomain.slice(0);
-    }
-    if (typeof domain === 'number') {
-      domain = domain_createValue(domain);
-    }
-    domain = solver_validateDomain(domain);
+    ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
 
-    config_addVar(this.config, id, domain);
+    if (domain === undefined) {
+      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+    } else {
+      domain = solver_validateDomain(domain);
+      ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
+    }
+
+    config_addVarDomain(this.config, id, domain);
     ASSERT(!vars.byId[id], 'var should not yet exist', id, v);
     vars.byId[id] = v;
     ASSERT(vars.all.indexOf(v) < 0, 'var should not yet be part of vars.all', id, v);
@@ -522,14 +545,21 @@ class Solver {
    * @param {Object} options
    * @property {number} [options.max=1000]
    * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
-   * @property {string[]|Fdvar[]|Bvar[]} options.vars Target branch vars or var names to force solve. Defaults to all.
+   * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} add_unknown_vars
+   * @property {boolean} [_debugConfig] Log out solver._space.config after prepare() but before run()
+   * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run()
+   * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
    * @return {Object[]}
    */
   solve(options) {
     let obj = this.prepare(options);
+
+    if (options && options._debugConfig) console.log(getInspector()(this._space.config));
+    if (options && options._debugSpace) console.log(getInspector()(this._space));
+    if (options && options._debugSolver) this._debugSolver();
 
     // logging inside asserts because they are stripped out for dist
     ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
@@ -559,7 +589,7 @@ class Solver {
 
     if (addUnknownVars) {
       let unknown_names = config_getUnknownVars(this.config);
-      config_addVarsA(this.config, unknown_names, this.defaultDomain.slice(0));
+      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain, FORCE_ARRAY));
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -630,28 +660,12 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.time('      - FD Solver Time');
       console.log(`      - FD Solver Var Count: ${this.state.space.config.all_var_names.length}`);
       console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
+      console.time('      - FD Solver Time');
     }
 
-    ASSERT(Object.keys(this.state.space.vars).sort().join('--') === Object.keys(this.state.space.config.initial_vars).sort().join('--'), 'migration test');
-
-    let count = 0;
-    while (state.more && count < max) {
-      searchFunc(state);
-      if (state.status !== 'end') {
-        count++;
-        if (!squash) {
-          let solution = space_solution(state.space);
-          solutions.push(solution);
-          if (log >= LOG_SOLVES) {
-            console.log('      - FD solution() ::::::::::::::::::::::::::::');
-            console.log(JSON.stringify(solution));
-          }
-        }
-      }
-    }
+    let count = solver_runLoop(state, searchFunc, max, solutions, log, squash);
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solver Time');
@@ -670,18 +684,44 @@ class Solver {
    * @returns {string}
    */
   space_add_var_range(id, lo, hi) {
-    return config_addVar(this.config, id, lo, hi);
+    return config_addVarRange(this.config, id, lo, hi);
   }
 
   /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
+   * It will always create an array, never a "small domain"
+   * (number that is bit-wise flags) because that should be
+   * kept an internal finitedomain artifact.
    *
    * @param {number[]} list
    * @returns {number[]}
    */
   domain_fromList(list) {
-    return domain_fromList(list);
+    return domain_toArr(domain_fromList(list));
+  }
+
+  /**
+   * Used by PathSolver in another (private) project
+   * Exposes domain_max
+   *
+   * @param {$domain} domain
+   * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
+   */
+  domain_max(domain) {
+    if (domain_isRejected(domain)) return NO_SUCH_VALUE;
+    return domain_max(domain);
+  }
+
+  /**
+   * Used by PathSolver in another (private) project
+   * Exposes domain_toList
+   *
+   * @param {$domain} domain
+   * @returns {number[]}
+   */
+  domain_toList(domain) {
+    return domain_toList(domain);
   }
 
   /**
@@ -693,13 +733,141 @@ class Solver {
     let solvedConfig = space_toConfig(this.state.space);
     return new Solver({config: solvedConfig});
   }
+
+  /**
+   * Internally finitedomain only uses var indexes. This function can
+   * be used to look them up (externally). Should prevent manual lookups.
+   *
+   * @param {number} varIndex
+   * @returns {string}
+   */
+  getNameForIndex(varIndex) {
+    return this._space.config.all_var_names[varIndex];
+  }
+
+  _debugSolver() {
+    let inspect = getInspector();
+    console.log('## _debugConfig:');
+
+    console.log('# All keys:');
+    console.warn('cloning');
+    let config = this.config;
+    console.log(inspect(_clone(config)));
+
+    console.log('# Variables:');
+    console.log('  index name domain toArr');
+    let names = config.all_var_names;
+    for (let varIndex = 0; varIndex < names.length; ++varIndex) {
+      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
+    }
+
+    console.log('# Propagators:');
+    console.log('  index name vars args');
+    let propagators = config.propagators;
+    for (let i = 0; i < propagators.length; ++i) {
+      console.log('  ', i, ':', propagators[i][0], ':', propagators[i][1], ':', propagators[i].slice(2));
+    }
+
+    console.log('##');
+  }
+}
+
+/**
+ * Deep clone given object for debugging purposes (only)
+ * Revise if used for anything concrete
+ *
+ * @param {*} value
+ * @returns {*}
+ */
+function _clone(value) {
+  switch (typeof value) {
+    case 'object':
+      if (!value) return null;
+      if (value instanceof Array) {
+        return value.map(v => _clone(v));
+      }
+      let obj = {};
+      for (let key in value) {
+        obj[key] = _clone(value[key]);
+      }
+      return obj;
+    case 'function':
+      let fobj = {
+        __THIS_IS_A_FUNCTION: 1,
+        __source: value.toString(),
+      };
+      for (let key in value) {
+        fobj[key] = _clone(value[key]);
+      }
+      return fobj;
+
+    case 'string':
+    case 'number':
+    case 'boolean':
+    case 'undefined':
+      return value;
+  }
+
+  THROW('config value what?', value);
+}
+
+let inspectorCache;
+function getInspector() {
+  if (!inspectorCache) {
+    inspectorCache = typeof require === 'function' ? function(arg) { return require('util').inspect(arg, false, null); } : function(o) { return o; };
+  }
+  return inspectorCache;
+}
+
+/**
+ * This is the core search loop. Supports multiple solves although you
+ * probably only need one solution. Won't return more solutions than max.
+ *
+ * @param {Object} state
+ * @param {Function} searchFunc
+ * @param {number} max Stop after finding this many solutions
+ * @param {Object[]} solutions All solutions are pushed into this array
+ * @param {number} log LOG constant
+ * @param {boolean} squash Suppress creating solutions? For testing perf.
+ * @returns {number} Number of solutions found (could be bound by max)
+ */
+function solver_runLoop(state, searchFunc, max, solutions, log, squash) {
+  let count = 0;
+  while (state.more && count < max) {
+    searchFunc(state);
+    if (state.status !== 'end') {
+      count++;
+      solver_handleSolution(state, solutions, log, squash);
+    }
+  }
+  return count;
+}
+
+/**
+ * When the search finds a solution, store and log it
+ *
+ * @param {Object} state
+ * @param {Object[]} solutions
+ * @param {number} log
+ * @param {boolean} squash
+ */
+function solver_handleSolution(state, solutions, log, squash) {
+  if (state.status !== 'end') {
+    if (!squash) {
+      let solution = space_solution(state.space);
+      solutions.push(solution);
+      if (log >= LOG_SOLVES) {
+        console.log('      - FD solution() ::::::::::::::::::::::::::::');
+        console.log(JSON.stringify(solution));
+      }
+    }
+  }
 }
 
 /**
  * Visit the branch vars and collect var specific configuration overrides if
- * there are any and put them on the root space. This way we don't need to
- * burden Fdvar with this. Mainly used for Markov searching.
- * The result is set to be Space#var_dist_config
+ * there are any and put them on the root space. Mainly used for Markov
+ * searching. The result is set to be Space#var_dist_config
  *
  * @param {string[]} varNames
  * @param {Object} bvarsById Maps var names to their Bvar
@@ -735,22 +903,23 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
   return overrides;
 }
 
-
 /**
  * validate domains, filter and fix legacy domains, throw for bad inputs
  *
- * @param {number[]} domain
+ * @param {$domain} domain
  * @returns {number[]}
  */
 function solver_validateDomain(domain) {
+  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
+
   // support legacy domains and validate input here
   let msg = solver_confirmDomain(domain);
   if (msg) {
     let fixedDomain = solver_tryToFixLegacyDomain(domain);
     if (fixedDomain) {
-      if (console && console.warn) {
-        console.warn(msg, domain, 'auto-converted to', fixedDomain);
-      }
+      //if (console && console.warn) {
+      //  console.warn(msg, domain, 'auto-converted to', fixedDomain);
+      //}
     } else {
       if (console && console.warn) {
         console.warn(msg, domain, 'unable to fix');
@@ -759,7 +928,7 @@ function solver_validateDomain(domain) {
     }
     domain = fixedDomain;
   }
-  return domain;
+  return domain_toArr(domain);
 }
 
 /**

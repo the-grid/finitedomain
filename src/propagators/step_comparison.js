@@ -45,36 +45,31 @@ import {
 // BODY_START
 
 /**
- * @param {Space} space
+ * @param {$space} space
  * @param {string} opName
- * @param {Fdvar} varName1
- * @param {Fdvar} varName2
- * @returns {*}
+ * @param {number} varIndex1
+ * @param {number} varIndex2
+ * @returns {$fd_changeState}
  */
-function propagator_stepComparison(space, opName, varName1, varName2) {
-  let v1 = space.vars[varName1];
-  let v2 = space.vars[varName2];
-
+function propagator_stepComparison(space, opName, varIndex1, varIndex2) {
   switch (opName) {
+    case 'eq':
+      return propagator_eqStepBare(space, varIndex1, varIndex2);
+
     case 'lt':
-      return propagator_ltStepBare(v1, v2);
+      return propagator_ltStepBare(space, varIndex1, varIndex2);
 
     case 'lte':
-      return propagator_lteStepBare(v1, v2);
+      return propagator_lteStepBare(space, varIndex1, varIndex2);
 
     case 'gt':
-      // TOFIX: should go to lte
-      return propagator_stepComparison(space, 'lt', varName2, varName1);
+      return propagator_stepComparison(space, 'lt', varIndex2, varIndex1);
 
     case 'gte':
-      // TOFIX: should go to lt
-      return propagator_stepComparison(space, 'lte', varName2, varName1);
-
-    case 'eq':
-      return propagator_eqStepBare(v1, v2);
+      return propagator_stepComparison(space, 'lte', varIndex2, varIndex1);
 
     case 'neq':
-      return propagator_neqStepBare(v1, v2);
+      return propagator_neqStepBare(space, varIndex1, varIndex2);
 
     default:
       return THROW(`unsupported propagator: [${opName}]`);
@@ -86,34 +81,32 @@ function propagator_stepComparison(space, opName, varName1, varName2) {
  * true when the step would result in REJECTED. Returns true otherwise.
  *
  * @param {string} opName
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
  */
-function propagator_stepWouldReject(opName, fdvar1, fdvar2) {
+function propagator_stepWouldReject(opName, domain1, domain2) {
   switch (opName) {
     case 'lt':
-      return propagator_ltStepWouldReject(fdvar1, fdvar2);
+      return propagator_ltStepWouldReject(domain1, domain2);
 
     case 'lte':
-      return propagator_lteStepWouldReject(fdvar1, fdvar2);
+      return propagator_lteStepWouldReject(domain1, domain2);
 
-    case 'gt':
-      // TOFIX: should go to lte
-      return propagator_ltStepWouldReject(fdvar2, fdvar1); // swapped vars!
+    case 'gt': // A > B   <=>   B < A
+      return propagator_ltStepWouldReject(domain2, domain1); // swapped vars!
 
-    case 'gte':
-      return propagator_lteStepWouldReject(fdvar2, fdvar1); // swapped vars!
+    case 'gte': // A >= B   <=>   B <= A
+      return propagator_lteStepWouldReject(domain2, domain1); // swapped vars!
 
     case 'eq':
-      return propagator_eqStepWouldReject(fdvar1, fdvar2);
+      return propagator_eqStepWouldReject(domain1, domain2);
 
     case 'neq':
-      return propagator_neqStepWouldReject(fdvar1, fdvar2);
-
-    default:
-      THROW(`stepper_step_read_only: unsupported propagator: [${opName}]`);
+      return propagator_neqStepWouldReject(domain1, domain2);
   }
+
+  THROW(`stepper_step_read_only: unsupported propagator: [${opName}]`);
 }
 
 // BODY_STOP

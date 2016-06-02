@@ -1,17 +1,23 @@
 import {
   domain_mul,
+  domain_intersection,
+  domain_numarr,
 } from '../domain';
-
-import {
-  fdvar_constrain,
-} from '../fdvar';
 
 // BODY_START
 
-function propagator_mulStep(fdvar1, fdvar2, fdvar_result) {
-  let output = domain_mul(fdvar1.dom, fdvar2.dom);
-  let changeStatus = fdvar_constrain(fdvar_result, output);
-  return changeStatus;
+/**
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @param {$domain} domResult
+ * @returns {$domain}
+ */
+function propagator_mulStep(domain1, domain2, domResult) {
+  let domain = domain_mul(domain1, domain2);
+
+  domain = domain_numarr(domain);
+  domain = domain_intersection(domResult, domain);
+  return domain_numarr(domain);
 }
 
 // BODY_STOP

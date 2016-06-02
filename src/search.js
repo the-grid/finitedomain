@@ -1,4 +1,5 @@
 import {
+  NO_SUCH_VALUE,
   ASSERT,
 } from './helpers';
 import {
@@ -6,6 +7,9 @@ import {
   space_isSolved,
   space_propagate,
 } from './space';
+import {
+  domain_isSolved,
+} from './domain';
 import distribution_getNextVar from './distribution/var';
 import distribute_getNextDomainForVar from './distribution/value';
 
@@ -24,9 +28,9 @@ import distribute_getNextDomainForVar from './distribution/value';
  * the search can continue and there may be more solutions.
  *
  * @param {Object} state
- * @property {Space} state.space Root space if this is the start of searching
+ * @property {$space} state.space Root space if this is the start of searching
  * @property {boolean} [state.more] Are there spaces left to investigate after the last solve?
- * @property {Space[]} [state.stack]=[state,space] The search stack as initialized by this class
+ * @property {$space[]} [state.stack]=[state,space] The search stack as initialized by this class
  * @property {Function} [state.is_solved] Custom function to tell us whether a space is solved
  * @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
  * @property {string} [state.status] Set to 'solved' or 'end'
@@ -46,40 +50,48 @@ function search_depthFirst(state) {
   // var in the clone to see whether this breaks anything. The loop below
   // keeps doing this until something breaks or all target vars are solved.
   let createNextSpaceNode = state.next_choice || search_defaultSpaceFactory;
-
-  let {
-    space,
-    stack,
-  } = state;
+  let stack = state.stack;
 
   while (stack.length > 0) {
-    let next_space;
-    space = stack[stack.length - 1];
-
-    if (!space_propagate(space)) {
-      _search_onReject(state, space, stack);
-    } else if (space_isSolved(space)) {
-      _search_onSolve(state, space, stack);
-      return;
-    } else {
-      next_space = createNextSpaceNode(space, state);
-      if (next_space) {
-        // Now this space is neither solved nor failed but since
-        // no constraints are rejecting we must look further.
-        // Push on to the stack and explore further.
-        stack.push(next_space);
-      } else {
-        // Finished exploring branches of this space. Continue with the previous spaces.
-        // This is a stable space, but isn't a solution. Neither is it a failed space.
-        space.stable_children++;
-        stack.pop();
-      }
-    }
+    let solved = search_depthFirstLoop(stack[stack.length - 1], stack, state, createNextSpaceNode);
+    if (solved) return;
   }
 
   // Failed space and no more options to explore.
   state.status = 'end';
   state.more = false;
+}
+
+/**
+ * One search step of the given space
+ *
+ * @param {$space} space
+ * @param {$space[]} stack
+ * @param {Object} state See search_depthFirst
+ * @param {Function} createNextSpaceNode Clones the current space and reduces one var in the new space
+ * @returns {boolean}
+ */
+function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+  if (!space_propagate(space)) {
+    _search_onReject(state, space, stack);
+  } else if (space_isSolved(space)) {
+    _search_onSolve(state, space, stack);
+    return true;
+  } else {
+    let next_space = createNextSpaceNode(space, state);
+    if (next_space) {
+      // Now this space is neither solved nor failed but since
+      // no constraints are rejecting we must look further.
+      // Push on to the stack and explore further.
+      stack.push(next_space);
+    } else {
+      // Finished exploring branches of this space. Continue with the previous spaces.
+      // This is a stable space, but isn't a solution. Neither is it a failed space.
+      space.stable_children++;
+      stack.pop();
+    }
+  }
+  return false;
 }
 
 /**
@@ -90,20 +102,25 @@ function search_depthFirst(state) {
  * This takes various search and distribution strategies
  * into account.
  *
- * @param {Space} space
- * @returns {Space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
+ * @param {$space} space
+ * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
 function search_defaultSpaceFactory(space) {
   let targetVars = _search_getVarsUnfiltered(space);
-  let fdvar = distribution_getNextVar(space, targetVars);
+  let varIndex = distribution_getNextVar(space, targetVars);
 
-  if (fdvar) {
-    let nextDomain = distribute_getNextDomainForVar(space, fdvar);
+  if (varIndex !== NO_SUCH_VALUE) {
+    ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+    ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
 
-    if (nextDomain) {
-      let clone = space_createClone(space);
-      clone.vars[fdvar.id].dom = nextDomain;
-      return clone;
+    let domain = space.vardoms[varIndex];
+    if (!domain_isSolved(domain)) {
+      let nextDomain = distribute_getNextDomainForVar(space, varIndex);
+      if (nextDomain) {
+        let clone = space_createClone(space);
+        clone.vardoms[varIndex] = nextDomain;
+        return clone;
+      }
     }
   }
 
@@ -113,25 +130,25 @@ function search_defaultSpaceFactory(space) {
 /**
  * Return all the targeted variables without filtering them first.
  * The filter can only be applied later because it may be overridden
- * by an fdvar-specific config.
- * One of the returned fdvar names will be picked to restrict.
+ * by a var-specific config.
+ * One of the returned var names will be picked to restrict.
  *
- * @param {Space} space The current node
- * @returns {string[]} The names of targeted fdvars on given space
+ * @param {$space} space The current node
+ * @returns {number[]} The var indexes of targeted vars on given space
  */
 function _search_getVarsUnfiltered(space) {
-  let configTargetedVars = space.config.targetedVars;
+  let configTargetedIndexes = space.config.targetedIndexes;
 
-  if (configTargetedVars === 'all') {
-    return space.unsolvedVarNames;
+  if (configTargetedIndexes === 'all') {
+    return space.unsolvedVarIndexes;
   }
 
-  if (configTargetedVars instanceof Array) {
-    return configTargetedVars;
+  if (configTargetedIndexes instanceof Array) {
+    return configTargetedIndexes;
   }
 
-  ASSERT(typeof configTargetedVars === 'function', 'config.targetedVars should be a func at this point', configTargetedVars);
-  return configTargetedVars(space);
+  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
+  return configTargetedIndexes(space);
 }
 
 /**
@@ -139,8 +156,8 @@ function _search_getVarsUnfiltered(space) {
  *
  *
  * @param {Object} state The search state data
- * @param {Space} space The search node to fail
- * @param {Space[]} stack See state.stack
+ * @param {$space} space The search node to fail
+ * @param {$space[]} stack See state.stack
  */
 function _search_onReject(state, space, stack) {
   // Some propagators failed so this is now a failed space and we need

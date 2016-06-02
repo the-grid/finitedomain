@@ -1,173 +1,445 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  specDomainCreateEmpty,
   specDomainCreateRange,
   specDomainCreateRanges,
+  specDomainCreateValue,
+  specDomainFromNums,
+  specDomainSmallEmpty,
+  specDomainSmallNums,
+  specDomainSmallRange,
 } from '../../fixtures/domain.fixt';
 
 import {
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
   SUB,
   SUP,
-
-  REJECTED,
-  ZERO_CHANGES,
 } from '../../../src/helpers';
 import {
-  fdvar_create,
-  fdvar_createWide,
-} from '../../../src/fdvar';
+  FORCE_ARRAY,
+
+  domain_clone,
+} from '../../../src/domain';
+import {
+  config_addVarDomain,
+  config_create,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
 import {
   propagator_neqStepBare,
 } from '../../../src/propagators/neq';
 
 describe('propagators/neq.spec', function() {
-  // in general after call v1 and v2 should be equal
 
   it('should exist', function() {
     expect(propagator_neqStepBare).to.be.a('function');
   });
 
-  it('should require two vars', function() {
-    let v = fdvar_createWide('x');
+  it('should expect args', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainFromNums(11, 15));
+    config_addVarDomain(config, 'B', specDomainFromNums(5, 8));
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
 
-    expect(() => propagator_neqStepBare()).to.throw();
-    expect(() => propagator_neqStepBare(v)).to.throw();
-    expect(() => propagator_neqStepBare(undefined, v)).to.throw();
+    let A = space.config.all_var_names.indexOf('A');
+    let B = space.config.all_var_names.indexOf('B');
+
+    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
+    expect(_ => propagator_neqStepBare(space)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, undefined, B)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(undefined, A, B)).to.throw('SHOULD_GET_SPACE');
   });
 
-  //it('should reject for empty domains', function() {
-  //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_create('y', []);
-  //
-  //  expect(neq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
-  //
-  //it('should reject for empty left domain', function() {
-  //  let v1 = fdvar_create('x', []);
-  //  let v2 = fdvar_createWide('y');
-  //
-  //  expect(neq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
-  //
-  //it('should reject for empty right domain', function() {
-  //  let v1 = fdvar_createWide('x');
-  //  let v2 = fdvar_create('y', []);
-  //
-  //  expect(neq_step_bare(v1, v2)).to.eql(REJECTED);
-  //});
+  it('should throw for empty domains', function() {
+    let config = config_create();
+    config_addVarDomain(config, 'A', specDomainFromNums(9, 10, true));
+    config_addVarDomain(config, 'B', specDomainFromNums(11, 15, true));
+    config_addVarDomain(config, 'C', specDomainCreateEmpty());
+    config_addVarDomain(config, 'D', specDomainCreateEmpty());
+    let space = space_createRoot(config);
+    space_initFromConfig(space);
+
+    let A = space.config.all_var_names.indexOf('A');
+    let B = space.config.all_var_names.indexOf('B');
+    let C = space.config.all_var_names.indexOf('C');
+    let D = space.config.all_var_names.indexOf('D');
+
+    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+  });
 
   describe('should not change anything as long as both domains are unsolved', function() {
 
-    function test(domain1, domain2 = domain1.slice(0)) {
-      for (let i = 0; i < domain1.length; i++) {
-        if (typeof domain1[i] !== 'number') {
-          throw new Error(`bad test, fixme! neq.spec.1: [${domain1}] [${domain2}]`);
-        }
-      }
-      for (let j = 0; j < domain2.length; j++) {
-        if (typeof domain2[j] !== 'number') {
-          throw new Error(`bad test, fixme! neq.spec.2: [${domain1}] [${domain2}]`);
-        }
-      }
-
+    function test(domain1, domain2) {
       it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain1.slice(0));
-        let v2 = fdvar_create('y', domain2.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
-        expect(v1.dom, 'v1 dom').to.eql(domain1);
-        expect(v2.dom, 'v2 dom').to.eql(domain2);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain1);
+        expect(space.vardoms[B]).to.eql(domain2);
       });
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain2.slice(0));
-        let v2 = fdvar_create('y', domain1.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
-        expect(v1.dom, 'v1 dom').to.eql(domain2);
-        expect(v2.dom, 'v2 dom').to.eql(domain1);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain2);
+        expect(space.vardoms[B]).to.eql(domain1);
       });
     }
 
-    // these are the (non-solved) cases plucked from eq tests
-    test(specDomainCreateRange(SUB, SUP), specDomainCreateRanges([0, 10], [20, 30]));
-    test(specDomainCreateRange(0, 1));
-    test(specDomainCreateRange(20, 50));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-    test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
-    test(specDomainCreateRanges([0, 0], [2, 2]));
-    test(specDomainCreateRanges([0, 0], [2, 3]));
-    test(specDomainCreateRange(SUB, 1), specDomainCreateRange(1, SUP));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]));
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 1], [3, 3]), [], REJECTED);
-    test(specDomainCreateRanges([0, 0], [2, 2]), specDomainCreateRanges([1, 2], [4, 4]), specDomainCreateRange(2, 2));
+    describe('with array', function() {
+      // these are the (non-solved) cases plucked from eq tests
+      test(specDomainCreateRange(SUB, SUP), specDomainCreateRanges([0, 10], [20, 30]));
+      test(specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP));
+      test(specDomainCreateRange(20, 50), specDomainCreateRange(20, 50));
+      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
+      test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]), specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
+      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 2, SUP));
+      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]));
+      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]));
+      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 3, SUP - 1));
+      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 4, SUP - 1));
+    });
+
+    describe('with numbers', function() {
+      test(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1));
+      test(specDomainSmallRange(2, 5), specDomainSmallRange(2, 5));
+      test(specDomainSmallRange(0, 1), specDomainSmallRange(0, 2));
+      test(specDomainSmallRange(0, 2), specDomainSmallRange(0, 3));
+      test(specDomainSmallRange(0, 2), specDomainSmallRange(0, 4));
+    });
   });
 
   describe('with one solved domain', function() {
 
-    function test(value, domain1, result) {
-      let domain2 = specDomainCreateRange(value, value);
+    function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter, changes) {
+      it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(solvedDomain, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
 
-      it(`should remove solved domain from unsolve domain (left-right): ${[domain1, domain2].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain1.slice(0));
-        let v2 = fdvar_create('y', domain2.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.be.above(0);
-        expect(v1.dom, 'v1 dom').to.eql(result);
-        expect(v2.dom, 'v2 dom').to.eql(domain2);
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        expect(space.vardoms[A]).to.eql(solvedDomain);
+        expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
 
-      it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain2.slice(0));
-        let v2 = fdvar_create('y', domain1.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.be.above(0);
-        expect(v1.dom, 'v1 dom').to.eql(domain2);
-        expect(v2.dom, 'v2 dom').to.eql(result);
+      it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(solvedDomain, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
+        expect(space.vardoms[B]).to.eql(solvedDomain);
       });
     }
 
-    test(0, specDomainCreateRange(0, 1), specDomainCreateRanges([1, 1]));
-    test(1, specDomainCreateRange(0, 1), specDomainCreateRanges([0, 0]));
-    test(SUB, specDomainCreateRange(SUB, 50), specDomainCreateRanges([SUB + 1, 50]));
-    test(SUP, specDomainCreateRange(20, SUP), specDomainCreateRanges([20, SUP - 1]));
-    test(10, specDomainCreateRanges([10, 10], [12, 50]), specDomainCreateRanges([12, 50]));
-    test(10, specDomainCreateRanges([0, 8], [10, 10], [12, 20]), specDomainCreateRanges([0, 8], [12, 20]));
-    test(10, specDomainCreateRanges([0, 10], [12, 50]), specDomainCreateRanges([0, 9], [12, 50]));
-    test(1, specDomainCreateRange(0, 3), specDomainCreateRanges([0, 0], [2, 3]));
+    describe('with array', function() {
+      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(SUP - 1, SUP - 1), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP, SUP), SOME_CHANGES);
+      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 50, SUP), specDomainCreateRange(SUP - 50, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(20, 20), specDomainCreateRanges([20, SUP - 1]), specDomainCreateRange(21, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([910, 910], [912, 950]), specDomainCreateRanges([912, 950]), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 98], [910, 910], [912, 920]), specDomainCreateRanges([90, 98], [912, 920]), SOME_CHANGES);
+      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 910], [912, 950]), specDomainCreateRanges([90, 909], [912, 950]), SOME_CHANGES);
+      test(specDomainCreateRange(91, 91), specDomainCreateRange(90, 93), specDomainCreateRanges([90, 90], [92, 93]), SOME_CHANGES);
+    });
+
+    describe('with numbers', function() {
+      test(specDomainSmallNums(0), specDomainSmallRange(0, 1), specDomainSmallRange(1, 1), SOME_CHANGES);
+      test(specDomainSmallNums(1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 0), SOME_CHANGES);
+      test(specDomainSmallNums(0), specDomainSmallRange(0, 15), specDomainSmallRange(1, 15), SOME_CHANGES);
+      test(specDomainSmallNums(2), specDomainSmallRange(2, 5), specDomainSmallRange(3, 5), SOME_CHANGES);
+      test(specDomainSmallNums(10), specDomainSmallNums(10, 13, 14, 15), specDomainSmallRange(13, 15), SOME_CHANGES);
+      test(specDomainSmallNums(10), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOME_CHANGES);
+      test(specDomainSmallNums(4), specDomainSmallNums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOME_CHANGES);
+      test(specDomainSmallNums(1), specDomainSmallRange(0, 3), specDomainSmallNums(0, 2, 3), SOME_CHANGES);
+    });
   });
 
-  describe('two solved domains', function() {
+  describe('two neq solved domains', function() {
 
-    function test(value1, value2) {
-      let domain1 = specDomainCreateRange(value1, value1);
-      let domain2 = specDomainCreateRange(value2, value2);
-
+    function test(domain1, domain2) {
       it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain1.slice(0));
-        let v2 = fdvar_create('y', domain2.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
-        expect(v1.dom, 'v1 dom').to.eql(domain1);
-        expect(v2.dom, 'v2 dom').to.eql(domain2);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain1);
+        expect(space.vardoms[B]).to.eql(domain2);
       });
 
       it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain2.slice(0));
-        let v2 = fdvar_create('y', domain1.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.eql(ZERO_CHANGES);
-        expect(v1.dom, 'v1 dom').to.eql(domain2);
-        expect(v2.dom, 'v2 dom').to.eql(domain1);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        expect(space.vardoms[A]).to.eql(domain2);
+        expect(space.vardoms[B]).to.eql(domain1);
       });
 
       it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
-        let v1 = fdvar_create('x', domain1.slice(0));
-        let v2 = fdvar_create('y', domain1.slice(0));
-        expect(propagator_neqStepBare(v1, v2)).to.eql(REJECTED);
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
+      });
+
+      it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        let space = space_createRoot(config);
+        space_initFromConfig(space);
+
+        let A = space.config.all_var_names.indexOf('A');
+        let B = space.config.all_var_names.indexOf('B');
+
+        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
       });
     }
 
-    test(0, 1);
-    test(1, 2);
-    test(1, 20);
-    test(SUB, 10);
-    test(10, SUP);
-    test(SUB, SUP);
+    describe('with array', function() {
+      test(specDomainCreateValue(SUP), specDomainCreateValue(SUP - 1));
+      test(specDomainCreateValue(SUP - 1), specDomainCreateValue(SUP - 2));
+      test(specDomainCreateValue(SUP - 1), specDomainCreateValue(SUP - 20));
+      test(specDomainCreateValue(SUP), specDomainCreateValue(500));
+      test(specDomainCreateValue(800), specDomainCreateValue(801));
+    });
+
+    describe('with numbers', function() {
+      test(specDomainSmallNums(0), specDomainSmallNums(1));
+      test(specDomainSmallNums(1), specDomainSmallNums(2));
+      test(specDomainSmallNums(1), specDomainSmallNums(15));
+      test(specDomainSmallNums(0), specDomainSmallNums(5));
+      test(specDomainSmallNums(8), specDomainSmallNums(1));
+    });
   });
 });
+
+// TOFIX: migrate and dedupe these tests:
+//  describe('fdvar_forceNeqInline', function() {
+//    // these tests are pretty much tbd
+//
+//    it('should exist', function() {
+//      expect(fdvar_forceNeqInline).to.be.a('function');
+//    });
+//
+//    describe('with array', function() {
+//
+//      it('should return NO_CHANGES if neither domain is solved', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+//        let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50])));
+//      });
+//
+//      it('should return SOME_CHANGES if left domain is solved', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([20, 20]));
+//        let B = fdvar_create('B', specDomainCreateRanges([15, 35], [40, 50]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(SOME_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([20, 20])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([15, 19], [21, 35], [40, 50])));
+//      });
+//
+//      it('should return SOME_CHANGES if right domain is solved', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([15, 35], [40, 50]));
+//        let B = fdvar_create('B', specDomainCreateRanges([20, 20]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(SOME_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([15, 19], [21, 35], [40, 50])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([20, 20])));
+//      });
+//
+//      it('should return NO_CHANGES if domains are equal but not solved (small)', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([SUP - 1, SUP]));
+//        let B = fdvar_create('B', specDomainCreateRanges([SUP - 1, SUP]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([SUP - 1, SUP])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([SUP - 1, SUP])));
+//      });
+//
+//      it('should return NO_CHANGES if domains are equal but not solved (large)', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+//        let B = fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([10, 20], [30, 40], [50, 60])));
+//      });
+//
+//      // TOFIX: this exposes a serious problem with assumptions on solved vars
+//      it('should return REJECTED if domains resolved to same value', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([SUP, SUP]));
+//        let B = fdvar_create('B', specDomainCreateRanges([SUP, SUP]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(REJECTED);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([SUP, SUP])));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallEmpty()));
+//      });
+//
+//      it('should return NO_CHANGES both domains solve to different value', function() {
+//        let A = fdvar_create('A', specDomainCreateRanges([30, 30]));
+//        let B = fdvar_create('B', specDomainCreateRanges([40, 40]));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRanges([30, 30])));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRanges([40, 40])));
+//      });
+//    });
+//
+//    describe('with numbers', function() {
+//
+//      it('should return SOME_CHANGES if right side was solved and the left wasnt', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
+//        let B = fdvar_create('B', specDomainSmallNums(2));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(SOME_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 3, 6, 7, 8)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(2)));
+//      });
+//
+//      it('should return SOME_CHANGES if left side was solved and the right had it', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(2));
+//        let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(SOME_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(2)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1, 3, 6, 7, 8)));
+//      });
+//
+//      it('should return NO_CHANGES if right side was solved and the left already did not have it', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
+//        let B = fdvar_create('B', specDomainSmallNums(4));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(4)));
+//      });
+//
+//      it('should return NO_CHANGES if left side was solved and the right already did not have it', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(4));
+//        let B = fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(4)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
+//      });
+//
+//      it('should return NO_CHANGES if neither domain is solved', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8));
+//        let B = fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 6, 7, 8)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(2, 3, 4, 5, 6, 7)));
+//      });
+//
+//      it('should return NO_CHANGES if both domains are solved to different value', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(0));
+//        let B = fdvar_create('B', specDomainSmallNums(1));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(0)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallNums(1)));
+//      });
+//    });
+//
+//    describe('with array and numbers', function() {
+//
+//      it('should work with an array and a number', function() {
+//        let A = fdvar_create('A', specDomainCreateRange(10, 100));
+//        let B = fdvar_create('B', specDomainSmallRange(5, 15));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainCreateRange(10, 100)));
+//        expect(B).to.eql(fdvar_create('B', specDomainSmallRange(5, 15)));
+//      });
+//
+//      it('should work with a numbert and an array', function() {
+//        let A = fdvar_create('A', specDomainSmallNums(1, 2, 3, 10, 11, 13));
+//        let B = fdvar_create('B', specDomainCreateRange(8, 100));
+//        let R = fdvar_forceNeqInline(A, B);
+//
+//        expect(R).to.eql(NO_CHANGES);
+//        expect(A).to.eql(fdvar_create('A', specDomainSmallNums(1, 2, 3, 10, 11, 13)));
+//        expect(B).to.eql(fdvar_create('B', specDomainCreateRange(8, 100)));
+//      });
+//    });
+//  });
 

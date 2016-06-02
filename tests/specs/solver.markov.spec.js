@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
   specDomainCreateRange,
   stripAnonVars,
   stripAnonVarsFromArrays,
@@ -27,7 +26,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V',
-      domain: specDomainCreateBool(),
+      domain: specDomainCreateRange(0, 1, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
@@ -72,11 +71,11 @@ describe('solver.markov.spec', function() {
 
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10),
+        domain: specDomainCreateRange(0, 10, true),
       });
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateBool(),
+        domain: specDomainCreateRange(0, 1, true),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -95,7 +94,7 @@ describe('solver.markov.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateBool(),
+        domain: specDomainCreateRange(0, 1, true),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -122,6 +121,21 @@ describe('solver.markov.spec', function() {
       let random_func = FUNCS[random_name];
 
       describe(`random function: ${random_name}`, function() {
+
+        it(`should have a fixed outcome for ${random_name}`, function() {
+          if (random_name === 'MIN_FIRST') {
+            let solver = setupSolverForRandomTest(random_func);
+            let solutions = solver.solve({max: 1});
+
+            expect(stripAnonVarsFromArrays(solutions)).to.eql([{STATE: 5, V1: 0, V2: 0}]);
+          }
+          if (random_name === 'MAX_FIRST') {
+            let solver = setupSolverForRandomTest(random_func);
+            let solutions = solver.solve({max: 1});
+
+            expect(stripAnonVarsFromArrays(solutions)).to.eql([{STATE: 5, V1: 1, V2: 1}]);
+          }
+        });
 
         it('should have a certain probability distribution of the random function when getting _one_ solution 1000x', function() {
 
@@ -190,7 +204,7 @@ describe('solver.markov.spec', function() {
 
     solver.addVar({
       id: 'STATE',
-      domain: specDomainCreateRange(0, 10),
+      domain: specDomainCreateRange(0, 10, true),
     });
     solver.addVar({
       id: 'V1',
@@ -251,7 +265,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: specDomainCreateRange(1, 4),
+      domain: specDomainCreateRange(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -265,7 +279,7 @@ describe('solver.markov.spec', function() {
 
     solver.addVar({
       id: 'V2',
-      domain: specDomainCreateRange(1, 4),
+      domain: specDomainCreateRange(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -305,7 +319,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: specDomainCreateRange(1, 4),
+      domain: specDomainCreateRange(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -316,7 +330,7 @@ describe('solver.markov.spec', function() {
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
     solver.addVar({
       id: 'V2',
-      domain: specDomainCreateRange(1, 4),
+      domain: specDomainCreateRange(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -359,11 +373,11 @@ describe('solver.markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A_NORM',
-        domain: specDomainCreateRange(0, 1),
+        domain: specDomainCreateRange(0, 1, true),
       });
       solver.addVar({
         id: 'B_MARK',
-        domain: specDomainCreateRange(0, 1),
+        domain: specDomainCreateRange(0, 1, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [2],

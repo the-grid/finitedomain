@@ -6,10 +6,10 @@ import {
 
 import Solver from '../../src/solver';
 import {
-  space_solutionFor,
+  space_getVarSolveState,
 } from '../../src/space';
 
-describe('solver.list.spec', function() {
+describe('src/solver.list.spec', function() {
 
   it('should exist', function() {
     expect(Solver).to.be.a('function');
@@ -21,7 +21,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: [2, 4, 3, 1],
@@ -29,14 +29,14 @@ describe('solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: [3, 1, 4, 2],
         },
       });
       solver['>']('V1', solver.constant(0));
-      solver['>']('V2', solver.constant(0));
+      solver['>']('V2', 0);
 
       let solutions = solver.solve();
       expect(solutions.length, 'all solutions').to.equal(16);
@@ -114,12 +114,22 @@ describe('solver.list.spec', function() {
     });
 
     it('should call the list if it is a function', function() {
-      function listCallback(space, v) {
-        let solution = space_solutionFor(space, ['STATE', 'STATE2', 'V1', 'V2'], false);
+      function space_solutionFor(space, varNames) {
+        let result = {};
+        for (let varIndex = 0; varIndex < varNames.length; varIndex++) {
+          let varName = varNames[varIndex];
+          result[varName] = space_getVarSolveState(space, varIndex);
+        }
+
+        return result;
+      }
+
+      function listCallback(space, varName) {
+        let solution = space_solutionFor(space, ['STATE', 'V1', 'V2']);
         if (solution['STATE'] === 5) {
-          if (v === 'V1') {
+          if (varName === 'V1') {
             return [2, 4, 3, 1];
-          } else if (v === 'V2') {
+          } else if (varName === 'V2') {
             if (solution['V1'] > 0) {
               return [3, 1, 4, 2];
             }
@@ -131,11 +141,11 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10),
+        domain: specDomainCreateRange(0, 10, true),
       });
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: listCallback,
@@ -143,7 +153,7 @@ describe('solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4),
+        domain: specDomainCreateRange(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: listCallback,
@@ -185,7 +195,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5),
+        domain: specDomainCreateRange(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 3, 4],
@@ -205,7 +215,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 10),
+        domain: specDomainCreateRange(0, 10, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
@@ -221,7 +231,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5),
+        domain: specDomainCreateRange(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
@@ -261,7 +271,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5),
+        domain: specDomainCreateRange(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 5],
@@ -285,7 +295,7 @@ describe('solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5),
+        domain: specDomainCreateRange(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 15, 5],

@@ -1,28 +1,29 @@
 import {
-  REJECTED,
+  ASSERT,
 } from '../helpers';
 
 import {
   domain_intersection,
+  domain_numarr,
 } from '../domain';
-
-import {
-  fdvar_setDomain,
-} from '../fdvar';
 
 // BODY_START
 
-function propagator_ringStepBare(fdvar1, fdvar2, fdvarResult, opFunc) {
-  // Apply an operator func to fdvar1 and fdvar2
-  // Updates fdvarResult to the intersection of the result and itself
+/**
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @param {$domain} domainResult
+ * @param {Function} opFunc
+ * @param {string} opName For debugging only, the canonical name of opFunc
+ * @returns {$domain}
+ */
+function propagator_ringStepBare(domain1, domain2, domainResult, opFunc, opName) {
+  ASSERT(typeof opFunc === 'function', 'EXPECTING_FUNC_TO_BE:', opName);
+  let domain = opFunc(domain1, domain2);
 
-  let fromOp = opFunc(fdvar1.dom, fdvar2.dom);
-  let domain = domain_intersection(fromOp, fdvarResult.dom);
-  if (!domain.length) {
-    return REJECTED;
-  }
-
-  return fdvar_setDomain(fdvarResult, domain);
+  domain = domain_numarr(domain);
+  domain = domain_intersection(domainResult, domain);
+  return domain_numarr(domain);
 }
 
 // BODY_STOP

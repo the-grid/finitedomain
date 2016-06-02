@@ -1,10 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 //import {
-//  specDomainCreateBool,
 //  specDomainCreateRange,
 //  specDomainCreateRanges,
 //  specDomainCreateValue,
-//  specDomainCreateZero,
 //} from '../fixtures/domain.fixt';
 
 import {
@@ -15,7 +13,7 @@ import {
   space_createRoot,
 } from '../../src/space';
 
-describe('markov.spec', function() {
+describe('src/markov.spec', function() {
 
   describe('markov_createProbVector', function() {
 

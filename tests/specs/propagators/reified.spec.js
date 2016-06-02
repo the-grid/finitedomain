@@ -1,29 +1,38 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateBool,
-  specDomainCreateOne,
   specDomainCreateRange,
-  specDomainCreateZero,
+  specDomainSmallNums,
+  specDomainSmallRange,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 
 import {
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
+  NO_CHANGES,
+  SOME_CHANGES,
 } from '../../../src/helpers';
 
 import {
-  fdvar_create,
-} from '../../../src/fdvar';
+  FORCE_ARRAY,
+
+  domain_clone,
+} from '../../../src/domain';
+import {
+  config_addVarDomain,
+  config_create,
+} from '../../../src/config';
+import {
+  space_createRoot,
+  space_initFromConfig,
+} from '../../../src/space';
 import Solver from '../../../src/solver';
 import propagator_reifiedStepBare from '../../../src/propagators/reified';
 
 describe('propagators/reified.spec', function() {
 
   // constants (tests must copy args)
-  let zero = specDomainCreateZero();
-  let one = specDomainCreateOne();
-  let bool = specDomainCreateBool();
+  let zero = specDomainSmallNums(0);
+  let one = specDomainSmallNums(1);
+  let bool = specDomainSmallNums(0, 1);
 
   describe('propagator_reifiedStepBare', function() {
     it('should exist', function() {
@@ -37,49 +46,51 @@ describe('propagators/reified.spec', function() {
         // test one step call with two vars and an op and check results
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `out=${expected_out}`, `result=[${bool_after}]`]}`, function() {
 
-          let space = {
-            vars: {
-              A: fdvar_create('A', A_in.slice(0)),
-              B: fdvar_create('B', B_in.slice(0)),
-              bool: fdvar_create('bool', bool_in.slice(0)),
-            },
-          };
+          let config = config_create();
+          config_addVarDomain(config, 'A', domain_clone(A_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'B', domain_clone(B_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'bool', domain_clone(bool_in, FORCE_ARRAY));
+          let space = space_createRoot(config);
+          space_initFromConfig(space);
 
-          let out = propagator_reifiedStepBare(space, 'A', 'B', 'bool', op, invop);
+          let A = space.config.all_var_names.indexOf('A');
+          let B = space.config.all_var_names.indexOf('B');
+          let bool = space.config.all_var_names.indexOf('bool');
+          let out = propagator_reifiedStepBare(space, A, B, bool, op, invop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
-          expect(space.vars.A.dom, 'A should be unchanged').to.eql(A_in);
-          expect(space.vars.B.dom, 'B should be unchanged').to.eql(B_in);
-          expect(space.vars.bool.dom, 'bool should reflect expected outcome').to.eql(bool_after);
+          expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);
+          expect(space.vardoms[B], 'B should be unchanged').to.eql(B_in);
+          expect(space.vardoms[bool], 'bool should reflect expected outcome').to.eql(bool_after);
         });
       }
 
       describe('eq/neq with bools', function() {
-        riftest(bool, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
-        riftest(bool, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
-        riftest(bool, zero, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, zero, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(bool, one, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
-        riftest(zero, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(zero, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, bool, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, bool, bool, 'neq', 'eq', ZERO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
-        riftest(one, one, bool, 'eq', 'neq', SOMETHING_CHANGED, one, 'A and B are resolved and eq so bool should be 1');
-        riftest(one, one, bool, 'neq', 'eq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(one, zero, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(one, zero, bool, 'neq', 'eq', SOMETHING_CHANGED, one, 'A and B are resolved and neq so bool should be 1');
-        riftest(zero, one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
-        riftest(zero, one, bool, 'neq', 'eq', SOMETHING_CHANGED, one, 'A and B are resolved and neq so bool should be 1');
-        riftest(zero, zero, bool, 'eq', 'neq', SOMETHING_CHANGED, one, 'A and B are resolved and eq so bool should be 1');
-        riftest(zero, zero, bool, 'neq', 'eq', SOMETHING_CHANGED, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(bool, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
+        riftest(bool, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'undetermined because eq/neq can only be determined when A and B are resolved');
+        riftest(bool, zero, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, zero, bool, 'neq', 'eq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(bool, one, bool, 'neq', 'eq', NO_CHANGES, bool, 'A is not resolved so not yet able to resolve bool');
+        riftest(zero, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(zero, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, bool, bool, 'eq', 'neq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, bool, bool, 'neq', 'eq', NO_CHANGES, bool, 'B is not resolved so not yet able to resolve bool');
+        riftest(one, one, bool, 'eq', 'neq', SOME_CHANGES, one, 'A and B are resolved and eq so bool should be 1');
+        riftest(one, one, bool, 'neq', 'eq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(one, zero, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(one, zero, bool, 'neq', 'eq', SOME_CHANGES, one, 'A and B are resolved and neq so bool should be 1');
+        riftest(zero, one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
+        riftest(zero, one, bool, 'neq', 'eq', SOME_CHANGES, one, 'A and B are resolved and neq so bool should be 1');
+        riftest(zero, zero, bool, 'eq', 'neq', SOME_CHANGES, one, 'A and B are resolved and eq so bool should be 1');
+        riftest(zero, zero, bool, 'neq', 'eq', SOME_CHANGES, zero, 'A and B are resolved and not eq so bool should be 0');
       });
 
       describe('eq/neq with non-bools', function() {
-        riftest(specDomainCreateRange(0, 5), specDomainCreateRange(10, 15), bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'undetermined but can proof eq is impossible');
-        riftest(specDomainCreateRange(0, 5), specDomainCreateRange(3, 8), bool, 'eq', 'neq', ZERO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
-        riftest(specDomainCreateRange(0, 5), one, bool, 'eq', 'neq', ZERO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-        riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOMETHING_CHANGED, zero, 'A is undetermined but B is NOT in A range must be neq');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(10, 15), bool, 'eq', 'neq', SOME_CHANGES, zero, 'undetermined but can proof eq is impossible');
+        riftest(specDomainSmallRange(0, 5), specDomainSmallRange(3, 8), bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
+        riftest(specDomainSmallRange(0, 5), one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
+        riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
   });
@@ -87,7 +98,7 @@ describe('propagators/reified.spec', function() {
   describe('solver test', function() {
 
     it('should not let reifiers influence results if they are not forced', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateBool()});
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -95,28 +106,12 @@ describe('propagators/reified.spec', function() {
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
       let solutions = solver.solve({vars: ['A', 'B', 'C']});
-
-      //// visualize solutions
-      //let names = '';
-      //for (var name in solutions[0]) {
-      //  names += name+' ';
-      //}
-      //console.log(names);
-      //let arr = solutions.map(function(sol) {
-      //  let out = '';
-      //  for (name in sol) {
-      //    out += sol[name]+' ';
-      //  }
-      //  return out;
-      //});
-      //console.log(arr);
-
       // a, b, c are not constrainted in any way, so 2^3=8
       expect(solutions.length).to.equal(8);
     });
 
     it('should be able to force a reifier to be true and affect the outcome', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateBool()});
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -149,7 +144,7 @@ describe('propagators/reified.spec', function() {
 
     it('should not adjust operands if result var is unconstrained', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq('A', 2);
       solver.solve();
 
@@ -170,7 +165,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 0', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq('A', 2, 0);
       solver.solve();
 
@@ -190,7 +185,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 1', function() {
       let solver = new Solver();
-      solver.addVar('A', specDomainCreateRange(0, 10));
+      solver.addVar('A', specDomainCreateRange(0, 10, true));
       solver.isEq(2, 'A', 1);
       solver.solve();
 

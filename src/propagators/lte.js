@@ -1,58 +1,104 @@
 import {
+  NO_CHANGES,
+  NO_SUCH_VALUE,
   REJECTED,
-  ZERO_CHANGES,
+  SOME_CHANGES,
 
+  ASSERT,
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
 
 import {
+  domain_isRejected,
   domain_max,
   domain_min,
+  domain_numarr,
+  domain_removeGteNumbered,
+  domain_removeGte,
+  domain_removeLteNumbered,
+  domain_removeLte,
 } from '../domain';
-
-import {
-  fdvar_isRejected,
-  fdvar_lowerBound,
-  fdvar_removeGteInline,
-  fdvar_removeLteInline,
-  fdvar_upperBound,
-} from '../fdvar';
 
 // BODY_START
 
 /**
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {number}
+ * @param {$space} space
+ * @param {number} varIndex1
+ * @param {number} varIndex2
+ * @returns {$fd_changeState}
  */
-function propagator_lteStepBare(fdvar1, fdvar2) {
-  let lo1 = fdvar_lowerBound(fdvar1);
-  let hi1 = fdvar_upperBound(fdvar1);
-  let lo2 = fdvar_lowerBound(fdvar2);
-  let hi2 = fdvar_upperBound(fdvar2);
+function propagator_lteStepBare(space, varIndex1, varIndex2) {
+  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
+  ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar1.dom);
-  ASSERT_DOMAIN_EMPTY_CHECK(fdvar2.dom);
+  let domain1 = space.vardoms[varIndex1];
+  let domain2 = space.vardoms[varIndex2];
+
+  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+
+  let lo1 = domain_min(domain1);
+  let hi1 = domain_max(domain1);
+  let lo2 = domain_min(domain2);
+  let hi2 = domain_max(domain2);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
+  var leftChanged = NO_CHANGES;
   if (hi1 > hi2) {
-    var leftChanged = fdvar_removeGteInline(fdvar1, hi2 + 1);
-    if (fdvar_isRejected(fdvar1)) {
-      leftChanged = REJECTED;
+    if (typeof domain1 === 'number') {
+      let result = domain_removeGteNumbered(domain1, hi2 + 1);
+      if (result !== domain1) {
+        space.vardoms[varIndex1] = result;
+        if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      }
+    } else {
+      let newDomain = domain_removeGte(domain1, hi2 + 1);
+      if (newDomain !== NO_SUCH_VALUE) {
+        space.vardoms[varIndex1] = domain_numarr(newDomain);
+        if (domain_isRejected(newDomain)) { // TODO: there is no test throwing when you remove this check
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      }
     }
   }
 
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
+  var rightChanged = NO_CHANGES;
   if (lo1 > lo2) {
-    var rightChanged = fdvar_removeLteInline(fdvar2, lo1 - 1);
-    if (fdvar_isRejected(fdvar2)) {
-      rightChanged = REJECTED;
+    if (typeof domain2 === 'number') {
+      let result = domain_removeLteNumbered(domain2, lo1 - 1);
+
+      if (result !== domain2) {
+        space.vardoms[varIndex2] = result;
+        if (domain_isRejected(result)) {
+          leftChanged = REJECTED;
+        } else {
+          leftChanged = SOME_CHANGES;
+        }
+      }
+    } else {
+      let newDomain = domain_removeLte(domain2, lo1 - 1);
+      if (newDomain !== NO_SUCH_VALUE) {
+        space.vardoms[varIndex2] = domain_numarr(newDomain);
+        if (domain_isRejected(domain2)) { // TODO: there is no test covering this
+          leftChanged = REJECTED;
+        } else {
+          rightChanged = SOME_CHANGES;
+        }
+      }
     }
   }
 
-  return leftChanged || rightChanged || ZERO_CHANGES;
+  return leftChanged || rightChanged || NO_CHANGES;
 }
 
 /**
@@ -61,34 +107,29 @@ function propagator_lteStepBare(fdvar1, fdvar2) {
  * lo bound of left to the high bound of right for that answer.
  * Read-only check
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
  */
-let propagator_lteStepWouldReject = function(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
+function propagator_lteStepWouldReject(domain1, domain2) {
+  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
+  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
 
-  ASSERT_DOMAIN_EMPTY_CHECK(dom1);
-  ASSERT_DOMAIN_EMPTY_CHECK(dom2);
-//    if domain_isRejected dom1 or domain_isRejected dom2
-//      return true
-
-  return domain_min(dom1) > domain_max(dom2);
-};
+  return domain_min(domain1) > domain_max(domain2);
+}
 
 /**
- * lte is solved if fdvar1 contains no values that are
- * higher than any numbers in fdvar2. Since domains only
+ * lte is solved if dom1 contains no values that are
+ * higher than any numbers in dom2. Since domains only
  * shrink we can assume that the lte constraint will not
  * be broken by searching further once this state is seen.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
  */
-function propagator_lteSolved(fdvar1, fdvar2) {
-  return fdvar_upperBound(fdvar1) <= fdvar_lowerBound(fdvar2);
+function propagator_lteSolved(domain1, domain2) {
+  return domain_max(domain1) <= domain_min(domain2);
 }
 
 // BODY_STOP

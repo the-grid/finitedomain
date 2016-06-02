@@ -1,18 +1,23 @@
 import {
   domain_divby,
+  domain_intersection,
+  domain_numarr,
 } from '../domain';
-
-import {
-  fdvar_constrain,
-} from '../fdvar';
 
 // BODY_START
 
-function propagator_divStep(fdvar1, fdvar2, fdvarResult) {
-  let output = domain_divby(fdvar1.dom, fdvar2.dom);
-  let changeStatus = fdvar_constrain(fdvarResult, output);
+/**
+ * @param {$domain} dom1
+ * @param {$domain} dom2
+ * @param {$domain} domResult
+ * @returns {$domain}
+ */
+function propagator_divStep(dom1, dom2, domResult) {
+  let domain = domain_divby(dom1, dom2);
 
-  return changeStatus;
+  domain = domain_numarr(domain);
+  domain = domain_intersection(domResult, domain);
+  return domain_numarr(domain);
 }
 
 // BODY_STOP

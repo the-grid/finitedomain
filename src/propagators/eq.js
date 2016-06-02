@@ -1,15 +1,22 @@
 import {
+  EMPTY,
+  NO_CHANGES,
+  REJECTED,
+  SOME_CHANGES,
+
+  ASSERT,
   ASSERT_DOMAIN_EMPTY_CHECK,
 } from '../helpers';
 
 import {
+  domain_forceEq,
+  domain_forceEqNumbered,
+  domain_fromFlags,
+  domain_isEqual,
+  domain_isRejected,
+  domain_isSolved,
   domain_sharesNoElements,
 } from '../domain';
-
-import {
-  fdvar_forceEqInline,
-  fdvar_isSolved,
-} from '../fdvar';
 
 // BODY_START
 
@@ -22,12 +29,44 @@ import {
  * Basically eq is much more efficient compared to neq because we
  * can potentially skip a lot of values early.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$space} space
+ * @param {number} varIndex1
+ * @param {number} varIndex2
+ * @returns {$fd_changeState}
  */
-function propagator_eqStepBare(fdvar1, fdvar2) {
-  return fdvar_forceEqInline(fdvar1, fdvar2);
+function propagator_eqStepBare(space, varIndex1, varIndex2) {
+  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
+  ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+
+  let domain1 = space.vardoms[varIndex1];
+  let domain2 = space.vardoms[varIndex2];
+
+  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+
+  let result;
+  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
+    result = domain_forceEqNumbered(domain1, domain2);
+  } else {
+    // TODO: for now, just convert them. but this can be optimized a lot.
+    result = domain_forceEq(typeof domain1 === 'number' ? domain_fromFlags(domain1) : domain1, typeof domain2 === 'number' ? domain_fromFlags(domain2) : domain2);
+  }
+
+  if (result === EMPTY) {
+    space.vardoms[varIndex1] = EMPTY;
+    space.vardoms[varIndex2] = EMPTY;
+    return REJECTED;
+  }
+
+  if (result !== domain1 || result !== domain2) {
+    space.vardoms[varIndex1] = result;
+    space.vardoms[varIndex2] = result;
+    if (!domain_isEqual(domain1, result) || !domain_isEqual(domain2, result)) {
+      return SOME_CHANGES;
+    }
+  }
+  return NO_CHANGES;
 }
 
 /**
@@ -37,32 +76,27 @@ function propagator_eqStepBare(fdvar1, fdvar2) {
  * or return false.
  * Read only check
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
- * @returns {*}
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
  */
-function propagator_eqStepWouldReject(fdvar1, fdvar2) {
-  let dom1 = fdvar1.dom;
-  let dom2 = fdvar2.dom;
+function propagator_eqStepWouldReject(domain1, domain2) {
+  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
+  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
 
-  ASSERT_DOMAIN_EMPTY_CHECK(dom1);
-  ASSERT_DOMAIN_EMPTY_CHECK(dom2);
-//    if domain_isRejected dom1 or domain_isRejected dom2
-//      return true
-
-  return domain_sharesNoElements(dom1, dom2);
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 /**
  * An eq propagator is solved when both its vars are
  * solved. Any other state may still lead to failure.
  *
- * @param {Fdvar} fdvar1
- * @param {Fdvar} fdvar2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function propagator_eqSolved(fdvar1, fdvar2) {
-  return fdvar_isSolved(fdvar1) && fdvar_isSolved(fdvar2);
+function propagator_eqSolved(domain1, domain2) {
+  return domain_isSolved(domain1) && domain_isSolved(domain2);
 }
 
 // BODY_STOP

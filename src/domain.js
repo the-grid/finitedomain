@@ -1,23 +1,26 @@
 import {
+  EMPTY,
+  MAX_SMALL,
+  NO_CHANGES,
+  NO_SUCH_VALUE,
+  NOT_FOUND,
+  PAIR_SIZE,
+  REJECTED,
+  SOME_CHANGES,
   SUB,
   SUP,
-  NO_SUCH_VALUE,
-  REJECTED,
-  SOMETHING_CHANGED,
-  ZERO_CHANGES,
 
   ASSERT,
   ASSERT_DOMAIN,
   ASSERT_DOMAIN_EMPTY_CHECK,
-  ASSERT_DOMAIN_EMPTY_SET,
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
+  THROW,
 } from './helpers';
 
 // BODY_START
 
-let INLINE = true;
-let NOT_INLINE = false;
 let PREV_CHANGED = true;
+let FORCE_ARRAY = true;
 
 // CSIS form = Canonical Sorted Interval Sequeunce form.
 // Basically means the ranges in the domain are ordered
@@ -28,16 +31,50 @@ let FIRST_RANGE_LO = 0;
 let FIRST_RANGE_HI = 1;
 let LO_BOUND = 0;
 let HI_BOUND = 1;
-let PAIR_SIZE = 2;
-let DOMAINS_NOT_CHANGED = 0;
-
-let NOT_FOUND = -1;
 
 // Cache static Math functions
 let MIN = Math.min;
 let MAX = Math.max;
 let FLOOR = Math.floor;
 let CEIL = Math.ceil;
+
+const ZERO = 1 << 0;
+const ONE = 1 << 1;
+const BOOL = ZERO | ONE;
+const TWO = 1 << 2;
+const THREE = 1 << 3;
+const FOUR = 1 << 4;
+const FIVE = 1 << 5;
+const SIX = 1 << 6;
+const SEVEN = 1 << 7;
+const EIGHT = 1 << 8;
+const NINE = 1 << 9;
+const TEN = 1 << 10;
+const ELEVEN = 1 << 11;
+const TWELVE = 1 << 12;
+const THIRTEEN = 1 << 13;
+const FOURTEEN = 1 << 14;
+const FIFTEEN = 1 << 15;
+const NUMBER = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
+const FLAG_TO_NUM = {
+  [ZERO]: 0,
+  [ONE]: 1,
+  [TWO]: 2,
+  [THREE]: 3,
+  [FOUR]: 4,
+  [FIVE]: 5,
+  [SIX]: 6,
+  [SEVEN]: 7,
+  [EIGHT]: 8,
+  [NINE]: 9,
+  [TEN]: 10,
+  [ELEVEN]: 11,
+  [TWELVE]: 12,
+  [THIRTEEN]: 13,
+  [FOURTEEN]: 14,
+  [FIFTEEN]: 15,
+};
+
 
 /**
  * returns whether domain covers given value
@@ -47,8 +84,12 @@ let CEIL = Math.ceil;
  * @returns {boolean}
  */
 function domain_containsValue(domain, value) {
+  if (typeof domain === 'number') {
+    return value >= 0 && value <= 15 && (domain & NUMBER[value]) > 0; // or just (domain & (1 << value)) ?
+  }
+
   ASSERT_DOMAIN(domain);
-  return (domain_rangeIndexOf(domain, value)) !== NOT_FOUND;
+  return domain_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
 
 /**
@@ -60,6 +101,8 @@ function domain_containsValue(domain, value) {
  * @returns {number}
  */
 function domain_rangeIndexOf(domain, value) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   ASSERT_DOMAIN(domain);
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
@@ -76,35 +119,70 @@ function domain_rangeIndexOf(domain, value) {
  * @returns {boolean}
  */
 function domain_isValue(domain, value) {
-  ASSERT_DOMAIN(domain);
-  if (domain.length !== PAIR_SIZE) {
-    return false;
+  if (typeof domain === 'number') {
+    if (value < 0 || value > 15) return false;
+    return domain === NUMBER[value];
   }
-  return domain[LO_BOUND] === value && domain[HI_BOUND] === value;
+
+  ASSERT_DOMAIN(domain);
+  return domain.length === PAIR_SIZE && domain[LO_BOUND] === value && domain[HI_BOUND] === value;
 }
 
 /**
- * @param {$domain} domain
- * @param {number} lo
- * @param {number} hi
- * @returns {boolean}
- */
-function domain_isRange(domain, lo, hi) {
-  ASSERT_DOMAIN(domain);
-  if (domain.length !== PAIR_SIZE) {
-    return false;
-  }
-  return domain[LO_BOUND] === lo && domain[HI_BOUND] === hi;
-}
-
-/**
+ * Note: this is the (shared) second most called function of the library
+ * (by a third of most, but still significantly more than the rest)
+ *
  * @param {$domain} domain
  * @returns {number}
  */
 function domain_getValue(domain) {
+  if (typeof domain === 'number') {
+    // This function is called relatively often. eg it is the
+    // second-most called function of the whole library. only
+    // topped by isUndetermined
+    // With proper ES6 we could consider benchmarking Math.clz32
+    // but even then we'd need to verify that the value was solved
+
+    switch (domain) {
+      case ZERO:
+        return 0;
+      case ONE:
+        return 1;
+      case TWO:
+        return 2;
+      case THREE:
+        return 3;
+      case FOUR:
+        return 4;
+      case FIVE:
+        return 5;
+      case SIX:
+        return 6;
+      case SEVEN:
+        return 7;
+      case EIGHT:
+        return 8;
+      case NINE:
+        return 9;
+      case TEN:
+        return 10;
+      case ELEVEN:
+        return 11;
+      case TWELVE:
+        return 12;
+      case THIRTEEN:
+        return 13;
+      case FOURTEEN:
+        return 14;
+      case FIFTEEN:
+        return 15;
+    }
+    return NO_SUCH_VALUE;
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   if (domain.length !== PAIR_SIZE) {
-    return NOT_FOUND;
+    return NO_SUCH_VALUE;
   }
   let [lo, hi] = domain;
   if (lo === hi) {
@@ -118,16 +196,30 @@ function domain_getValue(domain) {
  * returns a CSIS domain
  *
  * @param {number[]} list
- * @param {boolean} clone
- * @param {boolean} sort
+ * @param {boolean} [clone=true]
+ * @param {boolean} [sort=true]
+ * @param {boolean} [_forceArray=false] Force creation of an array. Probably to convert a number for certain operations
  * @returns {number[]}
  */
-function domain_fromList(list, clone = true, sort = true) {
+function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
+  if (!list.length) return EMPTY;
   if (sort) { // note: the list must be sorted for the algorithm below to work...
     if (clone) { // clone before sorting?
       list = list.slice(0);
     }
     list.sort((a, b) => a - b);
+  }
+
+  if (!_forceArray && list[0] >= 0 && list[list.length - 1] <= 15) {
+    // create a number.
+    let last = 0; // do confirm whether the list is ordered
+    let d = 0;
+    for (let i = 0; i < list.length; ++i) {
+      let value = list[i];
+      ASSERT(value >= last && (last = value) >= 0, 'LIST_SHOULD_BE_ORDERED_BY_NOW');
+      d |= NUMBER[value];
+    }
+    return d;
   }
 
   let domain = [];
@@ -141,7 +233,7 @@ function domain_fromList(list, clone = true, sort = true) {
       lo = value;
       hi = value;
     } else {
-      ASSERT(value >= hi, 'list should be ordered'); // imo it should not even contain dupe elements... but that may happen anyways
+      ASSERT(value >= hi, 'LIST_SHOULD_BE_ORDERED_BY_NOW'); // imo it should not even contain dupe elements... but that may happen anyways
       if (value > hi + 1) {
         domain.push(lo, hi);
         lo = value;
@@ -154,13 +246,28 @@ function domain_fromList(list, clone = true, sort = true) {
   return domain;
 }
 
+function domain_fromFlags(domain) {
+  if (domain === EMPTY) return []; // it's just easier this way.
+  // TODO: this is just lazypanda
+  let list = domain_toList(domain);
+  return domain_fromList(list, undefined, undefined, FORCE_ARRAY);
+}
+
 /**
  * domain to list of possible values
  *
  * @param {$domain} domain
  * @returns {number[]}
  */
-let domain_toList = function(domain) {
+function domain_toList(domain) {
+  if (typeof domain === 'number') {
+    let a = [];
+    for (let i = 0; i < 16; ++i) {
+      if ((domain & NUMBER[i]) > 0) a.push(i);
+    }
+    return a;
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let list = [];
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
@@ -169,7 +276,7 @@ let domain_toList = function(domain) {
     }
   }
   return list;
-};
+}
 
 /**
  * Given a list and domain, search items in the list in the domain and remove
@@ -179,9 +286,21 @@ let domain_toList = function(domain) {
  *
  * @param {$domain} domain
  * @param {number[]} list
- * @returns {$domain|undefined} Undefined means the result is empty
+ * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_removeNextFromList(domain, list) {
+  if (typeof domain === 'number') {
+    for (let i = 0; i < list.length; ++i) {
+      let value = list[i];
+      ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
+      let n = NUMBER[value];
+      if (value <= 15 && (domain & n) > 0) {
+        return domain ^ n; // the bit is set, this unsets it
+      }
+    }
+    return NO_SUCH_VALUE;
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
@@ -191,30 +310,15 @@ function domain_removeNextFromList(domain, list) {
       return _domain_deepCloneWithoutValue(domain, value, index);
     }
   }
-  // return undefined to indicate end of search
+
+  return NO_SUCH_VALUE;
 }
 
 /**
- * Return a clone of given domain. If value is contained in domain, the clone
- * will not contain it. This is an optimization to basically prevent splicing.
- *
- * @param {$domain} domain
- * @param {number} value
- * @returns {$domain}
- */
-function domain_deepCloneWithoutValue(domain, value) {
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  let index = domain_rangeIndexOf(domain, value);
-  if (index >= 0) {
-    return _domain_deepCloneWithoutValue(domain, value, index);
-  }
-  // regular slice > *
-  return domain.slice(0);
-}
-
-/**
- * Same as domain_deepCloneWithoutValue but requires the first
- * rangeIndex whose lo is bigger than or equal to value
+ * Return domain but without the value at given rangeIndex.
+ * Does not update inline.
+ * The rangeIndex should already be known and correct and
+ * be the index of the lo of the range containing value.
  *
  * @param {$domain} domain
  * @param {number} value
@@ -222,7 +326,13 @@ function domain_deepCloneWithoutValue(domain, value) {
  * @returns {$domain}
  */
 function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof value === 'number', 'VALUE_MUST_BE_A_NUMBER');
+  ASSERT(typeof rangeIndex === 'number', 'RANGE_INDEX_MUST_BE_A_NUMBER');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT(domain[rangeIndex] <= value, 'RANGE_LO_MUST_BE_LTE_VALUE');
+  ASSERT(domain[rangeIndex + 1] >= value, 'RANGE_HI_MUST_BE_GTE_VALUE');
+
   // we have the range offset that should contain the value. the clone wont
   // affect ranges before or after. but we want to prevent a splice or shifts, so:
   let result;
@@ -257,6 +367,15 @@ function _domain_deepCloneWithoutValue(domain, value, rangeIndex) {
  * @returns {number} Can return NO_SUCH_VALUE
  */
 function domain_getValueOfFirstContainedValueInList(domain, list) {
+  if (typeof domain === 'number') {
+    for (let i = 0; i < list.length; ++i) {
+      let value = list[i];
+      ASSERT(value >= SUB && value <= SUP, 'OOB values probably indicate a bug in the code', list);
+      if (value <= 15 && (domain & NUMBER[value]) > 0) return value;
+    }
+    return NO_SUCH_VALUE;
+  }
+
   ASSERT_DOMAIN(domain);
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
@@ -277,10 +396,12 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
  * @returns {$domain}
  */
 function domain_complement(domain) {
+  // for simplicity sake, convert them back to arrays
+  // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
+  domain = domain_toArr(domain);
+
   ASSERT_DOMAIN(domain); // should we reject for empty domains?
-  if (!domain.length) {
-    return domain_createAll();
-  }
+  if (!domain.length) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
 
   let end = SUB;
   let result = [];
@@ -304,44 +425,20 @@ function domain_complement(domain) {
 /**
  * All ranges will be ordered ascending and overlapping ranges are merged
  * This function first checks whether simplification is needed at all
- * If replaceInline is NOT_INLINE the input domain is deeply cloned first, regardless
  *
- * @param {$pairs} domain TODO: document a $pairs as number[] and describe their special case (=> not normalized)
- * @param {boolean} replaceInline
+ * @param {$pairs|$domain} domain
  * @returns {$domain}
  */
-function domain_simplify(domain, replaceInline = NOT_INLINE) {
-  // ASSERT_DOMAIN domain # the whole point of this func is to simplify so this assert wont hold
-
-  // deep clone if not inline because ranges are adjusted inline when merging
-  // we could interweave this step with domain_mergeOverlappingInline, not sure if it changes much
-  if (replaceInline === NOT_INLINE) {
-    domain = domain.slice(0);
-  }
+function domain_simplifyInline(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(domain !== undefined, 'DOMAIN_REQUIRED');
 
   if (domain.length === 0) {
     return domain;
   }
 
-  // TODO: perf check; before there was a large memory overhead but i think that's taken care of now. the extra check-loop may not be worth it
-  if (!domain_isSimplified(domain)) {
-    domain_simplifyInline(domain);
-  }
-
-  ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(domain);
-  return domain;
-}
-
-/**
- * Given a set of ranges (domain) turns them into CSIS form
- * This function sorts and loops unconditionally
- *
- * @param {$pairs} domain
- * @returns {$domain}
- */
-function domain_simplifyInline(domain) {
   // order ranges by lower bound, ascending (inline regardless)
-  domain_sortByRange(domain);
+  domain_sortByRangeInline(domain);
 
   return domain_mergeOverlappingInline(domain);
 }
@@ -349,7 +446,9 @@ function domain_simplifyInline(domain) {
 /**
  * @param {$domain} domain
  */
-function domain_sortByRange(domain) {
+function domain_sortByRangeInline(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   let len = domain.length;
   ASSERT(len > 0, 'input domain should not be empty', domain);
   if (len >= 4) {
@@ -363,8 +462,10 @@ function domain_sortByRange(domain) {
  * @param {number} last
  */
 function _domain_quickSortInline(domain, first, last) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   if (first < last) {
-    let pivot = _domain_partition(domain, first, last);
+    let pivot = _domain_partitionInline(domain, first, last);
     _domain_quickSortInline(domain, first, pivot - PAIR_SIZE);
     _domain_quickSortInline(domain, pivot + PAIR_SIZE, last);
   }
@@ -376,7 +477,9 @@ function _domain_quickSortInline(domain, first, last) {
  * @param {number} last
  * @returns {number}
  */
-function _domain_partition(domain, first, last) {
+function _domain_partitionInline(domain, first, last) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   let pivotIndex = last;
   let pivot = domain[pivotIndex]; // TODO: i think we'd be better off with a different pivot? middle probably performs better
   let pivotR = domain[pivotIndex + 1];
@@ -399,7 +502,9 @@ function _domain_partition(domain, first, last) {
  * @param {number} B
  * @private
  */
-let _domain_swapRangeInline = function(domain, A, B) {
+function _domain_swapRangeInline(domain, A, B) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   if (A !== B) {
     let x = domain[A];
     let y = domain[A + 1];
@@ -417,6 +522,8 @@ let _domain_swapRangeInline = function(domain, A, B) {
  * @returns {boolean}
  */
 function domain_isSimplified(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   if (domain.length === PAIR_SIZE) {
     ASSERT(domain[FIRST_RANGE_LO] >= SUB);
     ASSERT(domain[FIRST_RANGE_HI] <= SUP);
@@ -450,6 +557,8 @@ function domain_isSimplified(domain) {
  * @returns {$domain}
  */
 function domain_mergeOverlappingInline(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   // assumes domain is sorted
   // assumes all ranges are "sound" (lo<=hi)
   let prevHi = SUB;
@@ -487,33 +596,46 @@ function domain_mergeOverlappingInline(domain) {
 }
 
 /**
- * CSIS form = Canonical Sorted Interval Sequeunce form.
- *
  * Intersection of two domains given in CSIS form.
+ * (That means the result contains any number that occurs in
+ * BOTH domains, but each value will only be present once.)
  * r is optional and if given it should be an array and
  * the domain pieces will be inserted into it, in which case
  * the result domain will be returned unsimplified.
  *
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_intersection(dom1, dom2) {
-  ASSERT_DOMAIN(dom1);
-  ASSERT_DOMAIN(dom2);
+function domain_intersection(domain1, domain2) {
+  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
+    return domain1 & domain2;
+  }
+  if (domain1 === EMPTY) return EMPTY;
+  if (domain2 === EMPTY) return EMPTY;
+
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
   let result = [];
-  _domain_intersection(dom1, dom2, result);
-  domain_simplify(result); // TODO: make inline
+  _domain_intersection(domain1, domain2, result);
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(result);
   return result;
 }
 
 /**
+ * Recursively calls itself
+ *
  * @param {$domain} dom1
  * @param {$domain} dom2
  * @param {$domain} result
  */
 function _domain_intersection(dom1, dom2, result) {
+  ASSERT(typeof dom1 !== 'number', 'SHOULD_NOT_BE_USED_WITH_NUMBERS');
+  ASSERT(typeof dom2 !== 'number', 'SHOULD_NOT_BE_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(dom1);
   ASSERT_DOMAIN(dom2);
   let len1 = dom1.length;
@@ -555,11 +677,13 @@ function _domain_intersection(dom1, dom2, result) {
 }
 
 /**
+ * Add the intersection of two domains to result domain
+ *
  * @param {number} lo1
  * @param {number} hi1
  * @param {number} lo2
  * @param {number} hi2
- * @param result
+ * @param {$domain} result
  */
 function _domain_intersectRangeBound(lo1, hi1, lo2, hi2, result) {
   let min = MAX(lo1, lo2);
@@ -570,12 +694,16 @@ function _domain_intersectRangeBound(lo1, hi1, lo2, hi2, result) {
 }
 
 /**
+ * Does not update domain, updates result
+ *
  * @param {$domain} domain
  * @param {number} lo
  * @param {number} hi
  * @param {$domain} result
  */
 function domain_intersectBoundsInto(domain, lo, hi, result) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo2 = domain[index];
     let hi2 = domain[index + 1];
@@ -588,35 +716,59 @@ function domain_intersectBoundsInto(domain, lo, hi, result) {
 /**
  * deep comparison of two domains
  *
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {boolean}
  */
-function domain_equal(dom1, dom2) {
-  ASSERT_DOMAIN(dom1);
-  ASSERT_DOMAIN(dom2);
-  let len = dom1.length;
+function domain_isEqual(domain1, domain2) {
+  if (domain1 === domain2) return true;
 
-  if (len !== dom2.length) {
+  let isNum1 = typeof domain1 === 'number';
+  let isNum2 = typeof domain2 === 'number';
+
+  if (isNum1 && isNum2) return false;
+  if (isNum1) {
+    if (domain_max(domain2) <= 15) return domain1 === domain_numarr(domain2);
+    domain1 = domain_fromFlags(domain1);
+  } else if (isNum2) {
+    if (domain_max(domain1) <= 15) return domain2 === domain_numarr(domain1);
+    domain2 = domain_fromFlags(domain2);
+  }
+
+  return domain_isEqualArr(domain1, domain2);
+}
+
+function domain_isEqualArr(domain1, domain2) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
+
+  let len = domain1.length;
+
+  if (len !== domain2.length) {
     return false;
   }
 
-  if (dom1 === dom2) { // does this ever happen?
+  if (domain1 === domain2) { // does this ever happen?
     return true;
   }
 
-  return _domain_equal(dom1, dom2, len);
+  return _domain_isEqual(domain1, domain2, len);
 }
 
 /**
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @param {number} len
  * @returns {boolean}
  */
-function _domain_equal(dom1, dom2, len) {
+function _domain_isEqual(domain1, domain2, len) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   for (let i = 0; i < len; ++i) {
-    if (dom1[i] !== dom2[i]) {
+    if (domain1[i] !== domain2[i]) {
       return false;
     }
   }
@@ -626,20 +778,24 @@ function _domain_equal(dom1, dom2, len) {
 /**
  * Closes all the gaps between the intervals according to
  * the given gap value. All gaps less than this gap are closed.
+ * Domain is not harmed
  *
  * @param {$domain} domain
  * @param {number} gap
  * @returns {$domain}
  */
 function domain_closeGapsFresh(domain, gap) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   ASSERT_DOMAIN(domain);
   let result = [];
+  let plo;
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
     let hi = domain[index + 1];
     if (index === 0) {
       result.push(lo, hi);
-      var plo = lo;
+      plo = lo;
     } else {
       if (hi - plo < gap) {
         result[result.length - 1] = hi;
@@ -658,6 +814,8 @@ function domain_closeGapsFresh(domain, gap) {
  * @returns {number}
  */
 function _domain_smallestIntervalWidth(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   let min_width = SUP;
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
@@ -669,23 +827,6 @@ function _domain_smallestIntervalWidth(domain) {
   }
   return min_width;
 }
-
-///**
-// * @param {$domain} domain
-// * @returns {number}
-// */
-//function _domain_largestIntervalWidth(domain) {
-//  let max_width = SUP;
-//  for (let index = 0; index < domain.length; index += PAIR_SIZE) {
-//    let lo = domain[index];
-//    let hi = domain[index + 1];
-//    let width = 1 + hi - lo;
-//    if (width > max_width) {
-//      max_width = width;
-//    }
-//  }
-//  return max_width;
-//}
 
 /**
  * The idea behind this function - which is primarily
@@ -701,41 +842,50 @@ function _domain_smallestIntervalWidth(domain) {
  * number of domain segments helps reduce the N^2 complexity of
  * the subsequent domain consistent interval addition method.
  *
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @returns {$domain}
  */
-function _domain_closeGaps2(dom1, dom2) {
-  ASSERT_DOMAIN(dom1);
-  ASSERT_DOMAIN(dom2);
+function _domain_closeGaps2(domain1, domain2) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
   while (true) {
-    let change = ZERO_CHANGES;
+    let change = NO_CHANGES;
 
-    let domain = domain_closeGapsFresh(dom1, _domain_smallestIntervalWidth(dom2));
-    change += dom1.length - domain.length;
-    dom1 = domain;
+    let domain = domain_closeGapsFresh(domain1, _domain_smallestIntervalWidth(domain2));
+    change += domain1.length - domain.length;
+    domain1 = domain;
 
-    domain = domain_closeGapsFresh(dom2, _domain_smallestIntervalWidth(dom1));
-    change += dom2.length - domain.length;
-    dom2 = domain;
+    domain = domain_closeGapsFresh(domain2, _domain_smallestIntervalWidth(domain1));
+    change += domain2.length - domain.length;
+    domain2 = domain;
 
-    if (change === ZERO_CHANGES) {
+    if (change === NO_CHANGES) {
       break;
     }
   }
 
   return [
-    dom1,
-    dom2,
+    domain1,
+    domain2,
   ];
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
  */
 function domain_plus(domain1, domain2) {
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null));
@@ -758,10 +908,12 @@ function domain_plus(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
+ * Does not harm input domains
+ *
  * Note that this one isn't domain consistent.
  *
  * @param {$domain} domain1
@@ -769,6 +921,10 @@ function domain_plus(domain1, domain2) {
  * @returns {$domain}
  */
 function domain_mul(domain1, domain2) {
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null));
@@ -786,15 +942,21 @@ function domain_mul(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
  */
 function domain_minus(domain1, domain2) {
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null));
@@ -821,7 +983,7 @@ function domain_minus(domain1, domain2) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -831,14 +993,20 @@ function domain_minus(domain1, domain2) {
  * This is an expensive operation.
  * Zero is a special case.
  *
- * @param domain1
- * @param domain2
+ * Does not harm input domains
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
  *         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
  *         <2,2>, otherwise it will not include anything for that division.
  * @returns {$domain}
  */
 function domain_divby(domain1, domain2, floorFractions = true) {
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT((domain1 != null) && (domain2 != null), 'domain 1 and 2?', domain1, domain2);
@@ -883,7 +1051,7 @@ function domain_divby(domain1, domain2, floorFractions = true) {
     }
   }
 
-  return domain_simplify(result, INLINE);
+  return domain_simplifyInline(result);
 }
 
 /**
@@ -893,6 +1061,10 @@ function domain_divby(domain1, domain2, floorFractions = true) {
  * @returns {number}
  */
 function domain_size(domain) {
+  if (typeof domain === 'number') {
+    return domain_hammingWeight(domain);
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let count = 0;
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
@@ -903,19 +1075,28 @@ function domain_size(domain) {
 }
 
 /**
- * Get the middle element of all elements in domain. Not hi-lo/2.
+ * Get the middle element of all elements in domain.
+ * Not hi-lo/2 but the (size/2)th element.
+ * For domains with an even number of elements it
+ * will take the first value _above_ the middle,
+ * in other words; index=ceil(count/2).
  *
  * @param {$domain} domain
  * @returns {number}
  */
 function domain_middleElement(domain) {
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain === 'number') domain = domain_fromFlags(domain);
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let size = domain_size(domain);
   let targetValue = FLOOR(size / 2);
 
+  let lo;
+  let hi;
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
-    var lo = domain[i];
-    let hi = domain[i + 1];
+    lo = domain[i];
+    hi = domain[i + 1];
 
     let count = 1 + hi - lo;
     if (targetValue < count) {
@@ -937,6 +1118,33 @@ function domain_middleElement(domain) {
  * @returns {number}
  */
 function domain_min(domain) {
+  if (typeof domain === 'number') {
+    ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
+    ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'NUMBER_DOMAIN_IS_OOB');
+
+    // we often deal with domains [0, 0], [0, 1], and [1, 1]
+    if (domain === ZERO) return 0;
+    if (domain === ONE) return 1;
+    if (domain === BOOL) return 0;
+
+    if (domain & ZERO) return 0;
+    if (domain & ONE) return 1;
+    if (domain & TWO) return 2;
+    if (domain & THREE) return 3;
+    if (domain & FOUR) return 4;
+    if (domain & FIVE) return 5;
+    if (domain & SIX) return 6;
+    if (domain & SEVEN) return 7;
+    if (domain & EIGHT) return 8;
+    if (domain & NINE) return 9;
+    if (domain & TEN) return 10;
+    if (domain & ELEVEN) return 11;
+    if (domain & TWELVE) return 12;
+    if (domain & THIRTEEN) return 13;
+    if (domain & FOURTEEN) return 14;
+    if (domain & FIFTEEN) return 15;
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   return domain[LO_BOUND];
 }
@@ -948,21 +1156,65 @@ function domain_min(domain) {
  * @returns {number}
  */
 function domain_max(domain) {
+  if (typeof domain === 'number') {
+    ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
+    ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'SHOULD_BE_FIXED_DOMAIN');
+
+    // we often deal with domains [0, 0], [0, 1], and [1, 1]
+    if (domain === ZERO) return 0;
+    if (domain === ONE) return 1;
+    if (domain === BOOL) return 1;
+
+    if (domain & FIFTEEN) return 15;
+    if (domain & FOURTEEN) return 14;
+    if (domain & THIRTEEN) return 13;
+    if (domain & TWELVE) return 12;
+    if (domain & ELEVEN) return 11;
+    if (domain & TEN) return 10;
+    if (domain & NINE) return 9;
+    if (domain & EIGHT) return 8;
+    if (domain & SEVEN) return 7;
+    if (domain & SIX) return 6;
+    if (domain & FIVE) return 5;
+    if (domain & FOUR) return 4;
+    if (domain & THREE) return 3;
+    if (domain & TWO) return 2;
+    if (domain & ONE) return 1;
+    if (domain & ZERO) return 1;
+    ASSERT(false, 'SHOULD_NOT_GET_HERE');
+  }
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   return domain[domain.length - 1];
 }
 
-/**
- * @param {$domain} domain
- * @param {number} lo
- * @param {number} hi
+function domain_hammingWeight(domain) { // "count number of bits set"
+  // http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer/109025#109025
+
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+
+  domain -= ((domain >>> 1) & 0x55555555);
+  domain = (domain & 0x33333333) + ((domain >>> 2) & 0x33333333);
+  domain = (((domain + (domain >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
+
+  return domain;
+
+  /*
+  // lookup table would be the following. doesn't appear to
+  // make a noticeable difference even in stress test.
+
+  // cache this as a constant
+  let BITS_SET = new Uint8Array(0xffff);
+  for (let i = 0, MAX = 0xffff; i <= MAX; ++i) {
+    let domain = i;
+    domain -= ((domain >>> 1) & 0x55555555);
+    domain = (domain & 0x33333333) + ((domain >>> 2) & 0x33333333);
+    domain = (((domain + (domain >>> 4)) & 0x0F0F0F0F) * 0x01010101) >>> 24;
+    BITS_SET[i] = domain;
+  }
+  // then you can just do
+  return BITS_SET[domain];
  */
-function domain_setToRangeInline(domain, lo, hi) {
-  ASSERT_DOMAIN(domain);
-  ASSERT(lo <= hi, 'lo/hi should be ordered!', [lo, hi]);
-  domain[LO_BOUND] = lo;
-  domain[HI_BOUND] = hi;
-  domain.length = PAIR_SIZE;
 }
 
 /**
@@ -972,6 +1224,11 @@ function domain_setToRangeInline(domain, lo, hi) {
  * @returns {boolean}
  */
 function domain_isSolved(domain) {
+  if (typeof domain === 'number') {
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    return (domain & (domain - 1)) === 0 && domain > 0;
+  }
+
   ASSERT_DOMAIN(domain);
   return domain.length === PAIR_SIZE && domain_firstRangeIsDetermined(domain);
 }
@@ -983,6 +1240,11 @@ function domain_isSolved(domain) {
  * @returns {boolean}
  */
 function domain_isDetermined(domain) {
+  if (typeof domain === 'number') {
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    return (domain & (domain - 1)) === 0 || domain === EMPTY;
+  }
+
   ASSERT_DOMAIN(domain);
   let len = domain.length;
   if (len === 0) {
@@ -992,13 +1254,37 @@ function domain_isDetermined(domain) {
 }
 
 /**
+ * A domain is "determined" if it's either one value (solved) or none at all (rejected)
+ * This is the most called function of the library. 3x more than the number two.
+ *
+ * @param {$domain} domain
+ * @returns {boolean}
+ */
+function domain_isUndetermined(domain) {
+  if (typeof domain === 'number') {
+    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
+    // this would check whether a domain has one bit set
+    return (domain & (domain - 1)) !== 0 && domain !== 0;
+  }
+  // it's probably an error if the domain is empty so make that the last check
+  return domain.length > 2 || domain[0] !== domain[1] && domain.length > 0;
+}
+
+/**
  * A domain is "rejected" if it covers no values. This means every given
  * value would break at least one constraint so none could be used.
+ *
+ * Note: this is the (shared) second most called function of the library
+ * (by a third of most, but still significantly more than the rest)
  *
  * @param {$domain} domain
  * @returns {boolean}
  */
 function domain_isRejected(domain) {
+  if (typeof domain === 'number') {
+    return domain === EMPTY; // the domain contains no values if no bits are set
+  }
+
   return domain.length === 0;
 }
 
@@ -1007,8 +1293,25 @@ function domain_isRejected(domain) {
  * @returns {boolean}
  */
 function domain_firstRangeIsDetermined(domain) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   ASSERT_DOMAIN(domain);
   return domain[LO_BOUND] === domain[HI_BOUND];
+}
+
+function domain_removeGteNumbered(domain, value) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
+
+  if (value > 15) return domain;
+  ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
+  ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+
+  for (let i = value; i <= 15; ++i) {
+    let n = NUMBER[i];
+    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
+  }
+
+  return domain;
 }
 
 /**
@@ -1019,32 +1322,59 @@ function domain_firstRangeIsDetermined(domain) {
  * Returns whether the domain was changed somehow. Does not returned REJECTED
  * because propagator_ltStepBare will check this... I don't like that but it
  * still is the reason.
+ * Does not harm domain.
  *
  * @param {$domain} domain
  * @param {number} value
- * @returns {boolean}
+ * @returns {$domain|number}
  */
-function domain_removeGteInline(domain, value) {
+function domain_removeGte(domain, value) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
+// TODO: if value<=15 numarr
+  let i = 0;
+  for (; i < domain.length; i += PAIR_SIZE) {
+    // case: v=5
+    // 012 456 // => 012 4
+    // 012 45  // => 012 4
+    // 012 567 // => 012
+    // 012 5   // => 012
+    // 012 678 // => 012
+    // 012     // => NONE
+    // 678     // => empty
 
-  let len = domain.length;
-  let i = len - PAIR_SIZE;
-  while (i >= 0 && domain[i] >= value) {
-    i -= PAIR_SIZE;
+    let lo = domain[i];
+    let hi = domain[i + 1];
+
+    if (lo > value) {
+      if (!i) return []; // 678 -> empty
+      return domain.slice(0, i); // 012 789
+    }
+    if (lo === value) {
+      return domain.slice(0, i);
+    } // 012 567 -> 012, 012 5 -> 012
+    if (value <= hi) { // 012 456 -> 012 4, 012 45 -> 012 4
+      let newDomain = domain.slice(0, i + 1);
+      newDomain.push(value - 1);
+      return newDomain;
+    }
+  }
+  return NO_SUCH_VALUE; // 012 -> 012
+}
+
+function domain_removeLteNumbered(domain, value) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
+
+  if (value > 15) value = 15;
+  ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
+  ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+
+  for (let i = 0; i <= value; ++i) {
+    let n = NUMBER[i];
+    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
   }
 
-  if (i < 0) {
-    domain.length = 0;
-    return len !== 0;
-  }
-
-  domain.length = i + PAIR_SIZE;
-  if (domain[i + 1] >= value) {
-    domain[i + 1] = value - 1; // we already know domain[i] < value so value-1 >= SUB
-    return true;
-  }
-
-  return len !== i + PAIR_SIZE;
+  return domain;
 }
 
 /**
@@ -1053,151 +1383,66 @@ function domain_removeGteInline(domain, value) {
  * search for the first range that is smaller or contains given value. Prune
  * any range that preceeds it and trim the found range if it contains the value.
  * Returns whether the domain was changed somehow
+ * Does not harm domain
  *
  * @param {$domain} domain
  * @param {number} value
  * @returns {boolean}
  */
-function domain_removeLteInline(domain, value) {
+function domain_removeLte(domain, value) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain); // needs to be csis for this trick to work
 
-  let len = domain.length;
   let i = 0;
-  while (i < len && domain[i + 1] <= value) {
-    i += PAIR_SIZE;
-  }
+  for (; i < domain.length; i += PAIR_SIZE) {
+    // case: v=5
+    // 456 89 => 6 89
+    // 45 89  => 89
+    // 56 89  => 6 89
+    // 5  89  => 5 89
+    // 6788   => 67 9
+    // 789    => NONE
+    // 012    => empty
 
-  if (i >= len) {
-    domain.length = 0;
-    return len !== 0;
-  }
+    let lo = domain[i];
+    let hi = domain[i + 1];
 
-  // move all elements to the front
-  let n = 0;
-  for (let index = i; index < len; ++index) {
-    domain[n++] = domain[index];
-  }
-  // trim excess space. we just moved them
-  domain.length = n;
-
-  // note: first range should be lt or lte to value now since we moved everything
-  if (domain[FIRST_RANGE_LO] <= value) {
-    domain[FIRST_RANGE_LO] = value + 1;
-    return true;
-  }
-
-  return len !== n;
-}
-
-/**
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @param {number} len
- * @returns {number} Can be len, which will mean "not found"
- */
-function domain_findDiffIndex(domain1, domain2, len) {
-  // first check whether the two are different at all
-  let index = 0;
-  while (index < len) {
-    let lo1 = domain1[index];
-    let hi1 = domain1[index + 1];
-    let lo2 = domain2[index];
-    let hi2 = domain2[index + 1];
-    if (lo1 !== lo2 || hi1 !== hi2) {
-      return index;
+    if (lo > value) {
+      if (!i) return NO_SUCH_VALUE; // 012 -> 012
+      return domain.slice(i); // 678 -> 678
     }
-    index += PAIR_SIZE;
-  }
-  return len; // "not found"
-}
-
-/**
- * @param {number} index
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @param {number} len1
- * @param {number} len2
- * @returns {number}
- */
-function domain_applyEqInlineFrom(index, domain1, domain2, len1, len2) {
-  let p1 = index;
-  let p2 = index;
-
-  let lo1 = domain1[p1];
-  let hi1 = domain1[p1 + 1];
-  let lo2 = domain2[p2];
-  let hi2 = domain2[p2 + 1];
-
-  while (p1 < len1 && p2 < len2) {
-    if (hi1 < lo2) { // R1 < R2 completely; drop R1
-      p1 += PAIR_SIZE;
-      lo1 = domain1[p1];
-      hi1 = domain1[p1 + 1];
-    } else if (hi2 < lo1) { // R2 < R1 completely; drop R1
-      p2 += PAIR_SIZE;
-      lo2 = domain2[p2];
-      hi2 = domain2[p2 + 1];
-
-      // hi1 >= lo2 and hi2 >= lo1
-    } else if (lo1 < lo2) { // R1 < R2 partial; update R1 lo to R2 lo
-      lo1 = lo2;
-    } else if (lo2 < lo1) { // R2 < R1 partial; update R2 lo to R1 lo
-      lo2 = lo1;
-    } else {
-      // add a range with MIN hi1, hi2
-      // then move lo to that hi and drop a range on at least one side
-      ASSERT(lo1 === lo2, 'the lows should be equal');
-      let hi = MIN(hi1, hi2);
-      domain1[index] = domain2[index] = lo1;
-      domain1[index + 1] = domain2[index + 1] = hi;
-      index += PAIR_SIZE;
-
-      // if the current range on either side was fully copied, move its pointer
-      // otherwise update its lo to the last hi+1 and continue
-
-      if (hi === hi1) {
-        p1 += PAIR_SIZE;
-        lo1 = domain1[p1];
-        hi1 = domain1[p1 + 1];
-      } else {
-        lo1 = hi + 1;
-      }
-
-      if (hi === hi2) {
-        p2 += PAIR_SIZE;
-        lo2 = domain2[p2];
-        hi2 = domain2[p2 + 1];
-      } else {
-        lo2 = hi + 1;
-      }
+    if (hi === value) {
+      // 45 89  => 89, 5  89  => 5 89
+      return domain.slice(i + PAIR_SIZE);
+    }
+    if (value <= hi) {
+      // 456 89 => 6 89, 56 89 => 6 89
+      let newDomain = domain.slice(i);
+      newDomain[0] = value + 1;
+      return newDomain;
     }
   }
+  return []; // 012 -> empty
+}
 
-  // note: a domain may shrink OR grow.
-  // and a domain that stays the same len may still have changed.
-  if (len1 !== index) {
-    domain1.length = index;
-  }
-  if (len2 !== index) {
-    domain2.length = index;
-  }
+function domain_forceEqNumbered(domain1, domain2) {
+  ASSERT(typeof domain1 === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 === 'number', 'ONLY_USED_WITH_NUMBERS');
 
-  if (index === 0) {
-    return REJECTED;
-  }
-
-  ASSERT_DOMAIN(domain1);
-  ASSERT_DOMAIN(domain2);
-
-  return SOMETHING_CHANGED;
+  return domain1 & domain2;
 }
 
 /**
+ * Does not harm input domains
+ *
  * @param {$domain} domain1
  * @param {$domain} domain2
- * @returns {number}
+ * @returns {$domain}
  */
-function domain_forceEqInline(domain1, domain2) {
+function domain_forceEq(domain1, domain2) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+
   ASSERT_DOMAIN_EMPTY_CHECK(domain1);
   ASSERT_DOMAIN_EMPTY_CHECK(domain2);
 
@@ -1206,117 +1451,61 @@ function domain_forceEqInline(domain1, domain2) {
   let len = MIN(len1, len2);
 
   if (len === 0) {
-    domain1.length = 0;
-    domain2.length = 0;
-    return REJECTED;
+    return EMPTY;
   }
 
-  let index = domain_findDiffIndex(domain1, domain2, len);
-  ASSERT(index >= 0 && index <= len, 'target index should be within the range of the array len+1');
-  ASSERT(index % 2 === 0, 'target index should be even because it should find a range offset');
+  if (len === 0) return EMPTY;
 
-  if (index !== len) {
-    return domain_applyEqInlineFrom(index, domain1, domain2, len1, len2);
+  let i = 0;
+  while (i < len) {
+    if (domain1[i] !== domain2[i] || domain1[i + 1] !== domain2[i + 1]) break;
+    i += PAIR_SIZE;
   }
 
-  return DOMAINS_NOT_CHANGED;
-}
-
-/**
- * Remove one range at given index, inline.
- * Moves all ranges behind it back by one position (index-2)
- *
- * @param {$domain} domain
- * @param {number} index
- */
-function domain_spliceOutRangeAt(domain, index) {
-  for (; index < domain.length; index += PAIR_SIZE) {
-    domain[index] = domain[index + PAIR_SIZE];
-    domain[index + 1] = domain[index + PAIR_SIZE + 1];
+  if (i >= len && len1 === len2) {
+    // no changes so both domains are equal. assuming
+    // all domains are immutable, just return either.
+    return domain1;
   }
-  domain.length = index - PAIR_SIZE;
-}
 
-///**
-// * @param {$domain} domain
-// * @param {number} index
-// */
-//function domain_spliceInRangeAt(domain, index) {
-//  _domain_spliceInRangeAt(domain, index, domain[index], domain[index + 1]);
-//}
+  let domain = [];
+  let j = i;
+  let lo1 = domain1[0];
+  let hi1 = domain1[1];
+  let lo2 = domain2[0];
+  let hi2 = domain2[1];
+  while (i < len1 && j < len2) {
+    if (hi1 < lo2 || lo1 > hi1) {
+      i += PAIR_SIZE;
+      lo1 = domain1[i];
+      hi1 = domain1[i + 1];
+    } else if (hi2 < lo1 || lo2 > hi2) {
+      j += PAIR_SIZE;
+      lo2 = domain2[j];
+      hi2 = domain2[j + 1];
+    } else {
+      // both ranges at least overlap because
+      // neither hi is less than the others lo
 
-/**
- * Insert given range at given index, moving all other ranges up by one (index+2)
- *
- * @param {$domain} domain
- * @param {number} index
- * @param {number} pLo
- * @param {number} pHi
- */
-function _domain_spliceInRangeAt(domain, index, pLo, pHi) {
-  // from here on out we must first stash the cur range, then pop the prev range
-  for (; index < domain.length; index += PAIR_SIZE) {
-    let lo = domain[index];
-    let hi = domain[index + 1];
-    domain[index] = pLo;
-    domain[index + 1] = pHi;
-    pLo = lo;
-    pHi = hi;
-  }
-  // and one more time now at the end
-  domain[index] = pLo;
-  domain[index + 1] = pHi;
-  domain.length = index + PAIR_SIZE;
-}
-
-///**
-// * @param {$domain} domain
-// * @param {number} value
-// * @param {number} index
-// */
-//function domain_removeValueAt(domain, value, index) {
-//  return _domain_removeValueAt(domain, value, index, domain[index], domain[index + 1]);
-//}
-
-/**
- * assumes value was found in range at index
- * note: make sure to reject at callsite if this results in an empty domain!
- *
- * @param {$domain} domain
- * @param {number} value
- * @param {number} index
- * @param {number} lo
- * @param {number} hi
- */
-function _domain_removeValueAt(domain, value, index, lo, hi) {
-  // four options:
-  // range is exactly value; remove it, stream rest, update len, return
-  // range starts or ends with value; update it, return
-  // value is inside range; split it, inject carefully, stream, return
-
-  if (lo === value) {
-    if (hi === value) {
-      domain_spliceOutRangeAt(domain, index);
-      return;
+      let hi = Math.min(hi1, hi2);
+      domain.push(Math.max(lo1, lo2), hi);
+      // the next low must be prev hi+2 (gap)
+      lo1 = hi + 1;
+      lo2 = hi + 1;
     }
-    domain[index] = value + 1; // update lo
-    return;
-  }
-  if (hi === value) {
-    domain[index + 1] = value - 1; // update hi
-    return;
   }
 
-  // must be last case now: value is inside range
-  // split range. update current range with new hi
-  domain[index + 1] = value - 1;
+  return domain_numarr(domain);
+}
 
-  // create a new range of value+1 to old hi, then splice it in
-  let p_lo = value + 1;
-  let p_hi = hi;
-  ASSERT(p_lo <= p_hi, 'value shouldve been below hi');
+function domain_removeValueNumbered(domain, value) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT(typeof value === 'number', 'CAN_ONLY_REMOVE_VALUES');
 
-  _domain_spliceInRangeAt(domain, index + PAIR_SIZE, p_lo, p_hi);
+  if (value < 0 || value > 15) return domain;
+
+  let n = NUMBER[value];
+  return (domain | n) ^ n;
 }
 
 /**
@@ -1324,22 +1513,53 @@ function _domain_removeValueAt(domain, value, index, lo, hi) {
  * @param {number} value
  * @returns {number}
  */
-function domain_removeValueInline(domain, value) {
+function domain_removeValue(domain, value) {
+  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(typeof value === 'number', 'value should be a num', value);
-  for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
+
+  for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];
     let hi = domain[index + 1];
-    if (value >= lo && value <= hi) {
-      _domain_removeValueAt(domain, value, index, lo, hi);
-      ASSERT_DOMAIN(domain);
-      if (domain_isRejected(domain)) {
-        ASSERT_DOMAIN_EMPTY_SET(domain);
-        return REJECTED;
-      }
-      return SOMETHING_CHANGED;
+    if (value === lo) {
+      let newDomain = domain.slice(0, index);
+      if (value !== hi) newDomain.push(value + 1, hi);
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
+    }
+    if (value === hi) {
+      let newDomain = domain.slice(0, index + 1);
+      newDomain.push(value - 1); // lo cannot be value as we already checked that
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
+    }
+    if (value < lo) {
+      // value sits between prev range (if not start) and current range so domain
+      // does not have it at all. return the input domain to indicate no change
+      return domain;
+    }
+    if (value < hi) {
+      // split up range to remove the value. we already confirmed that range
+      // does not start or end at value, so just split it
+      let newDomain = domain.slice(0, index + 1);
+      newDomain.push(value - 1, value + 1, hi);
+      return domain_streamFrom(domain, newDomain, index + PAIR_SIZE);
     }
   }
-  return ZERO_CHANGES;
+  // value must be higher than the max of domain so domain does not contain it
+  // return domain to indicate no change
+  ASSERT(domain_isRejected(domain) || domain_max(domain) < value, 'MAX_DOMAIN_SHOULD_BE_UNDER_VALUE');
+  return domain;
+}
+
+/**
+ * Add all elements in source start at index `from` to the target
+ *
+ * @param {$domain} source
+ * @param {$domain} target
+ * @param {number} from
+ * @returns {$domain}
+ */
+function domain_streamFrom(source, target, from) {
+  for (let i = from; i < source.length; ++i) target.push(source[i]);
+  return target;
 }
 
 /**
@@ -1351,6 +1571,14 @@ function domain_removeValueInline(domain, value) {
  * @returns {boolean}
  */
 function domain_sharesNoElements(domain1, domain2) {
+  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
+    return (domain1 & domain2) === 0;
+  }
+
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
+
   for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
     let lo = domain1[i];
     let hi = domain1[i + 1];
@@ -1367,24 +1595,12 @@ function domain_sharesNoElements(domain1, domain2) {
 }
 
 /**
- * @returns {$domain} 0,1
- */
-function domain_createBool() {
-  return [0, 1];
-}
-
-/**
- * @returns {$domain} sub,sup
- */
-function domain_createAll() {
-  return [SUB, SUP];
-}
-
-/**
  * @param {number} value
  * @returns {$domain}
  */
 function domain_createValue(value) {
+  if (value >= 0 && value <= 15) return NUMBER[value];
+
   ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
   return [value, value];
@@ -1396,54 +1612,154 @@ function domain_createValue(value) {
  * @returns {$domain}
  */
 function domain_createRange(lo, hi) {
+  if (lo >= 0 && hi <= 15) {
+    let n = 0;
+    for (let i = lo; i <= hi; ++i) {
+      n |= NUMBER[i];
+    }
+    return n;
+  }
+
   return [lo, hi];
+}
+
+/**
+ * @param {$domain} domain
+ * @param {boolean} forceArr Always return in array form?
+ * @returns {$domain}
+ */
+function domain_clone(domain, forceArr) {
+  if (typeof domain === 'number') {
+    if (forceArr === FORCE_ARRAY) return domain_toArr(domain);
+    return domain;
+  }
+  return domain.slice(0);
+}
+
+/**
+ * Get a domain representation in array form
+ *
+ * @param {$domain} domain
+ * @returns {$domain} (small domains will also be arrays)
+ */
+function domain_toArr(domain) {
+  if (typeof domain === 'number') return domain_fromFlags(domain);
+  return domain;
+}
+
+/**
+ * Accept a domain and if it is an array, try to reduce it
+ * to a number. Either returns the original input or a
+ * numeric representation if the domain fits in a number.
+ * Pretty much a noop for numbers since they can't grow to
+ * array domains, and by design so.
+ *
+ * @param {$domain} domain
+ * @returns {$domain}
+ */
+function domain_numarr(domain) {
+  if (typeof domain === 'number') return domain;
+
+  let len = domain.length;
+  if (len === 0) return 0;
+
+  if (domain_min(domain) < 0 || domain_max(domain) > 15) return domain;
+
+  let out = 0;
+  for (let i = 0; i < len; i += PAIR_SIZE) {
+    for (let n = domain[i], m = domain[i + 1]; n <= m; ++n) {
+      out |= NUMBER[n];
+    }
+  }
+  return out;
+}
+
+/**
+ * Given two domains compare the new domain to the old domain and
+ * return REJECTED if the new domain is empty, NO_CHANGES if the
+ * new domain is equal to the old domain, and SOME_CHANGES otherwise.
+ *
+ * @param {$domain} newDom
+ * @param {$domain} oldDom
+ * @returns {$fd_changeState}
+ */
+function domain_getChangeState(newDom, oldDom) {
+  if (domain_isRejected(newDom)) return REJECTED;
+  if (domain_isEqual(newDom, oldDom)) return NO_CHANGES;
+  return SOME_CHANGES;
 }
 
 // BODY_STOP
 
 export {
-  DOMAINS_NOT_CHANGED,
-  INLINE,
+  FORCE_ARRAY,
+  LO_BOUND,
+  HI_BOUND,
+  NO_CHANGES,
   NOT_FOUND,
-  NOT_INLINE,
   PAIR_SIZE,
   PREV_CHANGED,
-  SOMETHING_CHANGED,
+  SOME_CHANGES,
+
+  ZERO,
+  ONE,
+  BOOL,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  TEN,
+  ELEVEN,
+  TWELVE,
+  THIRTEEN,
+  FOURTEEN,
+  FIFTEEN,
+  NUMBER,
+  FLAG_TO_NUM,
 
   domain_sharesNoElements,
+  domain_clone,
   domain_complement,
   domain_containsValue,
-  domain_createAll,
-  domain_createBool,
   domain_createRange,
   domain_createValue,
-  domain_deepCloneWithoutValue,
   domain_divby,
-  domain_equal,
-  domain_forceEqInline,
+  domain_isEqual,
+  domain_forceEq,
+  domain_forceEqNumbered,
+  domain_fromFlags,
   domain_fromList,
+  domain_getChangeState,
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   domain_intersectBoundsInto,
   domain_intersection,
   domain_isDetermined,
-  domain_isRange,
   domain_isRejected,
   domain_isSolved,
+  domain_isUndetermined,
   domain_isValue,
   domain_max,
   domain_middleElement,
   domain_min,
   domain_minus,
-  domain_plus,
-  domain_removeGteInline,
-  domain_removeLteInline,
-  domain_removeNextFromList,
-  domain_removeValueInline,
-  domain_setToRangeInline,
-  domain_simplify,
-  domain_size,
   domain_mul,
+  domain_numarr,
+  domain_plus,
+  domain_removeGte,
+  domain_removeGteNumbered,
+  domain_removeLte,
+  domain_removeLteNumbered,
+  domain_removeNextFromList,
+  domain_removeValue,
+  domain_removeValueNumbered,
+  domain_simplifyInline,
+  domain_size,
+  domain_toArr,
   domain_toList,
 
   // __REMOVE_BELOW_FOR_DIST__
@@ -1451,6 +1767,6 @@ export {
   domain_rangeIndexOf,
   domain_isSimplified,
   domain_mergeOverlappingInline,
-  domain_sortByRange,
+  domain_sortByRangeInline,
   // __REMOVE_ABOVE_FOR_DIST__
 };

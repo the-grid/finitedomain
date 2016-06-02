@@ -23,8 +23,8 @@ const PRESETS = {
   },
   // The "domain splitting" strategy where each domain is roughly
   // halved in each step. The 'varname' argument can be either a
-  // single fdvar name or an array of names or an object whose
-  // values are fdvar names.
+  // single var name or an array of names or an object whose
+  // values are var names.
   split: {
     var: 'size',
     val: 'splitMin',

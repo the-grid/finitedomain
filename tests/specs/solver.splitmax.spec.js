@@ -23,7 +23,7 @@ describe('solver.splitmax.spec', function() {
         });
         solver.addVar({
           id: 'World',
-          domain: specDomainCreateValue(0),
+          domain: specDomainCreateValue(0, true),
         });
         solver['>']('Hello', 'World');
 

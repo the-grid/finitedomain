@@ -26,6 +26,14 @@ module.exports = function () {
         cmd: 'npm',
         args: ['run','lintdev','--silent'],
       },
+      jsbeautify: {
+        cmd: 'node_modules/.bin/js-beautify',
+        args: [
+          '-s 4',
+          '-f', 'build/finitedomain-browserified.js',
+          '-o', 'build/finitedomain-browserified-beautified.js',
+        ],
+      },
     },
 
     // we only use this babel for manual inspection. not part of build chain.
@@ -48,6 +56,11 @@ module.exports = function () {
             dest: 'build/specs/',
           },
         ],
+      },
+      concat: {
+        files: {
+          'build/finitedomain-browserified.js': ['build/finitedomain.es6.concat.js'],
+        },
       },
     },
 
@@ -82,14 +95,24 @@ module.exports = function () {
     },
 
     watch: {
-      files: [
-        'src/**/*.js',
-        'tests/**/*',
-      ],
-      tasks: [
-        'browserify:dist',
-        'uglify:dist',
-      ],
+      f: { // build for browser
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'buildf',
+        ],
+      },
+      q: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'distq',
+        ],
+      },
     },
 
     mochaTest: {
@@ -148,6 +171,11 @@ module.exports = function () {
           'build/finitedomain-browserified.js': 'src/index.js',
         },
       },
+      distq: {
+        files: {
+          'dist/finitedomain.dist.min.js': 'src/index.js',
+        },
+      },
     },
 
     mocha_phantomjs: {
@@ -165,6 +193,69 @@ module.exports = function () {
         },
       },
     },
+
+    concat: {
+      build: {
+        options: {
+          // https://github.com/gruntjs/grunt-contrib-concat
+          banner: '',
+          footer: '\nexport default Solver;',
+          sourceMap: true,
+          sourceMapStyle: 'inline', // embed link inline
+          process: function(code, path){
+            if (path === 'src/index.js') return '';
+            console.log('concatting', path);
+            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
+            if (!match) {
+              console.error('unable to find body start/stop pragmas in '+path);
+              throw 'No body found in '+path;
+            }
+            code = match[1];
+            match = code.match(/^([\s\S]*?)\/\/ __REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?\/\/__REMOVE_ABOVE_FOR_ASSERTS__([\s\S]*)$/);
+            if (match) {
+              console.log(' - removing for asserts');
+              code = match[1] + match[2];
+            }
+            code = code.replace(/^\s*ASSERT.*$/gm, '');
+
+            return '' +
+              '// from: ' + path + '\n\n' +
+              code +
+              '\n\n// end of ' + path;
+          },
+        },
+        files: {
+          'build/finitedomain.es6.concat.js': ['src/**/*'],
+        },
+      },
+      test: {
+        options: {
+          // https://github.com/gruntjs/grunt-contrib-concat
+          banner: '',
+          footer: '\nexport default Solver;',
+          sourceMap: true,
+          sourceMapStyle: 'inline', // embed link inline
+          process: function(code, path){
+            if (path === 'src/index.js') return '';
+            console.log('concatting', path);
+            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
+            if (!match) {
+              console.error('unable to find body start/stop pragmas in '+path);
+              throw 'No body found in '+path;
+            }
+            code = match[1];
+
+            return '' +
+              '// from: ' + path + '\n\n' +
+              code +
+              '\n\n// end of ' + path;
+          },
+        },
+        files: {
+          'build/finitedomain.es6.concat.js': ['src/**/*'],
+        },
+      },
+    },
   });
 
   grunt.loadNpmTasks('grunt-babel'); // we dont really need this but can be handy for debugging
@@ -175,49 +266,19 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-mocha-test');
   grunt.loadNpmTasks('grunt-run'); // runs npm scripts
   grunt.loadNpmTasks('grunt-remove');
+  grunt.loadNpmTasks('grunt-replace');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-contrib-concat');
 
   grunt.registerTask('clean', ['remove']);
-  grunt.registerTask('build', ['clean', 'browserify:dist', 'browserify:phantom']);
+  grunt.registerTask('build', 'strips headers but keeps assertions, also makes phantomjs build', ['clean', 'browserify:phantom', 'concat:test', 'babel:concat']);
+  grunt.registerTask('buildf', 'strips headers and asserts, beautifies result (for /perf)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
   grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
+  grunt.registerTask('distq', ['clean', 'browserify:distq']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
+  grunt.registerTask('testq', ['clean', 'mochaTest:all']);
   grunt.registerTask('testp', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
 
   grunt.registerTask('default', ['test']);
 };
-
-
-  //  concat: {
-  //    options: {
-  //      stripBanners: false,
-  //      banner: 'FD = ((module? and module) or {}).exports = do ->\n\n',
-  //      footer: // add external exports here
-  //      '\n' +
-  //      '  return {\n' +
-  //      '    Solver\n' +
-  //      '  }\n',
-  //      separator: '\n\n',
-  //      process(str, fname) {
-  //        switch (fname) {
-  //          // ignore some files
-  //          case 'src/index.coffee':
-  //            break;
-  //          default:
-  //            let m = str.match(/# BODY_START((?:.|\n|\r)*?)# BODY_STOP/)
-  //            if (m[1]) {
-  //              m = m[1];
-  //            } else {
-  //              console.log("Warning: ${fname} had no body start/stop, unable to include");
-  //              m = str;
-  //            }
-  //            return " ###### file: ${fname} ######\n\n" + m
-  //        }
-  //      },
-  //    },
-  //    dist: {
-  //      src: ['src/**/*.coffee'],
-  //      dest: 'build/1.finitedomain.dist.coffee'
-  //    }
-  //  }
-  //});

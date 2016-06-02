@@ -27,6 +27,8 @@ import {
 
 import {
   FORCE_ARRAY,
+  HI_BOUND,
+  LO_BOUND,
   PAIR_SIZE,
 
   domain_clone,
@@ -992,14 +994,15 @@ function solver_confirmDomainElement(n) {
 function solver_tryToFixLegacyDomain(domain) {
   let fixed = [];
   for (let i = 0; i < domain.length; i++) {
-    let a = domain[i];
-    if (!(a instanceof Array)) {
+    let rangeArr = domain[i];
+    if (!(rangeArr instanceof Array)) {
       return;
     }
-    if (a.length !== PAIR_SIZE) {
+    if (rangeArr.length !== PAIR_SIZE) {
       return;
     }
-    let [lo, hi] = a;
+    let lo = rangeArr[LO_BOUND];
+    let hi = rangeArr[HI_BOUND];
     if (lo > hi) {
       return;
     }

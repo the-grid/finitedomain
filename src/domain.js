@@ -184,7 +184,8 @@ function domain_getValue(domain) {
   if (domain.length !== PAIR_SIZE) {
     return NO_SUCH_VALUE;
   }
-  let [lo, hi] = domain;
+  let lo = domain[LO_BOUND];
+  let hi = domain[HI_BOUND];
   if (lo === hi) {
     return lo;
   }
@@ -893,7 +894,9 @@ function domain_plus(domain1, domain2) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  [domain1, domain2] = _domain_closeGaps2(domain1, domain2);
+  let domains = _domain_closeGaps2(domain1, domain2);
+  domain1 = domains[0];
+  domain2 = domains[1];
 
   let result = [];
   for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
@@ -964,7 +967,9 @@ function domain_minus(domain1, domain2) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  [domain1, domain2] = _domain_closeGaps2(domain1, domain2);
+  let domains = _domain_closeGaps2(domain1, domain2);
+  domain1 = domains[0];
+  domain2 = domains[1];
 
   let result = [];
   for (let i = 0; i < domain1.length; i += PAIR_SIZE) {

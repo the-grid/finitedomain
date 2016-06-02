@@ -16,9 +16,9 @@ import {
 
 import {
   domain_clone,
-  domain_fromFlags,
   domain_getValue,
   domain_isSolved,
+  domain_toArr,
 } from './domain';
 
 import {
@@ -328,7 +328,7 @@ function space_getVarSolveState(space, varIndex) {
   let value = domain_getValue(domain);
   if (value !== NO_SUCH_VALUE) return value;
 
-  return domain_fromFlags(domain);
+  return domain_toArr(domain);
 }
 
 // BODY_STOP

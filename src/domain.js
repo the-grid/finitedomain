@@ -583,13 +583,10 @@ function domain_simplifyInline(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(domain !== undefined, 'DOMAIN_REQUIRED');
 
-  if (domain.length === 0) {
-    return domain;
-  }
+  if (domain.length <= 2) return domain;
 
   // order ranges by lower bound, ascending (inline regardless)
   domain_sortByRangeInline(domain);
-
   return domain_mergeOverlappingInline(domain);
 }
 

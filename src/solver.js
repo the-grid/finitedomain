@@ -26,14 +26,14 @@ import {
 } from './config';
 
 import {
+  FORCE_ARRAY,
   PAIR_SIZE,
+
   domain_clone,
   domain_createRange,
-  domain_createValue,
   domain_fromList,
   domain_isRejected,
   domain_max,
-  domain_numarr,
   domain_toArr,
   domain_toList,
 } from './domain';
@@ -172,13 +172,20 @@ class Solver {
 
   /**
    * @param {string} id
-   * @param {$domain} [domain=this.defaultDomain]
+   * @param {$domain_arr|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $domain_num!
    * @returns {string}
    */
-  decl(id, domain) {
+  decl(id, domainOrValue) {
+    let domain;
+    if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
+    else domain = domainOrValue;
+
     if (!domain) {
-      domain = domain_clone(this.defaultDomain);
+      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
     }
+
+    ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
+
     if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = solver_validateDomain(domain);
     return config_addVarDomain(this.config, id, domain);
@@ -229,12 +236,13 @@ class Solver {
       THROW(`Solver#addVar: var.id already added: ${id}`);
     }
 
-    if (typeof domain === 'number') {
-      domain = domain_createValue(domain);
-    } else if (!domain) {
-      domain = domain_clone(this.defaultDomain);
+    ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
+
+    if (domain === undefined) {
+      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
     } else {
       domain = solver_validateDomain(domain);
+      ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     }
 
     config_addVarDomain(this.config, id, domain);
@@ -541,10 +549,17 @@ class Solver {
    * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} add_unknown_vars
+   * @property {boolean} [_debugConfig] Log out solver._space.config after prepare() but before run()
+   * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run()
+   * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
    * @return {Object[]}
    */
   solve(options) {
     let obj = this.prepare(options);
+
+    if (options && options._debugConfig) console.log(getInspector()(this._space.config));
+    if (options && options._debugSpace) console.log(getInspector()(this._space));
+    if (options && options._debugSolver) this._debugSolver();
 
     // logging inside asserts because they are stripped out for dist
     ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
@@ -574,7 +589,7 @@ class Solver {
 
     if (addUnknownVars) {
       let unknown_names = config_getUnknownVars(this.config);
-      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain));
+      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain, FORCE_ARRAY));
     }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -645,9 +660,9 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.time('      - FD Solver Time');
       console.log(`      - FD Solver Var Count: ${this.state.space.config.all_var_names.length}`);
       console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
+      console.time('      - FD Solver Time');
     }
 
     let count = solver_runLoop(state, searchFunc, max, solutions, log, squash);
@@ -730,16 +745,14 @@ class Solver {
     return this._space.config.all_var_names[varIndex];
   }
 
-  _debugConfig() {
-    let inspect = typeof require === 'function' ? function(arg) { return require('util').inspect(arg, false, null); } : function(o) { return o; };
-
+  _debugSolver() {
+    let inspect = getInspector();
     console.log('## _debugConfig:');
 
     console.log('# All keys:');
+    console.warn('cloning');
     let config = this.config;
-    for (let key in config) {
-      console.log(key, ':', inspect(config[key]));
-    }
+    console.log(inspect(_clone(config)));
 
     console.log('# Variables:');
     console.log('  index name domain toArr');
@@ -757,6 +770,53 @@ class Solver {
 
     console.log('##');
   }
+}
+
+/**
+ * Deep clone given object for debugging purposes (only)
+ * Revise if used for anything concrete
+ *
+ * @param {*} value
+ * @returns {*}
+ */
+function _clone(value) {
+  switch (typeof value) {
+    case 'object':
+      if (!value) return null;
+      if (value instanceof Array) {
+        return value.map(v => _clone(v));
+      }
+      let obj = {};
+      for (let key in value) {
+        obj[key] = _clone(value[key]);
+      }
+      return obj;
+    case 'function':
+      let fobj = {
+        __THIS_IS_A_FUNCTION: 1,
+        __source: value.toString(),
+      };
+      for (let key in value) {
+        fobj[key] = _clone(value[key]);
+      }
+      return fobj;
+
+    case 'string':
+    case 'number':
+    case 'boolean':
+    case 'undefined':
+      return value;
+  }
+
+  THROW('config value what?', value);
+}
+
+let inspectorCache;
+function getInspector() {
+  if (!inspectorCache) {
+    inspectorCache = typeof require === 'function' ? function(arg) { return require('util').inspect(arg, false, null); } : function(o) { return o; };
+  }
+  return inspectorCache;
 }
 
 /**
@@ -850,17 +910,16 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
  * @returns {number[]}
  */
 function solver_validateDomain(domain) {
-  // i hope this doesnt trip up implicit constants
-  if (typeof domain === 'number') return domain;
+  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
 
   // support legacy domains and validate input here
   let msg = solver_confirmDomain(domain);
   if (msg) {
     let fixedDomain = solver_tryToFixLegacyDomain(domain);
     if (fixedDomain) {
-      if (console && console.warn) {
-        console.warn(msg, domain, 'auto-converted to', fixedDomain);
-      }
+      //if (console && console.warn) {
+      //  console.warn(msg, domain, 'auto-converted to', fixedDomain);
+      //}
     } else {
       if (console && console.warn) {
         console.warn(msg, domain, 'unable to fix');
@@ -869,7 +928,7 @@ function solver_validateDomain(domain) {
     }
     domain = fixedDomain;
   }
-  return domain_numarr(domain);
+  return domain_toArr(domain);
 }
 
 /**

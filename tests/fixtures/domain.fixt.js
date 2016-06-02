@@ -12,7 +12,6 @@ function specDomainCreateRange(lo, hi, _b) {
   }
 
   return [lo, hi];
-  return specDomainCreateRanges([lo, hi]);
 }
 function specDomainCreateRanges(...ranges) {
   let arr = [];
@@ -58,6 +57,33 @@ function specDomainCreateEmpty(no) {
   let A = [];
   if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
   return A;
+}
+
+function specDomainFromNums(...list) {
+  if (!list.length) return [];
+  list.sort((a, b) => a - b);
+
+  let domain = [];
+  let hi;
+  let lo;
+  for (let index = 0; index < list.length; index++) {
+    let value = list[index];
+    ASSERT(value >= SUB, 'fd values range SUB~SUP');
+    ASSERT(value <= SUP, 'fd values range SUB~SUP');
+    if (index === 0) {
+      lo = value;
+      hi = value;
+    } else {
+      ASSERT(value >= hi, 'LIST_SHOULD_BE_ORDERED_BY_NOW'); // imo it should not even contain dupe elements... but that may happen anyways
+      if (value > hi + 1) {
+        domain.push(lo, hi);
+        lo = value;
+      }
+      hi = value;
+    }
+  }
+  domain.push(lo, hi);
+  return domain;
 }
 
 const ZERO = 1 << 0;
@@ -126,6 +152,7 @@ export {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
+  specDomainFromNums,
   specDomainSmallEmpty,
   specDomainSmallNums,
   specDomainSmallRange,

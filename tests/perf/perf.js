@@ -12,6 +12,18 @@ perf(config, 50000);
 var Solver = (typeof require === 'function') ? require(__dirname + '/../../src/solver').default : exports.default;
 
 var perf = module.exports = function perf(config, max) {
+
+  if (config.callbackTimeoutMax) {
+    let counter = config.callbackTimeoutMax;
+    config.timeout_callback = function() {
+      if (--counter < 0) {
+        console.log('ABORTING');
+        return true;
+      }
+      return false;
+    };
+  };
+
   let solver = new Solver({config});
   console.log('start profile');
   console.profile && console.profile('gridsolving');

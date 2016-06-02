@@ -1,17 +1,16 @@
 <body>
-  The magic happens in your console.
-  <pre>
-node from repl:
+  The magic happens in your console.<br>
+  Note that multiple solutions doesn't mean running from scratch. Solutions beyond the first build on the first solution.
 
-./node_modules/.bin/babel-node
-
-var config = require('./tests/perf/gridsolver/config');
-var perf = require('./tests/perf/perf');
-perf(config, 50000);
-  </pre>  <script>var exports= {};</script>
+  <script>var exports= {};</script>
   <script>var module = {exports: {}};</script>
   <script src="config.js"></script>
   <script src="../../../build/finitedomain-browserified-beautified.js"></script>
   <script src="../perf.js"></script>
-  <script>perf(config, 50000);</script>
+  <script>
+    console.warn('baseline run 1x:');
+    perf(config, 1);
+    console.warn('perf run 50000x:');
+    perf(config, 50000);
+  </script>
 </body>

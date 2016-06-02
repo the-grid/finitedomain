@@ -1,8 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateRange,
+  specDomainFromNums,
   specDomainSmallNums,
-  specDomainSmallRange,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -187,7 +187,7 @@ describe('src/config.spec', function() {
       let name = config_addVarAnonConstant(config, 15);
 
       expect(config.all_var_names.indexOf(name)).to.be.at.least(0);
-      expect(config.initial_vars[name]).to.equal(specDomainSmallNums(15));
+      expect(config.initial_vars[name]).to.eql(specDomainFromNums(15));
     });
 
     it('should populate the constant cache', function() {
@@ -274,7 +274,7 @@ describe('src/config.spec', function() {
         config_addVarAnonRange(config, lo, hi);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainSmallRange(lo, hi));
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainCreateRange(lo, hi, true));
       });
     });
   });
@@ -327,7 +327,7 @@ describe('src/config.spec', function() {
         config_addVarConstant(config, 'A', value);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainSmallRange(value, value));
+        expect(config.initial_vars[config.all_var_names[0]]).to.eql(specDomainCreateRange(value, value, true));
       });
     });
   });
@@ -375,7 +375,7 @@ describe('src/config.spec', function() {
       it('should create a new var with given range', function() {
         let config = config_create();
 
-        let value = specDomainSmallRange(5, 12);
+        let value = specDomainCreateRange(5, 12, true);
 
         config_addVarDomain(config, 'A', value);
 
@@ -475,7 +475,7 @@ describe('src/config.spec', function() {
         config_addVarRange(config, 'A', 5, 12);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_vars.A).to.eql(specDomainSmallRange(5, 12));
+        expect(config.initial_vars.A).to.eql(specDomainCreateRange(5, 12, true));
       });
     });
   });
@@ -506,7 +506,7 @@ describe('src/config.spec', function() {
 
       it('should create a new var with given range', function() {
         let config = config_create();
-        let domain = specDomainSmallRange(0, 5);
+        let domain = specDomainCreateRange(0, 5, true);
         var names = ['A', 'B', 'C'];
 
         config_addVarsWithDomain(config, names, domain);

@@ -3,9 +3,9 @@ import {
   specDomainCreateEmpty,
   specDomainCreateRange,
   specDomainCreateRanges,
+  specDomainFromNums,
   specDomainSmallEmpty,
   specDomainSmallNums,
-  specDomainSmallRange,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -16,10 +16,13 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
+  FORCE_ARRAY,
+
   domain_clone,
 } from '../../../src/domain';
 import {
   config_addVarDomain,
+  config_addVarRange,
   config_create,
 } from '../../../src/config';
 import {
@@ -39,8 +42,8 @@ describe('propagators/eq.spec', function() {
 
   it('should expect args', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainSmallRange(11, 15));
-    config_addVarDomain(config, 'B', specDomainSmallRange(5, 8));
+    config_addVarRange(config, 'A', 11, 15);
+    config_addVarRange(config, 'B', 5, 8);
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
@@ -54,8 +57,8 @@ describe('propagators/eq.spec', function() {
 
   it('should throw for empty domains', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainSmallRange(9, 10));
-    config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
+    config_addVarRange(config, 'A', 9, 10);
+    config_addVarRange(config, 'B', 11, 15);
     config_addVarDomain(config, 'C', specDomainCreateEmpty());
     config_addVarDomain(config, 'D', specDomainCreateEmpty());
     let space = space_createRoot(config);
@@ -83,8 +86,8 @@ describe('propagators/eq.spec', function() {
 
   it('with number should split a domain if it covers multiple ranges of other domain', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainSmallRange(SUB, 15));
-    config_addVarDomain(config, 'B', specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    config_addVarRange(config, 'A', SUB, 15);
+    config_addVarDomain(config, 'B', specDomainFromNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
     let space = space_createRoot(config);
     space_initFromConfig(space);
     let A = config.all_var_names.indexOf('A');
@@ -101,8 +104,8 @@ describe('propagators/eq.spec', function() {
     function test(domain) {
       it(`should not change anything: ${domain}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain));
-        config_addVarDomain(config, 'B', domain_clone(domain));
+        config_addVarDomain(config, 'A', domain_clone(domain, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -137,8 +140,8 @@ describe('propagators/eq.spec', function() {
     function test(left, right, result, changes) {
       it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(left));
-        config_addVarDomain(config, 'B', domain_clone(right));
+        config_addVarDomain(config, 'A', domain_clone(left, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(right, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -151,8 +154,8 @@ describe('propagators/eq.spec', function() {
 
       it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(right));
-        config_addVarDomain(config, 'B', domain_clone(left));
+        config_addVarDomain(config, 'A', domain_clone(right, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(left, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');

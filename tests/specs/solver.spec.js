@@ -1166,9 +1166,9 @@ describe('solver.spec', function() {
 
     it('should solve a simple - test', function() {
       let solver = new Solver({});
-      solver.addVar('A', 400);
-      solver.addVar('B', 50);
-      solver.addVar('C', specDomainCreateRange(0, 10000));
+      solver.decl('A', 400);
+      solver.decl('B', 50);
+      solver.decl('C', specDomainCreateRange(0, 10000));
 
       solver.min('A', 'B', 'C');
 
@@ -1726,9 +1726,9 @@ describe('solver.spec', function() {
     it('should resolve an already solved 5>=4 trivial gte case', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', [5, 5]);
-      solver.addVar('B', [4, 4]);
-      solver.addVar('YES', 1);
+      solver.decl('A', 5);
+      solver.decl('B', 4);
+      solver.decl('YES', 1);
 
       solver._cacheReified('gte', 'A', 'B', 'YES');
 
@@ -1740,9 +1740,9 @@ describe('solver.spec', function() {
     it('should resolve an already solved 4>=4 trivial gte case', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', [4, 4]);
-      solver.addVar('B', [4, 4]);
-      solver.addVar('YES', 1);
+      solver.decl('A', 4);
+      solver.decl('B', 4);
+      solver.decl('YES', 1);
 
       solver._cacheReified('gte', 'A', 'B', 'YES');
 
@@ -1754,7 +1754,7 @@ describe('solver.spec', function() {
     it('should resolve a simple reified !gte case', function() {
       let solver = new Solver({});
 
-      solver.addVar('STATE', [0, 0]);
+      solver.decl('STATE', 0);
       solver.addVar('ONE_TWO_THREE_FOUR', [1, 4]); // 4
       solver.addVar('THREE_FOUR_FIVE', [3, 5]); // 3
       solver.addVar('IS_GTE', [0, 1]); // 0
@@ -1876,14 +1876,8 @@ describe('solver.spec', function() {
       */
 
       let solver = new Solver({defaultDomain: specDomainCreateRange(0, 10000)});
-      solver.addVar({
-        id: 'VIEWPORT_WIDTH',
-        domain: 1200,
-      });
-      solver.addVar({
-        id: 'VIEWPORT_HEIGHT',
-        domain: 800,
-      });
+      solver.decl('VIEWPORT_WIDTH', 1200);
+      solver.decl('VIEWPORT_HEIGHT', 800);
       solver.addVars([
         // box1
         '#box1[x]',

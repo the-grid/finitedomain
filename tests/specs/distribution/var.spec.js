@@ -2,8 +2,8 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   specDomainCreateRange,
   specDomainCreateRanges,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  specDomainCreateValue,
+  specDomainFromNums,
 } from '../../fixtures/domain.fixt';
 
 import distribution_getNextVar, {
@@ -71,8 +71,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if lo(v1) < lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(10));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(10, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -83,8 +83,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(11));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -95,8 +95,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(12));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(12, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -119,8 +119,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if hi(v1) > hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(12));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(12, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -131,8 +131,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(11));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -143,8 +143,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(10));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarDomain(config, 'A', specDomainCreateValue(10, true));
+        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -193,7 +193,7 @@ describe('distribution/var.spec', function() {
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [15, 19]));
-        config_addVarDomain(config, 'B', specDomainSmallNums(8, 9, 10, 12, 13, 14));
+        config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 12, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -205,7 +205,7 @@ describe('distribution/var.spec', function() {
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
-        config_addVarDomain(config, 'B', specDomainSmallNums(8, 9, 10, 13, 14));
+        config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -216,8 +216,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if size(v1) > size(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallNums(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallNums(11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -280,8 +280,8 @@ describe('distribution/var.spec', function() {
 
       it('should say v1 is BETTER if v1 is a markov var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
             A: {
@@ -299,8 +299,8 @@ describe('distribution/var.spec', function() {
 
       it('should say v1 is WORSE if v1 not a markov but v2 is', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
             B: {
@@ -318,8 +318,8 @@ describe('distribution/var.spec', function() {
 
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
             A: {
@@ -340,8 +340,8 @@ describe('distribution/var.spec', function() {
 
       it('should say v1 is SAME as v2 if neither is a markov var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
           },
@@ -356,8 +356,8 @@ describe('distribution/var.spec', function() {
 
       it('should use fallback if available and vars are SAME and then return BETTER', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 11));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 12));
+        config_addVarRange(config, 'A', 11, 11);
+        config_addVarRange(config, 'B', 11, 12);
         config_setOptions(config, {
           var_dist_config: {
             var_dist_options: {}, // neither is markov
@@ -374,8 +374,8 @@ describe('distribution/var.spec', function() {
 
       it('should use fallback if available and vars are SAME but then still return SAME', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 11));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 11);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
             var_dist_options: {}, // neither is markov
@@ -392,8 +392,8 @@ describe('distribution/var.spec', function() {
 
       it('should use fallback if available and vars are SAME and then return WORSE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainSmallRange(11, 12));
-        config_addVarDomain(config, 'B', specDomainSmallRange(11, 11));
+        config_addVarRange(config, 'A', 11, 12);
+        config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
           var_dist_config: {
             var_dist_options: {}, // neither is markov

@@ -15,6 +15,7 @@ import {
 } from '../../../src/helpers';
 import {
   config_addVarDomain,
+  config_addVarRange,
   config_create,
 } from '../../../src/config';
 import {
@@ -48,8 +49,8 @@ describe('propagators/lte.spec', function() {
       let config = config_create();
       config_addVarDomain(config, 'A', specDomainCreateRange(90, 100));
       config_addVarDomain(config, 'B', specDomainCreateRange(200, 300));
-      config_addVarDomain(config, 'C', specDomainCreateEmpty(true));
-      config_addVarDomain(config, 'D', specDomainCreateEmpty(true));
+      config_addVarDomain(config, 'C', specDomainCreateEmpty());
+      config_addVarDomain(config, 'D', specDomainCreateEmpty());
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -244,10 +245,10 @@ describe('propagators/lte.spec', function() {
 
     it('should throw for empty domain', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(9, 10));
-      config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
-      config_addVarDomain(config, 'C', specDomainSmallEmpty());
-      config_addVarDomain(config, 'D', specDomainSmallEmpty());
+      config_addVarRange(config, 'A', 9, 10);
+      config_addVarRange(config, 'B', 11, 15);
+      config_addVarDomain(config, 'C', specDomainCreateEmpty());
+      config_addVarDomain(config, 'D', specDomainCreateEmpty());
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -264,8 +265,8 @@ describe('propagators/lte.spec', function() {
 
     it('should remove any value from v1 that is gte to max(v2)', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(0, 10));
-      config_addVarDomain(config, 'B', specDomainSmallRange(5, 9));
+      config_addVarRange(config, 'A', 0, 10);
+      config_addVarRange(config, 'B', 5, 9);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -279,8 +280,8 @@ describe('propagators/lte.spec', function() {
 
     it('should not remove SUP if both ranges end there', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(0, 15));
-      config_addVarDomain(config, 'B', specDomainSmallRange(5, 15));
+      config_addVarRange(config, 'A', 0, 15);
+      config_addVarRange(config, 'B', 5, 15);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -294,8 +295,8 @@ describe('propagators/lte.spec', function() {
 
     it('should not affect domains when v1 < v2', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(0, 10));
-      config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
+      config_addVarRange(config, 'A', 0, 10);
+      config_addVarRange(config, 'B', 11, 15);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -309,8 +310,8 @@ describe('propagators/lte.spec', function() {
 
     it('should not affect overlapping ranges when min(v2) <= max(v1) < max(v2)', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(0, 13));
-      config_addVarDomain(config, 'B', specDomainSmallRange(10, 15));
+      config_addVarRange(config, 'A', 0, 13);
+      config_addVarRange(config, 'B', 10, 15);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -324,8 +325,8 @@ describe('propagators/lte.spec', function() {
 
     it('should reject if min(v1) > max(v2)', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(11, 15));
-      config_addVarDomain(config, 'B', specDomainSmallRange(5, 8));
+      config_addVarRange(config, 'A', 11, 15);
+      config_addVarRange(config, 'B', 5, 8);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -339,8 +340,8 @@ describe('propagators/lte.spec', function() {
 
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(8, 8));
-      config_addVarDomain(config, 'B', specDomainSmallRange(5, 10));
+      config_addVarRange(config, 'A', 8, 8);
+      config_addVarRange(config, 'B', 5, 10);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 
@@ -354,8 +355,8 @@ describe('propagators/lte.spec', function() {
 
     it('should not change if v1 is solved and == min(v2)', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainSmallRange(7, 7));
-      config_addVarDomain(config, 'B', specDomainSmallRange(7, 13));
+      config_addVarRange(config, 'A', 7, 7);
+      config_addVarRange(config, 'B', 7, 13);
       let space = space_createRoot(config);
       space_initFromConfig(space);
 

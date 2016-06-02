@@ -1,6 +1,9 @@
 // Config for a search tree where each node is a Space
 // TOFIX: may want to rename this to "tree-state" or something; it's not just config
 
+// Note: all domains in this class should be array based!
+// This prevents leaking the small domain artifact outside of the library.
+
 import {
   EMPTY,
   MAX_SMALL,
@@ -11,9 +14,13 @@ import {
   THROW,
 } from './helpers';
 import {
+  NOT_FOUND,
+
   domain_createRange,
+  domain_getValue,
   domain_numarr,
   domain_isSolved,
+  domain_toArr,
 } from './domain';
 import distribution_getDefaults from './distribution/defaults';
 
@@ -130,16 +137,17 @@ function config_addVarRange(config, varName, lo, hi) {
   ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
   ASSERT(lo <= hi, 'range should be lo<=hi', lo, hi);
 
-  let domain = domain_createRange(lo, hi);
+  let domain = domain_toArr(domain_createRange(lo, hi));
   return config_addVarDomain(config, varName, domain);
 }
 /**
  * @param {$config} config
  * @param {Array.<string|boolean>} varNames Will only be strings but true could mean anonymous vars. Useless since you don't get their id back, though.
- * @param {$domain} domain
+ * @param {$domain_arr} domain Small domain format not allowed here.
  */
 function config_addVarsWithDomain(config, varNames, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
   for (let i = 0, n = varNames.length; i < n; ++i) {
     let varName = varNames[i];
@@ -150,12 +158,13 @@ function config_addVarsWithDomain(config, varNames, domain) {
 /**
  * @param {$config} config
  * @param {string|boolean} varName (If true, anon)
- * @param {$domain} domain
+ * @param {$domain_arr} domain Small domain format not allowed here.
  * @param {undefined} [_forbidden] Throws if this is used, prevents bad api mistakes (since domain can be a number)
  * @returns {string}
  */
 function config_addVarDomain(config, varName, domain, _forbidden) {
   ASSERT(_forbidden === undefined, 'WRONG_API');
+  ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
   return _config_addVar(config, varName, domain);
 }
@@ -185,11 +194,9 @@ function config_addVarConstant(config, varName, value) {
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
   ASSERT(typeof value === 'number', 'value should be a number', value);
 
-  let domain = domain_createRange(value, value);
+  let domain = domain_toArr(domain_createRange(value, value));
 
   varName = config_addVarDomain(config, varName, domain);
-
-  config.constant_cache[value] = varName;
 
   return varName;
 }
@@ -197,13 +204,13 @@ function config_addVarConstant(config, varName, value) {
 /**
  * @param {$config} config
  * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
- * @param {$domain} domain
+ * @param {$domain_arr} domain Small domain format not allowed here.
  * @returns {string} the var name (you need this for anonymous vars)
  */
 function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'varName must be a non-empty string');
-  ASSERT(typeof domain === 'number' || domain instanceof Array, '$domain is a number or array', domain);
+  ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
   ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
@@ -219,7 +226,8 @@ function _config_addVar(config, varName, domain) {
     THROW('Var varName already part of this config. Probably a bug?');
   }
 
-  //domain = domain_maim(domain);
+  let solvedTo = domain_getValue(domain);
+  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varName;
 
   config.initial_vars[varName] = domain;
   config.all_var_names.push(varName);
@@ -321,7 +329,6 @@ function config_generateVars(config, space) {
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
   ASSERT(space.vardoms, 'expecting var domains');
-  ASSERT(config, 'should have a config');
   let initialVars = config.initial_vars;
   ASSERT(initialVars, 'config should have initial vars');
   let allVarNames = config.all_var_names;

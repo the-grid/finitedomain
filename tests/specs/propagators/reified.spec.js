@@ -12,6 +12,8 @@ import {
 } from '../../../src/helpers';
 
 import {
+  FORCE_ARRAY,
+
   domain_clone,
 } from '../../../src/domain';
 import {
@@ -45,9 +47,9 @@ describe('propagators/reified.spec', function() {
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `out=${expected_out}`, `result=[${bool_after}]`]}`, function() {
 
           let config = config_create();
-          config_addVarDomain(config, 'A', domain_clone(A_in));
-          config_addVarDomain(config, 'B', domain_clone(B_in));
-          config_addVarDomain(config, 'bool', domain_clone(bool_in));
+          config_addVarDomain(config, 'A', domain_clone(A_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'B', domain_clone(B_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'bool', domain_clone(bool_in, FORCE_ARRAY));
           let space = space_createRoot(config);
           space_initFromConfig(space);
 

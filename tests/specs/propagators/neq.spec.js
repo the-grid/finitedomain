@@ -4,6 +4,7 @@ import {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
+  specDomainFromNums,
   specDomainSmallEmpty,
   specDomainSmallNums,
   specDomainSmallRange,
@@ -17,6 +18,8 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
+  FORCE_ARRAY,
+
   domain_clone,
 } from '../../../src/domain';
 import {
@@ -39,8 +42,8 @@ describe('propagators/neq.spec', function() {
 
   it('should expect args', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainSmallRange(11, 15));
-    config_addVarDomain(config, 'B', specDomainSmallRange(5, 8));
+    config_addVarDomain(config, 'A', specDomainFromNums(11, 15));
+    config_addVarDomain(config, 'B', specDomainFromNums(5, 8));
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
@@ -57,8 +60,8 @@ describe('propagators/neq.spec', function() {
 
   it('should throw for empty domains', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainSmallRange(9, 10));
-    config_addVarDomain(config, 'B', specDomainSmallRange(11, 15));
+    config_addVarDomain(config, 'A', specDomainFromNums(9, 10, true));
+    config_addVarDomain(config, 'B', specDomainFromNums(11, 15, true));
     config_addVarDomain(config, 'C', specDomainCreateEmpty());
     config_addVarDomain(config, 'D', specDomainCreateEmpty());
     let space = space_createRoot(config);
@@ -80,8 +83,8 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1));
-        config_addVarDomain(config, 'B', domain_clone(domain2));
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -95,8 +98,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2));
-        config_addVarDomain(config, 'B', domain_clone(domain1));
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -137,8 +140,8 @@ describe('propagators/neq.spec', function() {
     function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter, changes) {
       it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(solvedDomain));
-        config_addVarDomain(config, 'B', domain_clone(unsolvedDomainBefore));
+        config_addVarDomain(config, 'A', domain_clone(solvedDomain, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -152,8 +155,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(unsolvedDomainBefore));
-        config_addVarDomain(config, 'B', domain_clone(solvedDomain));
+        config_addVarDomain(config, 'A', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(solvedDomain, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -194,8 +197,8 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1));
-        config_addVarDomain(config, 'B', domain_clone(domain2));
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -209,8 +212,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2));
-        config_addVarDomain(config, 'B', domain_clone(domain1));
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -224,8 +227,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1));
-        config_addVarDomain(config, 'B', domain_clone(domain1));
+        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -239,8 +242,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2));
-        config_addVarDomain(config, 'B', domain_clone(domain2));
+        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 

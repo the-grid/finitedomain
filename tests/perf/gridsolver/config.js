@@ -19,6 +19,8 @@
 */
 
 var config = module.exports = {
+  callbackTimeoutMax: 10000000,
+
   _class: '$config',
   var_filter_func: 'unsolved',
   next_var_func: 'naive',

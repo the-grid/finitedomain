@@ -418,6 +418,7 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
       ASSERT(distOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set');
 
       let random = distOptions.random || MATH_RANDOM;
+      ASSERT(typeof random === 'function', 'RNG_SHOULD_BE_FUNCTION');
 
       // note: expandVectorsWith can be 0, so check with null
       let values = markov_createLegend(expandVectorsWith != null, distOptions.legend, domain);

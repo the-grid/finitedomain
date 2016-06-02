@@ -248,10 +248,155 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
 }
 
 function domain_fromFlags(domain) {
-  if (domain === EMPTY) return []; // it's just easier this way.
-  // TODO: this is just lazypanda
-  let list = domain_toList(domain);
-  return domain_fromList(list, undefined, undefined, FORCE_ARRAY);
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  if (domain === EMPTY) return [];
+
+  let arr = [];
+  let lo = -1;
+  let hi = -1;
+  if (ZERO & domain) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain) {
+    if (hi === 0) {
+      arr.push(0, 0);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 3;
+    }
+    hi = 3;
+  }
+  if (FOUR & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 4;
+    } else if (hi !== 3) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 4;
+    }
+    hi = 4;
+  }
+  if (FIVE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 5;
+    } else if (hi !== 4) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 5;
+    }
+    hi = 5;
+  }
+  if (SIX & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 6;
+    } else if (hi !== 5) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 6;
+    }
+    hi = 6;
+  }
+  if (SEVEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 7;
+    } else if (hi !== 6) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 7;
+    }
+    hi = 7;
+  }
+  if (EIGHT & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 8;
+    } else if (hi !== 7) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 8;
+    }
+    hi = 8;
+  }
+  if (NINE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 9;
+    } else if (hi !== 8) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 9;
+    }
+    hi = 9;
+  }
+  if (TEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 10;
+    } else if (hi !== 9) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 10;
+    }
+    hi = 10;
+  }
+  if (ELEVEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 11;
+    } else if (hi !== 10) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 11;
+    }
+    hi = 11;
+  }
+  if (TWELVE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 12;
+    } else if (hi !== 11) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 12;
+    }
+    hi = 12;
+  }
+  if (THIRTEEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 13;
+    } else if (hi !== 12) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 13;
+    }
+    hi = 13;
+  }
+  if (FOURTEEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 14;
+    } else if (hi !== 13) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 14;
+    }
+    hi = 14;
+  }
+  if (FIFTEEN & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 15;
+    } else if (hi !== 14) { // there's a gap so push prev range now
+      arr.push(lo, hi);
+      lo = 15;
+    }
+    hi = 15;
+  }
+
+  // since the domain wasn't empty (checked at start) there
+  // must now be an unpushed lo/hi pair left to push...
+  arr.push(lo, hi);
+
+  return arr;
 }
 
 /**

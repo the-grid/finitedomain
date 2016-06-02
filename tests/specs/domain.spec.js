@@ -4,6 +4,7 @@ import {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
+  specDomainFromNums,
   specDomainSmallEmpty,
   specDomainSmallNums,
   specDomainSmallRange,
@@ -15,9 +16,25 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
+  ZERO,
+  ONE,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  TEN,
+  ELEVEN,
+  TWELVE,
+  THIRTEEN,
+  FOURTEEN,
+  FIFTEEN,
+
   NOT_FOUND,
 
-  //domain_sharesNoElements,
   domain_clone,
   domain_closeGapsInline,
   domain_complement,
@@ -28,34 +45,36 @@ import {
   domain_isEqual,
   domain_forceEq,
   domain_fromList,
-  //domain_fromFlags,
+  domain_fromFlags,
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   //domain_intersectBoundsInto,
   domain_intersection,
   domain_isDetermined,
   domain_isRejected,
+  domain_isSimplified,
   domain_isSolved,
   domain_isValue,
   //domain_max,
+  domain_mergeOverlappingInline,
   //domain_middleElement,
   //domain_min,
   domain_minus,
+  domain_mul,
+  domain_numarr,
   domain_plus,
+  domain_rangeIndexOf,
   domain_removeGte,
   domain_removeLte,
   domain_removeNextFromList,
   domain_removeValueNumbered,
   domain_removeValue,
+  //domain_sharesNoElements,
   domain_simplifyInline,
   domain_size,
-  domain_mul,
-  domain_toList,
-
-  domain_rangeIndexOf,
-  domain_isSimplified,
-  domain_mergeOverlappingInline,
   domain_sortByRangeInline,
+  //domain_toArr,
+  domain_toList,
 } from '../../src/domain';
 
 const FLOOR_FRACTIONS = true;
@@ -2232,6 +2251,49 @@ describe('src/domain.spec', function() {
       gteTest(specDomainSmallNums(5), 105, specDomainSmallEmpty());
       gteTest(specDomainSmallNums(6, 7, 8), 105, NO_SUCH_VALUE);
       gteTest(specDomainSmallNums(0, 1, 2, 3, 4), 105, specDomainSmallEmpty());
+    });
+  });
+
+  describe('domain_fromFlags and domain_toList and domain_numarr and domain_fromList', function() {
+
+    describe('number domain', function() {
+
+      it('should work with all permutations', function() {
+        // 13 is an arbitrary number (ok, prime) to not waste toooo much time on this
+        for (let i = 0; i <= 0xffff; i += 27) {
+          let list = [];
+          if (i & ZERO) list.push(0);
+          if (i & ONE) list.push(1);
+          if (i & TWO) list.push(2);
+          if (i & THREE) list.push(3);
+          if (i & FOUR) list.push(4);
+          if (i & FIVE) list.push(5);
+          if (i & SIX) list.push(6);
+          if (i & SEVEN) list.push(7);
+          if (i & EIGHT) list.push(8);
+          if (i & NINE) list.push(9);
+          if (i & TEN) list.push(10);
+          if (i & ELEVEN) list.push(11);
+          if (i & TWELVE) list.push(12);
+          if (i & THIRTEEN) list.push(13);
+          if (i & FOURTEEN) list.push(14);
+          if (i & FIFTEEN) list.push(15);
+
+          let expNum = specDomainSmallNums(...list);
+          let expArr = specDomainFromNums(...list);
+
+          let outFromFlags = domain_fromFlags(i);
+          let outToList = domain_toList(i);
+          let outNumarr = domain_numarr(expArr);
+          let outFromList = domain_fromList(list);
+
+          expect(i).to.eql(expNum); // more of a confirmation that the specs are proper
+          expect(outFromFlags).to.eql(expArr);
+          expect(outToList).to.eql(list);
+          expect(outNumarr).to.eql(i);
+          expect(outFromList).to.eql(i);
+        }
+      });
     });
   });
 });

@@ -1625,10 +1625,14 @@ function domain_createRange(lo, hi) {
 
 /**
  * @param {$domain} domain
+ * @param {boolean} forceArr Always return in array form?
  * @returns {$domain}
  */
-function domain_clone(domain) {
-  if (typeof domain === 'number') return domain;
+function domain_clone(domain, forceArr) {
+  if (typeof domain === 'number') {
+    if (forceArr === FORCE_ARRAY) return domain_toArr(domain);
+    return domain;
+  }
   return domain.slice(0);
 }
 
@@ -1688,6 +1692,9 @@ function domain_getChangeState(newDom, oldDom) {
 // BODY_STOP
 
 export {
+  FORCE_ARRAY,
+  LO_BOUND,
+  HI_BOUND,
   NO_CHANGES,
   NOT_FOUND,
   PAIR_SIZE,

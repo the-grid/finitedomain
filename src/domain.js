@@ -254,6 +254,7 @@ function domain_fromFlags(domain) {
   let arr = [];
   let lo = -1;
   let hi = -1;
+
   if (ZERO & domain) {
     lo = 0;
     hi = 0;
@@ -283,113 +284,116 @@ function domain_fromFlags(domain) {
     }
     hi = 3;
   }
-  if (FOUR & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 4;
-    } else if (hi !== 3) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 4;
+  // is the fifth bit or higher even set at all? for ~85% that is not the case at this point
+  if (domain >= FOUR) {
+    if (FOUR & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 4;
+      } else if (hi !== 3) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 4;
+      }
+      hi = 4;
     }
-    hi = 4;
-  }
-  if (FIVE & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 5;
-    } else if (hi !== 4) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 5;
+    if (FIVE & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 5;
+      } else if (hi !== 4) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 5;
+      }
+      hi = 5;
     }
-    hi = 5;
-  }
-  if (SIX & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 6;
-    } else if (hi !== 5) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 6;
+    if (SIX & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 6;
+      } else if (hi !== 5) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 6;
+      }
+      hi = 6;
     }
-    hi = 6;
-  }
-  if (SEVEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 7;
-    } else if (hi !== 6) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 7;
+    if (SEVEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 7;
+      } else if (hi !== 6) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 7;
+      }
+      hi = 7;
     }
-    hi = 7;
-  }
-  if (EIGHT & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 8;
-    } else if (hi !== 7) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 8;
+    if (EIGHT & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 8;
+      } else if (hi !== 7) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 8;
+      }
+      hi = 8;
     }
-    hi = 8;
-  }
-  if (NINE & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 9;
-    } else if (hi !== 8) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 9;
+    if (NINE & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 9;
+      } else if (hi !== 8) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 9;
+      }
+      hi = 9;
     }
-    hi = 9;
-  }
-  if (TEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 10;
-    } else if (hi !== 9) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 10;
+    if (TEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 10;
+      } else if (hi !== 9) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 10;
+      }
+      hi = 10;
     }
-    hi = 10;
-  }
-  if (ELEVEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 11;
-    } else if (hi !== 10) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 11;
+    if (ELEVEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 11;
+      } else if (hi !== 10) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 11;
+      }
+      hi = 11;
     }
-    hi = 11;
-  }
-  if (TWELVE & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 12;
-    } else if (hi !== 11) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 12;
+    if (TWELVE & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 12;
+      } else if (hi !== 11) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 12;
+      }
+      hi = 12;
     }
-    hi = 12;
-  }
-  if (THIRTEEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 13;
-    } else if (hi !== 12) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 13;
+    if (THIRTEEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 13;
+      } else if (hi !== 12) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 13;
+      }
+      hi = 13;
     }
-    hi = 13;
-  }
-  if (FOURTEEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 14;
-    } else if (hi !== 13) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 14;
+    if (FOURTEEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 14;
+      } else if (hi !== 13) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 14;
+      }
+      hi = 14;
     }
-    hi = 14;
-  }
-  if (FIFTEEN & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 15;
-    } else if (hi !== 14) { // there's a gap so push prev range now
-      arr.push(lo, hi);
-      lo = 15;
+    if (FIFTEEN & domain) {
+      if (hi < 0) { // this is the LSB that is set
+        lo = 15;
+      } else if (hi !== 14) { // there's a gap so push prev range now
+        arr.push(lo, hi);
+        lo = 15;
+      }
+      hi = 15;
     }
-    hi = 15;
   }
 
   // since the domain wasn't empty (checked at start) there
@@ -998,21 +1002,23 @@ function _domain_closeGaps2(domain1, domain2) {
 
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
-  while (true) {
-    let change = NO_CHANGES;
 
-    let domain = domain_closeGapsFresh(domain1, _domain_smallestIntervalWidth(domain2));
-    change += domain1.length - domain.length;
-    domain1 = domain;
+  let change;
+  do {
+    change = NO_CHANGES;
 
-    domain = domain_closeGapsFresh(domain2, _domain_smallestIntervalWidth(domain1));
-    change += domain2.length - domain.length;
-    domain2 = domain;
-
-    if (change === NO_CHANGES) {
-      break;
+    if (domain1.length > 2) {
+      let domain = domain_closeGapsFresh(domain1, _domain_smallestIntervalWidth(domain2));
+      change += domain1.length - domain.length;
+      domain1 = domain;
     }
-  }
+
+    if (domain2.length > 2) {
+      let domain = domain_closeGapsFresh(domain2, _domain_smallestIntervalWidth(domain1));
+      change += domain2.length - domain.length;
+      domain2 = domain;
+    }
+  } while (change !== NO_CHANGES);
 
   return [
     domain1,
@@ -1813,15 +1819,96 @@ function domain_numarr(domain) {
   let len = domain.length;
   if (len === 0) return 0;
 
-  if (domain_min(domain) < 0 || domain_max(domain) > 15) return domain;
+  ASSERT(domain_min(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN'); // no need to check in dist
+  if (domain_max(domain) > 15) return domain;
 
   let out = 0;
   for (let i = 0; i < len; i += PAIR_SIZE) {
-    for (let n = domain[i], m = domain[i + 1]; n <= m; ++n) {
-      out |= NUMBER[n];
-    }
+    out = domain_addRangeToSmallDomain(out, domain[i], domain[i + 1]);
   }
   return out;
+}
+
+/**
+ * Add all numbers within given range [lo, hi) to given (small) domain
+ *
+ * @param {$domain_num} domain
+ * @param {number} from
+ * @param {number} to
+ * @returns {$domain_num}
+ */
+function domain_addRangeToSmallDomain(domain, from, to) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT(from >= SUB && to <= 15, 'SMALL_DOMAIN_RANGE_ONLY');
+
+  // this switch is designed to case at lo and break at hi.
+  // it prevents a very hot loop.
+  switch (from) { /* eslint no-fallthrough: "off" */
+    case 0:
+      domain |= ZERO;
+      // fall-through
+    case 1:
+      if (to < 1) break;
+      domain |= ONE;
+      // fall-through
+    case 2:
+      if (to < 2) break;
+      domain |= TWO;
+      // fall-through
+    case 3:
+      if (to < 3) break;
+      domain |= THREE;
+      // fall-through
+    case 4:
+      if (to < 4) break;
+      domain |= FOUR;
+      // fall-through
+    case 5:
+      if (to < 5) break;
+      domain |= FIVE;
+      // fall-through
+    case 6:
+      if (to < 6) break;
+      domain |= SIX;
+      // fall-through
+    case 7:
+      if (to < 7) break;
+      domain |= SEVEN;
+      // fall-through
+    case 8:
+      if (to < 8) break;
+      domain |= EIGHT;
+      // fall-through
+    case 9:
+      if (to < 9) break;
+      domain |= NINE;
+      // fall-through
+    case 10:
+      if (to < 10) break;
+      domain |= TEN;
+      // fall-through
+    case 11:
+      if (to < 11) break;
+      domain |= ELEVEN;
+      // fall-through
+    case 12:
+      if (to < 12) break;
+      domain |= TWELVE;
+      // fall-through
+    case 13:
+      if (to < 13) break;
+      domain |= THIRTEEN;
+      // fall-through
+    case 14:
+      if (to < 14) break;
+      domain |= FOURTEEN;
+      // fall-through
+    case 15:
+      if (to < 15) break;
+      domain |= FIFTEEN;
+  }
+
+  return domain;
 }
 
 /**

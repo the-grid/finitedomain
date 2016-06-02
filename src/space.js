@@ -37,7 +37,12 @@ import propagator_isSolved from './propagators/is_solved';
 function space_createRoot(config) {
   if (!config) config = config_create();
 
-  return space_createNew(config, [], [], [], 0, 0);
+  // only for debugging
+  let _depth = 0;
+  let _child = 0;
+  let _path = '';
+
+  return space_createNew(config, [], [], [], _depth, _child, _path);
 }
 
 /**
@@ -66,7 +71,16 @@ function space_createClone(space) {
   let unsolvedVarIndexes = space_filterUnsolvedVarIndexes(space);
   let vardomsCopy = space.vardoms.slice(0);
 
-  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedVarIndexes, space._depth + 1, space._child_count++);
+  // only for debugging
+  let _depth;
+  let _child;
+  let _path;
+  // do it inside ASSERTs so they are eliminated in the dist
+  ASSERT(!void (_depth = space.depth + 1));
+  ASSERT(!void (_child = space._child_count++));
+  ASSERT(!void (_path = space._path));
+
+  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedVarIndexes, _depth, _child, _path);
 }
 
 /**
@@ -128,19 +142,16 @@ function space_filterUnsolvedVarIndexes(space) {
  * @param {string[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
  * @param {number} _depth
  * @param {number} _child
+ * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexes, _depth, _child) {
+function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexes, _depth, _child, _path) {
   ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
   ASSERT(unsolvedVarIndexes instanceof Array, 'unsolvedVarIndexes should be an array', unsolvedVarIndexes);
 
   let space = {
     _class: '$space',
-    // search graph metrics
-    _depth,
-    _child,
-    _child_count: 0,
 
     config,
 
@@ -151,6 +162,13 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
 
     next_distribution_choice: 0,
   };
+
+  // search graph metrics
+  // debug only. do it inside ASSERT so they are stripped in the dist
+  ASSERT(!void (space._depth = _depth));
+  ASSERT(!void (space._child = _child));
+  ASSERT(!void (space._child_count = 0));
+  ASSERT(!void (space._path = _path + _child));
 
   return space;
 }

@@ -54,7 +54,30 @@ const TWELVE = 1 << 12;
 const THIRTEEN = 1 << 13;
 const FOURTEEN = 1 << 14;
 const FIFTEEN = 1 << 15;
-const NUM_TO_FLAG = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
+const SIXTEEN = 1 << 16;
+const SEVENTEEN = 1 << 17;
+const EIGHTEEN = 1 << 18;
+const NINETEEN = 1 << 19;
+const TWENTY = 1 << 20;
+const TWENTYONE = 1 << 21;
+const TWENTYTWO = 1 << 22;
+const TWENTYTHREE = 1 << 23;
+const TWENTYFOUR = 1 << 24;
+const TWENTYFIVE = 1 << 25;
+const TWENTYSIX = 1 << 26;
+const TWENTYSEVEN = 1 << 27;
+const TWENTYEIGHT = 1 << 28;
+const TWENTYNINE = 1 << 29;
+const THIRTY = 1 << 30;
+const NUM_TO_FLAG = [
+  ZERO, ONE, TWO, THREE, FOUR,
+  FIVE, SIX, SEVEN, EIGHT, NINE,
+  TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN,
+  FIFTEEN, SIXTEEN, SEVENTEEN, EIGHTEEN, NINETEEN,
+  TWENTY, TWENTYONE, TWENTYTWO, TWENTYTHREE, TWENTYFOUR,
+  TWENTYFIVE, TWENTYSIX, TWENTYSEVEN, TWENTYEIGHT,
+  TWENTYNINE, THIRTY,
+];
 const FLAG_TO_NUM = {
   [ZERO]: 0,
   [ONE]: 1,
@@ -72,9 +95,26 @@ const FLAG_TO_NUM = {
   [THIRTEEN]: 13,
   [FOURTEEN]: 14,
   [FIFTEEN]: 15,
+  [SIXTEEN]: 16,
+  [SEVENTEEN]: 17,
+  [EIGHTEEN]: 18,
+  [NINETEEN]: 19,
+  [TWENTY]: 20,
+  [TWENTYONE]: 21,
+  [TWENTYTWO]: 22,
+  [TWENTYTHREE]: 23,
+  [TWENTYFOUR]: 24,
+  [TWENTYFIVE]: 25,
+  [TWENTYSIX]: 26,
+  [TWENTYSEVEN]: 27,
+  [TWENTYEIGHT]: 28,
+  [TWENTYNINE]: 29,
+  [THIRTY]: 30,
 };
-const SMALL_MAX_FLAG = (1 << 16) - 1; // there are 15 flags. if they are all on, this is the number value
-const SMALL_MAX_NUM = 15;
+const SMALL_MAX_NUM = 30;
+// there are SMALL_MAX_NUM flags. if they are all on, this is the number value
+// (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
+const SMALL_MAX_FLAG = (1 << 31 >>> 0) - 1;
 
 /**
  * returns whether domain covers given value
@@ -129,19 +169,15 @@ function domain_isValue(domain, value) {
 }
 
 /**
- * Note: this is the (shared) second most called function of the library
- * (by a third of most, but still significantly more than the rest)
- *
  * @param {$domain} domain
  * @returns {number}
  */
 function domain_getValue(domain) {
   if (typeof domain === 'number') {
-    // This function is called relatively often. eg it is the
-    // second-most called function of the whole library. only
-    // topped by isUndetermined
     // With proper ES6 we could consider benchmarking Math.clz32
     // but even then we'd need to verify that the value was solved
+    // We could also investigate a simple object hash instead of this switch...
+    // Probably a simple check for 0123 and then a hash...?
 
     switch (domain) {
       case ZERO:
@@ -176,6 +212,36 @@ function domain_getValue(domain) {
         return 14;
       case FIFTEEN:
         return 15;
+      case SIXTEEN:
+        return 16;
+      case SEVENTEEN:
+        return 17;
+      case EIGHTEEN:
+        return 18;
+      case NINETEEN:
+        return 19;
+      case TWENTY:
+        return 20;
+      case TWENTYONE:
+        return 21;
+      case TWENTYTWO:
+        return 22;
+      case TWENTYTHREE:
+        return 23;
+      case TWENTYFOUR:
+        return 24;
+      case TWENTYFIVE:
+        return 25;
+      case TWENTYSIX:
+        return 26;
+      case TWENTYSEVEN:
+        return 27;
+      case TWENTYEIGHT:
+        return 28;
+      case TWENTYNINE:
+        return 29;
+      case THIRTY:
+        return 30;
     }
     return NO_SUCH_VALUE;
   }
@@ -250,7 +316,6 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
 function domain_fromFlags(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   if (domain === EMPTY) return [];
-
   let arr = [];
   let lo = -1;
   let hi = -1;
@@ -286,113 +351,16 @@ function domain_fromFlags(domain) {
   }
   // is the fifth bit or higher even set at all? for ~85% that is not the case at this point
   if (domain >= FOUR) {
-    if (FOUR & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 4;
-      } else if (hi !== 3) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 4;
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          arr.push(lo, hi);
+          lo = i;
+        }
+        hi = i;
       }
-      hi = 4;
-    }
-    if (FIVE & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 5;
-      } else if (hi !== 4) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 5;
-      }
-      hi = 5;
-    }
-    if (SIX & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 6;
-      } else if (hi !== 5) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 6;
-      }
-      hi = 6;
-    }
-    if (SEVEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 7;
-      } else if (hi !== 6) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 7;
-      }
-      hi = 7;
-    }
-    if (EIGHT & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 8;
-      } else if (hi !== 7) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 8;
-      }
-      hi = 8;
-    }
-    if (NINE & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 9;
-      } else if (hi !== 8) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 9;
-      }
-      hi = 9;
-    }
-    if (TEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 10;
-      } else if (hi !== 9) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 10;
-      }
-      hi = 10;
-    }
-    if (ELEVEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 11;
-      } else if (hi !== 10) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 11;
-      }
-      hi = 11;
-    }
-    if (TWELVE & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 12;
-      } else if (hi !== 11) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 12;
-      }
-      hi = 12;
-    }
-    if (THIRTEEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 13;
-      } else if (hi !== 12) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 13;
-      }
-      hi = 13;
-    }
-    if (FOURTEEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 14;
-      } else if (hi !== 13) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 14;
-      }
-      hi = 14;
-    }
-    if (FIFTEEN & domain) {
-      if (hi < 0) { // this is the LSB that is set
-        lo = 15;
-      } else if (hi !== 14) { // there's a gap so push prev range now
-        arr.push(lo, hi);
-        lo = 15;
-      }
-      hi = 15;
     }
   }
 
@@ -443,9 +411,9 @@ function domain_removeNextFromList(domain, list) {
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
-      let n = NUM_TO_FLAG[value];
-      if (value <= SMALL_MAX_NUM && (domain & n) > 0) {
-        return domain ^ n; // the bit is set, this unsets it
+      let flag = NUM_TO_FLAG[value];
+      if (value <= SMALL_MAX_NUM && (domain & flag) > 0) {
+        return domain ^ flag; // the bit is set, this unsets it
       }
     }
     return NO_SUCH_VALUE;
@@ -1263,6 +1231,21 @@ function domain_min(domain) {
     if (domain & THIRTEEN) return 13;
     if (domain & FOURTEEN) return 14;
     if (domain & FIFTEEN) return 15;
+    if (domain & SIXTEEN) return 16;
+    if (domain & SEVENTEEN) return 17;
+    if (domain & EIGHTEEN) return 18;
+    if (domain & NINETEEN) return 19;
+    if (domain & TWENTY) return 20;
+    if (domain & TWENTYONE) return 21;
+    if (domain & TWENTYTWO) return 22;
+    if (domain & TWENTYTHREE) return 23;
+    if (domain & TWENTYFOUR) return 24;
+    if (domain & TWENTYFIVE) return 25;
+    if (domain & TWENTYSIX) return 26;
+    if (domain & TWENTYSEVEN) return 27;
+    if (domain & TWENTYEIGHT) return 28;
+    if (domain & TWENTYNINE) return 29;
+    if (domain & THIRTY) return 30;
   }
 
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
@@ -1278,13 +1261,31 @@ function domain_min(domain) {
 function domain_max(domain) {
   if (typeof domain === 'number') {
     ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
-    ASSERT(domain > EMPTY && domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
+    ASSERT(domain > EMPTY, 'CANNOT_BE_EMPTY');
+    ASSERT(domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
 
     // we often deal with domains [0, 0], [0, 1], and [1, 1]
     if (domain === ZERO) return 0;
     if (domain === ONE) return 1;
     if (domain === BOOL) return 1;
 
+    // TODO: probably want to do a quick lt branch here...
+
+    if (domain & THIRTY) return 30;
+    if (domain & TWENTYNINE) return 29;
+    if (domain & TWENTYEIGHT) return 28;
+    if (domain & TWENTYSEVEN) return 27;
+    if (domain & TWENTYSIX) return 26;
+    if (domain & TWENTYFIVE) return 25;
+    if (domain & TWENTYFOUR) return 24;
+    if (domain & TWENTYTHREE) return 23;
+    if (domain & TWENTYTWO) return 22;
+    if (domain & TWENTYONE) return 21;
+    if (domain & TWENTY) return 20;
+    if (domain & NINETEEN) return 19;
+    if (domain & EIGHTEEN) return 18;
+    if (domain & SEVENTEEN) return 17;
+    if (domain & SIXTEEN) return 16;
     if (domain & FIFTEEN) return 15;
     if (domain & FOURTEEN) return 14;
     if (domain & THIRTEEN) return 13;
@@ -1738,7 +1739,6 @@ function domain_createRange(lo, hi) {
     }
     return n;
   }
-
   return [lo, hi];
 }
 
@@ -1869,6 +1869,66 @@ function domain_addRangeToSmallDomain(domain, from, to) {
     case 15:
       if (to < 15) break;
       domain |= FIFTEEN;
+      // fall-through
+    case 16:
+      if (to < 16) break;
+      domain |= SIXTEEN;
+      // fall-through
+    case 17:
+      if (to < 17) break;
+      domain |= SEVENTEEN;
+      // fall-through
+    case 18:
+      if (to < 18) break;
+      domain |= EIGHTEEN;
+      // fall-through
+    case 19:
+      if (to < 19) break;
+      domain |= NINETEEN;
+      // fall-through
+    case 20:
+      if (to < 20) break;
+      domain |= TWENTY;
+      // fall-through
+    case 21:
+      if (to < 21) break;
+      domain |= TWENTYONE;
+      // fall-through
+    case 22:
+      if (to < 22) break;
+      domain |= TWENTYTWO;
+      // fall-through
+    case 23:
+      if (to < 23) break;
+      domain |= TWENTYTHREE;
+      // fall-through
+    case 24:
+      if (to < 24) break;
+      domain |= TWENTYFOUR;
+      // fall-through
+    case 25:
+      if (to < 25) break;
+      domain |= TWENTYFIVE;
+      // fall-through
+    case 26:
+      if (to < 26) break;
+      domain |= TWENTYSIX;
+      // fall-through
+    case 27:
+      if (to < 27) break;
+      domain |= TWENTYSEVEN;
+      // fall-through
+    case 28:
+      if (to < 28) break;
+      domain |= TWENTYEIGHT;
+      // fall-through
+    case 29:
+      if (to < 29) break;
+      domain |= TWENTYNINE;
+      // fall-through
+    case 30:
+      if (to < 30) break;
+      domain |= THIRTY;
   }
 
   return domain;
@@ -1899,10 +1959,9 @@ export {
   NOT_FOUND,
   PAIR_SIZE,
   PREV_CHANGED,
+  SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
   SOME_CHANGES,
-SMALL_MAX_FLAG,
-SMALL_MAX_NUM,
 
   ZERO,
   ONE,
@@ -1921,6 +1980,21 @@ SMALL_MAX_NUM,
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
+  SIXTEEN,
+  SEVENTEEN,
+  EIGHTEEN,
+  NINETEEN,
+  TWENTY,
+  TWENTYONE,
+  TWENTYTWO,
+  TWENTYTHREE,
+  TWENTYFOUR,
+  TWENTYFIVE,
+  TWENTYSIX,
+  TWENTYSEVEN,
+  TWENTYEIGHT,
+  TWENTYNINE,
+  THIRTY,
   NUM_TO_FLAG,
   FLAG_TO_NUM,
 

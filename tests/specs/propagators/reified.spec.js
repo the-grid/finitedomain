@@ -90,7 +90,7 @@ describe('propagators/reified.spec', function() {
         riftest(specDomainSmallRange(0, 5), specDomainSmallRange(10, 15), bool, 'eq', 'neq', SOME_CHANGES, zero, 'undetermined but can proof eq is impossible');
         riftest(specDomainSmallRange(0, 5), specDomainSmallRange(3, 8), bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
         riftest(specDomainSmallRange(0, 5), one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-        riftest(specDomainCreateRange(10, 20), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
+        riftest(specDomainCreateRange(110, 120), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
   });

@@ -171,7 +171,7 @@ describe('propagators/eq.spec', function() {
     test(specDomainSmallNums(0, 1), specDomainSmallNums(1, 1), specDomainSmallNums(1, 1), SOME_CHANGES);
     test(specDomainSmallNums(SUB, 1), specDomainCreateRange(1, SUP), specDomainSmallNums(1, 1), SOME_CHANGES);
     test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainSmallNums(5, 5), specDomainSmallNums(5, 5), SOME_CHANGES);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainCreateRanges([5, 10], [25, 30]), SOME_CHANGES);
+    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainSmallNums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30), SOME_CHANGES);
     test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
     test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 3), specDomainSmallEmpty(), REJECTED);
     test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 2, 4), specDomainSmallNums(2), SOME_CHANGES);

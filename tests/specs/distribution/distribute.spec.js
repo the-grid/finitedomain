@@ -17,38 +17,38 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(21, 24),
+          domain: specDomainCreateRange(121, 124),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(21, 24),
+          domain: specDomainCreateRange(121, 124),
           distribute: 'max',
         });
-        solver['>']('V1', 20);
-        solver['>']('V2', 20);
+        solver['>']('V1', 120);
+        solver['>']('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
 
         // (basically V1 solves lo to hi, V2 goes hi to lo)
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
-          {V1: 21, V2: 24},
-          {V1: 21, V2: 23},
-          {V1: 21, V2: 22},
-          {V1: 21, V2: 21},
-          {V1: 22, V2: 24},
-          {V1: 22, V2: 23},
-          {V1: 22, V2: 22},
-          {V1: 22, V2: 21},
-          {V1: 23, V2: 24},
-          {V1: 23, V2: 23},
-          {V1: 23, V2: 22},
-          {V1: 23, V2: 21},
-          {V1: 24, V2: 24},
-          {V1: 24, V2: 23},
-          {V1: 24, V2: 22},
-          {V1: 24, V2: 21},
+          {V1: 121, V2: 124},
+          {V1: 121, V2: 123},
+          {V1: 121, V2: 122},
+          {V1: 121, V2: 121},
+          {V1: 122, V2: 124},
+          {V1: 122, V2: 123},
+          {V1: 122, V2: 122},
+          {V1: 122, V2: 121},
+          {V1: 123, V2: 124},
+          {V1: 123, V2: 123},
+          {V1: 123, V2: 122},
+          {V1: 123, V2: 121},
+          {V1: 124, V2: 124},
+          {V1: 124, V2: 123},
+          {V1: 124, V2: 122},
+          {V1: 124, V2: 121},
         ]);
       });
 
@@ -59,38 +59,38 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(20, 24),
+          domain: specDomainCreateRange(120, 124),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(20, 24),
+          domain: specDomainCreateRange(120, 124),
           distribute: 'max',
         });
-        solver['>']('V1', 20);
-        solver['>']('V2', 20);
+        solver['>']('V1', 120);
+        solver['>']('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
 
         // (basically V1 solves lo to hi, V2 goes hi to lo)
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
-          {V1: 21, V2: 24},
-          {V1: 21, V2: 23},
-          {V1: 21, V2: 22},
-          {V1: 21, V2: 21},
-          {V1: 22, V2: 24},
-          {V1: 22, V2: 23},
-          {V1: 22, V2: 22},
-          {V1: 22, V2: 21},
-          {V1: 23, V2: 24},
-          {V1: 23, V2: 23},
-          {V1: 23, V2: 22},
-          {V1: 23, V2: 21},
-          {V1: 24, V2: 24},
-          {V1: 24, V2: 23},
-          {V1: 24, V2: 22},
-          {V1: 24, V2: 21},
+          {V1: 121, V2: 124},
+          {V1: 121, V2: 123},
+          {V1: 121, V2: 122},
+          {V1: 121, V2: 121},
+          {V1: 122, V2: 124},
+          {V1: 122, V2: 123},
+          {V1: 122, V2: 122},
+          {V1: 122, V2: 121},
+          {V1: 123, V2: 124},
+          {V1: 123, V2: 123},
+          {V1: 123, V2: 122},
+          {V1: 123, V2: 121},
+          {V1: 124, V2: 124},
+          {V1: 124, V2: 123},
+          {V1: 124, V2: 122},
+          {V1: 124, V2: 121},
         ]);
       });
 
@@ -102,10 +102,10 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(20, 24),
+          domain: specDomainCreateRange(120, 124),
           distribute: 'markov',
           distributeOptions: {
-            legend: [21, 22, 23, 24],
+            legend: [121, 122, 123, 124],
             random() { return 0; }, // always take the first element
             matrix: [
               {vector: [1, 1, 1, 1]},
@@ -114,38 +114,38 @@ describe('distribution/distribute.spec', function() {
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(20, 24),
+          domain: specDomainCreateRange(120, 124, true),
           distribute: 'markov',
           distributeOptions: {
-            legend: [21, 22, 23, 24],
+            legend: [121, 122, 123, 124],
             random() { return 1 - 1e-5; }, // always take the last element
             matrix: [
               {vector: [1, 1, 1, 1]},
             ],
           },
         });
-        solver['>']('V1', 20);
-        solver['>']('V2', 20);
+        solver['>']('V1', 120);
+        solver['>']('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
-          {V1: 21, V2: 24},
-          {V1: 21, V2: 23},
-          {V1: 21, V2: 22},
-          {V1: 21, V2: 21},
-          {V1: 22, V2: 24},
-          {V1: 22, V2: 23},
-          {V1: 22, V2: 22},
-          {V1: 22, V2: 21},
-          {V1: 23, V2: 24},
-          {V1: 23, V2: 23},
-          {V1: 23, V2: 22},
-          {V1: 23, V2: 21},
-          {V1: 24, V2: 24},
-          {V1: 24, V2: 23},
-          {V1: 24, V2: 22},
-          {V1: 24, V2: 21},
+          {V1: 121, V2: 124},
+          {V1: 121, V2: 123},
+          {V1: 121, V2: 122},
+          {V1: 121, V2: 121},
+          {V1: 122, V2: 124},
+          {V1: 122, V2: 123},
+          {V1: 122, V2: 122},
+          {V1: 122, V2: 121},
+          {V1: 123, V2: 124},
+          {V1: 123, V2: 123},
+          {V1: 123, V2: 122},
+          {V1: 123, V2: 121},
+          {V1: 124, V2: 124},
+          {V1: 124, V2: 123},
+          {V1: 124, V2: 122},
+          {V1: 124, V2: 121},
         ]);
       });
     });

@@ -192,7 +192,7 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [15, 19]));
+        config_addVarDomain(config, 'A', specDomainFromNums(11, 15, 16, 17, 18, 19));
         config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 12, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
@@ -204,7 +204,7 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([11, 11], [13, 14], [18, 19]));
+        config_addVarDomain(config, 'A', specDomainFromNums(11, 13, 14, 18, 19));
         config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
@@ -427,7 +427,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: specDomainCreateRanges([5, 17]),
+          domain: specDomainCreateRange(5, 17, true),
         });
         solver.addVar({
           id: 'D',
@@ -466,7 +466,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: specDomainCreateRanges([5, 17]),
+          domain: specDomainCreateRange(5, 17, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,

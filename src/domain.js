@@ -885,7 +885,7 @@ function domain_intersectBoundsInto(domain, lo, hi, result) {
 }
 
 /**
- * deep comparison of two domains
+ * deep comparison of two $domains
  *
  * @param {$domain} domain1
  * @param {$domain} domain2
@@ -898,18 +898,43 @@ function domain_isEqual(domain1, domain2) {
   let isNum2 = typeof domain2 === 'number';
 
   if (isNum1 && isNum2) return false;
-  if (isNum1) {
-    if (domain_max(domain2) <= 15) return domain1 === domain_numarr(domain2);
-    domain1 = domain_fromFlags(domain1);
-  } else if (isNum2) {
-    if (domain_max(domain1) <= 15) return domain2 === domain_numarr(domain1);
-    domain2 = domain_fromFlags(domain2);
-  }
-
-  return domain_isEqualArr(domain1, domain2);
+  if (isNum1) return domain_isEqualNumArr(domain1, domain2);
+  if (isNum2) return domain_isEqualNumArr(domain2, domain1); // swapped!
+  return domain_isEqualArrArr(domain1, domain2);
 }
 
-function domain_isEqualArr(domain1, domain2) {
+/**
+ * @param {$domain_num} domain1
+ * @param {$domain_arr} domain2
+ * @return {boolean}
+ */
+function domain_isEqualNumArr(domain1, domain2) {
+  if (domain_max(domain2) > 15) return false;
+
+  // fast checks
+  let lod = domain2[LO_BOUND];
+  if (domain1 & ZERO && lod > 0) return false;
+  if (domain1 & ONE && lod > 1) return false;
+
+  for (let i = 0, n = domain2.length; i < n; i += PAIR_SIZE) {
+    let lo = domain2[i];
+    if (lo > 15) break;
+    let hi = domain2[i + 1];
+
+    for (let j = lo, m = MIN(15, hi); j <= m; ++j) {
+      let flag = NUMBER[j];
+      if (domain1 ^ flag) return false; // x^y is only "truthy" if x does not contain flag y
+    }
+  }
+  return true;
+}
+
+/**
+ * @param {$domain_arr} domain1
+ * @param {$domain_arr} domain2
+ * @returns {boolean}
+ */
+function domain_isEqualArrArr(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain1);
@@ -929,8 +954,8 @@ function domain_isEqualArr(domain1, domain2) {
 }
 
 /**
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$domain_arr} domain1
+ * @param {$domain_arr} domain2
  * @param {number} len
  * @returns {boolean}
  */

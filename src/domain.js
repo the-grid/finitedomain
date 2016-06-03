@@ -1023,44 +1023,6 @@ function _domain_closeGaps2(domain1, domain2) {
   ];
 }
 
-/**
- * Does not harm input domains
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {$domain}
- */
-function domain_plus(domain1, domain2) {
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
-
-  ASSERT_DOMAIN(domain1);
-  ASSERT_DOMAIN(domain2);
-  ASSERT((domain1 != null) && (domain2 != null));
-
-  // Simplify the domains by closing gaps since when we add
-  // the domains, the gaps will close according to the
-  // smallest interval width in the other domain.
-  let domains = _domain_closeGaps2(domain1, domain2);
-  domain1 = domains[0];
-  domain2 = domains[1];
-
-  let result = [];
-  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
-    let loi = domain1[index];
-    let hii = domain1[index + 1];
-
-    for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
-      let loj = domain2[index2];
-      let hij = domain2[index2 + 1];
-
-      result.push(MIN(SUP, loi + loj), MIN(SUP, hii + hij));
-    }
-  }
-
-  return domain_simplifyInline(result);
-}
 
 /**
  * Does not harm input domains
@@ -1090,49 +1052,6 @@ function domain_mul(domain1, domain2) {
       let hij = domain2[j + 1];
 
       result.push(MIN(SUP, loi * loj), MIN(SUP, hii * hij));
-    }
-  }
-
-  return domain_simplifyInline(result);
-}
-
-/**
- * Does not harm input domains
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {$domain}
- */
-function domain_minus(domain1, domain2) {
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
-
-  ASSERT_DOMAIN(domain1);
-  ASSERT_DOMAIN(domain2);
-  ASSERT((domain1 != null) && (domain2 != null));
-
-  // Simplify the domains by closing gaps since when we add
-  // the domains, the gaps will close according to the
-  // smallest interval width in the other domain.
-  let domains = _domain_closeGaps2(domain1, domain2);
-  domain1 = domains[0];
-  domain2 = domains[1];
-
-  let result = [];
-  for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
-    let loi = domain1[i];
-    let hii = domain1[i + 1];
-
-    for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
-      let loj = domain2[j];
-      let hij = domain2[j + 1];
-
-      let lo = loi - hij;
-      let hi = hii - loj;
-      if (hi >= SUB) {
-        result.push(MAX(SUB, lo), hi);
-      }
     }
   }
 
@@ -1921,6 +1840,438 @@ function domain_getChangeState(newDom, oldDom) {
   if (domain_isRejected(newDom)) return REJECTED;
   if (domain_isEqual(newDom, oldDom)) return NO_CHANGES;
   return SOME_CHANGES;
+}
+
+/**
+ * Does not harm input domains
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {$domain}
+ */
+function domain_plus(domain1, domain2) {
+  let result = [];
+  let isNum1 = typeof domain1 === 'number';
+  let isNum2 = typeof domain2 === 'number';
+
+  if (isNum1 && isNum2) _domain_plusNumNum(domain1, domain2, result);
+  else if (isNum1) _domain_plusNumArr(domain1, domain2, result);
+  else if (isNum2) _domain_plusNumArr(domain2, domain1, result); // swapped domains!
+  else return _domain_plusArrArr(domain1, domain2, result);
+
+  domain_simplifyInline(result);
+
+  return result;
+}
+function _domain_plusArrArr(domain1, domain2, result) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
+  ASSERT(domain1 && domain2);
+
+  // Simplify the domains by closing gaps since when we add
+  // the domains, the gaps will close according to the
+  // smallest interval width in the other domain.
+  let domains = _domain_closeGaps2(domain1, domain2);
+  domain1 = domains[0];
+  domain2 = domains[1];
+
+  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
+    _domain_plusRangeArr(domain1[index], domain1[index + 1], domain2, result);
+  }
+
+  return domain_simplifyInline(result);
+}
+function _domain_plusNumNum(domain1, domain2, result) {
+  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
+  if (domain1 === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain1) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain1) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain1) {
+    if (hi === 0) {
+      _domain_plusRangeNum(0, 0, domain2, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain1) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_plusRangeNum(lo, hi, domain2, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+
+  if (domain1 >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain1) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_plusRangeNum(lo, hi, domain2, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_plusRangeNum(lo, hi, domain2, result);
+}
+function _domain_plusNumArr(domain1, domain2, result) {
+  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
+  if (domain1 === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain1) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain1) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain1) {
+    if (hi === 0) {
+      _domain_plusRangeArr(0, 0, domain2, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain1) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_plusRangeArr(lo, hi, domain2, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+
+  if (domain1 >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain1) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_plusRangeArr(lo, hi, domain2, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_plusRangeArr(lo, hi, domain2, result);
+}
+function _domain_plusRangeNum(loi, hii, domain, result) {
+  ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');
+  if (domain === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain) {
+    if (hi === 0) {
+      _domain_plusRangeRange(loi, hii, 0, 0, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_plusRangeRange(loi, hii, lo, hi, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+  if (domain >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_plusRangeRange(loi, hii, lo, hi, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_plusRangeRange(loi, hii, lo, hi, result);
+}
+function _domain_plusRangeArr(loi, hii, domain2, result) {
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
+    _domain_plusRangeRange(loi, hii, domain2[index2], domain2[index2 + 1], result);
+  }
+}
+function _domain_plusRangeRange(loi, hii, loj, hij, result) {
+  ASSERT(loi + loj >= 0, 'DOMAINS_SHOULD_NOT_HAVE_NEGATIVES');
+  result.push(loi + loj, MIN(SUP, hii + hij));
+}
+
+/**
+ * Does not harm input domains
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {$domain}
+ */
+function domain_minus(domain1, domain2) {
+  let result = [];
+  let isNum1 = typeof domain1 === 'number';
+  let isNum2 = typeof domain2 === 'number';
+
+  if (isNum1 && isNum2) _domain_minusNumNum(domain1, domain2, result);
+  else if (isNum1) _domain_minusNumArr(domain1, domain2, result);
+  else if (isNum2) _domain_minusArrNum(domain1, domain2, result); // swapped domains!
+  else return _domain_minusArrArr(domain1, domain2, result);
+
+  domain_simplifyInline(result);
+
+  return result;
+}
+function _domain_minusArrArr(domain1, domain2, result) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
+  ASSERT_DOMAIN(domain1);
+  ASSERT_DOMAIN(domain2);
+  ASSERT(domain1 && domain2);
+
+  // Simplify the domains by closing gaps since when we add
+  // the domains, the gaps will close according to the
+  // smallest interval width in the other domain.
+  let domains = _domain_closeGaps2(domain1, domain2);
+  domain1 = domains[0];
+  domain2 = domains[1];
+
+  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
+    _domain_minusRangeArr(domain1[index], domain1[index + 1], domain2, result);
+  }
+
+  return domain_simplifyInline(result);
+}
+function _domain_minusNumNum(domain1, domain2, result) {
+  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
+  if (domain1 === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain1) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain1) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain1) {
+    if (hi === 0) {
+      _domain_minusRangeNum(0, 0, domain2, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain1) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_minusRangeNum(lo, hi, domain2, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+
+  if (domain1 >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain1) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_minusRangeNum(lo, hi, domain2, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_minusRangeNum(lo, hi, domain2, result);
+}
+function _domain_minusNumArr(domain1, domain2, result) {
+  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
+  if (domain1 === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain1) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain1) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain1) {
+    if (hi === 0) {
+      _domain_minusRangeArr(0, 0, domain2, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain1) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_minusRangeArr(lo, hi, domain2, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+
+  if (domain1 >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain1) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_minusRangeArr(lo, hi, domain2, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_minusRangeArr(lo, hi, domain2, result);
+}
+function _domain_minusArrNum(domain1, domain2, result) {
+  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT(typeof domain2 === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_DOMAIN(domain1);
+
+  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
+    _domain_minusRangeNum(domain1[index], domain1[index + 1], domain2, result);
+  }
+}
+function _domain_minusRangeNum(loi, hii, domain, result) {
+  ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');
+  if (domain === EMPTY) return;
+
+  let lo = -1;
+  let hi = -1;
+
+  if (ZERO & domain) {
+    lo = 0;
+    hi = 0;
+  }
+  if (ONE & domain) {
+    if (lo !== 0) { // lo is either 0 or nothing
+      lo = 1;
+    }
+    hi = 1; // there cannot be a gap yet
+  }
+  if (TWO & domain) {
+    if (hi === 0) {
+      _domain_minusRangeRange(loi, hii, 0, 0, result);
+      lo = 2;
+    } else if (hi !== 1) {
+      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
+      lo = 2;
+    }
+    hi = 2;
+  }
+  if (THREE & domain) {
+    if (hi < 0) { // this is the LSB that is set
+      lo = 3;
+    } else if (hi !== 2) { // there's a gap so push prev range now
+      _domain_minusRangeRange(loi, hii, lo, hi, result);
+      lo = 3;
+    }
+    hi = 3;
+  }
+  if (domain >= FOUR) { // is any other bit set?
+    // loop it for the rest. "only" about 15% takes this path
+    for (let i = 4; i <= 15; ++i) {
+      if (NUMBER[i] & domain) {
+        if (hi < 0) { // this is the LSB that is set
+          lo = i;
+        } else if (hi !== i - 1) { // there's a gap so push prev range now
+          _domain_minusRangeRange(loi, hii, lo, hi, result);
+          lo = i;
+        }
+        hi = i;
+      }
+    }
+  }
+  _domain_minusRangeRange(loi, hii, lo, hi, result);
+}
+function _domain_minusRangeArr(loi, hii, domain2, result) {
+  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
+  for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
+    _domain_minusRangeRange(loi, hii, domain2[index2], domain2[index2 + 1], result);
+  }
+}
+function _domain_minusRangeRange(loi, hii, loj, hij, result) {
+  let lo = loi - hij;
+  let hi = hii - loj;
+  if (hi >= SUB) {
+    result.push(MAX(SUB, lo), hi);
+  }
 }
 
 // BODY_STOP

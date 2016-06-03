@@ -22,10 +22,10 @@ import {
   TWO,
   THREE,
   FOUR,
-  NUMBER,
+  NUM_TO_FLAG,
 
   PAIR_SIZE,
-  SMALL_DOMAIN_MAX,
+  SMALL_MAX_NUM,
 
   domain_addRangeToSmallDomain,
   domain_closeGaps,
@@ -85,7 +85,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_DOMAIN_MAX, 'THE_POINTE');
+  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   let domain = EMPTY;
   let lo = -1;
@@ -123,8 +123,8 @@ function _domain_minusNumNumNum(domain1, domain2) {
 
   if (domain1 >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain1) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain1) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -141,7 +141,7 @@ function _domain_minusNumArrNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain2 !== 'number', 'NOT_WITH_NUMBERS');
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_DOMAIN_MAX, 'THE_POINTE');
+  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   let domain = EMPTY;
   let lo = -1;
@@ -179,8 +179,8 @@ function _domain_minusNumArrNum(domain1, domain2) {
 
   if (domain1 >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain1) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain1) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -232,8 +232,8 @@ function _domain_minusRangeNumNum(loi, hii, domain, result) {
   }
   if (domain >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -293,8 +293,8 @@ function _domain_minusRangeNum(loi, hii, domain, result) {
   }
   if (domain >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -331,8 +331,8 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij, domain) {
   let hi = hii - loj;
   if (hi >= SUB) { // silently ignore results that are OOB
     let lo = MAX(SUB, loi - hij);
-    ASSERT(lo <= SMALL_DOMAIN_MAX, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    ASSERT(hi <= SMALL_DOMAIN_MAX, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
+    ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
+    ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     return domain_addRangeToSmallDomain(domain, lo, hi);
   }
   return domain;

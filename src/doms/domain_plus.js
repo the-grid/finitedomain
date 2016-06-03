@@ -23,10 +23,10 @@ import {
   FOUR,
   EIGHT,
   NINE,
-  NUMBER,
+  NUM_TO_FLAG,
 
   PAIR_SIZE,
-  SMALL_DOMAIN_MAX,
+  SMALL_MAX_NUM,
 
   domain_addRangeToSmallDomain,
   domain_closeGaps,
@@ -87,7 +87,7 @@ function _domain_plusWillBeSmall(domain1, domain2) {
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
   // if both domains are small enough they cannot add to a domain beyond the max
   if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
-  return domain_max(domain1) + domain_max(domain2) <= SMALL_DOMAIN_MAX; // if max changes, update above too!
+  return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
@@ -138,8 +138,8 @@ function _domain_plusNumNum(domain1, domain2) {
 
   if (domain1 >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain1) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain1) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -158,7 +158,7 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_DOMAIN_MAX, 'THE_POINTE');
+  ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   let domain = EMPTY;
   let lo = -1;
@@ -196,8 +196,8 @@ function _domain_plusNumNumNum(domain1, domain2) {
 
   if (domain1 >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain1) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain1) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -249,8 +249,8 @@ function _domain_plusRangeNumNum(loi, hii, domain, result) {
   }
   if (domain >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -302,8 +302,8 @@ function _domain_plusNumArr(domain1, domain2, result) {
 
   if (domain1 >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain1) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain1) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -354,8 +354,8 @@ function _domain_plusRangeNum(loi, hii, domain, result) {
   }
   if (domain >= FOUR) { // is any other bit set?
     // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_DOMAIN_MAX; ++i) {
-      if (NUMBER[i] & domain) {
+    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
+      if (NUM_TO_FLAG[i] & domain) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -384,8 +384,8 @@ function _domain_plusRangeRange(loi, hii, loj, hij, result) {
 }
 function _domain_plusRangeRangeNum(loi, hii, loj, hij, domain) {
   ASSERT(loi + loj >= 0, 'DOMAINS_SHOULD_NOT_HAVE_NEGATIVES');
-  ASSERT(loi + loj <= SMALL_DOMAIN_MAX, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-  ASSERT(hii + hij <= SMALL_DOMAIN_MAX, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
+  ASSERT(loi + loj <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
+  ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
   return domain_addRangeToSmallDomain(domain, loi + loj, hii + hij);
 }
 

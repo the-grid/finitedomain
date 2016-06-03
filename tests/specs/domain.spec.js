@@ -32,7 +32,7 @@ import {
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
-  NUMBER,
+  NUM_TO_FLAG,
 
   NOT_FOUND,
 
@@ -1581,7 +1581,7 @@ describe('src/domain.spec', function() {
         for (let i = 0; i < 7; ++i) {
           for (let j = 0; j < 8; ++j) {
             if (i !== 8 || j !== 8) { // 16
-              expect(domain_plus(NUMBER[i], NUMBER[j]), i + ' + ' + j).to.eql(NUMBER[i + j]);
+              expect(domain_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
             }
           }
         }

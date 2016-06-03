@@ -5,7 +5,6 @@ import {
 
 import {
   EMPTY,
-  MAX_SMALL,
   ASSERT,
   _ASSERT_DOMAIN,
   //ASSERT_DOMAIN_EMPTY_CHECK,
@@ -33,6 +32,8 @@ import {
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
+
+  SMALL_MAX_FLAG,
 } from '../../src/domain';
 
 describe('src/helpers.spec', function() {
@@ -59,7 +60,7 @@ describe('src/helpers.spec', function() {
       start |= FOURTEEN;
       start |= FIFTEEN;
 
-      expect(start).to.equal(MAX_SMALL);
+      expect(start).to.equal(SMALL_MAX_FLAG);
     });
   });
 

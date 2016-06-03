@@ -1,6 +1,5 @@
 import {
   EMPTY,
-  MAX_SMALL,
   NO_CHANGES,
   NO_SUCH_VALUE,
   NOT_FOUND,
@@ -55,7 +54,7 @@ const TWELVE = 1 << 12;
 const THIRTEEN = 1 << 13;
 const FOURTEEN = 1 << 14;
 const FIFTEEN = 1 << 15;
-const NUMBER = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
+const NUM_TO_FLAG = [ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN, FIFTEEN];
 const FLAG_TO_NUM = {
   [ZERO]: 0,
   [ONE]: 1,
@@ -74,8 +73,8 @@ const FLAG_TO_NUM = {
   [FOURTEEN]: 14,
   [FIFTEEN]: 15,
 };
-const SMALL_DOMAIN_MAX = 15;
-
+const SMALL_MAX_FLAG = (1 << 16) - 1; // there are 15 flags. if they are all on, this is the number value
+const SMALL_MAX_NUM = 15;
 
 /**
  * returns whether domain covers given value
@@ -86,7 +85,7 @@ const SMALL_DOMAIN_MAX = 15;
  */
 function domain_containsValue(domain, value) {
   if (typeof domain === 'number') {
-    return value >= 0 && value <= 15 && (domain & NUMBER[value]) > 0; // or just (domain & (1 << value)) ?
+    return value >= 0 && value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0; // or just (domain & (1 << value)) ?
   }
 
   ASSERT_DOMAIN(domain);
@@ -121,8 +120,8 @@ function domain_rangeIndexOf(domain, value) {
  */
 function domain_isValue(domain, value) {
   if (typeof domain === 'number') {
-    if (value < 0 || value > 15) return false;
-    return domain === NUMBER[value];
+    if (value < 0 || value > SMALL_MAX_NUM) return false;
+    return domain === NUM_TO_FLAG[value];
   }
 
   ASSERT_DOMAIN(domain);
@@ -212,14 +211,14 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
     list.sort((a, b) => a - b);
   }
 
-  if (!_forceArray && list[0] >= 0 && list[list.length - 1] <= 15) {
+  if (!_forceArray && list[0] >= 0 && list[list.length - 1] <= SMALL_MAX_NUM) {
     // create a number.
     let last = 0; // do confirm whether the list is ordered
     let d = 0;
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= last && (last = value) >= 0, 'LIST_SHOULD_BE_ORDERED_BY_NOW');
-      d |= NUMBER[value];
+      d |= NUM_TO_FLAG[value];
     }
     return d;
   }
@@ -414,7 +413,7 @@ function domain_toList(domain) {
   if (typeof domain === 'number') {
     let a = [];
     for (let i = 0; i < 16; ++i) {
-      if ((domain & NUMBER[i]) > 0) a.push(i);
+      if ((domain & NUM_TO_FLAG[i]) > 0) a.push(i);
     }
     return a;
   }
@@ -444,8 +443,8 @@ function domain_removeNextFromList(domain, list) {
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
-      let n = NUMBER[value];
-      if (value <= 15 && (domain & n) > 0) {
+      let n = NUM_TO_FLAG[value];
+      if (value <= SMALL_MAX_NUM && (domain & n) > 0) {
         return domain ^ n; // the bit is set, this unsets it
       }
     }
@@ -522,7 +521,7 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
       ASSERT(value >= SUB && value <= SUP, 'OOB values probably indicate a bug in the code', list);
-      if (value <= 15 && (domain & NUMBER[value]) > 0) return value;
+      if (value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0) return value;
     }
     return NO_SUCH_VALUE;
   }
@@ -785,11 +784,11 @@ function domain_intersectionNumArr(domain1, domain2) {
   let domain = EMPTY;
   for (let i = 0; i < domain2.length; i += PAIR_SIZE) {
     let lo = domain2[i];
-    if (lo > 15) break;
+    if (lo > SMALL_MAX_NUM) break;
     let hi = domain2[i + 1];
 
-    for (let j = lo, m = MIN(15, hi); j <= m; ++j) {
-      let flag = NUMBER[j];
+    for (let j = lo, m = MIN(SMALL_MAX_NUM, hi); j <= m; ++j) {
+      let flag = NUM_TO_FLAG[j];
       if (domain1 & flag) domain |= flag; // could be: domain |= domain1 & NUMBER[j]; but this reads better?
     }
   }
@@ -909,7 +908,7 @@ function domain_isEqual(domain1, domain2) {
  * @return {boolean}
  */
 function domain_isEqualNumArr(domain1, domain2) {
-  if (domain_max(domain2) > 15) return false;
+  if (domain_max(domain2) > SMALL_MAX_NUM) return false;
 
   // fast checks
   let lod = domain2[LO_BOUND];
@@ -918,11 +917,11 @@ function domain_isEqualNumArr(domain1, domain2) {
 
   for (let i = 0, n = domain2.length; i < n; i += PAIR_SIZE) {
     let lo = domain2[i];
-    if (lo > 15) break;
+    if (lo > SMALL_MAX_NUM) break;
     let hi = domain2[i + 1];
 
-    for (let j = lo, m = MIN(15, hi); j <= m; ++j) {
-      let flag = NUMBER[j];
+    for (let j = lo, m = MIN(SMALL_MAX_NUM, hi); j <= m; ++j) {
+      let flag = NUM_TO_FLAG[j];
       if (domain1 ^ flag) return false; // x^y is only "truthy" if x does not contain flag y
     }
   }
@@ -1241,7 +1240,7 @@ function domain_middleElement(domain) {
 function domain_min(domain) {
   if (typeof domain === 'number') {
     ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
-    ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'NUMBER_DOMAIN_IS_OOB');
+    ASSERT(domain > EMPTY && domain <= SMALL_MAX_FLAG, 'NUMBER_DOMAIN_IS_OOB');
 
     // we often deal with domains [0, 0], [0, 1], and [1, 1]
     if (domain === ZERO) return 0;
@@ -1279,7 +1278,7 @@ function domain_min(domain) {
 function domain_max(domain) {
   if (typeof domain === 'number') {
     ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
-    ASSERT(domain > EMPTY && domain <= MAX_SMALL, 'SHOULD_BE_FIXED_DOMAIN');
+    ASSERT(domain > EMPTY && domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
 
     // we often deal with domains [0, 0], [0, 1], and [1, 1]
     if (domain === ZERO) return 0;
@@ -1423,12 +1422,11 @@ function domain_firstRangeIsDetermined(domain) {
 function domain_removeGteNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
 
-  if (value > 15) return domain;
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
-  for (let i = value; i <= 15; ++i) {
-    let n = NUMBER[i];
+  for (let i = value; i <= SMALL_MAX_NUM; ++i) {
+    let n = NUM_TO_FLAG[i];
     domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
   }
 
@@ -1486,12 +1484,12 @@ function domain_removeGte(domain, value) {
 function domain_removeLteNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_FOR_NUMBERS');
 
-  if (value > 15) value = 15;
+  if (value > SMALL_MAX_NUM) value = SMALL_MAX_NUM;
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   for (let i = 0; i <= value; ++i) {
-    let n = NUMBER[i];
+    let n = NUM_TO_FLAG[i];
     domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
   }
 
@@ -1623,9 +1621,9 @@ function domain_removeValueNumbered(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(typeof value === 'number', 'CAN_ONLY_REMOVE_VALUES');
 
-  if (value < 0 || value > 15) return domain;
+  if (value < 0 || value > SMALL_MAX_NUM) return domain;
 
-  let n = NUMBER[value];
+  let n = NUM_TO_FLAG[value];
   return (domain | n) ^ n;
 }
 
@@ -1720,7 +1718,7 @@ function domain_sharesNoElements(domain1, domain2) {
  * @returns {$domain}
  */
 function domain_createValue(value) {
-  if (value >= 0 && value <= 15) return NUMBER[value];
+  if (value >= 0 && value <= SMALL_MAX_NUM) return NUM_TO_FLAG[value];
 
   ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
@@ -1733,10 +1731,10 @@ function domain_createValue(value) {
  * @returns {$domain}
  */
 function domain_createRange(lo, hi) {
-  if (lo >= 0 && hi <= 15) {
+  if (lo >= 0 && hi <= SMALL_MAX_NUM) {
     let n = 0;
     for (let i = lo; i <= hi; ++i) {
-      n |= NUMBER[i];
+      n |= NUM_TO_FLAG[i];
     }
     return n;
   }
@@ -1785,7 +1783,7 @@ function domain_numarr(domain) {
   if (len === 0) return 0;
 
   ASSERT(domain_min(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN'); // no need to check in dist
-  if (domain_max(domain) > 15) return domain;
+  if (domain_max(domain) > SMALL_MAX_NUM) return domain;
 
   let out = 0;
   for (let i = 0; i < len; i += PAIR_SIZE) {
@@ -1804,7 +1802,7 @@ function domain_numarr(domain) {
  */
 function domain_addRangeToSmallDomain(domain, from, to) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  ASSERT(from >= SUB && to <= 15, 'SMALL_DOMAIN_RANGE_ONLY');
+  ASSERT(from >= SUB && to <= SMALL_MAX_NUM, 'SMALL_DOMAIN_RANGE_ONLY');
 
   // this switch is designed to case at lo and break at hi.
   // it prevents a very hot loop.
@@ -1901,8 +1899,10 @@ export {
   NOT_FOUND,
   PAIR_SIZE,
   PREV_CHANGED,
-  SMALL_DOMAIN_MAX,
+  SMALL_MAX_NUM,
   SOME_CHANGES,
+SMALL_MAX_FLAG,
+SMALL_MAX_NUM,
 
   ZERO,
   ONE,
@@ -1921,7 +1921,7 @@ export {
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
-  NUMBER,
+  NUM_TO_FLAG,
   FLAG_TO_NUM,
 
   domain_addRangeToSmallDomain,

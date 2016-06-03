@@ -6,10 +6,10 @@ import {
 import {
   domain_divby,
   domain_getChangeState,
-  domain_plus,
-  domain_minus,
   domain_mul,
 } from '../domain';
+import domain_plus from '../doms/domain_plus';
+import domain_minus from '../doms/domain_minus';
 
 import propagator_callbackStepBare from './callback';
 import propagator_markovStepBare from './markov';

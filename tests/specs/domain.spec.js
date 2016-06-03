@@ -32,9 +32,11 @@ import {
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
+  NUMBER,
 
   NOT_FOUND,
 
+  domain_addRangeToSmallDomain,
   domain_clone,
   domain_closeGapsInline,
   domain_complement,
@@ -59,10 +61,8 @@ import {
   domain_mergeOverlappingInline,
   //domain_middleElement,
   //domain_min,
-  domain_minus,
   domain_mul,
   domain_numarr,
-  domain_plus,
   domain_rangeIndexOf,
   domain_removeGte,
   domain_removeLte,
@@ -76,6 +76,8 @@ import {
   //domain_toArr,
   domain_toList,
 } from '../../src/domain';
+import domain_minus from '../../src/doms/domain_minus';
+import domain_plus from '../../src/doms/domain_plus';
 
 const FLOOR_FRACTIONS = true;
 const CEIL_FRACTIONS = false;
@@ -1524,6 +1526,28 @@ describe('src/domain.spec', function() {
 
         expect(domain_plus(A, B)).to.eql(E);
       });
+
+      it('should not exceed SUP (SUP+1)', function() {
+        // since [SUP,SUP] + [1,1] would be [SUP+1,SUP+1] the result is OOB and empty
+        // let's hope this never really hurts us irl... but we must have this protection
+        // or it may introduce inconsistent domains into the internals, which is bad.
+        let A = specDomainCreateValue(SUP);
+        let B = specDomainCreateValue(1, true);
+        let E = specDomainCreateEmpty(true);
+
+        expect(domain_plus(A, B)).to.eql(E);
+      });
+
+      it('should not exceed SUP (1+SUP)', function() {
+        // since [1,1] + [SUP,SUP] would be [SUP+1,SUP+1] the result is OOB and empty
+        // let's hope this never really hurts us irl... but we must have this protection
+        // or it may introduce inconsistent domains into the internals, which is bad.
+        let A = specDomainCreateValue(1, true);
+        let B = specDomainCreateValue(SUP);
+        let E = specDomainCreateEmpty(true);
+
+        expect(domain_plus(A, B)).to.eql(E);
+      });
     });
     describe('with numbers', function() {
 
@@ -1549,6 +1573,18 @@ describe('src/domain.spec', function() {
         let E = specDomainCreateRanges([0, 2], [4, 34]);
 
         expect(domain_plus(A, B)).to.eql(E);
+      });
+
+      it('should add small numbers to a small domain', function() {
+        // regression. numbers 0 ~ 3 are hardcoded explicitly, 4+ is loop
+        // make sure total does not exceed the small domain cap
+        for (let i = 0; i < 7; ++i) {
+          for (let j = 0; j < 8; ++j) {
+            if (i !== 8 || j !== 8) { // 16
+              expect(domain_plus(NUMBER[i], NUMBER[j]), i + ' + ' + j).to.eql(NUMBER[i + j]);
+            }
+          }
+        }
       });
     });
   });
@@ -1692,7 +1728,7 @@ describe('src/domain.spec', function() {
       let A = specDomainSmallRange(5, 10);
       let B = specDomainCreateRange(50, 60);
 
-      expect(domain_minus(A, B)).to.eql(specDomainCreateEmpty(1));
+      expect(domain_minus(A, B)).to.eql(specDomainSmallEmpty());
     });
 
     it('should subtract one domain by another', function() {
@@ -2294,6 +2330,13 @@ describe('src/domain.spec', function() {
           expect(outFromList).to.eql(i);
         }
       });
+    });
+  });
+
+  describe('domain_addRangeToSmallDomain', function() {
+
+    it('should add a value to an empty domain', function() {
+      expect(domain_addRangeToSmallDomain(EMPTY, 15, 15)).to.eql(FIFTEEN);
     });
   });
 });

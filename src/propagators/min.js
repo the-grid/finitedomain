@@ -1,8 +1,8 @@
 import {
-  domain_minus,
   domain_intersection,
   domain_numarr,
 } from '../domain';
+import domain_minus from '../doms/domain_minus';
 
 // BODY_START
 

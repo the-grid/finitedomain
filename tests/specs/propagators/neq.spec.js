@@ -92,6 +92,7 @@ describe('propagators/neq.spec', function() {
         let B = space.config.all_var_names.indexOf('B');
 
         expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -114,7 +115,7 @@ describe('propagators/neq.spec', function() {
 
     describe('with array', function() {
       // these are the (non-solved) cases plucked from eq tests
-      test(specDomainCreateRange(SUB, SUP), specDomainCreateRanges([0, 10], [20, 30]));
+      test(specDomainCreateRange(SUB, SUP), specDomainCreateRanges([0, 10], [20, 140]));
       test(specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP));
       test(specDomainCreateRange(20, 50), specDomainCreateRange(20, 50));
       test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
@@ -173,7 +174,7 @@ describe('propagators/neq.spec', function() {
       test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP - 1), SOME_CHANGES);
       test(specDomainCreateRange(SUP - 1, SUP - 1), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP, SUP), SOME_CHANGES);
       test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 50, SUP), specDomainCreateRange(SUP - 50, SUP - 1), SOME_CHANGES);
-      test(specDomainCreateRange(20, 20), specDomainCreateRanges([20, SUP - 1]), specDomainCreateRange(21, SUP - 1), SOME_CHANGES);
+      test(specDomainCreateRange(120, 120), specDomainCreateRanges([120, SUP - 1]), specDomainCreateRange(121, SUP - 1), SOME_CHANGES);
       test(specDomainCreateRange(910, 910), specDomainCreateRanges([910, 910], [912, 950]), specDomainCreateRanges([912, 950]), SOME_CHANGES);
       test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 98], [910, 910], [912, 920]), specDomainCreateRanges([90, 98], [912, 920]), SOME_CHANGES);
       test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 910], [912, 950]), specDomainCreateRanges([90, 909], [912, 950]), SOME_CHANGES);

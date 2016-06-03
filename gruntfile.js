@@ -30,8 +30,8 @@ module.exports = function () {
         cmd: 'node_modules/.bin/js-beautify',
         args: [
           '-s 4',
-          '-f', 'build/finitedomain-browserified.js',
-          '-o', 'build/finitedomain-browserified-beautified.js',
+          '-f', 'build/finitedomain-es5.js',
+          '-o', 'build/finitedomain-es5-beautified.js',
         ],
       },
     },
@@ -59,7 +59,7 @@ module.exports = function () {
       },
       concat: {
         files: {
-          'build/finitedomain-browserified.js': ['build/finitedomain.es6.concat.js'],
+          'build/finitedomain-es5.js': ['build/finitedomain.es6.concat.js'],
         },
       },
     },
@@ -161,19 +161,9 @@ module.exports = function () {
       },
       phantom: {
         files: {
-          'build/finitedomain-browserified.js': 'src/index.js',
+          'dist/finitedomain.dev.js': 'src/index.js',
           // note: this will include chai and mocha and all that but that's fine (I think?) and workarounds are difficult with es6 static modules anyways
           'build/specs-browserified.js': 'tests/specs/**/*.spec.js',
-        },
-      },
-      dist: {
-        files: {
-          'build/finitedomain-browserified.js': 'src/index.js',
-        },
-      },
-      distq: {
-        files: {
-          'dist/finitedomain.dist.min.js': 'src/index.js',
         },
       },
     },
@@ -189,7 +179,7 @@ module.exports = function () {
           sourceMap: true,
         },
         files: {
-          'dist/finitedomain.dist.min.js': ['build/finitedomain-browserified.js'],
+          'dist/finitedomain.dist.min.js': ['build/finitedomain-es5.js'],
         },
       },
     },
@@ -270,15 +260,27 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-contrib-concat');
 
+  grunt.registerTask('concat-dist-to-browserjs', function() {
+    console.log('- Copying dist to browser.js');
+    grunt.file.copy('dist/finitedomain.dist.min.js', 'dist/browser.js');
+  });
+  grunt.registerTask('concat-bug-to-browserjs', function() {
+    console.log('- Copying build to browser.js');
+    grunt.file.copy('build/finitedomain-es5-beautified.js', 'dist/browser.js');
+  });
+
   grunt.registerTask('clean', ['remove']);
-  grunt.registerTask('build', 'strips headers but keeps assertions, also makes phantomjs build', ['clean', 'browserify:phantom', 'concat:test', 'babel:concat']);
-  grunt.registerTask('buildf', 'strips headers and asserts, beautifies result (for /perf)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify']);
-  grunt.registerTask('dist', ['clean', 'run:lint', 'run:coverage', 'browserify:dist', 'uglify:dist']);
-  grunt.registerTask('distq', ['clean', 'browserify:distq']);
+  grunt.registerTask('build', 'alias for dist', ['dist']);
+  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'run:coverage', 'distq']);
+  grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
+  grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
+  grunt.registerTask('distbug', 'create dist for browser debugging', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('distheat', 'create dist for heatmap inspection', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
-  grunt.registerTask('test', ['clean', 'run:lintdev', 'mochaTest:all']);
-  grunt.registerTask('testq', ['clean', 'mochaTest:all']);
-  grunt.registerTask('testp', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
+  grunt.registerTask('test', 'lint then test', ['clean', 'run:lintdev', 'mochaTest:all']);
+  grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:all']);
+  // it works in the browser, the phantom test build just needs some love (TODO)
+  //grunt.registerTask('testp', 'lint then test in phantomjs', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
 
   grunt.registerTask('default', ['test']);
 };

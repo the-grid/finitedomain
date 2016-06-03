@@ -4,7 +4,6 @@ import {
 
 import {
   domain_intersection,
-  domain_numarr,
 } from '../domain';
 
 // BODY_START
@@ -21,9 +20,7 @@ function propagator_ringStepBare(domain1, domain2, domainResult, opFunc, opName)
   ASSERT(typeof opFunc === 'function', 'EXPECTING_FUNC_TO_BE:', opName);
   let domain = opFunc(domain1, domain2);
 
-  domain = domain_numarr(domain);
-  domain = domain_intersection(domainResult, domain);
-  return domain_numarr(domain);
+  return domain_intersection(domainResult, domain);
 }
 
 // BODY_STOP

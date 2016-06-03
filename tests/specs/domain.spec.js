@@ -4,6 +4,7 @@ import {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
+  specDomainFromNums,
   specDomainSmallEmpty,
   specDomainSmallNums,
   specDomainSmallRange,
@@ -15,9 +16,42 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
+  ZERO,
+  ONE,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  TEN,
+  ELEVEN,
+  TWELVE,
+  THIRTEEN,
+  FOURTEEN,
+  FIFTEEN,
+  SIXTEEN,
+  SEVENTEEN,
+  EIGHTEEN,
+  NINETEEN,
+  TWENTY,
+  TWENTYONE,
+  TWENTYTWO,
+  TWENTYTHREE,
+  TWENTYFOUR,
+  TWENTYFIVE,
+  TWENTYSIX,
+  TWENTYSEVEN,
+  TWENTYEIGHT,
+  TWENTYNINE,
+  THIRTY,
+  NUM_TO_FLAG,
+
   NOT_FOUND,
 
-  //domain_sharesNoElements,
+  domain_addRangeToSmallDomain,
   domain_clone,
   domain_closeGapsInline,
   domain_complement,
@@ -28,35 +62,37 @@ import {
   domain_isEqual,
   domain_forceEq,
   domain_fromList,
-  //domain_fromFlags,
+  domain_fromFlags,
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   //domain_intersectBoundsInto,
   domain_intersection,
   domain_isDetermined,
   domain_isRejected,
+  domain_isSimplified,
   domain_isSolved,
   domain_isValue,
   //domain_max,
+  domain_mergeOverlappingInline,
   //domain_middleElement,
   //domain_min,
-  domain_minus,
-  domain_plus,
+  domain_mul,
+  domain_numarr,
+  domain_rangeIndexOf,
   domain_removeGte,
   domain_removeLte,
   domain_removeNextFromList,
   domain_removeValueNumbered,
   domain_removeValue,
+  //domain_sharesNoElements,
   domain_simplifyInline,
   domain_size,
-  domain_mul,
-  domain_toList,
-
-  domain_rangeIndexOf,
-  domain_isSimplified,
-  domain_mergeOverlappingInline,
   domain_sortByRangeInline,
+  domain_toArr,
+  domain_toList,
 } from '../../src/domain';
+import domain_minus from '../../src/doms/domain_minus';
+import domain_plus from '../../src/doms/domain_plus';
 
 const FLOOR_FRACTIONS = true;
 const CEIL_FRACTIONS = false;
@@ -239,21 +275,21 @@ describe('src/domain.spec', function() {
       });
 
       it('should not alter input domain', function() {
-        let A = specDomainCreateRange(20, 23);
+        let A = specDomainCreateRange(120, 123);
 
-        expect(domain_removeNextFromList(A, [20])).to.eql(specDomainCreateRange(21, 23));
-        expect(A).to.eql(specDomainCreateRange(20, 23));
+        expect(domain_removeNextFromList(A, [120])).to.eql(specDomainCreateRange(121, 123));
+        expect(A).to.eql(specDomainCreateRange(120, 123));
       });
 
       it('should work with simple tests', function() {
-        let A = specDomainCreateRange(20, 23);
+        let A = specDomainCreateRange(120, 123);
 
-        expect(domain_removeNextFromList(A, [20])).to.eql(specDomainCreateRange(21, 23));
-        expect(domain_removeNextFromList(A, [20, 210, 29, 27])).to.eql(specDomainCreateRange(21, 23));
-        expect(domain_removeNextFromList(A, [210, 29, 27, 20])).to.eql(specDomainCreateRange(21, 23));
-        expect(domain_removeNextFromList(A, [21])).to.eql(specDomainCreateRanges([20, 20], [22, 23]));
-        expect(domain_removeNextFromList(A, [22])).to.eql(specDomainCreateRanges([20, 21], [23, 23]));
-        expect(domain_removeNextFromList(A, [23])).to.eql(specDomainCreateRange(20, 22));
+        expect(domain_removeNextFromList(A, [120])).to.eql(specDomainCreateRange(121, 123));
+        expect(domain_removeNextFromList(A, [120, 210, 29, 27])).to.eql(specDomainCreateRange(121, 123));
+        expect(domain_removeNextFromList(A, [210, 29, 27, 120])).to.eql(specDomainCreateRange(121, 123));
+        expect(domain_removeNextFromList(A, [121])).to.eql(specDomainCreateRanges([120, 120], [122, 123]));
+        expect(domain_removeNextFromList(A, [122])).to.eql(specDomainCreateRanges([120, 121], [123, 123]));
+        expect(domain_removeNextFromList(A, [123])).to.eql(specDomainCreateRange(120, 122));
         expect(domain_removeNextFromList(A, [299, 2100])).to.eql(NO_SUCH_VALUE);
       });
 
@@ -573,7 +609,7 @@ describe('src/domain.spec', function() {
       });
 
       it('should return false if only range is not one value', function() {
-        expect(domain_isValue(specDomainCreateRange(10, 20), 10)).to.equal(false);
+        expect(domain_isValue(specDomainCreateRange(110, 120), 110)).to.equal(false);
       });
 
       it('should return true if the only range is given value', function() {
@@ -940,7 +976,7 @@ describe('src/domain.spec', function() {
     describe('with array', function() {
 
       it('should handle empty domains', function() {
-        expect(domain_intersection([], [])).to.eql([]);
+        expect(domain_intersection([], [])).to.eql(EMPTY);
       });
 
       it('should return a fresh array', function() {
@@ -953,23 +989,23 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle empty domain with single element domain', function() {
-        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRange(90, 91))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRange(90, 91))).to.eql(EMPTY);
       });
 
       it('should handle empty domain with multi element domain', function() {
-        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRanges([90, 91], [93, 95]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRanges([90, 91], [93, 95]))).to.eql(EMPTY);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateEmpty())).to.eql(EMPTY);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(specDomainCreateRanges([90, 91], [93, 95]), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([90, 91], [93, 95]), specDomainCreateEmpty())).to.eql(EMPTY);
       });
 
       it('should handle single element domains', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRange(93, 95))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRange(93, 95))).to.eql(EMPTY);
       });
 
       it('should intersect single element domains', function() {
@@ -981,15 +1017,15 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle single element domain with multi element domain', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(EMPTY);
       });
 
       it('should handle multi element domain with single element domain', function() {
-        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRange(30, 40))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 120]), specDomainCreateRange(130, 140))).to.eql(EMPTY);
       });
 
       it('should intersect single element domain with multi element domain', function() {
-        expect(domain_intersection(specDomainCreateRange(5, 16), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainCreateRange(10, 16));
+        expect(domain_intersection(specDomainCreateRange(5, 16, true), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainSmallRange(10, 16, true));
       });
 
       it('should intersect multi element domain with single element domain', function() {
@@ -997,7 +1033,7 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle multi element domains', function() {
-        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRanges([30, 40], [50, 60]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 120]), specDomainCreateRanges([130, 140], [150, 160]))).to.eql(EMPTY);
       });
 
       it('should intersect multi element domains', function() {
@@ -1499,9 +1535,31 @@ describe('src/domain.spec', function() {
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-        let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-        let E = specDomainCreateRanges([0, 2], [4, 34]);
+        let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let E = specDomainCreateRanges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
+
+        expect(domain_plus(A, B)).to.eql(E);
+      });
+
+      it('should not exceed SUP (SUP+1)', function() {
+        // since [SUP,SUP] + [1,1] would be [SUP+1,SUP+1] the result is OOB and empty
+        // let's hope this never really hurts us irl... but we must have this protection
+        // or it may introduce inconsistent domains into the internals, which is bad.
+        let A = specDomainCreateValue(SUP);
+        let B = specDomainCreateValue(1, true);
+        let E = specDomainCreateEmpty(true);
+
+        expect(domain_plus(A, B)).to.eql(E);
+      });
+
+      it('should not exceed SUP (1+SUP)', function() {
+        // since [1,1] + [SUP,SUP] would be [SUP+1,SUP+1] the result is OOB and empty
+        // let's hope this never really hurts us irl... but we must have this protection
+        // or it may introduce inconsistent domains into the internals, which is bad.
+        let A = specDomainCreateValue(1, true);
+        let B = specDomainCreateValue(SUP);
+        let E = specDomainCreateEmpty(true);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -1525,11 +1583,23 @@ describe('src/domain.spec', function() {
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-        let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+        let A = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+        let B = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
         let E = specDomainCreateRanges([0, 2], [4, 34]);
 
         expect(domain_plus(A, B)).to.eql(E);
+      });
+
+      it('should add small numbers to a small domain', function() {
+        // regression. numbers 0 ~ 3 are hardcoded explicitly, 4+ is loop
+        // make sure total does not exceed the small domain cap
+        for (let i = 0; i < 7; ++i) {
+          for (let j = 0; j < 8; ++j) {
+            if (i !== 8 || j !== 8) { // 16
+              expect(domain_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
+            }
+          }
+        }
       });
     });
   });
@@ -1547,7 +1617,7 @@ describe('src/domain.spec', function() {
     describe('with array', function() {
 
       it('should count the values', function() {
-        expect(domain_size(specDomainCreateRanges([0, 1], [4, 12], [15, 17]))).to.equal(14);
+        expect(domain_size(specDomainCreateRanges([0, 1], [4, 12], [115, 117]))).to.equal(14);
       });
     });
 
@@ -1605,14 +1675,14 @@ describe('src/domain.spec', function() {
 
     it('should return empty domain if one is empty', function() {
 
-      let a = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
-      expect(domain_mul(a.slice(0), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
-      expect(domain_mul(specDomainCreateEmpty(), a.slice(0))).to.eql(specDomainCreateEmpty(1));
+      let a = specDomainSmallNums(0, 1, 4, 5, 7, 8, 10, 11, 12, 15, 16, 17);
+      expect(domain_mul(a, specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+      expect(domain_mul(specDomainCreateEmpty(), a)).to.eql(specDomainCreateEmpty(1));
       expect(domain_mul(specDomainCreateEmpty(), specDomainCreateEmpty())).to.not.equal(specDomainCreateEmpty());
     });
 
     it('should multiply two ranges', function() {
-      let A = specDomainSmallRange(5, 10);
+      let A = specDomainSmallRange(5, 10, true);
       let B = specDomainCreateRange(50, 60);
       let E = specDomainCreateRange(250, 600);
 
@@ -1628,8 +1698,8 @@ describe('src/domain.spec', function() {
     });
 
     it('should multiply two domains', function() {
-      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let A = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+      let B = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
       let E = specDomainCreateRanges([0, 204], [225, 289]);
 
       expect(domain_mul(A, B)).to.eql(E);
@@ -1663,7 +1733,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should return empty domain if one is empty', function() {
-      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
+      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 117]);
 
       expect(domain_minus((A.slice(0)), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
       expect(domain_minus(specDomainCreateEmpty(), (A.slice(0)))).to.eql(specDomainCreateEmpty(1));
@@ -1673,7 +1743,7 @@ describe('src/domain.spec', function() {
       let A = specDomainSmallRange(5, 10);
       let B = specDomainCreateRange(50, 60);
 
-      expect(domain_minus(A, B)).to.eql(specDomainCreateEmpty(1));
+      expect(domain_minus(A, B)).to.eql(specDomainSmallEmpty());
     });
 
     it('should subtract one domain by another', function() {
@@ -1683,10 +1753,10 @@ describe('src/domain.spec', function() {
       expect(domain_minus(A, B)).to.eql(specDomainCreateEmpty(1));
     });
 
-    it('should multiply one domain by another', function() {
-      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-      let E = specDomainCreateRange(0, 17);
+    it('should subtract one domain by another 2', function() {
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let E = specDomainCreateRange(0, 117);
 
       expect(domain_minus(A, B)).to.eql(E);
     });
@@ -1720,7 +1790,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should return empty domain if one is empty', function() {
-      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 17]);
+      let A = specDomainCreateRanges([0, 1], [4, 5], [7, 8], [10, 12], [15, 117]);
 
       expect(domain_divby((A.slice(0)), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
       expect(domain_divby(specDomainCreateEmpty(), (A.slice(0)))).to.eql(specDomainCreateEmpty(1));
@@ -1743,11 +1813,11 @@ describe('src/domain.spec', function() {
     });
 
     it('should divide one domain from another (2); floored', function() {
-      let A = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
-      let B = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
-      let E = specDomainCreateRanges([0, 12], [15, 17]);
+      let A = specDomainSmallNums(1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+      let B = specDomainSmallNums(1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+      let E = specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
 
-      expect(domain_divby(A, B, FLOOR_FRACTIONS)).to.eql(E);
+      expect(domain_divby(A, B, FLOOR_FRACTIONS)).to.eql(domain_toArr(E));
     });
 
     it('should divide one domain from another; integer', function() {
@@ -1759,16 +1829,16 @@ describe('src/domain.spec', function() {
     });
 
     it('should divide one domain from another (2); integer', function() {
-      let A = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
-      let B = specDomainCreateRanges([1, 1], [4, 12], [15, 17]);
-      let E = specDomainCreateRanges([1, 12], [15, 17]);
+      let A = specDomainSmallNums(1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+      let B = specDomainSmallNums(1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+      let E = specDomainSmallNums(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
 
-      expect(domain_divby(A, B, CEIL_FRACTIONS)).to.eql(E);
+      expect(domain_divby(A, B, CEIL_FRACTIONS)).to.eql(domain_toArr(E));
     });
 
     it('divide by zero should blow up', function() {
-      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
-      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17]);
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
       let E = specDomainCreateRanges([0, SUP]);
 
       expect(domain_divby(A, B)).to.eql(E);
@@ -2232,6 +2302,71 @@ describe('src/domain.spec', function() {
       gteTest(specDomainSmallNums(5), 105, specDomainSmallEmpty());
       gteTest(specDomainSmallNums(6, 7, 8), 105, NO_SUCH_VALUE);
       gteTest(specDomainSmallNums(0, 1, 2, 3, 4), 105, specDomainSmallEmpty());
+    });
+  });
+
+  describe('domain_fromFlags and domain_toList and domain_numarr and domain_fromList', function() {
+
+    describe('number domain', function() {
+
+      it('should work with all permutations', function() {
+        // 13 is an arbitrary number (ok, prime) to not waste toooo much time on this
+        for (let i = 0; i <= 0xffff; i += 27) {
+          let list = [];
+          if (i & ZERO) list.push(0);
+          if (i & ONE) list.push(1);
+          if (i & TWO) list.push(2);
+          if (i & THREE) list.push(3);
+          if (i & FOUR) list.push(4);
+          if (i & FIVE) list.push(5);
+          if (i & SIX) list.push(6);
+          if (i & SEVEN) list.push(7);
+          if (i & EIGHT) list.push(8);
+          if (i & NINE) list.push(9);
+          if (i & TEN) list.push(10);
+          if (i & ELEVEN) list.push(11);
+          if (i & TWELVE) list.push(12);
+          if (i & THIRTEEN) list.push(13);
+          if (i & FOURTEEN) list.push(14);
+          if (i & FIFTEEN) list.push(15);
+          if (i & SIXTEEN) list.push(16);
+          if (i & SEVENTEEN) list.push(17);
+          if (i & EIGHTEEN) list.push(18);
+          if (i & NINETEEN) list.push(19);
+          if (i & TWENTY) list.push(20);
+          if (i & TWENTYONE) list.push(21);
+          if (i & TWENTYTWO) list.push(22);
+          if (i & TWENTYTHREE) list.push(23);
+          if (i & TWENTYFOUR) list.push(24);
+          if (i & TWENTYFIVE) list.push(25);
+          if (i & TWENTYSIX) list.push(26);
+          if (i & TWENTYSEVEN) list.push(27);
+          if (i & TWENTYEIGHT) list.push(28);
+          if (i & TWENTYNINE) list.push(29);
+          if (i & THIRTY) list.push(30);
+
+          let expNum = specDomainSmallNums(...list);
+          let expArr = specDomainFromNums(...list);
+
+          let outFromFlags = domain_fromFlags(i);
+          let outToList = domain_toList(i);
+          let outNumarr = domain_numarr(expArr);
+          let outFromList = domain_fromList(list);
+
+          expect(i).to.eql(expNum); // more of a confirmation that the specs are proper
+          expect(outFromFlags).to.eql(expArr);
+          expect(outToList).to.eql(list);
+          expect(outNumarr).to.eql(i);
+          expect(outFromList).to.eql(i);
+        }
+      });
+    });
+  });
+
+  describe('domain_addRangeToSmallDomain', function() {
+
+    it('should add a value to an empty domain', function() {
+      expect(domain_addRangeToSmallDomain(EMPTY, 15, 15)).to.eql(FIFTEEN);
     });
   });
 });

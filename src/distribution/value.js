@@ -23,7 +23,6 @@ import {
   domain_max,
   domain_middleElement,
   domain_min,
-  domain_numarr,
   domain_removeNextFromList,
 } from '../domain';
 
@@ -185,8 +184,7 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let newDomain = domain_intersection(domain, domain_createRange(domain_min(domain) + 1, domain_max(domain)));
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, domain_createRange(domain_min(domain) + 1, domain_max(domain)));
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -223,8 +221,7 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
       let lo = domain_min(domain);
       let hi = domain_max(domain);
       let targetDomain = domain_createRange(lo, hi - 1);
-      let newDomain = domain_intersection(domain, targetDomain);
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, targetDomain);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -269,8 +266,7 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
       // Note: domain is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-      let newDomain = domain_intersection(domain, arr);
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, arr);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -303,16 +299,14 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      let newDomain = domain_intersection(domain, domain_createRange(min, mmhalf));
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, domain_createRange(min, mmhalf));
     }
 
     case SECOND_CHOICE: {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      let newDomain = domain_intersection(domain, domain_createRange(mmhalf + 1, max));
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, domain_createRange(mmhalf + 1, max));
     }
   }
 
@@ -346,16 +340,14 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      let newDomain = domain_intersection(domain, domain_createRange(mmhalf + 1, max));
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, domain_createRange(mmhalf + 1, max));
     }
 
     case SECOND_CHOICE: {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      let newDomain = domain_intersection(domain, domain_createRange(min, mmhalf));
-      return domain_numarr(newDomain);
+      return domain_intersection(domain, domain_createRange(min, mmhalf));
     }
   }
 
@@ -457,7 +449,7 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
       // TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
       let newDomain = domain_intersection(domain, arr);
       if (domain_isRejected(newDomain)) return NO_CHOICE;
-      return domain_numarr(newDomain);
+      return newDomain;
     }
   }
 

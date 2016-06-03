@@ -33,7 +33,7 @@ let SOLVED = 1;
 let UNDETERMINED = 0;
 let NOT_FOUND = -1;
 let EMPTY = 0;
-let MAX_SMALL = (1 << 16) - 1; // there are 15 flags. if they are all on, this is the number value
+
 let LOG_NONE = 0;
 let LOG_STATS = 1;
 let LOG_SOLVES = 2;
@@ -209,7 +209,6 @@ export {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
-  MAX_SMALL,
   NOT_FOUND,
   NO_SUCH_VALUE,
   PAIR_SIZE,

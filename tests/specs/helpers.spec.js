@@ -5,7 +5,6 @@ import {
 
 import {
   EMPTY,
-  MAX_SMALL,
   ASSERT,
   _ASSERT_DOMAIN,
   //ASSERT_DOMAIN_EMPTY_CHECK,
@@ -33,11 +32,28 @@ import {
   THIRTEEN,
   FOURTEEN,
   FIFTEEN,
+  SIXTEEN,
+  SEVENTEEN,
+  EIGHTEEN,
+  NINETEEN,
+  TWENTY,
+  TWENTYONE,
+  TWENTYTWO,
+  TWENTYTHREE,
+  TWENTYFOUR,
+  TWENTYFIVE,
+  TWENTYSIX,
+  TWENTYSEVEN,
+  TWENTYEIGHT,
+  TWENTYNINE,
+  THIRTY,
+
+  SMALL_MAX_FLAG,
 } from '../../src/domain';
 
 describe('src/helpers.spec', function() {
 
-  describe('MAX_SMALL', function() {
+  describe('SMALL_MAX_FLAG', function() {
 
     it('should equal the value of all flags enabled', function() {
       let start = EMPTY;
@@ -58,8 +74,23 @@ describe('src/helpers.spec', function() {
       start |= THIRTEEN;
       start |= FOURTEEN;
       start |= FIFTEEN;
+      start |= SIXTEEN;
+      start |= SEVENTEEN;
+      start |= EIGHTEEN;
+      start |= NINETEEN;
+      start |= TWENTY;
+      start |= TWENTYONE;
+      start |= TWENTYTWO;
+      start |= TWENTYTHREE;
+      start |= TWENTYFOUR;
+      start |= TWENTYFIVE;
+      start |= TWENTYSIX;
+      start |= TWENTYSEVEN;
+      start |= TWENTYEIGHT;
+      start |= TWENTYNINE;
+      start |= THIRTY;
 
-      expect(start).to.equal(MAX_SMALL);
+      expect(start, '\n' + start.toString(2) + '\n' + SMALL_MAX_FLAG.toString(2)).to.equal(SMALL_MAX_FLAG);
     });
   });
 

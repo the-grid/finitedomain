@@ -1,7 +1,7 @@
 /*
  For HeatFiler:
 
- first do `grunt buildf` for a beautified concat build
+ first do `grunt perfheat` for a beautified concat build
  Go to heatfiler (on localhost, just clone it, no install needed)
  - go to `http://localhost/heatfiler/src/#run,code,here`
  - select files
@@ -12,9 +12,10 @@
  @ console.log('starting now...');
  @ var exports = {};
  @ var module = {exports: {}};
- + http://localhost/~/finitedomain/build/finitedomain-browserified-beautified.js
- - http://localhost/~/finitedomain/tests/perf/gridsolver/perf.js
- @ perf(config);
+ + http://localhost/path/to/finitedomain/dist/browser.js
+ - http://localhost/path/to/finitedomain/tests/perf/gridsolver/config.js
+ - http://localhost/path/to/finitedomain/tests/perf/perf.js
+ @ perf(config, 1);
 
 */
 

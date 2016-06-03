@@ -167,15 +167,15 @@ describe('src/space.spec', function() {
 
       it('should return the domain of a var if not yet determined', function() {
         let space = space_createRoot();
-        config_addVarRange(space.config, 'single_range', 10, 20);
+        config_addVarRange(space.config, 'single_range', 10, 120);
         config_addVarDomain(space.config, 'multi_range', specDomainCreateRanges([10, 20], [30, 40]));
-        config_addVarDomain(space.config, 'multi_range_with_solved', specDomainCreateRanges([10, 20], [25, 25], [30, 40]));
+        config_addVarDomain(space.config, 'multi_range_with_solved', specDomainCreateRanges([18, 20], [25, 25], [30, 40]));
         space_initFromConfig(space);
 
         expect(space_solution(space)).to.eql({
-          single_range: specDomainCreateRange(10, 20),
+          single_range: specDomainCreateRange(10, 120),
           multi_range: specDomainCreateRanges([10, 20], [30, 40]),
-          multi_range_with_solved: specDomainCreateRanges([10, 20], [25, 25], [30, 40]),
+          multi_range_with_solved: specDomainCreateRanges([18, 20], [25, 25], [30, 40]),
         });
       });
 

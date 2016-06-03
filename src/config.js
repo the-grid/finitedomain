@@ -6,7 +6,6 @@
 
 import {
   EMPTY,
-  MAX_SMALL,
   SUB,
   SUP,
 
@@ -15,6 +14,7 @@ import {
 } from './helpers';
 import {
   NOT_FOUND,
+  SMALL_MAX_FLAG,
 
   domain_createRange,
   domain_getValue,
@@ -214,7 +214,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
-  ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= MAX_SMALL), 'domain as value should be within small domain range', domain);
+  ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= SMALL_MAX_FLAG), 'domain as value should be within small domain range', domain);
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
 
   let wasAnonymous = varName === true;

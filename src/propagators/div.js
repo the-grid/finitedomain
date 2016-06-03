@@ -1,7 +1,6 @@
 import {
   domain_divby,
   domain_intersection,
-  domain_numarr,
 } from '../domain';
 
 // BODY_START
@@ -14,10 +13,7 @@ import {
  */
 function propagator_divStep(dom1, dom2, domResult) {
   let domain = domain_divby(dom1, dom2);
-
-  domain = domain_numarr(domain);
-  domain = domain_intersection(domResult, domain);
-  return domain_numarr(domain);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

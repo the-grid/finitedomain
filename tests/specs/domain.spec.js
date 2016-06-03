@@ -961,7 +961,7 @@ describe('src/domain.spec', function() {
     describe('with array', function() {
 
       it('should handle empty domains', function() {
-        expect(domain_intersection([], [])).to.eql([]);
+        expect(domain_intersection([], [])).to.eql(EMPTY);
       });
 
       it('should return a fresh array', function() {
@@ -974,23 +974,23 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle empty domain with single element domain', function() {
-        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRange(90, 91))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRange(90, 91))).to.eql(EMPTY);
       });
 
       it('should handle empty domain with multi element domain', function() {
-        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRanges([90, 91], [93, 95]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateEmpty(), specDomainCreateRanges([90, 91], [93, 95]))).to.eql(EMPTY);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateEmpty())).to.eql(EMPTY);
       });
 
       it('should handle single element domain with empty domain', function() {
-        expect(domain_intersection(specDomainCreateRanges([90, 91], [93, 95]), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([90, 91], [93, 95]), specDomainCreateEmpty())).to.eql(EMPTY);
       });
 
       it('should handle single element domains', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRange(93, 95))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRange(93, 95))).to.eql(EMPTY);
       });
 
       it('should intersect single element domains', function() {
@@ -1002,11 +1002,11 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle single element domain with multi element domain', function() {
-        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRange(90, 91), specDomainCreateRanges([10, 20], [30, 40]))).to.eql(EMPTY);
       });
 
       it('should handle multi element domain with single element domain', function() {
-        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRange(30, 40))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRange(30, 40))).to.eql(EMPTY);
       });
 
       it('should intersect single element domain with multi element domain', function() {
@@ -1018,7 +1018,7 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle multi element domains', function() {
-        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRanges([30, 40], [50, 60]))).to.eql(specDomainCreateEmpty(1));
+        expect(domain_intersection(specDomainCreateRanges([0, 1], [10, 20]), specDomainCreateRanges([30, 40], [50, 60]))).to.eql(EMPTY);
       });
 
       it('should intersect multi element domains', function() {

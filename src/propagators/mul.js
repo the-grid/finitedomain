@@ -1,7 +1,6 @@
 import {
   domain_mul,
   domain_intersection,
-  domain_numarr,
 } from '../domain';
 
 // BODY_START
@@ -15,9 +14,7 @@ import {
 function propagator_mulStep(domain1, domain2, domResult) {
   let domain = domain_mul(domain1, domain2);
 
-  domain = domain_numarr(domain);
-  domain = domain_intersection(domResult, domain);
-  return domain_numarr(domain);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

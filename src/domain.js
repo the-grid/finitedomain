@@ -744,34 +744,57 @@ function domain_mergeOverlappingInline(domain) {
 }
 
 /**
- * Intersection of two domains given in CSIS form.
- * (That means the result contains any number that occurs in
- * BOTH domains, but each value will only be present once.)
- * r is optional and if given it should be an array and
- * the domain pieces will be inserted into it, in which case
- * the result domain will be returned unsimplified.
+ * Intersect two $domains. Does not harm the domains.
+ * Intersection means the result only contains the values
+ * that are contained in BOTH domains.
  *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
  */
 function domain_intersection(domain1, domain2) {
-  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
-    return domain1 & domain2;
-  }
-  if (domain1 === EMPTY) return EMPTY;
-  if (domain2 === EMPTY) return EMPTY;
+  let isNum1 = typeof domain1 === 'number';
+  let isNum2 = typeof domain2 === 'number';
+  if (isNum1 && isNum2) return domain1 & domain2;
+  if (isNum1) return domain_intersectionNumArr(domain1, domain2);
+  if (isNum2) return domain_intersectionNumArr(domain2, domain1); // swapped!
 
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_fromFlags(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_fromFlags(domain2);
-
+  // domains are both arrays
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
+
   let result = [];
   _domain_intersection(domain1, domain2, result);
   ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(result);
-  return result;
+  return domain_numarr(result);
+}
+/**
+ * Intersect the domain assuming domain1 is a numbered (small)
+ * domain and domain2 is an array domain. The result will always
+ * be a small domain and that's what this function intends to
+ * optimize.
+ *
+ * @param {$domain_num} domain1
+ * @param {$domain_arr} domain2
+ * @returns {$domain_num}
+ */
+function domain_intersectionNumArr(domain1, domain2) {
+  ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
+  ASSERT(typeof domain2 !== 'number', 'NOT_WITH_NUMBERS');
+
+  let domain = EMPTY;
+  for (let i = 0; i < domain2.length; i += PAIR_SIZE) {
+    let lo = domain2[i];
+    if (lo > 15) break;
+    let hi = domain2[i + 1];
+
+    for (let j = lo, m = MIN(15, hi); j <= m; ++j) {
+      let flag = NUMBER[j];
+      if (domain1 & flag) domain |= flag; // could be: domain |= domain1 & NUMBER[j]; but this reads better?
+    }
+  }
+
+  return domain;
 }
 
 /**

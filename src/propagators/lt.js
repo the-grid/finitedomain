@@ -1,6 +1,5 @@
 import {
   NO_CHANGES,
-  NO_SUCH_VALUE,
   REJECTED,
   SOME_CHANGES,
 
@@ -12,10 +11,7 @@ import {
   domain_isRejected,
   domain_max,
   domain_min,
-  domain_numarr,
-  domain_removeGteNumbered,
   domain_removeGte,
-  domain_removeLteNumbered,
   domain_removeLte,
 } from '../domain';
 
@@ -68,25 +64,13 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   // value in v2. bigger values will never satisfy lt so prune them.
   var leftChanged = NO_CHANGES;
   if (hi1 >= hi2) {
-    if (typeof domain1 === 'number') {
-      let result = domain_removeGteNumbered(domain1, hi2);
-      if (result !== domain1) {
-        space.vardoms[varIndex1] = result;
-        if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
-          leftChanged = REJECTED;
-        } else {
-          leftChanged = SOME_CHANGES;
-        }
-      }
-    } else {
-      let newDomain = domain_removeGte(domain1, hi2);
-      if (newDomain !== NO_SUCH_VALUE) {
-        space.vardoms[varIndex1] = domain_numarr(newDomain);
-        if (domain_isRejected(newDomain)) { // TODO: there is no test throwing when you remove this check
-          leftChanged = REJECTED;
-        } else {
-          leftChanged = SOME_CHANGES;
-        }
+    let result = domain_removeGte(domain1, hi2);
+    if (result !== domain1) {
+      space.vardoms[varIndex1] = result;
+      if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
+        leftChanged = REJECTED;
+      } else {
+        leftChanged = SOME_CHANGES;
       }
     }
   }
@@ -95,26 +79,13 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   // smallest value of v1 can never satisfy lt so prune them as well
   var rightChanged = NO_CHANGES;
   if (lo1 >= lo2) {
-    if (typeof domain2 === 'number') {
-      let result = domain_removeLteNumbered(domain2, lo1);
-
-      if (result !== domain2) {
-        space.vardoms[varIndex2] = result;
-        if (domain_isRejected(result)) {
-          leftChanged = REJECTED;
-        } else {
-          leftChanged = SOME_CHANGES;
-        }
-      }
-    } else {
-      let newDomain = domain_removeLte(domain2, lo1);
-      if (newDomain !== NO_SUCH_VALUE) {
-        space.vardoms[varIndex2] = domain_numarr(newDomain);
-        if (domain_isRejected(domain2)) { // TODO: there is no test covering this
-          leftChanged = REJECTED;
-        } else {
-          rightChanged = SOME_CHANGES;
-        }
+    let newDomain = domain_removeLte(domain2, lo1);
+    if (newDomain !== domain2) {
+      space.vardoms[varIndex2] = newDomain;
+      if (domain_isRejected(domain2)) { // TODO: there is no test covering this
+        leftChanged = REJECTED;
+      } else {
+        rightChanged = SOME_CHANGES;
       }
     }
   }

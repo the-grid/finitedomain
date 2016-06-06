@@ -27,11 +27,11 @@ import {
   PAIR_SIZE,
   SMALL_MAX_NUM,
 
-  domain_addRangeToSmallDomain,
-  domain_closeGaps,
+  domain_addRangeNum,
+  domain_closeGapsArr,
   domain_max,
   domain_min,
-  domain_simplifyInline,
+  domain_simplifyInlineArr,
 } from '../domain';
 
 let MAX = Math.max;
@@ -59,7 +59,7 @@ function domain_minus(domain1, domain2) {
   if (isNum2) _domain_minusArrNum(domain1, domain2, result); // cannot swap minus args!
   else _domain_minusArrArr(domain1, domain2, result);
 
-  domain_simplifyInline(result);
+  domain_simplifyInlineArr(result);
 
   return result;
 }
@@ -73,7 +73,7 @@ function _domain_minusArrArr(domain1, domain2, result) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  let domains = domain_closeGaps(domain1, domain2);
+  let domains = domain_closeGapsArr(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
 
@@ -333,7 +333,7 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij, domain) {
     let lo = MAX(SUB, loi - hij);
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    return domain_addRangeToSmallDomain(domain, lo, hi);
+    return domain_addRangeNum(domain, lo, hi);
   }
   return domain;
 }

@@ -12,7 +12,6 @@ import {
   domain_isRejected,
   domain_isSolved,
   domain_removeValue,
-  domain_removeValueNumbered,
   domain_sharesNoElements,
 } from '../domain';
 
@@ -40,12 +39,7 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
   // remove solved value from the other domain. confirm neither rejects over it.
   let value = domain_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
-    let newDomain;
-    if (typeof domain2 === 'number') {
-      newDomain = domain_removeValueNumbered(domain2, value);
-    } else {
-      newDomain = domain_removeValue(domain2, value);
-    }
+    let newDomain = domain_removeValue(domain2, value);
     if (domain2 !== newDomain) result = SOME_CHANGES;
     if (domain_isRejected(newDomain)) {
       space.vardoms[varIndex1] = EMPTY;
@@ -58,12 +52,7 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
     // domain1 is not solved, just remove domain2 from domain1 if domain2 is solved
     value = domain_getValue(domain2);
     if (value !== NO_SUCH_VALUE) {
-      let newDomain;
-      if (typeof domain1 === 'number') {
-        newDomain = domain_removeValueNumbered(domain1, value);
-      } else {
-        newDomain = domain_removeValue(domain1, value);
-      }
+      let newDomain = domain_removeValue(domain1, value);
       if (domain1 !== newDomain) result = SOME_CHANGES;
       if (domain_isRejected(newDomain)) {
         space.vardoms[varIndex1] = EMPTY;

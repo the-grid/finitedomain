@@ -17,7 +17,7 @@ import {
   SMALL_MAX_FLAG,
 
   domain_createRange,
-  domain_getValue,
+  domain_getValueArr,
   domain_numarr,
   domain_isSolved,
   domain_toArr,
@@ -226,7 +226,7 @@ function _config_addVar(config, varName, domain) {
     THROW('Var varName already part of this config. Probably a bug?');
   }
 
-  let solvedTo = domain_getValue(domain);
+  let solvedTo = domain_getValueArr(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varName;
 
   config.initial_vars[varName] = domain;

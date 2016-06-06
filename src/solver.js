@@ -718,6 +718,7 @@ class Solver {
   /**
    * Used by PathSolver in another (private) project
    * Exposes domain_toList
+   * TODO: can we lock this down to a $domain_arr ?
    *
    * @param {$domain} domain
    * @returns {number[]}

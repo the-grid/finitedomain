@@ -28,10 +28,10 @@ import {
   PAIR_SIZE,
   SMALL_MAX_NUM,
 
-  domain_addRangeToSmallDomain,
-  domain_closeGaps,
+  domain_addRangeNum,
+  domain_closeGapsArr,
   domain_max,
-  domain_simplifyInline,
+  domain_simplifyInlineArr,
 } from '../domain';
 
 let MIN = Math.min;
@@ -60,7 +60,7 @@ function domain_plus(domain1, domain2) {
     else _domain_plusArrArr(domain1, domain2, result);
   }
 
-  domain_simplifyInline(result);
+  domain_simplifyInlineArr(result);
 
   return result;
 }
@@ -75,7 +75,7 @@ function _domain_plusArrArr(domain1, domain2, result) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  let domains = domain_closeGaps(domain1, domain2);
+  let domains = domain_closeGapsArr(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
 
@@ -387,7 +387,7 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij, domain) {
   ASSERT(loi + loj >= 0, 'DOMAINS_SHOULD_NOT_HAVE_NEGATIVES');
   ASSERT(loi + loj <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
   ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-  return domain_addRangeToSmallDomain(domain, loi + loj, hii + hij);
+  return domain_addRangeNum(domain, loi + loj, hii + hij);
 }
 
 // BODY_STOP

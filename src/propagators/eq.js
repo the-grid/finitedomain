@@ -9,9 +9,7 @@ import {
 } from '../helpers';
 
 import {
-  domain_forceEq,
-  domain_forceEqNumbered,
-  domain_fromFlags,
+  domain_intersection,
   domain_isEqual,
   domain_isRejected,
   domain_isSolved,
@@ -45,13 +43,8 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
   ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
   ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
 
-  let result;
-  if (typeof domain1 === 'number' && typeof domain2 === 'number') {
-    result = domain_forceEqNumbered(domain1, domain2);
-  } else {
-    // TODO: for now, just convert them. but this can be optimized a lot.
-    result = domain_forceEq(typeof domain1 === 'number' ? domain_fromFlags(domain1) : domain1, typeof domain2 === 'number' ? domain_fromFlags(domain2) : domain2);
-  }
+
+  let result = domain_intersection(domain1, domain2);
 
   if (result === EMPTY) {
     space.vardoms[varIndex1] = EMPTY;

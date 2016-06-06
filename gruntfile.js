@@ -188,8 +188,8 @@ module.exports = function () {
       build: {
         options: {
           // https://github.com/gruntjs/grunt-contrib-concat
-          banner: '',
-          footer: '\nexport default Solver;',
+          banner: 'let Solver = (function(){',
+          footer: '\n  return Solver;\n})();\nexport default Solver;\n',
           sourceMap: true,
           sourceMapStyle: 'inline', // embed link inline
           process: function(code, path){

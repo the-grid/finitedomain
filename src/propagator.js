@@ -91,7 +91,7 @@ function propagator_addReified(config, opname, leftVarName, rightVarName, boolNa
   if (typeof leftVarName === 'number') {
     leftVarName = config_addVarAnonConstant(config, leftVarName);
     if (typeof rightVarName === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof rightVarName === 'number') {
     rightVarName = config_addVarAnonConstant(config, rightVarName);
@@ -132,7 +132,7 @@ function propagator_addEq(config, v1name, v2name) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     let t = config_addVarAnonConstant(config, v2name);
@@ -165,7 +165,7 @@ function propagator_addLt(config, v1name, v2name) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -202,7 +202,7 @@ function propagator_addLte(config, v1name, v2name) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -235,7 +235,7 @@ function propagator_addMul(config, v1name, v2name, resultName) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -269,7 +269,7 @@ function propagator_addDiv(config, v1name, v2name, resultName) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -307,7 +307,7 @@ function propagator_addNeq(config, v1name, v2name) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -351,7 +351,7 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, v1name, v2
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);
@@ -416,7 +416,7 @@ function propagator_addMin(config, v1name, v2name, resultVar) {
   if (typeof v1name === 'number') {
     v1name = config_addVarAnonConstant(config, v1name);
     if (typeof v2name === 'number') {
-      THROW('must pass in at least one var name');
+      THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     }
   } else if (typeof v2name === 'number') {
     v2name = config_addVarAnonConstant(config, v2name);

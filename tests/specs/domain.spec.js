@@ -122,8 +122,8 @@ describe('src/domain.spec', function() {
     });
 
     it('should throw with negative elements', function() {
-      expect(() => domain_fromList([10, 1, -1, 0])).to.throw();
-      expect(() => domain_fromList([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw();
+      expect(() => domain_fromList([10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
+      expect(() => domain_fromList([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
     });
 
     it('should work with clone=true, sort=true', function() {
@@ -220,7 +220,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_toList()).to.throw();
+      expect(() => domain_toList()).to.throw('A_EXPECTING_DOMAIN');
     });
 
     describe('with array', function() {
@@ -257,7 +257,11 @@ describe('src/domain.spec', function() {
     });
 
     it('should require an array', function() {
-      expect(() => domain_removeNextFromList(null, [0])).to.throw();
+      expect(() => domain_removeNextFromList(null, [0])).to.throw('A_EXPECTING_DOMAIN');
+    });
+
+    it('should require a list', function() {
+      expect(() => domain_removeNextFromList([1, 2])).to.throw('A_EXPECTING_LIST');
     });
 
     describe('with array', function() {
@@ -324,8 +328,8 @@ describe('src/domain.spec', function() {
       it('should throw for negative values', function() {
         let A = specDomainCreateRanges([20, 24], [210, 214], [220, 224]);
 
-        expect(() => domain_removeNextFromList(A, [299, -1, 212, 211])).to.throw();
-        expect(() => domain_removeNextFromList(A, [299, -1])).to.throw();
+        expect(() => domain_removeNextFromList(A, [299, -1, 212, 211])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_removeNextFromList(A, [299, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
     });
 
@@ -386,8 +390,8 @@ describe('src/domain.spec', function() {
       it('should throw for negative values', function() {
         let A = specDomainSmallNums(0, 1, 2, 3, 4, 7, 10, 11, 12, 13, 14);
 
-        expect(() => domain_removeNextFromList(A, [99, -1, 12, 11])).to.throw();
-        expect(() => domain_removeNextFromList(A, [99, -1])).to.throw();
+        expect(() => domain_removeNextFromList(A, [99, -1, 12, 11])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_removeNextFromList(A, [99, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
     });
   });
@@ -429,8 +433,8 @@ describe('src/domain.spec', function() {
       it('should throw for negative values', function() {
         let A = specDomainCreateRanges([SUP - 24, SUP - 20], [SUP - 14, SUP - 10], [SUP - 4, SUP]);
 
-        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1, SUP - 12, 11])).to.throw();
-        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1])).to.throw();
+        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1, SUP - 12, 11])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
     });
 
@@ -479,8 +483,8 @@ describe('src/domain.spec', function() {
       it('should throw for negative values', function() {
         let A = specDomainSmallNums(0, 1, 2, 3, 4, 10, 11, 12, 13, 14);
 
-        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1, 12, 11])).to.throw();
-        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1])).to.throw();
+        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1, 12, 11])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_getValueOfFirstContainedValueInList(A, [99, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
     });
   });
@@ -591,17 +595,13 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_isValue()).to.throw();
+      expect(() => domain_isValue()).to.throw('A_EXPECTING_DOMAIN');
     });
 
     describe('with array', function() {
 
       it('should return false if domain is empty', function() {
         expect(domain_isValue([])).to.equal(false);
-      });
-
-      it('should throw for invalid domains', function() {
-        expect(() => domain_isValue(specDomainCreateValue(undefined))).to.throw();
       });
 
       it('should be able to check without arg (but return false)', function() {
@@ -679,7 +679,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_removeValueNumbered(null, 15)).to.throw();
+      expect(() => domain_removeValueNumbered(null, 15)).to.throw('ONLY_USED_WITH_NUMBERS');
     });
 
     it('should throw for domains as arrays', function() {
@@ -724,7 +724,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_removeValue(null, 15)).to.throw();
+      expect(() => domain_removeValue(null, 15)).to.throw('EXPECTING_DOMAIN');
     });
 
     it('should throw for domains as numbers', function() {
@@ -774,7 +774,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_isSimplified()).to.throw();
+      expect(() => domain_isSimplified()).to.throw('A_EXPECTING_DOMAIN');
     });
 
     it('should throw for domains as numbers', function() {
@@ -796,7 +796,7 @@ describe('src/domain.spec', function() {
       });
 
       it('should reject domain with inverted range', function() {
-        expect(() => domain_isSimplified(specDomainCreateRange(91, 90))).to.throw();
+        expect(() => domain_isSimplified(specDomainCreateRange(91, 90))).to.throw('A_RANGES_SHOULD_ASCEND');
       });
     });
 
@@ -819,9 +819,9 @@ describe('src/domain.spec', function() {
       });
 
       it('should reject if at least one range is inverted', function() {
-        expect(() => domain_isSimplified(specDomainCreateRanges([915, 910], [940, 950], [955, 960]))).to.throw(); // start
-        expect(() => domain_isSimplified(specDomainCreateRanges([910, 915], [950, 940], [955, 960]))).to.throw(); // middle
-        expect(() => domain_isSimplified(specDomainCreateRanges([910, 915], [940, 950], [965, 960]))).to.throw(); // end
+        expect(() => domain_isSimplified(specDomainCreateRanges([915, 910], [940, 950], [955, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // start
+        expect(() => domain_isSimplified(specDomainCreateRanges([910, 915], [950, 940], [955, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // middle
+        expect(() => domain_isSimplified(specDomainCreateRanges([910, 915], [940, 950], [965, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // end
       });
     });
   });
@@ -968,9 +968,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require two domains', function() {
-      expect(() => domain_intersection()).to.throw();
-      expect(() => domain_intersection([])).to.throw();
-      expect(() => domain_intersection(null, [])).to.throw();
+      expect(() => domain_intersection()).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_intersection([])).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_intersection(null, [])).to.throw('A_EXPECTING_TWO_DOMAINS');
     });
 
     describe('with array', function() {
@@ -1277,7 +1277,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_complement()).to.throw();
+      expect(() => domain_complement()).to.throw('A_EXPECTING_A_DOMAIN');
     });
 
     describe('with array', function() {
@@ -1410,9 +1410,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should requires two domains', function() {
-      expect(() => domain_closeGapsInline()).to.throw();
-      expect(() => domain_closeGapsInline([])).to.throw();
-      expect(() => domain_closeGapsInline(undefined, [])).to.throw();
+      expect(() => domain_closeGapsInline()).to.throw('fixme');
+      expect(() => domain_closeGapsInline([])).to.throw('fixme');
+      expect(() => domain_closeGapsInline(undefined, [])).to.throw('fixme');
     });
 
     it('should accept empty domains', function() {
@@ -1497,9 +1497,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_plus()).to.throw();
-      expect(() => domain_plus([])).to.throw();
-      expect(() => domain_plus(null, [])).to.throw();
+      expect(() => domain_plus()).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_plus([])).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_plus(null, [])).to.throw('A_EXPECTING_TWO_DOMAINS');
     });
 
     it('should accept empty domains', function() {
@@ -1611,7 +1611,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(_ => domain_size()).to.throw();
+      expect(_ => domain_size()).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
+      expect(_ => domain_size([])).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
+      expect(_ => domain_size(0)).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
     });
 
     describe('with array', function() {
@@ -1659,9 +1661,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_mul()).to.throw();
-      expect(() => domain_mul([])).to.throw();
-      expect(() => domain_mul(null, [])).to.throw();
+      expect(() => domain_mul()).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_mul([])).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_mul(null, [])).to.throw('A_EXPECTING_TWO_DOMAINS');
     });
 
     it('should accept empty domains', function() {
@@ -1713,9 +1715,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_minus()).to.throw();
-      expect(() => domain_minus(specDomainCreateEmpty())).to.throw();
-      expect(() => domain_minus(null, specDomainCreateEmpty())).to.throw();
+      expect(() => domain_minus()).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_minus(specDomainCreateEmpty())).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_minus(null, specDomainCreateEmpty())).to.throw('A_EXPECTING_TWO_DOMAINS');
     });
 
     it('should accept empty domains', function() {
@@ -1770,9 +1772,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_divby()).to.throw();
-      expect(() => domain_divby(specDomainCreateEmpty())).to.throw();
-      expect(() => domain_divby(null, specDomainCreateEmpty())).to.throw();
+      expect(() => domain_divby()).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_divby(specDomainCreateEmpty())).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_divby(null, specDomainCreateEmpty())).to.throw('A_EXPECTING_TWO_DOMAINS');
     });
 
     it('should accept empty domains', function() {
@@ -2087,7 +2089,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should throw for emtpy domains', function() {
-      expect(() => domain_sortByRangeInline([])).to.throw();
+      expect(() => domain_sortByRangeInline([])).to.throw('A_DOMAIN_SHOULD_NOT_BE_EMPTY');
     });
 
     it('should return nothing', function() {

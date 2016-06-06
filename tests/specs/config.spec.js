@@ -233,19 +233,19 @@ describe('src/config.spec', function() {
     it('should throw if hi is missing', function() {
       let config = config_create();
 
-      expect(_ => config_addVarAnonRange(config, 15)).to.throw();
+      expect(_ => config_addVarAnonRange(config, 15)).to.throw('A_HI_MUST_BE_NUMBER');
     });
 
     it('should throw if lo is missing', function() {
       let config = config_create();
 
-      expect(_ => config_addVarAnonRange(config, undefined, 15)).to.throw();
+      expect(_ => config_addVarAnonRange(config, undefined, 15)).to.throw('A_LO_MUST_BE_NUMBER');
     });
 
     it('should throw if lo is an array', function() {
       let config = config_create();
 
-      expect(_ => config_addVarAnonRange(config, [15, 30], 15)).to.throw();
+      expect(_ => config_addVarAnonRange(config, [15, 30], 15)).to.throw('A_LO_MUST_BE_NUMBER');
     });
 
     describe('with array', function() {
@@ -288,19 +288,19 @@ describe('src/config.spec', function() {
     it('should throw for passing on undefined', function() {
       let config = config_create();
 
-      expect(_ => config_addVarConstant(config, 'A', undefined)).to.throw();
+      expect(_ => config_addVarConstant(config, 'A', undefined)).to.throw('A_VALUE_SHOULD_BE_NUMBER');
     });
 
     it('should throw for passing on an array', function() {
       let config = config_create();
 
-      expect(_ => config_addVarConstant(config, 'A', [10, 15])).to.throw();
+      expect(_ => config_addVarConstant(config, 'A', [10, 15])).to.throw('A_VALUE_SHOULD_BE_NUMBER');
     });
 
     it('should throw for passing on a string', function() {
       let config = config_create();
 
-      expect(_ => config_addVarConstant(config, 'A', '23')).to.throw();
+      expect(_ => config_addVarConstant(config, 'A', '23')).to.throw('A_VALUE_SHOULD_BE_NUMBER');
     });
 
     describe('with array', function() {
@@ -341,19 +341,19 @@ describe('src/config.spec', function() {
     it('should throw for passing on undefined', function() {
       let config = config_create();
 
-      expect(_ => config_addVarDomain(config, 'A', undefined)).to.throw();
+      expect(_ => config_addVarDomain(config, 'A', undefined)).to.throw('DOMAIN_MUST_BE_ARRAY_HERE');
     });
 
     it('should throw for passing on a string', function() {
       let config = config_create();
 
-      expect(_ => config_addVarDomain(config, 'A', '23')).to.throw();
+      expect(_ => config_addVarDomain(config, 'A', '23')).to.throw('DOMAIN_MUST_BE_ARRAY_HERE');
     });
 
     it('should throw for an extra param to prevent hi/lo mistakes', function() {
       let config = config_create();
 
-      expect(_ => config_addVarDomain(config, 'A', 12, 15)).to.throw();
+      expect(_ => config_addVarDomain(config, 'A', 12, 15)).to.throw('A_WRONG_API');
     });
 
     describe('with array', function() {
@@ -394,7 +394,7 @@ describe('src/config.spec', function() {
     it('should throw for missing the name', function() {
       let config = config_create();
 
-      expect(_ => config_addVarNothing(config)).to.throw();
+      expect(_ => config_addVarNothing(config)).to.throw('A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
     });
 
     it('should create a new var with max range', function() {
@@ -416,43 +416,43 @@ describe('src/config.spec', function() {
     it('should throw for passing on undefined', function() {
       let config = config_create();
 
-      expect(_ => config_addVarRange(config, 'A', undefined)).to.throw();
+      expect(_ => config_addVarRange(config, 'A', undefined)).to.throw('A_LO_MUST_BE_NUMBER');
     });
 
     it('should throw for passing on a string', function() {
       let config = config_create();
 
-      expect(_ => config_addVarRange(config, 'A', '23')).to.throw();
-    });
-
-    it('should throw for missing hi', function() {
-      let config = config_create();
-
-      expect(_ => config_addVarRange(config, 'A', 12, undefined)).to.throw();
-    });
-
-    it('should throw for bad hi', function() {
-      let config = config_create();
-
-      expect(_ => config_addVarRange(config, 'A', 12, '12')).to.throw();
+      expect(_ => config_addVarRange(config, 'A', '23')).to.throw('A_LO_MUST_BE_NUMBER');
     });
 
     it('should throw for missing lo', function() {
       let config = config_create();
 
-      expect(_ => config_addVarRange(config, 'A', undefined, 12)).to.throw();
+      expect(_ => config_addVarRange(config, 'A', undefined, 12)).to.throw('A_LO_MUST_BE_NUMBER');
+    });
+
+    it('should throw for missing hi', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', 12, undefined)).to.throw('A_HI_MUST_BE_NUMBER');
+    });
+
+    it('should throw for bad lo', function() {
+      let config = config_create();
+
+      expect(_ => config_addVarRange(config, 'A', '10', 12)).to.throw('A_LO_MUST_BE_NUMBER');
     });
 
     it('should throw for bad hi', function() {
       let config = config_create();
 
-      expect(_ => config_addVarRange(config, 'A', '10', 12)).to.throw();
+      expect(_ => config_addVarRange(config, 'A', 12, '12')).to.throw('A_HI_MUST_BE_NUMBER');
     });
 
     it('should throw if hi is lower than lo', function() {
       let config = config_create();
 
-      expect(_ => config_addVarRange(config, 'A', 12, 10)).to.throw();
+      expect(_ => config_addVarRange(config, 'A', 12, 10)).to.throw('A_RANGES_SHOULD_ASCEND');
     });
 
     describe('with array', function() {

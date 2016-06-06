@@ -57,6 +57,8 @@ function ASSERT(bool, msg = '', ...args) {
     return;
   }
 
+  if (!msg) msg = new Error('trace').stack;
+
   console.error(`Assertion fail: ${msg}`);
   if (args) {
     console.log('Error args:', args);

@@ -67,9 +67,10 @@ function domain_plus(domain1, domain2) {
 function _domain_plusArrArr(domain1, domain2, result) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
   ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
+
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
-  ASSERT(domain1 && domain2);
+  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
 
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the

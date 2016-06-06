@@ -105,7 +105,7 @@ describe('src/helpers.spec', function() {
     });
 
     it('should throw if you pass on false', function() {
-      expect(() => ASSERT(false)).to.throw();
+      expect(() => ASSERT(false)).to.throw('Assertion fail: ');
     });
   });
 

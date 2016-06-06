@@ -164,6 +164,7 @@ function domain_isValue(domain, value) {
     return domain === NUM_TO_FLAG[value];
   }
 
+  ASSERT(domain, 'A_EXPECTING_DOMAIN');
   ASSERT_DOMAIN(domain);
   return domain.length === PAIR_SIZE && domain[LO_BOUND] === value && domain[HI_BOUND] === value;
 }
@@ -294,8 +295,8 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
   let lo;
   for (let index = 0; index < list.length; index++) {
     let value = list[index];
-    ASSERT(value >= SUB, 'fd values range SUB~SUP');
-    ASSERT(value <= SUP, 'fd values range SUB~SUP');
+    ASSERT(value >= SUB, 'A_OOB_INDICATES_BUG');
+    ASSERT(value <= SUP, 'A_OOB_INDICATES_BUG');
     if (index === 0) {
       lo = value;
       hi = value;
@@ -386,6 +387,7 @@ function domain_toList(domain) {
     return a;
   }
 
+  ASSERT(domain, 'A_EXPECTING_DOMAIN');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   let list = [];
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
@@ -407,10 +409,12 @@ function domain_toList(domain) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_removeNextFromList(domain, list) {
+  ASSERT(list, 'A_EXPECTING_LIST');
+
   if (typeof domain === 'number') {
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
-      ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
+      ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
       let flag = NUM_TO_FLAG[value];
       if (value <= SMALL_MAX_NUM && (domain & flag) > 0) {
         return domain ^ flag; // the bit is set, this unsets it
@@ -419,10 +423,11 @@ function domain_removeNextFromList(domain, list) {
     return NO_SUCH_VALUE;
   }
 
+  ASSERT(domain, 'A_EXPECTING_DOMAIN');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
-    ASSERT(value >= SUB && value <= SUP, 'lists with oob values probably indicate a bug');
+    ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
     let index = domain_rangeIndexOf(domain, value);
     if (index >= 0) {
       return _domain_deepCloneWithoutValue(domain, value, index);
@@ -488,7 +493,7 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
   if (typeof domain === 'number') {
     for (let i = 0; i < list.length; ++i) {
       let value = list[i];
-      ASSERT(value >= SUB && value <= SUP, 'OOB values probably indicate a bug in the code', list);
+      ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
       if (value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0) return value;
     }
     return NO_SUCH_VALUE;
@@ -497,7 +502,7 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT_DOMAIN(domain);
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
-    ASSERT(value >= SUB && value <= SUP, 'OOB values probably indicate a bug in the code', list);
+    ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
     if (domain_containsValue(domain, value)) {
       return value;
     }
@@ -518,6 +523,7 @@ function domain_complement(domain) {
   // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
   domain = domain_toArr(domain);
 
+  ASSERT(domain, 'A_EXPECTING_A_DOMAIN');
   ASSERT_DOMAIN(domain); // should we reject for empty domains?
   if (!domain.length) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
 
@@ -559,13 +565,13 @@ function domain_simplifyInline(domain) {
 }
 
 /**
- * @param {$domain} domain
+ * @param {$domain_arr} domain
  */
 function domain_sortByRangeInline(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   let len = domain.length;
-  ASSERT(len > 0, 'input domain should not be empty', domain);
+  ASSERT(len > 0, 'A_DOMAIN_SHOULD_NOT_BE_EMPTY');
   if (len >= 4) {
     _domain_quickSortInline(domain, 0, domain.length - PAIR_SIZE);
   }
@@ -639,23 +645,24 @@ function _domain_swapRangeInline(domain, A, B) {
 function domain_isSimplified(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
+  ASSERT(domain, 'A_EXPECTING_DOMAIN');
   if (domain.length === PAIR_SIZE) {
-    ASSERT(domain[FIRST_RANGE_LO] >= SUB);
-    ASSERT(domain[FIRST_RANGE_HI] <= SUP);
-    ASSERT(domain[FIRST_RANGE_LO] <= domain[FIRST_RANGE_HI]);
+    ASSERT(domain[FIRST_RANGE_LO] >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
+    ASSERT(domain[FIRST_RANGE_HI] <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
+    ASSERT(domain[FIRST_RANGE_LO] <= domain[FIRST_RANGE_HI], 'A_RANGES_SHOULD_ASCEND');
     return true;
   }
   if (domain.length === 0) {
     return true;
   }
-  ASSERT((domain.length % PAIR_SIZE) === 0);
+  ASSERT((domain.length % PAIR_SIZE) === 0, 'A_SHOULD_BE_EVEN');
   let phi = SUB;
   for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
     let lo = domain[index];
     let hi = domain[index + 1];
-    ASSERT(lo >= SUB);
-    ASSERT(hi >= SUB);
-    ASSERT(lo <= hi, 'ranges should be ascending', domain);
+    ASSERT(lo >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
+    ASSERT(hi <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
+    ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
     // we need to simplify if the lo of the next range goes before or touches the hi of the previous range
     // TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
     //       this function could return the offset to continue at... or -1 to signal "true"
@@ -729,6 +736,7 @@ function domain_intersection(domain1, domain2) {
   // domains are both arrays
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
+  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
 
   let result = [];
   _domain_intersection(domain1, domain2, result);
@@ -1015,6 +1023,7 @@ function domain_closeGaps(domain1, domain2) {
 
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
+  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
 
   let change;
   do {
@@ -1056,7 +1065,7 @@ function domain_mul(domain1, domain2) {
 
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
-  ASSERT((domain1 != null) && (domain2 != null));
+  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
 
   let result = [];
   for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
@@ -1097,7 +1106,7 @@ function domain_divby(domain1, domain2, floorFractions = true) {
 
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
-  ASSERT((domain1 != null) && (domain2 != null), 'domain 1 and 2?', domain1, domain2);
+  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
 
   let result = [];
 
@@ -1150,10 +1159,11 @@ function domain_divby(domain1, domain2, floorFractions = true) {
  */
 function domain_size(domain) {
   if (typeof domain === 'number') {
+    ASSERT(domain, 'A_EXPECTING_NONE_EMPTY_DOMAINS');
     return domain_hammingWeight(domain);
   }
 
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT(domain && domain.length, 'A_EXPECTING_NONE_EMPTY_DOMAINS');
   let count = 0;
   for (let i = 0; i < domain.length; i += PAIR_SIZE) {
     let lo = domain[i];
@@ -1635,7 +1645,8 @@ function domain_removeValueNumbered(domain, value) {
  */
 function domain_removeValue(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof value === 'number', 'value should be a num', value);
+  ASSERT(domain, 'EXPECTING_DOMAIN');
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUM');
 
   for (let index = 0; index < domain.length; index += PAIR_SIZE) {
     let lo = domain[index];

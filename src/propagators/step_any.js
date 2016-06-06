@@ -58,7 +58,7 @@ function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
   let varIndex1 = propVarIndexes[0];
   let varIndex2 = propVarIndexes[1];
 
-  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'varIndex2 index should exist for most props', propagator);
+  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'SHOULD_HAVE_SECOND_VAR');
 
   switch (opName) {
     case 'reified':

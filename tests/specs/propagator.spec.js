@@ -72,7 +72,7 @@ describe('src/propagator.spec', function() {
 
       it('should throw if left and right vars are anonymous vars', function() {
         let config = config_create();
-        expect(_ => propagator_addReified(config, 'eq', 0, 0, 'C')).to.throw();
+        expect(_ => propagator_addReified(config, 'eq', 0, 0, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
 
@@ -146,7 +146,7 @@ describe('src/propagator.spec', function() {
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
-        expect(() => propagator_addEq(config, 0, 0)).to.throw();
+        expect(() => propagator_addEq(config, 0, 0)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
   });
@@ -174,7 +174,7 @@ describe('src/propagator.spec', function() {
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_addLt(config, 0, 0)).to.throw();
+        expect(() => propagator_addLt(config, 0, 0)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
   });
@@ -196,13 +196,13 @@ describe('src/propagator.spec', function() {
       it('should accept a number for var2', function() {
         let config = config_create();
 
-        expect(() => propagator_addLte(config, 'A', 0)).not.to.throw();
+        expect(() => propagator_addLte(config, 'A', 0)).not.to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
 
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_addLte(config, 0, 0)).to.throw();
+        expect(() => propagator_addLte(config, 0, 0)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
   });
@@ -230,7 +230,7 @@ describe('src/propagator.spec', function() {
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_addGt(config, 0, 0)).to.throw();
+        expect(() => propagator_addGt(config, 0, 0)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
   });
@@ -258,7 +258,7 @@ describe('src/propagator.spec', function() {
       it('should throw if both vars are anonymous numbers', function() {
         let config = config_create();
 
-        expect(() => propagator_addGte(config, 0, 0)).to.throw('must pass in at least one var name');
+        expect(() => propagator_addGte(config, 0, 0)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       });
     });
   });
@@ -291,7 +291,7 @@ describe('src/propagator.spec', function() {
     it('should throw if both values are numbers', function() {
       let config = config_create();
 
-      expect(_ => propagator_addRingPlusOrMul(config, 'x', 'y', 1, 2, 'C')).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addRingPlusOrMul(config, 'x', 'y', 1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should accept numbers for result', function() {
@@ -339,7 +339,7 @@ describe('src/propagator.spec', function() {
       expect(propagator_addSum(config, ['A', 2, 'C'])).to.be.a('string');
       expect(propagator_addSum(config, ['A', 'B', 3])).to.be.a('string');
       expect(propagator_addSum(config, [1, 'B', 3])).to.be.a('string'); // "safe"
-      expect(_ => propagator_addSum(config, [1, 3, 'B', 3])).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addSum(config, [1, 3, 'B', 3])).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should allow anonymous numbers in the list of vars', function() {
@@ -413,7 +413,7 @@ describe('src/propagator.spec', function() {
       expect(propagator_addProduct(config, ['A', 2, 'C'])).to.be.a('string');
       expect(propagator_addProduct(config, ['A', 'B', 3])).to.be.a('string');
       expect(propagator_addProduct(config, [1, 'B', 3])).to.be.a('string'); // "safe"
-      expect(_ => propagator_addProduct(config, [1, 3, 'B', 3])).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addProduct(config, [1, 3, 'B', 3])).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should allow anonymous numbers in the list of vars', function() {
@@ -487,7 +487,7 @@ describe('src/propagator.spec', function() {
     it('should throw if both values are numbers', function() {
       let config = config_create();
 
-      expect(_ => propagator_addMin(config, 1, 2, 'C')).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addMin(config, 1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should accept numbers for result', function() {
@@ -535,7 +535,7 @@ describe('src/propagator.spec', function() {
     it('should throw if both values are numbers', function() {
       let config = config_create();
 
-      expect(_ => propagator_addDiv(config, 1, 2, 'C')).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addDiv(config, 1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should accept numbers for result', function() {
@@ -583,7 +583,7 @@ describe('src/propagator.spec', function() {
     it('should throw if both values are numbers', function() {
       let config = config_create();
 
-      expect(_ => propagator_addMul(config, 1, 2, 'C')).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addMul(config, 1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
 
     it('should accept numbers for result', function() {
@@ -625,7 +625,7 @@ describe('src/propagator.spec', function() {
     it('should throw if both values are numbers', function() {
       let config = config_create();
 
-      expect(_ => propagator_addNeq(config, 1, 2)).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addNeq(config, 1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
   });
 
@@ -649,7 +649,7 @@ describe('src/propagator.spec', function() {
       expect(propagator_addDistinct(config, [1, 'B', 'C'])).to.eql(undefined);
       expect(propagator_addDistinct(config, ['A', 2, 'C'])).to.eql(undefined);
       expect(propagator_addDistinct(config, ['A', 'B', 3])).to.eql(undefined);
-      expect(_ => propagator_addDistinct(config, [1, 'B', 3])).to.throw('must pass in at least one var name');
+      expect(_ => propagator_addDistinct(config, [1, 'B', 3])).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
     });
   });
 });

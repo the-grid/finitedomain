@@ -116,8 +116,8 @@ function config_addVarNothing(config, varName) {
  */
 function config_addVarAnonRange(config, lo, hi) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
-  ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
+  ASSERT(typeof lo === 'number', 'A_LO_MUST_BE_NUMBER');
+  ASSERT(typeof hi === 'number', 'A_HI_MUST_BE_NUMBER');
 
   if (lo === hi) return config_addVarAnonConstant(config, lo);
 
@@ -132,10 +132,10 @@ function config_addVarAnonRange(config, lo, hi) {
  */
 function config_addVarRange(config, varName, lo, hi) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true');
-  ASSERT(typeof lo === 'number', 'lo value must be a number', lo);
-  ASSERT(typeof hi === 'number', 'hi value must be a number', hi);
-  ASSERT(lo <= hi, 'range should be lo<=hi', lo, hi);
+  ASSERT(typeof varName === 'string' || varName === true, 'A_VARNAME_SHOULD_BE_STRING_OR_TRUE');
+  ASSERT(typeof lo === 'number', 'A_LO_MUST_BE_NUMBER');
+  ASSERT(typeof hi === 'number', 'A_HI_MUST_BE_NUMBER');
+  ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
 
   let domain = domain_toArr(domain_createRange(lo, hi));
   return config_addVarDomain(config, varName, domain);
@@ -163,7 +163,7 @@ function config_addVarsWithDomain(config, varNames, domain) {
  * @returns {string}
  */
 function config_addVarDomain(config, varName, domain, _forbidden) {
-  ASSERT(_forbidden === undefined, 'WRONG_API');
+  ASSERT(_forbidden === undefined, 'A_WRONG_API');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
   return _config_addVar(config, varName, domain);
@@ -175,7 +175,7 @@ function config_addVarDomain(config, varName, domain, _forbidden) {
  */
 function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(typeof value === 'number', 'value should be a number', value);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
   if (config.constant_cache[value]) {
     return config.constant_cache[value];
@@ -192,7 +192,7 @@ function config_addVarAnonConstant(config, value) {
 function config_addVarConstant(config, varName, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
-  ASSERT(typeof value === 'number', 'value should be a number', value);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
   let domain = domain_toArr(domain_createRange(value, value));
 
@@ -209,7 +209,7 @@ function config_addVarConstant(config, varName, value) {
  */
 function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(varName && typeof varName === 'string' || varName === true, 'varName must be a non-empty string');
+  ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
   ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);

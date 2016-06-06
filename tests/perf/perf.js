@@ -1,20 +1,19 @@
 /*
 node from repl:
 
-./node_modules/.bin/babel-node
-
 var config = require('./tests/perf/gridsolver/config');
 var perf = require('./tests/perf/perf');
-perf(config, 50000);
+perf(config, 1);
 
 */
 
-var Solver = (typeof require === 'function') ? require(__dirname + '/../../src/solver').default : exports.default;
+// run this from any of the subdirs (`./composer/node.js`)
+var Solver = (typeof require === 'function') ? require(__dirname + '/../../dist/browser').default : exports.default;
 
 var perf = module.exports = function perf(config, max) {
 
   if (config.callbackTimeoutMax) {
-    let counter = config.callbackTimeoutMax;
+    var counter = config.callbackTimeoutMax;
     config.timeout_callback = function() {
       if (--counter < 0) {
         console.log('ABORTING');
@@ -22,9 +21,9 @@ var perf = module.exports = function perf(config, max) {
       }
       return false;
     };
-  };
+  }
 
-  let solver = new Solver({config});
+  var solver = new Solver({config: config});
   console.log('start profile');
   console.profile && console.profile('gridsolving');
   solver.solve({log: 1, max: max, vars: solver.config.all_var_names});

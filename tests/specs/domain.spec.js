@@ -1726,7 +1726,59 @@ describe('src/domain.spec', function() {
       let B = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
       let E = specDomainCreateRange(0, 117);
 
+      // ->
+      // [-1, 1, -12, -3, -117, -14, 3, 12, -8, 8, -113, -3, 14, 117, 3, 113, -102, 102]
+      // [0, 1, 3, 12, 0, 8, 14, 117, 3, 113, 0, 102]
+      // [0, 117]
+
       expect(domain_minus(A, B)).to.eql(E);
+    });
+
+    it('should not break zero zero shortcut arr', function() {
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let B = specDomainCreateRanges([0, 0], [3, 8], [15, 52]);
+      let E = specDomainCreateRange(0, 117);
+
+      // ->
+      // [-1, 1, -12, -3, -117, -14, 3, 12, -8, 8, -113, -3, 14, 117, 3, 113, -102, 102]
+      // [0, 1, 3, 12, 0, 8, 14, 117, 3, 113, 0, 102]
+      // [0, 117]
+
+      expect(domain_minus(A, B)).to.eql(E);
+    });
+
+    it('should not break zero zero shortcut arr num', function() {
+      let A = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let B = specDomainSmallNums(0, 3, 4, 5, 6, 7, 8, 15, 16, 17, 18, 19, 20, 21, 22);
+      let E = specDomainCreateRange(0, 117);
+
+      expect(domain_minus(A, B)).to.eql(E);
+    });
+
+    it('should not break zero zero shortcut num arr', function() {
+      let A = specDomainSmallNums(0, 3, 4, 5, 6, 7, 8, 15, 16, 17, 18, 19, 20, 21, 22);
+      let B = specDomainCreateRanges([0, 1], [4, 12], [15, 117]);
+      let E = specDomainSmallRange(0, 22);
+
+      expect(domain_minus(A, B)).to.eql(E);
+    });
+
+    it('should not break zero zero shortcut num', function() {
+      let A = specDomainSmallNums(0, 1, 4, 5, 6, 7, 10, 11, 12, 20, 20, 25, 26);
+      let B = specDomainSmallNums(0, 3, 4, 5, 6, 7, 8, 15, 22);
+      let E = specDomainSmallRange(0, 26);
+
+      expect(domain_minus(A, B)).to.eql(E);
+    });
+
+    it('should shortcut loop', function() {
+      for (let i = 0; i < SMALL_MAX_NUM; ++i) {
+        let A = specDomainSmallNums(0, i);
+        let B = specDomainSmallNums(0, SMALL_MAX_NUM);
+        let E = specDomainSmallRange(0, i);
+
+        expect(domain_minus(A, B), '0..' + i).to.eql(E);
+      }
     });
   });
 

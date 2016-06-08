@@ -2026,6 +2026,61 @@ function domain_createRange(lo, hi) {
   }
   return [lo, hi];
 }
+/**
+ * Return a small domain range [0, max(domain)]
+ * This is an optimization, using the small domain and
+ * comparing it against flags explicitly allows us to
+ * skip some trivial steps.
+ *
+ * @param {$domain_num} domain
+ * @returns {$domain_num}
+ */
+function domain_createRangeZeroToMax(domain) {
+  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
+  ASSERT(domain > EMPTY, 'CANNOT_BE_EMPTY');
+  ASSERT(domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
+
+  // we often deal with domains [0, 0], [0, 1], and [1, 1]
+  if (domain === ZERO) return ZERO;
+  if (domain === ONE) return BOOL;
+  if (domain === BOOL) return BOOL;
+
+  // TODO: probably want to do a quick lt branch here...
+
+  // max cant be 0 or 1 at this point; we already checked those valid cases above
+  // note: minifier should optimize these constants to a single number
+  if (domain < THREE) return BOOL | TWO;
+  if (domain < FOUR) return BOOL | TWO | THREE;
+  if (domain < FIVE) return BOOL | TWO | THREE | FOUR;
+  if (domain < SIX) return BOOL | TWO | THREE | FOUR | FIVE;
+  if (domain < SEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX;
+  if (domain < EIGHT) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN;
+  if (domain < NINE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT;
+  if (domain < TEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE;
+  if (domain < ELEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN;
+  if (domain < TWELVE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN;
+  if (domain < THIRTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE;
+  if (domain < FOURTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN;
+  if (domain < FIFTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN;
+  if (domain < SIXTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN;
+  if (domain < SEVENTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN;
+  if (domain < EIGHTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN;
+  if (domain < NINETEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN;
+  if (domain < TWENTY) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN;
+  if (domain < TWENTYONE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY;
+  if (domain < TWENTYTWO) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE;
+  if (domain < TWENTYTHREE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO;
+  if (domain < TWENTYFOUR) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE;
+  if (domain < TWENTYFIVE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR;
+  if (domain < TWENTYSIX) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE;
+  if (domain < TWENTYSEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX;
+  if (domain < TWENTYEIGHT) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN;
+  if (domain < TWENTYNINE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT;
+  if (domain < THIRTY) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE;
+  ASSERT(domain & THIRTY, 'SHOULD_BE_30');
+  return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE | THIRTY;
+}
 
 /**
  * @param {$domain} domain
@@ -2325,6 +2380,7 @@ export {
   domain_containsValueArr,
   domain_containsValueNum,
   domain_createRange,
+  domain_createRangeZeroToMax,
   domain_createValue,
   domain_divby,
   domain_isEqual,

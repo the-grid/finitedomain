@@ -4,10 +4,13 @@
 // bloated. However, since it saves significant we do it
 // anyways.
 
-// Conceptually: range1-range2 = [lo1-hi2, hi1-lo2]
+// Conceptually: range1-range2 = [max(0, lo1-hi2), max(0, hi1-lo2)]
 // [5, 10] - [20, 30]
 // [5-30, 30-5] -> [-25, 25] --> [0, 25]
 
+// optimization shortcut: if both domains contain a zero the result
+// is [0, max(domain1)] because we drop negative numbers;
+// [lo1 - hi2, hi1 - lo2] -> [0 - hi2, hi1 - 0] -> [0, hi1]
 
 import {
   EMPTY,
@@ -29,6 +32,8 @@ import {
 
   domain_addRangeNum,
   domain_closeGapsArr,
+  domain_createRange,
+  domain_createRangeZeroToMax,
   domain_max,
   domain_min,
   domain_simplifyInlineArr,
@@ -55,20 +60,27 @@ function domain_minus(domain1, domain2) {
     return _domain_minusNumArrNum(domain1, domain2);
   }
 
-  let result = [];
-  if (isNum2) _domain_minusArrNum(domain1, domain2, result); // cannot swap minus args!
-  else _domain_minusArrArr(domain1, domain2, result);
+  let result;
+  if (isNum2) result = _domain_minusArrNum(domain1, domain2); // cannot swap minus args!
+  else result = _domain_minusArrArr(domain1, domain2);
 
   domain_simplifyInlineArr(result);
 
   return result;
 }
-function _domain_minusArrArr(domain1, domain2, result) {
+function _domain_minusArrArr(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
   ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
   ASSERT_DOMAIN(domain1);
   ASSERT_DOMAIN(domain2);
   ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
+
+  // optimize an easy path: if both domains contain zero the
+  // result will always be [0, max(domain1)], because:
+  // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
+  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
+    return domain_createRange(0, domain_max(domain1));
+  }
 
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
@@ -77,9 +89,12 @@ function _domain_minusArrArr(domain1, domain2, result) {
   domain1 = domains[0];
   domain2 = domains[1];
 
+  let result = [];
   for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
     _domain_minusRangeArr(domain1[index], domain1[index + 1], domain2, result);
   }
+
+  return result;
 }
 function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
@@ -92,6 +107,11 @@ function _domain_minusNumNumNum(domain1, domain2) {
   let hi = -1;
 
   if (ZERO & domain1) {
+    if (ZERO & domain2) {
+      // special case: return [min(domain1),max(domain1)]
+      // and we already know min is 0... :)
+      return domain_createRangeZeroToMax(domain1);
+    }
     lo = 0;
     hi = 0;
   }
@@ -148,6 +168,11 @@ function _domain_minusNumArrNum(domain1, domain2) {
   let hi = -1;
 
   if (ZERO & domain1) {
+    if (domain_min(domain2) === 0) {
+      // special case: return [min(domain1),max(domain1)]
+      // and we already know min is 0... :)
+      return domain_createRangeZeroToMax(domain1);
+    }
     lo = 0;
     hi = 0;
   }
@@ -246,14 +271,24 @@ function _domain_minusRangeNumNum(loi, hii, domain, result) {
   }
   return _domain_minusRangeRangeNum(loi, hii, lo, hi, result);
 }
-function _domain_minusArrNum(domain1, domain2, result) {
+function _domain_minusArrNum(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain1);
 
+  // optimize an easy path: if both domains contain zero the
+  // result will always be [0, max(domain1)], because:
+  // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
+  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
+    return domain_createRange(0, domain_max(domain1));
+  }
+
+  let result = [];
   for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
     _domain_minusRangeNum(domain1[index], domain1[index + 1], domain2, result);
   }
+
+  return result;
 }
 function _domain_minusRangeNum(loi, hii, domain, result) {
   ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');

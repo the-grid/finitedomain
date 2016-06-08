@@ -83,7 +83,7 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
     if (newDomain !== domain2) {
       space.vardoms[varIndex2] = newDomain;
       if (domain_isRejected(domain2)) { // TODO: there is no test covering this
-        leftChanged = REJECTED;
+        rightChanged = REJECTED; // TODO: add a test that throws if this was assigning to leftChanged instead (that used to be the case without any bells going off)
       } else {
         rightChanged = SOME_CHANGES;
       }

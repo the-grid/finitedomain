@@ -2041,15 +2041,8 @@ function domain_createRangeZeroToMax(domain) {
   ASSERT(domain > EMPTY, 'CANNOT_BE_EMPTY');
   ASSERT(domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
 
-  // we often deal with domains [0, 0], [0, 1], and [1, 1]
   if (domain === ZERO) return ZERO;
-  if (domain === ONE) return BOOL;
-  if (domain === BOOL) return BOOL;
-
-  // TODO: probably want to do a quick lt branch here...
-
-  // max cant be 0 or 1 at this point; we already checked those valid cases above
-  // note: minifier should optimize these constants to a single number
+  if (domain < TWO) return BOOL;
   if (domain < THREE) return BOOL | TWO;
   if (domain < FOUR) return BOOL | TWO | THREE;
   if (domain < FIVE) return BOOL | TWO | THREE | FOUR;

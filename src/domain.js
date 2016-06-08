@@ -1521,37 +1521,37 @@ function domain_maxNum(domain) {
 
   // TODO: probably want to do a quick lt branch here...
 
-  if (domain & THIRTY) return 30;
-  if (domain & TWENTYNINE) return 29;
-  if (domain & TWENTYEIGHT) return 28;
-  if (domain & TWENTYSEVEN) return 27;
-  if (domain & TWENTYSIX) return 26;
-  if (domain & TWENTYFIVE) return 25;
-  if (domain & TWENTYFOUR) return 24;
-  if (domain & TWENTYTHREE) return 23;
-  if (domain & TWENTYTWO) return 22;
-  if (domain & TWENTYONE) return 21;
-  if (domain & TWENTY) return 20;
-  if (domain & NINETEEN) return 19;
-  if (domain & EIGHTEEN) return 18;
-  if (domain & SEVENTEEN) return 17;
-  if (domain & SIXTEEN) return 16;
-  if (domain & FIFTEEN) return 15;
-  if (domain & FOURTEEN) return 14;
-  if (domain & THIRTEEN) return 13;
-  if (domain & TWELVE) return 12;
-  if (domain & ELEVEN) return 11;
-  if (domain & TEN) return 10;
-  if (domain & NINE) return 9;
-  if (domain & EIGHT) return 8;
-  if (domain & SEVEN) return 7;
-  if (domain & SIX) return 6;
-  if (domain & FIVE) return 5;
-  if (domain & FOUR) return 4;
-  if (domain & THREE) return 3;
-  ASSERT(domain & TWO, 'A_MUST_BE_TWO'); // cant be empty, already checked zero one and bool above. so must contain 2.
-  ASSERT(SMALL_MAX_NUM === 30, 'SMALL_DOMAIN_MAX_IS_HARDCODED'); // I don't see us raising this limit any time soon, anyways
-  return 2;
+  // max cant be 0 or 1 at this point; we already checked those valid cases above
+  if (domain < THREE) return 2;
+  if (domain < FOUR) return 3;
+  if (domain < FIVE) return 4;
+  if (domain < SIX) return 5;
+  if (domain < SEVEN) return 6;
+  if (domain < EIGHT) return 7;
+  if (domain < NINE) return 8;
+  if (domain < TEN) return 9;
+  if (domain < ELEVEN) return 10;
+  if (domain < TWELVE) return 11;
+  if (domain < THIRTEEN) return 12;
+  if (domain < FOURTEEN) return 13;
+  if (domain < FIFTEEN) return 14;
+  if (domain < SIXTEEN) return 15;
+  if (domain < SEVENTEEN) return 16;
+  if (domain < EIGHTEEN) return 17;
+  if (domain < NINETEEN) return 18;
+  if (domain < TWENTY) return 19;
+  if (domain < TWENTYONE) return 20;
+  if (domain < TWENTYTWO) return 21;
+  if (domain < TWENTYTHREE) return 22;
+  if (domain < TWENTYFOUR) return 23;
+  if (domain < TWENTYFIVE) return 24;
+  if (domain < TWENTYSIX) return 25;
+  if (domain < TWENTYSEVEN) return 26;
+  if (domain < TWENTYEIGHT) return 27;
+  if (domain < TWENTYNINE) return 28;
+  if (domain < THIRTY) return 29;
+  ASSERT(domain & THIRTY, 'SHOULD_BE_30');
+  return 30;
 }
 /**
  * Returns highest value in domain

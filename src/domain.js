@@ -1961,12 +1961,8 @@ function domain_sharesNoElements(domain1, domain2) {
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1 && isNum2) return domain_sharesNoElementsNumNum(domain1, domain2);
-
-  // for simplicity sake, convert them back to arrays
-  if (isNum1) domain1 = domain_fromFlagsNum(domain1);
-  if (isNum2) domain2 = domain_fromFlagsNum(domain2);
-  // TOFIX: implement domain_sharesNoElementsArrNum
-
+  if (isNum1) return domain_sharesNoElementsNumArr(domain1, domain2);
+  if (isNum2) return domain_sharesNoElementsNumArr(domain2, domain1);
   return domain_sharesNoElementsArrArr(domain1, domain2);
 }
 /**
@@ -1984,17 +1980,37 @@ function domain_sharesNoElementsNumNum(domain1, domain2) {
  * Check if every element in one domain not
  * occur in the other domain and vice versa
  *
+ * @param {$domain_num} domain1
+ * @param {$domain_arr} domain2
+ * @returns {boolean}
+ */
+function domain_sharesNoElementsNumArr(domain1, domain2) {
+  let index = 0;
+  while (index < domain2.length) {
+    let lo = domain2[index + LO_BOUND];
+    let hi = domain2[index + HI_BOUND];
+    for (let i = lo, j = Math.min(hi, SMALL_MAX_NUM); i <= j; ++i) { // TODO: add test that confirms <= not <
+      if (domain1 & NUM_TO_FLAG[i]) return false;
+    }
+    index += PAIR_SIZE;
+  }
+  return true;
+}
+/**
+ * Check if every element in one domain not
+ * occur in the other domain and vice versa
+ *
  * @param {$domain_arr} domain1
  * @param {$domain_arr} domain2
  * @returns {boolean}
  */
 function domain_sharesNoElementsArrArr(domain1, domain2) {
   for (let i = 0; i < domain1.length; i += PAIR_SIZE) {
-    let lo = domain1[i];
-    let hi = domain1[i + 1];
+    let lo = domain1[i + LO_BOUND];
+    let hi = domain1[i + HI_BOUND];
     for (let j = 0; j < domain2.length; j += PAIR_SIZE) {
       // if range A is not before or after range B there is overlap
-      if (hi >= domain2[j] && lo <= domain2[j + 1]) {
+      if (hi >= domain2[j + LO_BOUND] && lo <= domain2[j + HI_BOUND]) {
         // if there is overlap both domains share at least one element
         return false;
       }

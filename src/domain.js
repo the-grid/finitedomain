@@ -1601,26 +1601,6 @@ function domain_isSolvedArr(domain) {
 
 /**
  * A domain is "determined" if it's either one value (solved) or none at all (rejected)
- *
- * @param {$domain} domain
- * @returns {boolean}
- */
-function domain_isDetermined(domain) {
-  if (typeof domain === 'number') {
-    // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
-    return (domain & (domain - 1)) === 0 || domain === EMPTY;
-  }
-
-  ASSERT_DOMAIN(domain);
-  let len = domain.length;
-  if (len === 0) {
-    return true;
-  }
-  return len === PAIR_SIZE && _domain_firstRangeIsDeterminedArr(domain);
-}
-
-/**
- * A domain is "determined" if it's either one value (solved) or none at all (rejected)
  * This is the most called function of the library. 3x more than the number two.
  *
  * @param {$domain} domain
@@ -2356,7 +2336,6 @@ export {
   domain_getValueNum,
   domain_getValueOfFirstContainedValueInList,
   domain_intersection,
-  domain_isDetermined,
   domain_isRejected,
   domain_isSolved,
   domain_isUndetermined,

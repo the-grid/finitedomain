@@ -66,10 +66,10 @@ import {
   domain_getValue,
   domain_getValueOfFirstContainedValueInList,
   domain_intersection,
-  domain_isDetermined,
   domain_isRejected,
   domain_isSimplified,
   domain_isSolved,
+  domain_isUndetermined,
   domain_isValue,
   domain_max,
   _domain_mergeOverlappingInline,
@@ -1975,75 +1975,75 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_isDetermined', function() {
+  describe('domain_isUndetermined', function() {
 
     it('should exist', function() {
-      expect(domain_isDetermined).to.be.a('function');
+      expect(domain_isUndetermined).to.be.a('function');
     });
 
     describe('with array', function() {
 
-      it('should return true if a domain is empty', function() {
-        expect(domain_isDetermined([])).to.equal(true);
+      it('should return false if a domain is empty', function() {
+        expect(domain_isUndetermined([])).to.equal(false);
       });
 
-      it('should return true if a domain covers exactly one value', function() {
-        expect(domain_isDetermined(specDomainCreateValue(SUP - 1))).to.equal(true);
-        expect(domain_isDetermined(specDomainCreateValue(SUP - 18))).to.equal(true);
-        expect(domain_isDetermined(specDomainCreateValue(SUP))).to.equal(true);
+      it('should return false if a domain covers exactly one value', function() {
+        expect(domain_isUndetermined(specDomainCreateValue(SUP - 1))).to.equal(false);
+        expect(domain_isUndetermined(specDomainCreateValue(SUP - 18))).to.equal(false);
+        expect(domain_isUndetermined(specDomainCreateValue(SUP))).to.equal(false);
       });
 
-      it('should return false if a domain covers more than one value', function() {
-        expect(domain_isDetermined(specDomainCreateRange(SUP - 1, SUP))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRange(SUP - 20, SUP - 18))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRange(50, SUP))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRange(0, SUP))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRanges([SUP - 10, SUP - 5], [SUP - 1, SUP]))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(false);
-        expect(domain_isDetermined(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+      it('should return true if a domain covers more than one value', function() {
+        expect(domain_isUndetermined(specDomainCreateRange(SUP - 1, SUP))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRange(SUP - 20, SUP - 18))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRange(50, SUP))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRange(0, SUP))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRanges([SUP - 10, SUP - 5], [SUP - 1, SUP]))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRanges([0, 1], [5, SUP]))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRanges([5, 8], [50, SUP]))).to.equal(true);
+        expect(domain_isUndetermined(specDomainCreateRanges([5, 8], [23, 34], [50, SUP]))).to.equal(true);
       });
     });
 
     describe('with numbers', function() {
 
       it('should accept single values for each valid value', function() {
-        expect(domain_isDetermined(specDomainSmallNums(0))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(1))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(2))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(3))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(4))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(5))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(6))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(7))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(8))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(9))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(10))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(11))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(12))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(13))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(14))).to.equal(true);
-        expect(domain_isDetermined(specDomainSmallNums(15))).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallNums(0))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(1))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(2))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(3))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(4))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(5))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(6))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(7))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(8))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(9))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(10))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(11))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(12))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(13))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(14))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(15))).to.equal(false);
       });
 
       it('should see double values', function() {
-        expect(domain_isDetermined(specDomainSmallNums(0, 1))).to.equal(false);
-        expect(domain_isDetermined(specDomainSmallNums(0, 10))).to.equal(false);
-        expect(domain_isDetermined(specDomainSmallNums(0, 15))).to.equal(false);
-        expect(domain_isDetermined(specDomainSmallNums(10, 15))).to.equal(false);
-        expect(domain_isDetermined(specDomainSmallNums(4, 6))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(0, 1))).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallNums(0, 10))).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallNums(0, 15))).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallNums(10, 15))).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallNums(4, 6))).to.equal(true);
       });
 
       it('should see multiple values', function() {
-        expect(domain_isDetermined(specDomainSmallNums(2, 5, 7, 9, 11, 12))).to.equal(false);
+        expect(domain_isUndetermined(specDomainSmallNums(2, 5, 7, 9, 11, 12))).to.equal(true);
       });
 
-      it('should return false for entire range', function() {
-        expect(domain_isDetermined(specDomainSmallRange(0, 15))).to.equal(false);
+      it('should return true for entire range', function() {
+        expect(domain_isUndetermined(specDomainSmallRange(0, 15))).to.equal(true);
       });
 
       it('should return false for empty', function() {
-        expect(domain_isDetermined(specDomainSmallEmpty())).to.equal(true);
+        expect(domain_isUndetermined(specDomainSmallEmpty())).to.equal(false);
       });
     });
   });

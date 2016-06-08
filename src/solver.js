@@ -855,14 +855,12 @@ function solver_runLoop(state, searchFunc, max, solutions, log, squash) {
  * @param {boolean} squash
  */
 function solver_handleSolution(state, solutions, log, squash) {
-  if (state.status !== 'end') {
-    if (!squash) {
-      let solution = space_solution(state.space);
-      solutions.push(solution);
-      if (log >= LOG_SOLVES) {
-        console.log('      - FD solution() ::::::::::::::::::::::::::::');
-        console.log(JSON.stringify(solution));
-      }
+  if (!squash) {
+    let solution = space_solution(state.space);
+    solutions.push(solution);
+    if (log >= LOG_SOLVES) {
+      console.log('      - FD solution() ::::::::::::::::::::::::::::');
+      console.log(JSON.stringify(solution));
     }
   }
 }

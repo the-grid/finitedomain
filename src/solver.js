@@ -655,24 +655,23 @@ class Solver {
     ASSERT(this._prepared, 'must run #prepare before #run');
     this._prepared = false;
 
-    let solutions = this.solutions;
-    ASSERT(solutions instanceof Array);
-
     let state = this.state;
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Solver Var Count: ${this.state.space.config.all_var_names.length}`);
-      console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
-      console.time('      - FD Solver Time');
+      console.log(`      - FD Var Count: ${this.state.space.config.all_var_names.length}`);
+      console.log(`      - FD Propagator Count: ${this.state.space.config.propagators.length}`);
+      console.time('      - FD Solving Time');
     }
 
-    let count = solver_runLoop(state, searchFunc, max, solutions, log, squash);
+    let solvedSpaces = solver_runLoop(state, searchFunc, max);
 
     if (log >= LOG_STATS) {
-      console.timeEnd('      - FD Solver Time');
-      console.log(`      - FD solution count: ${count}`);
+      console.timeEnd('      - FD Solving Time');
+      console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
+
+    if (!squash) solver_getSolutions(solvedSpaces, this.solutions, log);
   }
 
   /**
@@ -829,40 +828,17 @@ function getInspector() {
  * @param {Object} state
  * @param {Function} searchFunc
  * @param {number} max Stop after finding this many solutions
- * @param {Object[]} solutions All solutions are pushed into this array
- * @param {number} log LOG constant
- * @param {boolean} squash Suppress creating solutions? For testing perf.
- * @returns {number} Number of solutions found (could be bound by max)
+ * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, searchFunc, max, solutions, log, squash) {
-  let count = 0;
-  while (state.more && count < max) {
+function solver_runLoop(state, searchFunc, max) {
+  let list = [];
+  while (state.more && list.length < max) {
     searchFunc(state);
     if (state.status !== 'end') {
-      count++;
-      solver_handleSolution(state, solutions, log, squash);
+      list.push(state.space);
     }
   }
-  return count;
-}
-
-/**
- * When the search finds a solution, store and log it
- *
- * @param {Object} state
- * @param {Object[]} solutions
- * @param {number} log
- * @param {boolean} squash
- */
-function solver_handleSolution(state, solutions, log, squash) {
-  if (!squash) {
-    let solution = space_solution(state.space);
-    solutions.push(solution);
-    if (log >= LOG_SOLVES) {
-      console.log('      - FD solution() ::::::::::::::::::::::::::::');
-      console.log(JSON.stringify(solution));
-    }
-  }
+  return list;
 }
 
 /**
@@ -1009,6 +985,25 @@ function solver_tryToFixLegacyDomain(domain) {
   }
   return fixed;
 }
+
+function solver_getSolutions(solvedSpaces, solutions, log) {
+  ASSERT(solutions instanceof Array);
+  if (log >= LOG_STATS) {
+    console.time('      - FD Solution Time');
+  }
+  for (let i = 0; i < solvedSpaces.length; ++i) {
+    let solution = space_solution(solvedSpaces[i]);
+    solutions.push(solution);
+    if (log >= LOG_SOLVES) {
+      console.log('      - FD solution() ::::::::::::::::::::::::::::');
+      console.log(JSON.stringify(solution));
+    }
+  }
+  if (log >= LOG_STATS) {
+    console.timeEnd('      - FD Solution Time');
+  }
+}
+
 
 // BODY_STOP
 

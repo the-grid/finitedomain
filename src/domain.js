@@ -2266,8 +2266,8 @@ function domain_addRangeNum(domain, from, to) {
  * @returns {$fd_changeState}
  */
 function domain_getChangeState(newDom, oldDom) {
-  if (domain_isRejected(newDom)) return REJECTED;
   if (domain_isEqual(newDom, oldDom)) return NO_CHANGES;
+  if (domain_isRejected(newDom)) return REJECTED;
   return SOME_CHANGES;
 }
 

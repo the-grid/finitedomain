@@ -835,6 +835,8 @@ function domain_isSimplified(domain) {
  * @returns {$domain}
  */
 function domain_intersection(domain1, domain2) {
+  ASSERT(domain1 || domain1 === EMPTY && domain2 || domain2 === EMPTY, 'A_EXPECTING_TWO_DOMAINS');
+  if (domain1 === domain2) return domain1;
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1 && isNum2) return domain1 & domain2;

@@ -13,6 +13,10 @@ import {
   THROW,
 } from './helpers';
 import {
+  PROP_VAR_INDEXES,
+} from './propagator';
+import {
+  LO_BOUND,
   NOT_FOUND,
   SMALL_MAX_FLAG,
 
@@ -50,7 +54,9 @@ function config_create() {
 
     // like a blue print for the root space with just primitives/arrays
     initial_vars: {},
-    propagators: [],
+    propagatorsOnName: [],
+    propagatorsOnIndex: [], // initialized later
+    varToProps: [], // initialized later
   };
 }
 
@@ -68,7 +74,9 @@ function config_clone(config, newVars) {
     constant_cache,
     all_var_names,
     initial_vars,
-    propagators,
+    propagatorsOnName,
+    propagatorsOnIndex,
+    varToProps,
   } = config;
 
   return {
@@ -87,7 +95,10 @@ function config_clone(config, newVars) {
     all_var_names: all_var_names.slice(0),
 
     initial_vars: newVars || initial_vars,
-    propagators: propagators.slice(0), // is it okay to share them by ref? i think so...
+    propagatorsOnName: propagatorsOnName.slice(0), // is it okay to share them by ref? i think so...
+    propagatorsOnIndex: propagatorsOnIndex.slice(0), // in case it is initialized
+
+    varToProps: varToProps.slice(0), // inited elsewhere
   };
 }
 
@@ -212,7 +223,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
   ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[0] >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= SMALL_MAX_FLAG), 'domain as value should be within small domain range', domain);
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
@@ -300,21 +311,21 @@ function config_setOptions(config, options) {
  */
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  config.propagators.push(propagator);
+  config.propagatorsOnName.push(propagator);
 }
 
 // TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.
 function config_getUnknownVars(config) {
   let varNames = [];
-  for (let i = 0; i < config.propagators.length; i++) {
-    let p = config.propagators[i];
+  for (let i = 0; i < config.propagatorsOnName.length; i++) {
+    let propagator = config.propagatorsOnName[i];
 
-    let varName = p[1][0];
+    let varName = propagator[PROP_VAR_INDEXES][0];
     if (!config.initial_vars[varName] && varNames.indexOf(varName) < 0) {
       varNames.push(varName);
     }
 
-    varName = p[1][1];
+    varName = propagator[1][1];
     if (!config.initial_vars[varName] && varNames.indexOf(varName) < 0) {
       varNames.push(varName);
     }
@@ -386,6 +397,23 @@ function config_initConfigsAndFallbacks(config) {
   }
 }
 
+/**
+ * @param {$config} config
+ */
+function config_populateVarPropHash(config) {
+  let hash = new Array(config.all_var_names.length);
+  let propagatorsOnName = config.propagatorsOnName;
+  for (let propIndex = 0, plen = propagatorsOnName.length; propIndex < plen; ++propIndex) {
+    let pvars = propagatorsOnName[propIndex][1];
+    for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
+      let varIndex = config.all_var_names.indexOf(pvars[propVarIndex]);
+      if (!hash[varIndex]) hash[varIndex] = [propIndex];
+      else if (hash[varIndex].indexOf(propIndex) < 0) hash[varIndex].push(propIndex);
+    }
+  }
+  config.varToProps = hash;
+}
+
 // BODY_STOP
 
 export {
@@ -402,6 +430,7 @@ export {
   config_create,
   config_generateVars,
   config_getUnknownVars,
+  config_populateVarPropHash,
   config_setDefaults,
   config_setOptions,
 

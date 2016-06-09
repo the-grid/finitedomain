@@ -29034,7 +29034,7 @@ var config = module.exports = {
     'verse-val($item-capacity)&col=16&count=20': [0, 0, 1, 1],
     'verse-val($item-capacity)&col=16&count=21': [0, 0, 1, 1]
   },
-  propagators: [['eq', ['_ROOT_BRANCH_', '0']],
+  propagatorsOnName: [['eq', ['_ROOT_BRANCH_', '0']],
     ['lte', ['0', 'SECTION']],
     ['lte', ['0', 'ITEM']],
     ['lte', ['0', 'COMPONENT']],

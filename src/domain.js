@@ -1635,7 +1635,7 @@ function domain_isUndeterminedNum(domain) {
 function domain_isUndeterminedArr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   // it's probably an error if the domain is empty so make that the last check
-  return domain.length > 2 || domain[0] !== domain[1] && domain.length > 0;
+  return domain.length > PAIR_SIZE || (domain[LO_BOUND] !== domain[HI_BOUND] && domain.length > 0);
 }
 
 /**
@@ -1841,7 +1841,7 @@ function domain_removeLteArr(domain, value) {
       if (i === len) return EMPTY;
       let newDomain = domain.slice(i);
       let newLen = len - i;
-      newDomain[0] = value + 1;
+      newDomain[LO_BOUND] = value + 1;
       if (newDomain[newLen - 1] <= SMALL_MAX_NUM) return domain_numarrChecked(newDomain, newLen);
       return newDomain;
     }

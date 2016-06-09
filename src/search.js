@@ -118,6 +118,7 @@ function search_defaultSpaceFactory(space) {
       let nextDomain = distribute_getNextDomainForVar(space, varIndex);
       if (nextDomain) {
         let clone = space_createClone(space);
+        clone.updatedVarIndex = varIndex;
         clone.vardoms[varIndex] = nextDomain;
         return clone;
       }

@@ -8271,7 +8271,7 @@ var config = module.exports = {
     'verse-val($size)&col=19&count=2': [0, 0, 2, 2],
     'verse-val($size)&col=19&count=3': [0, 0, 1, 1]
   },
-  propagators: [['eq', ['_ROOT_BRANCH_', '0']],
+  propagatorsOnName: [['eq', ['_ROOT_BRANCH_', '0']],
     ['lte', ['0', 'SECTION']],
     ['lte', ['0', 'VERSE_INDEX']],
     ['lte', ['0', 'ITEM_INDEX']],

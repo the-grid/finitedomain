@@ -226,7 +226,7 @@ var config = module.exports = {
     'COMPONENT_START&n=8': [0, 1],
     'COMPONENT_END&n=8': [0, 1]
   },
-  propagators: [['eq', ['_ROOT_BRANCH_', '1']],
+  propagatorsOnName: [['eq', ['_ROOT_BRANCH_', '1']],
     ['lte', ['1', 'SECTION']],
     ['lte', ['1', 'ITEM']],
     ['lte', ['1', 'COMPONENT']],

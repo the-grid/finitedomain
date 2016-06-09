@@ -12,6 +12,7 @@ import {
   config_clone,
   config_create,
   config_generateVars,
+  config_populateVarPropHash,
 } from './config';
 
 import {
@@ -158,9 +159,10 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     vardoms,
     unsolvedVarIndexes,
-    unsolvedPropagators, // by references from space.config.propagators
+    unsolvedPropagators, // "on index". root space has same reference as config.configBYIndex. elements also shares reference.
 
     next_distribution_choice: 0,
+    updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
   };
 
   // search graph metrics
@@ -181,10 +183,13 @@ function space_initFromConfig(space) {
   ASSERT(config, 'should have a config');
 
   config_generateVars(config, space);
+  config_populateVarPropHash(config);
 
   // propagators are immutable so share by reference
-  for (let i = 0; i < config.propagators.length; i++) {
-    let propagator = config.propagators[i];
+  let propsOnName = config.propagatorsOnName;
+  let propsOnIndex = [];
+  for (let i = 0; i < propsOnName.length; i++) {
+    let propagator = config.propagatorsOnName[i];
     let copy = propagator.slice(0);
 
     // update the propagator with indexes of the vars.
@@ -196,8 +201,10 @@ function space_initFromConfig(space) {
     }
     copy[PROP_VAR_INDEXES] = indexes; // dont affect the original! only the (deep) clone
 
-    space.unsolvedPropagators.push(copy);
+    propsOnIndex.push(copy);
   }
+  config.propagatorsOnIndex = propsOnIndex;
+  space.unsolvedPropagators = propsOnIndex;
 }
 
 /**
@@ -211,30 +218,83 @@ function space_propagate(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let unsolvedPropagators = space.unsolvedPropagators;
 
-  let changed;
-  do {
-    changed = false;
-    for (let i = 0; i < unsolvedPropagators.length; i++) {
-      let propDetails = unsolvedPropagators[i];
-      let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+  let changedVars;
+  if (space.updatedVarIndex >= 0) {
+    changedVars = [space.updatedVarIndex];
+  } else {
+    // very first run of the search. all propagators must be visited at least once now.
+    changedVars = [];
+    let rejected = space_propagateAll(space, unsolvedPropagators, changedVars);
+    if (rejected) return false;
+  }
 
-      // the domain of either var of a propagator can only be empty if the prop REJECTED
-      ASSERT(n === REJECTED || space.vardoms[propDetails[1][0]] > 0 || space.vardoms[propDetails[1][0]].length, 'prop var empty but it didnt REJECT');
-      ASSERT(n === REJECTED || !propDetails[1][1] || space.vardoms[propDetails[1][1]] > 0 || space.vardoms[propDetails[1][1]].length, 'prop var empty but it didnt REJECT');
-
-      if (n === SOME_CHANGES) {
-        changed = true;
-      } else if (n === REJECTED) {
-        return false; // solution impossible
-      }
-    }
+  let allPropagators = space.config.propagatorsOnIndex;
+  while (changedVars.length) {
+    let newChangedVars = [];
+    let rejected = space_propagateChanges(space, allPropagators, changedVars, newChangedVars);
+    if (rejected) return false;
 
     if (space_abortSearch(space)) {
       return false;
     }
-  } while (changed);
+
+    changedVars = newChangedVars;
+  }
 
   return true;
+}
+
+function space_propagateAll(space, propagators, changedVars) {
+  for (let i = 0; i < propagators.length; i++) {
+    let propagator = propagators[i];
+    let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+    // the domain of either var of a propagator can only be empty if the prop REJECTED
+    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
+    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+
+    if (n === SOME_CHANGES) {
+      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
+        let varIndex = propagator[PROP_VAR_INDEXES][j];
+        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
+      }
+    } else if (n === REJECTED) {
+      return true; // solution impossible
+    }
+  }
+  return false;
+}
+function space_propagateByIndexes(space, propagators, propIndexes, changedVars) {
+  for (let i = 0; i < propIndexes.length; i++) {
+    let propIndex = propIndexes[i];
+    let propagator = propagators[propIndex];
+    let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+    // the domain of either var of a propagator can only be empty if the prop REJECTED
+    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
+    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+
+    if (n === SOME_CHANGES) {
+      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
+        let varIndex = propagator[PROP_VAR_INDEXES][j];
+        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
+      }
+    } else if (n === REJECTED) {
+      return true; // solution impossible
+    }
+  }
+  return false;
+}
+function space_propagateChanges(space, allPropagators, targetVars, changedVars) {
+  let varToProps = space.config.varToProps;
+  for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
+    let propIndexes = varToProps[targetVars[i]];
+    if (propIndexes) {
+      let result = space_propagateByIndexes(space, allPropagators, propIndexes, changedVars);
+      if (result) return true; // rejected
+    }
+  }
+  return false;
 }
 
 /**

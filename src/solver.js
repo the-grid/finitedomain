@@ -49,6 +49,10 @@ import {
 } from './space';
 
 import {
+  PROP_PNAME,
+  PROP_VAR_INDEXES,
+  PROP_ARG1,
+
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
@@ -660,7 +664,7 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.log(`      - FD Var Count: ${this.state.space.config.all_var_names.length}`);
-      console.log(`      - FD Propagator Count: ${this.state.space.config.propagators.length}`);
+      console.log(`      - FD Propagator Count: ${this.state.space.config.propagatorsOnName.length}`);
       console.time('      - FD Solving Time');
     }
 
@@ -765,9 +769,9 @@ class Solver {
 
     console.log('# Propagators:');
     console.log('  index name vars args');
-    let propagators = config.propagators;
+    let propagators = config.propagatorsOnName;
     for (let i = 0; i < propagators.length; ++i) {
-      console.log('  ', i, ':', propagators[i][0], ':', propagators[i][1], ':', propagators[i].slice(2));
+      console.log('  ', i, ':', propagators[i][PROP_PNAME], ':', propagators[i][PROP_VAR_INDEXES], ':', propagators[i].slice(PROP_ARG1));
     }
 
     console.log('##');

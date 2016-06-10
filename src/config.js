@@ -13,6 +13,8 @@ import {
   THROW,
 } from './helpers';
 import {
+  PROP_VAR_INDEXES,
+
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
@@ -73,10 +75,9 @@ function config_create() {
 
     constant_cache: {}, // <value:varName>, those names are usually anonymous vars
     initial_vars: {}, // initial domains for each var <varName:domain>
-    propagatorsOnName: [], // to deprecate in favor of constraints
 
-    propagatorsOnIndex: [], // initialized later
-    varToProps: [], // initialized later
+    _propagators: [], // initialized later
+    _varToProps: [], // initialized later
   };
 }
 
@@ -93,11 +94,10 @@ function config_clone(config, newVars) {
     timeout_callback,
     constant_cache,
     all_var_names,
-    initial_vars,
-    propagatorsOnName,
-    propagatorsOnIndex,
-    varToProps,
     all_constraints,
+    initial_vars,
+    _propagators,
+    _varToProps,
   } = config;
 
   return {
@@ -115,12 +115,10 @@ function config_clone(config, newVars) {
 
     all_var_names: all_var_names.slice(0),
     all_constraints: all_constraints.slice(0),
-
     initial_vars: newVars || initial_vars, // <varName:domain>
-    propagatorsOnName: propagatorsOnName.slice(0), // is it okay to share them by ref? i think so...
-    propagatorsOnIndex: propagatorsOnIndex.slice(0), // in case it is initialized
 
-    varToProps: varToProps.slice(0), // inited elsewhere
+    _propagators: _propagators.slice(0), // in case it is initialized
+    _varToProps: _varToProps.slice(0), // inited elsewhere
   };
 }
 
@@ -333,7 +331,7 @@ function config_setOptions(config, options) {
  */
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  config.propagatorsOnName.push(propagator);
+  config._propagators.push(propagator);
 }
 
 // TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.
@@ -417,20 +415,25 @@ function config_initConfigsAndFallbacks(config) {
 }
 
 /**
+ * Creates a mapping from a varIndex to a set of propIndexes
+ * These propagators are the ones that use the varIndex
+ * This is useful for quickly determining which propagators
+ * need to be stepped while propagating them.
+ *
  * @param {$config} config
  */
 function config_populateVarPropHash(config) {
   let hash = new Array(config.all_var_names.length);
-  let propagatorsOnName = config.propagatorsOnName;
-  for (let propIndex = 0, plen = propagatorsOnName.length; propIndex < plen; ++propIndex) {
-    let pvars = propagatorsOnName[propIndex][1];
+  let propagators = config._propagators;
+  for (let propIndex = 0, plen = propagators.length; propIndex < plen; ++propIndex) {
+    let pvars = propagators[propIndex][PROP_VAR_INDEXES];
     for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
-      let varIndex = config.all_var_names.indexOf(pvars[propVarIndex]);
+      let varIndex = pvars[propVarIndex];
       if (!hash[varIndex]) hash[varIndex] = [propIndex];
       else if (hash[varIndex].indexOf(propIndex) < 0) hash[varIndex].push(propIndex);
     }
   }
-  config.varToProps = hash;
+  config._varToProps = hash;
 }
 
 function config_addConstraint(config, name, varNames, param) {
@@ -557,57 +560,60 @@ function config_generatePropagator(config, name, varNames, param) {
   ASSERT(typeof name === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(varNames instanceof Array, 'NAMES_SHOULD_BE_ARRAY');
 
+  let allVarNames = config.all_var_names;
+  let varIndexes = varNames.map(name => allVarNames.indexOf(name));
+
   switch (name) {
     case 'plus':
-      return propagator_addPlus(config, varNames[0], varNames[1], varNames[2]);
+      return propagator_addPlus(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'min':
-      return propagator_addMin(config, varNames[0], varNames[1], varNames[2]);
+      return propagator_addMin(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'ring-mul':
-      return propagator_addRingMul(config, varNames[0], varNames[1], varNames[2]);
+      return propagator_addRingMul(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'ring-div':
-      return propagator_addDiv(config, varNames[0], varNames[1], varNames[2]);
+      return propagator_addDiv(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'mul':
-      return propagator_addMul(config, varNames[0], varNames[1], varNames[2]);
+      return propagator_addMul(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'sum':
-      return propagator_addSum(config, varNames.slice(0), param);
+      return propagator_addSum(config, varIndexes.slice(0), allVarNames.indexOf(param));
 
     case 'product':
-      return propagator_addProduct(config, varNames.slice(0), param);
+      return propagator_addProduct(config, varIndexes.slice(0), allVarNames.indexOf(param));
 
     case 'distinct':
-      return propagator_addDistinct(config, varNames.slice(0));
+      return propagator_addDistinct(config, varIndexes.slice(0));
 
     case 'markov':
-      return propagator_addMarkov(config, varNames[0]);
+      return propagator_addMarkov(config, varIndexes[0]);
 
     case 'callback':
-      return propagator_addCallback(config, varNames.slice(0), param);
+      return propagator_addCallback(config, varIndexes.slice(0), param);
 
     case 'reifier':
-      return propagator_addReified(config, param, varNames[0], varNames[1], varNames[2]);
+      return propagator_addReified(config, param, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'neq':
-      return propagator_addNeq(config, varNames[0], varNames[1]);
+      return propagator_addNeq(config, varIndexes[0], varIndexes[1]);
 
     case 'eq':
-      return propagator_addEq(config, varNames[0], varNames[1]);
+      return propagator_addEq(config, varIndexes[0], varIndexes[1]);
 
     case 'gte':
-      return propagator_addGte(config, varNames[0], varNames[1]);
+      return propagator_addGte(config, varIndexes[0], varIndexes[1]);
 
     case 'lte':
-      return propagator_addLte(config, varNames[0], varNames[1]);
+      return propagator_addLte(config, varIndexes[0], varIndexes[1]);
 
     case 'gt':
-      return propagator_addGt(config, varNames[0], varNames[1]);
+      return propagator_addGt(config, varIndexes[0], varIndexes[1]);
 
     case 'lt':
-      return propagator_addLt(config, varNames[0], varNames[1]);
+      return propagator_addLt(config, varIndexes[0], varIndexes[1]);
 
     default:
       THROW('UNEXPECTED_NAME');

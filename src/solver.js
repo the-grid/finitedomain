@@ -563,7 +563,8 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.log(`      - FD Var Count: ${this.state.space.config.all_var_names.length}`);
-      console.log(`      - FD Propagator Count: ${this.state.space.config.propagatorsOnName.length}`);
+      console.log(`      - FD Constraint Count: ${this.state.space.config.all_constraints.length}`);
+      console.log(`      - FD Propagator Count: ${this.state.space.config._propagators.length}`);
       console.time('      - FD Solving Time');
     }
 
@@ -659,16 +660,23 @@ class Solver {
     let config = this.config;
     console.log(inspect(_clone(config)));
 
-    console.log('# Variables:');
-    console.log('  index name domain toArr');
     let names = config.all_var_names;
+    console.log('# Variables (' + names.length + 'x):');
+    console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
       console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
     }
 
-    console.log('# Propagators:');
+    let constraints = config.all_constraints;
+    console.log('# Constraints (' + constraints.length + 'x):');
+    console.log('  index name vars param');
+    for (let i = 0; i < constraints.length; ++i) {
+      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varNames.join(','), ':', constraints[i].param);
+    }
+
+    let propagators = config._propagators;
+    console.log('# Propagators (' + propagators.length + 'x):');
     console.log('  index name vars args');
-    let propagators = config.propagatorsOnName;
     for (let i = 0; i < propagators.length; ++i) {
       console.log('  ', i, ':', propagators[i][PROP_PNAME], ':', propagators[i][PROP_VAR_INDEXES], ':', propagators[i].slice(PROP_ARG1));
     }

@@ -13,7 +13,7 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
-  config_addPropagator,
+  config_addConstraint,
   config_addVarAnonConstant,
   config_addVarAnonRange,
   config_addVarConstant,
@@ -227,10 +227,8 @@ describe('src/space.spec', function() {
           config_addVarRange(space.config, 'MAX', 25, 25);
           config_addVarRange(space.config, 'MUL', 0, 100);
 
-          config_addPropagator(space.config, ['ring', ['A', 'B', 'MUL'], 'mul']);
-          config_addPropagator(space.config, ['ring', ['MUL', 'A', 'B'], 'div']);
-          config_addPropagator(space.config, ['ring', ['MUL', 'B', 'A'], 'div']);
-          config_addPropagator(space.config, ['lt', ['MUL', 'MAX']]);
+          config_addConstraint(space.config, 'ring-mul', ['A', 'B', 'MUL'], 'mul');
+          config_addConstraint(space.config, 'lt', ['MUL', 'MAX']);
 
           space_initFromConfig(space);
 
@@ -245,7 +243,8 @@ describe('src/space.spec', function() {
 
           config_addVarRange(space.config, 'A', 0, 1);
           config_addVarRange(space.config, 'B', 0, 1);
-          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+
+          config_addConstraint(space.config, 'neq', ['A', 'B']);
 
           space_initFromConfig(space);
 
@@ -263,7 +262,7 @@ describe('src/space.spec', function() {
 
           config_addVarRange(space.config, 'A', 0, 0);
           config_addVarRange(space.config, 'B', 0, 1);
-          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+          config_addConstraint(space.config, 'neq', ['A', 'B']);
 
           space_initFromConfig(space);
           space.updatedVarIndex = space.config.all_var_names.indexOf('A'); // mark A as having been updated externally
@@ -283,7 +282,7 @@ describe('src/space.spec', function() {
 
           config_addVarRange(space.config, 'A', 0, 1);
           config_addVarRange(space.config, 'B', 0, 0);
-          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+          config_addConstraint(space.config, 'neq', ['A', 'B']);
 
           space_initFromConfig(space);
           space.updatedVarIndex = space.config.all_var_names.indexOf('B'); // mark A as having been updated externally
@@ -309,7 +308,7 @@ describe('src/space.spec', function() {
           config_addVarRange(space.config, 'A', 0, 10);
           config_addVarRange(space.config, 'B', 0, 10);
 
-          config_addPropagator(space.config, ['lt', ['A', 'B']]);
+          config_addConstraint(space.config, 'lt', ['A', 'B']);
 
           space_initFromConfig(space);
           expect(space_propagate(space)).to.eql(false);
@@ -321,7 +320,7 @@ describe('src/space.spec', function() {
           config_addVarRange(space.config, 'A', 0, 10);
           config_addVarRange(space.config, 'B', 0, 10);
 
-          config_addPropagator(space.config, ['lt', ['A', 'B']]);
+          config_addConstraint(space.config, 'lt', ['A', 'B']);
 
           config_setOptions(space.config, {timeout_callback() { return false; }});
           space_initFromConfig(space);
@@ -335,7 +334,7 @@ describe('src/space.spec', function() {
           config_addVarRange(space.config, 'A', 0, 10);
           config_addVarRange(space.config, 'B', 0, 10);
 
-          config_addPropagator(space.config, ['lt', ['A', 'B']]);
+          config_addConstraint(space.config, 'lt', ['A', 'B']);
 
           config_setOptions(space.config, {timeout_callback() { return true; }});
           space_initFromConfig(space);

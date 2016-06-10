@@ -726,7 +726,7 @@ describe('solver.spec', function() {
         // first without the option
         let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
         solver.eq('A', 'B'); // A and B are not declared so we cant "just" use them
-        expect(_ => solver.solve()).to.throw('SHOULD_HAVE_SECOND_VAR');
+        expect(_ => solver.solve()).to.throw('LEFT_VAR_SHOULD_BE_VALID_INDEX Args (1x): `[ -1 ]`');
 
         // now with the option
         let solver2 = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});

@@ -188,25 +188,7 @@ function space_initFromConfig(space) {
   config_populateVarPropHash(config);
 
   // propagators are immutable so share by reference
-  let propsOnName = config.propagatorsOnName;
-  let propsOnIndex = [];
-  for (let i = 0; i < propsOnName.length; i++) {
-    let propagator = config.propagatorsOnName[i];
-    let copy = propagator.slice(0);
-
-    // update the propagator with indexes of the vars.
-    // we did not know all the indexes before this time.
-    let indexes = [];
-    let propVarNames = copy[PROP_VAR_INDEXES];
-    for (let j = 0; j < propVarNames.length; ++j) {
-      indexes[j] = config.all_var_names.indexOf(propVarNames[j]);
-    }
-    copy[PROP_VAR_INDEXES] = indexes; // dont affect the original! only the (deep) clone
-
-    propsOnIndex.push(copy);
-  }
-  config.propagatorsOnIndex = propsOnIndex;
-  space.unsolvedPropagators = propsOnIndex;
+  space.unsolvedPropagators = config._propagators; // props are generated above
 }
 
 /**
@@ -231,10 +213,10 @@ function space_propagate(space) {
     if (rejected) return true;
   }
 
-  let allPropagators = space.config.propagatorsOnIndex;
+  let propagators = space.config._propagators;
   while (changedVars.length) {
     let newChangedVars = [];
-    let rejected = space_propagateChanges(space, allPropagators, changedVars, newChangedVars, minimal);
+    let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, minimal);
     if (rejected) return true;
 
     if (space_abortSearch(space)) {
@@ -290,7 +272,7 @@ function space_propagateByIndexes(space, propagators, propIndexes, changedVars) 
   return false;
 }
 function space_propagateChanges(space, allPropagators, targetVars, changedVars, minimal) {
-  let varToProps = space.config.varToProps;
+  let varToProps = space.config._varToProps;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
     let propIndexes = varToProps[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if

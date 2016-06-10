@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-- Solver will now treat the empty list of targeted vars (`solver.solve({vars: []})`) equal to when that target is `"all"` (the default setting). In that case all non-anonymous vars are required to solve. 
+- no changes
+
+## v2.1.1:
+
+- Solver will now treat the empty list of targeted vars (`solver.solve({vars: []})`) equal to when that target is `"all"` (the default setting). In that case all non-anonymous vars are required to solve.
+- Performance improvements (still wip)
+- Propagators are now represented as more higher level "constraints" in the config. This allows for better exporting and analyzing of finitedomain search configurations. When a search starts the constraints "compile" to low level propagators, which are pretty much the same as before.
 
 ## v2.1.0:
  

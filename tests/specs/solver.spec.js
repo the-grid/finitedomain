@@ -516,17 +516,17 @@ describe('solver.spec', function() {
 
         it('accept zero vars', function() {
           let solver = new Solver();
-          expect(solver[method]([], 'E')).to.equal(undefined);
+          expect(solver[method]([])).to.equal(undefined);
         });
 
         it('accept one var', function() {
           let solver = new Solver();
-          expect(solver[method](['A'], 'E')).to.equal(undefined);
+          expect(solver[method](['A'])).to.equal(undefined);
         });
 
         it('accept two vars', function() {
           let solver = new Solver();
-          expect(solver[method](['A', 'B'], 'E')).to.equal(undefined);
+          expect(solver[method](['A', 'B'])).to.equal(undefined);
         });
       }
 
@@ -564,59 +564,6 @@ describe('solver.spec', function() {
 
         it('should work with an array of one element', function() {
           let solver = new Solver();
-          expect(solver[method](['A'], 'B')).to.equal('B');
-        });
-
-        it('should work with an array of multiple elements', function() {
-          let solver = new Solver();
-          expect(solver[method](['A', 'C', 'D'], 'B')).to.equal('B');
-        });
-
-        it('should work with a number', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.be.a('string');
-        });
-      }
-
-      alias('eq');
-      alias('==');
-    });
-
-    describe('solver comparison without return .neq .lt .lte .gt .gte', function() {
-
-      function alias(method) {
-        it('should work', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B')).to.equal(undefined);
-        });
-
-        it('should work with a number left', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.equal(undefined);
-        });
-
-        it('should work with a number right', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 2)).to.equal(undefined);
-        });
-
-        it('should accept a result name', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 'C')).equal(undefined);
-        });
-
-        it('should accept a result number', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 3)).to.equal(undefined);
-        });
-
-        it('should work with an empty array', function() {
-          let solver = new Solver();
-          expect(solver[method]([], 'B')).to.equal(undefined);
-        });
-
-        it('should work with an array of one element', function() {
-          let solver = new Solver();
           expect(solver[method](['A'], 'B')).to.equal(undefined);
         });
 
@@ -624,10 +571,46 @@ describe('solver.spec', function() {
           let solver = new Solver();
           expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
         });
+      }
 
-        it('should work with a number', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.equal(undefined);
+      alias('eq');
+      alias('==');
+    });
+
+    describe('solver comparisons', function() {
+
+      function alias(method) {
+        describe('method [' + method + ']', function() {
+
+          it('should work', function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B')).to.equal('A');
+          });
+
+          it('should work with a number left', function() {
+            let solver = new Solver();
+            expect(solver[method](1, 'B')).to.equal('0'); // if we change anonymous var naming, this'll break
+          });
+
+          it('should work with a number right', function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 2)).to.equal('0'); // if we change anonymous var naming, this'll break
+          });
+
+          it('should work with an empty array', function() {
+            let solver = new Solver();
+            expect(solver[method]([], 'B')).to.equal('B');
+          });
+
+          it('should work with an array of one element', function() {
+            let solver = new Solver();
+            expect(solver[method](['A'], 'B')).to.equal(undefined);
+          });
+
+          it('should work with an array of multiple elements', function() {
+            let solver = new Solver();
+            expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
+          });
         });
       }
 
@@ -643,32 +626,35 @@ describe('solver.spec', function() {
       alias('<');
     });
 
-    describe('solver reifiers isNeq isEq isLt isLte isGt isGte', function() {
+    describe('solver reifiers', function() {
 
       function alias(method) {
-        it('should work:' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B')).to.be.a('string');
-        });
+        describe('method = ' + method, function() {
 
-        it('should work with a number left: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.be.a('string');
-        });
+          it('should work:' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B')).to.be.a('string');
+          });
 
-        it('should work with a number right: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 2)).to.be.a('string');
-        });
+          it('should work with a number left: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method](1, 'B')).to.be.a('string');
+          });
 
-        it('should accept a result name: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 'C')).to.equal('C');
-        });
+          it('should work with a number right: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 2)).to.be.a('string');
+          });
 
-        it('should accept a result number: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 1)).to.be.a('string');
+          it('should accept a result name: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B', 'C')).to.equal('C');
+          });
+
+          it('should accept a result number: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B', 1)).to.be.a('string');
+          });
         });
       }
 

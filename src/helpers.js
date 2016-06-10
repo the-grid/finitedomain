@@ -68,7 +68,7 @@ function ASSERT(bool, msg = '', ...args) {
 
   let suffix = '';
   if (args && args.length) {
-    suffix = `Args (${args.length}x): [${_stringify(args).join(', ')}]`;
+    suffix = `Args (${args.length}x): \`${_stringify(args)}\``;
   }
 
   THROW(`Assertion fail: ${msg} ${suffix}`);
@@ -76,9 +76,9 @@ function ASSERT(bool, msg = '', ...args) {
 
 function _stringify(o) {
   if (o instanceof Array) {
-    return o.map(e => `[${_stringify(e)}]`);
+    return `[ ${o.map(e => _stringify(e)).join(', ')} ]`;
   }
-  return o + '';
+  return `${o}`;
 }
 
 // Simple function to completely validate a domain

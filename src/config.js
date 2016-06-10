@@ -13,7 +13,23 @@ import {
   THROW,
 } from './helpers';
 import {
-  PROP_VAR_INDEXES,
+  propagator_addCallback,
+  propagator_addDistinct,
+  propagator_addDiv,
+  propagator_addEq,
+  propagator_addGt,
+  propagator_addGte,
+  propagator_addLt,
+  propagator_addLte,
+  propagator_addMarkov,
+  propagator_addMul,
+  propagator_addNeq,
+  propagator_addPlus,
+  propagator_addMin,
+  propagator_addProduct,
+  propagator_addReified,
+  propagator_addRingMul,
+  propagator_addSum,
 } from './propagator';
 import {
   LO_BOUND,
@@ -26,6 +42,9 @@ import {
   domain_isSolved,
   domain_toArr,
 } from './domain';
+import {
+  constraint_create,
+} from './constraint';
 import distribution_getDefaults from './distribution/defaults';
 
 // BODY_START
@@ -45,16 +64,17 @@ function config_create() {
     var_dist_options: {},
     timeout_callback: undefined,
 
-    // "solved" values should be shared with the tree. may refactor this away in the future.
-    constant_cache: {}, // value to var.id, usually anonymous
-
     // names of all vars in this search tree
     // optimizes loops because `for-in` is super slow
     all_var_names: [],
+    // the propagators are generated from the constraints when a space
+    // is created from this config. constraints are more higher level.
+    all_constraints: [],
 
-    // like a blue print for the root space with just primitives/arrays
-    initial_vars: {},
-    propagatorsOnName: [],
+    constant_cache: {}, // <value:varName>, those names are usually anonymous vars
+    initial_vars: {}, // initial domains for each var <varName:domain>
+    propagatorsOnName: [], // to deprecate in favor of constraints
+
     propagatorsOnIndex: [], // initialized later
     varToProps: [], // initialized later
   };
@@ -77,6 +97,7 @@ function config_clone(config, newVars) {
     propagatorsOnName,
     propagatorsOnIndex,
     varToProps,
+    all_constraints,
   } = config;
 
   return {
@@ -93,8 +114,9 @@ function config_clone(config, newVars) {
     constant_cache, // is by reference ok?
 
     all_var_names: all_var_names.slice(0),
+    all_constraints: all_constraints.slice(0),
 
-    initial_vars: newVars || initial_vars,
+    initial_vars: newVars || initial_vars, // <varName:domain>
     propagatorsOnName: propagatorsOnName.slice(0), // is it okay to share them by ref? i think so...
     propagatorsOnIndex: propagatorsOnIndex.slice(0), // in case it is initialized
 
@@ -316,21 +338,18 @@ function config_addPropagator(config, propagator) {
 
 // TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.
 function config_getUnknownVars(config) {
-  let varNames = [];
-  for (let i = 0; i < config.propagatorsOnName.length; i++) {
-    let propagator = config.propagatorsOnName[i];
-
-    let varName = propagator[PROP_VAR_INDEXES][0];
-    if (!config.initial_vars[varName] && varNames.indexOf(varName) < 0) {
-      varNames.push(varName);
-    }
-
-    varName = propagator[1][1];
-    if (!config.initial_vars[varName] && varNames.indexOf(varName) < 0) {
-      varNames.push(varName);
+  let newNames = [];
+  let constraints = config.all_constraints;
+  for (let i = 0, n = constraints.length; i < n; i++) {
+    let varNames = constraints[i].varNames;
+    for (let j = 0, m = varNames.length; j < m; ++j) {
+      let varName = varNames[j];
+      if (!config.initial_vars[varName] && newNames.indexOf(varName) < 0) {
+        newNames.push(varName);
+      }
     }
   }
-  return varNames;
+  return newNames;
 }
 
 function config_generateVars(config, space) {
@@ -345,7 +364,7 @@ function config_generateVars(config, space) {
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
-  for (let varIndex = 0; varIndex < allVarNames.length; varIndex++) {
+  for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
     let domain = initialVars[varName];
     ASSERT(domain !== undefined, 'ALL_VARS_GET_A_DOMAIN'); // 0,1 or sub,sup if nothing else
@@ -414,9 +433,192 @@ function config_populateVarPropHash(config) {
   config.varToProps = hash;
 }
 
+function config_addConstraint(config, name, varNames, param) {
+  // should return a new var name for most props
+  ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
+
+  // if any constants were passed on, varNameToReturn should become that.
+  // if the constraint has a result var, always return that regardless
+  // if there are no constants and result vars, return the first var name
+  let varNameToReturn = varNames[0];
+  // for stuff like solver.neq(['A', 'B'], 'C')
+  if (varNameToReturn instanceof Array) {
+    let leftNames = varNameToReturn;
+    if (leftNames.length === 0) return varNames[1];
+    for (let i = 0, n = leftNames.length; i < n; ++i) {
+      config_addConstraint(config, name, [].concat(leftNames[i], leftNames.slice(1)), param);
+    }
+    return undefined;
+  }
+
+  let forceBool = false;
+  switch (name) { /* eslint no-fallthrough: "off" */
+    case 'reifier':
+      forceBool = true;
+      // fall-through
+    case 'plus':
+    case 'min':
+    case 'ring-mul':
+    case 'ring-div':
+    case 'mul':
+      ASSERT(varNames.length === 3, 'MISSING_RESULT_VAR'); // note that the third value may still be "undefined"
+      // fall-through
+    case 'sum':
+    case 'product': {
+      let resultIsParam = name === 'product' || name === 'sum';
+
+      let sumName = varNames[2];
+      if (resultIsParam) sumName = param;
+
+      if (typeof sumName === 'undefined') {
+        if (forceBool) sumName = config_addVarAnonRange(config, 0, 1);
+        else sumName = config_addVarAnonNothing(config);
+      } else if (typeof sumName === 'number') {
+        sumName = config_addVarAnonConstant(config, sumName);
+      } else if (typeof sumName !== 'string') {
+        THROW(`expecting result var name to be absent or a number or string: \`${sumName}\``);
+      }
+      if (resultIsParam) param = sumName;
+      else varNames[2] = sumName;
+
+      // check all other var names, except result var, for constants
+      let hasNonConstant = false;
+      for (let i = 0, n = varNames.length - (resultIsParam ? 0 : 1); i < n; ++i) {
+        if (typeof varNames[i] === 'number') {
+          varNames[i] = config_addVarAnonConstant(config, varNames[i]);
+        } else {
+          hasNonConstant = true;
+        }
+      }
+      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+
+      varNameToReturn = sumName;
+      break;
+    }
+
+    case 'markov':
+      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
+      // fall-through
+    case 'distinct':
+    case 'callback':
+    case 'eq':
+    case 'neq':
+    case 'lt':
+    case 'lte':
+    case 'gt':
+    case 'gte': {
+      // require at least one non-constant variable... except callback/distinct can have zero vars
+      let hasNonConstant = (name !== 'callback' || name !== 'distinct') && varNames.length === 0;
+      for (let i = 0, n = varNames.length; i < n; ++i) {
+        if (typeof varNames[i] === 'number') {
+          varNames[i] = config_addVarAnonConstant(config, varNames[i]);
+          varNameToReturn = varNames[i];
+        } else {
+          hasNonConstant = true;
+        }
+      }
+      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+      if (varNames.length === 0) varNameToReturn = param;
+      break;
+    }
+
+    default:
+      THROW(`UNKNOWN_PROPAGATOR ${name}`);
+  }
+
+  let constraint = constraint_create(name, varNames, param);
+  config.all_constraints.push(constraint);
+
+  return varNameToReturn;
+}
+
+/**
+ * Generate all propagators from the constraints in given config
+ * Puts these back into the same config.
+ *
+ * @param {$config} config
+ */
+function config_generatePropagators(config) {
+  ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
+  let constraints = config.all_constraints;
+  for (let i = 0, n = constraints.length; i < n; ++i) {
+    let constraint = constraints[i];
+    config_generatePropagator(config, constraint.name, constraint.varNames, constraint.param);
+  }
+}
+/**
+ * @param {$config} config
+ * @param {string} name
+ * @param {string[]} varNames
+ * @param {string|Function|undefined} param Depends on the prop; reifier=op name, product/sum=result var, callback=func
+ */
+function config_generatePropagator(config, name, varNames, param) {
+  ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(typeof name === 'string', 'NAME_SHOULD_BE_STRING');
+  ASSERT(varNames instanceof Array, 'NAMES_SHOULD_BE_ARRAY');
+
+  switch (name) {
+    case 'plus':
+      return propagator_addPlus(config, varNames[0], varNames[1], varNames[2]);
+
+    case 'min':
+      return propagator_addMin(config, varNames[0], varNames[1], varNames[2]);
+
+    case 'ring-mul':
+      return propagator_addRingMul(config, varNames[0], varNames[1], varNames[2]);
+
+    case 'ring-div':
+      return propagator_addDiv(config, varNames[0], varNames[1], varNames[2]);
+
+    case 'mul':
+      return propagator_addMul(config, varNames[0], varNames[1], varNames[2]);
+
+    case 'sum':
+      return propagator_addSum(config, varNames.slice(0), param);
+
+    case 'product':
+      return propagator_addProduct(config, varNames.slice(0), param);
+
+    case 'distinct':
+      return propagator_addDistinct(config, varNames.slice(0));
+
+    case 'markov':
+      return propagator_addMarkov(config, varNames[0]);
+
+    case 'callback':
+      return propagator_addCallback(config, varNames.slice(0), param);
+
+    case 'reifier':
+      return propagator_addReified(config, param, varNames[0], varNames[1], varNames[2]);
+
+    case 'neq':
+      return propagator_addNeq(config, varNames[0], varNames[1]);
+
+    case 'eq':
+      return propagator_addEq(config, varNames[0], varNames[1]);
+
+    case 'gte':
+      return propagator_addGte(config, varNames[0], varNames[1]);
+
+    case 'lte':
+      return propagator_addLte(config, varNames[0], varNames[1]);
+
+    case 'gt':
+      return propagator_addGt(config, varNames[0], varNames[1]);
+
+    case 'lt':
+      return propagator_addLt(config, varNames[0], varNames[1]);
+
+    default:
+      THROW('UNEXPECTED_NAME');
+  }
+}
+
+
 // BODY_STOP
 
 export {
+  config_addConstraint,
   config_addPropagator,
   config_addVarAnonConstant,
   config_addVarAnonNothing,
@@ -429,6 +631,7 @@ export {
   config_clone,
   config_create,
   config_generateVars,
+  config_generatePropagators,
   config_getUnknownVars,
   config_populateVarPropHash,
   config_setDefaults,

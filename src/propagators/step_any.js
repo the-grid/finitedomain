@@ -153,7 +153,7 @@ function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
-  ASSERT(domain1 !== undefined && domain2 !== undefined && domain3 !== undefined, 'expecting three vars to exist', varIndex1, varIndex2, varIndex3, domain1, domain2, domain3);
+  ASSERT(domain1 !== undefined && domain2 !== undefined && domain3 !== undefined, 'expecting three vars to exist', 'var indexes:', varIndex1, varIndex2, varIndex3, 'domains:', domain1, domain2, domain3);
 
   let opFunc;
   switch (opName) {

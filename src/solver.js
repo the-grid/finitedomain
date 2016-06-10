@@ -49,24 +49,13 @@ import {
 } from './space';
 
 import {
-  propagator_addCallback,
-  propagator_addDistinct,
-  propagator_addDiv,
-  propagator_addEq,
-  propagator_addGt,
-  propagator_addGte,
-  propagator_addLt,
-  propagator_addLte,
-  propagator_addMarkov,
-  propagator_addMul,
-  propagator_addNeq,
-  propagator_addPlus,
-  propagator_addMin,
-  propagator_addProduct,
-  propagator_addReified,
-  propagator_addRingMul,
-  propagator_addSum,
+  PROP_PNAME,
+  PROP_VAR_INDEXES,
+  PROP_ARG1,
 } from './propagator';
+import {
+  config_addConstraint,
+} from './config';
 
 // BODY_START
 
@@ -292,10 +281,7 @@ class Solver {
     return this.plus(e1, e2, resultVar);
   }
   plus(e1, e2, resultVar) {
-    if (resultVar) {
-      return propagator_addPlus(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
-    }
-    return propagator_addPlus(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'plus', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
   }
 
   ['-'](e1, e2, resultVar) {
@@ -305,10 +291,7 @@ class Solver {
     return this.min(e1, e2, resultVar);
   }
   min(e1, e2, resultVar) {
-    if (resultVar) {
-      return propagator_addMin(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
-    }
-    return propagator_addMin(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'min', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
   }
 
   ['*'](e1, e2, resultVar) {
@@ -318,49 +301,32 @@ class Solver {
     return this.ring_mul(e1, e2, resultVar);
   }
   ring_mul(e1, e2, resultVar) {
-    if (resultVar) {
-      return propagator_addRingMul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
-    }
-    return propagator_addRingMul(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'ring-mul', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
   }
 
   ['/'](e1, e2, resultVar) {
     return this.div(e1, e2, resultVar);
   }
   div(e1, e2, resultVar) {
-    if (resultVar) {
-      return propagator_addDiv(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
-    }
-    return propagator_addDiv(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'ring-div', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
   }
 
   mul(e1, e2, resultVar) {
-    if (resultVar) {
-      return propagator_addMul(this.config, GET_NAME(e1), GET_NAME(e2), GET_NAME(resultVar));
-    }
-    return propagator_addMul(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'mul', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
   }
 
   ['∑'](es, resultVar) {
     return this.sum(es, resultVar);
   }
   sum(es, resultVar) {
-    let var_names = GET_NAMES(es);
-    if (resultVar) {
-      return propagator_addSum(this.config, var_names, GET_NAME(resultVar));
-    }
-    return propagator_addSum(this.config, var_names);
+    return config_addConstraint(this.config, 'sum', GET_NAMES(es), resultVar && GET_NAME(resultVar));
   }
 
   ['∏'](es, resultVar) {
     return this.product(es, resultVar);
   }
   product(es, resultVar) {
-    let var_names = GET_NAMES(es);
-    if (resultVar) {
-      return propagator_addProduct(this.config, var_names, GET_NAME(resultVar));
-    }
-    return propagator_addProduct(this.config, var_names);
+    return config_addConstraint(this.config, 'product', GET_NAMES(es), resultVar && GET_NAME(resultVar));
   }
 
   // TODO
@@ -376,121 +342,55 @@ class Solver {
     this.distinct(es);
   }
   distinct(es) {
-    propagator_addDistinct(this.config, GET_NAMES(es));
+    config_addConstraint(this.config, 'distinct', GET_NAMES(es));
   }
 
   ['=='](e1, e2) {
     return this.eq(e1, e2);
   }
   eq(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._eq(e, e2);
-      }
-      return e2;
-    } else {
-      return this._eq(e1, e2);
-    }
-  }
-  _eq(e1, e2) {
-    return propagator_addEq(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'eq', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['!='](e1, e2) {
-    this.neq(e1, e2);
+    return this.neq(e1, e2);
   }
   neq(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._neq(e, e2);
-      }
-    } else {
-      this._neq(e1, e2);
-    }
-  }
-  _neq(e1, e2) {
-    propagator_addNeq(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'neq', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['>='](e1, e2) {
-    this.gte(e1, e2);
+    return this.gte(e1, e2);
   }
   gte(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._gte(e, e2);
-      }
-    } else {
-      this._gte(e1, e2);
-    }
-  }
-  _gte(e1, e2) {
-    propagator_addGte(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<='](e1, e2) {
-    this.lte(e1, e2);
+    return this.lte(e1, e2);
   }
   lte(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._lte(e, e2);
-      }
-    } else {
-      this._lte(e1, e2);
-    }
-  }
-  _lte(e1, e2) {
-    propagator_addLte(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['>'](e1, e2) {
-    this.gt(e1, e2);
+    return this.gt(e1, e2);
   }
   gt(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._gt(e, e2);
-      }
-    } else {
-      this._gt(e1, e2);
-    }
-  }
-  _gt(e1, e2) {
-    propagator_addGt(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<'](e1, e2) {
-    this.lt(e1, e2);
+    return this.lt(e1, e2);
   }
   lt(e1, e2) {
-    if (e1 instanceof Array) {
-      for (let i = 0; i < e1.length; i++) {
-        let e = e1[i];
-        this._lt(e, e2);
-      }
-    } else {
-      this._lt(e1, e2);
-    }
-  }
-  _lt(e1, e2) {
-    propagator_addLt(this.config, GET_NAME(e1), GET_NAME(e2));
+    return config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
 
   // Conditions, ie Reified (In)equality Propagators
   _cacheReified(op, e1, e2, boolVar) {
-    e1 = GET_NAME(e1);
-    e2 = GET_NAME(e2);
-    if (boolVar != null) { // can be 0
-      return propagator_addReified(this.config, op, e1, e2, GET_NAME(boolVar));
-    }
-    return propagator_addReified(this.config, op, e1, e2);
+    return config_addConstraint(this.config, 'reifier', [GET_NAME(e1), GET_NAME(e2), boolVar && GET_NAME(boolVar)], op);
   }
 
   ['!=?'](e1, e2, boolVar) {
@@ -538,7 +438,7 @@ class Solver {
   // Various rest
 
   callback(es, cb) {
-    propagator_addCallback(this.config, GET_NAMES(es), cb);
+    return config_addConstraint(this.config, 'callback', GET_NAMES(es), cb);
   }
 
   /**
@@ -559,9 +459,12 @@ class Solver {
   solve(options) {
     let obj = this.prepare(options);
 
-    if (options && options._debugConfig) console.log(getInspector()(this._space.config));
-    if (options && options._debugSpace) console.log(getInspector()(this._space));
-    if (options && options._debugSolver) this._debugSolver();
+    if (options && options._debugConfig) console.log('## _debugConfig:\n', getInspector()(this._space.config));
+    if (options && options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
+    if (options && options._debugSolver) {
+      console.log('## _debugSolver:\n');
+      this._debugSolver();
+    }
 
     // logging inside asserts because they are stripped out for dist
     ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
@@ -655,24 +558,24 @@ class Solver {
     ASSERT(this._prepared, 'must run #prepare before #run');
     this._prepared = false;
 
-    let solutions = this.solutions;
-    ASSERT(solutions instanceof Array);
-
     let state = this.state;
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Solver Var Count: ${this.state.space.config.all_var_names.length}`);
-      console.log(`      - FD Solver Prop Count: ${this.state.space.config.propagators.length}`);
-      console.time('      - FD Solver Time');
+      console.log(`      - FD Var Count: ${this.state.space.config.all_var_names.length}`);
+      console.log(`      - FD Constraint Count: ${this.state.space.config.all_constraints.length}`);
+      console.log(`      - FD Propagator Count: ${this.state.space.config._propagators.length}`);
+      console.time('      - FD Solving Time');
     }
 
-    let count = solver_runLoop(state, searchFunc, max, solutions, log, squash);
+    let solvedSpaces = solver_runLoop(state, searchFunc, max);
 
     if (log >= LOG_STATS) {
-      console.timeEnd('      - FD Solver Time');
-      console.log(`      - FD solution count: ${count}`);
+      console.timeEnd('      - FD Solving Time');
+      console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
+
+    if (!squash) solver_getSolutions(solvedSpaces, this.solutions, log);
   }
 
   /**
@@ -718,6 +621,7 @@ class Solver {
   /**
    * Used by PathSolver in another (private) project
    * Exposes domain_toList
+   * TODO: can we lock this down to a $domain_arr ?
    *
    * @param {$domain} domain
    * @returns {number[]}
@@ -756,18 +660,25 @@ class Solver {
     let config = this.config;
     console.log(inspect(_clone(config)));
 
-    console.log('# Variables:');
-    console.log('  index name domain toArr');
     let names = config.all_var_names;
+    console.log('# Variables (' + names.length + 'x):');
+    console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
       console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
     }
 
-    console.log('# Propagators:');
+    let constraints = config.all_constraints;
+    console.log('# Constraints (' + constraints.length + 'x):');
+    console.log('  index name vars param');
+    for (let i = 0; i < constraints.length; ++i) {
+      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varNames.join(','), ':', constraints[i].param);
+    }
+
+    let propagators = config._propagators;
+    console.log('# Propagators (' + propagators.length + 'x):');
     console.log('  index name vars args');
-    let propagators = config.propagators;
     for (let i = 0; i < propagators.length; ++i) {
-      console.log('  ', i, ':', propagators[i][0], ':', propagators[i][1], ':', propagators[i].slice(2));
+      console.log('  ', i, ':', propagators[i][PROP_PNAME], ':', propagators[i][PROP_VAR_INDEXES], ':', propagators[i].slice(PROP_ARG1));
     }
 
     console.log('##');
@@ -828,42 +739,17 @@ function getInspector() {
  * @param {Object} state
  * @param {Function} searchFunc
  * @param {number} max Stop after finding this many solutions
- * @param {Object[]} solutions All solutions are pushed into this array
- * @param {number} log LOG constant
- * @param {boolean} squash Suppress creating solutions? For testing perf.
- * @returns {number} Number of solutions found (could be bound by max)
+ * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, searchFunc, max, solutions, log, squash) {
-  let count = 0;
-  while (state.more && count < max) {
+function solver_runLoop(state, searchFunc, max) {
+  let list = [];
+  while (state.more && list.length < max) {
     searchFunc(state);
     if (state.status !== 'end') {
-      count++;
-      solver_handleSolution(state, solutions, log, squash);
+      list.push(state.space);
     }
   }
-  return count;
-}
-
-/**
- * When the search finds a solution, store and log it
- *
- * @param {Object} state
- * @param {Object[]} solutions
- * @param {number} log
- * @param {boolean} squash
- */
-function solver_handleSolution(state, solutions, log, squash) {
-  if (state.status !== 'end') {
-    if (!squash) {
-      let solution = space_solution(state.space);
-      solutions.push(solution);
-      if (log >= LOG_SOLVES) {
-        console.log('      - FD solution() ::::::::::::::::::::::::::::');
-        console.log(JSON.stringify(solution));
-      }
-    }
-  }
+  return list;
 }
 
 /**
@@ -898,7 +784,7 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
         overrides[name].distributor_name = bvar.distribute;
       }
       if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
-        propagator_addMarkov(config, name);
+        config_addConstraint(config, 'markov', [name]);
       }
     }
   }
@@ -1010,6 +896,25 @@ function solver_tryToFixLegacyDomain(domain) {
   }
   return fixed;
 }
+
+function solver_getSolutions(solvedSpaces, solutions, log) {
+  ASSERT(solutions instanceof Array);
+  if (log >= LOG_STATS) {
+    console.time('      - FD Solution Time');
+  }
+  for (let i = 0; i < solvedSpaces.length; ++i) {
+    let solution = space_solution(solvedSpaces[i]);
+    solutions.push(solution);
+    if (log >= LOG_SOLVES) {
+      console.log('      - FD solution() ::::::::::::::::::::::::::::');
+      console.log(JSON.stringify(solution));
+    }
+  }
+  if (log >= LOG_STATS) {
+    console.timeEnd('      - FD Solution Time');
+  }
+}
+
 
 // BODY_STOP
 

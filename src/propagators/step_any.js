@@ -58,7 +58,7 @@ function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
   let varIndex1 = propVarIndexes[0];
   let varIndex2 = propVarIndexes[1];
 
-  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'varIndex2 index should exist for most props', propagator);
+  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'SHOULD_HAVE_SECOND_VAR');
 
   switch (opName) {
     case 'reified':
@@ -153,7 +153,7 @@ function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
-  ASSERT(domain1 !== undefined && domain2 !== undefined && domain3 !== undefined, 'expecting three vars to exist', varIndex1, varIndex2, varIndex3, domain1, domain2, domain3);
+  ASSERT(domain1 !== undefined && domain2 !== undefined && domain3 !== undefined, 'expecting three vars to exist', 'var indexes:', varIndex1, varIndex2, varIndex3, 'domains:', domain1, domain2, domain3);
 
   let opFunc;
   switch (opName) {

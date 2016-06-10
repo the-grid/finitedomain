@@ -12,6 +12,8 @@ import {
   config_clone,
   config_create,
   config_generateVars,
+  config_generatePropagators,
+  config_populateVarPropHash,
 } from './config';
 
 import {
@@ -158,9 +160,10 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     vardoms,
     unsolvedVarIndexes,
-    unsolvedPropagators, // by references from space.config.propagators
+    unsolvedPropagators, // "on index". root space has same reference as config.configBYIndex. elements also shares reference.
 
     next_distribution_choice: 0,
+    updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
   };
 
   // search graph metrics
@@ -180,61 +183,113 @@ function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
 
-  config_generateVars(config, space);
+  config_generatePropagators(config);
+  config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
+  config_populateVarPropHash(config);
 
   // propagators are immutable so share by reference
-  for (let i = 0; i < config.propagators.length; i++) {
-    let propagator = config.propagators[i];
-    let copy = propagator.slice(0);
-
-    // update the propagator with indexes of the vars.
-    // we did not know all the indexes before this time.
-    let indexes = [];
-    let propVarNames = copy[PROP_VAR_INDEXES];
-    for (let j = 0; j < propVarNames.length; ++j) {
-      indexes[j] = config.all_var_names.indexOf(propVarNames[j]);
-    }
-    copy[PROP_VAR_INDEXES] = indexes; // dont affect the original! only the (deep) clone
-
-    space.unsolvedPropagators.push(copy);
-  }
+  space.unsolvedPropagators = config._propagators; // props are generated above
 }
 
 /**
- * Run all the propagators until stability point. Returns the number
- * of changes made or throws a 'fail' if any propagator failed.
+ * Run all the propagators until stability point.
+ * Returns true if any propagator rejects.
  *
  * @param {$space} space
- * @returns {boolean}
+ * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
 function space_propagate(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let unsolvedPropagators = space.unsolvedPropagators;
 
-  let changed;
-  do {
-    changed = false;
-    for (let i = 0; i < unsolvedPropagators.length; i++) {
-      let propDetails = unsolvedPropagators[i];
-      let n = propagator_stepAny(propDetails, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+  let changedVars;
+  let minimal = 1;
+  if (space.updatedVarIndex >= 0) {
+    changedVars = [space.updatedVarIndex];
+  } else {
+    // very first run of the search. all propagators must be visited at least once now.
+    changedVars = [];
+    let rejected = space_propagateAll(space, unsolvedPropagators, changedVars);
+    if (rejected) return true;
+  }
 
-      // the domain of either var of a propagator can only be empty if the prop REJECTED
-      ASSERT(n === REJECTED || space.vardoms[propDetails[1][0]] > 0 || space.vardoms[propDetails[1][0]].length, 'prop var empty but it didnt REJECT');
-      ASSERT(n === REJECTED || !propDetails[1][1] || space.vardoms[propDetails[1][1]] > 0 || space.vardoms[propDetails[1][1]].length, 'prop var empty but it didnt REJECT');
-
-      if (n === SOME_CHANGES) {
-        changed = true;
-      } else if (n === REJECTED) {
-        return false; // solution impossible
-      }
-    }
+  let propagators = space.config._propagators;
+  while (changedVars.length) {
+    let newChangedVars = [];
+    let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, minimal);
+    if (rejected) return true;
 
     if (space_abortSearch(space)) {
-      return false;
+      return true;
     }
-  } while (changed);
 
-  return true;
+    changedVars = newChangedVars;
+    minimal = 2; // see space_propagateChanges
+  }
+
+  return false;
+}
+
+function space_propagateAll(space, propagators, changedVars) {
+  for (let i = 0; i < propagators.length; i++) {
+    let propagator = propagators[i];
+    let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+
+    // the domain of either var of a propagator can only be empty if the prop REJECTED
+    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
+    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+
+    if (n === SOME_CHANGES) {
+      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
+        let varIndex = propagator[PROP_VAR_INDEXES][j];
+        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
+      }
+    } else if (n === REJECTED) {
+      return true; // solution impossible
+    }
+  }
+  return false;
+}
+function space_propagateByIndexes(space, propagators, propIndexes, changedVars) {
+  for (let i = 0; i < propIndexes.length; i++) {
+    let propIndex = propIndexes[i];
+    let propagator = propagators[propIndex];
+    let n = propagator_stepAny(propagator, space);
+
+    // the domain of either var of a propagator can only be empty if the prop REJECTED
+    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
+    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+
+    if (n === SOME_CHANGES) {
+      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
+        let varIndex = propagator[PROP_VAR_INDEXES][j];
+        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
+      }
+    } else if (n === REJECTED) {
+      return true; // solution impossible
+    }
+  }
+  return false;
+}
+function space_propagateChanges(space, allPropagators, targetVars, changedVars, minimal) {
+  let varToProps = space.config._varToProps;
+  for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
+    let propIndexes = varToProps[targetVars[i]];
+    // note: the first loop of propagate() should require all propagators affected, even if
+    // it is just one. after that, if a var was updated that only has one propagator it can
+    // only have been updated by that one propagator. however, this step is queueing up
+    // propagators to check, again, since one of its vars changed. a propagator that runs
+    // twice without other changes will change nothing. so we do it for the initial loop,
+    // where the var is updated externally, after that the change can only occur from within
+    // a propagator so we skip it.
+    // ultimately a list of propagators should perform better but the indexOf negates that perf
+    // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
+    if (propIndexes && propIndexes.length >= minimal) {
+      let result = space_propagateByIndexes(space, allPropagators, propIndexes, changedVars);
+      if (result) return true; // rejected
+    }
+  }
+  return false;
 }
 
 /**
@@ -272,18 +327,43 @@ function space_abortSearch(space) {
 function space_isSolved(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let targetedIndexes = space.config.targetedIndexes;
+
+  if (targetedIndexes === 'all' || !targetedIndexes.length) return _space_isSolvedForAll(space);
+  return _space_isSolvedForSome(space, targetedIndexes);
+}
+function _space_isSolvedForSome(space, targetedIndexes) {
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(targetedIndexes !== 'all' && targetedIndexes.length, 'REQUIRES_SOME_TARGETS');
+
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
   let j = 0;
   for (let i = 0; i < unsolvedVarIndexes.length; i++) {
     let varIndex = unsolvedVarIndexes[i];
-    if (targetedIndexes === 'all' || targetedIndexes.indexOf(varIndex) >= 0) {
+    if (targetedIndexes.indexOf(varIndex) >= 0) {
       let domain = space.vardoms[varIndex];
       ASSERT_DOMAIN(domain);
 
       if (!domain_isSolved(domain)) {
         unsolvedVarIndexes[j++] = varIndex;
       }
+    }
+  }
+  unsolvedVarIndexes.length = j;
+  return j === 0;
+}
+function _space_isSolvedForAll(space) {
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  let unsolvedVarIndexes = space.unsolvedVarIndexes;
+
+  let j = 0;
+  for (let i = 0; i < unsolvedVarIndexes.length; i++) {
+    let varIndex = unsolvedVarIndexes[i];
+    let domain = space.vardoms[varIndex];
+    ASSERT_DOMAIN(domain);
+
+    if (!domain_isSolved(domain)) {
+      unsolvedVarIndexes[j++] = varIndex;
     }
   }
   unsolvedVarIndexes.length = j;

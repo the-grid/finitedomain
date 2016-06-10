@@ -72,24 +72,29 @@ function search_depthFirst(state) {
  * @returns {boolean}
  */
 function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
-  if (!space_propagate(space)) {
+  let rejected = space_propagate(space);
+  if (rejected) {
     _search_onReject(state, space, stack);
-  } else if (space_isSolved(space)) {
+    return false;
+  }
+
+  let solved = space_isSolved(space);
+  if (solved) {
     _search_onSolve(state, space, stack);
     return true;
+  }
+
+  let next_space = createNextSpaceNode(space, state);
+  if (next_space) {
+    // Now this space is neither solved nor failed but since
+    // no constraints are rejecting we must look further.
+    // Push on to the stack and explore further.
+    stack.push(next_space);
   } else {
-    let next_space = createNextSpaceNode(space, state);
-    if (next_space) {
-      // Now this space is neither solved nor failed but since
-      // no constraints are rejecting we must look further.
-      // Push on to the stack and explore further.
-      stack.push(next_space);
-    } else {
-      // Finished exploring branches of this space. Continue with the previous spaces.
-      // This is a stable space, but isn't a solution. Neither is it a failed space.
-      space.stable_children++;
-      stack.pop();
-    }
+    // Finished exploring branches of this space. Continue with the previous spaces.
+    // This is a stable space, but isn't a solution. Neither is it a failed space.
+    space.stable_children++;
+    stack.pop();
   }
   return false;
 }
@@ -118,6 +123,7 @@ function search_defaultSpaceFactory(space) {
       let nextDomain = distribute_getNextDomainForVar(space, varIndex);
       if (nextDomain) {
         let clone = space_createClone(space);
+        clone.updatedVarIndex = varIndex;
         clone.vardoms[varIndex] = nextDomain;
         return clone;
       }
@@ -139,7 +145,7 @@ function search_defaultSpaceFactory(space) {
 function _search_getVarsUnfiltered(space) {
   let configTargetedIndexes = space.config.targetedIndexes;
 
-  if (configTargetedIndexes === 'all') {
+  if (configTargetedIndexes === 'all' || !configTargetedIndexes.length) {
     return space.unsolvedVarIndexes;
   }
 

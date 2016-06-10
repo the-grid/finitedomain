@@ -1,4 +1,4 @@
-// ./node_modules/.bin/babel-node node.js
+#!/usr/bin/env node
 
 var config = require('./config');
 var perf = require('../perf');

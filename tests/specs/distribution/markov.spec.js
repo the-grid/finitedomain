@@ -45,7 +45,7 @@ describe('distribution/markov.spec', function() {
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1; // not a valid normalized value
 
-    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw();
+    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw('RNG_SHOULD_BE_NORMALIZED');
   });
 
   it('should throw if normalized rng returns 1.1', function() {
@@ -54,7 +54,7 @@ describe('distribution/markov.spec', function() {
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1.1; // not a valid normalized value
 
-    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw();
+    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw('RNG_SHOULD_BE_NORMALIZED');
   });
 
   it('should throw if normalized rng returns -1', function() {
@@ -63,7 +63,7 @@ describe('distribution/markov.spec', function() {
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => -1; // not a valid normalized value
 
-    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw();
+    expect(() => distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rngFunc, RNG_NORMALIZED)).to.throw('RNG_SHOULD_BE_NORMALIZED');
   });
 
   it('should return middle value in legend if rng is .5 with equal probs', function() {

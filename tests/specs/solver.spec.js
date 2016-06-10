@@ -516,17 +516,17 @@ describe('solver.spec', function() {
 
         it('accept zero vars', function() {
           let solver = new Solver();
-          expect(solver[method]([], 'E')).to.equal(undefined);
+          expect(solver[method]([])).to.equal(undefined);
         });
 
         it('accept one var', function() {
           let solver = new Solver();
-          expect(solver[method](['A'], 'E')).to.equal(undefined);
+          expect(solver[method](['A'])).to.equal(undefined);
         });
 
         it('accept two vars', function() {
           let solver = new Solver();
-          expect(solver[method](['A', 'B'], 'E')).to.equal(undefined);
+          expect(solver[method](['A', 'B'])).to.equal(undefined);
         });
       }
 
@@ -564,59 +564,6 @@ describe('solver.spec', function() {
 
         it('should work with an array of one element', function() {
           let solver = new Solver();
-          expect(solver[method](['A'], 'B')).to.equal('B');
-        });
-
-        it('should work with an array of multiple elements', function() {
-          let solver = new Solver();
-          expect(solver[method](['A', 'C', 'D'], 'B')).to.equal('B');
-        });
-
-        it('should work with a number', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.be.a('string');
-        });
-      }
-
-      alias('eq');
-      alias('==');
-    });
-
-    describe('solver comparison without return .neq .lt .lte .gt .gte', function() {
-
-      function alias(method) {
-        it('should work', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B')).to.equal(undefined);
-        });
-
-        it('should work with a number left', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.equal(undefined);
-        });
-
-        it('should work with a number right', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 2)).to.equal(undefined);
-        });
-
-        it('should accept a result name', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 'C')).equal(undefined);
-        });
-
-        it('should accept a result number', function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 3)).to.equal(undefined);
-        });
-
-        it('should work with an empty array', function() {
-          let solver = new Solver();
-          expect(solver[method]([], 'B')).to.equal(undefined);
-        });
-
-        it('should work with an array of one element', function() {
-          let solver = new Solver();
           expect(solver[method](['A'], 'B')).to.equal(undefined);
         });
 
@@ -624,10 +571,46 @@ describe('solver.spec', function() {
           let solver = new Solver();
           expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
         });
+      }
 
-        it('should work with a number', function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.equal(undefined);
+      alias('eq');
+      alias('==');
+    });
+
+    describe('solver comparisons', function() {
+
+      function alias(method) {
+        describe('method [' + method + ']', function() {
+
+          it('should work', function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B')).to.equal('A');
+          });
+
+          it('should work with a number left', function() {
+            let solver = new Solver();
+            expect(solver[method](1, 'B')).to.equal('0'); // if we change anonymous var naming, this'll break
+          });
+
+          it('should work with a number right', function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 2)).to.equal('0'); // if we change anonymous var naming, this'll break
+          });
+
+          it('should work with an empty array', function() {
+            let solver = new Solver();
+            expect(solver[method]([], 'B')).to.equal('B');
+          });
+
+          it('should work with an array of one element', function() {
+            let solver = new Solver();
+            expect(solver[method](['A'], 'B')).to.equal(undefined);
+          });
+
+          it('should work with an array of multiple elements', function() {
+            let solver = new Solver();
+            expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
+          });
         });
       }
 
@@ -643,32 +626,35 @@ describe('solver.spec', function() {
       alias('<');
     });
 
-    describe('solver reifiers isNeq isEq isLt isLte isGt isGte', function() {
+    describe('solver reifiers', function() {
 
       function alias(method) {
-        it('should work:' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B')).to.be.a('string');
-        });
+        describe('method = ' + method, function() {
 
-        it('should work with a number left: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method](1, 'B')).to.be.a('string');
-        });
+          it('should work:' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B')).to.be.a('string');
+          });
 
-        it('should work with a number right: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 2)).to.be.a('string');
-        });
+          it('should work with a number left: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method](1, 'B')).to.be.a('string');
+          });
 
-        it('should accept a result name: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 'C')).to.equal('C');
-        });
+          it('should work with a number right: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 2)).to.be.a('string');
+          });
 
-        it('should accept a result number: ' + method, function() {
-          let solver = new Solver();
-          expect(solver[method]('A', 'B', 1)).to.be.a('string');
+          it('should accept a result name: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B', 'C')).to.equal('C');
+          });
+
+          it('should accept a result number: ' + method, function() {
+            let solver = new Solver();
+            expect(solver[method]('A', 'B', 1)).to.be.a('string');
+          });
         });
       }
 
@@ -740,14 +726,17 @@ describe('solver.spec', function() {
         // first without the option
         let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
         solver.eq('A', 'B'); // A and B are not declared so we cant "just" use them
-        expect(_ => solver.solve()).to.throw();
+        expect(_ => solver.solve()).to.throw('LEFT_VAR_SHOULD_BE_VALID_INDEX Args (1x): `[ -1 ]`');
 
         // now with the option
         let solver2 = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
         solver2.eq('A', 'B'); // A and B are not declared but with the add_unknown_vars option we _can_ use them
         expect(solver2.solve({add_unknown_vars: true})).to.eql([{
-          A: specDomainCreateRange(0, 1, true),
-          B: specDomainCreateRange(0, 1, true),
+          A: 0,
+          B: 0,
+        }, {
+          A: 1,
+          B: 1,
         }]);
       });
 
@@ -1179,6 +1168,117 @@ describe('solver.spec', function() {
         B: 50,
         C: 350,
       }]);
+    });
+
+    it('should not skip over when a var only has one propagator and is affected', function() {
+      // this is more thoroughly tested with space unit tests
+      let solver = new Solver({});
+      solver.decl('A', specDomainCreateRange(0, 1, true));
+      solver.decl('B', specDomainCreateRange(0, 1, true));
+
+      solver.neq('A', 'B');
+
+      let solutions = solver.solve();
+
+      expect(solutions.length).to.eql(2); // 0 1, and 1 0
+    });
+  });
+
+  describe('targeting vars', function() {
+    it('should want to solve all vars if targets are not set at all', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AnotB'));
+
+      let solutions = solver.solve({});
+      // a, b, c are not constrained in any way, so 2^3=8
+      // no var is targeted so they should all solve
+      expect(solutions.length).to.equal(8);
+    });
+
+    it('should want to solve all vars if targets is an empty array', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AnotB'));
+
+      let solutions = solver.solve({vars: []});
+      // a, b, c are not constrained in any way, so 2^3=8
+      // no var is targeted so they should all solve
+      expect(solutions.length).to.equal(8);
+    });
+
+    it('should ignore C when only A and B are targeted', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AnotB'));
+
+      let solutions = solver.solve({vars: ['A', 'B']});
+      // A and B are targeted, they have [0,1] [0,1] so
+      // 4 solutions. the result of C is irrelevant here
+      expect(solutions.length).to.equal(4);
+    });
+
+    it('should ignore A when only B and C are targeted', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AnotB'));
+
+      let solutions = solver.solve({vars: ['B', 'C']});
+      // B and C are targeted, they have [0,1] [0,1] so
+      // 4 solutions. the result of A is irrelevant here
+      // the reifier is not a constraint on its own.
+      expect(solutions.length).to.equal(4);
+    });
+
+    it('should not solve anonymous vars if no targets given', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver['==?']('A', 'B');
+
+      let solutions = solver.solve({});
+      // internally there will be three vars; A B and the reifier result var
+      // make sure we don't accidentally require to solve that one too
+      expect(solutions.length).to.equal(4);
+    });
+
+    it('should not solve anonymous vars if targets is empty array', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver['==?']('A', 'B');
+
+      let solutions = solver.solve({vars: []});
+      // internally there will be three vars; A B and the reifier result var
+      // make sure we don't accidentally require to solve that one too
+      expect(solutions.length).to.equal(4);
+    });
+
+    it('should be capable of solving an anonymous var', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      let anon = solver['==?']('A', 'B');
+
+      let solutions = solver.solve({vars: [anon]});
+      // the anonymous var will be boolean. since we only target
+      // that var, there ought to be two solutions (0 and 1)
+      expect(solutions.length).to.equal(2);
     });
   });
 

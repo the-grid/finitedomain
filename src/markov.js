@@ -74,11 +74,8 @@ function markov_createProbVector(space, matrix, expandVectorsWith, valueCount) {
     return probVector;
   }
 
-  if (!probVector) {
-    THROW('distribution_value_by_markov error, each markov var must have a prob vector or use `expandVectorsWith:{Number}`');
-  }
-  if (probVector.length !== valueCount) {
-    THROW('distribution_value_by_markov error, vector must be same length of legend or use `expandVectorsWith:{Number}`');
+  if (!probVector || probVector.length !== valueCount) {
+    THROW('E_EACH_MARKOV_VAR_MUST_HAVE_PROB_VECTOR_OR_ENABLE_EXPAND_VECTORS');
   }
   return probVector;
 }

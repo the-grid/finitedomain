@@ -220,8 +220,8 @@ function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) 
     return WORSE;
   }
 
-  ASSERT(p1 !== p2, 'cant have same indexes, would mean same item is compared');
-  ASSERT(false, 'not expecting to reach here', p1, p2, varIndex1, varIndex2, hash);
+  ASSERT(p1 !== p2, 'A_CANNOT_GET_SAME_INDEX_FOR_DIFFERENT_NAME');
+  THROW('T_SHOULD_NOT_REACH_HERE');
   return SAME;
 }
 

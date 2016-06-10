@@ -552,7 +552,7 @@ describe('distribution/var.spec', function() {
           },
         };
 
-        expect(() => distribution_varByList(space, A, B, nvconfig)).to.throw();
+        expect(() => distribution_varByList(space, A, B, nvconfig)).to.throw('A_CANNOT_GET_SAME_INDEX_FOR_DIFFERENT_NAME');
       });
 
       it('should return WORSE if the priority hash says A is lower than B', function() {

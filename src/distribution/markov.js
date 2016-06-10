@@ -72,8 +72,8 @@ import {
  * @return {number | undefined}
  */
 function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, randomFunc, rngIsNormalized = true) {
-  ASSERT(!!valLegend, 'expecting val_legend thanks to expandVectorsWith', valLegend);
-  ASSERT(probVector.length <= valLegend.length, 'expecting prob_vector to be smaller or equal length of val_legend', probVector, valLegend);
+  ASSERT(!!valLegend, 'A_SHOULD_HAVE_VAL_LEGEND');
+  ASSERT(probVector.length <= valLegend.length, 'A_PROB_VECTOR_SIZE_SHOULD_BE_LTE_LEGEND');
 
   // make vector & legend for available values only
   let filteredLegend = [];
@@ -119,8 +119,9 @@ function _distribution_markovRoll(rng, totalProb, cumulativeProbVector, valueLeg
   let rngRoll = rng();
   let probVal = rngRoll;
   if (rngIsNormalized) { // 0 <= rng < 1
-    ASSERT(rngRoll >= 0, 'expecting random() to be above or equal to zero', rngRoll, totalProb, probVal);
-    ASSERT(rngRoll < 1, 'expecting random() to be below one', rngRoll, totalProb, probVal);
+    // roll should yield; 0<=value<1
+    ASSERT(rngRoll >= 0, 'RNG_SHOULD_BE_NORMALIZED');
+    ASSERT(rngRoll < 1, 'RNG_SHOULD_BE_NORMALIZED');
     probVal = rngRoll * totalProb;
   }
   // else 0 <= rng < totalProb (mostly to avoid precision problems in tests)

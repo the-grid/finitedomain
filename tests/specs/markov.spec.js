@@ -61,13 +61,13 @@ describe('src/markov.spec', function() {
 
     it('should throw without a vector nor expandVectorsWith', function() {
       let space = space_createRoot();
-      expect(_ => markov_createProbVector(space, [{}], undefined, 5)).to.throw();
+      expect(_ => markov_createProbVector(space, [{}], undefined, 5)).to.throw('E_EACH_MARKOV_VAR_MUST_HAVE_PROB_VECTOR_OR_ENABLE_EXPAND_VECTORS');
     });
 
     it('should throw if vector is of different length than count and expand is not set', function() {
       let vector = [32, 4, 22];
       let space = space_createRoot();
-      expect(_ => markov_createProbVector(space, [{vector}], undefined, 6)).to.throw();
+      expect(_ => markov_createProbVector(space, [{vector}], undefined, 6)).to.throw('E_EACH_MARKOV_VAR_MUST_HAVE_PROB_VECTOR_OR_ENABLE_EXPAND_VECTORS');
     });
   });
 });

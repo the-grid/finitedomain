@@ -1,12 +1,17 @@
 # Changelog for Finite Domain Solver (finitedomain)
 
-## Unreleased, slated for v2.1.0:
+## Unreleased
+
+- Solver will now treat the empty list of targeted vars (`solver.solve({vars: []})`) equal to when that target is `"all"` (the default setting). In that case all non-anonymous vars are required to solve. 
+
+## v2.1.0:
  
 - Major internal changes
   - Small domains, those whose max is 15 or below, are now represented as bitwise flags
   - Eliminated the fdvars as a class and instead internally only work with var indexes rather than their actual names. This allows the cloning process to be a simple slice rather than a shallow object copy.
 - (Re-) Enable cutting away the header/footer of each file and concat everything to a single file for the dist build. Allows for much much better minification.
 - Many internal refactorings and renaming which should not affect the outside world
+- Major performance improvements
 
 ## v2.0.1:
 

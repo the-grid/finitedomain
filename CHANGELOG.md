@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- none
+- Solver will now treat the empty list of targeted vars (`solver.solve({vars: []})`) equal to when that target is `"all"` (the default setting). In that case all non-anonymous vars are required to solve. 
 
 ## v2.1.0:
  

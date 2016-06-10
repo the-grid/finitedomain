@@ -4,6 +4,7 @@ import {
   specDomainCreateRange,
   specDomainCreateRanges,
   specDomainCreateValue,
+  specDomainSmallNums,
   stripAnonVars,
 } from '../fixtures/domain.fixt';
 
@@ -216,7 +217,7 @@ describe('src/space.spec', function() {
 
     describe('space_propagate', function() {
 
-      describe('simple cases', () =>
+      describe('simple cases', function() {
 
         it('should not reject this multiply case', function() {
           let space = space_createRoot();
@@ -233,9 +234,70 @@ describe('src/space.spec', function() {
 
           space_initFromConfig(space);
 
-          expect(space_propagate(space)).to.eql(true);
-        })
-      );
+          expect(space_propagate(space)).to.eql(false);
+        });
+      });
+
+      describe('vars tied to only one propagator', function() {
+
+        it('step 0; two bools at start of search', function() {
+          let space = space_createRoot();
+
+          config_addVarRange(space.config, 'A', 0, 1);
+          config_addVarRange(space.config, 'B', 0, 1);
+          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+
+          space_initFromConfig(space);
+
+          // A and B only connect to one propagator
+          // at the start of a search nothing should change
+          // so after propagate() the vars should remain the same
+          space_propagate(space);
+
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(0, 1));
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(0, 1));
+        });
+
+        it('step 1; first bool updated', function() {
+          let space = space_createRoot();
+
+          config_addVarRange(space.config, 'A', 0, 0);
+          config_addVarRange(space.config, 'B', 0, 1);
+          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+
+          space_initFromConfig(space);
+          space.updatedVarIndex = space.config.all_var_names.indexOf('A'); // mark A as having been updated externally
+
+          // A "was updated" by a distributor
+          // since it ties to neq it should step that propagator which should
+          // affect B and solve the space. if it doesn't that probably means
+          // the propagator is incorrectly skipped (or hey, some other bug)
+          space_propagate(space);
+
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(0)); // we set it
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(1)); // by neq
+        });
+
+        it('step 1; second bool updated', function() {
+          let space = space_createRoot();
+
+          config_addVarRange(space.config, 'A', 0, 1);
+          config_addVarRange(space.config, 'B', 0, 0);
+          config_addPropagator(space.config, ['neq', ['A', 'B']]);
+
+          space_initFromConfig(space);
+          space.updatedVarIndex = space.config.all_var_names.indexOf('B'); // mark A as having been updated externally
+
+          // B "was updated" by a distributor
+          // since it ties to neq it should step that propagator which should
+          // affect A and solve the space. if it doesn't that probably means
+          // the propagator is incorrectly skipped (or hey, some other bug)
+          space_propagate(space);
+
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(1)); // by neq
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(0)); // we set it
+        });
+      });
 
       describe('timeout callback', function() {
 
@@ -250,7 +312,7 @@ describe('src/space.spec', function() {
           config_addPropagator(space.config, ['lt', ['A', 'B']]);
 
           space_initFromConfig(space);
-          expect(space_propagate(space)).to.eql(true);
+          expect(space_propagate(space)).to.eql(false);
         });
 
         it('should not break early if callback doesnt return true', function() {
@@ -264,7 +326,7 @@ describe('src/space.spec', function() {
           config_setOptions(space.config, {timeout_callback() { return false; }});
           space_initFromConfig(space);
 
-          expect(space_propagate(space)).to.eql(true);
+          expect(space_propagate(space)).to.eql(false);
         });
 
         it('should break early if callback returns true', function() {
@@ -278,7 +340,7 @@ describe('src/space.spec', function() {
           config_setOptions(space.config, {timeout_callback() { return true; }});
           space_initFromConfig(space);
 
-          expect(space_propagate(space)).to.eql(false);
+          expect(space_propagate(space)).to.eql(true);
         });
       });
     });

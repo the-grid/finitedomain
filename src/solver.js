@@ -502,7 +502,7 @@ class Solver {
       config_setOptions(this.config, {var_dist_config: overrides});
     }
 
-    config_setOptions(this.config, {targeted_var_names: varNames});
+    if (varNames instanceof Array ? varNames.length : varNames) config_setOptions(this.config, {targeted_var_names: varNames});
     config_setOptions(this.config, distributionOptions);
 
     let searchFunc = this._get_search_func_or_die(search);
@@ -515,6 +515,7 @@ class Solver {
     // __REMOVE_ABOVE_FOR_DIST__
     this.state.space = rootSpace;
     this.state.more = true;
+    this.state.stack = [];
 
     this._prepared = true;
 

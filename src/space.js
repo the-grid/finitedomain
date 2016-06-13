@@ -11,9 +11,7 @@ import {
 import {
   config_clone,
   config_create,
-  config_generateVars,
-  config_generatePropagators,
-  config_populateVarPropHash,
+  config_initForSpace,
 } from './config';
 
 import {
@@ -183,9 +181,7 @@ function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
 
-  config_generatePropagators(config);
-  config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
-  config_populateVarPropHash(config);
+  config_initForSpace(config, space);
 
   // propagators are immutable so share by reference
   space.unsolvedPropagators = config._propagators; // props are generated above

@@ -113,6 +113,15 @@ module.exports = function () {
           'distq',
         ],
       },
+      b: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'distbug',
+        ],
+      },
     },
 
     mochaTest: {
@@ -267,6 +276,7 @@ module.exports = function () {
   grunt.registerTask('concat-bug-to-browserjs', function() {
     console.log('- Copying build to browser.js');
     grunt.file.copy('build/finitedomain-es5-beautified.js', 'dist/browser.js');
+    grunt.file.copy('build/finitedomain-es5-beautified.js', 'dist/finitedomain.dist.min.js');
   });
 
   grunt.registerTask('clean', ['remove']);

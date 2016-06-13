@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- no changes
+- Fixed a bug where supplying an array as left var to the Solver constraint api would not properly translate as a constraint for each of the elements with the other params.
+- Fixed a bug that disallowed solving a solved space again
 
 ## v2.1.1:
 

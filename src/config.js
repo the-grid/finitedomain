@@ -10,6 +10,7 @@ import {
   SUP,
 
   ASSERT,
+  GET_NAMES,
   THROW,
 } from './helpers';
 import {
@@ -446,10 +447,10 @@ function config_addConstraint(config, name, varNames, param) {
   let varNameToReturn = varNames[0];
   // for stuff like solver.neq(['A', 'B'], 'C')
   if (varNameToReturn instanceof Array) {
-    let leftNames = varNameToReturn;
+    let leftNames = GET_NAMES(varNameToReturn);
     if (leftNames.length === 0) return varNames[1];
     for (let i = 0, n = leftNames.length; i < n; ++i) {
-      config_addConstraint(config, name, [].concat(leftNames[i], leftNames.slice(1)), param);
+      config_addConstraint(config, name, [].concat(leftNames[i], varNames.slice(1)), param);
     }
     return undefined;
   }
@@ -544,6 +545,7 @@ function config_addConstraint(config, name, varNames, param) {
 function config_generatePropagators(config) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
   let constraints = config.all_constraints;
+  config._propagators = [];
   for (let i = 0, n = constraints.length; i < n; ++i) {
     let constraint = constraints[i];
     config_generatePropagator(config, constraint.name, constraint.varNames, constraint.param);
@@ -620,6 +622,17 @@ function config_generatePropagator(config, name, varNames, param) {
   }
 }
 
+/**
+ * At the start of a search, populate this config with the dynamic data
+ *
+ * @param {$config} config
+ * @param {$space} space
+ */
+function config_initForSpace(config, space) {
+  config_generatePropagators(config);
+  config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
+  config_populateVarPropHash(config);
+}
 
 // BODY_STOP
 
@@ -639,6 +652,7 @@ export {
   config_generateVars,
   config_generatePropagators,
   config_getUnknownVars,
+  config_initForSpace,
   config_populateVarPropHash,
   config_setDefaults,
   config_setOptions,

@@ -490,6 +490,8 @@ class Solver {
       add_unknown_vars: addUnknownVars, // TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
     } = options;
 
+    if (log >= LOG_STATS) console.time('      - FD Prepare Time');
+
     let varNames = GET_NAMES(branchVars);
 
     if (addUnknownVars) {
@@ -518,6 +520,7 @@ class Solver {
     this.state.stack = [];
 
     this._prepared = true;
+    if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
 
     return ({
       searchFunc,
@@ -901,7 +904,7 @@ function solver_tryToFixLegacyDomain(domain) {
 function solver_getSolutions(solvedSpaces, solutions, log) {
   ASSERT(solutions instanceof Array);
   if (log >= LOG_STATS) {
-    console.time('      - FD Solution Time');
+    console.time('      - FD Solution Construction Time');
   }
   for (let i = 0; i < solvedSpaces.length; ++i) {
     let solution = space_solution(solvedSpaces[i]);
@@ -909,10 +912,11 @@ function solver_getSolutions(solvedSpaces, solutions, log) {
     if (log >= LOG_SOLVES) {
       console.log('      - FD solution() ::::::::::::::::::::::::::::');
       console.log(JSON.stringify(solution));
+      console.log('                      ::::::::::::::::::::::::::::');
     }
   }
   if (log >= LOG_STATS) {
-    console.timeEnd('      - FD Solution Time');
+    console.timeEnd('      - FD Solution Construction Time');
   }
 }
 

@@ -501,7 +501,15 @@ function config_addConstraint(config, name, varNames, param) {
       THROW(`UNKNOWN_PROPAGATOR ${name}`);
   }
 
-  let constraint = constraint_create(name, varNames, param);
+  let varIndexes = [];
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    let varIndex = config.all_var_names.indexOf(varNames[i]);
+
+    ASSERT(varIndex >= 0, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
+    varIndexes[i] = varIndex;
+  }
+
+  let constraint = constraint_create(name, varIndexes, param);
   config.all_constraints.push(constraint);
 
   return varNameToReturn;
@@ -519,22 +527,29 @@ function config_generatePropagators(config) {
   config._propagators = [];
   for (let i = 0, n = constraints.length; i < n; ++i) {
     let constraint = constraints[i];
-    config_generatePropagator(config, constraint.name, constraint.varNames, constraint.param);
+    if (constraint.varNames) {
+      console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
+      constraint.varIndexes = constraint.varNames.map(name => config.all_var_names.indexOf(name));
+      let p = constraint.param;
+      delete constraint.param;
+      delete constraint.varNames;
+      constraint.param = p;
+    }
+    config_generatePropagator(config, constraint.name, constraint.varIndexes, constraint.param, constraint);
   }
 }
 /**
  * @param {$config} config
  * @param {string} name
- * @param {string[]} varNames
+ * @param {number[]} varIndexes
  * @param {string|Function|undefined} param Depends on the prop; reifier=op name, product/sum=result var, callback=func
  */
-function config_generatePropagator(config, name, varNames, param) {
+function config_generatePropagator(config, name, varIndexes, param, _constraint) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof name === 'string', 'NAME_SHOULD_BE_STRING');
-  ASSERT(varNames instanceof Array, 'NAMES_SHOULD_BE_ARRAY');
+  ASSERT(varIndexes instanceof Array, 'INDEXES_SHOULD_BE_ARRAY', JSON.stringify(_constraint));
 
   let allVarNames = config.all_var_names;
-  let varIndexes = varNames.map(name => allVarNames.indexOf(name));
 
   switch (name) {
     case 'plus':

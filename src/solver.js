@@ -679,7 +679,7 @@ class Solver {
     console.log('# Constraints (' + constraints.length + 'x):');
     console.log('  index name vars param');
     for (let i = 0; i < constraints.length; ++i) {
-      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varNames.join(','), ':', constraints[i].param);
+      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varIndexes.join(','), ':', constraints[i].param);
     }
 
     let propagators = config._propagators;

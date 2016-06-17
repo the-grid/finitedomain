@@ -75,14 +75,14 @@ function config_create() {
     all_constraints: [],
 
     constant_cache: {}, // <value:varName>, those names are usually anonymous vars
-    initial_vars: {}, // initial domains for each var <varName:domain>
+    initial_domains: [], // initial domains for each var, maps 1:1 to all_var_names
 
     _propagators: [], // initialized later
     _varToProps: [], // initialized later
   };
 }
 
-function config_clone(config, newVars) {
+function config_clone(config, newDomains) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let {
@@ -96,7 +96,7 @@ function config_clone(config, newVars) {
     constant_cache,
     all_var_names,
     all_constraints,
-    initial_vars,
+    initial_domains,
     _propagators,
     _varToProps,
   } = config;
@@ -116,7 +116,7 @@ function config_clone(config, newVars) {
 
     all_var_names: all_var_names.slice(0),
     all_constraints: all_constraints.slice(0),
-    initial_vars: newVars || initial_vars, // <varName:domain>
+    initial_domains: newDomains || initial_domains, // <varName:domain>
 
     _propagators: _propagators.slice(0), // in case it is initialized
     _varToProps: _varToProps.slice(0), // inited elsewhere
@@ -228,17 +228,20 @@ function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-  ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(varName === true || config.all_var_names.indexOf(varName) < 0, 'Do not declare the same varName twice');
+  ASSERT(domain instanceof Array, 'ARR_DOMAINS_ONLY'); // prevents confusion
+  ASSERT(domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= SMALL_MAX_FLAG), 'domain as value should be within small domain range', domain);
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
 
+  let allVarNames = config.all_var_names;
+  let varIndex = allVarNames.length;
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
-    varName = String(config.all_var_names.length); // this var will be assigned to this index
+    varName = String(varIndex); // this var will be assigned to this index
   }
-  if (config.all_var_names.indexOf(varName) >= 0) {
+  if (allVarNames.indexOf(varName) >= 0) {
     if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }
@@ -246,8 +249,8 @@ function _config_addVar(config, varName, domain) {
   let solvedTo = domain_getValueArr(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varName;
 
-  config.initial_vars[varName] = domain;
-  config.all_var_names.push(varName);
+  config.initial_domains[varIndex] = domain;
+  allVarNames.push(varName);
 
   return varName;
 }
@@ -327,15 +330,14 @@ function config_generateVars(config, space) {
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
 
   ASSERT(space.vardoms, 'expecting var domains');
-  let initialVars = config.initial_vars;
-  ASSERT(initialVars, 'config should have initial vars');
+  let initialDomains = config.initial_domains;
+  ASSERT(initialDomains, 'config should have initial vars');
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
-    let varName = allVarNames[varIndex];
-    let domain = initialVars[varName];
-    ASSERT(domain !== undefined, 'ALL_VARS_GET_A_DOMAIN'); // 0,1 or sub,sup if nothing else
+    let domain = initialDomains[varIndex];
+    ASSERT(domain instanceof Array, 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
 
     space.vardoms[varIndex] = domain_numarr(domain);
     if (!domain_isSolved(domain)) unsolvedVarIndexes.push(varIndex);

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Remove support for adding constraints with unknown variables. It was unused and made certain assumptions hard to enforce.
+- (Internal) The `initial_vars` object in config is now an array
 
 ## v2.1.2:
 

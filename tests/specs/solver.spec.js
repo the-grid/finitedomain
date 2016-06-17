@@ -151,14 +151,14 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]);
 
-        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql([0, 10, 20, 30]);
       });
 
       it('should accept a legacy nested array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [[0, 10], [20, 30]]);
 
-        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql([0, 10, 20, 30]);
       });
 
       it('should throw for bad legacy domain ', function() {

@@ -210,8 +210,7 @@ describe('src/space.spec', function() {
         let config = space_toConfig(space);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_vars, 'not an empty object').not.to.eql({});
-        expect(config.initial_vars, 'empty property should exist').to.eql({A: specDomainCreateRange(SUB, SUP)});
+        expect(config.initial_domains, 'empty property should exist').to.eql([specDomainCreateRange(SUB, SUP)]);
       });
     });
 

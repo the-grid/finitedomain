@@ -8,7 +8,9 @@ describe('exports/export.cases.spec', function() {
   it('should solve 2016-06-11 twice', function() {
     var solver = new Solver({config: case20160611});
 
+    console.log('run 1:');
     solver.solve({log: 1, max: 1});
+    console.log('run 2:');
     solver.solve({log: 1, max: 1});
   });
 

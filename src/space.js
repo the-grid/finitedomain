@@ -15,6 +15,8 @@ import {
 } from './config';
 
 import {
+  FORCE_ARRAY,
+
   domain_clone,
   domain_getValue,
   domain_isSolved,
@@ -103,7 +105,7 @@ function space_collectCurrentUnsolvedPropagators(space) {
 
 /**
  * Create a new config with the configuration of the given Space
- * Basically clones its config but updates the `initial_vars` with fresh state
+ * Basically clones its config but updates the `initial_domains` with fresh state
  *
  * @param {$space} space
  * @returns {$space}
@@ -112,15 +114,14 @@ function space_toConfig(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let vardoms = space.vardoms;
-  let varsForClone = {};
+  let newDomains = [];
   let names = space.config.all_var_names;
   for (let i = 0; i < names.length; i++) {
     let domain = vardoms[i];
-    // note: this object is used as `config.initial_vars` so dont use index here
-    varsForClone[names[i]] = domain_clone(domain);
+    newDomains[i] = domain_clone(domain, FORCE_ARRAY);
   }
 
-  return config_clone(space.config, varsForClone);
+  return config_clone(space.config, newDomains);
 }
 
 function space_filterUnsolvedVarIndexes(space) {

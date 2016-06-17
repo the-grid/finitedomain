@@ -73,7 +73,7 @@ describe('src/constraint.spec', function() {
         let config = config_create();
         propagator_addReified(config, 'eq', 'A', 'B', 'C');
 
-        expect(config.initial_vars.C).to.eql(specDomainCreateRange(0, 1, true));
+        expect(config.initial_domains[config.all_var_names.indexOf('C)]).to.eql(specDomainCreateRange(0, 1, true));
       });
 
       it('should accept a number for boolvar', function() {

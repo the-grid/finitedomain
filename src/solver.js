@@ -83,6 +83,19 @@ class Solver {
       config = config_create(),
     } = options;
 
+    if (config.initial_vars) {
+      let doms = [];
+      for (let i = 0; i < config.all_var_names.length; ++i) {
+        doms[i] = config.initial_vars[config.all_var_names[i]];
+      }
+      config.initial_domains = doms;
+      console.log('### converted initial_vars to initial_domains, log out result and update examples accordingly!');
+      //console.log(doms)
+      //console.log('##')
+      delete config.initial_vars;
+      throw new Error('test');
+    }
+
     this._class = 'solver';
 
     this.distribute = distribute;
@@ -659,7 +672,7 @@ class Solver {
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
+      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_domains[varIndex], '(= [' + domain_toArr(config.initial_domains[varIndex]) + '])');
     }
 
     let constraints = config.all_constraints;

@@ -18,9 +18,7 @@ import {
   config_addVarAnonConstant,
   config_addVarDomain,
   config_addVarRange,
-  config_addVarsWithDomain,
   config_create,
-  config_getUnknownVars,
   config_setDefaults,
   config_setOptions,
 } from './config';
@@ -450,7 +448,6 @@ class Solver {
    * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
-   * @property {boolean} add_unknown_vars
    * @property {boolean} [_debugConfig] Log out solver._space.config after prepare() but before run()
    * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run()
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
@@ -487,17 +484,11 @@ class Solver {
       vars: branchVars = this.vars.all,
       search,
       distribute: distributionOptions = this.distribute,
-      add_unknown_vars: addUnknownVars, // TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
     } = options;
 
     if (log >= LOG_STATS) console.time('      - FD Prepare Time');
 
     let varNames = GET_NAMES(branchVars);
-
-    if (addUnknownVars) {
-      let unknown_names = config_getUnknownVars(this.config);
-      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain, FORCE_ARRAY));
-    }
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
     if (overrides) {

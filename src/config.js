@@ -174,21 +174,6 @@ function config_addVarRange(config, varName, lo, hi) {
 }
 /**
  * @param {$config} config
- * @param {Array.<string|boolean>} varNames Will only be strings but true could mean anonymous vars. Useless since you don't get their id back, though.
- * @param {$domain_arr} domain Small domain format not allowed here.
- */
-function config_addVarsWithDomain(config, varNames, domain) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-
-  for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varName = varNames[i];
-    ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true');
-    config_addVarDomain(config, varName, domain);
-  }
-}
-/**
- * @param {$config} config
  * @param {string|boolean} varName (If true, anon)
  * @param {$domain_arr} domain Small domain format not allowed here.
  * @param {undefined} [_forbidden] Throws if this is used, prevents bad api mistakes (since domain can be a number)
@@ -333,22 +318,6 @@ function config_setOptions(config, options) {
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   config._propagators.push(propagator);
-}
-
-// TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.
-function config_getUnknownVars(config) {
-  let newNames = [];
-  let constraints = config.all_constraints;
-  for (let i = 0, n = constraints.length; i < n; i++) {
-    let varNames = constraints[i].varNames;
-    for (let j = 0, m = varNames.length; j < m; ++j) {
-      let varName = varNames[j];
-      if (!config.initial_vars[varName] && newNames.indexOf(varName) < 0) {
-        newNames.push(varName);
-      }
-    }
-  }
-  return newNames;
 }
 
 function config_generateVars(config, space) {
@@ -646,12 +615,10 @@ export {
   config_addVarDomain,
   config_addVarNothing,
   config_addVarRange,
-  config_addVarsWithDomain,
   config_clone,
   config_create,
   config_generateVars,
   config_generatePropagators,
-  config_getUnknownVars,
   config_initForSpace,
   config_populateVarPropHash,
   config_setDefaults,

@@ -722,24 +722,6 @@ describe('solver.spec', function() {
         expect(true).to.equal(true);
       });
 
-      it('should init all undeclared vars with add_unknown_vars', function() {
-        // first without the option
-        let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
-        solver.eq('A', 'B'); // A and B are not declared so we cant "just" use them
-        expect(_ => solver.solve()).to.throw('LEFT_VAR_SHOULD_BE_VALID_INDEX Args (1x): `[ -1 ]`');
-
-        // now with the option
-        let solver2 = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
-        solver2.eq('A', 'B'); // A and B are not declared but with the add_unknown_vars option we _can_ use them
-        expect(solver2.solve({add_unknown_vars: true})).to.eql([{
-          A: 0,
-          B: 0,
-        }, {
-          A: 1,
-          B: 1,
-        }]);
-      });
-
       it('should throw with an unknown search function', function() {
         let solver = new Solver();
 

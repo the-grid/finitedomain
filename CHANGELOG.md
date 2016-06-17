@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- no changes
+- Remove support for adding constraints with unknown variables. It was unused and made certain assumptions hard to enforce.
 
 ## v2.1.2:
 

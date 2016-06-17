@@ -18,11 +18,9 @@ import {
   config_addVarDomain,
   config_addVarNothing,
   config_addVarRange,
-  config_addVarsWithDomain,
   config_clone,
   config_create,
   config_generateVars,
-  //config_getUnknownVars,
   //config_setDefaults,
   config_setOptions,
 } from '../../src/config';
@@ -476,45 +474,6 @@ describe('src/config.spec', function() {
 
         expect(config.all_var_names).to.eql(['A']);
         expect(config.initial_vars.A).to.eql(specDomainCreateRange(5, 12, true));
-      });
-    });
-  });
-
-  describe('config_addVarsWithDomain', function() {
-
-    it('should exist', function() {
-      expect(config_addVarsWithDomain).to.be.a('function');
-    });
-
-    describe('with array', function() {
-
-      it('should create a new var with given range', function() {
-        let config = config_create();
-        let domain = specDomainCreateRange(50, 55);
-        var names = ['A', 'B', 'C'];
-
-        config_addVarsWithDomain(config, names, domain);
-
-        expect(config.all_var_names).to.eql(names);
-        expect(config.initial_vars.A).to.eql(domain);
-        expect(config.initial_vars.B).to.eql(domain);
-        expect(config.initial_vars.B).to.eql(domain);
-      });
-    });
-
-    describe('with numbers', function() {
-
-      it('should create a new var with given range', function() {
-        let config = config_create();
-        let domain = specDomainCreateRange(0, 5, true);
-        var names = ['A', 'B', 'C'];
-
-        config_addVarsWithDomain(config, names, domain);
-
-        expect(config.all_var_names).to.eql(names);
-        expect(config.initial_vars.A).to.eql(domain);
-        expect(config.initial_vars.B).to.eql(domain);
-        expect(config.initial_vars.B).to.eql(domain);
       });
     });
   });

@@ -478,6 +478,7 @@ function config_addConstraint(config, name, varNames, param) {
         }
       }
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+      if (resultIsParam) param = config.all_var_names.indexOf(param);
 
       varNameToReturn = sumName;
       break;
@@ -561,8 +562,6 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
   ASSERT(typeof name === 'string', 'NAME_SHOULD_BE_STRING');
   ASSERT(varIndexes instanceof Array, 'INDEXES_SHOULD_BE_ARRAY', JSON.stringify(_constraint));
 
-  let allVarNames = config.all_var_names;
-
   switch (name) {
     case 'plus':
       return propagator_addPlus(config, varIndexes[0], varIndexes[1], varIndexes[2]);
@@ -580,10 +579,10 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
       return propagator_addMul(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'sum':
-      return propagator_addSum(config, varIndexes.slice(0), allVarNames.indexOf(param));
+      return propagator_addSum(config, varIndexes.slice(0), param);
 
     case 'product':
-      return propagator_addProduct(config, varIndexes.slice(0), allVarNames.indexOf(param));
+      return propagator_addProduct(config, varIndexes.slice(0), param);
 
     case 'distinct':
       return propagator_addDistinct(config, varIndexes.slice(0));

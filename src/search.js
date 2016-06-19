@@ -111,8 +111,7 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
 function search_defaultSpaceFactory(space) {
-  let targetVars = _search_getVarsUnfiltered(space);
-  let varIndex = distribution_getNextVar(space, targetVars);
+  let varIndex = distribution_getNextVar(space);
 
   if (varIndex !== NO_SUCH_VALUE) {
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -131,30 +130,6 @@ function search_defaultSpaceFactory(space) {
   }
 
   // space is an unsolved leaf node, return undefined
-}
-
-/**
- * Return all the targeted variables without filtering them first.
- * The filter can only be applied later because it may be overridden
- * by a var-specific config.
- * One of the returned var names will be picked to restrict.
- *
- * @param {$space} space The current node
- * @returns {number[]} The var indexes of targeted vars on given space
- */
-function _search_getVarsUnfiltered(space) {
-  let configTargetedIndexes = space.config.targetedIndexes;
-
-  if (configTargetedIndexes === 'all' || !configTargetedIndexes.length) {
-    return space.unsolvedVarIndexes;
-  }
-
-  if (configTargetedIndexes instanceof Array) {
-    return configTargetedIndexes;
-  }
-
-  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
-  return configTargetedIndexes(space);
 }
 
 /**

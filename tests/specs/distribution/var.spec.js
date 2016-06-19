@@ -33,7 +33,7 @@ describe('distribution/var.spec', function() {
 
   describe('distribution_var_by_throw', function() {
     it('should throw', function() {
-      expect(_ => distribution_getNextVar({config: {next_var_func: 'throw'}}, {})).to.throw('not expecting to pick this distributor');
+      expect(_ => distribution_getNextVar({config: {next_var_func: 'throw'}})).to.throw('not expecting to pick this distributor');
     });
   });
 
@@ -59,7 +59,8 @@ describe('distribution/var.spec', function() {
       let A = solver._space.config.all_var_names.indexOf('A');
       let B = solver._space.config.all_var_names.indexOf('B');
 
-      let varName = distribution_getNextVar(solver._space, [A, B]);
+      solver._space.unsolvedVarIndexes = [A, B];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName, stack).to.equal(solver._space.config.all_var_names.indexOf(out));
     });
@@ -248,7 +249,8 @@ describe('distribution/var.spec', function() {
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
-        let varName = distribution_getNextVar(solver._space, [A, B]);
+        solver._space.unsolvedVarIndexes = [A, B];
+        let varName = distribution_getNextVar(solver._space);
         expect(varName).to.eql(A);
       });
 
@@ -268,7 +270,8 @@ describe('distribution/var.spec', function() {
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
-        let varName = distribution_getNextVar(solver._space, [A, B]);
+        solver._space.unsolvedVarIndexes = [A, B];
+        let varName = distribution_getNextVar(solver._space);
         expect(varName).to.eql(B);
       });
     });
@@ -443,7 +446,8 @@ describe('distribution/var.spec', function() {
         let C = solver._space.config.all_var_names.indexOf('C');
         let D = solver._space.config.all_var_names.indexOf('D');
 
-        let varName = distribution_getNextVar(solver._space, [A, B, C, D]);
+        solver._space.unsolvedVarIndexes = [A, B, C, D];
+        let varName = distribution_getNextVar(solver._space);
 
         expect(varName).to.eql(B);
       });
@@ -486,7 +490,8 @@ describe('distribution/var.spec', function() {
         let C = solver._space.config.all_var_names.indexOf('C');
         let D = solver._space.config.all_var_names.indexOf('D');
 
-        let varName = distribution_getNextVar(solver._space, [A, B, C, D]);
+        solver._space.unsolvedVarIndexes = [A, B, C, D];
+        let varName = distribution_getNextVar(solver._space);
 
         expect(varName).to.eql(C);
       });
@@ -826,7 +831,8 @@ describe('distribution/var.spec', function() {
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
-        let varName = distribution_getNextVar(solver._space, [A, B]);
+        solver._space.unsolvedVarIndexes = [A, B];
+        let varName = distribution_getNextVar(solver._space);
 
         expect(varName).to.eql(A);
       });
@@ -846,7 +852,8 @@ describe('distribution/var.spec', function() {
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
-        let varName = distribution_getNextVar(solver._space, [A, B]);
+        solver._space.unsolvedVarIndexes = [A, B];
+        let varName = distribution_getNextVar(solver._space);
 
         expect(varName).to.eql(B);
       });
@@ -864,7 +871,8 @@ describe('distribution/var.spec', function() {
         });
         let A = solver._space.config.all_var_names.indexOf('A');
 
-        let varName = distribution_getNextVar(solver._space, [A]);
+        solver._space.unsolvedVarIndexes = [A];
+        let varName = distribution_getNextVar(solver._space);
 
         expect(varName).to.eql(A);
       });
@@ -886,13 +894,20 @@ describe('distribution/var.spec', function() {
         let B = solver._space.config.all_var_names.indexOf('B');
         let C = solver._space.config.all_var_names.indexOf('C');
 
-        let varName = distribution_getNextVar(solver._space, [A, B, C]);
+        solver._space.unsolvedVarIndexes = [A, B, C];
+        let varName = distribution_getNextVar(solver._space);
         expect(varName, 'A and C should go before B').to.eql(A);
-        varName = distribution_getNextVar(solver._space, [A, B]);
+
+        solver._space.unsolvedVarIndexes = [A, B];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'A should go before B').to.eql(A);
-        varName = distribution_getNextVar(solver._space, [B, C]);
+
+        solver._space.unsolvedVarIndexes = [B, C];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'C should go before B').to.eql(C);
-        varName = distribution_getNextVar(solver._space, [B]);
+
+        solver._space.unsolvedVarIndexes = [B];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'B is only one left').to.eql(B);
       });
 
@@ -916,13 +931,20 @@ describe('distribution/var.spec', function() {
         let B = solver._space.config.all_var_names.indexOf('B');
         let C = solver._space.config.all_var_names.indexOf('C');
 
-        let varName = distribution_getNextVar(solver._space, [A, B, C]);
+        solver._space.unsolvedVarIndexes = [A, B, C];
+        let varName = distribution_getNextVar(solver._space);
         expect(varName, 'A and C should go before B').to.eql(A);
-        varName = distribution_getNextVar(solver._space, [A, B]);
+
+        solver._space.unsolvedVarIndexes = [A, B];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'A should go before B').to.eql(A);
-        varName = distribution_getNextVar(solver._space, [B, C]);
+
+        solver._space.unsolvedVarIndexes = [B, C];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'C should go before B').to.eql(C);
-        varName = distribution_getNextVar(solver._space, [B]);
+
+        solver._space.unsolvedVarIndexes = [B];
+        varName = distribution_getNextVar(solver._space);
         expect(varName, 'B is only one left').to.eql(B);
       });
     });
@@ -986,43 +1008,50 @@ describe('distribution/var.spec', function() {
     let F_pleb = solver._space.config.all_var_names.indexOf('F_pleb');
 
     it('base test: should get highest priority on the list; A_list', function() {
-      let varName = distribution_getNextVar(solver._space, [A_list, B_list, C_markov, D_markov, E_pleb, F_pleb]);
+      solver._space.unsolvedVarIndexes = [A_list, B_list, C_markov, D_markov, E_pleb, F_pleb];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(B_list);
     });
 
     it('missing first item from list', function() {
-      let varName = distribution_getNextVar(solver._space, [A_list, C_markov, D_markov, E_pleb, F_pleb]);
+      solver._space.unsolvedVarIndexes = [A_list, C_markov, D_markov, E_pleb, F_pleb];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(A_list);
     });
 
     it('nothing on list, fallback to markov, get last markov', function() {
-      let varName = distribution_getNextVar(solver._space, [C_markov, D_markov, E_pleb, F_pleb]);
+      solver._space.unsolvedVarIndexes = [C_markov, D_markov, E_pleb, F_pleb];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(D_markov);
     });
 
     it('nothing on list, fallback to markov, get only markov', function() {
-      let varName = distribution_getNextVar(solver._space, [C_markov, E_pleb, F_pleb]);
+      solver._space.unsolvedVarIndexes = [C_markov, E_pleb, F_pleb];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(C_markov);
     });
 
     it('nothing on list, no markov vars, pick smallest by size', function() {
-      let varName = distribution_getNextVar(solver._space, [E_pleb, F_pleb]);
+      solver._space.unsolvedVarIndexes = [E_pleb, F_pleb];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(F_pleb);
     });
 
     it('nothing on list, no markov vars, pick only var left', function() {
+      solver._space.unsolvedVarIndexes = [E_pleb];
       let varName = distribution_getNextVar(solver._space, [E_pleb]);
 
       expect(varName).to.equal(E_pleb);
     });
 
     it('should throw for getting the next var without passing on names', function() {
-      expect(_ => distribution_getNextVar(solver._space, [])).to.throw('SHOULD_HAVE_VARS');
+      solver._space.unsolvedVarIndexes = [];
+      expect(_ => distribution_getNextVar(solver._space)).to.throw('SHOULD_HAVE_VARS');
     });
 
     it('dont crash on randomized inclusion and order', function() {
@@ -1033,7 +1062,8 @@ describe('distribution/var.spec', function() {
         // shuffle list the ugly way
         names.sort(() => Math.random() - 0.5);
 
-        expect(() => distribution_getNextVar(solver._space, names)).not.to.throw();
+        solver._space.unsolvedVarIndexes = names;
+        expect(() => distribution_getNextVar(solver._space)).not.to.throw();
       }
     });
   });
@@ -1087,31 +1117,36 @@ describe('distribution/var.spec', function() {
     let F = solver._space.config.all_var_names.indexOf('F');
 
     it('should prioritize list over rest A', function() {
-      let varName = distribution_getNextVar(solver._space, [D, C, A, E, F]);
+      solver._space.unsolvedVarIndexes = [D, C, A, E, F];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(A);
     });
 
     it('should prioritize list over rest B', function() {
-      let varName = distribution_getNextVar(solver._space, [D, C, B, E, F]);
+      solver._space.unsolvedVarIndexes = [D, C, B, E, F];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(B);
     });
 
     it('should prioritize un-blacklisted over rest E', function() {
-      let varName = distribution_getNextVar(solver._space, [D, E, C]);
+      solver._space.unsolvedVarIndexes = [D, E, C];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(E);
     });
 
     it('should prioritize un-blacklisted over rest F', function() {
-      let varName = distribution_getNextVar(solver._space, [D, F, C]);
+      solver._space.unsolvedVarIndexes = [D, F, C];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(F);
     });
 
     it('should prioritize C over D in blacklist', function() {
-      let varName = distribution_getNextVar(solver._space, [D, C]);
+      solver._space.unsolvedVarIndexes = [D, C];
+      let varName = distribution_getNextVar(solver._space);
 
       expect(varName).to.equal(C);
     });

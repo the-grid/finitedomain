@@ -79,6 +79,7 @@ function config_create() {
 
     _propagators: [], // initialized later
     _varToProps: [], // initialized later
+    _varToConstraints: [], // initialized later
   };
 }
 
@@ -99,6 +100,7 @@ function config_clone(config, newDomains) {
     initial_domains,
     _propagators,
     _varToProps,
+    _varToConstraints,
   } = config;
 
   return {
@@ -120,6 +122,7 @@ function config_clone(config, newDomains) {
 
     _propagators: _propagators.slice(0), // in case it is initialized
     _varToProps: _varToProps.slice(0), // inited elsewhere
+    _varToConstraints: _varToConstraints.slice(0), // inited elsewhere
   };
 }
 
@@ -327,8 +330,6 @@ function config_generateVars(config, space) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(space && space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
-
   ASSERT(space.vardoms, 'expecting var domains');
   let initialDomains = config.initial_domains;
   ASSERT(initialDomains, 'config should have initial vars');
@@ -340,7 +341,6 @@ function config_generateVars(config, space) {
     ASSERT(domain instanceof Array, 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
 
     space.vardoms[varIndex] = domain_numarr(domain);
-    if (!domain_isSolved(domain)) unsolvedVarIndexes.push(varIndex);
   }
 
   if (config.targetedVars === 'all') {
@@ -406,6 +406,18 @@ function config_populateVarPropHash(config) {
     }
   }
   config._varToProps = hash;
+
+  hash = new Array(config.all_var_names.length);
+  let constraints = config.all_constraints;
+  for (let strainIndex = 0, clen = constraints.length; strainIndex < clen; ++strainIndex) {
+    let cvars = constraints[strainIndex].varIndexes;
+    for (let propVarIndex = 0, vlen = cvars.length; propVarIndex < vlen; ++propVarIndex) {
+      let varIndex = cvars[propVarIndex];
+      if (!hash[varIndex]) hash[varIndex] = [strainIndex];
+      else if (hash[varIndex].indexOf(strainIndex) < 0) hash[varIndex].push(strainIndex);
+    }
+  }
+  config._varToConstraints = hash;
 }
 
 function config_addConstraint(config, name, varNames, param) {
@@ -618,6 +630,24 @@ function config_initForSpace(config, space) {
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
+
+  let targets = getAllTargetVars(space);
+  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]));
+}
+
+function getAllTargetVars(space) {
+  let configTargetedIndexes = space.config.targetedIndexes;
+
+  if (configTargetedIndexes === 'all' || !configTargetedIndexes.length) {
+    return space.config.all_var_names.map((n, i) => i);
+  }
+
+  if (configTargetedIndexes instanceof Array) {
+    return configTargetedIndexes;
+  }
+
+  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
+  return configTargetedIndexes(space);
 }
 
 // BODY_STOP

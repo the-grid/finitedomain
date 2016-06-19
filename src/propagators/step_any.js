@@ -77,7 +77,7 @@ function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
       return propagator_stepComparison(space, opName, varIndex1, varIndex2);
 
     case 'callback':
-      return _propagator_cb(space, propVarIndexes, propagator);
+      return propagator_callbackStepBare(space, propVarIndexes, propagator[PROP_CALLBACK]);
 
     case 'ring':
       return _propagator_ring(space, varIndex1, varIndex2, propVarIndexes[2], propagator[PROP_OP_FUNC]);
@@ -97,10 +97,6 @@ function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
     default:
       THROW(`unsupported propagator: [${propagator}]`);
   }
-}
-
-function _propagator_cb(space, propVarIndexes, propagator) {
-  return propagator_callbackStepBare(space, propVarIndexes, propagator[PROP_CALLBACK]);
 }
 
 function _propagator_reified(space, varIndex1, varIndex2, propVarIndexes, propagator) {

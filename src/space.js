@@ -228,43 +228,36 @@ function space_propagate(space) {
 }
 
 function space_propagateAll(space, propagators, changedVars) {
-  for (let i = 0; i < propagators.length; i++) {
+  for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
-
-    // the domain of either var of a propagator can only be empty if the prop REJECTED
-    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
-    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
-
-    if (n === SOME_CHANGES) {
-      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
-        let varIndex = propagator[PROP_VAR_INDEXES][j];
-        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
-      }
-    } else if (n === REJECTED) {
-      return true; // solution impossible
-    }
+    let rejected = space_propagateStepRejects(space, propagator, changedVars);
+    if (rejected) return true;
   }
   return false;
 }
 function space_propagateByIndexes(space, propagators, propIndexes, changedVars) {
-  for (let i = 0; i < propIndexes.length; i++) {
+  for (let i = 0, n = propIndexes.length; i < n; i++) {
     let propIndex = propIndexes[i];
     let propagator = propagators[propIndex];
-    let n = propagator_stepAny(propagator, space);
+    let rejected = space_propagateStepRejects(space, propagator, changedVars);
+    if (rejected) return true;
+  }
+  return false;
+}
+function space_propagateStepRejects(space, propagator, changedVars) {
+  let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
-    // the domain of either var of a propagator can only be empty if the prop REJECTED
-    ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
-    ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+  // the domain of either var of a propagator can only be empty if the prop REJECTED
+  ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
+  ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
 
-    if (n === SOME_CHANGES) {
-      for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
-        let varIndex = propagator[PROP_VAR_INDEXES][j];
-        if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
-      }
-    } else if (n === REJECTED) {
-      return true; // solution impossible
+  if (n === SOME_CHANGES) {
+    for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
+      let varIndex = propagator[PROP_VAR_INDEXES][j];
+      if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
     }
+  } else if (n === REJECTED) {
+    return true; // solution impossible
   }
   return false;
 }

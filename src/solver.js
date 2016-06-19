@@ -501,6 +501,7 @@ class Solver {
 
     if (log >= LOG_STATS) console.time('      - FD Prepare Time');
 
+    let targetAll = branchVars === 'all' || branchVars === this.vars.all; // TOFIX: clean this mess up
     let varNames = GET_NAMES(branchVars);
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
@@ -508,7 +509,7 @@ class Solver {
       config_setOptions(this.config, {var_dist_config: overrides});
     }
 
-    if (varNames instanceof Array ? varNames.length : varNames) config_setOptions(this.config, {targeted_var_names: varNames});
+    if (!targetAll) config_setOptions(this.config, {targeted_var_names: varNames});
     config_setOptions(this.config, distributionOptions);
 
     let searchFunc = this._get_search_func_or_die(search);

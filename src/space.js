@@ -234,9 +234,9 @@ function space_propagateStepRejects(space, propagator, changedVars) {
   return false;
 }
 function space_propagateChanges(space, allPropagators, targetVars, changedVars, minimal) {
-  let varToProps = space.config._varToProps;
+  let varToPropagators = space.config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
-    let propIndexes = varToProps[targetVars[i]];
+    let propIndexes = varToPropagators[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if
     // it is just one. after that, if a var was updated that only has one propagator it can
     // only have been updated by that one propagator. however, this step is queueing up

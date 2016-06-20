@@ -78,7 +78,7 @@ function config_create() {
     initial_domains: [], // initial domains for each var, maps 1:1 to all_var_names
 
     _propagators: [], // initialized later
-    _varToProps: [], // initialized later
+    _varToPropagators: [], // initialized later
   };
 }
 
@@ -98,7 +98,7 @@ function config_clone(config, newDomains) {
     all_constraints,
     initial_domains,
     _propagators,
-    _varToProps,
+    _varToPropagators,
   } = config;
 
   return {
@@ -119,7 +119,7 @@ function config_clone(config, newDomains) {
     initial_domains: newDomains || initial_domains, // <varName:domain>
 
     _propagators: _propagators.slice(0), // in case it is initialized
-    _varToProps: _varToProps.slice(0), // inited elsewhere
+    _varToPropagators: _varToPropagators.slice(0), // inited elsewhere
   };
 }
 
@@ -402,7 +402,7 @@ function config_populateVarPropHash(config) {
       else if (hash[varIndex].indexOf(propIndex) < 0) hash[varIndex].push(propIndex);
     }
   }
-  config._varToProps = hash;
+  config._varToPropagators = hash;
 }
 
 function config_addConstraint(config, name, varNames, param) {

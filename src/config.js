@@ -294,7 +294,7 @@ function config_setOptions(config, options) {
     // see distribution.value
     config.next_value_func = options.val;
   }
-  if (options && options.targeted_var_names) {
+  if (options && options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
     // which vars must be solved for this space to be solved
     // string: 'all'
     // string[]: list of vars that must be solved
@@ -630,8 +630,10 @@ function config_initForSpace(config, space) {
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
 
+  ASSERT(config._varToConstraints, 'should have generated hash');
   let targets = getAllTargetVars(space);
-  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]));
+  // a var is considered unsolved if it is in fact not solved AND it either is either explicitly targeted or constrained by at least one constraint
+  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]) && (config.targetedVars !== 'all' || config._varToConstraints[varIndex]));
 }
 
 function getAllTargetVars(space) {

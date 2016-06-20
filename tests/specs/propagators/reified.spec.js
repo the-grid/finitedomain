@@ -105,41 +105,91 @@ describe('propagators/reified.spec', function() {
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
-      let solutions = solver.solve({vars: ['A', 'B', 'C']});
+      let solutions = solver.solve({});
       // a, b, c are not constrainted in any way, so 2^3=8
-      expect(solutions.length).to.equal(8);
+      // however, reifiers are not optimized so they require a solution. otoh, C is unbound so per default any value is valid
+      expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
-    it('should be able to force a reifier to be true and affect the outcome', function() {
+    it('should reduce vars to a solution if they are targeted expicitly', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AnotB'));
+
+      let solutions = solver.solve({vars: ['A', 'B', 'C']});
+      // a, b, c are not constrainted in any way, so 2^3=8
+      // explicitly targeted so require a single value for all solutions
+      expect(solutions.length).to.equal(8);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: 0, AnotB: 1},
+        {A: 0, B: 0, C: 1, AnotB: 1},
+        {A: 0, B: 1, C: 0, AnotB: 0},
+        {A: 0, B: 1, C: 1, AnotB: 0},
+        {A: 1, B: 0, C: 0, AnotB: 0},
+        {A: 1, B: 0, C: 1, AnotB: 0},
+        {A: 1, B: 1, C: 0, AnotB: 1},
+        {A: 1, B: 1, C: 1, AnotB: 1},
+      ]);
+    });
+
+    it('should be able to force a reifier to be true and affect the outcome when not targeted', function() {
       let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AisB'));
-      solver['==']('AisB', solver.constant(1));
+      solver['==']('AisB', 1);
+
+      let solutions = solver.solve({});
+
+      // all vars start with default domain, [0,1]
+      // AisB is forced to 1
+      // therefor A cannot be B
+      // C is unbound
+      // so the only two valid outcomes are A=0,B=1 and A=1,B=0. The value
+      // for C is irrelevant, the value of AisB is always 1. Two outcomes.
+      expect(solutions.length).to.equal(2);
+      expect(solutions).to.eql([
+        {'4': 1, A: 0, B: 0, C: [0, 1], AisB: 1},
+        {'4': 1, A: 1, B: 1, C: [0, 1], AisB: 1},
+      ]);
+    });
+
+    it('should be able to force a reifier to be true and affect the outcome when targeted', function() {
+      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+
+      solver.decl('A');
+      solver.decl('B');
+      solver.decl('C');
+      solver['==?']('A', 'B', solver.decl('AisB'));
+      solver['==']('AisB', 1);
 
       let solutions = solver.solve({vars: ['A', 'B', 'C']});
 
-      //// visualize solutions
-      //let names = '';
-      //for (var name in solutions[0]) {
-      //  names += name+' ';
-      //}
-      //console.log(names);
-      //let arr = solutions.map(function(sol) {
-      //  let out = '';
-      //  for (name in sol) {
-      //    out += sol[name]+' ';
-      //  }
-      //  return out;
-      //});
-      //console.log(arr);
-
-      // the a==?b reifier is bound to be 1
-      // a cannot be b, so 1 0 1, 0 1 1, 1 0 0, and 0 1 0, = 4 solutions
-      // TODO: verify this is correct and why this was 8 before...
+      // all vars start with default domain, [0,1]
+      // AisB is forced to 1
+      // therefor A cannot be B
+      // C is unbound
+      // so the only two valid outcomes are A=0,B=1 and A=1,B=0. The value
+      // for C is irrelevant, the value of AisB is always 1. Two outcomes.
       expect(solutions.length).to.equal(4);
+      // C is reduced to a single var because it is
+      expect(solutions).to.eql([
+        {'4': 1, A: 0, B: 0, C: 0, AisB: 1},
+        {'4': 1, A: 0, B: 0, C: 1, AisB: 1},
+        {'4': 1, A: 1, B: 1, C: 0, AisB: 1},
+        {'4': 1, A: 1, B: 1, C: 1, AisB: 1},
+      ]);
     });
 
     it('should not adjust operands if result var is unconstrained', function() {

@@ -2302,6 +2302,29 @@ function domain_addRangeNum(domain, from, to) {
 }
 
 /**
+ * Returns whether all values in domain1 are < all values in domain2
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
+ */
+function domain_isLt(domain1, domain2) {
+  return domain_max(domain1) < domain_min(domain2);
+}
+
+/**
+ * Returns whether all values in domain1 are <= all values in domain2
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
+ */
+function domain_isLte(domain1, domain2) {
+  return domain_max(domain1) <= domain_min(domain2);
+}
+
+
+/**
  * Given two domains compare the new domain to the old domain and
  * return REJECTED if the new domain is empty, NO_CHANGES if the
  * new domain is equal to the old domain, and SOME_CHANGES otherwise.
@@ -2378,6 +2401,8 @@ export {
   domain_createValue,
   domain_divby,
   domain_isEqual,
+  domain_isLt,
+  domain_isLte,
   domain_fromFlagsNum,
   domain_fromList,
   domain_getChangeState,

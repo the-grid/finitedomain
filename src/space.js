@@ -27,7 +27,10 @@ import {
   PROP_VAR_INDEXES,
 } from './propagator';
 
-import propagator_stepAny from './propagators/step_any';
+import {
+  constraint_step,
+  constraint_isSolved,
+} from './constraint';
 import propagator_isSolved from './propagators/is_solved';
 
 // BODY_START
@@ -68,7 +71,7 @@ function space_createFromConfig(config) {
 function space_createClone(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
-  let unsolvedPropagators = space_collectCurrentUnsolvedPropagators(space);
+  let unsolvedConstraints = space_collectCurrentUnsolvedConstraints(space);
 
   let unsolvedVarIndexes = space_filterUnsolvedVarIndexes(space);
   let vardomsCopy = space.vardoms.slice(0);
@@ -82,7 +85,7 @@ function space_createClone(space) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(space.config, unsolvedPropagators, vardomsCopy, unsolvedVarIndexes, _depth, _child, _path);
+  return space_createNew(space.config, unsolvedConstraints, vardomsCopy, unsolvedVarIndexes, _depth, _child, _path);
 }
 
 /**
@@ -91,16 +94,22 @@ function space_createClone(space) {
  * @param {$space} space
  * @returns {$propagator[]}
  */
-function space_collectCurrentUnsolvedPropagators(space) {
-  let unsolvedPropagators = [];
-  let props = space.unsolvedPropagators;
-  for (let i = 0; i < props.length; i++) {
-    let propagator = props[i];
-    if (!propagator_isSolved(space, propagator)) {
-      unsolvedPropagators.push(propagator);
+function space_collectCurrentUnsolvedConstraints(space) {
+  // TODO: uncomment and use the cache
+  //if (space._nextUnsolvedConstraintIndexes) return space._nextUnsolvedConstraintIndexes;
+
+  let newUnsolvedConstraintIndexes = [];
+  let unsolvedConstraintIndexes = space.unsolvedConstraintIndexes;
+  let constraints = space.config.all_constraints;
+  for (let i = 0; i < unsolvedConstraintIndexes.length; i++) {
+    let strainIndex = unsolvedConstraintIndexes[i];
+    let constraint = constraints[strainIndex];
+    if (!constraint_isSolved(constraint, space)) { // propagator_isSolved(space, constraint)
+      newUnsolvedConstraintIndexes.push(strainIndex);
     }
   }
-  return unsolvedPropagators;
+  //space._nextUnsolvedConstraints = newUnsolvedConstraintIndexes; // spaces dont change once they stabalize
+  return newUnsolvedConstraintIndexes;
 }
 
 /**
@@ -138,7 +147,7 @@ function space_filterUnsolvedVarIndexes(space) {
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
  * @param {$config} config
- * @param {Object[]} unsolvedPropagators
+ * @param {$constraint[]} unsolvedConstraintIndexes
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
  * @param {string[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
  * @param {number} _depth
@@ -146,8 +155,8 @@ function space_filterUnsolvedVarIndexes(space) {
  * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexes, _depth, _child, _path) {
-  ASSERT(unsolvedPropagators instanceof Array, 'props should be an array', unsolvedPropagators);
+function space_createNew(config, unsolvedConstraintIndexes, vardoms, unsolvedVarIndexes, _depth, _child, _path) {
+  ASSERT(unsolvedConstraintIndexes instanceof Array, 'should be an array of constraints', unsolvedConstraintIndexes);
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
   ASSERT(unsolvedVarIndexes instanceof Array, 'unsolvedVarIndexes should be an array', unsolvedVarIndexes);
 
@@ -159,7 +168,8 @@ function space_createNew(config, unsolvedPropagators, vardoms, unsolvedVarIndexe
     // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     vardoms,
     unsolvedVarIndexes,
-    unsolvedPropagators, // "on index". root space has same reference as config.configBYIndex. elements also shares reference.
+    unsolvedConstraintIndexes, // "on index". root space has same reference as config.configBYIndex. elements also shares reference.
+    _nextUnsolvedConstraintIndexes: undefined, // when a space is cloned this will be an array with the constraint indexes still unsolved
 
     next_distribution_choice: 0,
     updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
@@ -184,12 +194,11 @@ function space_initFromConfig(space) {
 
   config_initForSpace(config, space);
 
-  // propagators are immutable so share by reference
-  space.unsolvedPropagators = config._propagators; // props are generated above
+  space.unsolvedConstraintIndexes = config.all_constraints.map((n, i) => i);
 }
 
 /**
- * Run all the propagators until stability point.
+ * Run all the constraints until stability point.
  * Returns true if any propagator rejects.
  *
  * @param {$space} space
@@ -197,24 +206,28 @@ function space_initFromConfig(space) {
  */
 function space_propagate(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let unsolvedPropagators = space.unsolvedPropagators;
+  let unsolvedConstraintIndexes = space.unsolvedConstraintIndexes;
+  let constraints = space.config.all_constraints;
 
   let changedVars;
   let minimal = 1;
   if (space.updatedVarIndex >= 0) {
     changedVars = [space.updatedVarIndex];
   } else {
-    // very first run of the search. all propagators must be visited at least once now.
+    // very first run of the search. all constraints must be visited at least once now.
     changedVars = [];
-    let rejected = space_propagateAll(space, unsolvedPropagators, changedVars);
-    if (rejected) return true;
+    let rejected = space_propagateByIndexes(space, constraints, unsolvedConstraintIndexes, changedVars);
+    if (rejected) {
+      return true;
+    }
   }
 
-  let propagators = space.config._propagators;
   while (changedVars.length) {
     let newChangedVars = [];
-    let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, minimal);
-    if (rejected) return true;
+    let rejected = space_propagateChanges(space, constraints, changedVars, newChangedVars, minimal);
+    if (rejected) {
+      return true;
+    }
 
     if (space_abortSearch(space)) {
       return true;
@@ -227,33 +240,25 @@ function space_propagate(space) {
   return false;
 }
 
-function space_propagateAll(space, propagators, changedVars) {
-  for (let i = 0, n = propagators.length; i < n; i++) {
-    let propagator = propagators[i];
-    let rejected = space_propagateStepRejects(space, propagator, changedVars);
+function space_propagateByIndexes(space, constraints, constraintIndexes, changedVars) {
+  for (let i = 0, n = constraintIndexes.length; i < n; i++) {
+    let constraintIndex = constraintIndexes[i];
+    let constraint = constraints[constraintIndex];
+    let rejected = space_propagateStep(space, constraint, changedVars, i);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propIndexes, changedVars) {
-  for (let i = 0, n = propIndexes.length; i < n; i++) {
-    let propIndex = propIndexes[i];
-    let propagator = propagators[propIndex];
-    let rejected = space_propagateStepRejects(space, propagator, changedVars);
-    if (rejected) return true;
-  }
-  return false;
-}
-function space_propagateStepRejects(space, propagator, changedVars) {
-  let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+function space_propagateStep(space, constraint, changedVars, _i) {
+  let n = constraint_step(constraint, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
-  // the domain of either var of a propagator can only be empty if the prop REJECTED
-  ASSERT(n === REJECTED || space.vardoms[propagator[PROP_VAR_INDEXES][0]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][0]].length, 'prop var empty but it didnt REJECT');
-  ASSERT(n === REJECTED || !propagator[PROP_VAR_INDEXES][1] || space.vardoms[propagator[PROP_VAR_INDEXES][1]] > 0 || space.vardoms[propagator[PROP_VAR_INDEXES][1]].length, 'prop var empty but it didnt REJECT');
+  // the domain of either var of a constraint can only be empty if the prop REJECTED
+  ASSERT(n === REJECTED || space.vardoms[constraint.varIndexes[0]] > 0 || space.vardoms[constraint.varIndexes[0]].length, 'prop var empty but it didnt REJECT');
+  ASSERT(n === REJECTED || !constraint.varIndexes[1] || space.vardoms[constraint.varIndexes[1]] > 0 || space.vardoms[constraint.varIndexes[1]].length, 'prop var empty but it didnt REJECT');
 
   if (n === SOME_CHANGES) {
-    for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
-      let varIndex = propagator[PROP_VAR_INDEXES][j];
+    for (let j = 0, len = constraint.varIndexes.length; j < len; ++j) {
+      let varIndex = constraint.varIndexes[j];
       if (changedVars.indexOf(varIndex) < 0) changedVars.push(varIndex);
     }
   } else if (n === REJECTED) {
@@ -261,10 +266,10 @@ function space_propagateStepRejects(space, propagator, changedVars) {
   }
   return false;
 }
-function space_propagateChanges(space, allPropagators, targetVars, changedVars, minimal) {
-  let varToProps = space.config._varToProps;
+function space_propagateChanges(space, allConstraints, targetVars, changedVars, minimal) {
+  let varToConstraints = space.config._varToConstraints;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
-    let propIndexes = varToProps[targetVars[i]];
+    let constraintIndexes = varToConstraints[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if
     // it is just one. after that, if a var was updated that only has one propagator it can
     // only have been updated by that one propagator. however, this step is queueing up
@@ -274,8 +279,8 @@ function space_propagateChanges(space, allPropagators, targetVars, changedVars, 
     // a propagator so we skip it.
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
-    if (propIndexes && propIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propIndexes, changedVars);
+    if (constraintIndexes && constraintIndexes.length >= minimal) {
+      let result = space_propagateByIndexes(space, allConstraints, constraintIndexes, changedVars);
       if (result) return true; // rejected
     }
   }

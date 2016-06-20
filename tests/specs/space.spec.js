@@ -110,28 +110,81 @@ describe('src/space.spec', function() {
         expect(space_isSolved(space), 'two solved vars').to.equal(true);
       });
 
-      it('should return false if at least one var is not solved', function() {
+      it('should return false if one var is not solved and is targeted', function() {
         let space = space_createRoot();
         config_addVarAnonRange(space.config, 0, 1);
+        space.config.targetedVars = space.config.all_var_names.slice(0);
         space_initFromConfig(space);
 
         expect(space_isSolved(space), 'only one unsolved var').to.equal(false);
       });
 
-      it('should return false if at least one var of two is not solved', function() {
+      it('should return true if one var is not solved but not targeted', function() {
+        let space = space_createRoot();
+        config_addVarAnonRange(space.config, 0, 1);
+        space.config.targetedVars = [];
+        space_initFromConfig(space);
+
+        expect(space_isSolved(space), 'only one unsolved var').to.equal(false);
+      });
+
+      it('should return false if at least one var of two is not solved and targeted', function() {
         let space = space_createRoot();
         config_addVarAnonRange(space.config, 0, 1);
         config_addVarAnonRange(space.config, 0, 1);
+        space.config.targetedVars = space.config.all_var_names.slice(0);
         space_initFromConfig(space);
 
         expect(space_isSolved(space), 'two unsolved vars').to.equal(false);
       });
 
-      it('should return false if at least one var of three is not solved', function() {
+      it('should return false if at least one var of two is not solved and not targeted', function() {
+        let space = space_createRoot();
+        config_addVarAnonRange(space.config, 0, 1);
+        config_addVarAnonRange(space.config, 0, 1);
+        space_initFromConfig(space);
+
+        expect(space_isSolved(space), 'two unsolved vars').to.equal(true);
+      });
+
+      it('should return false if at least one var of three is not solved and all targeted', function() {
         let space = space_createRoot();
         config_addVarAnonRange(space.config, 0, 1);
         config_addVarAnonRange(space.config, 0, 1);
         config_addVarAnonConstant(space.config, 1);
+        space.config.targetedVars = space.config.all_var_names.slice(0);
+        space_initFromConfig(space);
+
+        expect(space_isSolved(space), 'two unsolved vars and a solved var').to.equal(false);
+      });
+
+      it('should return false if at least one var of three is not solved and not targeted', function() {
+        let space = space_createRoot();
+        config_addVarAnonRange(space.config, 0, 1);
+        config_addVarAnonRange(space.config, 0, 1);
+        config_addVarAnonConstant(space.config, 1);
+        space_initFromConfig(space);
+
+        expect(space_isSolved(space), 'two unsolved vars and a solved var').to.equal(true);
+      });
+
+      it('should return false if at least one var of three is not solved and only that one not is targeted', function() {
+        let space = space_createRoot();
+        config_addVarAnonRange(space.config, 0, 1);
+        config_addVarAnonRange(space.config, 0, 1);
+        let A = config_addVarAnonConstant(space.config, 1);
+        space.config.targetedVars = [A];
+        space_initFromConfig(space);
+
+        expect(space_isSolved(space), 'two unsolved vars and a solved var').to.equal(true);
+      });
+
+      it('should return false if at least one var of three is not solved and that one is targeted', function() {
+        let space = space_createRoot();
+        let A = config_addVarAnonRange(space.config, 0, 1);
+        let B = config_addVarAnonRange(space.config, 0, 1);
+        config_addVarAnonConstant(space.config, 1);
+        space.config.targetedVars = [A, B];
         space_initFromConfig(space);
 
         expect(space_isSolved(space), 'two unsolved vars and a solved var').to.equal(false);

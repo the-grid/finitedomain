@@ -5,6 +5,7 @@
 - Remove support for adding constraints with unknown variables. It was unused and made certain assumptions hard to enforce.
 - (Internal) The `initial_vars` object in config is now an array
 - Drop support for dynamically get the list of vars to target
+- The `vars` option to target specific vars to be solved, should be an array of names or the string 'all'. Other values are ignored.
 
 ## v2.1.2:
 

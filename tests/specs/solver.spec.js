@@ -791,11 +791,18 @@ describe('solver.spec', function() {
 
     describe('solver.solve', function() {
 
-      it('should solve a trivial case', function() {
+      it('should solve a trivial case when targeted', function() {
         let solver = new Solver({});
         solver.addVar('A', [1, 2]);
 
-        expect(solver.solve()).to.eql([{A: 1}, {A: 2}]);
+        expect(solver.solve({vars: ['A']})).to.eql([{A: 1}, {A: 2}]);
+      });
+
+      it('should solve a trivial case when not targeted', function() {
+        let solver = new Solver({});
+        solver.addVar('A', [1, 2]);
+
+        expect(solver.solve()).to.eql([{A: [1, 2]}]);
       });
 
       function forLevel(level) {
@@ -1295,7 +1302,15 @@ describe('solver.spec', function() {
       let solutions = solver.solve({});
       // a, b, c are not constrained in any way, so 2^3=8
       // no var is targeted so they should all solve
-      expect(solutions.length).to.equal(8);
+      // however, the constraint will force A and B to solve
+      // to a single value, where C is left as "any"
+      expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should want to solve all vars if targets is an empty array', function() {
@@ -1309,7 +1324,15 @@ describe('solver.spec', function() {
       let solutions = solver.solve({vars: []});
       // a, b, c are not constrained in any way, so 2^3=8
       // no var is targeted so they should all solve
-      expect(solutions.length).to.equal(8);
+      // however, the constraint will force A and B to solve
+      // to a single value, where C is left as "any"
+      expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should ignore C when only A and B are targeted', function() {
@@ -1323,7 +1346,14 @@ describe('solver.spec', function() {
       let solutions = solver.solve({vars: ['A', 'B']});
       // A and B are targeted, they have [0,1] [0,1] so
       // 4 solutions. the result of C is irrelevant here
+      // (pretty much same as before)
       expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should ignore A when only B and C are targeted', function() {
@@ -1390,10 +1420,10 @@ describe('solver.spec', function() {
       //console.log(solver._space);
       //console.log(solver._space.config);
 
-      expect(solutions.length, 'solution count').to.eql(2);
+      expect(solutions.length, 'solution count').to.eql(1); // A solves to [1,2], undecided because not targeted
     });
 
-    it('should combine multiple unconstrained vars', function() {
+    it('should combine multiple unconstrained vars when targeted', function() {
       let solver = new Solver({});
 
       solver.addVar('_ROOT_BRANCH_', [0, 1]);
@@ -1415,7 +1445,31 @@ describe('solver.spec', function() {
 
       // 2×3×2×2×2×3×2×2×3×2×2 (size of each domain multiplied)
       // there are no constraints so it's just all combinations
-      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912);
+      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912);
+    });
+
+    it('should return all domains as is when not targeted', function() {
+      let solver = new Solver({});
+
+      solver.addVar('_ROOT_BRANCH_', [0, 1]);
+      solver.addVar('SECTION', [1, 1]);
+      solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]);
+      solver.addVar('ITEM_INDEX', [1, 2]);
+      solver.addVar('align', [1, 2]);
+      solver.addVar('text_align', [1, 2]);
+      solver.addVar('SECTION&n=1', [1, 1]);
+      solver.addVar('VERSE_INDEX&n=1', [5, 6, 8, 8]);
+      solver.addVar('ITEM_INDEX&n=1', [2, 2]);
+      solver.addVar('align&n=1', [1, 2]);
+      solver.addVar('text_align&n=1', [1, 2]);
+      solver.addVar('SECTION&n=2', [1, 1]);
+      solver.addVar('VERSE_INDEX&n=2', [1, 1, 3, 3, 7, 7]);
+      solver.addVar('ITEM_INDEX&n=2', [3, 3]);
+      solver.addVar('align&n=2', [1, 2]);
+      solver.addVar('text_align&n=2', [1, 2]);
+
+      // same as before but none are targeted so algo considers them "solved" and returns all valid values (=init)
+      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(1);
     });
 
     it('should constrain one var to be equal to another', function() {
@@ -1441,7 +1495,8 @@ describe('solver.spec', function() {
       solver.eq('_ROOT_BRANCH_', 'SECTION');
 
       // same as 'combine multiple unconstrained vars' but one var has one instead of two options, so /2
-      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912 / 2);
+      // note: must target all vars explicitly or you'll validly get just one solution back.
+      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912 / 2);
     });
 
     it('should allow useless constraints', function() {

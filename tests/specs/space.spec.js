@@ -84,7 +84,6 @@ describe('src/space.spec', function() {
         expect(space.unsolvedVarIndexes).to.not.equal(clone.unsolvedVarIndexes);
         expect(space.unsolvedVarIndexes.join()).to.equal(clone.unsolvedVarIndexes.join());
         expect(space.config).to.equal(clone.config);
-        expect(space.unsolvedPropagators).to.eql(clone.unsolvedPropagators);
       });
     });
 

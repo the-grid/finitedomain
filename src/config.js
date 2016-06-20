@@ -384,7 +384,7 @@ function config_initConfigsAndFallbacks(config) {
 }
 
 /**
- * Creates a mapping from a varIndex to a set of propIndexes
+ * Creates a mapping from a varIndex to a set of propagatorIndexes
  * These propagators are the ones that use the varIndex
  * This is useful for quickly determining which propagators
  * need to be stepped while propagating them.
@@ -394,12 +394,12 @@ function config_initConfigsAndFallbacks(config) {
 function config_populateVarPropHash(config) {
   let hash = new Array(config.all_var_names.length);
   let propagators = config._propagators;
-  for (let propIndex = 0, plen = propagators.length; propIndex < plen; ++propIndex) {
-    let pvars = propagators[propIndex][PROP_VAR_INDEXES];
+  for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
+    let pvars = propagators[propagatorIndex][PROP_VAR_INDEXES];
     for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
       let varIndex = pvars[propVarIndex];
-      if (!hash[varIndex]) hash[varIndex] = [propIndex];
-      else if (hash[varIndex].indexOf(propIndex) < 0) hash[varIndex].push(propIndex);
+      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
     }
   }
   config._varToPropagators = hash;

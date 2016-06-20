@@ -207,9 +207,9 @@ function space_propagateAll(space, propagators, changedVars) {
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propIndexes, changedVars) {
-  for (let i = 0, n = propIndexes.length; i < n; i++) {
-    let propIndex = propIndexes[i];
+function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars) {
+  for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
+    let propIndex = propagatorIndexes[i];
     let propagator = propagators[propIndex];
     let rejected = space_propagateStepRejects(space, propagator, changedVars);
     if (rejected) return true;
@@ -236,7 +236,7 @@ function space_propagateStepRejects(space, propagator, changedVars) {
 function space_propagateChanges(space, allPropagators, targetVars, changedVars, minimal) {
   let varToPropagators = space.config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
-    let propIndexes = varToPropagators[targetVars[i]];
+    let propagatorIndexes = varToPropagators[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if
     // it is just one. after that, if a var was updated that only has one propagator it can
     // only have been updated by that one propagator. however, this step is queueing up
@@ -246,8 +246,8 @@ function space_propagateChanges(space, allPropagators, targetVars, changedVars, 
     // a propagator so we skip it.
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
-    if (propIndexes && propIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propIndexes, changedVars);
+    if (propagatorIndexes && propagatorIndexes.length >= minimal) {
+      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars);
       if (result) return true; // rejected
     }
   }

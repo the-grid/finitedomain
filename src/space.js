@@ -202,21 +202,21 @@ function space_propagate(space) {
 function space_propagateAll(space, propagators, changedVars) {
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let rejected = space_propagateStepRejects(space, propagator, changedVars);
+    let rejected = space_propagateStep(space, propagator, changedVars);
     if (rejected) return true;
   }
   return false;
 }
 function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars) {
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
-    let propIndex = propagatorIndexes[i];
-    let propagator = propagators[propIndex];
-    let rejected = space_propagateStepRejects(space, propagator, changedVars);
+    let propagatorIndex = propagatorIndexes[i];
+    let propagator = propagators[propagatorIndex];
+    let rejected = space_propagateStep(space, propagator, changedVars, i);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateStepRejects(space, propagator, changedVars) {
+function space_propagateStep(space, propagator, changedVars, _i) {
   let n = propagator_stepAny(propagator, space); // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
   // the domain of either var of a propagator can only be empty if the prop REJECTED

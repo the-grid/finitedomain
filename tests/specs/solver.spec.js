@@ -1725,6 +1725,40 @@ describe('solver.spec', function() {
 
       expect(solver.solutions.length, 'solution count').to.equal(19);
     });
+
+    it('quick minus test', function() {
+      let solver = new Solver();
+
+      solver.decl('A', [1, 1]);
+      solver.decl('B', [1, 1]);
+      solver.decl('C', [0, 1]);
+
+      solver.min('A', 'B', 'C');
+      solver.solve();
+
+      expect(solver.solutions).to.eql([{A: 1, B: 1, C: 0}]);
+    });
+
+    it('should solve a regression case', function() {
+
+      let solver = new Solver();
+      solver.decl('A', [0, 1]);
+      solver.decl('B', [0, 1]);
+      solver.decl('C', [0, 1]);
+
+      // path to branch binding
+      solver.sum(['A', 'B', 'C'], 1);
+
+      solver.solve({
+      });
+
+      expect(solver.solutions).to.eql([
+        {'3': 1, '4': 1, A: 0, B: 0, C: 1},
+        {'3': 1, '4': 1, A: 0, B: 1, C: 0},
+        {'3': 1, '4': 0, A: 1, B: 0, C: 0},
+        // the bug would return an extra solution here and no other test would catch it
+      ]);
+    });
   });
 
   describe('reifiers', function() {

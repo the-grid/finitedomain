@@ -10,6 +10,8 @@ import case20160618_slim2 from './2016-06-18.slim2';
 
 describe('exports/export.cases.spec', function() {
 
+  this.timeout(60000); // takes long under istanbul / even longer under travis
+
   it('should solve 2016-06-11 twice', function() {
     var solver = new Solver({config: case20160611});
 

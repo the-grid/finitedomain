@@ -95,13 +95,13 @@ module.exports = function () {
     },
 
     watch: {
-      f: { // build for browser
+      p: { // build for perf in browser
         files: [
           'src/**/*.js',
           'tests/**/*',
         ],
         tasks: [
-          'buildf',
+          'distperf',
         ],
       },
       q: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.

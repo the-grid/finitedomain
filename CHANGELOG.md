@@ -6,6 +6,7 @@
 - (Internal) The `initial_vars` object in config is now an array
 - Drop support for dynamically get the list of vars to target
 - The `vars` option to target specific vars to be solved, should be an array of names or the string 'all'. Other values are ignored.
+- Added `_debug` option to `Solver#solve` options to print out the configuration in a more human readable way. This supports the already existing `_debugConfig` and `_debugSolver`.
 
 ## v2.1.2:
 

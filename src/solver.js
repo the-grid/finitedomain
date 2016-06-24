@@ -18,9 +18,7 @@ import {
   config_addVarAnonConstant,
   config_addVarDomain,
   config_addVarRange,
-  config_addVarsWithDomain,
   config_create,
-  config_getUnknownVars,
   config_setDefaults,
   config_setOptions,
 } from './config';
@@ -84,6 +82,19 @@ class Solver {
       defaultDomain = domain_createRange(0, 1),
       config = config_create(),
     } = options;
+
+    if (config.initial_vars) {
+      let doms = [];
+      for (let i = 0; i < config.all_var_names.length; ++i) {
+        doms[i] = config.initial_vars[config.all_var_names[i]];
+      }
+      config.initial_domains = doms;
+      console.log('### converted initial_vars to initial_domains, log out result and update examples accordingly!');
+      //console.log(doms)
+      //console.log('##')
+      delete config.initial_vars;
+      throw new Error('test');
+    }
 
     this._class = 'solver';
 
@@ -450,25 +461,21 @@ class Solver {
    * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
-   * @property {boolean} add_unknown_vars
-   * @property {boolean} [_debugConfig] Log out solver._space.config after prepare() but before run()
-   * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run()
+   * @property {boolean} [_debug] A more human readable print of the configuration for this solver
+   * @property {boolean} [_debugConfig] Log out solver.config after prepare() but before run()
+   * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run(). Only works in dev code (stripped from dist)
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
    * @return {Object[]}
    */
-  solve(options) {
+  solve(options = {}) {
     let obj = this.prepare(options);
 
-    if (options && options._debugConfig) console.log('## _debugConfig:\n', getInspector()(this._space.config));
-    if (options && options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
-    if (options && options._debugSolver) {
-      console.log('## _debugSolver:\n');
-      this._debugSolver();
-    }
-
-    // logging inside asserts because they are stripped out for dist
-    ASSERT(!(options && (options.dbg === true || (options.dbg & LOG_STATS)) && console.log(this.state.space.config)));
-    ASSERT(!(options && (options.dbg & LOG_STATS) && console.log(`## state.space.config:\n${this.state.space.config}`)));
+    if (options._debug) this._debugLegible();
+    if (options._debugConfig) console.log('## _debugConfig:\n', getInspector()(this.config));
+    // __REMOVE_BELOW_FOR_DIST__
+    if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
+    // __REMOVE_ABOVE_FOR_DIST__
+    if (options._debugSolver) this._debugSolver();
 
     this.run(obj);
     return this.solutions;
@@ -487,22 +494,19 @@ class Solver {
       vars: branchVars = this.vars.all,
       search,
       distribute: distributionOptions = this.distribute,
-      add_unknown_vars: addUnknownVars, // TOFIX: is this used anywhere? (by a dependency), otherwise drop it.
     } = options;
 
-    let varNames = GET_NAMES(branchVars);
+    if (log >= LOG_STATS) console.time('      - FD Prepare Time');
 
-    if (addUnknownVars) {
-      let unknown_names = config_getUnknownVars(this.config);
-      config_addVarsWithDomain(this.config, unknown_names, domain_clone(this.defaultDomain, FORCE_ARRAY));
-    }
+    let targetAll = branchVars === 'all' || branchVars === this.vars.all; // TOFIX: clean this mess up
+    let varNames = GET_NAMES(branchVars);
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
     if (overrides) {
       config_setOptions(this.config, {var_dist_config: overrides});
     }
 
-    if (varNames instanceof Array ? varNames.length : varNames) config_setOptions(this.config, {targeted_var_names: varNames});
+    if (!targetAll) config_setOptions(this.config, {targeted_var_names: varNames});
     config_setOptions(this.config, distributionOptions);
 
     let searchFunc = this._get_search_func_or_die(search);
@@ -518,6 +522,7 @@ class Solver {
     this.state.stack = [];
 
     this._prepared = true;
+    if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
 
     return ({
       searchFunc,
@@ -641,42 +646,60 @@ class Solver {
     return new Solver({config: solvedConfig});
   }
 
-  /**
-   * Internally finitedomain only uses var indexes. This function can
-   * be used to look them up (externally). Should prevent manual lookups.
-   *
-   * @param {number} varIndex
-   * @returns {string}
-   */
-  getNameForIndex(varIndex) {
-    return this._space.config.all_var_names[varIndex];
+  _debugLegible() {
+    let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
+    let names = clone.all_var_names;
+    let constraints = clone.all_constraints;
+    let domains = clone.initial_domains;
+    let propagators = clone._propagators;
+
+    clone.all_var_names = '<removed>';
+    clone.all_constraints = '<removed>';
+    clone.initial_domains = '<removed>';
+    clone._propagators = '<removed>';
+    clone._varToPropagators = '<removed>';
+
+    console.log('\n## _debug:\n');
+    console.log('- config:');
+    console.log(getInspector()(clone));
+    console.log('- vars (' + names.length + '):');
+    console.log(names.map((name, index) => `${index}: [${domains[index]}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
+    console.log(constraints.map((c, index) => {
+      if (c.param === undefined) {
+        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')}`;
+      } else if (c.name === 'reifier') {
+        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${JSON.stringify(domains[c.varIndexes[0]])} ${c.param} ${JSON.stringify(domains[c.varIndexes[1]])} = ${JSON.stringify(domains[c.varIndexes[2]])}`;
+      } else {
+        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')} -> ${JSON.stringify(domains[c.param])}`;
+      }
+    }).join('\n'));
+    console.log('##/\n');
   }
-
   _debugSolver() {
+    console.log('## _debugSolver:\n');
     let inspect = getInspector();
-    console.log('## _debugConfig:');
 
-    console.log('# All keys:');
-    console.warn('cloning');
+    console.log('# Config:');
     let config = this.config;
     console.log(inspect(_clone(config)));
 
-    let names = config.all_var_names;
     console.log('# Variables (' + names.length + 'x):');
+    let names = config.all_var_names;
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_vars[names[varIndex]], '(= [' + domain_toArr(config.initial_vars[names[varIndex]]) + '])');
+      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_domains[varIndex], '(= [' + domain_toArr(config.initial_domains[varIndex]) + '])');
     }
 
-    let constraints = config.all_constraints;
     console.log('# Constraints (' + constraints.length + 'x):');
+    let constraints = config.all_constraints;
     console.log('  index name vars param');
     for (let i = 0; i < constraints.length; ++i) {
-      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varNames.join(','), ':', constraints[i].param);
+      console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varIndexes.join(','), ':', constraints[i].param);
     }
 
-    let propagators = config._propagators;
     console.log('# Propagators (' + propagators.length + 'x):');
+    let propagators = config._propagators;
     console.log('  index name vars args');
     for (let i = 0; i < propagators.length; ++i) {
       console.log('  ', i, ':', propagators[i][PROP_PNAME], ':', propagators[i][PROP_VAR_INDEXES], ':', propagators[i].slice(PROP_ARG1));
@@ -901,7 +924,7 @@ function solver_tryToFixLegacyDomain(domain) {
 function solver_getSolutions(solvedSpaces, solutions, log) {
   ASSERT(solutions instanceof Array);
   if (log >= LOG_STATS) {
-    console.time('      - FD Solution Time');
+    console.time('      - FD Solution Construction Time');
   }
   for (let i = 0; i < solvedSpaces.length; ++i) {
     let solution = space_solution(solvedSpaces[i]);
@@ -909,10 +932,11 @@ function solver_getSolutions(solvedSpaces, solutions, log) {
     if (log >= LOG_SOLVES) {
       console.log('      - FD solution() ::::::::::::::::::::::::::::');
       console.log(JSON.stringify(solution));
+      console.log('                      ::::::::::::::::::::::::::::');
     }
   }
   if (log >= LOG_STATS) {
-    console.timeEnd('      - FD Solution Time');
+    console.timeEnd('      - FD Solution Construction Time');
   }
 }
 

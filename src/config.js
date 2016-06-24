@@ -75,14 +75,14 @@ function config_create() {
     all_constraints: [],
 
     constant_cache: {}, // <value:varName>, those names are usually anonymous vars
-    initial_vars: {}, // initial domains for each var <varName:domain>
+    initial_domains: [], // initial domains for each var, maps 1:1 to all_var_names
 
     _propagators: [], // initialized later
-    _varToProps: [], // initialized later
+    _varToPropagators: [], // initialized later
   };
 }
 
-function config_clone(config, newVars) {
+function config_clone(config, newDomains) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let {
@@ -96,9 +96,9 @@ function config_clone(config, newVars) {
     constant_cache,
     all_var_names,
     all_constraints,
-    initial_vars,
+    initial_domains,
     _propagators,
-    _varToProps,
+    _varToPropagators,
   } = config;
 
   return {
@@ -116,10 +116,10 @@ function config_clone(config, newVars) {
 
     all_var_names: all_var_names.slice(0),
     all_constraints: all_constraints.slice(0),
-    initial_vars: newVars || initial_vars, // <varName:domain>
+    initial_domains: newDomains || initial_domains, // <varName:domain>
 
     _propagators: _propagators.slice(0), // in case it is initialized
-    _varToProps: _varToProps.slice(0), // inited elsewhere
+    _varToPropagators: _varToPropagators.slice(0), // inited elsewhere
   };
 }
 
@@ -171,21 +171,6 @@ function config_addVarRange(config, varName, lo, hi) {
 
   let domain = domain_toArr(domain_createRange(lo, hi));
   return config_addVarDomain(config, varName, domain);
-}
-/**
- * @param {$config} config
- * @param {Array.<string|boolean>} varNames Will only be strings but true could mean anonymous vars. Useless since you don't get their id back, though.
- * @param {$domain_arr} domain Small domain format not allowed here.
- */
-function config_addVarsWithDomain(config, varNames, domain) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-
-  for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varName = varNames[i];
-    ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true');
-    config_addVarDomain(config, varName, domain);
-  }
 }
 /**
  * @param {$config} config
@@ -243,17 +228,20 @@ function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-  ASSERT(varName === true || !config.initial_vars[varName], 'Do not declare the same varName twice', config.initial_vars[varName], '->', varName, '->', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(!(domain instanceof Array) || domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(varName === true || config.all_var_names.indexOf(varName) < 0, 'Do not declare the same varName twice');
+  ASSERT(domain instanceof Array, 'ARR_DOMAINS_ONLY'); // prevents confusion
+  ASSERT(domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
   ASSERT(typeof domain !== 'number' || (domain >= EMPTY && domain <= SMALL_MAX_FLAG), 'domain as value should be within small domain range', domain);
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
 
+  let allVarNames = config.all_var_names;
+  let varIndex = allVarNames.length;
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
-    varName = String(config.all_var_names.length); // this var will be assigned to this index
+    varName = String(varIndex); // this var will be assigned to this index
   }
-  if (config.all_var_names.indexOf(varName) >= 0) {
+  if (allVarNames.indexOf(varName) >= 0) {
     if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }
@@ -261,8 +249,8 @@ function _config_addVar(config, varName, domain) {
   let solvedTo = domain_getValueArr(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varName;
 
-  config.initial_vars[varName] = domain;
-  config.all_var_names.push(varName);
+  config.initial_domains[varIndex] = domain;
+  allVarNames.push(varName);
 
   return varName;
 }
@@ -303,7 +291,7 @@ function config_setOptions(config, options) {
     // see distribution.value
     config.next_value_func = options.val;
   }
-  if (options && options.targeted_var_names) {
+  if (options && options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
     // which vars must be solved for this space to be solved
     // string: 'all'
     // string[]: list of vars that must be solved
@@ -335,41 +323,21 @@ function config_addPropagator(config, propagator) {
   config._propagators.push(propagator);
 }
 
-// TOFIX: config_getUnknownVars was not exported but imported in Solver. is it used at all? i dont think so.
-function config_getUnknownVars(config) {
-  let newNames = [];
-  let constraints = config.all_constraints;
-  for (let i = 0, n = constraints.length; i < n; i++) {
-    let varNames = constraints[i].varNames;
-    for (let j = 0, m = varNames.length; j < m; ++j) {
-      let varName = varNames[j];
-      if (!config.initial_vars[varName] && newNames.indexOf(varName) < 0) {
-        newNames.push(varName);
-      }
-    }
-  }
-  return newNames;
-}
-
 function config_generateVars(config, space) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(space && space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
-
   ASSERT(space.vardoms, 'expecting var domains');
-  let initialVars = config.initial_vars;
-  ASSERT(initialVars, 'config should have initial vars');
+  let initialDomains = config.initial_domains;
+  ASSERT(initialDomains, 'config should have initial vars');
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
-    let varName = allVarNames[varIndex];
-    let domain = initialVars[varName];
-    ASSERT(domain !== undefined, 'ALL_VARS_GET_A_DOMAIN'); // 0,1 or sub,sup if nothing else
+    let domain = initialDomains[varIndex];
+    ASSERT(domain instanceof Array, 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
 
     space.vardoms[varIndex] = domain_numarr(domain);
-    if (!domain_isSolved(domain)) unsolvedVarIndexes.push(varIndex);
   }
 
   if (config.targetedVars === 'all') {
@@ -416,7 +384,7 @@ function config_initConfigsAndFallbacks(config) {
 }
 
 /**
- * Creates a mapping from a varIndex to a set of propIndexes
+ * Creates a mapping from a varIndex to a set of propagatorIndexes
  * These propagators are the ones that use the varIndex
  * This is useful for quickly determining which propagators
  * need to be stepped while propagating them.
@@ -426,15 +394,15 @@ function config_initConfigsAndFallbacks(config) {
 function config_populateVarPropHash(config) {
   let hash = new Array(config.all_var_names.length);
   let propagators = config._propagators;
-  for (let propIndex = 0, plen = propagators.length; propIndex < plen; ++propIndex) {
-    let pvars = propagators[propIndex][PROP_VAR_INDEXES];
+  for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
+    let pvars = propagators[propagatorIndex][PROP_VAR_INDEXES];
     for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
       let varIndex = pvars[propVarIndex];
-      if (!hash[varIndex]) hash[varIndex] = [propIndex];
-      else if (hash[varIndex].indexOf(propIndex) < 0) hash[varIndex].push(propIndex);
+      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
     }
   }
-  config._varToProps = hash;
+  config._varToPropagators = hash;
 }
 
 function config_addConstraint(config, name, varNames, param) {
@@ -495,6 +463,7 @@ function config_addConstraint(config, name, varNames, param) {
         }
       }
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+      if (resultIsParam) param = config.all_var_names.indexOf(param);
 
       varNameToReturn = sumName;
       break;
@@ -530,7 +499,15 @@ function config_addConstraint(config, name, varNames, param) {
       THROW(`UNKNOWN_PROPAGATOR ${name}`);
   }
 
-  let constraint = constraint_create(name, varNames, param);
+  let varIndexes = [];
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    let varIndex = config.all_var_names.indexOf(varNames[i]);
+
+    ASSERT(varIndex >= 0, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
+    varIndexes[i] = varIndex;
+  }
+
+  let constraint = constraint_create(name, varIndexes, param);
   config.all_constraints.push(constraint);
 
   return varNameToReturn;
@@ -548,22 +525,27 @@ function config_generatePropagators(config) {
   config._propagators = [];
   for (let i = 0, n = constraints.length; i < n; ++i) {
     let constraint = constraints[i];
-    config_generatePropagator(config, constraint.name, constraint.varNames, constraint.param);
+    if (constraint.varNames) {
+      console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
+      constraint.varIndexes = constraint.varNames.map(name => config.all_var_names.indexOf(name));
+      let p = constraint.param;
+      delete constraint.param;
+      delete constraint.varNames;
+      constraint.param = p;
+    }
+    config_generatePropagator(config, constraint.name, constraint.varIndexes, constraint.param, constraint);
   }
 }
 /**
  * @param {$config} config
  * @param {string} name
- * @param {string[]} varNames
+ * @param {number[]} varIndexes
  * @param {string|Function|undefined} param Depends on the prop; reifier=op name, product/sum=result var, callback=func
  */
-function config_generatePropagator(config, name, varNames, param) {
+function config_generatePropagator(config, name, varIndexes, param, _constraint) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof name === 'string', 'NAME_SHOULD_BE_STRING');
-  ASSERT(varNames instanceof Array, 'NAMES_SHOULD_BE_ARRAY');
-
-  let allVarNames = config.all_var_names;
-  let varIndexes = varNames.map(name => allVarNames.indexOf(name));
+  ASSERT(varIndexes instanceof Array, 'INDEXES_SHOULD_BE_ARRAY', JSON.stringify(_constraint));
 
   switch (name) {
     case 'plus':
@@ -582,10 +564,10 @@ function config_generatePropagator(config, name, varNames, param) {
       return propagator_addMul(config, varIndexes[0], varIndexes[1], varIndexes[2]);
 
     case 'sum':
-      return propagator_addSum(config, varIndexes.slice(0), allVarNames.indexOf(param));
+      return propagator_addSum(config, varIndexes.slice(0), param);
 
     case 'product':
-      return propagator_addProduct(config, varIndexes.slice(0), allVarNames.indexOf(param));
+      return propagator_addProduct(config, varIndexes.slice(0), param);
 
     case 'distinct':
       return propagator_addDistinct(config, varIndexes.slice(0));
@@ -632,6 +614,26 @@ function config_initForSpace(config, space) {
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
+
+  ASSERT(config._varToPropagators, 'should have generated hash');
+  let targets = getAllTargetVars(space);
+  // a var is considered unsolved if it is in fact not solved AND it either is either explicitly targeted or constrained by at least one constraint
+  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]) && (config.targetedVars !== 'all' || config._varToPropagators[varIndex]));
+}
+
+function getAllTargetVars(space) {
+  let configTargetedIndexes = space.config.targetedIndexes;
+
+  if (configTargetedIndexes === 'all' || !configTargetedIndexes.length) {
+    return space.config.all_var_names.map((n, i) => i);
+  }
+
+  if (configTargetedIndexes instanceof Array) {
+    return configTargetedIndexes;
+  }
+
+  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
+  return configTargetedIndexes(space);
 }
 
 // BODY_STOP
@@ -646,12 +648,10 @@ export {
   config_addVarDomain,
   config_addVarNothing,
   config_addVarRange,
-  config_addVarsWithDomain,
   config_clone,
   config_create,
   config_generateVars,
   config_generatePropagators,
-  config_getUnknownVars,
   config_initForSpace,
   config_populateVarPropHash,
   config_setDefaults,

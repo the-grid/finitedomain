@@ -284,8 +284,8 @@ module.exports = function () {
   grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'run:coverage', 'distq']);
   grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
   grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distbug', 'create dist for browser debugging', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
-  grunt.registerTask('distheat', 'create dist for heatmap inspection', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', 'lint then test', ['clean', 'run:lintdev', 'mochaTest:all']);
   grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:all']);

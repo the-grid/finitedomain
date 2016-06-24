@@ -151,14 +151,14 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]);
 
-        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql([0, 10, 20, 30]);
       });
 
       it('should accept a legacy nested array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [[0, 10], [20, 30]]);
 
-        expect(solver.config.initial_vars.foo).to.eql([0, 10, 20, 30]);
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql([0, 10, 20, 30]);
       });
 
       it('should throw for bad legacy domain ', function() {
@@ -311,22 +311,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method]('A', 'B')).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]('A', 'B', 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](1, 'B', 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method]('A', 2, 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
       }
@@ -340,22 +351,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method]('A', 'B')).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]('A', 'B', 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](1, 'B', 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method]('A', 2, 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
       }
@@ -370,22 +392,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method]('A', 'B')).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]('A', 'B', 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](1, 'B', 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method]('A', 2, 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
       }
@@ -400,22 +433,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method]('A', 'B')).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]('A', 'B', 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](1, 'B', 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method]('A', 2, 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
       }
@@ -429,22 +473,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method](['A', 'B'])).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](['A', 'B'], 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]([1, 'B'], 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method](['A', 2], 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
         });
       }
@@ -457,22 +512,33 @@ describe('solver.spec', function() {
 
       it('should work without result var', function() {
         let solver = new Solver();
+        solver.decl('A', 100);
+        solver.decl('B', 100);
         expect(solver.mul('A', 'B')).to.be.a('string');
       });
 
       it('should work with a result var', function() {
         let solver = new Solver();
+        solver.decl('A', 100);
+        solver.decl('B', 100);
+        solver.decl('C', 100);
         expect(solver.mul('A', 'B', 'C')).to.equal('C');
       });
 
       it('should accept numbers on either of the three positions', function() {
         let solver = new Solver();
+        solver.decl('B', 100);
+        solver.decl('C', 100);
         expect(solver.mul(1, 'B', 'C')).to.equal('C');
 
         let solver2 = new Solver();
+        solver2.decl('A', 100);
+        solver2.decl('C', 100);
         expect(solver2.mul('A', 2, 'C')).to.equal('C');
 
         let solver3 = new Solver();
+        solver3.decl('A', 100);
+        solver3.decl('B', 100);
         expect(solver3.mul('A', 'B', 3)).to.be.a('string');
       });
     });
@@ -482,22 +548,33 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work without result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method](['A', 'B'])).to.be.a('string');
         });
 
         it('should work with a result var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method](['A', 'B'], 'C')).to.equal('C');
         });
 
         it('should accept numbers on either of the three positions', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
+          solver.decl('C', 100);
           expect(solver[method]([1, 'B'], 'C')).to.equal('C');
 
           let solver2 = new Solver();
+          solver2.decl('A', 100);
+          solver2.decl('C', 100);
           expect(solver2[method](['A', 2], 'C')).to.equal('C');
 
           let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
         });
       }
@@ -511,6 +588,11 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
+          solver.decl('D', 100);
+          solver.decl('E', 100);
           expect(solver[method](['A', 'B', 'C', 'D'], 'E')).to.equal(undefined);
         });
 
@@ -521,11 +603,14 @@ describe('solver.spec', function() {
 
         it('accept one var', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
           expect(solver[method](['A'])).to.equal(undefined);
         });
 
         it('accept two vars', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method](['A', 'B'])).to.equal(undefined);
         });
       }
@@ -539,36 +624,48 @@ describe('solver.spec', function() {
       function alias(method) {
         it('should work', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method]('A', 'B')).to.equal('A'); // returns v1
         });
 
         it('should work with a number left', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
           expect(solver[method](1, 'B')).to.be.a('string');
         });
 
         it('should work with a number right', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
           expect(solver[method]('A', 2)).to.be.a('string'); // not A!
         });
 
         it('should return the new var name for v2 if that was a number', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
           expect(solver[method]('A', 2)).not.to.equal('A');
         });
 
         it('should work with an empty array', function() {
           let solver = new Solver();
+          solver.decl('B', 100);
           expect(solver[method]([], 'B')).to.equal('B'); // returns v2!
         });
 
         it('should work with an array of one element', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
           expect(solver[method](['A'], 'B')).to.equal(undefined);
         });
 
         it('should work with an array of multiple elements', function() {
           let solver = new Solver();
+          solver.decl('A', 100);
+          solver.decl('B', 100);
+          solver.decl('C', 100);
+          solver.decl('D', 100);
           expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
         });
       }
@@ -584,31 +681,42 @@ describe('solver.spec', function() {
 
           it('should work', function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 100);
             expect(solver[method]('A', 'B')).to.equal('A');
           });
 
           it('should work with a number left', function() {
             let solver = new Solver();
-            expect(solver[method](1, 'B')).to.equal('0'); // if we change anonymous var naming, this'll break
+            solver.decl('B', 100);
+            expect(solver[method](1, 'B')).to.equal('1'); // if we change anonymous var naming, this'll break
           });
 
           it('should work with a number right', function() {
             let solver = new Solver();
-            expect(solver[method]('A', 2)).to.equal('0'); // if we change anonymous var naming, this'll break
+            solver.decl('A', 100);
+            expect(solver[method]('A', 2)).to.equal('1'); // if we change anonymous var naming, this'll break
           });
 
           it('should work with an empty array', function() {
             let solver = new Solver();
+            solver.decl('B', 100);
             expect(solver[method]([], 'B')).to.equal('B');
           });
 
           it('should work with an array of one element', function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 100);
             expect(solver[method](['A'], 'B')).to.equal(undefined);
           });
 
           it('should work with an array of multiple elements', function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 100);
+            solver.decl('C', 100);
+            solver.decl('D', 100);
             expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
           });
         });
@@ -633,26 +741,35 @@ describe('solver.spec', function() {
 
           it('should work:' + method, function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 100);
             expect(solver[method]('A', 'B')).to.be.a('string');
           });
 
           it('should work with a number left: ' + method, function() {
             let solver = new Solver();
+            solver.decl('B', 100);
             expect(solver[method](1, 'B')).to.be.a('string');
           });
 
           it('should work with a number right: ' + method, function() {
             let solver = new Solver();
+            solver.decl('A', 100);
             expect(solver[method]('A', 2)).to.be.a('string');
           });
 
           it('should accept a result name: ' + method, function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 100);
+            solver.decl('C', 100);
             expect(solver[method]('A', 'B', 'C')).to.equal('C');
           });
 
           it('should accept a result number: ' + method, function() {
             let solver = new Solver();
+            solver.decl('A', 100);
+            solver.decl('B', 1);
             expect(solver[method]('A', 'B', 1)).to.be.a('string');
           });
         });
@@ -674,11 +791,18 @@ describe('solver.spec', function() {
 
     describe('solver.solve', function() {
 
-      it('should solve a trivial case', function() {
+      it('should solve a trivial case when targeted', function() {
         let solver = new Solver({});
         solver.addVar('A', [1, 2]);
 
-        expect(solver.solve()).to.eql([{A: 1}, {A: 2}]);
+        expect(solver.solve({vars: ['A']})).to.eql([{A: 1}, {A: 2}]);
+      });
+
+      it('should solve a trivial case when not targeted', function() {
+        let solver = new Solver({});
+        solver.addVar('A', [1, 2]);
+
+        expect(solver.solve()).to.eql([{A: [1, 2]}]);
       });
 
       function forLevel(level) {
@@ -720,24 +844,6 @@ describe('solver.spec', function() {
 
         solver.prepare();
         expect(true).to.equal(true);
-      });
-
-      it('should init all undeclared vars with add_unknown_vars', function() {
-        // first without the option
-        let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
-        solver.eq('A', 'B'); // A and B are not declared so we cant "just" use them
-        expect(_ => solver.solve()).to.throw('LEFT_VAR_SHOULD_BE_VALID_INDEX Args (1x): `[ -1 ]`');
-
-        // now with the option
-        let solver2 = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
-        solver2.eq('A', 'B'); // A and B are not declared but with the add_unknown_vars option we _can_ use them
-        expect(solver2.solve({add_unknown_vars: true})).to.eql([{
-          A: 0,
-          B: 0,
-        }, {
-          A: 1,
-          B: 1,
-        }]);
       });
 
       it('should throw with an unknown search function', function() {
@@ -1196,7 +1302,15 @@ describe('solver.spec', function() {
       let solutions = solver.solve({});
       // a, b, c are not constrained in any way, so 2^3=8
       // no var is targeted so they should all solve
-      expect(solutions.length).to.equal(8);
+      // however, the constraint will force A and B to solve
+      // to a single value, where C is left as "any"
+      expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should want to solve all vars if targets is an empty array', function() {
@@ -1210,7 +1324,15 @@ describe('solver.spec', function() {
       let solutions = solver.solve({vars: []});
       // a, b, c are not constrained in any way, so 2^3=8
       // no var is targeted so they should all solve
-      expect(solutions.length).to.equal(8);
+      // however, the constraint will force A and B to solve
+      // to a single value, where C is left as "any"
+      expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should ignore C when only A and B are targeted', function() {
@@ -1224,7 +1346,14 @@ describe('solver.spec', function() {
       let solutions = solver.solve({vars: ['A', 'B']});
       // A and B are targeted, they have [0,1] [0,1] so
       // 4 solutions. the result of C is irrelevant here
+      // (pretty much same as before)
       expect(solutions.length).to.equal(4);
+      expect(solutions).to.eql([
+        {A: 0, B: 0, C: [0, 1], AnotB: 1},
+        {A: 0, B: 1, C: [0, 1], AnotB: 0},
+        {A: 1, B: 0, C: [0, 1], AnotB: 0},
+        {A: 1, B: 1, C: [0, 1], AnotB: 1},
+      ]);
     });
 
     it('should ignore A when only B and C are targeted', function() {
@@ -1291,10 +1420,10 @@ describe('solver.spec', function() {
       //console.log(solver._space);
       //console.log(solver._space.config);
 
-      expect(solutions.length, 'solution count').to.eql(2);
+      expect(solutions.length, 'solution count').to.eql(1); // A solves to [1,2], undecided because not targeted
     });
 
-    it('should combine multiple unconstrained vars', function() {
+    it('should combine multiple unconstrained vars when targeted', function() {
       let solver = new Solver({});
 
       solver.addVar('_ROOT_BRANCH_', [0, 1]);
@@ -1316,7 +1445,31 @@ describe('solver.spec', function() {
 
       // 2×3×2×2×2×3×2×2×3×2×2 (size of each domain multiplied)
       // there are no constraints so it's just all combinations
-      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912);
+      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912);
+    });
+
+    it('should return all domains as is when not targeted', function() {
+      let solver = new Solver({});
+
+      solver.addVar('_ROOT_BRANCH_', [0, 1]);
+      solver.addVar('SECTION', [1, 1]);
+      solver.addVar('VERSE_INDEX', [2, 2, 4, 4, 9, 9]);
+      solver.addVar('ITEM_INDEX', [1, 2]);
+      solver.addVar('align', [1, 2]);
+      solver.addVar('text_align', [1, 2]);
+      solver.addVar('SECTION&n=1', [1, 1]);
+      solver.addVar('VERSE_INDEX&n=1', [5, 6, 8, 8]);
+      solver.addVar('ITEM_INDEX&n=1', [2, 2]);
+      solver.addVar('align&n=1', [1, 2]);
+      solver.addVar('text_align&n=1', [1, 2]);
+      solver.addVar('SECTION&n=2', [1, 1]);
+      solver.addVar('VERSE_INDEX&n=2', [1, 1, 3, 3, 7, 7]);
+      solver.addVar('ITEM_INDEX&n=2', [3, 3]);
+      solver.addVar('align&n=2', [1, 2]);
+      solver.addVar('text_align&n=2', [1, 2]);
+
+      // same as before but none are targeted so algo considers them "solved" and returns all valid values (=init)
+      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(1);
     });
 
     it('should constrain one var to be equal to another', function() {
@@ -1342,7 +1495,8 @@ describe('solver.spec', function() {
       solver.eq('_ROOT_BRANCH_', 'SECTION');
 
       // same as 'combine multiple unconstrained vars' but one var has one instead of two options, so /2
-      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(6912 / 2);
+      // note: must target all vars explicitly or you'll validly get just one solution back.
+      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912 / 2);
     });
 
     it('should allow useless constraints', function() {
@@ -1570,6 +1724,40 @@ describe('solver.spec', function() {
       });
 
       expect(solver.solutions.length, 'solution count').to.equal(19);
+    });
+
+    it('quick minus test', function() {
+      let solver = new Solver();
+
+      solver.decl('A', [1, 1]);
+      solver.decl('B', [1, 1]);
+      solver.decl('C', [0, 1]);
+
+      solver.min('A', 'B', 'C');
+      solver.solve();
+
+      expect(solver.solutions).to.eql([{A: 1, B: 1, C: 0}]);
+    });
+
+    it('should solve a regression case', function() {
+
+      let solver = new Solver();
+      solver.decl('A', [0, 1]);
+      solver.decl('B', [0, 1]);
+      solver.decl('C', [0, 1]);
+
+      // path to branch binding
+      solver.sum(['A', 'B', 'C'], 1);
+
+      solver.solve({
+      });
+
+      expect(solver.solutions).to.eql([
+        {'3': 1, '4': 1, A: 0, B: 0, C: 1},
+        {'3': 1, '4': 1, A: 0, B: 1, C: 0},
+        {'3': 1, '4': 0, A: 1, B: 0, C: 0},
+        // the bug would return an extra solution here and no other test would catch it
+      ]);
     });
   });
 

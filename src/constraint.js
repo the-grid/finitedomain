@@ -8,11 +8,11 @@
 
 // BODY_START
 
-function constraint_create(name, varNames, param) {
+function constraint_create(name, varIndexes, param) {
   return {
     _class: '$constraint',
     name,
-    varNames,
+    varIndexes,
     param,
   };
 }

@@ -22,10 +22,10 @@ const WORSE = 3;
  * current var distribution configuration and an optional filter condition.
  *
  * @param {$space} space
- * @param {string[]} targetVars
  * @returns {number}
  */
-function distribution_getNextVar(space, targetVars) {
+function distribution_getNextVar(space) {
+  let targetVars = space.unsolvedVarIndexes;
   let configNextVarFunc = space.config.next_var_func;
   // if it's a function it should return the name of the next var to process
   if (typeof configNextVarFunc === 'function') {

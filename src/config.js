@@ -807,7 +807,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
       return false;
   }
 
-  initialDomains[varIndexResult] = domain_removeValueArr(initialDomains[varIndexResult], bool ? 0 : 1);
+  initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], bool ? 0 : 1));
   config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
   return true;
 }

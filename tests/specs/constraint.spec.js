@@ -989,6 +989,7 @@ describe('src/constraint.spec', function() {
       }
 
       testABC(1, 1, 1, 3, [{A: 1, B: 1, C: 1, S: 3}]);
+      testABC(5, 1, 0, 6, [{A: 5, B: 1, C: 0, S: 6}]);
       testABC(specDomainCreateRange(100, 101), specDomainCreateRange(50, 51), specDomainCreateRange(150, 151), specDomainCreateRange(300, 321), [
         // note: order not relevant to this test
         {A: 100, B: 50, C: 150, S: 300},
@@ -1034,6 +1035,65 @@ describe('src/constraint.spec', function() {
           {A: 100, B: 100, C: 200},
           {A: 101, B: 99, C: 200},
         ]);
+      });
+
+      it('should sum a single zero', function() {
+        // edge case
+        let solver = new Solver();
+        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.sum(['A']);
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 0}]);
+      });
+
+      it('should sum two zeroes', function() {
+        // edge case
+        let solver = new Solver();
+        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.decl('B', specDomainCreateRange(0, 0, true));
+        solver.sum(['A', 'B']);
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should sum two zeroes into result', function() {
+        // edge case
+        let solver = new Solver();
+        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.decl('B', specDomainCreateRange(0, 0, true));
+        solver.decl('C', specDomainCreateRange(0, 10, true));
+        solver.sum(['A', 'B'], 'C');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 0, B: 0, C: 0}]);
+      });
+
+      it('should sum two zeroes and a one into result', function() {
+        // edge case
+        let solver = new Solver();
+        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.decl('B', specDomainCreateRange(0, 0, true));
+        solver.decl('C', specDomainCreateRange(1, 1, true));
+        solver.decl('S', specDomainCreateRange(0, 10, true));
+        solver.sum(['A', 'B', 'C'], 'S');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 0, B: 0, C: 1, S: 1}]);
+      });
+
+      it('should sum two zeroes and a bool into result', function() {
+        // edge case
+        let solver = new Solver();
+        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.decl('B', specDomainCreateRange(0, 0, true));
+        solver.decl('C', specDomainCreateRange(0, 1, true));
+        solver.decl('S', specDomainCreateRange(0, 10, true));
+        solver.sum(['A', 'B', 'C'], 'S');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 0, B: 0, C: 0, S: 0}, {A: 0, B: 0, C: 1, S: 1}]);
       });
     });
 

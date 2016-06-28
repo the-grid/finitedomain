@@ -39,8 +39,10 @@ import {
   LO_BOUND,
   NOT_FOUND,
   SMALL_MAX_FLAG,
+  ZERO,
 
   domain_createRange,
+  domain_getValue,
   domain_getValueArr,
   domain_max,
   domain_min,
@@ -479,20 +481,38 @@ function config_addConstraint(config, name, varNames, param) {
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       if (resultIsParam) param = config.all_var_names.indexOf(param);
 
-      if (freshResultVar) {
-        if (name === 'sum') {
-          let domains = config.initial_domains;
-          //console.log('sum:', varNames.map(name => config.all_var_names.indexOf(name)).map(index => domains[index]), '->', domains[config.all_var_names.indexOf(sumName)]);
+      if (name === 'sum') {
+        let domains = config.initial_domains;
+        if (freshResultVar) {
           let domain = domains[config.all_var_names.indexOf(varNames[0])]; // dont start with EMPTY or [0,0]!
-          //console.log('start:', domain_toArr(domain));
           for (let i = 1; i < varNames.length; ++i) {
             let varIndex = config.all_var_names.indexOf(varNames[i]);
             domain = domain_plus(domain, domains[varIndex]);
-            //console.log('+', domains[varIndex], '=', domain_toArr(domain));
           }
           let sumIndex = config.all_var_names.indexOf(sumName);
           domains[sumIndex] = domain_toArr(domain_intersection(domain, domains[sumIndex]));
-          //console.log('->', domains[sumIndex]);
+        }
+        if (varNames.length > 1) {
+          let newVars = [];
+          let constants = [0, 0];
+          for (let i = 0; i < varNames.length; ++i) {
+            let varName = varNames[i];
+            let varIndex = config.all_var_names.indexOf(varName);
+            let domain = domains[varIndex];
+            let value = domain_getValueArr(domain);
+            if (value === NO_SUCH_VALUE) {
+              newVars.push(varName);
+            } else if (value !== 0) {
+              constants = domain_plus(constants, domain);
+            }
+          }
+          let cValue = domain_getValue(constants);
+          if (cValue !== 0) {
+            let cName = config_addVarAnonConstant(config, cValue);
+            newVars.push(cName);
+          }
+          if (!newVars.length) domains[param] = domain_toArr(domain_intersection(ZERO, domains[param]));
+          varNames = newVars;
         }
       }
 
@@ -569,7 +589,10 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
     return _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes);
   } else if (constraintName === 'reifier') {
     return _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, param);
-  } else if (constraintName === 'sum' || constraintName === 'product') {
+  } else if (constraintName === 'sum') {
+    if (!varIndexes.length) return true;
+    return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
+  } else if (constraintName === 'sum') {
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
   }
   return false;

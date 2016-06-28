@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- no changes
+- Implement a compile-time optimization which eliminates constraints if their obsolescence can be determined by constants. This also reduces certain domains right off the bat. This optimization happens before calling `solve()`.
 
 ## v2.2.0:
 

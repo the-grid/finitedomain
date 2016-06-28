@@ -6,6 +6,7 @@
 
 import {
   EMPTY,
+  NO_SUCH_VALUE,
   SUB,
   SUP,
 
@@ -41,8 +42,15 @@ import {
 
   domain_createRange,
   domain_getValueArr,
+  domain_max,
+  domain_min,
   domain_numarr,
   domain_isSolved,
+  domain_isSolvedArr,
+  domain_intersectionArrArr,
+  domain_removeGteArr,
+  domain_removeLteArr,
+  domain_removeValueArr,
   domain_toArr,
 } from './domain';
 import {
@@ -79,6 +87,7 @@ function config_create() {
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
+    _constrainedAway: [], // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
   };
 }
 
@@ -99,6 +108,7 @@ function config_clone(config, newDomains) {
     initial_domains,
     _propagators,
     _varToPropagators,
+    _constrainedAway,
   } = config;
 
   return {
@@ -120,6 +130,7 @@ function config_clone(config, newDomains) {
 
     _propagators: _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators.slice(0), // inited elsewhere
+    _constrainedAway: _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
   };
 }
 
@@ -470,8 +481,6 @@ function config_addConstraint(config, name, varNames, param) {
     }
 
     case 'markov':
-      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
-      // fall-through
     case 'distinct':
     case 'callback':
     case 'eq':
@@ -480,6 +489,8 @@ function config_addConstraint(config, name, varNames, param) {
     case 'lte':
     case 'gt':
     case 'gte': {
+      ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
+
       // require at least one non-constant variable... except callback/distinct can have zero vars
       let hasNonConstant = (name !== 'callback' || name !== 'distinct') && varNames.length === 0;
       for (let i = 0, n = varNames.length; i < n; ++i) {
@@ -507,10 +518,342 @@ function config_addConstraint(config, name, varNames, param) {
     varIndexes[i] = varIndex;
   }
 
-  let constraint = constraint_create(name, varIndexes, param);
-  config.all_constraints.push(constraint);
+  if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
+    let constraint = constraint_create(name, varIndexes, param);
+    config.all_constraints.push(constraint);
+  }
 
   return varNameToReturn;
+}
+
+/**
+ * If either side of certain constraints are solved at compile time, which
+ * is right now, then the constraint should not be recorded at all because
+ * it will never "unsolve". This can cause vars to become rejected before
+ * the search even begins and that is okay.
+ *
+ * @param {$config} config
+ * @param {string} constraintName
+ * @param {number[]} varIndexes
+ * @param {*} [param] The extra parameter for constraints
+ * @returns {boolean}
+ */
+function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
+  if (constraintName === 'lte' || constraintName === 'lt') {
+    return _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes);
+  } else if (constraintName === 'gte' || constraintName === 'gt') {
+    return _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes);
+  } else if (constraintName === 'eq') {
+    return _config_solvedAtCompileTimeEq(config, constraintName, varIndexes);
+  } else if (constraintName === 'neq') {
+    return _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes);
+  } else if (constraintName === 'reifier') {
+    return _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, param);
+  } else if (constraintName === 'sum' || constraintName === 'product') {
+    return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
+  }
+  return false;
+}
+function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
+  let initialDomains = config.initial_domains;
+  let varIndexLeft = varIndexes[0];
+  let varIndexRight = varIndexes[1];
+
+  let domainLeft = initialDomains[varIndexLeft];
+  let domainRight = initialDomains[varIndexRight];
+
+  let v = domain_getValueArr(domainLeft);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexRight] = domain_toArr(domain_removeLteArr(domainRight, v - (constraintName === 'lt' ? 0 : 1)));
+    // do not add constraint; this constraint is already solved
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+
+  v = domain_getValueArr(domainRight);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexLeft] = domain_toArr(domain_removeGteArr(domainLeft, v + (constraintName === 'lt' ? 0 : 1)));
+    // do not add constraint; this constraint is already solved
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+
+  initialDomains[varIndexLeft] = domain_toArr(domain_removeGteArr(domainLeft, domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toArr(domain_removeLteArr(domainRight, domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
+
+  return false;
+}
+function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
+  let initialDomains = config.initial_domains;
+  let varIndexLeft = varIndexes[0];
+  let varIndexRight = varIndexes[1];
+
+  let domainLeft = initialDomains[varIndexLeft];
+  let domainRight = initialDomains[varIndexRight];
+
+  let v = domain_getValueArr(domainLeft);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexRight] = domain_toArr(domain_removeGteArr(domainRight, v + (constraintName === 'gt' ? 0 : 1)));
+    // do not add constraint; this constraint is already solved
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+
+  v = domain_getValueArr(domainRight);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexLeft] = domain_toArr(domain_removeLteArr(domainLeft, v - (constraintName === 'gt' ? 0 : 1)));
+    // do not add constraint; this constraint is already solved
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+
+  // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
+  initialDomains[varIndexLeft] = domain_toArr(domain_removeLteArr(domainLeft, domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toArr(domain_removeGteArr(domainRight, domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
+
+  return false;
+}
+function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
+  let initialDomains = config.initial_domains;
+  let varIndexLeft = varIndexes[0];
+  let varIndexRight = varIndexes[1];
+  let a = initialDomains[varIndexLeft];
+  let b = initialDomains[varIndexRight];
+  let v = domain_getValueArr(a);
+  if (v === NO_SUCH_VALUE) v = domain_getValueArr(b);
+  if (v !== NO_SUCH_VALUE) {
+    let r = domain_toArr(domain_intersectionArrArr(a, b));
+    initialDomains[varIndexLeft] = r;
+    initialDomains[varIndexRight] = r;
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+  return false;
+}
+function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
+  let initialDomains = config.initial_domains;
+  let varIndexLeft = varIndexes[0];
+  let varIndexRight = varIndexes[1];
+  let v = domain_getValueArr(initialDomains[varIndexLeft]);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexRight] = domain_toArr(domain_removeValueArr(initialDomains[varIndexRight], v));
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+  v = domain_getValueArr(initialDomains[varIndexRight]);
+  if (v !== NO_SUCH_VALUE) {
+    initialDomains[varIndexLeft] = domain_toArr(domain_removeValueArr(initialDomains[varIndexLeft], v));
+    config._constrainedAway.push(varIndexLeft, varIndexRight);
+    return true;
+  }
+  return false;
+}
+function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, opName) {
+  let initialDomains = config.initial_domains;
+  let varIndexLeft = varIndexes[0];
+  let varIndexRight = varIndexes[1];
+  let varIndexResult = varIndexes[2];
+
+  let domain1 = initialDomains[varIndexLeft];
+  let domain2 = initialDomains[varIndexRight];
+
+  let v1 = domain_getValueArr(initialDomains[varIndexLeft]);
+  let v2 = domain_getValueArr(initialDomains[varIndexRight]);
+  let hasLeft = v1 !== NO_SUCH_VALUE;
+  let hasRight = v2 !== NO_SUCH_VALUE;
+  if (hasLeft && hasRight) { // just left or right would not force anything. but both does.
+    return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
+  }
+
+  let v3 = domain_getValueArr(initialDomains[varIndexResult]);
+  let hasResult = v3 !== NO_SUCH_VALUE;
+  if (hasResult) {
+    if (hasLeft) {
+      // resolve right and eliminate reifier
+      return _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, v1, v3, domain1, domain2);
+    } else if (hasRight) {
+      // resolve right and eliminate reifier
+      return _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v2, v3, domain1, domain2);
+    }
+  }
+
+  if (opName !== 'eq' && opName !== 'neq') {
+    // must be lt lte gt gte. these are solved completely when either param is solved
+    ASSERT(opName === 'lt' || opName === 'lte' || opName === 'gt' || opName === 'gte', 'should be lt lte gt gte now because there are no other reifiers atm');
+
+    if (opName === 'lt') {
+      // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
+      if (domain_max(domain1) < domain_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 0));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+      if (domain_min(domain1) >= domain_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 1));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+    } else if (opName === 'lte') {
+      // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
+      if (domain_max(domain1) <= domain_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 0));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+      if (domain_min(domain1) > domain_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 1));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+    } else if (opName === 'gt') {
+      // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
+      if (domain_min(domain1) > domain_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 0));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+      if (domain_max(domain1) <= domain_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 1));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+    } else if (opName === 'gte') {
+      // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
+      if (domain_min(domain1) >= domain_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 0));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+      if (domain_max(domain1) < domain_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], 1));
+        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
+        return true;
+      }
+    } else {
+      THROW('UNKNOWN_OP');
+    }
+  }
+
+  return false;
+}
+function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2) {
+  let initialDomains = config.initial_domains;
+  let varIndexResult = varIndexes[2];
+
+  let bool = false;
+  switch (opName) {
+    case 'lt':
+      bool = v1 < v2;
+      break;
+    case 'lte':
+      bool = v1 <= v2;
+      break;
+    case 'gt':
+      bool = v1 > v2;
+      break;
+    case 'gte':
+      bool = v1 >= v2;
+      break;
+    case 'eq':
+      bool = v1 === v2;
+      break;
+    case 'neq':
+      bool = v1 !== v2;
+      break;
+    default:
+      return false;
+  }
+
+  initialDomains[varIndexResult] = domain_removeValueArr(initialDomains[varIndexResult], bool ? 0 : 1);
+  config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
+  return true;
+}
+function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, value, result, domain1, domain2) {
+  let initialDomains = config.initial_domains;
+
+  let domainRight = initialDomains[varIndexRight];
+  switch (opName) {
+    case 'lt':
+      if (result) domainRight = domain_removeLteArr(domainRight, value);
+      else domainRight = domain_removeGteArr(domainRight, value + 1);
+      break;
+    case 'lte':
+      if (result) domainRight = domain_removeLteArr(domainRight, value - 1);
+      else domainRight = domain_removeGteArr(domainRight, value);
+      break;
+    case 'gt':
+      if (result) domainRight = domain_removeGteArr(domainRight, value);
+      else domainRight = domain_removeLteArr(domainRight, value - 1);
+      break;
+    case 'gte':
+      if (result) domainRight = domain_removeGteArr(domainRight, value + 1);
+      else domainRight = domain_removeLteArr(domainRight, value);
+      break;
+    case 'eq':
+      if (result) domainRight = domain_intersectionArrArr(domain1, domain2);
+      else domainRight = domain_removeValueArr(domainRight, value);
+      break;
+    case 'neq':
+      if (result) domainRight = domain_removeValueArr(domainRight, value);
+      else domainRight = domain_intersectionArrArr(domain1, domain2);
+      break;
+    default:
+      return false;
+  }
+
+  initialDomains[varIndexRight] = domain_toArr(domainRight);
+  config._constrainedAway.push(varIndexRight); // note: left and result have been solved already so no need to push those here
+  return true;
+}
+function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, value, result, domain1, domain2) {
+  let initialDomains = config.initial_domains;
+
+  let domainLeft = initialDomains[varIndexLeft];
+  switch (opName) {
+    case 'lt':
+      if (result) domainLeft = domain_removeGteArr(domainLeft, value + 1);
+      else domainLeft = domain_removeLteArr(domainLeft, value);
+      break;
+    case 'lte':
+      if (result) domainLeft = domain_removeGteArr(domainLeft, value);
+      else domainLeft = domain_removeLteArr(domainLeft, value);
+      break;
+    case 'gt':
+      if (result) domainLeft = domain_removeLteArr(domainLeft, value - 1);
+      else domainLeft = domain_removeGteArr(domainLeft, value);
+      break;
+    case 'gte':
+      if (result) domainLeft = domain_removeLteArr(domainLeft, value);
+      else domainLeft = domain_removeGteArr(domainLeft, value + 1);
+      break;
+    case 'eq':
+      if (result) domainLeft = domain_intersectionArrArr(domain1, domain2);
+      else domainLeft = domain_removeValueArr(domainLeft, value);
+      break;
+    case 'neq':
+      if (result) domainLeft = domain_removeValueArr(domainLeft, value);
+      else domainLeft = domain_intersectionArrArr(domain1, domain2);
+      break;
+    default:
+      return false;
+  }
+
+  initialDomains[varIndexLeft] = domain_toArr(domainLeft);
+  config._constrainedAway.push(varIndexLeft); // note: right and result have been solved already so no need to push those here
+  return true;
+}
+function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
+  if (varIndexes.length === 1) {
+    let domain = domain_toArr(domain_intersectionArrArr(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
+    config.initial_domains[resultIndex] = domain;
+    config.initial_domains[varIndexes[0]] = domain;
+    if (domain_isSolvedArr(domain)) {
+      config._constrainedAway.push(varIndexes[0], resultIndex);
+      return true;
+    }
+    // cant eliminate constraint; sum will compile an `eq` for it.
+  }
+  return false;
 }
 
 /**
@@ -618,7 +961,7 @@ function config_initForSpace(config, space) {
   ASSERT(config._varToPropagators, 'should have generated hash');
   let targets = getAllTargetVars(space);
   // a var is considered unsolved if it is in fact not solved AND it either is either explicitly targeted or constrained by at least one constraint
-  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]) && (config.targetedVars !== 'all' || config._varToPropagators[varIndex]));
+  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]) && (config.targetedVars !== 'all' || config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)));
 }
 
 function getAllTargetVars(space) {

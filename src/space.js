@@ -183,6 +183,10 @@ function space_propagate(space) {
     if (rejected) return true;
   }
 
+  if (space_abortSearch(space)) {
+    return true;
+  }
+
   while (changedVars.length) {
     let newChangedVars = [];
     let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, minimal);

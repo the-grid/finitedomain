@@ -1,4 +1,5 @@
 import {
+  EMPTY,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -574,7 +575,21 @@ class Solver {
       console.time('      - FD Solving Time');
     }
 
-    let solvedSpaces = solver_runLoop(state, searchFunc, max);
+    let alreadyRejected = false;
+    let vardoms = state.space.vardoms;
+    for (let i = 0, n = vardoms.length; i < n; ++i) {
+      if (vardoms[i] === EMPTY) {
+        alreadyRejected = true;
+        break;
+      }
+    }
+
+    let solvedSpaces;
+    if (alreadyRejected) {
+      solvedSpaces = [];
+    } else {
+      solvedSpaces = solver_runLoop(state, searchFunc, max);
+    }
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solving Time');

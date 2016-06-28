@@ -6,8 +6,6 @@ import {
   LOG_MAX,
   LOG_MIN,
   NO_SUCH_VALUE,
-  SUB,
-  SUP,
 
   ASSERT,
   GET_NAME,
@@ -26,9 +24,6 @@ import {
 
 import {
   FORCE_ARRAY,
-  HI_BOUND,
-  LO_BOUND,
-  PAIR_SIZE,
 
   domain_clone,
   domain_createRange,
@@ -37,6 +32,7 @@ import {
   domain_max,
   domain_toArr,
   domain_toList,
+  domain_validate,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -190,7 +186,7 @@ class Solver {
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
     if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    domain = solver_validateDomain(domain);
+    domain = domain_validate(domain);
     return config_addVarDomain(this.config, id, domain);
   }
 
@@ -244,7 +240,7 @@ class Solver {
     if (domain === undefined) {
       domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
     } else {
-      domain = solver_validateDomain(domain);
+      domain = domain_validate(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     }
 
@@ -497,7 +493,10 @@ class Solver {
       distribute: distributionOptions = this.distribute,
     } = options;
 
-    if (log >= LOG_STATS) console.time('      - FD Prepare Time');
+    if (log >= LOG_STATS) {
+      console.log('      - FD Preparing...');
+      console.time('      - FD Prepare Time');
+    }
 
     let targetAll = branchVars === 'all' || branchVars === this.vars.all; // TOFIX: clean this mess up
     let varNames = GET_NAMES(branchVars);
@@ -572,6 +571,7 @@ class Solver {
       console.log(`      - FD Var Count: ${state.space.config.all_var_names.length}`);
       console.log(`      - FD Constraint Count: ${state.space.config.all_constraints.length}`);
       console.log(`      - FD Propagator Count: ${state.space.config._propagators.length}`);
+      console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
     }
 
@@ -834,112 +834,6 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
     }
   }
   return overrides;
-}
-
-/**
- * validate domains, filter and fix legacy domains, throw for bad inputs
- *
- * @param {$domain} domain
- * @returns {number[]}
- */
-function solver_validateDomain(domain) {
-  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
-
-  // support legacy domains and validate input here
-  let msg = solver_confirmDomain(domain);
-  if (msg) {
-    let fixedDomain = solver_tryToFixLegacyDomain(domain);
-    if (fixedDomain) {
-      //if (console && console.warn) {
-      //  console.warn(msg, domain, 'auto-converted to', fixedDomain);
-      //}
-    } else {
-      if (console && console.warn) {
-        console.warn(msg, domain, 'unable to fix');
-      }
-      THROW(`Fatal: unable to fix domain: ${JSON.stringify(domain)}`);
-    }
-    domain = fixedDomain;
-  }
-  return domain_toArr(domain);
-}
-
-/**
- * Domain input validation
- * Have to support and transform legacy domain formats of domains of domains
- * and transform them to flat domains with lo/hi pairs
- *
- * @param {number[]} domain
- * @returns {string|undefined}
- */
-function solver_confirmDomain(domain) {
-  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
-    let lo = domain[i];
-    let hi = domain[i + 1];
-    let e = solver_confirmDomainElement(lo);
-    if (e) {
-      return e;
-    }
-    let f = solver_confirmDomainElement(hi);
-    if (f) {
-      return f;
-    }
-
-    if (lo < SUB) {
-      return `Domain contains a number lower than SUB (${lo} < ${SUB}), this is probably a bug`;
-    }
-    if (hi > SUP) {
-      return `Domain contains a number higher than SUP (${hi} > ${SUP}), this is probably a bug`;
-    }
-    if (lo > hi) {
-      return `Found a lo/hi pair where lo>hi, expecting all pairs lo<=hi (${lo}>${hi})`;
-    }
-  }
-  ASSERT((domain.length % PAIR_SIZE) === 0, 'other tests should have caught uneven domain lengths');
-}
-
-/**
- * @param {number} n
- * @returns {string|undefined}
- */
-function solver_confirmDomainElement(n) {
-  if (typeof n !== 'number') {
-    if (n instanceof Array) {
-      return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
-    }
-    return 'Expecting array of numbers, found something else (#{n}), this is probably a bug';
-  }
-  if (isNaN(n)) {
-    return 'Domain contains an actual NaN, this is probably a bug';
-  }
-}
-
-/**
- * Try to convert old array of arrays domain to new
- * flat array of number pairs domain. If any validation
- * step fails, return nothing.
- *
- * @param {number[]} domain
- * @returns {number[]}
- */
-function solver_tryToFixLegacyDomain(domain) {
-  let fixed = [];
-  for (let i = 0; i < domain.length; i++) {
-    let rangeArr = domain[i];
-    if (!(rangeArr instanceof Array)) {
-      return;
-    }
-    if (rangeArr.length !== PAIR_SIZE) {
-      return;
-    }
-    let lo = rangeArr[LO_BOUND];
-    let hi = rangeArr[HI_BOUND];
-    if (lo > hi) {
-      return;
-    }
-    fixed.push(lo, hi);
-  }
-  return fixed;
 }
 
 function solver_getSolutions(solvedSpaces, solutions, log) {

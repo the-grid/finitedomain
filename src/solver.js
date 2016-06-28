@@ -1,4 +1,5 @@
 import {
+  EMPTY,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -568,13 +569,27 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Var Count: ${this.state.space.config.all_var_names.length}`);
-      console.log(`      - FD Constraint Count: ${this.state.space.config.all_constraints.length}`);
-      console.log(`      - FD Propagator Count: ${this.state.space.config._propagators.length}`);
+      console.log(`      - FD Var Count: ${state.space.config.all_var_names.length}`);
+      console.log(`      - FD Constraint Count: ${state.space.config.all_constraints.length}`);
+      console.log(`      - FD Propagator Count: ${state.space.config._propagators.length}`);
       console.time('      - FD Solving Time');
     }
 
-    let solvedSpaces = solver_runLoop(state, searchFunc, max);
+    let alreadyRejected = false;
+    let vardoms = state.space.vardoms;
+    for (let i = 0, n = vardoms.length; i < n; ++i) {
+      if (vardoms[i] === EMPTY) {
+        alreadyRejected = true;
+        break;
+      }
+    }
+
+    let solvedSpaces;
+    if (alreadyRejected) {
+      solvedSpaces = [];
+    } else {
+      solvedSpaces = solver_runLoop(state, searchFunc, max);
+    }
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solving Time');
@@ -649,6 +664,7 @@ class Solver {
   _debugLegible() {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.all_var_names;
+    let targeted = clone.targetedVars;
     let constraints = clone.all_constraints;
     let domains = clone.initial_domains;
     let propagators = clone._propagators;
@@ -656,6 +672,8 @@ class Solver {
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
+    if (targeted !== 'all') clone.targetedVars = '<removed>';
+    clone.targetedIndexes = '<removed>';
     clone._propagators = '<removed>';
     clone._varToPropagators = '<removed>';
 
@@ -664,6 +682,9 @@ class Solver {
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
     console.log(names.map((name, index) => `${index}: [${domains[index]}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    if (targeted !== 'all') {
+      console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
+    }
     console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
     console.log(constraints.map((c, index) => {
       if (c.param === undefined) {

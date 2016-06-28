@@ -76,6 +76,31 @@ describe('src/constraint.spec', function() {
 
         expect(solution).to.eql([]);
       });
+
+      describe('pre-computable', function() {
+
+        function preEq(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.eq('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preEq('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 101, B: 101}]);
+        preEq('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A and B solved as number and reject', 100, 99, []);
+        preEq('should not create a constraint if A and B solved as number and pass', 101, 101, [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
+        preEq('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(101, 101), [{A: 101, B: 101}]);
+      });
     });
 
     describe('neq', function() {
@@ -108,6 +133,31 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 100, B: 101}, {A: 101, B: 100}]);
+      });
+
+      describe('pre-computable', function() {
+
+        function preNeq(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.neq('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preNeq('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
+        preNeq('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
+        preNeq('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}, {A: 102, B: 101}]);
+        preNeq('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}, {A: 102, B: 101}]);
+        preNeq('should not create a constraint if A and B solved as number and reject', 101, 101, []);
+        preNeq('should not create a constraint if A and B solved as number and pass', 100, 99, [{A: 100, B: 99}]);
+        preNeq('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(101, 101), specDomainCreateRange(101, 101), []);
+        preNeq('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), [{A: 100, B: 99}]);
       });
     });
 
@@ -172,6 +222,31 @@ describe('src/constraint.spec', function() {
 
         expect(solution).to.eql([]);
       });
+
+      describe('pre-computable', function() {
+
+        function preLt(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.lt('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preLt('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 102}]);
+        preLt('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 102}]);
+        preLt('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}]);
+        preLt('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}]);
+        preLt('should not create a constraint if A and B solved as number and reject', 100, 99, []);
+        preLt('should not create a constraint if A and B solved as number and pass', 100, 101, [{A: 100, B: 101}]);
+        preLt('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
+        preLt('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(101, 101), [{A: 100, B: 101}]);
+      });
     });
 
     describe('lte', function() {
@@ -234,6 +309,31 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([]);
+      });
+
+      describe('pre-computable', function() {
+
+        function preLte(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.lte('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preLte('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
+        preLte('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
+        preLte('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}, {A: 101, B: 101}]);
+        preLte('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}, {A: 101, B: 101}]);
+        preLte('should not create a constraint if A and B solved as number and reject', 100, 99, []);
+        preLte('should not create a constraint if A and B solved as number and pass', 100, 100, [{A: 100, B: 100}]);
+        preLte('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
+        preLte('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(100, 100), [{A: 100, B: 100}]);
       });
     });
 
@@ -298,6 +398,31 @@ describe('src/constraint.spec', function() {
 
         expect(solution).to.eql([{A: 101, B: 100}]);
       });
+
+      describe('pre-computable', function() {
+
+        function preGt(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.gt('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preGt('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}]);
+        preGt('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}]);
+        preGt('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 102, B: 101}]);
+        preGt('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 102, B: 101}]);
+        preGt('should not create a constraint if A and B solved as number and reject', 99, 100, []);
+        preGt('should not create a constraint if A and B solved as number and pass', 101, 100, [{A: 101, B: 100}]);
+        preGt('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(99, 99), specDomainCreateRange(100, 100), []);
+        preGt('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(100, 100), [{A: 101, B: 100}]);
+      });
     });
 
     describe('gte', function() {
@@ -360,6 +485,56 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 101, B: 100}]);
+      });
+
+      describe('pre-computable', function() {
+
+        function preGte(desc, A, B, out) {
+          it(desc, function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.gte('A', 'B');
+            let solution = solver.solve({});
+
+            expect(solution).to.eql(out);
+            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+          });
+        }
+
+        preGte('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
+        preGte('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
+        preGte('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 101, B: 101}, {A: 102, B: 101}]);
+        preGte('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 101, B: 101}, {A: 102, B: 101}]);
+        preGte('should not create a constraint if A and B solved as number and reject', 99, 100, []);
+        preGte('should not create a constraint if A and B solved as number and pass', 101, 100, [{A: 101, B: 100}]);
+        preGte('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(99, 99), specDomainCreateRange(100, 100), []);
+        preGte('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(100, 100), [{A: 101, B: 100}]);
+      });
+    });
+
+    describe('reifier', function() {
+
+      it('should find two solutions with a constant left', function() {
+        let solver = new Solver();
+        solver.decl('A', 0);
+        solver.decl('B', [0, 1]);
+        solver.decl('C', [0, 1]);
+        solver.isLt('A', 'B', 'C');
+        let solution = solver.solve({});
+
+        expect(solution).to.eql([{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}]);
+      });
+
+      it('should find two solutions with a constant right', function() {
+        let solver = new Solver();
+        solver.decl('A', [0, 1]);
+        solver.decl('B', 0);
+        solver.decl('C', [0, 1]);
+        solver.isLt('A', 'B', 'C');
+        let solution = solver.solve({});
+
+        expect(solution).to.eql([{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]);
       });
     });
 

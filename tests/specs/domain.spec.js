@@ -2269,10 +2269,22 @@ describe('src/domain.spec', function() {
     });
   });
 
+  describe('domain_toArr', function() {
+
+    it('should exist', function() {
+      expect(domain_toArr).to.be.a('function');
+    });
+
+    it('should work with a bool', function() {
+      expect(domain_toArr(specDomainCreateRange(0, 1, true))).to.eql(specDomainCreateRange(0, 1, true));
+      expect(domain_toArr(specDomainSmallNums(0, 1))).to.eql(specDomainCreateRange(0, 1, true));
+    });
+  });
+
   describe('domain_removeLte', function() {
 
     it('should exist', function() {
-      expect(domain_removeLte).to.a('function');
+      expect(domain_removeLte).to.be.a('function');
     });
 
     it('should accept an empty domain', function() {

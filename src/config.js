@@ -39,20 +39,24 @@ import {
   LO_BOUND,
   NOT_FOUND,
   SMALL_MAX_FLAG,
+  ZERO,
 
   domain_createRange,
+  domain_getValue,
   domain_getValueArr,
   domain_max,
   domain_min,
   domain_numarr,
   domain_isSolved,
   domain_isSolvedArr,
+  domain_intersection,
   domain_intersectionArrArr,
   domain_removeGteArr,
   domain_removeLteArr,
   domain_removeValueArr,
   domain_toArr,
 } from './domain';
+import domain_plus from './doms/domain_plus';
 import {
   constraint_create,
 } from './constraint';
@@ -453,7 +457,8 @@ function config_addConstraint(config, name, varNames, param) {
       let sumName = varNames[2];
       if (resultIsParam) sumName = param;
 
-      if (typeof sumName === 'undefined') {
+      let freshResultVar = typeof sumName === 'undefined';
+      if (freshResultVar) {
         if (forceBool) sumName = config_addVarAnonRange(config, 0, 1);
         else sumName = config_addVarAnonNothing(config);
       } else if (typeof sumName === 'number') {
@@ -475,6 +480,41 @@ function config_addConstraint(config, name, varNames, param) {
       }
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       if (resultIsParam) param = config.all_var_names.indexOf(param);
+
+      if (name === 'sum') {
+        let domains = config.initial_domains;
+        if (freshResultVar) {
+          let domain = domains[config.all_var_names.indexOf(varNames[0])]; // dont start with EMPTY or [0,0]!
+          for (let i = 1; i < varNames.length; ++i) {
+            let varIndex = config.all_var_names.indexOf(varNames[i]);
+            domain = domain_plus(domain, domains[varIndex]);
+          }
+          let sumIndex = config.all_var_names.indexOf(sumName);
+          domains[sumIndex] = domain_toArr(domain_intersection(domain, domains[sumIndex]));
+        }
+        if (varNames.length > 1) {
+          let newVars = [];
+          let constants = [0, 0];
+          for (let i = 0; i < varNames.length; ++i) {
+            let varName = varNames[i];
+            let varIndex = config.all_var_names.indexOf(varName);
+            let domain = domains[varIndex];
+            let value = domain_getValueArr(domain);
+            if (value === NO_SUCH_VALUE) {
+              newVars.push(varName);
+            } else if (value !== 0) {
+              constants = domain_plus(constants, domain);
+            }
+          }
+          let cValue = domain_getValue(constants);
+          if (cValue !== 0) {
+            let cName = config_addVarAnonConstant(config, cValue);
+            newVars.push(cName);
+          }
+          if (!newVars.length) domains[param] = domain_toArr(domain_intersection(ZERO, domains[param]));
+          varNames = newVars;
+        }
+      }
 
       varNameToReturn = sumName;
       break;
@@ -549,7 +589,10 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
     return _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes);
   } else if (constraintName === 'reifier') {
     return _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, param);
-  } else if (constraintName === 'sum' || constraintName === 'product') {
+  } else if (constraintName === 'sum') {
+    if (!varIndexes.length) return true;
+    return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
+  } else if (constraintName === 'sum') {
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
   }
   return false;
@@ -764,7 +807,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
       return false;
   }
 
-  initialDomains[varIndexResult] = domain_removeValueArr(initialDomains[varIndexResult], bool ? 0 : 1);
+  initialDomains[varIndexResult] = domain_toArr(domain_removeValueArr(initialDomains[varIndexResult], bool ? 0 : 1));
   config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
   return true;
 }

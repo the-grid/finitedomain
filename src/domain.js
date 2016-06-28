@@ -2316,6 +2316,115 @@ function domain_getChangeState(newDom, oldDom) {
   return SOME_CHANGES;
 }
 
+/**
+ * validate domains, filter and fix legacy domains, throw for bad inputs
+ *
+ * @param {$domain} domain
+ * @returns {number[]}
+ */
+function domain_validate(domain) {
+  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
+
+  // support legacy domains and validate input here
+  let msg = domain_confirmDomain(domain);
+  if (msg) {
+    let fixedDomain = domain_tryToFixLegacyDomain(domain);
+    //console.error('Fixed domain '+domain+' to '+fixedDomain);
+    //THROW('Fixed domain '+domain+' to '+fixedDomain);
+    if (fixedDomain) {
+      //if (console && console.warn) {
+      //  console.warn(msg, domain, 'auto-converted to', fixedDomain);
+      //}
+    } else {
+      if (console && console.warn) {
+        console.warn(msg, domain, 'unable to fix');
+      }
+      THROW(`Fatal: unable to fix domain: ${JSON.stringify(domain)}`);
+    }
+    domain = fixedDomain;
+  }
+  return domain_toArr(domain);
+}
+
+/**
+ * Domain input validation
+ * Have to support and transform legacy domain formats of domains of domains
+ * and transform them to flat domains with lo/hi pairs
+ *
+ * @param {number[]} domain
+ * @returns {string|undefined}
+ */
+function domain_confirmDomain(domain) {
+  for (let i = 0; i < domain.length; i += PAIR_SIZE) {
+    let lo = domain[i];
+    let hi = domain[i + 1];
+    let e = domain_confirmDomainElement(lo);
+    if (e) {
+      return e;
+    }
+    let f = domain_confirmDomainElement(hi);
+    if (f) {
+      return f;
+    }
+
+    if (lo < SUB) {
+      return `Domain contains a number lower than SUB (${lo} < ${SUB}), this is probably a bug`;
+    }
+    if (hi > SUP) {
+      return `Domain contains a number higher than SUP (${hi} > ${SUP}), this is probably a bug`;
+    }
+    if (lo > hi) {
+      return `Found a lo/hi pair where lo>hi, expecting all pairs lo<=hi (${lo}>${hi})`;
+    }
+  }
+  ASSERT((domain.length % PAIR_SIZE) === 0, 'other tests should have caught uneven domain lengths');
+}
+
+/**
+ * @param {number} n
+ * @returns {string|undefined}
+ */
+function domain_confirmDomainElement(n) {
+  if (typeof n !== 'number') {
+    if (n instanceof Array) {
+      return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
+    }
+    return 'Expecting array of numbers, found something else (#{n}), this is probably a bug';
+  }
+  if (isNaN(n)) {
+    return 'Domain contains an actual NaN, this is probably a bug';
+  }
+}
+
+/**
+ * Try to convert old array of arrays domain to new
+ * flat array of number pairs domain. If any validation
+ * step fails, return nothing.
+ *
+ * @param {number[]} domain
+ * @returns {number[]}
+ */
+function domain_tryToFixLegacyDomain(domain) {
+  let fixed = [];
+  for (let i = 0; i < domain.length; i++) {
+    let rangeArr = domain[i];
+    if (!(rangeArr instanceof Array)) {
+      return;
+    }
+    if (rangeArr.length !== PAIR_SIZE) {
+      return;
+    }
+    let lo = rangeArr[LO_BOUND];
+    let hi = rangeArr[HI_BOUND];
+    if (lo > hi) {
+      return;
+    }
+    fixed.push(lo, hi);
+  }
+  return fixed;
+}
+
+
 // BODY_STOP
 
 export {
@@ -2418,6 +2527,7 @@ export {
   domain_size,
   domain_toArr,
   domain_toList,
+  domain_validate,
 
   // __REMOVE_BELOW_FOR_DIST__
   // testing only:

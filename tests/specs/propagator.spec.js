@@ -22,6 +22,7 @@ import {
   propagator_addRingPlusOrMul,
 } from '../../src/propagator';
 import {
+  config_addVarDomain,
   config_create,
 } from '../../src/config';
 
@@ -52,10 +53,20 @@ describe('src/propagator.spec', function() {
       expect(_ => propagator_addReified(config, 15, 1, 2, 3)).to.throw('OP_SHOULD_BE_STRING');
     });
 
+    // test reified with all variations of binary bound domains and also a [0,100] domain
     ['eq', 'neq', 'lt', 'gt', 'lte', 'gte'].forEach(op => {
-      it('should work with ' + op, function() {
-        let config = config_create();
-        expect(propagator_addReified(config, op, 0, 1, 2)).to.equal(undefined);
+      [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(A => {
+        [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(B => {
+          [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(C => {
+            it('should work with ' + op + ' with A=' + A + ' B=' + B + ' C=' + C, function() {
+              let config = config_create();
+              config_addVarDomain(config, 'A', A);
+              config_addVarDomain(config, 'B', B);
+              config_addVarDomain(config, 'C', B);
+              expect(propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.equal(undefined);
+            });
+          });
+        });
       });
     });
   });

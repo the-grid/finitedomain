@@ -60,8 +60,8 @@ describe('propagators/neq.spec', function() {
 
   it('should throw for empty domains', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainFromNums(9, 10, true));
-    config_addVarDomain(config, 'B', specDomainFromNums(11, 15, true));
+    config_addVarDomain(config, 'A', specDomainFromNums(9, 10));
+    config_addVarDomain(config, 'B', specDomainFromNums(11, 15));
     config_addVarDomain(config, 'C', specDomainCreateEmpty());
     config_addVarDomain(config, 'D', specDomainCreateEmpty());
     let space = space_createRoot(config);

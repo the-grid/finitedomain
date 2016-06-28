@@ -67,7 +67,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: [[1, 4]],
+        domain: [1, 4],
         distribute: 'markov',
         distributeOptions: {
           legend: [2, 4, 3, 1],

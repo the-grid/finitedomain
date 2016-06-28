@@ -2329,6 +2329,8 @@ function domain_validate(domain) {
   let msg = domain_confirmDomain(domain);
   if (msg) {
     let fixedDomain = domain_tryToFixLegacyDomain(domain);
+    //console.error('Fixed domain '+domain+' to '+fixedDomain);
+    //THROW('Fixed domain '+domain+' to '+fixedDomain);
     if (fixedDomain) {
       //if (console && console.warn) {
       //  console.warn(msg, domain, 'auto-converted to', fixedDomain);

@@ -70,6 +70,7 @@ function specDomainFromNums(...list) {
   let lo;
   for (let index = 0; index < list.length; index++) {
     let value = list[index];
+    ASSERT(typeof value === 'number', 'fd values are numbers');
     ASSERT(value >= SUB, 'fd values range SUB~SUP');
     ASSERT(value <= SUP, 'fd values range SUB~SUP');
     if (index === 0) {

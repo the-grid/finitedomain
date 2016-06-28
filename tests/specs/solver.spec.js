@@ -161,16 +161,19 @@ describe('solver.spec', function() {
         expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql([0, 10, 20, 30]);
       });
 
-      it('should throw for bad legacy domain ', function() {
-        let solver = new Solver();
+      describe('legacy', function() {
 
-        expect(_ => solver.decl('foo', [[0]])).to.throw('Fatal: unable to fix domain: [[0]]');
-      });
+        it('should throw for bad legacy domain ', function() {
+          let solver = new Solver();
 
-      it('should throw for bad legacy domain with multiple ranges', function() {
-        let solver = new Solver();
+          expect(_ => solver.decl('foo', [[0]])).to.throw('Fatal: unable to fix domain: [[0]]');
+        });
 
-        expect(_ => solver.decl('foo', [[0], [20, 30]])).to.throw('Fatal: unable to fix domain: [[0],[20,30]]');
+        it('should throw for bad legacy domain with multiple ranges', function() {
+          let solver = new Solver();
+
+          expect(_ => solver.decl('foo', [[0], [20, 30]])).to.throw('Fatal: unable to fix domain: [[0],[20,30]]');
+        });
       });
 
       it('should throw for domains with numbers <SUB', function() {

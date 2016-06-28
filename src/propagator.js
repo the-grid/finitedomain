@@ -8,6 +8,14 @@ import {
   config_addVarAnonNothing,
 } from './config';
 
+import {
+  ONE,
+  ZERO,
+  BOOL,
+
+  domain_numarr,
+} from './domain';
+
 // BODY_START
 
 const PROP_PNAME = 0;
@@ -48,14 +56,65 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
   switch (opname) {
-    case 'eq':
+    case 'eq': {
       var nopname = 'neq';
-      break;
 
-    case 'neq':
+      let A = domain_numarr(config.initial_domains[leftVarIndex]);
+      let B = domain_numarr(config.initial_domains[rightVarIndex]);
+      let C = domain_numarr(config.initial_domains[resultVarIndex]);
+
+      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
+      if (C === BOOL) {
+        if (B === BOOL) {
+          if (A === ONE) {
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          }
+          if (A === ZERO) {
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          }
+        }
+        if (A === BOOL) {
+          if (B === ONE) {
+            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          }
+          if (B === ZERO) {
+            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          }
+        }
+      }
+
+      break;
+    }
+
+    case 'neq': {
       nopname = 'eq';
-      break;
 
+      let A = domain_numarr(config.initial_domains[leftVarIndex]);
+      let B = domain_numarr(config.initial_domains[rightVarIndex]);
+      let C = domain_numarr(config.initial_domains[resultVarIndex]);
+
+      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
+      if (C === BOOL) {
+        if (B === BOOL) {
+          if (A === ONE) {
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          }
+          if (A === ZERO) {
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          }
+        }
+        if (A === BOOL) {
+          if (B === ONE) {
+            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          }
+          if (B === ZERO) {
+            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          }
+        }
+      }
+
+      break;
+    }
     case 'lt':
       nopname = 'gte';
       break;

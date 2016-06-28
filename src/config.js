@@ -47,12 +47,14 @@ import {
   domain_numarr,
   domain_isSolved,
   domain_isSolvedArr,
+  domain_intersection,
   domain_intersectionArrArr,
   domain_removeGteArr,
   domain_removeLteArr,
   domain_removeValueArr,
   domain_toArr,
 } from './domain';
+import domain_plus from './doms/domain_plus';
 import {
   constraint_create,
 } from './constraint';
@@ -453,7 +455,8 @@ function config_addConstraint(config, name, varNames, param) {
       let sumName = varNames[2];
       if (resultIsParam) sumName = param;
 
-      if (typeof sumName === 'undefined') {
+      let freshResultVar = typeof sumName === 'undefined';
+      if (freshResultVar) {
         if (forceBool) sumName = config_addVarAnonRange(config, 0, 1);
         else sumName = config_addVarAnonNothing(config);
       } else if (typeof sumName === 'number') {
@@ -475,6 +478,23 @@ function config_addConstraint(config, name, varNames, param) {
       }
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       if (resultIsParam) param = config.all_var_names.indexOf(param);
+
+      if (freshResultVar) {
+        if (name === 'sum') {
+          let domains = config.initial_domains;
+          //console.log('sum:', varNames.map(name => config.all_var_names.indexOf(name)).map(index => domains[index]), '->', domains[config.all_var_names.indexOf(sumName)]);
+          let domain = domains[config.all_var_names.indexOf(varNames[0])]; // dont start with EMPTY or [0,0]!
+          //console.log('start:', domain_toArr(domain));
+          for (let i = 1; i < varNames.length; ++i) {
+            let varIndex = config.all_var_names.indexOf(varNames[i]);
+            domain = domain_plus(domain, domains[varIndex]);
+            //console.log('+', domains[varIndex], '=', domain_toArr(domain));
+          }
+          let sumIndex = config.all_var_names.indexOf(sumName);
+          domains[sumIndex] = domain_toArr(domain_intersection(domain, domains[sumIndex]));
+          //console.log('->', domains[sumIndex]);
+        }
+      }
 
       varNameToReturn = sumName;
       break;

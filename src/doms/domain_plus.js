@@ -266,7 +266,7 @@ function _domain_plusRangeNumNum(loi, hii, domain, result) {
 }
 function _domain_plusNumArr(domain1, domain2, result) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
-  if (domain1 === EMPTY) return;
+  if (domain1 === EMPTY) return; // note: this is not 0+x=x. this is nothing+something=nothing.
 
   let lo = -1;
   let hi = -1;

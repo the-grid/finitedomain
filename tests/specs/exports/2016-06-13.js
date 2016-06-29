@@ -7,7 +7,6 @@ let config = {
   next_var_func: 'naive',
   next_value_func: 'min',
   targetedVars: 'all',
-  targetedIndexes: 'all',
   var_dist_options: {},
   timeout_callback: undefined,
   all_var_names: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],

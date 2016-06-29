@@ -6,6 +6,7 @@ import {
 
   ASSERT,
   ASSERT_DOMAIN,
+  THROW,
 } from './helpers';
 
 import {
@@ -67,8 +68,8 @@ function space_createFromConfig(config) {
 function space_createClone(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
-  let unsolvedVarIndexes = space_filterUnsolvedVarIndexes(space);
   let vardomsCopy = space.vardoms.slice(0);
+  let unsolvedVarIndexes = space.unsolvedVarIndexes.slice(0); // note: the list should have been updated before cloning
 
   // only for debugging
   let _depth;
@@ -103,22 +104,12 @@ function space_toConfig(space) {
   return config_clone(space.config, newDomains);
 }
 
-function space_filterUnsolvedVarIndexes(space) {
-  let unsolvedVarIndexes = [];
-  let vardoms = space.vardoms;
-  for (let i = 0; i < space.unsolvedVarIndexes.length; ++i) {
-    let varIndex = space.unsolvedVarIndexes[i];
-    if (!domain_isSolved(vardoms[varIndex])) unsolvedVarIndexes.push(varIndex);
-  }
-  return unsolvedVarIndexes;
-}
-
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
  * @param {$config} config
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {string[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
+ * @param {number[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
  * @param {number} _depth
  * @param {number} _child
  * @param {string} _path
@@ -133,7 +124,6 @@ function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _p
 
     config,
 
-    // TODO: should we track all_vars all_unsolved_vars AND target_vars target_unsolved_vars? because i think so.
     vardoms,
     unsolvedVarIndexes,
 
@@ -157,8 +147,44 @@ function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _p
 function space_initFromConfig(space) {
   let config = space.config;
   ASSERT(config, 'should have a config');
+  ASSERT(config._class === '$config', 'should be a config');
 
   config_initForSpace(config, space);
+  initializeUnsolvedVars(space, config);
+}
+/**
+ * Initialized space.unsolvedVarIndexes with either the explicitly targeted var indexes
+ * or any index that is currently unsolved and either constrained or marked as such
+ *
+ * @param {$space} space
+ * @param {$config} config
+ */
+function initializeUnsolvedVars(space, config) {
+  let unsolvedVarIndexes = space.unsolvedVarIndexes;
+  let targetVarNames = config.targetedVars;
+  let vardoms = space.vardoms;
+
+  ASSERT(unsolvedVarIndexes.length === 0, 'should be initialized with empty list');
+
+  if (targetVarNames === 'all') {
+    for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
+      if (!domain_isSolved(vardoms[varIndex])) {
+        if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
+          unsolvedVarIndexes.push(varIndex);
+        }
+      }
+    }
+  } else {
+    let allVarNames = space.config.all_var_names;
+    for (let i = 0, n = targetVarNames.length; i < n; ++i) {
+      let varName = targetVarNames[i];
+      let varIndex = allVarNames.indexOf(varName);
+      if (varIndex < 0) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
+      if (!domain_isSolved(vardoms[varIndex])) {
+        unsolvedVarIndexes.push(varIndex);
+      }
+    }
+  }
 }
 
 /**
@@ -290,42 +316,15 @@ function space_abortSearch(space) {
  * @param {$space} space
  * @returns {boolean}
  */
-function space_isSolved(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let targetedIndexes = space.config.targetedIndexes;
-
-  if (targetedIndexes === 'all' || !targetedIndexes.length) return _space_isSolvedForAll(space);
-  return _space_isSolvedForSome(space, targetedIndexes);
-}
-function _space_isSolvedForSome(space, targetedIndexes) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  ASSERT(targetedIndexes !== 'all' && targetedIndexes.length, 'REQUIRES_SOME_TARGETS');
-
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
-
-  let j = 0;
-  for (let i = 0; i < unsolvedVarIndexes.length; i++) {
-    let varIndex = unsolvedVarIndexes[i];
-    if (targetedIndexes.indexOf(varIndex) >= 0) {
-      let domain = space.vardoms[varIndex];
-      ASSERT_DOMAIN(domain);
-
-      if (!domain_isSolved(domain)) {
-        unsolvedVarIndexes[j++] = varIndex;
-      }
-    }
-  }
-  unsolvedVarIndexes.length = j;
-  return j === 0;
-}
-function _space_isSolvedForAll(space) {
+function space_updateUnsolvedVarList(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
+  let vardoms = space.vardoms;
 
   let j = 0;
-  for (let i = 0; i < unsolvedVarIndexes.length; i++) {
+  for (let i = 0, n = unsolvedVarIndexes.length; i < n; i++) {
     let varIndex = unsolvedVarIndexes[i];
-    let domain = space.vardoms[varIndex];
+    let domain = vardoms[varIndex];
     ASSERT_DOMAIN(domain);
 
     if (!domain_isSolved(domain)) {
@@ -385,7 +384,7 @@ export {
   space_createRoot,
   space_getVarSolveState,
   space_initFromConfig,
-  space_isSolved,
+  space_updateUnsolvedVarList,
   space_propagate,
   space_solution,
   space_toConfig,

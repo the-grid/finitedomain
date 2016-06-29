@@ -47,7 +47,6 @@ import {
   domain_max,
   domain_min,
   domain_numarr,
-  domain_isSolved,
   domain_isSolvedArr,
   domain_intersection,
   domain_intersectionArrArr,
@@ -75,7 +74,6 @@ function config_create() {
     next_var_func: 'naive',
     next_value_func: 'min',
     targetedVars: 'all',
-    targetedIndexes: 'all', // function, string or array. initialized by config_generateVars, will contain var index for targetedVars
     var_dist_options: {},
     timeout_callback: undefined,
 
@@ -103,7 +101,6 @@ function config_clone(config, newDomains) {
     next_var_func,
     next_value_func,
     targetedVars,
-    targetedIndexes,
     var_dist_options,
     timeout_callback,
     constant_cache,
@@ -122,7 +119,6 @@ function config_clone(config, newDomains) {
     next_var_func,
     next_value_func,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
-    targetedIndexes: targetedIndexes instanceof Array ? targetedIndexes.slice(0) : targetedIndexes,
     var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
     timeout_callback, // by reference because it's a function if passed on...
 
@@ -353,18 +349,6 @@ function config_generateVars(config, space) {
     ASSERT(domain instanceof Array, 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
 
     space.vardoms[varIndex] = domain_numarr(domain);
-  }
-
-  if (config.targetedVars === 'all') {
-    config.targetedIndexes = 'all';
-  } else {
-    config.targetedIndexes = [];
-    for (let i = 0; i < config.targetedVars.length; ++i) {
-      let name = config.targetedVars[i];
-      let index = allVarNames.indexOf(name);
-      if (index < 0) THROW('TARGETED_VARS_SHOULD_EXIST_NOW');
-      config.targetedIndexes.push(index);
-    }
   }
 }
 
@@ -1002,24 +986,6 @@ function config_initForSpace(config, space) {
   config_populateVarPropHash(config);
 
   ASSERT(config._varToPropagators, 'should have generated hash');
-  let targets = getAllTargetVars(space);
-  // a var is considered unsolved if it is in fact not solved AND it either is either explicitly targeted or constrained by at least one constraint
-  space.unsolvedVarIndexes = targets.filter(varIndex => !domain_isSolved(space.vardoms[varIndex]) && (config.targetedVars !== 'all' || config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)));
-}
-
-function getAllTargetVars(space) {
-  let configTargetedIndexes = space.config.targetedIndexes;
-
-  if (configTargetedIndexes === 'all' || !configTargetedIndexes.length) {
-    return space.config.all_var_names.map((n, i) => i);
-  }
-
-  if (configTargetedIndexes instanceof Array) {
-    return configTargetedIndexes;
-  }
-
-  ASSERT(typeof configTargetedIndexes === 'function', 'config.targetedIndexes should be a func at this point', configTargetedIndexes);
-  return configTargetedIndexes(space);
 }
 
 // BODY_STOP

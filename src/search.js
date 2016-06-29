@@ -4,7 +4,7 @@ import {
 } from './helpers';
 import {
   space_createClone,
-  space_isSolved,
+  space_updateUnsolvedVarList,
   space_propagate,
 } from './space';
 import {
@@ -78,7 +78,7 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
     return false;
   }
 
-  let solved = space_isSolved(space);
+  let solved = space_updateUnsolvedVarList(space);
   if (solved) {
     _search_onSolve(state, space, stack);
     return true;

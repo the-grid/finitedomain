@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- No changes
+- Drop support for getting the targeted indexes through a callback
+- Eliminated something internally that was redundant and causing a big perf regression; in other words the solver should run much faster now on large data
+- Internal; eliminated targetedIndexes, merged the whole thing into `space.unsolvedVarIndexes`
+- Internal; eliminated duplicate `isSolved` checks
 
 ## v2.2.1:
 

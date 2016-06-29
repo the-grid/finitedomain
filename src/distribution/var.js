@@ -25,11 +25,11 @@ const WORSE = 3;
  * @returns {number}
  */
 function distribution_getNextVar(space) {
-  let targetVars = space.unsolvedVarIndexes;
+  let unsolvedVarIndexes = space.unsolvedVarIndexes;
   let configNextVarFunc = space.config.next_var_func;
   // if it's a function it should return the name of the next var to process
   if (typeof configNextVarFunc === 'function') {
-    return configNextVarFunc(space, targetVars);
+    return configNextVarFunc(space, unsolvedVarIndexes);
   }
 
   let distName = configNextVarFunc;
@@ -52,7 +52,7 @@ function distribution_getNextVar(space) {
     }
   }
 
-  return _distribution_varFindBest(space, targetVars, isBetterVar, configVarFilter, configNextVarFunc);
+  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVar, configVarFilter, configNextVarFunc);
 }
 
 /**

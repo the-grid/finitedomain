@@ -673,7 +673,6 @@ class Solver {
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
-    clone.targetedIndexes = '<removed>';
     clone._propagators = '<removed>';
     clone._varToPropagators = '<removed>';
 

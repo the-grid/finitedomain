@@ -397,14 +397,12 @@ function propagator_addSum(config, varIndexes, resultVarIndex) {
   let n = Math.floor(varIndexes.length / 2);
   if (n > 1) {
     t1 = config_addVarAnonNothing(config);
-    t1 = config.all_var_names.indexOf(t1);
     propagator_addSum(config, varIndexes.slice(0, n), t1);
   } else {
     t1 = varIndexes[0];
   }
 
   let t2 = config_addVarAnonNothing(config);
-  t2 = config.all_var_names.indexOf(t2);
   propagator_addSum(config, varIndexes.slice(n), t2);
   propagator_addPlus(config, t1, t2, resultVarIndex);
 }
@@ -442,14 +440,12 @@ function propagator_addProduct(config, varIndexes, resultVarIndex) {
   let t1;
   if (n > 1) {
     t1 = config_addVarAnonNothing(config);
-    t1 = config.all_var_names.indexOf(t1);
     propagator_addProduct(config, varIndexes.slice(0, n), t1);
   } else {
     t1 = varIndexes[0];
   }
 
   let t2 = config_addVarAnonNothing(config);
-  t2 = config.all_var_names.indexOf(t2);
   propagator_addProduct(config, varIndexes.slice(n), t2);
   propagator_addRingMul(config, t1, t2, resultVarIndex);
 }

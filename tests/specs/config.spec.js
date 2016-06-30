@@ -86,27 +86,27 @@ describe('src/config.spec', function() {
 
     it('should add the value', function() {
       let config = config_create();
-      let name = config_addVarAnonConstant(config, 15);
+      let varIndex = config_addVarAnonConstant(config, 15);
 
-      expect(config.all_var_names.indexOf(name)).to.be.at.least(0);
-      expect(config.initial_domains[config.all_var_names.indexOf(name)]).to.eql(specDomainFromNums(15));
+      expect(config.all_var_names[varIndex]).to.be.above(-1);
+      expect(config.initial_domains[varIndex]).to.eql(specDomainFromNums(15));
     });
 
     it('should populate the constant cache', function() {
       let config = config_create();
-      let name = config_addVarAnonConstant(config, 15);
+      let varIndex = config_addVarAnonConstant(config, 15);
 
-      expect(config.constant_cache[15]).to.equal(name);
+      expect(config.constant_cache[15]).to.equal(varIndex);
     });
 
     it('should reuse the constant cache if available', function() {
       let config = config_create();
-      let name1 = config_addVarAnonConstant(config, 1);
-      let name2 = config_addVarAnonConstant(config, 2);
-      let name3 = config_addVarAnonConstant(config, 1);
+      let index1 = config_addVarAnonConstant(config, 1);
+      let index2 = config_addVarAnonConstant(config, 2);
+      let index3 = config_addVarAnonConstant(config, 1);
 
-      expect(name1).to.not.equal(name2);
-      expect(name1).to.equal(name3);
+      expect(index1).to.not.equal(index2);
+      expect(index1).to.equal(index3);
     });
   });
 

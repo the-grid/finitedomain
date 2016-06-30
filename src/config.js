@@ -84,7 +84,7 @@ function config_create() {
     // is created from this config. constraints are more higher level.
     all_constraints: [],
 
-    constant_cache: {}, // <value:varName>, those names are usually anonymous vars
+    constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
     initial_domains: [], // initial domains for each var, maps 1:1 to all_var_names
 
     _propagators: [], // initialized later
@@ -138,7 +138,7 @@ function config_clone(config, newDomains) {
  * Add an anonymous var with max allowed range
  *
  * @param {$config} config
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarAnonNothing(config) {
   return config_addVarNothing(config, true);
@@ -146,7 +146,7 @@ function config_addVarAnonNothing(config) {
 /**
  * @param {$config} config
  * @param {string|boolean} varName (If true, is anonymous)
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarNothing(config, varName) {
   return config_addVarDomain(config, varName, domain_createRange(SUB, SUP));
@@ -155,7 +155,7 @@ function config_addVarNothing(config, varName) {
  * @param {$config} config
  * @param {number} lo
  * @param {number} hi
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarAnonRange(config, lo, hi) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -171,7 +171,7 @@ function config_addVarAnonRange(config, lo, hi) {
  * @param {string|boolean} varName (If true, is anonymous)
  * @param {number} lo
  * @param {number} hi
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarRange(config, varName, lo, hi) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -188,7 +188,7 @@ function config_addVarRange(config, varName, lo, hi) {
  * @param {string|boolean} varName (If true, anon)
  * @param {$domain_arr} domain Small domain format not allowed here.
  * @param {undefined} [_forbidden] Throws if this is used, prevents bad api mistakes (since domain can be a number)
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarDomain(config, varName, domain, _forbidden) {
   ASSERT(_forbidden === undefined, 'A_WRONG_API');
@@ -199,13 +199,13 @@ function config_addVarDomain(config, varName, domain, _forbidden) {
 /**
  * @param {$config} config
  * @param {number} value
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  if (config.constant_cache[value]) {
+  if (config.constant_cache[value] !== undefined) {
     return config.constant_cache[value];
   }
 
@@ -215,7 +215,7 @@ function config_addVarAnonConstant(config, value) {
  * @param {$config} config
  * @param {string|boolean} varName (True means anon)
  * @param {number} value
- * @returns {string}
+ * @returns {number} varIndex
  */
 function config_addVarConstant(config, varName, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -224,16 +224,14 @@ function config_addVarConstant(config, varName, value) {
 
   let domain = domain_toArr(domain_createRange(value, value));
 
-  varName = config_addVarDomain(config, varName, domain);
-
-  return varName;
+  return config_addVarDomain(config, varName, domain);
 }
 
 /**
  * @param {$config} config
  * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
  * @param {$domain_arr} domain Small domain format not allowed here.
- * @returns {string} the var name (you need this for anonymous vars)
+ * @returns {number} varIndex
  */
 function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -252,18 +250,20 @@ function _config_addVar(config, varName, domain) {
   if (wasAnonymous) {
     varName = String(varIndex); // this var will be assigned to this index
   }
-  if (allVarNames.indexOf(varName) >= 0) {
+  // note: 20 is an arbitrary number but we need to prevent indexOf on huge var lists.
+  // this problem shouldnt happen on automated solver generation
+  if (allVarNames.length < 20 && allVarNames.indexOf(varName) >= 0) {
     if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }
 
   let solvedTo = domain_getValueArr(domain);
-  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varName;
+  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
 
   config.initial_domains[varIndex] = domain;
   allVarNames.push(varName);
 
-  return varName;
+  return varIndex;
 }
 
 /**
@@ -438,67 +438,37 @@ function config_addConstraint(config, name, varNames, param) {
     case 'product': {
       let resultIsParam = name === 'product' || name === 'sum';
 
-      let sumName = varNames[2];
-      if (resultIsParam) sumName = param;
+      let sumName = resultIsParam ? param : varNames[2];
+      let sumVarIndex;
 
       let freshResultVar = typeof sumName === 'undefined';
       if (freshResultVar) {
-        if (forceBool) sumName = config_addVarAnonRange(config, 0, 1);
-        else sumName = config_addVarAnonNothing(config);
+        if (forceBool) sumVarIndex = config_addVarAnonRange(config, 0, 1);
+        else sumVarIndex = config_addVarAnonNothing(config);
+        sumName = config.all_var_names[sumVarIndex];
       } else if (typeof sumName === 'number') {
-        sumName = config_addVarAnonConstant(config, sumName);
+        sumVarIndex = config_addVarAnonConstant(config, sumName);
+        sumName = config.all_var_names[sumVarIndex];
       } else if (typeof sumName !== 'string') {
         THROW(`expecting result var name to be absent or a number or string: \`${sumName}\``);
+      } else {
+        sumVarIndex = config.all_var_names.indexOf(sumName);
       }
-      if (resultIsParam) param = sumName;
+
+      if (resultIsParam) param = sumVarIndex;
       else varNames[2] = sumName;
 
       // check all other var names, except result var, for constants
       let hasNonConstant = false;
       for (let i = 0, n = varNames.length - (resultIsParam ? 0 : 1); i < n; ++i) {
         if (typeof varNames[i] === 'number') {
-          varNames[i] = config_addVarAnonConstant(config, varNames[i]);
+          let varIndex = config_addVarAnonConstant(config, varNames[i]);
+          varNames[i] = config.all_var_names[varIndex];
         } else {
           hasNonConstant = true;
         }
       }
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
-      if (resultIsParam) param = config.all_var_names.indexOf(param);
-
-      if (name === 'sum') {
-        let domains = config.initial_domains;
-        if (freshResultVar) {
-          let domain = domains[config.all_var_names.indexOf(varNames[0])]; // dont start with EMPTY or [0,0]!
-          for (let i = 1; i < varNames.length; ++i) {
-            let varIndex = config.all_var_names.indexOf(varNames[i]);
-            domain = domain_plus(domain, domains[varIndex]);
-          }
-          let sumIndex = config.all_var_names.indexOf(sumName);
-          domains[sumIndex] = domain_toArr(domain_intersection(domain, domains[sumIndex]));
-        }
-        if (varNames.length > 1) {
-          let newVars = [];
-          let constants = [0, 0];
-          for (let i = 0; i < varNames.length; ++i) {
-            let varName = varNames[i];
-            let varIndex = config.all_var_names.indexOf(varName);
-            let domain = domains[varIndex];
-            let value = domain_getValueArr(domain);
-            if (value === NO_SUCH_VALUE) {
-              newVars.push(varName);
-            } else if (value !== 0) {
-              constants = domain_plus(constants, domain);
-            }
-          }
-          let cValue = domain_getValue(constants);
-          if (cValue !== 0) {
-            let cName = config_addVarAnonConstant(config, cValue);
-            newVars.push(cName);
-          }
-          if (!newVars.length) domains[param] = domain_toArr(domain_intersection(ZERO, domains[param]));
-          varNames = newVars;
-        }
-      }
 
       varNameToReturn = sumName;
       break;
@@ -519,12 +489,14 @@ function config_addConstraint(config, name, varNames, param) {
       let hasNonConstant = (name !== 'callback' || name !== 'distinct') && varNames.length === 0;
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
-          varNames[i] = config_addVarAnonConstant(config, varNames[i]);
+          let varIndex = config_addVarAnonConstant(config, varNames[i]);
+          varNames[i] = config.all_var_names[varIndex];
           varNameToReturn = varNames[i];
         } else {
           hasNonConstant = true;
         }
       }
+
       if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
       if (varNames.length === 0) varNameToReturn = param;
       break;
@@ -540,6 +512,41 @@ function config_addConstraint(config, name, varNames, param) {
 
     ASSERT(varIndex >= 0, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
+  }
+
+  if (name === 'sum') {
+    let domains = config.initial_domains;
+
+    // limit result var to the min/max possible sum
+    let maxDomain = domains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
+    for (let i = 1, n = varIndexes.length; i < n; ++i) {
+      let varIndex = varIndexes[i];
+      maxDomain = domain_plus(maxDomain, domains[varIndex]);
+    }
+    domains[param] = domain_toArr(domain_intersection(maxDomain, domains[param]));
+
+    // eliminate multiple constants
+    if (varIndexes.length > 1) {
+      let newVarIndexes = [];
+      let constants = [0, 0];
+      for (let i = 0, n = varIndexes.length; i < n; ++i) {
+        let varIndex = varIndexes[i];
+        let domain = domains[varIndex];
+        let value = domain_getValueArr(domain);
+        if (value === NO_SUCH_VALUE) {
+          newVarIndexes.push(varIndex);
+        } else if (value !== 0) {
+          constants = domain_plus(constants, domain);
+        }
+      }
+      let cValue = domain_getValue(constants);
+      if (cValue !== 0) {
+        let varIndex = config_addVarAnonConstant(config, cValue);
+        newVarIndexes.push(varIndex);
+      }
+      if (!newVarIndexes.length) domains[param] = domain_toArr(domain_intersection(ZERO, domains[param]));
+      varIndexes = newVarIndexes;
+    }
   }
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {

@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- No changes
+- Big optimization for large sets. Was doing many unnecessary `indexOf` lookups on the var names array which was bogging down the compilation phase considerably.
+- No longer actively guarding for already existing variables if you have more than 20 vars. Otherwise still throws but the `indexOf` can be very expensive with little advantage.
 
 ## v2.3.0:
 

@@ -96,7 +96,7 @@ function space_toConfig(space) {
   let vardoms = space.vardoms;
   let newDomains = [];
   let names = space.config.all_var_names;
-  for (let i = 0; i < names.length; i++) {
+  for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
     newDomains[i] = domain_clone(domain, FORCE_ARRAY);
   }
@@ -347,7 +347,7 @@ function space_solution(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let allVarNames = space.config.all_var_names;
   let result = {};
-  for (let varIndex = 0; varIndex < allVarNames.length; varIndex++) {
+  for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
     result[varName] = space_getVarSolveState(space, varIndex);
   }
@@ -359,7 +359,7 @@ function space_solution(space) {
  * (by a third of most, but still significantly more than the rest)
  *
  * @param {$space} space
- * @param {string} varIndex
+ * @param {number} varIndex
  * @returns {number|number[]|boolean} The solve state for given var index, also put into result
  */
 function space_getVarSolveState(space, varIndex) {

@@ -564,17 +564,21 @@ describe('solver.spec', function() {
           expect(solver[method](['A', 'B'], 'C')).to.equal('C');
         });
 
-        it('should accept numbers on either of the three positions', function() {
+        it('should accept numbers on either of the three positions; 1', function() {
           let solver = new Solver();
           solver.decl('B', 100);
           solver.decl('C', 100);
           expect(solver[method]([1, 'B'], 'C')).to.equal('C');
+        });
 
+        it('should accept numbers on either of the three positions; 2', function() {
           let solver2 = new Solver();
           solver2.decl('A', 100);
           solver2.decl('C', 100);
           expect(solver2[method](['A', 2], 'C')).to.equal('C');
+        });
 
+        it('should accept numbers on either of the three positions; 3', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
@@ -1394,6 +1398,7 @@ describe('solver.spec', function() {
       solver.decl('B');
       solver['==?']('A', 'B');
 
+
       let solutions = solver.solve({vars: []});
       // internally there will be three vars; A B and the reifier result var
       // make sure we don't accidentally require to solve that one too
@@ -1752,8 +1757,7 @@ describe('solver.spec', function() {
       // path to branch binding
       solver.sum(['A', 'B', 'C'], 1);
 
-      solver.solve({
-      });
+      solver.solve({});
 
       expect(solver.solutions).to.eql([
         {'3': 1, '4': 1, A: 0, B: 0, C: 1},

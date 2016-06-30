@@ -224,7 +224,7 @@ describe('src/space.spec', function() {
         config_addVarAnonRange(space.config, 0, 1);
         config_addVarAnonRange(space.config, 0, 1);
         let A = config_addVarAnonConstant(space.config, 1);
-        space.config.targetedVars = [A];
+        space.config.targetedVars = [space.config.all_var_names[A]];
         space_initFromConfig(space);
 
         expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(true);
@@ -235,7 +235,7 @@ describe('src/space.spec', function() {
         let A = config_addVarAnonRange(space.config, 0, 1);
         let B = config_addVarAnonRange(space.config, 0, 1);
         config_addVarAnonConstant(space.config, 1);
-        space.config.targetedVars = [A, B];
+        space.config.targetedVars = [space.config.all_var_names[A], space.config.all_var_names[B]];
         space_initFromConfig(space);
 
         expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(false);

@@ -154,13 +154,13 @@ function distribution_varByMarkov(space, varIndex1, varIndex2, configNextVarFunc
 
   // v1 is only, but if so always, better than v2 if v1 is a markov var
 
-  let varName1 = space.config.all_var_names[varIndex1]; // TOFIX: index it
+  let varName1 = space.config.all_var_names[varIndex1];
   ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   if (distOptions[varName1] && distOptions[varName1].distributor_name === 'markov') {
     return BETTER;
   }
 
-  let varName2 = space.config.all_var_names[varIndex2]; // TOFIX: index it
+  let varName2 = space.config.all_var_names[varIndex2];
   ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   if (distOptions[varName2] && distOptions[varName2].distributor_name === 'markov') {
     return WORSE;
@@ -174,9 +174,9 @@ function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) 
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let varName1 = space.config.all_var_names[varIndex1]; // TOFIX: index it
+  let varName1 = space.config.all_var_names[varIndex1];
   ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  let varName2 = space.config.all_var_names[varIndex2]; // TOFIX: index it
+  let varName2 = space.config.all_var_names[varIndex2];
   ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
 
   // note: config.priority_hash is compiled by Solver#prepare from given priority_list

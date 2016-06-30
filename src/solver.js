@@ -82,7 +82,7 @@ class Solver {
 
     if (config.initial_vars) {
       let doms = [];
-      for (let i = 0; i < config.all_var_names.length; ++i) {
+      for (let i = 0, n = config.all_var_names.length; i < n; ++i) {
         doms[i] = config.initial_vars[config.all_var_names[i]];
       }
       config.initial_domains = doms;
@@ -154,8 +154,8 @@ class Solver {
     if (isNaN(num)) {
       THROW('Solver#num: expecting a number, got NaN');
     }
-    let name = config_addVarAnonConstant(this.config, num);
-    return name;
+    let varIndex = config_addVarAnonConstant(this.config, num);
+    return this.config.all_var_names[varIndex];
   }
 
   /**
@@ -175,6 +175,7 @@ class Solver {
    * @returns {string}
    */
   decl(id, domainOrValue) {
+    ASSERT(id && typeof id === 'string', 'EXPECTING_ID_STRING');
     let domain;
     if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
     else domain = domainOrValue;
@@ -187,7 +188,10 @@ class Solver {
 
     if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = domain_validate(domain);
-    return config_addVarDomain(this.config, id, domain);
+    let varIndex = config_addVarDomain(this.config, id, domain);
+    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
+
+    return id;
   }
 
   /**
@@ -610,7 +614,9 @@ class Solver {
    * @returns {string}
    */
   space_add_var_range(id, lo, hi) {
-    return config_addVarRange(this.config, id, lo, hi);
+    let varIndex = config_addVarRange(this.config, id, lo, hi);
+    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
+    return id;
   }
 
   /**

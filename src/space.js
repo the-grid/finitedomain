@@ -265,7 +265,7 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, _i) {
   if (n === SOME_CHANGES) {
     for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
       let varIndex = propagator[PROP_VAR_INDEXES][j];
-      if (trie_has(changedTrie, varIndex)) {
+      if (!trie_has(changedTrie, varIndex)) {
         changedVars.push(varIndex);
         trie_add(changedTrie, varIndex, true);
       }

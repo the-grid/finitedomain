@@ -58,7 +58,7 @@ function _trie_add(branch, key, value, index, len) {
  * @returns {boolean}
  */
 function trie_has(root, key) {
-  return trie_get(root, key) === undefined;
+  return trie_get(root, key) !== undefined;
 }
 
 /**

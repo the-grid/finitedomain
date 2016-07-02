@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- No changes
+
+## v2.3.3:
+
 - Internal change only; applied Trie to a hot internal searching bit of code as well. Saves considerably.
 
 ## v2.3.2:

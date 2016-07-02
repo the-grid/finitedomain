@@ -10,6 +10,10 @@ import {
 } from './helpers';
 
 import {
+  trie_get,
+} from './trie';
+
+import {
   config_clone,
   config_create,
   config_initForSpace,
@@ -175,11 +179,11 @@ function initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let allVarNames = space.config.all_var_names;
+    let varNamesTrie = space.config._var_names_trie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
-      let varIndex = allVarNames.indexOf(varName);
-      if (varIndex < 0) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
+      let varIndex = trie_get(varNamesTrie, varName);
+      if (varIndex === undefined) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
       if (!domain_isSolved(vardoms[varIndex])) {
         unsolvedVarIndexes.push(varIndex);
       }

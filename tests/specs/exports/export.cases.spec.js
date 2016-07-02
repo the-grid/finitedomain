@@ -1,6 +1,9 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 
 import Solver from '../../../src/solver';
+import {
+  config_clone,
+} from '../../../src/config';
 
 import case20160611 from './2016-06-11';
 import case20160613 from './2016-06-13';
@@ -13,7 +16,7 @@ describe('exports/export.cases.spec', function() {
   this.timeout(60000); // takes long under istanbul / even longer under travis
 
   it('should solve 2016-06-11 twice', function() {
-    var solver = new Solver({config: case20160611});
+    var solver = new Solver({config: config_clone(case20160611)});
 
     console.log('run 1:');
     solver.solve({log: 1, max: 1});
@@ -22,7 +25,7 @@ describe('exports/export.cases.spec', function() {
   });
 
   it('should proceed past prepare for 2016-06-13', function() {
-    var solver = new Solver({config: case20160613});
+    var solver = new Solver({config: config_clone(case20160613)});
 
     solver.solve({log: 1, max: 1});
   });
@@ -30,7 +33,7 @@ describe('exports/export.cases.spec', function() {
   describe('2016-06-18', function() {
 
     it('should not take infinite time', function() {
-      var solver = new Solver({config: case20160618});
+      var solver = new Solver({config: config_clone(case20160618)});
 
       solver.solve({log: 1, max: 1});
     });
@@ -41,7 +44,7 @@ describe('exports/export.cases.spec', function() {
     // unfortunately it was not the actual bug.
 
     it('should not take infinite time', function() {
-      var solver = new Solver({config: case20160618_slim});
+      var solver = new Solver({config: config_clone(case20160618_slim)});
 
       solver.solve({log: 1, max: 1});
     });
@@ -674,7 +677,7 @@ describe('exports/export.cases.spec', function() {
         ],
       };
 
-      let solver = new Solver({config: config});
+      let solver = new Solver({config: config_clone(config)});
       solver.solve({log: 1, max: 1});
     });
 
@@ -749,7 +752,7 @@ describe('exports/export.cases.spec', function() {
   describe('2016-06-18.slim2', function() {
 
     it('should not take infinite time', function() {
-      var solver = new Solver({config: case20160618_slim2});
+      var solver = new Solver({config: config_clone(case20160618_slim2)});
 
       solver.solve({log: 1, max: 1});
     });

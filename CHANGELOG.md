@@ -4,6 +4,10 @@
 
 - No changes
 
+## v2.3.2:
+
+- Internal change only; implemented Trie for converting variable names to variable index. Huge savings on large input data sets at the cost of a little more memory.
+
 ## v2.3.1:
 
 - Big optimization for large sets. Was doing many unnecessary `indexOf` lookups on the var names array which was bogging down the compilation phase considerably.

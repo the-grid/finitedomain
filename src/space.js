@@ -205,13 +205,13 @@ function space_propagate(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let propagators = space.config._propagators;
 
-  let changedVars = [];
-  let changedTrie = trie_create();
+  let changedVars;
   let minimal = 1;
   if (space.updatedVarIndex >= 0) {
-    changedVars.push(space.updatedVarIndex);
-    trie_add(changedTrie, space.updatedVarIndex, true);
+    changedVars = [space.updatedVarIndex];
   } else {
+    changedVars = [];
+    let changedTrie = trie_create();
     // very first run of the search. all propagators must be visited at least once now.
     let rejected = space_propagateAll(space, propagators, changedVars, changedTrie);
     if (rejected) return true;

@@ -951,7 +951,6 @@ describe('distribution/var.spec', function() {
   });
 
   describe('fallback list -> markov -> size', function() {
-
     // each test will ask for a var and supply a more limited list of vars
 
     let solver = new Solver();

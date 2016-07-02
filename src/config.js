@@ -15,6 +15,12 @@ import {
   THROW,
 } from './helpers';
 import {
+  trie_add,
+  trie_create,
+  trie_get,
+  trie_has,
+} from './trie';
+import {
   PROP_VAR_INDEXES,
 
   propagator_addCallback,
@@ -80,6 +86,8 @@ function config_create() {
     // names of all vars in this search tree
     // optimizes loops because `for-in` is super slow
     all_var_names: [],
+    // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
+    _var_names_trie: trie_create(),
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
     all_constraints: [],
@@ -125,12 +133,13 @@ function config_clone(config, newDomains) {
     constant_cache, // is by reference ok?
 
     all_var_names: all_var_names.slice(0),
+    _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
     all_constraints: all_constraints.slice(0),
     initial_domains: newDomains || initial_domains, // <varName:domain>
 
-    _propagators: _propagators.slice(0), // in case it is initialized
-    _varToPropagators: _varToPropagators.slice(0), // inited elsewhere
-    _constrainedAway: _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
+    _propagators: _propagators && _propagators.slice(0), // in case it is initialized
+    _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
+    _constrainedAway: _constrainedAway && _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
   };
 }
 
@@ -237,7 +246,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-  ASSERT(varName === true || config.all_var_names.indexOf(varName) < 0, 'Do not declare the same varName twice');
+  ASSERT(varName === true || trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
   ASSERT(domain instanceof Array, 'ARR_DOMAINS_ONLY'); // prevents confusion
   ASSERT(domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
@@ -252,7 +261,7 @@ function _config_addVar(config, varName, domain) {
   }
   // note: 20 is an arbitrary number but we need to prevent indexOf on huge var lists.
   // this problem shouldnt happen on automated solver generation
-  if (allVarNames.length < 20 && allVarNames.indexOf(varName) >= 0) {
+  if (allVarNames.length < 100 && !trie_has(config._var_names_trie, varName)) {
     if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }
@@ -261,7 +270,8 @@ function _config_addVar(config, varName, domain) {
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
 
   config.initial_domains[varIndex] = domain;
-  allVarNames.push(varName);
+  config.all_var_names.push(varName);
+  trie_add(config._var_names_trie, varName, varIndex);
 
   return varIndex;
 }
@@ -508,9 +518,10 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = config.all_var_names.indexOf(varNames[i]);
+    //console.log('testing', varNames[i], 'in', config._var_names_trie)
+    let varIndex = trie_get(config._var_names_trie, varNames[i]);
 
-    ASSERT(varIndex >= 0, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
+    ASSERT(varIndex !== undefined, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
   }
 
@@ -904,7 +915,7 @@ function config_generatePropagators(config) {
     let constraint = constraints[i];
     if (constraint.varNames) {
       console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
-      constraint.varIndexes = constraint.varNames.map(name => config.all_var_names.indexOf(name));
+      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._var_names_trie, name));
       let p = constraint.param;
       delete constraint.param;
       delete constraint.varNames;

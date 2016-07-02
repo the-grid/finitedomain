@@ -246,7 +246,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
-  ASSERT(varName === true || trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
+  ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
   ASSERT(domain instanceof Array, 'ARR_DOMAINS_ONLY'); // prevents confusion
   ASSERT(domain.length === 0 || domain[LO_BOUND] >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain.length === 0 || domain[domain.length - 1] <= SUP, 'domain hi should be <= SUP', domain);
@@ -261,7 +261,7 @@ function _config_addVar(config, varName, domain) {
   }
   // note: 20 is an arbitrary number but we need to prevent indexOf on huge var lists.
   // this problem shouldnt happen on automated solver generation
-  if (allVarNames.length < 100 && !trie_has(config._var_names_trie, varName)) {
+  if (allVarNames.length < 100 && trie_has(config._var_names_trie, varName)) {
     if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
     THROW('Var varName already part of this config. Probably a bug?');
   }

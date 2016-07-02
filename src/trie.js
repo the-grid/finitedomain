@@ -32,6 +32,7 @@ function trie_create(valuesByIndex) {
 function trie_add(trieRoot, key, value) {
   ASSERT(value !== undefined, 'TRIE_CANNOT_ADD_UNDEFINED_VALUE');
   if (key === '$') THROW('Invalid special symbol; $');
+  key = String(key); // or key = key + ''; ?
   return _trie_add(trieRoot, key, value, 0, key.length);
 }
 function _trie_add(branch, key, value, index, len) {
@@ -57,7 +58,7 @@ function _trie_add(branch, key, value, index, len) {
  * @returns {boolean}
  */
 function trie_has(root, key) {
-  return trie_get(root, key) === undefined;
+  return trie_get(root, key) !== undefined;
 }
 
 /**
@@ -69,6 +70,7 @@ function trie_has(root, key) {
  */
 function trie_get(root, key) {
   if (key === '$') THROW('Invalid key -- special symbol; $');
+  key = String(key); // or key = key + ''; ?
   return _trie_get(root, key, 0, key.length);
 }
 function _trie_get(branch, str, index, len) {

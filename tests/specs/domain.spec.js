@@ -833,6 +833,7 @@ describe('src/domain.spec', function() {
     it('with number', function() {
       for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
         // basically trying each small domain range from [0,30] to [30,30]
+        expect(domain_min(specDomainSmallNums(i)), i + ' | i').to.eql(i);
         expect(domain_min(specDomainSmallNums(i, 30)), i + ' | 30').to.eql(i);
       }
     });

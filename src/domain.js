@@ -1434,50 +1434,60 @@ function domain_min(domain) {
  * @returns {number}
  */
 function domain_minNum(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
-  ASSERT(domain > EMPTY && domain <= SMALL_MAX_FLAG, 'NUMBER_DOMAIN_IS_OOB');
-  ASSERT(SMALL_MAX_NUM === 30, 'HARDCODED_ASSUMPTION'); // update this function if this assert breaks
-
-  // we often deal with domains [0, 0], [0, 1], and [1, 1]
-
-  // note: don't switch order for perf; order is important
-  // first three can be optimized based on assumptions. they are also the most frequent cases.
+  // fast paths: these are by far the most used case in our situation
   if (domain === ZERO) return 0;
   if (domain === ONE) return 1;
   if (domain === BOOL) return 0;
-  if (domain & ZERO) return 0;
-  if (domain & ONE) return 1;
-  if (domain & TWO) return 2;
-  if (domain & THREE) return 3;
-  if (domain & FOUR) return 4;
-  if (domain & FIVE) return 5;
-  if (domain & SIX) return 6;
-  if (domain & SEVEN) return 7;
-  if (domain & EIGHT) return 8;
-  if (domain & NINE) return 9;
-  if (domain & TEN) return 10;
-  if (domain & ELEVEN) return 11;
-  if (domain & TWELVE) return 12;
-  if (domain & THIRTEEN) return 13;
-  if (domain & FOURTEEN) return 14;
-  if (domain & FIFTEEN) return 15;
-  if (domain & SIXTEEN) return 16;
-  if (domain & SEVENTEEN) return 17;
-  if (domain & EIGHTEEN) return 18;
-  if (domain & NINETEEN) return 19;
-  if (domain & TWENTY) return 20;
-  if (domain & TWENTYONE) return 21;
-  if (domain & TWENTYTWO) return 22;
-  if (domain & TWENTYTHREE) return 23;
-  if (domain & TWENTYFOUR) return 24;
-  if (domain & TWENTYFIVE) return 25;
-  if (domain & TWENTYSIX) return 26;
-  if (domain & TWENTYSEVEN) return 27;
-  if (domain & TWENTYEIGHT) return 28;
-  if (domain & TWENTYNINE) return 29;
-  ASSERT(domain & THIRTY, 'SMALL_DOMAIN_MAX_IS_HARDCODED'); // I don't see us raising this limit any time soon, anyways
-  return 30;
+
+  // TODO: in native es6 we should simply return Math.clz32(), otherwise do it ourselves.
+
+  // Binary hack; from "Hacker's Delight", 2013, 2nd ed. p11, last case:
+  // To get a single 0 on the position of the right-most 1 of the input
+  // and ones otherwise;
+  // ~x|(x-1) -> 0101110100 -> 1111111011
+  // we can invert that result to get a single bit result:
+  // (~(~x|(x-1))>>>1 -> 0101110100 -> 0000000010
+  // we can simplify that to:
+  // x&(~x-~1) -> x&(~x+1) -> 0101110100 -> 0000000100
+  // this result we can check with a static jump table,
+  // instead of having to AND for all possible results
+
+  // basically; there will be one bit set and it will be the lowest
+  // one of the input so we can compare to our constants:
+  switch (domain & (~domain + 1)) {
+    case ZERO: return 0;
+    case ONE: return 1;
+    case TWO: return 2;
+    case THREE: return 3;
+    case FOUR: return 4;
+    case FIVE: return 5;
+    case SIX: return 6;
+    case SEVEN: return 7;
+    case EIGHT: return 8;
+    case NINE: return 9;
+    case TEN: return 10;
+    case ELEVEN: return 11;
+    case TWELVE: return 12;
+    case THIRTEEN: return 13;
+    case FOURTEEN: return 14;
+    case FIFTEEN: return 15;
+    case SIXTEEN: return 16;
+    case SEVENTEEN: return 17;
+    case EIGHTEEN: return 18;
+    case NINETEEN: return 19;
+    case TWENTY: return 20;
+    case TWENTYONE: return 21;
+    case TWENTYTWO: return 22;
+    case TWENTYTHREE: return 23;
+    case TWENTYFOUR: return 24;
+    case TWENTYFIVE: return 25;
+    case TWENTYSIX: return 26;
+    case TWENTYSEVEN: return 27;
+    case TWENTYEIGHT: return 28;
+    case TWENTYNINE: return 29;
+    case THIRTY: return 30;
+    default: return THROW('E_OOPSIE');
+  }
 }
 /**
  * Get lowest value in the domain

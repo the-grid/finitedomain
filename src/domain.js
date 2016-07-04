@@ -137,7 +137,8 @@ function domain_containsValue(domain, value) {
 function domain_containsValueNum(domain, value) {
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  return value >= 0 && value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0; // or just (domain & (1 << value)) ?
+
+  return (domain & (1 << value)) > 0;
 }
 /**
  * returns whether domain covers given value

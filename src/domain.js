@@ -1698,12 +1698,8 @@ function domain_removeGteNum(domain, value) {
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
-  for (let i = value; i <= SMALL_MAX_NUM; ++i) {
-    let n = NUM_TO_FLAG[i];
-    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
-  }
-
-  return domain;
+  // see https://github.com/the-grid/finitedomain/issues/112 for details on this "hack"
+  return domain & ((1 << value) - 1);
 }
 /**
  * Remove any value from domain that is bigger than or equal to given value.
@@ -1789,12 +1785,10 @@ function domain_removeLteNum(domain, value) {
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= SUB, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT');
 
-  for (let i = 0; i <= value; ++i) {
-    let n = NUM_TO_FLAG[i];
-    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
-  }
-
-  return domain;
+  // see https://github.com/the-grid/finitedomain/issues/112 for this magic.
+  let n = (1 << (value + 1)) - 1;
+  // first turn on all left-most bits regardless of state. then we can turn them off by xor. other bits unaffected.
+  return (domain | n) ^ n;
 }
 /**
  * Remove any value from domain that is lesser than or equal to given value.

@@ -497,9 +497,9 @@ function domain_removeNextFromListNum(domain, list) {
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
-    let flag = NUM_TO_FLAG[value];
-    if (value <= SMALL_MAX_NUM && (domain & flag) > 0) {
-      return domain ^ flag; // the bit is set, this unsets it
+    if (value < SMALL_MAX_NUM) { // 1<<100 = 16. non-small-domain numbers are valid here. so check.
+      let flag = 1 << value;
+      if (domain & flag) return domain ^ flag; // if the bit is set; unset it
     }
   }
   return NO_SUCH_VALUE;

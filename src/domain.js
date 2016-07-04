@@ -2154,134 +2154,14 @@ function domain_addRangeNum(domain, from, to) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(from >= SUB && to <= SMALL_MAX_NUM, 'SMALL_DOMAIN_RANGE_ONLY');
 
-  // this switch is designed to case at lo and break at hi.
-  // it prevents a very hot loop.
-  switch (from) { /* eslint no-fallthrough: "off" */
-    case 0:
-      domain |= ZERO;
-      // fall-through
-    case 1:
-      if (to < 1) break;
-      domain |= ONE;
-      // fall-through
-    case 2:
-      if (to < 2) break;
-      domain |= TWO;
-      // fall-through
-    case 3:
-      if (to < 3) break;
-      domain |= THREE;
-      // fall-through
-    case 4:
-      if (to < 4) break;
-      domain |= FOUR;
-      // fall-through
-    case 5:
-      if (to < 5) break;
-      domain |= FIVE;
-      // fall-through
-    case 6:
-      if (to < 6) break;
-      domain |= SIX;
-      // fall-through
-    case 7:
-      if (to < 7) break;
-      domain |= SEVEN;
-      // fall-through
-    case 8:
-      if (to < 8) break;
-      domain |= EIGHT;
-      // fall-through
-    case 9:
-      if (to < 9) break;
-      domain |= NINE;
-      // fall-through
-    case 10:
-      if (to < 10) break;
-      domain |= TEN;
-      // fall-through
-    case 11:
-      if (to < 11) break;
-      domain |= ELEVEN;
-      // fall-through
-    case 12:
-      if (to < 12) break;
-      domain |= TWELVE;
-      // fall-through
-    case 13:
-      if (to < 13) break;
-      domain |= THIRTEEN;
-      // fall-through
-    case 14:
-      if (to < 14) break;
-      domain |= FOURTEEN;
-      // fall-through
-    case 15:
-      if (to < 15) break;
-      domain |= FIFTEEN;
-      // fall-through
-    case 16:
-      if (to < 16) break;
-      domain |= SIXTEEN;
-      // fall-through
-    case 17:
-      if (to < 17) break;
-      domain |= SEVENTEEN;
-      // fall-through
-    case 18:
-      if (to < 18) break;
-      domain |= EIGHTEEN;
-      // fall-through
-    case 19:
-      if (to < 19) break;
-      domain |= NINETEEN;
-      // fall-through
-    case 20:
-      if (to < 20) break;
-      domain |= TWENTY;
-      // fall-through
-    case 21:
-      if (to < 21) break;
-      domain |= TWENTYONE;
-      // fall-through
-    case 22:
-      if (to < 22) break;
-      domain |= TWENTYTWO;
-      // fall-through
-    case 23:
-      if (to < 23) break;
-      domain |= TWENTYTHREE;
-      // fall-through
-    case 24:
-      if (to < 24) break;
-      domain |= TWENTYFOUR;
-      // fall-through
-    case 25:
-      if (to < 25) break;
-      domain |= TWENTYFIVE;
-      // fall-through
-    case 26:
-      if (to < 26) break;
-      domain |= TWENTYSIX;
-      // fall-through
-    case 27:
-      if (to < 27) break;
-      domain |= TWENTYSEVEN;
-      // fall-through
-    case 28:
-      if (to < 28) break;
-      domain |= TWENTYEIGHT;
-      // fall-through
-    case 29:
-      if (to < 29) break;
-      domain |= TWENTYNINE;
-      // fall-through
-    case 30:
-      if (to < 30) break;
-      domain |= THIRTY;
-  }
+  // what we do is:
+  // - create a 1
+  // - move the 1 to the left, `1+to-from` times
+  // - subtract 1 to get a series of `to-from` ones
+  // - shift those ones `from` times to the left
+  // - OR that result with the domain and return it
 
-  return domain;
+  return domain | (((1 << (1 + to - from)) - 1) << from);
 }
 
 /**

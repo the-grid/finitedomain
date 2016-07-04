@@ -192,8 +192,7 @@ function domain_isValue(domain, value) {
  */
 function domain_isValueNum(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  if (value < 0 || value > SMALL_MAX_NUM) return false;
-  return domain === NUM_TO_FLAG[value];
+  return domain === (1 << value);
 }
 /**
  * @param {$domain_arr} domain

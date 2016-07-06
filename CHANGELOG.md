@@ -4,6 +4,10 @@
 
 - No changes
 
+## v2.3.4:
+
+- This release has internal low-level performance improvements for `domain_plus`, `domain_min`, `domain_minNum`, `domain_removeNextFromListNum`, `domain_createRangeZeroToMax`, `removeGte`, and `removeLte`. It also improves some propagator change detection.
+
 ## v2.3.3:
 
 - Internal change only; applied Trie to a hot internal searching bit of code as well. Saves considerably.

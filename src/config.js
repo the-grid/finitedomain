@@ -407,8 +407,12 @@ function config_populateVarPropHash(config) {
     let pvars = propagators[propagatorIndex][PROP_VAR_INDEXES];
     for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
       let varIndex = pvars[propVarIndex];
-      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
-      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
+      // dont bother adding props on unsolved vars because they can't affect
+      // anything anymore. seems to prevent about 10% in our case so worth it.
+      if (!domain_isSolvedArr(config.initial_domains[varIndex])) {
+        if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+        else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
+      }
     }
   }
   config._varToPropagators = hash;

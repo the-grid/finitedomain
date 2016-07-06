@@ -137,7 +137,8 @@ function domain_containsValue(domain, value) {
 function domain_containsValueNum(domain, value) {
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  return value >= 0 && value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0; // or just (domain & (1 << value)) ?
+
+  return (domain & (1 << value)) > 0;
 }
 /**
  * returns whether domain covers given value
@@ -191,8 +192,10 @@ function domain_isValue(domain, value) {
  */
 function domain_isValueNum(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  if (value < 0 || value > SMALL_MAX_NUM) return false;
-  return domain === NUM_TO_FLAG[value];
+  ASSERT(value >= SUB, 'DOMAINS_ONLY_CONTAIN_UINTS');
+  if (value < 0) THROW('E_DOMAINS_CAN_ONLY_HAVE_UINTS'); // so searching for negative numbers is probably a bug
+  if (value >= SMALL_MAX_NUM) return false; // 1<<100=16 so we must check
+  return domain === (1 << value);
 }
 /**
  * @param {$domain_arr} domain
@@ -497,9 +500,9 @@ function domain_removeNextFromListNum(domain, list) {
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
-    let flag = NUM_TO_FLAG[value];
-    if (value <= SMALL_MAX_NUM && (domain & flag) > 0) {
-      return domain ^ flag; // the bit is set, this unsets it
+    if (value < SMALL_MAX_NUM) { // 1<<100 = 16. non-small-domain numbers are valid here. so check.
+      let flag = 1 << value;
+      if (domain & flag) return domain ^ flag; // if the bit is set; unset it
     }
   }
   return NO_SUCH_VALUE;
@@ -599,7 +602,8 @@ function domain_getValueOfFirstContainedValueInListNum(domain, list) {
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
-    if (value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0) return value;
+    // 1<<100 = 16 and large numbers are valid here so do check
+    if (value <= SMALL_MAX_NUM && (domain & (1 << value)) > 0) return value;
   }
   return NO_SUCH_VALUE;
 }
@@ -1427,57 +1431,43 @@ function domain_min(domain) {
   if (typeof domain === 'number') return domain_minNum(domain);
   return domain_minArr(domain);
 }
+// lookup table used by domain_minNum
+let BITSCAN_TABLE = [32, 0, 1, 26, 2, 23, 27, 0, 3, 16, 24, 30, 28, 11, 0, 13, 4, 7, 17, 0, 25, 22, 31, 15, 29, 10, 12, 6, 0, 21, 14, 9, 5, 20, 8, 19, 18];
 /**
  * Get lowest value in the domain
+ *
+ * This is also called a "bitscan" or "bitscan forward" because
+ * in a small domain we want to know the index of the least
+ * significant bit that is set. A different way of looking at
+ * this is that we'd want to know the number of leading zeroes
+ * ("clz") in the number because we would just need to +1 that
+ * to get our desired value. There are various solutiosn to
+ * this problem but some are not feasible to implement in JS
+ * because we can't rely on low level optimizations. And
+ * certainly we can't use the cpu machine instruction.
+ *
+ * Be aware that there are about a million ways to do this,
+ * even to do this efficiently. Mileage under JS varies hto.
+ *
+ * ES6 _does_ expose `Math.clz32()` so if we can be certain
+ * it is natively supported we should go with that and hope
+ * it becomes a single instruction. Don't rely on a polyfill.
  *
  * @param {$domain_num} domain
  * @returns {number}
  */
 function domain_minNum(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
-  ASSERT(domain !== EMPTY, 'NON_EMPTY_DOMAIN_EXPECTED');
-  ASSERT(domain > EMPTY && domain <= SMALL_MAX_FLAG, 'NUMBER_DOMAIN_IS_OOB');
-  ASSERT(SMALL_MAX_NUM === 30, 'HARDCODED_ASSUMPTION'); // update this function if this assert breaks
-
-  // we often deal with domains [0, 0], [0, 1], and [1, 1]
-
-  // note: don't switch order for perf; order is important
-  // first three can be optimized based on assumptions. they are also the most frequent cases.
+  // fast paths: these are by far the most used case in our situation
   if (domain === ZERO) return 0;
   if (domain === ONE) return 1;
   if (domain === BOOL) return 0;
-  if (domain & ZERO) return 0;
-  if (domain & ONE) return 1;
-  if (domain & TWO) return 2;
-  if (domain & THREE) return 3;
-  if (domain & FOUR) return 4;
-  if (domain & FIVE) return 5;
-  if (domain & SIX) return 6;
-  if (domain & SEVEN) return 7;
-  if (domain & EIGHT) return 8;
-  if (domain & NINE) return 9;
-  if (domain & TEN) return 10;
-  if (domain & ELEVEN) return 11;
-  if (domain & TWELVE) return 12;
-  if (domain & THIRTEEN) return 13;
-  if (domain & FOURTEEN) return 14;
-  if (domain & FIFTEEN) return 15;
-  if (domain & SIXTEEN) return 16;
-  if (domain & SEVENTEEN) return 17;
-  if (domain & EIGHTEEN) return 18;
-  if (domain & NINETEEN) return 19;
-  if (domain & TWENTY) return 20;
-  if (domain & TWENTYONE) return 21;
-  if (domain & TWENTYTWO) return 22;
-  if (domain & TWENTYTHREE) return 23;
-  if (domain & TWENTYFOUR) return 24;
-  if (domain & TWENTYFIVE) return 25;
-  if (domain & TWENTYSIX) return 26;
-  if (domain & TWENTYSEVEN) return 27;
-  if (domain & TWENTYEIGHT) return 28;
-  if (domain & TWENTYNINE) return 29;
-  ASSERT(domain & THIRTY, 'SMALL_DOMAIN_MAX_IS_HARDCODED'); // I don't see us raising this limit any time soon, anyways
-  return 30;
+
+  // TODO: in native es6 we should simply return Math.clz32(), otherwise do it ourselves.
+
+  // from https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
+  // the table lookup is unfortunate (we could convert it to a switch, not sure if that would be faster?)
+  // the mod is probably slow for us but hard to tell the difference so let's not care for now.
+  return BITSCAN_TABLE[(domain & -domain) % 37];
 }
 /**
  * Get lowest value in the domain
@@ -1688,12 +1678,8 @@ function domain_removeGteNum(domain, value) {
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
-  for (let i = value; i <= SMALL_MAX_NUM; ++i) {
-    let n = NUM_TO_FLAG[i];
-    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
-  }
-
-  return domain;
+  // see https://github.com/the-grid/finitedomain/issues/112 for details on this "hack"
+  return domain & ((1 << value) - 1);
 }
 /**
  * Remove any value from domain that is bigger than or equal to given value.
@@ -1779,12 +1765,10 @@ function domain_removeLteNum(domain, value) {
   ASSERT(SUB >= 0, 'REVISIT_THIS_IF_SUB_CHANGES'); // meh.
   ASSERT(value >= SUB, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT');
 
-  for (let i = 0; i <= value; ++i) {
-    let n = NUM_TO_FLAG[i];
-    domain = (domain | n) ^ n; // make sure bit is set, then "invert it"; so it always unsets bit.
-  }
-
-  return domain;
+  // see https://github.com/the-grid/finitedomain/issues/112 for this magic.
+  let n = (1 << (value + 1)) - 1;
+  // first turn on all left-most bits regardless of state. then we can turn them off by xor. other bits unaffected.
+  return (domain | n) ^ n;
 }
 /**
  * Remove any value from domain that is lesser than or equal to given value.
@@ -2042,38 +2026,17 @@ function domain_createRangeZeroToMax(domain) {
   ASSERT(domain > EMPTY, 'CANNOT_BE_EMPTY');
   ASSERT(domain <= SMALL_MAX_FLAG, 'SHOULD_BE_FIXED_DOMAIN');
 
-  if (domain === ZERO) return ZERO;
-  if (domain < TWO) return BOOL;
-  if (domain < THREE) return BOOL | TWO;
-  if (domain < FOUR) return BOOL | TWO | THREE;
-  if (domain < FIVE) return BOOL | TWO | THREE | FOUR;
-  if (domain < SIX) return BOOL | TWO | THREE | FOUR | FIVE;
-  if (domain < SEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX;
-  if (domain < EIGHT) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN;
-  if (domain < NINE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT;
-  if (domain < TEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE;
-  if (domain < ELEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN;
-  if (domain < TWELVE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN;
-  if (domain < THIRTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE;
-  if (domain < FOURTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN;
-  if (domain < FIFTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN;
-  if (domain < SIXTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN;
-  if (domain < SEVENTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN;
-  if (domain < EIGHTEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN;
-  if (domain < NINETEEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN;
-  if (domain < TWENTY) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN;
-  if (domain < TWENTYONE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY;
-  if (domain < TWENTYTWO) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE;
-  if (domain < TWENTYTHREE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO;
-  if (domain < TWENTYFOUR) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE;
-  if (domain < TWENTYFIVE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR;
-  if (domain < TWENTYSIX) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE;
-  if (domain < TWENTYSEVEN) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX;
-  if (domain < TWENTYEIGHT) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN;
-  if (domain < TWENTYNINE) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT;
-  if (domain < THIRTY) return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE;
-  ASSERT(domain & THIRTY, 'SHOULD_BE_30');
-  return BOOL | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE | THIRTY;
+  // basically... this trick copies a one to all the positions
+  // on its right while zeroes change nothing. that way all zeroes
+  // to the right of a one become one but leading zeroes don't change
+  // Source: http://stackoverflow.com/questions/53161/find-the-highest-order-bit-in-c
+  // (slightly modified for this purpose) which apparently has it from Hacker's Delight.
+  domain |= (domain >> 1);
+  domain |= (domain >> 2);
+  domain |= (domain >> 4);
+  domain |= (domain >> 8);
+  domain |= (domain >> 16);
+  return domain;
 }
 
 /**
@@ -2171,134 +2134,14 @@ function domain_addRangeNum(domain, from, to) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(from >= SUB && to <= SMALL_MAX_NUM, 'SMALL_DOMAIN_RANGE_ONLY');
 
-  // this switch is designed to case at lo and break at hi.
-  // it prevents a very hot loop.
-  switch (from) { /* eslint no-fallthrough: "off" */
-    case 0:
-      domain |= ZERO;
-      // fall-through
-    case 1:
-      if (to < 1) break;
-      domain |= ONE;
-      // fall-through
-    case 2:
-      if (to < 2) break;
-      domain |= TWO;
-      // fall-through
-    case 3:
-      if (to < 3) break;
-      domain |= THREE;
-      // fall-through
-    case 4:
-      if (to < 4) break;
-      domain |= FOUR;
-      // fall-through
-    case 5:
-      if (to < 5) break;
-      domain |= FIVE;
-      // fall-through
-    case 6:
-      if (to < 6) break;
-      domain |= SIX;
-      // fall-through
-    case 7:
-      if (to < 7) break;
-      domain |= SEVEN;
-      // fall-through
-    case 8:
-      if (to < 8) break;
-      domain |= EIGHT;
-      // fall-through
-    case 9:
-      if (to < 9) break;
-      domain |= NINE;
-      // fall-through
-    case 10:
-      if (to < 10) break;
-      domain |= TEN;
-      // fall-through
-    case 11:
-      if (to < 11) break;
-      domain |= ELEVEN;
-      // fall-through
-    case 12:
-      if (to < 12) break;
-      domain |= TWELVE;
-      // fall-through
-    case 13:
-      if (to < 13) break;
-      domain |= THIRTEEN;
-      // fall-through
-    case 14:
-      if (to < 14) break;
-      domain |= FOURTEEN;
-      // fall-through
-    case 15:
-      if (to < 15) break;
-      domain |= FIFTEEN;
-      // fall-through
-    case 16:
-      if (to < 16) break;
-      domain |= SIXTEEN;
-      // fall-through
-    case 17:
-      if (to < 17) break;
-      domain |= SEVENTEEN;
-      // fall-through
-    case 18:
-      if (to < 18) break;
-      domain |= EIGHTEEN;
-      // fall-through
-    case 19:
-      if (to < 19) break;
-      domain |= NINETEEN;
-      // fall-through
-    case 20:
-      if (to < 20) break;
-      domain |= TWENTY;
-      // fall-through
-    case 21:
-      if (to < 21) break;
-      domain |= TWENTYONE;
-      // fall-through
-    case 22:
-      if (to < 22) break;
-      domain |= TWENTYTWO;
-      // fall-through
-    case 23:
-      if (to < 23) break;
-      domain |= TWENTYTHREE;
-      // fall-through
-    case 24:
-      if (to < 24) break;
-      domain |= TWENTYFOUR;
-      // fall-through
-    case 25:
-      if (to < 25) break;
-      domain |= TWENTYFIVE;
-      // fall-through
-    case 26:
-      if (to < 26) break;
-      domain |= TWENTYSIX;
-      // fall-through
-    case 27:
-      if (to < 27) break;
-      domain |= TWENTYSEVEN;
-      // fall-through
-    case 28:
-      if (to < 28) break;
-      domain |= TWENTYEIGHT;
-      // fall-through
-    case 29:
-      if (to < 29) break;
-      domain |= TWENTYNINE;
-      // fall-through
-    case 30:
-      if (to < 30) break;
-      domain |= THIRTY;
-  }
+  // what we do is:
+  // - create a 1
+  // - move the 1 to the left, `1+to-from` times
+  // - subtract 1 to get a series of `to-from` ones
+  // - shift those ones `from` times to the left
+  // - OR that result with the domain and return it
 
-  return domain;
+  return domain | (((1 << (1 + to - from)) - 1) << from);
 }
 
 /**

@@ -12,6 +12,10 @@
 // is [0, max(domain1)] because we drop negative numbers;
 // [lo1 - hi2, hi1 - lo2] -> [0 - hi2, hi1 - 0] -> [0, hi1]
 
+// a big table of all input/output for small domains can be found at
+// https://gist.github.com/qfox/fce6912ef17503b1055aac28fa34e8d1 (view
+// with text editor that doesn't wrap). Spoiler: it doesn't help :)
+
 import {
   EMPTY,
   SUB,
@@ -20,15 +24,9 @@ import {
   ASSERT_DOMAIN,
 } from '../helpers';
 import {
-  ZERO,
-  ONE,
-  TWO,
-  THREE,
-  FOUR,
-  NUM_TO_FLAG,
-
   PAIR_SIZE,
   SMALL_MAX_NUM,
+  ZERO,
 
   domain_addRangeNum,
   domain_closeGapsArr,
@@ -102,59 +100,30 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
+  if (domain1 & ZERO && domain2 & ZERO) return domain_createRangeZeroToMax(domain1);
+
+  let flagIndex = 0;
+  // find the first set bit. must find something because small domain and not empty
+  while ((domain1 & (1 << flagIndex)) === 0) ++flagIndex;
+
+  let lo = flagIndex;
+  let hi = flagIndex;
+
+  let flagValue = 1 << ++flagIndex;
+
   let domain = EMPTY;
-  let lo = -1;
-  let hi = -1;
-
-  if (ZERO & domain1) {
-    if (ZERO & domain2) {
-      // special case: return [min(domain1),max(domain1)]
-      // and we already know min is 0... :)
-      return domain_createRangeZeroToMax(domain1);
-    }
-    lo = 0;
-    hi = 0;
-  }
-  if (ONE & domain1) {
-    if (lo !== 0) { // lo is either 0 or nothing
-      lo = 1;
-    }
-    hi = 1; // there cannot be a gap yet
-  }
-  if (TWO & domain1) {
-    if (hi === 0) {
-      domain = _domain_minusRangeNumNum(0, 0, domain2, domain);
-      lo = 2;
-    } else if (hi !== 1) {
-      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
-      lo = 2;
-    }
-    hi = 2;
-  }
-  if (THREE & domain1) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 3;
-    } else if (hi !== 2) { // there's a gap so push prev range now
-      domain = _domain_minusRangeNumNum(lo, hi, domain2, domain);
-      lo = 3;
-    }
-    hi = 3;
-  }
-
-  if (domain1 >= FOUR) { // is any other bit set?
-    // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain1) {
-        if (hi < 0) { // this is the LSB that is set
-          lo = i;
-        } else if (hi !== i - 1) { // there's a gap so push prev range now
-          domain = _domain_minusRangeNumNum(lo, hi, domain2, domain);
-          lo = i;
-        }
-        hi = i;
+  while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain1) > 0) {
+      if (hi !== flagIndex - 1) { // there's a gap so push prev range now
+        domain = _domain_minusRangeNumNum(lo, hi, domain2, domain);
+        lo = flagIndex;
       }
+      hi = flagIndex;
     }
+
+    flagValue = 1 << ++flagIndex;
   }
+
   return _domain_minusRangeNumNum(lo, hi, domain2, domain);
 }
 function _domain_minusNumArrNum(domain1, domain2) {
@@ -163,113 +132,60 @@ function _domain_minusNumArrNum(domain1, domain2) {
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
+  // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
+  if (domain1 & ZERO && domain_min(domain2) === 0) return domain_createRangeZeroToMax(domain1);
+
+  let flagIndex = 0;
+  // find the first set bit. must find something because small domain and not empty
+  while ((domain1 & (1 << flagIndex)) === 0) ++flagIndex;
+
+  let lo = flagIndex;
+  let hi = flagIndex;
+
+  let flagValue = 1 << ++flagIndex;
+
   let domain = EMPTY;
-  let lo = -1;
-  let hi = -1;
-
-  if (ZERO & domain1) {
-    if (domain_min(domain2) === 0) {
-      // special case: return [min(domain1),max(domain1)]
-      // and we already know min is 0... :)
-      return domain_createRangeZeroToMax(domain1);
-    }
-    lo = 0;
-    hi = 0;
-  }
-  if (ONE & domain1) {
-    if (lo !== 0) { // lo is either 0 or nothing
-      lo = 1;
-    }
-    hi = 1; // there cannot be a gap yet
-  }
-  if (TWO & domain1) {
-    if (hi === 0) {
-      domain = _domain_minusRangeArrNum(0, 0, domain2, domain);
-      lo = 2;
-    } else if (hi !== 1) {
-      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
-      lo = 2;
-    }
-    hi = 2;
-  }
-  if (THREE & domain1) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 3;
-    } else if (hi !== 2) { // there's a gap so push prev range now
-      domain = _domain_minusRangeArrNum(lo, hi, domain2, domain);
-      lo = 3;
-    }
-    hi = 3;
-  }
-
-  if (domain1 >= FOUR) { // is any other bit set?
-    // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain1) {
-        if (hi < 0) { // this is the LSB that is set
-          lo = i;
-        } else if (hi !== i - 1) { // there's a gap so push prev range now
-          domain = _domain_minusRangeArrNum(lo, hi, domain2, domain);
-          lo = i;
-        }
-        hi = i;
+  while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain1) > 0) {
+      if (hi !== flagIndex - 1) { // there's a gap so push prev range now
+        domain = _domain_minusRangeArrNum(lo, hi, domain2, domain);
+        lo = flagIndex;
       }
+      hi = flagIndex;
     }
+
+    flagValue = 1 << ++flagIndex;
   }
+
   return _domain_minusRangeArrNum(lo, hi, domain2, domain);
 }
-function _domain_minusRangeNumNum(loi, hii, domain, result) {
-  ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');
-  ASSERT(typeof result === 'number', 'OUTPUTTING_INTO_NUMBER');
-  ASSERT(domain !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
+function _domain_minusRangeNumNum(loi, hii, domain2, domain) {
+  ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
+  ASSERT(typeof domain === 'number', 'OUTPUTTING_INTO_NUMBER');
+  ASSERT(domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
-  let lo = -1;
-  let hi = -1;
+  let flagIndex = 0;
+  // find the first set bit. must find something because small domain and not empty
+  while ((domain2 & (1 << flagIndex)) === 0) ++flagIndex;
 
-  if (ZERO & domain) {
-    lo = 0;
-    hi = 0;
-  }
-  if (ONE & domain) {
-    if (lo !== 0) { // lo is either 0 or nothing
-      lo = 1;
-    }
-    hi = 1; // there cannot be a gap yet
-  }
-  if (TWO & domain) {
-    if (hi === 0) {
-      result = _domain_minusRangeRangeNum(loi, hii, 0, 0, result);
-      lo = 2;
-    } else if (hi !== 1) {
-      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
-      lo = 2;
-    }
-    hi = 2;
-  }
-  if (THREE & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 3;
-    } else if (hi !== 2) { // there's a gap so push prev range now
-      result = _domain_minusRangeRangeNum(loi, hii, lo, hi, result);
-      lo = 3;
-    }
-    hi = 3;
-  }
-  if (domain >= FOUR) { // is any other bit set?
-    // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain) {
-        if (hi < 0) { // this is the LSB that is set
-          lo = i;
-        } else if (hi !== i - 1) { // there's a gap so push prev range now
-          result = _domain_minusRangeRangeNum(loi, hii, lo, hi, result);
-          lo = i;
-        }
-        hi = i;
+  let lo = flagIndex;
+  let hi = flagIndex;
+
+  let flagValue = 1 << ++flagIndex;
+
+  while (flagValue <= domain2 && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain2) > 0) {
+      if (hi !== flagIndex - 1) { // there's a gap so push prev range now
+        domain = _domain_minusRangeRangeNum(loi, hii, lo, hi, domain);
+        lo = flagIndex;
       }
+      hi = flagIndex;
     }
+
+    flagValue = 1 << ++flagIndex;
   }
-  return _domain_minusRangeRangeNum(loi, hii, lo, hi, result);
+
+  return _domain_minusRangeRangeNum(loi, hii, lo, hi, domain);
 }
 function _domain_minusArrNum(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
@@ -294,52 +210,28 @@ function _domain_minusRangeNum(loi, hii, domain, result) {
   ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');
   if (domain === EMPTY) return;
 
-  let lo = -1;
-  let hi = -1;
 
-  if (ZERO & domain) {
-    lo = 0;
-    hi = 0;
-  }
-  if (ONE & domain) {
-    if (lo !== 0) { // lo is either 0 or nothing
-      lo = 1;
-    }
-    hi = 1; // there cannot be a gap yet
-  }
-  if (TWO & domain) {
-    if (hi === 0) {
-      _domain_minusRangeRange(loi, hii, 0, 0, result);
-      lo = 2;
-    } else if (hi !== 1) {
-      // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
-      lo = 2;
-    }
-    hi = 2;
-  }
-  if (THREE & domain) {
-    if (hi < 0) { // this is the LSB that is set
-      lo = 3;
-    } else if (hi !== 2) { // there's a gap so push prev range now
-      _domain_minusRangeRange(loi, hii, lo, hi, result);
-      lo = 3;
-    }
-    hi = 3;
-  }
-  if (domain >= FOUR) { // is any other bit set?
-    // loop it for the rest. "only" about 15% takes this path
-    for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain) {
-        if (hi < 0) { // this is the LSB that is set
-          lo = i;
-        } else if (hi !== i - 1) { // there's a gap so push prev range now
-          _domain_minusRangeRange(loi, hii, lo, hi, result);
-          lo = i;
-        }
-        hi = i;
+  let flagIndex = 0;
+  // find the first set bit. must find something because small domain and not empty
+  while ((domain & (1 << flagIndex)) === 0) ++flagIndex;
+
+  let lo = flagIndex;
+  let hi = flagIndex;
+
+  let flagValue = 1 << ++flagIndex;
+
+  while (flagValue <= domain && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain) > 0) {
+      if (hi !== flagIndex - 1) { // there's a gap so push prev range now
+        _domain_minusRangeRange(loi, hii, lo, hi, result);
+        lo = flagIndex;
       }
+      hi = flagIndex;
     }
+
+    flagValue = 1 << ++flagIndex;
   }
+
   _domain_minusRangeRange(loi, hii, lo, hi, result);
 }
 function _domain_minusRangeArr(loi, hii, domain2, result) {

@@ -1431,8 +1431,27 @@ function domain_min(domain) {
   if (typeof domain === 'number') return domain_minNum(domain);
   return domain_minArr(domain);
 }
+// lookup table used by domain_minNum
+let BITSCAN_TABLE = [32, 0, 1, 26, 2, 23, 27, 0, 3, 16, 24, 30, 28, 11, 0, 13, 4, 7, 17, 0, 25, 22, 31, 15, 29, 10, 12, 6, 0, 21, 14, 9, 5, 20, 8, 19, 18];
 /**
  * Get lowest value in the domain
+ *
+ * This is also called a "bitscan" or "bitscan forward" because
+ * in a small domain we want to know the index of the least
+ * significant bit that is set. A different way of looking at
+ * this is that we'd want to know the number of leading zeroes
+ * ("clz") in the number because we would just need to +1 that
+ * to get our desired value. There are various solutiosn to
+ * this problem but some are not feasible to implement in JS
+ * because we can't rely on low level optimizations. And
+ * certainly we can't use the cpu machine instruction.
+ *
+ * Be aware that there are about a million ways to do this,
+ * even to do this efficiently. Mileage under JS varies hto.
+ *
+ * ES6 _does_ expose `Math.clz32()` so if we can be certain
+ * it is natively supported we should go with that and hope
+ * it becomes a single instruction. Don't rely on a polyfill.
  *
  * @param {$domain_num} domain
  * @returns {number}
@@ -1445,53 +1464,10 @@ function domain_minNum(domain) {
 
   // TODO: in native es6 we should simply return Math.clz32(), otherwise do it ourselves.
 
-  // Binary hack; from "Hacker's Delight", 2013, 2nd ed. p11, last case:
-  // To get a single 0 on the position of the right-most 1 of the input
-  // and ones otherwise;
-  // ~x|(x-1) -> 0101110100 -> 1111111011
-  // we can invert that result to get a single bit result:
-  // (~(~x|(x-1))>>>1 -> 0101110100 -> 0000000010
-  // we can simplify that to:
-  // x&(~x-~1) -> x&(~x+1) -> 0101110100 -> 0000000100
-  // this result we can check with a static jump table,
-  // instead of having to AND for all possible results
-
-  // basically; there will be one bit set and it will be the lowest
-  // one of the input so we can compare to our constants:
-  switch (domain & (~domain + 1)) {
-    case ZERO: return 0;
-    case ONE: return 1;
-    case TWO: return 2;
-    case THREE: return 3;
-    case FOUR: return 4;
-    case FIVE: return 5;
-    case SIX: return 6;
-    case SEVEN: return 7;
-    case EIGHT: return 8;
-    case NINE: return 9;
-    case TEN: return 10;
-    case ELEVEN: return 11;
-    case TWELVE: return 12;
-    case THIRTEEN: return 13;
-    case FOURTEEN: return 14;
-    case FIFTEEN: return 15;
-    case SIXTEEN: return 16;
-    case SEVENTEEN: return 17;
-    case EIGHTEEN: return 18;
-    case NINETEEN: return 19;
-    case TWENTY: return 20;
-    case TWENTYONE: return 21;
-    case TWENTYTWO: return 22;
-    case TWENTYTHREE: return 23;
-    case TWENTYFOUR: return 24;
-    case TWENTYFIVE: return 25;
-    case TWENTYSIX: return 26;
-    case TWENTYSEVEN: return 27;
-    case TWENTYEIGHT: return 28;
-    case TWENTYNINE: return 29;
-    case THIRTY: return 30;
-    default: return THROW('E_OOPSIE');
-  }
+  // from https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
+  // the table lookup is unfortunate (we could convert it to a switch, not sure if that would be faster?)
+  // the mod is probably slow for us but hard to tell the difference so let's not care for now.
+  return BITSCAN_TABLE[(domain & -domain) % 37];
 }
 /**
  * Get lowest value in the domain

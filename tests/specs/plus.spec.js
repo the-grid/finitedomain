@@ -20,6 +20,8 @@ import domain_plus from '../../src/doms/domain_plus';
 
 describe('src/plus.spec.js', function() {
 
+  this.timeout(60000); // takes long under istanbul / even longer under travis
+
   describe('domain_plus unit tests', function() {
 
     it('should exist', function() {

@@ -19,6 +19,8 @@ import domain_minus from '../../src/doms/domain_minus';
 
 describe('src/minus.spec.js', function() {
 
+  this.timeout(60000); // takes long under istanbul / even longer under travis
+
   describe('domain_minus unit tests', function() {
 
     it('should exist', function() {

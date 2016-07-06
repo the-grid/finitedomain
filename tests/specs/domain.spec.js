@@ -640,8 +640,12 @@ describe('src/domain.spec', function() {
         expect(domain_isValue(specDomainSmallEmpty(), 12)).to.equal(false);
       });
 
-      it('should be able to check without arg (but return false)', function() {
-        expect(domain_isValue(specDomainSmallEmpty())).to.equal(false);
+      it('should throw for without arg', function() {
+        expect(_ => domain_isValue(specDomainSmallNums(1, 2))).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
+      });
+
+      it('should throw for negative numbers', function() {
+        expect(_ => domain_isValue(specDomainSmallNums(1, 2), -1)).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
       });
 
       it('should return false if domain has multiple values and one matches', function() {
@@ -664,7 +668,6 @@ describe('src/domain.spec', function() {
       });
 
       it('should handle values that are OOB for small domains', function() {
-        expect(domain_isValue(specDomainSmallNums(8), -1)).to.equal(false);
         expect(domain_isValue(specDomainSmallNums(8), 16)).to.equal(false);
         expect(domain_isValue(specDomainSmallNums(8), 300)).to.equal(false);
       });

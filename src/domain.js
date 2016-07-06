@@ -192,6 +192,9 @@ function domain_isValue(domain, value) {
  */
 function domain_isValueNum(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT(value >= SUB, 'DOMAINS_ONLY_CONTAIN_UINTS');
+  if (value < 0) THROW('E_DOMAINS_CAN_ONLY_HAVE_UINTS'); // so searching for negative numbers is probably a bug
+  if (value >= SMALL_MAX_NUM) return false; // 1<<100=16 so we must check
   return domain === (1 << value);
 }
 /**
@@ -599,7 +602,8 @@ function domain_getValueOfFirstContainedValueInListNum(domain, list) {
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
-    if (value <= SMALL_MAX_NUM && (domain & NUM_TO_FLAG[value]) > 0) return value;
+    // 1<<100 = 16 and large numbers are valid here so do check
+    if (value <= SMALL_MAX_NUM && (domain & (1 << value)) > 0) return value;
   }
   return NO_SUCH_VALUE;
 }

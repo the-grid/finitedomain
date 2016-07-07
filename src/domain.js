@@ -1623,8 +1623,7 @@ function domain_isUndeterminedNum(domain) {
  */
 function domain_isUndeterminedArr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  // it's probably an error if the domain is empty so make that the last check
-  return domain.length > PAIR_SIZE || (domain[LO_BOUND] !== domain[HI_BOUND] && domain.length > 0);
+  return domain[LO_BOUND] !== domain[HI_BOUND] || domain.length > 2;
 }
 
 /**

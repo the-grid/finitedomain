@@ -1587,7 +1587,7 @@ function domain_isSolvedNum(domain) {
 function domain_isSolvedArr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain);
-  return domain.length === PAIR_SIZE && _domain_firstRangeIsDeterminedArr(domain);
+  return domain.length === PAIR_SIZE && domain[LO_BOUND] === domain[HI_BOUND];
 }
 
 /**
@@ -1638,17 +1638,6 @@ function domain_isUndeterminedArr(domain) {
  */
 function domain_isRejected(domain) {
   return typeof domain === 'number' ? domain === EMPTY : domain.length === 0;
-}
-
-/**
- * @param {$domain_arr} domain
- * @returns {boolean}
- */
-function _domain_firstRangeIsDeterminedArr(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-
-  ASSERT_DOMAIN(domain);
-  return domain[LO_BOUND] === domain[HI_BOUND];
 }
 
 /**

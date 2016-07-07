@@ -5,7 +5,6 @@ import {
 } from '../helpers';
 
 import {
-  domain_isUndetermined,
   domain_max,
   domain_min,
   domain_size,
@@ -40,19 +39,7 @@ function distribution_getNextVar(space) {
 
   let isBetterVar = distribution_getFunc(distName);
 
-  let configVarFilter = space.config.var_filter_func;
-  if (configVarFilter && typeof configVarFilter !== 'function') {
-    switch (configVarFilter) {
-      case 'unsolved':
-        // TODO: fix this mess. maybe even eliminate it completely if we dont use the function path
-        configVarFilter = domain_isUndetermined;
-        break;
-      default:
-        THROW('unknown var filter', configVarFilter);
-    }
-  }
-
-  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVar, configVarFilter, configNextVarFunc);
+  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVar, configNextVarFunc);
 }
 
 /**
@@ -82,16 +69,14 @@ function distribution_getFunc(distName) {
 
 /**
  * Return the best varIndex according to a fitness function
- * but only if the filter function is okay with it.
  *
  * @param {$space} space
  * @param {number[]} indexes A subset of indexes that are properties on space.vardoms
  * @param {Function($space, string, string, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
- * @param {Function($space, string)} [filterFunc] If given only consider vars where this function returns true on it
  * @param {string|Object} configNextVarFunc From Space; either the varIndex of the dist or specific options for a var dist
  * @returns {number} The varIndex of the next var or NO_SUCH_VALUE
  */
-function _distribution_varFindBest(space, indexes, fitnessFunc, filterFunc, configNextVarFunc) {
+function _distribution_varFindBest(space, indexes, fitnessFunc, configNextVarFunc) {
   ASSERT(indexes.length, 'SHOULD_HAVE_VARS');
   let bestVarIndex = NO_SUCH_VALUE;
   for (let i = 0; i < indexes.length; i++) {
@@ -99,10 +84,8 @@ function _distribution_varFindBest(space, indexes, fitnessFunc, filterFunc, conf
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
     ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 
-    if (!filterFunc || filterFunc(space.vardoms[varIndex])) {
-      if (bestVarIndex === NO_SUCH_VALUE || (fitnessFunc && BETTER === fitnessFunc(space, varIndex, bestVarIndex, configNextVarFunc))) {
-        bestVarIndex = varIndex;
-      }
+    if (bestVarIndex === NO_SUCH_VALUE || (fitnessFunc && BETTER === fitnessFunc(space, varIndex, bestVarIndex, configNextVarFunc))) {
+      bestVarIndex = varIndex;
     }
   }
   return bestVarIndex;

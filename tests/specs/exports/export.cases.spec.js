@@ -112,7 +112,6 @@ describe('exports/export.cases.spec', function() {
 
       let config = {
         _class: '$config',
-        var_filter_func: 'unsolved',
         nextVarStrat: 'naive',
         next_value_func: 'min',
         targetedVars: 'all',

@@ -3,7 +3,6 @@
 
 let config = {
   _class: '$config',
-  var_filter_func: 'unsolved',
   next_var_func: 'naive',
   next_value_func: 'min',
   targetedVars: [

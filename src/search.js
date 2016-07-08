@@ -119,7 +119,8 @@ function search_defaultSpaceFactory(space) {
 
     let domain = space.vardoms[varIndex];
     if (!domain_isSolved(domain)) {
-      let nextDomain = distribute_getNextDomainForVar(space, varIndex);
+      let choice = space.next_distribution_choice++;
+      let nextDomain = distribute_getNextDomainForVar(space, varIndex, choice);
       if (nextDomain) {
         let clone = space_createClone(space);
         clone.updatedVarIndex = varIndex;

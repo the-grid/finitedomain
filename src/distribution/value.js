@@ -42,12 +42,11 @@ const NO_CHOICE = undefined;
 
 const MATH_RANDOM = Math.random;
 
-function distribute_getNextDomainForVar(space, varIndex) {
+function distribute_getNextDomainForVar(space, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(domain_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
-  let choiceIndex = space.next_distribution_choice++;
   let configNextValueFunc = space.config.next_value_func;
 
   // each var can override the value distributor

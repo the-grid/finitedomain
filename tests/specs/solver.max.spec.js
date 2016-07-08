@@ -3,6 +3,9 @@ import {
   specDomainCreateRange,
   specDomainCreateValue,
 } from '../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../fixtures/lib';
 
 import Solver from '../../src/solver';
 
@@ -28,7 +31,7 @@ describe('solver.max.spec', function() {
         solver['>']('Hello', 'World');
 
         let solutions = solver.solve();
-        expect(solutions.length, 'all solutions').to.equal(99);
+        expect(countSolutions(solver)).to.equal(99);
 
         for (let i = 0; i < solutionMap.length; ++i) {
           let val = solutionMap[i];

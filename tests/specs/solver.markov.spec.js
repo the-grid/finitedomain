@@ -4,6 +4,9 @@ import {
   stripAnonVars,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../fixtures/lib';
 
 import Solver from '../../src/solver';
 
@@ -38,7 +41,7 @@ describe('solver.markov.spec', function() {
 
     let solutions = solver.solve();
     // will only try (and pass) V=0 because V=1 is not in the legend
-    expect(solutions.length, 'number of solutions').to.equal(1);
+    expect(countSolutions(solver)).to.equal(1);
     expect(solutions).to.eql([{V: 0}]);
   });
 
@@ -146,7 +149,7 @@ describe('solver.markov.spec', function() {
 
             let solutions = solver.solve({max: 1});
 
-            expect(solutions.length, 'solution count').to.equal(1);
+            expect(countSolutions(solver)).to.equal(1);
             for (let k = 0; k < solutions.length; k++) {
               let solution = solutions[k];
               v1_count[solution['V1']]++;
@@ -251,7 +254,7 @@ describe('solver.markov.spec', function() {
     // use vector [1,0] on legend [10,100], meaning 10. V2 will use
     // vector [0,1] on [10,100], meaning 100. so the only valid
     // solution can be STATE=5,V1=10,V2=100
-    expect(solutions.length, 'solution count').to.equal(1);
+    expect(countSolutions(solver)).to.equal(1);
     expect(stripAnonVars(solutions[0])).to.eql({
       STATE: 5,
       V1: 10,
@@ -294,7 +297,7 @@ describe('solver.markov.spec', function() {
     solver['>']('V2', solver.constant(0));
 
     let solutions = solver.solve();
-    expect(solutions.length, 'all solutions').to.equal(16);
+    expect(countSolutions(solver)).to.equal(16);
     expect(stripAnonVarsFromArrays(solutions)).to.eql([
       {V1: 1, V2: 4},
       {V1: 1, V2: 3},
@@ -343,7 +346,7 @@ describe('solver.markov.spec', function() {
     solver['>']('V2', solver.constant(0));
 
     let solutions = solver.solve();
-    expect(solutions.length, 'all solutions').to.equal(16);
+    expect(countSolutions(solver)).to.equal(16);
     expect(stripAnonVarsFromArrays(solutions)).to.eql([
       {V1: 1, V2: 4},
       {V1: 1, V2: 3},
@@ -400,7 +403,7 @@ describe('solver.markov.spec', function() {
         },
       });
 
-      expect(solver.solutions.length, 'solution count').to.eql(0);
+      expect(countSolutions(solver)).to.eql(0);
     })
   );
 });

@@ -5,6 +5,9 @@ import {
   specDomainSmallRange,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../../fixtures/lib';
 
 import {
   NO_CHANGES,
@@ -105,11 +108,11 @@ describe('propagators/reified.spec', function() {
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
-      let solutions = solver.solve({});
+      solver.solve({});
+
       // a, b, c are not constrainted in any way, so 2^3=8
-      // however, reifiers are not optimized so they require a solution. otoh, C is unbound so per default any value is valid
-      expect(solutions.length).to.equal(4);
-      expect(solutions).to.eql([
+      expect(countSolutions(solver)).to.equal(8);
+      expect(solver.solutions).to.eql([
         {A: 0, B: 0, C: [0, 1], AnotB: 1},
         {A: 0, B: 1, C: [0, 1], AnotB: 0},
         {A: 1, B: 0, C: [0, 1], AnotB: 0},
@@ -125,11 +128,12 @@ describe('propagators/reified.spec', function() {
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
-      let solutions = solver.solve({vars: ['A', 'B', 'C']});
+      solver.solve({vars: ['A', 'B', 'C']});
+
       // a, b, c are not constrainted in any way, so 2^3=8
       // explicitly targeted so require a single value for all solutions
-      expect(solutions.length).to.equal(8);
-      expect(solutions).to.eql([
+      expect(countSolutions(solver)).to.equal(8);
+      expect(solver.solutions).to.eql([
         {A: 0, B: 0, C: 0, AnotB: 1},
         {A: 0, B: 0, C: 1, AnotB: 1},
         {A: 0, B: 1, C: 0, AnotB: 0},
@@ -150,16 +154,16 @@ describe('propagators/reified.spec', function() {
       solver['==?']('A', 'B', solver.decl('AisB'));
       solver['==']('AisB', 1);
 
-      let solutions = solver.solve({});
+      solver.solve({});
 
       // all vars start with default domain, [0,1]
       // AisB is forced to 1
       // therefor A cannot be B
       // C is unbound
       // so the only two valid outcomes are A=0,B=1 and A=1,B=0. The value
-      // for C is irrelevant, the value of AisB is always 1. Two outcomes.
-      expect(solutions.length).to.equal(2);
-      expect(solutions).to.eql([
+      // for C is irrelevant so x2, the value of AisB is always 1.
+      expect(countSolutions(solver)).to.equal(4);
+      expect(solver.solutions).to.eql([
         {'4': 1, A: 0, B: 0, C: [0, 1], AisB: 1},
         {'4': 1, A: 1, B: 1, C: [0, 1], AisB: 1},
       ]);
@@ -182,7 +186,7 @@ describe('propagators/reified.spec', function() {
       // C is unbound
       // so the only two valid outcomes are A=0,B=1 and A=1,B=0. The value
       // for C is irrelevant, the value of AisB is always 1. Two outcomes.
-      expect(solutions.length).to.equal(4);
+      expect(countSolutions(solver)).to.equal(4);
       // C is reduced to a single var because it is
       expect(solutions).to.eql([
         {'4': 1, A: 0, B: 0, C: 0, AisB: 1},

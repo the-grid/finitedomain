@@ -3,6 +3,9 @@ import {
   specDomainCreateRange,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../../fixtures/lib';
 
 import Solver from '../../../src/solver';
 
@@ -169,7 +172,7 @@ describe('distribution/distribute.spec', function() {
         solver['>']('V2', 0);
 
         let solutions = solver.solve();
-        expect(solutions.length, 'all solutions').to.equal(16);
+        expect(countSolutions(solver)).to.equal(16);
 
         // (basically V1 solves lo to hi, V2 goes hi to lo)
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
@@ -211,7 +214,7 @@ describe('distribution/distribute.spec', function() {
         solver['>']('V2', 0);
 
         let solutions = solver.solve();
-        expect(solutions.length, 'all solutions').to.equal(16);
+        expect(countSolutions(solver)).to.equal(16);
 
         // (basically V1 solves lo to hi, V2 goes hi to lo)
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
@@ -268,7 +271,7 @@ describe('distribution/distribute.spec', function() {
         solver['>']('V2', 0);
 
         let solutions = solver.solve();
-        expect(solutions.length, 'all solutions').to.equal(16);
+        expect(countSolutions(solver)).to.equal(16);
         expect(stripAnonVarsFromArrays(solutions)).to.eql([
           {V1: 1, V2: 4},
           {V1: 1, V2: 3},

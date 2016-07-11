@@ -28,14 +28,16 @@ import {
   SMALL_MAX_NUM,
   ZERO,
 
-  domain_addRangeNum,
   domain_closeGapsArr,
   domain_createRange,
-  domain_createRangeZeroToMax,
   domain_max,
   domain_min,
   domain_simplifyInlineArr,
 } from '../domain';
+import {
+  asmdomain_addRange,
+  asmdomain_createRangeZeroToMax,
+} from '../asmdomain';
 
 let MAX = Math.max;
 
@@ -100,7 +102,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
-  if (domain1 & ZERO && domain2 & ZERO) return domain_createRangeZeroToMax(domain1);
+  if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -133,7 +135,7 @@ function _domain_minusNumArrNum(domain1, domain2) {
   ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain1 & ZERO && domain_min(domain2) === 0) return domain_createRangeZeroToMax(domain1);
+  if (domain1 & ZERO && domain_min(domain2) === 0) return asmdomain_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -260,7 +262,7 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij, domain) {
     let lo = MAX(SUB, loi - hij);
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    return domain_addRangeNum(domain, lo, hi);
+    return asmdomain_addRange(domain, lo, hi);
   }
   return domain;
 }

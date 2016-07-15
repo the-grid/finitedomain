@@ -76,7 +76,6 @@ function config_create() {
   return {
     _class: '$config',
 
-    var_filter_func: 'unsolved',
     next_var_func: 'naive',
     next_value_func: 'min',
     targetedVars: 'all',
@@ -105,7 +104,6 @@ function config_clone(config, newDomains) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let {
-    var_filter_func,
     next_var_func,
     next_value_func,
     targetedVars,
@@ -123,7 +121,6 @@ function config_clone(config, newDomains) {
   return {
     _class: '$config',
 
-    var_filter_func,
     next_var_func,
     next_value_func,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
@@ -291,12 +288,6 @@ function config_setDefaults(config, varName) {
 
 function config_setOptions(config, options) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  if (options && options.filter) {
-    // for markov,
-    // string: 'none', ignored
-    // function: callback to determine which vars of a space are considered, should return array of varNames
-    config.var_filter_func = options.filter;
-  }
   if (options && options.var) {
     // see distribution.var
     // either

@@ -4,6 +4,9 @@ import {
   specDomainCreateRanges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../fixtures/lib';
 
 import Solver from '../../src/solver';
 import {
@@ -940,7 +943,9 @@ describe('solver.spec', function() {
       let BD3 = solver['==?']('B3', 'D3');
       solver['>='](BD3, 'BsyncD');
 
-      expect(solver.solve().length).to.equal(19);
+      solver.solve();
+
+      expect(countSolutions(solver)).to.equal(19);
     });
 
     it('4 branch 2 level example w/ var objs (binary)', function() {
@@ -998,9 +1003,9 @@ describe('solver.spec', function() {
       solver['<='](BD, solver['==?']('B2', 'D2'));
       solver['<='](BD, solver['==?']('B3', 'D3'));
 
-      let solutions = solver.solve();
+      solver.solve();
 
-      expect(solutions.length, 'solution count').to.equal(19);
+      expect(countSolutions(solver), 'solution count').to.equal(19);
     });
 
     it('4 branch 2 level example w/ var objs (non-binary)', function() {
@@ -1049,9 +1054,9 @@ describe('solver.spec', function() {
         )
       );
 
-      let solutions = solver.solve();
+      solver.solve();
 
-      expect(solutions.length).to.equal(19);
+      expect(countSolutions(solver)).to.equal(19);
     });
   });
 
@@ -1073,7 +1078,7 @@ describe('solver.spec', function() {
 
       let solutions = solver.solve();
 
-      expect(solutions.length, 'solution count').to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
       expect(solutions[0].item1, 'item1').to.equal(1);
       expect(solutions[0].item2, 'item2').to.equal(2);
     });
@@ -1095,9 +1100,9 @@ describe('solver.spec', function() {
       solver['>']('item4', 'item5');
 
       // there is no solution since item 5 must be 5 and item 2 must be 4
-      let solutions = solver.solve();
+      solver.solve();
 
-      expect(solutions.length, 'solution count').to.equal(0);
+      expect(countSolutions(solver), 'solution count').to.equal(0);
     });
 
     it('should solve a simple >= test', function() {
@@ -1115,10 +1120,10 @@ describe('solver.spec', function() {
       solver['>=']('item3', 'item4');
       solver['>=']('item4', 'item5');
 
-      let solutions = solver.solve();
+      solver.solve();
 
       // only solution is where everything is `5`
-      expect(solutions.length, 'solution count').to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
     });
 
     it('should solve a simple < test', function() {
@@ -1136,10 +1141,10 @@ describe('solver.spec', function() {
       solver['<']('item3', 'item4');
       solver['<']('item4', 'item5');
 
-      let solutions = solver.solve();
+      solver.solve();
 
       // only solution is where each var is prev+1, 1 2 3 4 5
-      expect(solutions.length, 'solution count').to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
     });
 
     it('should solve a simple / test', function() {
@@ -1156,7 +1161,7 @@ describe('solver.spec', function() {
 
       // there are two integer solutions (75/5 and 90/6) and
       // 9 fractional solutions whose floor result in 15
-      expect(solutions.length, 'solution count').to.equal(11);
+      expect(countSolutions(solver)).to.equal(11);
 
       // there are two cases where A/B=15 with input ranges:
       expect(stripAnonVarsFromArrays(solutions)).to.eql([{
@@ -1219,7 +1224,7 @@ describe('solver.spec', function() {
       let solutions = solver.solve();
 
       // expecting two solutions; one integer division and one floored fractional division
-      expect(solutions.length, 'solution count').to.equal(2);
+      expect(countSolutions(solver)).to.equal(2);
 
       // there is only one case where 3~5 / 2 equals 2 and that is when A is 4.
       // but when flooring results, 5/2=2.5 -> 2, so there are two answers
@@ -1246,7 +1251,7 @@ describe('solver.spec', function() {
 
       let solutions = solver.solve();
 
-      expect(solutions.length, 'solution count').to.equal(3);
+      expect(countSolutions(solver)).to.equal(3);
 
       // 3*10=30
       // 5*6=30
@@ -1291,9 +1296,9 @@ describe('solver.spec', function() {
 
       solver.neq('A', 'B');
 
-      let solutions = solver.solve();
+      solver.solve();
 
-      expect(solutions.length).to.eql(2); // 0 1, and 1 0
+      expect(countSolutions(solver)).to.eql(2); // 0 1, and 1 0
     });
   });
 
@@ -1311,7 +1316,7 @@ describe('solver.spec', function() {
       // no var is targeted so they should all solve
       // however, the constraint will force A and B to solve
       // to a single value, where C is left as "any"
-      expect(solutions.length).to.equal(4);
+      expect(countSolutions(solver)).to.equal(8);
       expect(solutions).to.eql([
         {A: 0, B: 0, C: [0, 1], AnotB: 1},
         {A: 0, B: 1, C: [0, 1], AnotB: 0},
@@ -1333,7 +1338,7 @@ describe('solver.spec', function() {
       // no var is targeted so they should all solve
       // however, the constraint will force A and B to solve
       // to a single value, where C is left as "any"
-      expect(solutions.length).to.equal(4);
+      expect(countSolutions(solver)).to.equal(8);
       expect(solutions).to.eql([
         {A: 0, B: 0, C: [0, 1], AnotB: 1},
         {A: 0, B: 1, C: [0, 1], AnotB: 0},
@@ -1353,8 +1358,8 @@ describe('solver.spec', function() {
       let solutions = solver.solve({vars: ['A', 'B']});
       // A and B are targeted, they have [0,1] [0,1] so
       // 4 solutions. the result of C is irrelevant here
-      // (pretty much same as before)
-      expect(solutions.length).to.equal(4);
+      // so that's x2=8 (pretty much same as before)
+      expect(countSolutions(solver)).to.equal(8);
       expect(solutions).to.eql([
         {A: 0, B: 0, C: [0, 1], AnotB: 1},
         {A: 0, B: 1, C: [0, 1], AnotB: 0},
@@ -1371,11 +1376,12 @@ describe('solver.spec', function() {
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
-      let solutions = solver.solve({vars: ['B', 'C']});
+      solver.solve({vars: ['B', 'C']});
       // B and C are targeted, they have [0,1] [0,1] so
-      // 4 solutions. the result of A is irrelevant here
-      // the reifier is not a constraint on its own.
-      expect(solutions.length).to.equal(4);
+      // 4 solutions. the result of A is irrelevant so x2
+      // and here the reifier is not a constraint on its
+      // so that's another x2 total(l)ing 16.
+      expect(countSolutions(solver)).to.equal(16);
     });
 
     it('should not solve anonymous vars if no targets given', function() {
@@ -1385,10 +1391,10 @@ describe('solver.spec', function() {
       solver.decl('B');
       solver['==?']('A', 'B');
 
-      let solutions = solver.solve({});
+      solver.solve({});
       // internally there will be three vars; A B and the reifier result var
       // make sure we don't accidentally require to solve that one too
-      expect(solutions.length).to.equal(4);
+      expect(countSolutions(solver)).to.equal(4);
     });
 
     it('should not solve anonymous vars if targets is empty array', function() {
@@ -1399,10 +1405,10 @@ describe('solver.spec', function() {
       solver['==?']('A', 'B');
 
 
-      let solutions = solver.solve({vars: []});
+      solver.solve({vars: []});
       // internally there will be three vars; A B and the reifier result var
       // make sure we don't accidentally require to solve that one too
-      expect(solutions.length).to.equal(4);
+      expect(countSolutions(solver)).to.equal(4);
     });
 
     it('should be capable of solving an anonymous var', function() {
@@ -1412,10 +1418,11 @@ describe('solver.spec', function() {
       solver.decl('B');
       let anon = solver['==?']('A', 'B');
 
-      let solutions = solver.solve({vars: [anon]});
+      solver.solve({vars: [anon]});
       // the anonymous var will be boolean. since we only target
-      // that var, there ought to be two solutions (0 and 1)
-      expect(solutions.length).to.equal(2);
+      // that var, there ought to be two solutions (0 and 1) for
+      // it and any for the others, 2x2x2=8
+      expect(countSolutions(solver)).to.equal(8);
     });
   });
 
@@ -1424,11 +1431,10 @@ describe('solver.spec', function() {
     it('should solve a single unconstrainted var', function() {
       let solver = new Solver({});
       solver.addVar('A', specDomainCreateRange(1, 2, true));
-      let solutions = solver.solve();
-      //console.log(solver._space);
-      //console.log(solver._space.config);
+      solver.solve();
 
-      expect(solutions.length, 'solution count').to.eql(1); // A solves to [1,2], undecided because not targeted
+      // A solves to 1 or 2
+      expect(countSolutions(solver)).to.eql(2);
     });
 
     it('should combine multiple unconstrained vars when targeted', function() {
@@ -1451,9 +1457,11 @@ describe('solver.spec', function() {
       solver.addVar('align&n=2', [1, 2]);
       solver.addVar('text_align&n=2', [1, 2]);
 
+      solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)});
+
       // 2×3×2×2×2×3×2×2×3×2×2 (size of each domain multiplied)
       // there are no constraints so it's just all combinations
-      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912);
+      expect(countSolutions(solver)).to.eql(6912);
     });
 
     it('should return all domains as is when not targeted', function() {
@@ -1476,8 +1484,12 @@ describe('solver.spec', function() {
       solver.addVar('align&n=2', [1, 2]);
       solver.addVar('text_align&n=2', [1, 2]);
 
-      // same as before but none are targeted so algo considers them "solved" and returns all valid values (=init)
-      expect(solver.solve({max: 10000}).length, 'solution count').to.eql(1);
+      solver.solve({max: 10000});
+
+      // same as before but none are targeted so algo considers them
+      // "solved" and returns all valid values (=init) so it becomes
+      // a multiplication of all the number of options...
+      expect(countSolutions(solver)).to.eql(36864);
     });
 
     it('should constrain one var to be equal to another', function() {
@@ -1502,9 +1514,11 @@ describe('solver.spec', function() {
 
       solver.eq('_ROOT_BRANCH_', 'SECTION');
 
+      solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)});
+
       // same as 'combine multiple unconstrained vars' but one var has one instead of two options, so /2
       // note: must target all vars explicitly or you'll validly get just one solution back.
-      expect(solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)}).length, 'solution count').to.eql(6912 / 2);
+      expect(countSolutions(solver)).to.eql(6912 / 2);
     });
 
     it('should allow useless constraints', function() {
@@ -1551,8 +1565,10 @@ describe('solver.spec', function() {
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX'); // lhs is [3,3] and rhs [1,2] so this is a noop
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX&n=1'); // [2,2] and [3,3] so noop
 
+      solver.solve({max: 10000});
+
       // only two conditions are relevant and cuts the space by 2x2, so we get 6912/4
-      expect(solver.solve({max: 10000}).length).to.eql(6912 / 4);
+      expect(countSolutions(solver)).to.eql(6912 / 4);
     });
 
     // there was a "sensible reason" why this test doesnt work but I forgot about it right now... :)
@@ -1566,6 +1582,8 @@ describe('solver.spec', function() {
 
       solver.mul('A', 'B', 'MUL');
       solver.lt('MUL', 'MAX');
+
+      solver.solve({max: 10000, vars: ['A', 'B', 'MUL']});
 
       // There are 11x11=121 combinations (inc dupes)
       // There's a restriction that the product of
@@ -1585,8 +1603,7 @@ describe('solver.spec', function() {
       // 10x0 10x1 10x2 <| 10x3 10x4 10x5 10x6 10x7 10x8 10x9 10x10
       // Counting everything to the left of <| you
       // get 73 combos of A and B that result in A*B<25
-
-      expect(solver.solve({max: 10000, vars: ['A', 'B', 'MUL']}).length).to.eql(73);
+      expect(countSolutions(solver)).to.eql(73);
     });
 
     it('should solve a simplified case from old PathBinarySolver tests', function() {
@@ -1651,8 +1668,7 @@ describe('solver.spec', function() {
       solver.eq('x13', 'x3'); // so vi1 must not be 6 (so 5 or 8)
       solver.eq('x14', 'x3'); // so vi2 must not be 1 (so 3 or 7)
 
-      // 2×2×2×2×2×2×2×2=256
-      expect(solver.solve({
+      solver.solve({
         max: 10000,
         vars: [
           '_ROOT_BRANCH_',
@@ -1672,8 +1688,10 @@ describe('solver.spec', function() {
           'align&n=2',
           'text_align&n=2',
         ],
-      }
-      ).length).to.eql(256);
+      });
+
+      // 2×2×2×2×2×2×2×2=256
+      expect(countSolutions(solver)).to.eql(256);
     });
 
     it('should solve 4 branch 2 level example (binary)', function() {
@@ -1731,7 +1749,7 @@ describe('solver.spec', function() {
         vars: pathVars,
       });
 
-      expect(solver.solutions.length, 'solution count').to.equal(19);
+      expect(countSolutions(solver)).to.equal(19);
     });
 
     it('quick minus test', function() {
@@ -1781,13 +1799,14 @@ describe('solver.spec', function() {
       solver._cacheReified('eq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ONE');
 
+      solver.solve({max: 10000});
+
       // list can be one of three elements.
       // there is a bool var that checks whether list is resolved to 4
       // there is a constraint that requires the above bool to be 1
       // ergo; list must be 4 to satisfy all constraints
       // ergo; there is 1 possible solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified !eq case', function() {
@@ -1801,13 +1820,14 @@ describe('solver.spec', function() {
       solver._cacheReified('eq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ZERO');
 
+      solver.solve({max: 10000});
+
       // list can be one of three elements.
       // there is a bool var that checks whether list is resolved to 4
       // there is a constraint that requires the above bool to be 0
       // ergo; list must be 2 or 9 to satisfy all constraints
       // ergo; there are 2 possible solutions
-
-      expect(solver.solve({max: 10000}).length).to.eql(2);
+      expect(countSolutions(solver)).to.eql(2);
     });
 
     it('should resolve a simple reified neq case', function() {
@@ -1821,13 +1841,14 @@ describe('solver.spec', function() {
       solver._cacheReified('neq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ONE');
 
+      solver.solve({max: 10000});
+
       // list can be one of three elements.
       // there is a bool var that checks whether list is resolved to 4
       // there is a constraint that requires the above bool to be 1
       // ergo; list must be 2 or 9 to satisfy all constraints
       // ergo; there are 2 possible solutions
-
-      expect(solver.solve({max: 10000}).length).to.eql(2);
+      expect(countSolutions(solver)).to.eql(2);
     });
 
     it('should resolve a simple reified !neq case', function() {
@@ -1841,13 +1862,14 @@ describe('solver.spec', function() {
       solver._cacheReified('neq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ZERO');
 
+      solver.solve({max: 10000});
+
       // list can be one of three elements.
       // there is a bool var that checks whether list is resolved to 4
       // there is a constraint that requires the above bool to be 0
       // ergo; list must be 4 to satisfy all constraints
       // ergo; there is 1 possible solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified lt case', function() {
@@ -1861,13 +1883,14 @@ describe('solver.spec', function() {
       solver._cacheReified('lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
       solver.eq('IS_LT', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 123<345 which is only the case when
       // the 3 is dropped from at least one side
       // IS_LT is required to have one outcome
       // 3 + 3 + 2 = 8  ->  1:3 1:4 1:5 2:3 2:4 2:5 3:4 3:5
-
-      expect(solver.solve({max: 10000}).length).to.eql(8);
+      expect(countSolutions(solver)).to.eql(8);
     });
 
     it('should resolve a simple reified !lt case', function() {
@@ -1881,14 +1904,15 @@ describe('solver.spec', function() {
       solver._cacheReified('lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
       solver.eq('IS_LT', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 123<345 which is only the case when
       // the 3 is dropped from at least one side
       // IS_LT is required to have one outcome
       // since it must be 0, that is only when both lists are 3
       // ergo; one solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified lte case', function() {
@@ -1902,13 +1926,14 @@ describe('solver.spec', function() {
       solver._cacheReified('lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
       solver.eq('IS_LTE', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 1234<=345 which is only the case when
       // the 4 is dropped from at least one side
       // IS_LTE is required to have one outcome
       // 3 + 3 + 3 + 2 = 11  ->  1:3 1:4 1:5 2:3 2:4 2:5 3:3 3:4 3:5 4:4 4:5
-
-      expect(solver.solve({max: 10000}).length).to.eql(11);
+      expect(countSolutions(solver)).to.eql(11);
     });
 
     it('should resolve a simple reified !lte case', function() {
@@ -1922,14 +1947,15 @@ describe('solver.spec', function() {
       solver._cacheReified('lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
       solver.eq('IS_LTE', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 1234 and 345
       // reified checks whether 1234<=345 which is only the case when
       // the 4 is dropped from at least one side
       // IS_LTE is required to have one outcome
       // since it must be 0, that is only when left is 4 and right is 3
       // ergo; one solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve an even simpler reified !lte case', function() {
@@ -1941,14 +1967,15 @@ describe('solver.spec', function() {
 
       solver._cacheReified('lte', 'A', 'B', 'NO');
 
+      solver.solve({max: 10000});
+
       // two lists, 1234 and 345
       // reified checks whether 1234<=345 which is only the case when
       // the 4 is dropped from at least one side
       // IS_LTE is required to have one outcome
       // since it must be 0, that is only when left is 4 and right is 3
       // ergo; one solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified gt case', function() {
@@ -1962,13 +1989,14 @@ describe('solver.spec', function() {
       solver._cacheReified('gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
       solver.eq('IS_GT', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 345>123 which is only the case when
       // the 3 is dropped from at least one side
       // IS_GT is required to have one outcome
       // 3 + 3 + 2 = 8  ->  3:1 4:1 5:1 3:2 4:2 5:2 3:1 3:2
-
-      expect(solver.solve({max: 10000}).length).to.eql(8);
+      expect(countSolutions(solver)).to.eql(8);
     });
 
     it('should resolve a simple reified !gt case', function() {
@@ -1982,14 +2010,15 @@ describe('solver.spec', function() {
       solver._cacheReified('gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
       solver.eq('IS_GT', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 123<345 which is only the case when
       // the 3 is dropped from at least one side
       // IS_GT is required to have one outcome
       // since it must be 0, that is only when both lists are 3
       // ergo; one solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified gte case', function() {
@@ -2003,6 +2032,8 @@ describe('solver.spec', function() {
       solver._cacheReified('gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
       solver.eq('IS_GTE', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 1234 and 345
       // reified checks whether 345>=1234 which is only the case when
       // left is not 3 or right is not 4
@@ -2013,9 +2044,7 @@ describe('solver.spec', function() {
       //     3:3 4:3 5:3
       //     4:4 5:4
       //     5:5
-
-      let solutions = solver.solve({max: 10000});
-      expect(solutions.length).to.eql(11);
+      expect(countSolutions(solver)).to.eql(11);
     });
 
     it('should resolve an already solved 5>=4 trivial gte case', function() {
@@ -2027,9 +2056,10 @@ describe('solver.spec', function() {
 
       solver._cacheReified('gte', 'A', 'B', 'YES');
 
-      // the input is already solved and there is only one solution
+      solver.solve({max: 10000});
 
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      // the input is already solved and there is only one solution
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve an already solved 4>=4 trivial gte case', function() {
@@ -2041,9 +2071,10 @@ describe('solver.spec', function() {
 
       solver._cacheReified('gte', 'A', 'B', 'YES');
 
-      // the input is already solved and there is only one solution
+      solver.solve({max: 10000});
 
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      // the input is already solved and there is only one solution
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple reified !gte case', function() {
@@ -2057,14 +2088,15 @@ describe('solver.spec', function() {
       solver._cacheReified('gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
       solver.eq('IS_GTE', 'STATE');
 
+      solver.solve({max: 10000});
+
       // two lists, 123 and 345
       // reified checks whether 1234<=345 which is only the case when
       // the 4 is dropped from at least one side
       // IS_LTE is required to have one outcome
       // since it must be 0, that is only when left is 3 and right is 4
       // ergo; one solution
-
-      expect(solver.solve({max: 10000}).length).to.eql(1);
+      expect(countSolutions(solver)).to.eql(1);
     });
 
     it('should resolve a simple sum with lte case', function() {
@@ -2078,13 +2110,14 @@ describe('solver.spec', function() {
       solver.sum(['A', 'B'], 'SUM');
       solver.lte('SUM', 'MAX');
 
+      solver.solve({max: 10000});
+
       // a+b<=5
       // so that's the case for: 0+0, 0+1, 0+2, 0+3,
       // 0+4, 0+5, 1+0, 1+1, 1+2, 1+3, 1+4, 2+0, 2+1,
       // 2+2, 2+3, 3+0, 3+1, 3+2, 4+0, 4+1, and 5+0
       // ergo: 21 solutions
-
-      expect(solver.solve({max: 10000}).length).to.eql(21);
+      expect(countSolutions(solver)).to.eql(21);
     });
 
     it('should resolve a simple sum with lt case', function() {
@@ -2098,13 +2131,14 @@ describe('solver.spec', function() {
       solver.sum(['A', 'B'], 'SUM');
       solver.lt('SUM', 'MAX');
 
+      solver.solve({max: 10000});
+
       // a+b<5
       // so that's the case for: 0+0, 0+1, 0+2,
       // 0+3, 0+4, 1+0, 1+1, 1+2, 1+3, 2+0, 2+1,
       // 2+2, 3+0, 3+1, and 4+0
       // ergo: 16 solutions
-
-      expect(solver.solve({max: 10000}).length).to.eql(15);
+      expect(countSolutions(solver)).to.eql(15);
     });
 
     it('should resolve a simple sum with gt case', function() {
@@ -2118,11 +2152,12 @@ describe('solver.spec', function() {
       solver.sum(['A', 'B'], 'SUM');
       solver.gt('SUM', 'MAX');
 
+      solver.solve({max: 10000});
+
       // a+b>5
       // there are 11x11=121 cases. a+b<=5 is 21 cases
       // (see other test) so there must be 100 results.
-
-      expect(solver.solve({max: 10000}).length).to.eql(100);
+      expect(countSolutions(solver)).to.eql(100);
     });
 
     it('should resolve a simple sum with gte case', function() {
@@ -2136,11 +2171,12 @@ describe('solver.spec', function() {
       solver.sum(['A', 'B'], 'SUM');
       solver.gte('SUM', 'MAX');
 
+      solver.solve({max: 10000});
+
       // a+b>=5
       // there are 11x11=121 cases. a+b<5 is 15 cases
       // (see other test) so there must be 106 results.
-
-      expect(solver.solve({max: 10000}).length).to.eql(106);
+      expect(countSolutions(solver)).to.eql(106);
     });
   });
 
@@ -2242,7 +2278,7 @@ describe('solver.spec', function() {
         'VIEWPORT_MIDDLE_HEIGHT': 400,
       }]);
 
-      expect(solutions.length).to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
     });
 
     it('with viewport constants hardcoded', function() {
@@ -2335,7 +2371,7 @@ describe('solver.spec', function() {
         '#box2[height]': 100,
       }]);
 
-      expect(solutions.length).to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
     });
   });
 
@@ -2357,7 +2393,7 @@ describe('solver.spec', function() {
         vars: ['A', 'B', 'C'],
         max: 1,
       });
-      expect(solver.solutions.length, 'solve count 1').to.eql(1);
+      expect(countSolutions(solver), 'solve count 1').to.eql(1);
       expect(solver.solutions[0].C < solver.solutions[0].B).to.equal(true);
     });
 
@@ -2374,22 +2410,25 @@ describe('solver.spec', function() {
         vars: ['A', 'B'],
         max: 1,
       });
-      expect(solver.solutions.length, 'solve count 1').to.eql(1);
-      // should not solve C yet because only A and B were targeted
-      expect(solver.solutions[0].C).to.eql([1, 5]);
+      // should not solve C yet because only A and B
+      // were targeted so 1x1x2=4 solutions
+      expect(countSolutions(solver), 'solve count 1').to.eql(2);
+      expect(solver.solutions).to.eql([{A: 2, B: 4, C: [1, 5]}]);
 
       let solver2 = solver.branch_from_current_solution();
       // add a new constraint to the space and solve it
       solver2['<']('C', 'A');
 
-      // C could be either 1 or 2 to pass all the constraints
       solver2.solve({
         vars: ['A', 'B', 'C'],
         max: 1,
         test: 1,
       });
-      expect(solver2.solutions.length, 'solve count 1').to.eql(1);
+
+      // now C is constrained as well so all vars have one possible value
+      expect(countSolutions(solver2), 'solve count 2').to.eql(1);
       expect(solver2.solutions[0].C < solver2.solutions[0].B).to.equal(true);
+      expect(solver2.solutions).to.eql([{A: 2, B: 4, C: 1}]);
     });
   });
 });

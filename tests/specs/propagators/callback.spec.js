@@ -1,4 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
+import {
+  countSolutions,
+} from '../../fixtures/lib';
 
 import Solver from '../../../src/solver';
 import {
@@ -44,7 +47,7 @@ describe('propagators/callback.spec', function() {
       });
 
       // note: there are a few solutions for the sum(), but only one passes the callback
-      expect(solver.solutions.length, 'solutions').to.equal(1);
+      expect(countSolutions(solver)).to.equal(1);
     });
   });
 });

@@ -395,13 +395,6 @@ describe('src/config.spec', function() {
       expect(true, 'no crash').to.equal(true);
     });
 
-    it('should copy the filter', function() {
-      let config = config_create();
-      config_setOptions(config, {filter: 'A'});
-
-      expect(config.var_filter_func).to.equal('A');
-    });
-
     it('should copy the var', function() {
       let config = config_create();
       config_setOptions(config, {var: 'A'});

@@ -22,11 +22,13 @@ import {
   PAIR_SIZE,
   SMALL_MAX_NUM,
 
-  domain_addRangeNum,
   domain_closeGapsArr,
   domain_max,
   domain_simplifyInlineArr,
 } from '../domain';
+import {
+  asmdomain_addRange,
+} from '../asmdomain';
 
 let MIN = Math.min;
 
@@ -253,7 +255,7 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij, domain) {
   ASSERT(loi + loj >= 0, 'DOMAINS_SHOULD_NOT_HAVE_NEGATIVES');
   ASSERT(loi + loj <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
   ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-  return domain_addRangeNum(domain, loi + loj, hii + hij);
+  return asmdomain_addRange(domain, loi + loj, hii + hij);
 }
 
 // BODY_STOP

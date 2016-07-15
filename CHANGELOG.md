@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- No changes
+- Dropped support for `options.filter` and `options.var_filter_func`; simple truth is we weren't using them and they were causing overhead.
 
 ## v2.3.4:
 

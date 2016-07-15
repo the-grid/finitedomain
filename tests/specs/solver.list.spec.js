@@ -3,6 +3,9 @@ import {
   specDomainCreateRange,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../fixtures/lib';
 
 import Solver from '../../src/solver';
 import {
@@ -39,7 +42,7 @@ describe('src/solver.list.spec', function() {
       solver['>']('V2', 0);
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(16);
+      expect(countSolutions(solver)).to.equal(16);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3},
         {V1: 2, V2: 1},
@@ -89,7 +92,7 @@ describe('src/solver.list.spec', function() {
       solver['>']('V2', solver.constant(0));
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(16);
+      expect(countSolutions(solver), 'all solutions').to.equal(16);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3},
         {V1: 2, V2: 1},
@@ -164,7 +167,7 @@ describe('src/solver.list.spec', function() {
       solver['>']('V2', solver.constant(0));
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(16);
+      expect(countSolutions(solver)).to.equal(16);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 2, V2: 3, STATE: 5},
         {V1: 2, V2: 1, STATE: 5},
@@ -204,7 +207,7 @@ describe('src/solver.list.spec', function() {
       solver['>']('V1', 0);
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(2); // list.length
+      expect(countSolutions(solver)).to.equal(2); // list.length
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 3},
         {V1: 4},
@@ -223,8 +226,8 @@ describe('src/solver.list.spec', function() {
       });
       solver['>']('V1', 0);
 
-      let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(0);
+      solver.solve();
+      expect(countSolutions(solver)).to.equal(0);
     });
 
     it('should use the fallback when the list contains no values in the domain', function() {
@@ -257,7 +260,7 @@ describe('src/solver.list.spec', function() {
       // will solve V1 for all remaining values of it
       // in descending order (5,4,3,2,1).
 
-      expect(solutions.length, 'all solutions').to.equal(5);
+      expect(countSolutions(solver)).to.equal(5);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 5},
         {V1: 4},
@@ -281,7 +284,7 @@ describe('src/solver.list.spec', function() {
       solver['>']('V1', 0);
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(5);
+      expect(countSolutions(solver)).to.equal(5);
       expect(stripAnonVarsFromArrays(solutions)).to.eql([
         {V1: 3},
         {V1: 1},
@@ -304,10 +307,10 @@ describe('src/solver.list.spec', function() {
       });
       solver['>']('V1', 6);
 
-      let solutions = solver.solve();
+      solver.solve();
       // original domain contains 0~5 but constraint requires >6
       // list contains 15 but since domain doesnt thats irrelevant
-      expect(solutions.length, 'all solutions').to.equal(0);
+      expect(countSolutions(solver)).to.equal(0);
     });
   });
 });

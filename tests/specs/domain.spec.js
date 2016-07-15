@@ -51,13 +51,11 @@ import {
 
   NOT_FOUND,
 
-  domain_addRangeNum,
   domain_clone,
   domain_closeGapsInline,
   domain_complement,
   domain_containsValue,
   //domain_createRange,
-  domain_createRangeZeroToMax,
   //domain_createValue,
   domain_divby,
   domain_isEqual,
@@ -596,12 +594,12 @@ describe('src/domain.spec', function() {
 
     describe('with array', function() {
 
-      it('should return false if domain is empty', function() {
-        expect(domain_isValue([])).to.equal(false);
+      it('should throw missing value even if empty domain', function() {
+        expect(_ => domain_isValue([])).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
       });
 
-      it('should be able to check without arg (but return false)', function() {
-        expect(domain_isValue(specDomainCreateEmpty())).to.equal(false);
+      it('should throw for missing value', function() {
+        expect(_ => domain_isValue(specDomainCreateEmpty())).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
       });
 
       it('should return false if only range is not one value', function() {
@@ -624,7 +622,6 @@ describe('src/domain.spec', function() {
       });
 
       it('should not even consider domains when range count isnt 1', function() {
-        expect(domain_isValue(specDomainCreateEmpty()), 'empty').to.equal(false);
         expect(domain_isValue(specDomainCreateRanges([SUP - 3, SUP - 3], [SUP - 1, SUP - 1]), SUP - 1), 'first range 1 with second range').to.equal(false);
         expect(domain_isValue(specDomainCreateRanges([SUP - 3, SUP - 3], [SUP - 1, SUP - 1]), SUP - 3), 'first range 1 with second range 3').to.equal(false);
         expect(domain_isValue(specDomainCreateRanges([SUP - 50, SUP - 50], [SUP - 20, SUP - 10]), SUP - 50), 'two ranges').to.equal(false);
@@ -678,13 +675,13 @@ describe('src/domain.spec', function() {
     });
 
     it('should reject an invalid value', function() { // (only numbers are valid values)
-      expect(() => domain_removeValue(EMPTY, '15')).to.throw('CAN_ONLY_REMOVE_VALUES');
+      expect(() => domain_removeValue(EMPTY, '15')).to.throw('VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT');
     });
 
     describe('with array', function() {
 
       it('should require a domain', function() {
-        expect(() => domain_removeValue(null, 15)).to.throw('EXPECTING_DOMAIN');
+        expect(() => domain_removeValue(null, 15)).to.throw('REQUIRES_DOMAIN');
       });
 
       // target: 5
@@ -1465,9 +1462,8 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(_ => domain_size()).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
-      expect(_ => domain_size([])).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
-      expect(_ => domain_size(0)).to.throw('A_EXPECTING_NONE_EMPTY_DOMAINS');
+      expect(_ => domain_size()).to.throw('REQUIRES_DOMAIN');
+      expect(_ => domain_size([])).to.throw('A_EXPECTING_NON_EMPTY_DOMAINS');
     });
 
     describe('with array', function() {
@@ -2104,7 +2100,7 @@ describe('src/domain.spec', function() {
 
     describe('with numbers', function() {
 
-      function gteTest(domain, value, expected) {
+      function lteTest(domain, value, expected) {
         it(`should lte [${domain}] <= ${value} -> [${expected}]`, function() {
           let clone = domain_clone(domain);
           let result = domain_removeLte(domain, value);
@@ -2114,14 +2110,14 @@ describe('src/domain.spec', function() {
         });
       }
 
-      gteTest(specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 5, specDomainSmallNums(6, 7, 8, 9, 10));
-      gteTest(specDomainSmallNums(4, 5, 6, 8, 9), 5, specDomainSmallNums(6, 8, 9));
-      gteTest(specDomainSmallNums(4, 5, 8, 9), 5, specDomainSmallNums(8, 9));
-      gteTest(specDomainSmallNums(5, 6, 7, 9), 5, specDomainSmallNums(6, 7, 9));
-      gteTest(specDomainSmallNums(5, 8, 9), 5, specDomainSmallNums(8, 9));
-      gteTest(specDomainSmallNums(5), 5, EMPTY);
-      gteTest(specDomainSmallNums(6, 7, 8), 5, specDomainSmallNums(6, 7, 8));
-      gteTest(specDomainSmallNums(0, 1, 2, 3, 4), 5, EMPTY);
+      lteTest(specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 5, specDomainSmallNums(6, 7, 8, 9, 10));
+      lteTest(specDomainSmallNums(4, 5, 6, 8, 9), 5, specDomainSmallNums(6, 8, 9));
+      lteTest(specDomainSmallNums(4, 5, 8, 9), 5, specDomainSmallNums(8, 9));
+      lteTest(specDomainSmallNums(5, 6, 7, 9), 5, specDomainSmallNums(6, 7, 9));
+      lteTest(specDomainSmallNums(5, 8, 9), 5, specDomainSmallNums(8, 9));
+      lteTest(specDomainSmallNums(5), 5, EMPTY);
+      lteTest(specDomainSmallNums(6, 7, 8), 5, specDomainSmallNums(6, 7, 8));
+      lteTest(specDomainSmallNums(0, 1, 2, 3, 4), 5, EMPTY);
     });
   });
 
@@ -2180,53 +2176,6 @@ describe('src/domain.spec', function() {
           expect(outFromList).to.eql(i);
         }
       });
-    });
-  });
-
-  describe('domain_addRangeToSmallDomain', function() {
-
-    it('should add a value to an empty domain', function() {
-      expect(domain_addRangeNum(EMPTY, 15, 15)).to.eql(FIFTEEN);
-    });
-  });
-
-  describe('domain_createRangeZeroToMax', function() {
-
-    it('should exist', function() {
-      expect(domain_createRangeZeroToMax).to.be.a('function');
-    });
-
-    it('should work', function() {
-      expect(domain_createRangeZeroToMax(ZERO)).to.eql(ZERO);
-      expect(domain_createRangeZeroToMax(ONE)).to.eql(ZERO | ONE);
-      expect(domain_createRangeZeroToMax(TWO)).to.eql(ZERO | ONE | TWO);
-      expect(domain_createRangeZeroToMax(THREE)).to.eql(ZERO | ONE | TWO | THREE);
-      expect(domain_createRangeZeroToMax(FOUR)).to.eql(ZERO | ONE | TWO | THREE | FOUR);
-      expect(domain_createRangeZeroToMax(SIX)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX);
-      expect(domain_createRangeZeroToMax(SEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN);
-      expect(domain_createRangeZeroToMax(EIGHT)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT);
-      expect(domain_createRangeZeroToMax(NINE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE);
-      expect(domain_createRangeZeroToMax(TEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN);
-      expect(domain_createRangeZeroToMax(ELEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN);
-      expect(domain_createRangeZeroToMax(TWELVE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE);
-      expect(domain_createRangeZeroToMax(THIRTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN);
-      expect(domain_createRangeZeroToMax(FOURTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN);
-      expect(domain_createRangeZeroToMax(FIFTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN);
-      expect(domain_createRangeZeroToMax(SIXTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN);
-      expect(domain_createRangeZeroToMax(SEVENTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN);
-      expect(domain_createRangeZeroToMax(EIGHTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN);
-      expect(domain_createRangeZeroToMax(NINETEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN);
-      expect(domain_createRangeZeroToMax(TWENTY)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY);
-      expect(domain_createRangeZeroToMax(TWENTYONE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE);
-      expect(domain_createRangeZeroToMax(TWENTYTWO)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO);
-      expect(domain_createRangeZeroToMax(TWENTYTHREE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE);
-      expect(domain_createRangeZeroToMax(TWENTYFOUR)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR);
-      expect(domain_createRangeZeroToMax(TWENTYFIVE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE);
-      expect(domain_createRangeZeroToMax(TWENTYSIX)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX);
-      expect(domain_createRangeZeroToMax(TWENTYSEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN);
-      expect(domain_createRangeZeroToMax(TWENTYEIGHT)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT);
-      expect(domain_createRangeZeroToMax(TWENTYNINE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE);
-      expect(domain_createRangeZeroToMax(THIRTY)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE | THIRTY);
     });
   });
 });

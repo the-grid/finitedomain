@@ -3,6 +3,9 @@ import {
   specDomainCreateRange,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
+import {
+  countSolutions,
+} from '../fixtures/lib';
 
 import Solver from '../../src/solver';
 
@@ -28,7 +31,7 @@ describe('solver.minmaxcycle.spec', function() {
       solver['>']('V2', solver.constant(0));
 
       let solutions = solver.solve();
-      expect(solutions.length, 'all solutions').to.equal(16);
+      expect(countSolutions(solver)).to.equal(16);
       // algo starts with 'min'
       // v1 is first so it gets 'min'
       // v2 is second so it gets 'max'

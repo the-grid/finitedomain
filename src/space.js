@@ -10,6 +10,8 @@ import {
 } from './helpers';
 
 import {
+  TRIE_KEY_NOT_FOUND,
+
   trie_add,
   trie_create,
   trie_get,
@@ -186,7 +188,7 @@ function initializeUnsolvedVars(space, config) {
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
-      if (varIndex === undefined) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
+      if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
       if (!domain_isSolved(vardoms[varIndex])) {
         unsolvedVarIndexes.push(varIndex);
       }
@@ -265,9 +267,9 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, _i) {
   if (n === SOME_CHANGES) {
     for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
       let varIndex = propagator[PROP_VAR_INDEXES][j];
-      if (!trie_has(changedTrie, varIndex)) {
+      if (!trie_has(changedTrie, String(varIndex))) {
         changedVars.push(varIndex);
-        trie_add(changedTrie, varIndex, true);
+        trie_add(changedTrie, String(varIndex), 1);
       }
     }
   } else if (n === REJECTED) {

@@ -15,6 +15,8 @@ import {
   THROW,
 } from './helpers';
 import {
+  TRIE_KEY_NOT_FOUND,
+
   trie_add,
   trie_create,
   trie_get,
@@ -515,8 +517,7 @@ function config_addConstraint(config, name, varNames, param) {
   for (let i = 0, n = varNames.length; i < n; ++i) {
     //console.log('testing', varNames[i], 'in', config._var_names_trie)
     let varIndex = trie_get(config._var_names_trie, varNames[i]);
-
-    ASSERT(varIndex !== undefined, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
   }
 
@@ -994,6 +995,10 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
  * @param {$space} space
  */
 function config_initForSpace(config, space) {
+  if (!config._var_names_trie) {
+    config._var_names_trie = trie_create(config.all_var_names);
+  }
+
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);

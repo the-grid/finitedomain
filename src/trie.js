@@ -13,7 +13,7 @@ let TRIE_BUCKET_COUNT = 10; // 10 digits
 let TRIE_NODE_SIZE = TRIE_BUCKET_COUNT + 1; // inc value
 
 let TRIE_INITIAL_SIZE = 16 * 1024;
-let TRIE_MINIMAL_GROWTH = 1000;
+let TRIE_MINIMAL_GROWTH = 4 * 1024;
 
 let TRIE_KEY_NOT_FOUND = -1;
 
@@ -169,6 +169,52 @@ function _trie_add(trie, offset, key, index, len, value) {
 
   return _trie_add(trie, offset, key, index + 1, len, value);
 }
+
+/**
+ * Add a key/value pair
+ *
+ * This adds a value under a key that is a number. This
+ * way reads and writes take `ceil(log(n)/log(10))` steps.
+ * Eg. as many steps as digits in the decimal number.
+ *
+ * @param {$trie} trie
+ * @param {number} key Assumes an unsigned int
+ * @param {number} value Any unsigned 32bit-1 value
+ * @returns {number} previous value, or -1 if there wasn't any
+ */
+function trie_addNum(trie, key, value) {
+  ASSERT(++trie._adds);
+  return _trie_addNum(trie, TRIE_ROOT_OFFSET, key + 1, value);
+}
+/**
+ * Recursively find the place to add the key. If
+ * the trail runs cold, pave it. Clobbers existing
+ * values (though in our implementation that current
+ * shouldn't really happen...)
+ *
+ * @param {$trie} trie
+ * @param {number} offset
+ * @param {number} key Assumes an unsigned int >0
+ * @param {number} value Any unsigned 32bit-1 value
+ * @returns {number} the old value, or not found
+ */
+function _trie_addNum(trie, offset, key, value) {
+  ASSERT(++trie._addSteps);
+  if (key === 0) {
+    let buf = trie.buffer;
+    let valuePtr = offset + TRIE_BUCKET_COUNT;
+    let curValue = trie.buffer[valuePtr];
+    if (!curValue) ++trie.count;
+    buf[valuePtr] = value + 1; // 0 is reserved to mean "unused"
+    return curValue - 1;
+  }
+
+  offset = _trie_pavePath(trie, offset, key % 10);
+  key = Math.floor(key / 10);
+
+  return _trie_addNum(trie, offset, key, value);
+}
+
 /**
  * One step of writing a value. Offset should be a node, if
  * the digit has no address yet create it. If a node needs
@@ -229,7 +275,6 @@ function _trie_get(trie, offset, key, index, len) {
 
   return _trie_get(trie, offset, key, index + 1, len);
 }
-
 /**
  * See trie_get for more details
  *
@@ -240,6 +285,54 @@ function _trie_get(trie, offset, key, index, len) {
 function trie_has(trie, key) {
   ASSERT(++trie._hass);
   return trie_get(trie, key) !== TRIE_KEY_NOT_FOUND;
+}
+
+/**
+ * Find the value for given number key.
+ * See trie_addNum for more details.
+ *
+ * @param {$trie} trie
+ * @param {number} key Assumed to be an unsigned int >=0
+ * @returns {number} -1 if not found, >= 0 otherwise
+ */
+function trie_getNum(trie, key) {
+  ASSERT(++trie._gets);
+  return _trie_getNum(trie, TRIE_ROOT_OFFSET, key + 1);
+}
+/**
+ * Recursive function to search for number key
+ *
+ * @param {$trie} trie
+ * @param {number} offset Start of a node
+ * @param {number} key Assumed to be an unsigned int >=0
+ * @returns {number} -1 if not found or >= 0 otherwise
+ */
+function _trie_getNum(trie, offset, key) {
+  ASSERT(++trie._getSteps);
+  let buf = trie.buffer;
+
+  if (key === 0) {
+    let valuePtr = offset + TRIE_BUCKET_COUNT;
+    return buf[valuePtr] - 1;
+  }
+
+  offset = buf[offset + (key % 10)];
+  if (!offset) return TRIE_KEY_NOT_FOUND;
+
+  key = Math.floor(key / 10);
+
+  return _trie_getNum(trie, offset, key);
+}
+/**
+ * See trie_getNum for more details
+ *
+ * @param {$trie} trie
+ * @param {number} key Assumed to be unsigned int >= 0
+ * @returns {boolean}
+ */
+function trie_hasNum(trie, key) {
+  ASSERT(++trie._hass);
+  return trie_getNum(trie, key) !== TRIE_KEY_NOT_FOUND;
 }
 
 /**
@@ -325,8 +418,11 @@ export {
   TRIE_KEY_NOT_FOUND,
 
   trie_add,
+  trie_addNum,
   trie_create,
   _trie_debug,
   trie_get,
+  trie_getNum,
   trie_has,
+  trie_hasNum,
 };

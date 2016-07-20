@@ -12,10 +12,10 @@ import {
 import {
   TRIE_KEY_NOT_FOUND,
 
-  trie_add,
+  trie_addNum,
   trie_create,
   trie_get,
-  trie_has,
+  trie_hasNum,
 } from './trie';
 
 import {
@@ -267,9 +267,9 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, _i) {
   if (n === SOME_CHANGES) {
     for (let j = 0, len = propagator[PROP_VAR_INDEXES].length; j < len; ++j) {
       let varIndex = propagator[PROP_VAR_INDEXES][j];
-      if (!trie_has(changedTrie, String(varIndex))) {
+      if (!trie_hasNum(changedTrie, varIndex)) {
         changedVars.push(varIndex);
-        trie_add(changedTrie, String(varIndex), 1);
+        trie_addNum(changedTrie, varIndex, 1);
       }
     }
   } else if (n === REJECTED) {

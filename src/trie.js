@@ -154,6 +154,14 @@ function trie_add(trie, key, value) {
  */
 function _trie_add(trie, offset, key, index, len, value) {
   ASSERT(++trie._addSteps);
+
+  ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
+  ASSERT(typeof key === 'string', 'STRING_KEY');
+  ASSERT(index >= 0, 'INDEX_UNSIGNED');
+  ASSERT(key.length === len, 'KEY_LEN');
+  ASSERT(value >= 0, 'VALUE_UNSIGNED');
+
+  // dont create next path part if it would create a leaf node
   if (index >= len) {
     let buf = trie.buffer;
     let valuePtr = offset + TRIE_BUCKET_COUNT;
@@ -164,6 +172,7 @@ function _trie_add(trie, offset, key, index, len, value) {
   }
 
   let c = key.charCodeAt(index) - 32; // allow all asciis 31 < c < 130 encoded as stringified double digits
+
   offset = _trie_pavePath(trie, offset, c % 10);
   offset = _trie_pavePath(trie, offset, Math.floor(c / 10));
 
@@ -200,6 +209,11 @@ function trie_addNum(trie, key, value) {
  */
 function _trie_addNum(trie, offset, key, value) {
   ASSERT(++trie._addSteps);
+
+  ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
+  ASSERT(typeof key === 'number', 'NUMBER_KEY');
+  ASSERT(value >= 0, 'VALUE_UNSIGNED');
+
   if (key === 0) {
     let buf = trie.buffer;
     let valuePtr = offset + TRIE_BUCKET_COUNT;
@@ -260,6 +274,12 @@ function trie_get(trie, key) {
  */
 function _trie_get(trie, offset, key, index, len) {
   ASSERT(++trie._getSteps);
+
+  ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
+  ASSERT(typeof key === 'string', 'STRING_KEY');
+  ASSERT(index >= 0, 'INDEX_UNSIGNED');
+  ASSERT(key.length === len, 'KEY_LEN');
+
   let buf = trie.buffer;
 
   if (index >= len) {
@@ -268,8 +288,10 @@ function _trie_get(trie, offset, key, index, len) {
   }
 
   let c = key.charCodeAt(index) - 32; // allow all asciis 31 < c < 130 encoded as stringified double digits
+
   offset = buf[offset + (c % 10)];
   if (!offset) return TRIE_KEY_NOT_FOUND;
+
   offset = buf[offset + Math.floor(c / 10)];
   if (!offset) return TRIE_KEY_NOT_FOUND;
 
@@ -309,6 +331,10 @@ function trie_getNum(trie, key) {
  */
 function _trie_getNum(trie, offset, key) {
   ASSERT(++trie._getSteps);
+
+  ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
+  ASSERT(typeof key === 'number', 'NUMBER_KEY');
+
   let buf = trie.buffer;
 
   if (key === 0) {

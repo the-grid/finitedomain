@@ -174,7 +174,7 @@ describe('src/tries.spec', function() {
       // we assume all input values are zero or positive
       let trie = trie_create();
       trie_addNum(trie, 1337, 200);
-      let n = trie_addNum(trie, 1337);
+      let n = trie_getNum(trie, 1337);
 
       expect(n).to.eql(200);
     });

@@ -953,58 +953,68 @@ describe('distribution/var.spec', function() {
   describe('fallback list -> markov -> size', function() {
     // each test will ask for a var and supply a more limited list of vars
 
-    let solver = new Solver();
-    solver.addVar({
-      id: 'A_list',
-      domain: [0, 10],
-    });
-    solver.addVar({
-      id: 'B_list',
-      domain: [0, 20],
-    });
-    solver.addVar({
-      id: 'C_markov',
-      domain: [0, 100],
-      distributeOptions: {
-        distributor_name: 'markov',
-        expandVectorsWith: 1,
-      },
-    });
-    solver.addVar({
-      id: 'D_markov',
-      domain: [0, 50],
-      distributeOptions: {
-        distributor_name: 'markov',
-        expandVectorsWith: 1,
-      },
-    });
-    solver.addVar({
-      id: 'E_pleb',
-      domain: [0, 100],
-    });
-    solver.addVar({
-      id: 'F_pleb',
-      domain: [0, 75],
-    });
-    solver.prepare({
-      distribute: {
-        var: {
-          dist_name: 'list',
-          priority_list: ['B_list', 'A_list'],
-          fallback_config: {
-            dist_name: 'markov',
-            fallback_config: 'size',
+    let solver;
+    let A_list;
+    let B_list;
+    let C_markov;
+    let D_markov;
+    let E_pleb;
+    let F_pleb;
+
+    before(function() {
+      solver = new Solver();
+      solver.addVar({
+        id: 'A_list',
+        domain: [0, 10],
+      });
+      solver.addVar({
+        id: 'B_list',
+        domain: [0, 20],
+      });
+      solver.addVar({
+        id: 'C_markov',
+        domain: [0, 100],
+        distributeOptions: {
+          distributor_name: 'markov',
+          expandVectorsWith: 1,
+        },
+      });
+      solver.addVar({
+        id: 'D_markov',
+        domain: [0, 50],
+        distributeOptions: {
+          distributor_name: 'markov',
+          expandVectorsWith: 1,
+        },
+      });
+      solver.addVar({
+        id: 'E_pleb',
+        domain: [0, 100],
+      });
+      solver.addVar({
+        id: 'F_pleb',
+        domain: [0, 75],
+      });
+      solver.prepare({
+        distribute: {
+          var: {
+            dist_name: 'list',
+            priority_list: ['B_list', 'A_list'],
+            fallback_config: {
+              dist_name: 'markov',
+              fallback_config: 'size',
+            },
           },
         },
-      },
-    });
+      });
 
-    let A_list = solver._space.config.all_var_names.indexOf('A_list');
-    let B_list = solver._space.config.all_var_names.indexOf('B_list');
-    let C_markov = solver._space.config.all_var_names.indexOf('C_markov');
-    let D_markov = solver._space.config.all_var_names.indexOf('D_markov');
-    let E_pleb = solver._space.config.all_var_names.indexOf('E_pleb');
-    let F_pleb = solver._space.config.all_var_names.indexOf('F_pleb');
+      A_list = solver._space.config.all_var_names.indexOf('A_list');
+      B_list = solver._space.config.all_var_names.indexOf('B_list');
+      C_markov = solver._space.config.all_var_names.indexOf('C_markov');
+      D_markov = solver._space.config.all_var_names.indexOf('D_markov');
+      E_pleb = solver._space.config.all_var_names.indexOf('E_pleb');
+      F_pleb = solver._space.config.all_var_names.indexOf('F_pleb');
+    });
 
     it('base test: should get highest priority on the list; A_list', function() {
       solver._space.unsolvedVarIndexes = [A_list, B_list, C_markov, D_markov, E_pleb, F_pleb];
@@ -1068,52 +1078,62 @@ describe('distribution/var.spec', function() {
   });
 
   describe('list -> inverted list -> min', function() {
-    let solver = new Solver();
-    solver.addVar({
-      id: 'A',
-      domain: [0, 10],
-    });
-    solver.addVar({
-      id: 'B',
-      domain: [10, 20],
-    });
-    solver.addVar({
-      id: 'C',
-      domain: [0, 20],
-    });
-    solver.addVar({
-      id: 'D',
-      domain: [10, 20],
-    });
-    solver.addVar({
-      id: 'E',
-      domain: [0, 20],
-    });
-    solver.addVar({
-      id: 'F',
-      domain: [10, 20],
-    });
-    solver.prepare({
-      distribute: {
-        var: {
-          dist_name: 'list',
-          priority_list: ['B', 'A'],
-          fallback_config: {
+    let solver;
+    let A;
+    let B;
+    let C;
+    let D;
+    let E;
+    let F;
+
+    before(function() {
+      solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        domain: [0, 10],
+      });
+      solver.addVar({
+        id: 'B',
+        domain: [10, 20],
+      });
+      solver.addVar({
+        id: 'C',
+        domain: [0, 20],
+      });
+      solver.addVar({
+        id: 'D',
+        domain: [10, 20],
+      });
+      solver.addVar({
+        id: 'E',
+        domain: [0, 20],
+      });
+      solver.addVar({
+        id: 'F',
+        domain: [10, 20],
+      });
+      solver.prepare({
+        distribute: {
+          var: {
             dist_name: 'list',
-            inverted: true,
-            priority_list: ['D', 'C'],
-            fallback_config: 'min',
+            priority_list: ['B', 'A'],
+            fallback_config: {
+              dist_name: 'list',
+              inverted: true,
+              priority_list: ['D', 'C'],
+              fallback_config: 'min',
+            },
           },
         },
-      },
-    });
+      });
 
-    let A = solver._space.config.all_var_names.indexOf('A');
-    let B = solver._space.config.all_var_names.indexOf('B');
-    let C = solver._space.config.all_var_names.indexOf('C');
-    let D = solver._space.config.all_var_names.indexOf('D');
-    let E = solver._space.config.all_var_names.indexOf('E');
-    let F = solver._space.config.all_var_names.indexOf('F');
+      A = solver._space.config.all_var_names.indexOf('A');
+      B = solver._space.config.all_var_names.indexOf('B');
+      C = solver._space.config.all_var_names.indexOf('C');
+      D = solver._space.config.all_var_names.indexOf('D');
+      E = solver._space.config.all_var_names.indexOf('E');
+      F = solver._space.config.all_var_names.indexOf('F');
+    });
 
     it('should prioritize list over rest A', function() {
       solver._space.unsolvedVarIndexes = [D, C, A, E, F];

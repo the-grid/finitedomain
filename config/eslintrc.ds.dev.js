@@ -10,7 +10,9 @@ module.exports = {
   extends: './eslintrc.ds.dist.js',
   globals: {
     // mocha testing implicit globals
+    after: true,
     afterEach: true,
+    before: true,
     beforeEach: true,
     describe: true,
     it: true,

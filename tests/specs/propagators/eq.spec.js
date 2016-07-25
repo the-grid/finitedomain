@@ -1,11 +1,11 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainFromNums,
-  specDomainSmallEmpty,
-  specDomainSmallNums,
+  fixt_arrdom_empty,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_nums,
+  fixt_numdom_empty,
+  fixt_numdom_nums,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -59,8 +59,8 @@ describe('propagators/eq.spec', function() {
     let config = config_create();
     config_addVarRange(config, 'A', 9, 10);
     config_addVarRange(config, 'B', 11, 15);
-    config_addVarDomain(config, 'C', specDomainCreateEmpty());
-    config_addVarDomain(config, 'D', specDomainCreateEmpty());
+    config_addVarDomain(config, 'C', fixt_arrdom_empty());
+    config_addVarDomain(config, 'D', fixt_arrdom_empty());
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
@@ -72,28 +72,28 @@ describe('propagators/eq.spec', function() {
 
   it('with array should split a domain if it covers multiple ranges of other domain', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainCreateRange(SUB, SUP));
-    config_addVarDomain(config, 'B', specDomainCreateRanges([0, 10], [20, 300]));
+    config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+    config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
     let space = space_createRoot(config);
     space_initFromConfig(space);
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
 
     expect(propagator_eqStepBare(space, A, B)).to.equal(SOME_CHANGES);
-    expect(space.vardoms[A]).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
-    expect(space.vardoms[B]).to.eql(specDomainCreateRanges([0, 10], [20, 300]));
+    expect(space.vardoms[A]).to.eql(fixt_arrdom_ranges([0, 10], [20, 300]));
+    expect(space.vardoms[B]).to.eql(fixt_arrdom_ranges([0, 10], [20, 300]));
   });
 
   it('with number should split a domain if it covers multiple ranges of other domain', function() {
     let config = config_create();
     config_addVarRange(config, 'A', SUB, 15);
-    config_addVarDomain(config, 'B', specDomainFromNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+    config_addVarDomain(config, 'B', fixt_arrdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
     let space = space_createRoot(config);
     space_initFromConfig(space);
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
 
-    let C = specDomainSmallNums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
+    let C = fixt_numdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
 
     expect(propagator_eqStepBare(space, A, B)).to.equal(SOME_CHANGES);
     expect(space.vardoms[B]).to.eql(C);
@@ -119,19 +119,19 @@ describe('propagators/eq.spec', function() {
     }
 
     describe('with array', function() {
-      test(specDomainCreateRange(SUP, SUP));
-      test(specDomainCreateRange(20, 50));
-      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-      test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
+      test(fixt_arrdom_range(SUP, SUP));
+      test(fixt_arrdom_range(20, 50));
+      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]));
+      test(fixt_arrdom_ranges([0, 10], [25, 25], [40, 50]));
     });
 
     describe('with numbers', function() {
-      test(specDomainSmallNums(SUB, SUB));
-      test(specDomainSmallNums(0, 0));
-      test(specDomainSmallNums(1, 1));
-      test(specDomainSmallNums(0, 1));
-      test(specDomainSmallNums(0, 2));
-      test(specDomainSmallNums(0, 2, 3));
+      test(fixt_numdom_nums(SUB, SUB));
+      test(fixt_numdom_nums(0, 0));
+      test(fixt_numdom_nums(1, 1));
+      test(fixt_numdom_nums(0, 1));
+      test(fixt_numdom_nums(0, 2));
+      test(fixt_numdom_nums(0, 2, 3));
     });
   });
 
@@ -167,14 +167,14 @@ describe('propagators/eq.spec', function() {
       });
     }
 
-    test(specDomainSmallNums(0, 1), specDomainSmallNums(0, 0), specDomainSmallNums(0, 0), SOME_CHANGES);
-    test(specDomainSmallNums(0, 1), specDomainSmallNums(1, 1), specDomainSmallNums(1, 1), SOME_CHANGES);
-    test(specDomainSmallNums(SUB, 1), specDomainCreateRange(1, SUP), specDomainSmallNums(1, 1), SOME_CHANGES);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainSmallNums(5, 5), specDomainSmallNums(5, 5), SOME_CHANGES);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]), specDomainSmallNums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30), SOME_CHANGES);
-    test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
-    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 3), specDomainSmallEmpty(), REJECTED);
-    test(specDomainSmallNums(0, 2), specDomainSmallNums(1, 2, 4), specDomainSmallNums(2), SOME_CHANGES);
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_nums(0, 0), SOME_CHANGES);
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_nums(1, 1), SOME_CHANGES);
+    test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_nums(1, 1), SOME_CHANGES);
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_nums(5, 5), SOME_CHANGES);
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30), SOME_CHANGES);
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
+    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty(), REJECTED);
+    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_nums(2), SOME_CHANGES);
   });
 });
 

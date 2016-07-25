@@ -1,7 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
-  specDomainCreateRanges,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -877,7 +877,7 @@ describe('solver.spec', function() {
       it('should map to domain_fromList', function() {
         let solver = new Solver();
 
-        expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15, 118])).to.eql(specDomainCreateRanges([1, 2], [4, 5], [7, 7], [9, 13], [15, 15], [118, 118]));
+        expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15, 118])).to.eql(fixt_arrdom_ranges([1, 2], [4, 5], [7, 7], [9, 13], [15, 15], [118, 118]));
       });
 
       it('should always return an array even for small domains', function() {
@@ -907,7 +907,7 @@ describe('solver.spec', function() {
               3
       */
 
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       // branch vars
       solver.addVars(['A', 'C', 'B', 'D']);
@@ -965,7 +965,7 @@ describe('solver.spec', function() {
               3
        */
 
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       let branches = {
         A: 3,
@@ -1025,12 +1025,12 @@ describe('solver.spec', function() {
               3
        */
 
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
-      solver.addVar('A', specDomainCreateRange(0, 3, true));
-      solver.addVar('B', specDomainCreateRange(0, 3, true));
-      solver.addVar('C', specDomainCreateRange(0, 3, true));
-      solver.addVar('D', specDomainCreateRange(0, 3, true));
+      solver.addVar('A', fixt_arrdom_range(0, 3, true));
+      solver.addVar('B', fixt_arrdom_range(0, 3, true));
+      solver.addVar('C', fixt_arrdom_range(0, 3, true));
+      solver.addVar('D', fixt_arrdom_range(0, 3, true));
 
       // root branches must be on
       solver['>=']('A', solver.constant(1));
@@ -1065,11 +1065,11 @@ describe('solver.spec', function() {
     it('should solve a sparse domain', function() {
       let solver = new Solver({});
 
-      solver.decl('item1', specDomainCreateRange(1, 5, true));
+      solver.decl('item1', fixt_arrdom_range(1, 5, true));
       solver.decl('item2', [2, 2, 4, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [4, 5]));
-      solver.decl('item3', specDomainCreateRange(1, 5, true));
-      solver.decl('item4', specDomainCreateRange(4, 4, true));
-      solver.decl('item5', specDomainCreateRange(1, 5, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5, true));
+      solver.decl('item4', fixt_arrdom_range(4, 4, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5, true));
 
       solver['<']('item1', 'item2');
       solver['<']('item2', 'item3');
@@ -1087,11 +1087,11 @@ describe('solver.spec', function() {
       // regression: x>y was wrongfully mapped to y<=x
       let solver = new Solver({});
 
-      solver.decl('item5', specDomainCreateRange(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5, true));
       solver.decl('item4', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item3', specDomainCreateRange(1, 5, true));
-      solver.decl('item2', specDomainCreateRange(4, 4, true));
-      solver.decl('item1', specDomainCreateRange(1, 5, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5, true));
+      solver.decl('item2', fixt_arrdom_range(4, 4, true));
+      solver.decl('item1', fixt_arrdom_range(1, 5, true));
 
       solver['==']('item5', solver.constant(5));
       solver['>']('item1', 'item2');
@@ -1108,11 +1108,11 @@ describe('solver.spec', function() {
     it('should solve a simple >= test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', specDomainCreateRange(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5, true));
       solver.decl('item4', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item3', specDomainCreateRange(1, 5, true));
-      solver.decl('item2', specDomainCreateRange(4, 5, true));
-      solver.decl('item1', specDomainCreateRange(1, 5, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5, true));
+      solver.decl('item2', fixt_arrdom_range(4, 5, true));
+      solver.decl('item1', fixt_arrdom_range(1, 5, true));
 
       solver['==']('item5', solver.constant(5));
       solver['>=']('item1', 'item2');
@@ -1129,11 +1129,11 @@ describe('solver.spec', function() {
     it('should solve a simple < test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', specDomainCreateRange(1, 5, true));
-      solver.decl('item4', specDomainCreateRange(4, 4, true));
-      solver.decl('item3', specDomainCreateRange(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5, true));
+      solver.decl('item4', fixt_arrdom_range(4, 4, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5, true));
       solver.decl('item2', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item1', specDomainCreateRange(1, 5, true));
+      solver.decl('item1', fixt_arrdom_range(1, 5, true));
 
       solver['==']('item5', solver.constant(5));
       solver['<']('item1', 'item2');
@@ -1150,9 +1150,9 @@ describe('solver.spec', function() {
     it('should solve a simple / test', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', specDomainCreateRange(50, 100));
-      solver.addVar('B', specDomainCreateRange(5, 10, true));
-      solver.addVar('C', specDomainCreateRange(0, 100));
+      solver.addVar('A', fixt_arrdom_range(50, 100));
+      solver.addVar('B', fixt_arrdom_range(5, 10, true));
+      solver.addVar('C', fixt_arrdom_range(0, 100));
 
       solver.div('A', 'B', 'C');
       solver.eq('C', 15);
@@ -1214,9 +1214,9 @@ describe('solver.spec', function() {
     it('should solve another simple / test', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', specDomainCreateRange(3, 5, true));
-      solver.addVar('B', specDomainCreateRange(2, 2, true));
-      solver.addVar('C', specDomainCreateRange(0, 100));
+      solver.addVar('A', fixt_arrdom_range(3, 5, true));
+      solver.addVar('B', fixt_arrdom_range(2, 2, true));
+      solver.addVar('C', fixt_arrdom_range(0, 100));
 
       solver.div('A', 'B', 'C');
       solver.eq('C', 2);
@@ -1242,9 +1242,9 @@ describe('solver.spec', function() {
     it('should solve a simple * test', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', specDomainCreateRange(3, 8, true));
-      solver.addVar('B', specDomainCreateRange(2, 10, true));
-      solver.addVar('C', specDomainCreateRange(0, 100));
+      solver.addVar('A', fixt_arrdom_range(3, 8, true));
+      solver.addVar('B', fixt_arrdom_range(2, 10, true));
+      solver.addVar('C', fixt_arrdom_range(0, 100));
 
       solver.mul('A', 'B', 'C');
       solver.eq('C', 30);
@@ -1275,7 +1275,7 @@ describe('solver.spec', function() {
       let solver = new Solver({});
       solver.decl('A', 400);
       solver.decl('B', 50);
-      solver.decl('C', specDomainCreateRange(0, 10000));
+      solver.decl('C', fixt_arrdom_range(0, 10000));
 
       solver.min('A', 'B', 'C');
 
@@ -1291,8 +1291,8 @@ describe('solver.spec', function() {
     it('should not skip over when a var only has one propagator and is affected', function() {
       // this is more thoroughly tested with space unit tests
       let solver = new Solver({});
-      solver.decl('A', specDomainCreateRange(0, 1, true));
-      solver.decl('B', specDomainCreateRange(0, 1, true));
+      solver.decl('A', fixt_arrdom_range(0, 1, true));
+      solver.decl('B', fixt_arrdom_range(0, 1, true));
 
       solver.neq('A', 'B');
 
@@ -1304,7 +1304,7 @@ describe('solver.spec', function() {
 
   describe('targeting vars', function() {
     it('should want to solve all vars if targets are not set at all', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1326,7 +1326,7 @@ describe('solver.spec', function() {
     });
 
     it('should want to solve all vars if targets is an empty array', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1348,7 +1348,7 @@ describe('solver.spec', function() {
     });
 
     it('should ignore C when only A and B are targeted', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1369,7 +1369,7 @@ describe('solver.spec', function() {
     });
 
     it('should ignore A when only B and C are targeted', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1385,7 +1385,7 @@ describe('solver.spec', function() {
     });
 
     it('should not solve anonymous vars if no targets given', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1398,7 +1398,7 @@ describe('solver.spec', function() {
     });
 
     it('should not solve anonymous vars if targets is empty array', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1412,7 +1412,7 @@ describe('solver.spec', function() {
     });
 
     it('should be capable of solving an anonymous var', function() {
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 1, true)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
       solver.decl('B');
@@ -1430,7 +1430,7 @@ describe('solver.spec', function() {
 
     it('should solve a single unconstrainted var', function() {
       let solver = new Solver({});
-      solver.addVar('A', specDomainCreateRange(1, 2, true));
+      solver.addVar('A', fixt_arrdom_range(1, 2, true));
       solver.solve();
 
       // A solves to 1 or 2
@@ -2206,7 +2206,7 @@ describe('solver.spec', function() {
 
       */
 
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 10000)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 10000)});
       solver.decl('VIEWPORT_WIDTH', 1200);
       solver.decl('VIEWPORT_HEIGHT', 800);
       solver.addVars([
@@ -2309,7 +2309,7 @@ describe('solver.spec', function() {
       let VIEWPORT_WIDTH = 1200;
       let VIEWPORT_HEIGHT = 800;
 
-      let solver = new Solver({defaultDomain: specDomainCreateRange(0, 10000)});
+      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 10000)});
       solver.addVars([
         // box1
         '#box1[x]',
@@ -2380,9 +2380,9 @@ describe('solver.spec', function() {
     it('should solve this in one go', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', specDomainCreateRange(2, 5, true));
+      solver.addVar('A', fixt_arrdom_range(2, 5, true));
       solver.addVar('B', [2, 2, 4, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [4, 5]));
-      solver.addVar('C', specDomainCreateRange(1, 5, true));
+      solver.addVar('C', fixt_arrdom_range(1, 5, true));
       solver['<']('A', 'B');
 
       // in the next test we'll add this constraint afterwards
@@ -2400,9 +2400,9 @@ describe('solver.spec', function() {
     it('should be able to continue a solution with extra vars', function() {
       let solver = new Solver({});
 
-      solver.addVar('A', specDomainCreateRange(2, 5, true));
+      solver.addVar('A', fixt_arrdom_range(2, 5, true));
       solver.addVar('B', [2, 2, 4, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [4, 5]));
-      solver.addVar('C', specDomainCreateRange(1, 5, true));
+      solver.addVar('C', fixt_arrdom_range(1, 5, true));
       solver['<']('A', 'B');
 
       // should find a solution (there are three or four or whatever)

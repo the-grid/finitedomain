@@ -1,10 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainSmallNums,
+  fixt_arrdom_empty,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_value,
+  fixt_numdom_nums,
   stripAnonVars,
 } from '../fixtures/domain.fixt';
 
@@ -255,7 +255,7 @@ describe('src/space.spec', function() {
 
       it('should return false if a var covers no (more) elements', function() {
         let space = space_createRoot();
-        config_addVarDomain(space.config, 'test', specDomainCreateEmpty());
+        config_addVarDomain(space.config, 'test', fixt_arrdom_empty());
         space_initFromConfig(space);
 
         expect(space_solution(space)).to.eql({test: false});
@@ -263,7 +263,7 @@ describe('src/space.spec', function() {
 
       it('should return the value of a var is solved', function() {
         let space = space_createRoot();
-        config_addVarDomain(space.config, 'test', specDomainCreateValue(5, true));
+        config_addVarDomain(space.config, 'test', fixt_arrdom_value(5, true));
         space_initFromConfig(space);
 
         expect(space_solution(space)).to.eql({test: 5});
@@ -272,14 +272,14 @@ describe('src/space.spec', function() {
       it('should return the domain of a var if not yet determined', function() {
         let space = space_createRoot();
         config_addVarRange(space.config, 'single_range', 10, 120);
-        config_addVarDomain(space.config, 'multi_range', specDomainCreateRanges([10, 20], [30, 40]));
-        config_addVarDomain(space.config, 'multi_range_with_solved', specDomainCreateRanges([18, 20], [25, 25], [30, 40]));
+        config_addVarDomain(space.config, 'multi_range', fixt_arrdom_ranges([10, 20], [30, 40]));
+        config_addVarDomain(space.config, 'multi_range_with_solved', fixt_arrdom_ranges([18, 20], [25, 25], [30, 40]));
         space_initFromConfig(space);
 
         expect(space_solution(space)).to.eql({
-          single_range: specDomainCreateRange(10, 120),
-          multi_range: specDomainCreateRanges([10, 20], [30, 40]),
-          multi_range_with_solved: specDomainCreateRanges([18, 20], [25, 25], [30, 40]),
+          single_range: fixt_arrdom_range(10, 120),
+          multi_range: fixt_arrdom_ranges([10, 20], [30, 40]),
+          multi_range_with_solved: fixt_arrdom_ranges([18, 20], [25, 25], [30, 40]),
         });
       });
 
@@ -313,7 +313,7 @@ describe('src/space.spec', function() {
         let config = space_toConfig(space);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains, 'empty property should exist').to.eql([specDomainCreateRange(SUB, SUP)]);
+        expect(config.initial_domains, 'empty property should exist').to.eql([fixt_arrdom_range(SUB, SUP)]);
       });
     });
 
@@ -355,8 +355,8 @@ describe('src/space.spec', function() {
           // so after propagate() the vars should remain the same
           space_propagate(space);
 
-          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(0, 1));
-          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(0, 1));
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(0, 1));
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(0, 1));
         });
 
         it('step 1; first bool updated', function() {
@@ -375,8 +375,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space);
 
-          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(0)); // we set it
-          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(1)); // by neq
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(0)); // we set it
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(1)); // by neq
         });
 
         it('step 1; second bool updated', function() {
@@ -395,8 +395,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space);
 
-          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(specDomainSmallNums(1)); // by neq
-          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(specDomainSmallNums(0)); // we set it
+          expect(space.vardoms[space.config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(1)); // by neq
+          expect(space.vardoms[space.config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(0)); // we set it
         });
       });
 

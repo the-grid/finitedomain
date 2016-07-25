@@ -1,6 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -24,7 +24,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: [2, 4, 3, 1],
@@ -32,7 +32,7 @@ describe('src/solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: [3, 1, 4, 2],
@@ -144,11 +144,11 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10, true),
+        domain: fixt_arrdom_range(0, 10, true),
       });
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: listCallback,
@@ -156,7 +156,7 @@ describe('src/solver.list.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
         distribute: 'list',
         distributeOptions: {
           list: listCallback,
@@ -198,7 +198,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5, true),
+        domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 3, 4],
@@ -218,7 +218,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 10, true),
+        domain: fixt_arrdom_range(0, 10, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
@@ -234,7 +234,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5, true),
+        domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [0, 15],
@@ -274,7 +274,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5, true),
+        domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 5],
@@ -298,7 +298,7 @@ describe('src/solver.list.spec', function() {
       let solver = new Solver({});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 5, true),
+        domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
           distributor_name: 'list',
           list: [3, 0, 1, 15, 5],

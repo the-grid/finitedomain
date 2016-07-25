@@ -1,6 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
   stripAnonVars,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
@@ -29,7 +29,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V',
-      domain: specDomainCreateRange(0, 1, true),
+      domain: fixt_arrdom_range(0, 1, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
@@ -74,11 +74,11 @@ describe('solver.markov.spec', function() {
 
       solver.addVar({
         id: 'STATE',
-        domain: specDomainCreateRange(0, 10, true),
+        domain: fixt_arrdom_range(0, 10, true),
       });
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(0, 1, true),
+        domain: fixt_arrdom_range(0, 1, true),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -97,7 +97,7 @@ describe('solver.markov.spec', function() {
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(0, 1, true),
+        domain: fixt_arrdom_range(0, 1, true),
         distribute: 'markov',
         distributeOptions: {
           legend: [0, 1],
@@ -207,11 +207,11 @@ describe('solver.markov.spec', function() {
 
     solver.addVar({
       id: 'STATE',
-      domain: specDomainCreateRange(0, 10, true),
+      domain: fixt_arrdom_range(0, 10, true),
     });
     solver.addVar({
       id: 'V1',
-      domain: specDomainCreateRange(0, 100),
+      domain: fixt_arrdom_range(0, 100),
       distribute: 'markov',
       distributeOptions: {
         legend: [10, 100],
@@ -229,7 +229,7 @@ describe('solver.markov.spec', function() {
     });
     solver.addVar({
       id: 'V2',
-      domain: specDomainCreateRange(0, 100),
+      domain: fixt_arrdom_range(0, 100),
       distribute: 'markov',
       distributeOptions: {
         legend: [10, 100],
@@ -268,7 +268,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: specDomainCreateRange(1, 4, true),
+      domain: fixt_arrdom_range(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -282,7 +282,7 @@ describe('solver.markov.spec', function() {
 
     solver.addVar({
       id: 'V2',
-      domain: specDomainCreateRange(1, 4, true),
+      domain: fixt_arrdom_range(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         legend: [1, 2], // 3,4]
@@ -322,7 +322,7 @@ describe('solver.markov.spec', function() {
     let solver = new Solver({});
     solver.addVar({
       id: 'V1',
-      domain: specDomainCreateRange(1, 4, true),
+      domain: fixt_arrdom_range(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -333,7 +333,7 @@ describe('solver.markov.spec', function() {
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
     solver.addVar({
       id: 'V2',
-      domain: specDomainCreateRange(1, 4, true),
+      domain: fixt_arrdom_range(1, 4, true),
       distribute: 'markov',
       distributeOptions: {
         // legend: [1,2,3,4]
@@ -376,11 +376,11 @@ describe('solver.markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A_NORM',
-        domain: specDomainCreateRange(0, 1, true),
+        domain: fixt_arrdom_range(0, 1, true),
       });
       solver.addVar({
         id: 'B_MARK',
-        domain: specDomainCreateRange(0, 1, true),
+        domain: fixt_arrdom_range(0, 1, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [2],

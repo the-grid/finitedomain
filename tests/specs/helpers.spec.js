@@ -1,6 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -116,7 +116,7 @@ describe('src/helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      expect(_ASSERT_DOMAIN(specDomainCreateRange(0, 1, true))).to.equal(undefined);
+      expect(_ASSERT_DOMAIN(fixt_arrdom_range(0, 1, true))).to.equal(undefined);
     });
   });
 
@@ -127,7 +127,7 @@ describe('src/helpers.spec', function() {
     });
 
     it('should not throw with valid domain', function() {
-      _ASSERT_DOMAIN_EMPTY_SET(specDomainCreateRange(0, 1, true));
+      _ASSERT_DOMAIN_EMPTY_SET(fixt_arrdom_range(0, 1, true));
     });
   });
 });

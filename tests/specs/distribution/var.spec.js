@@ -1,9 +1,9 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainFromNums,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_value,
+  fixt_arrdom_nums,
 } from '../../fixtures/domain.fixt';
 
 import distribution_getNextVar, {
@@ -45,11 +45,11 @@ describe('distribution/var.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRange(...range_a, true),
+        domain: fixt_arrdom_range(...range_a, true),
       });
       solver.addVar({
         id: 'B',
-        domain: specDomainCreateRange(...range_b, true),
+        domain: fixt_arrdom_range(...range_b, true),
       });
       solver.prepare({
         distribute: {
@@ -72,8 +72,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if lo(v1) < lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(10, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -84,8 +84,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(11, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -96,8 +96,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(12, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -120,8 +120,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if hi(v1) > hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(12, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -132,8 +132,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(11, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -144,8 +144,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(10, true));
-        config_addVarDomain(config, 'B', specDomainCreateValue(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -193,8 +193,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if size(v1) = size(v2) with multiple ranges', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(11, 15, 16, 17, 18, 19));
-        config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 12, 13, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15, 16, 17, 18, 19));
+        config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 12, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -205,8 +205,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if size(v1) = size(v2) with different range count', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(11, 13, 14, 18, 19));
-        config_addVarDomain(config, 'B', specDomainFromNums(8, 9, 10, 13, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 13, 14, 18, 19));
+        config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 13, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -239,11 +239,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([30, 100]), // 71 elements
+          domain: fixt_arrdom_ranges([30, 100]), // 71 elements
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([0, 50], [60, 90]), // 82 elements
+          domain: fixt_arrdom_ranges([0, 50], [60, 90]), // 82 elements
         });
         solver.prepare({distribute: {var: 'size'}});
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -260,11 +260,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRanges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]), // 69 elements
+          domain: fixt_arrdom_ranges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]), // 69 elements
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRanges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
+          domain: fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
         });
         solver.prepare({distribute: {var: 'size'}});
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -418,11 +418,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 1, true),
+          domain: fixt_arrdom_range(0, 1, true),
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRange(10, 12, true),
+          domain: fixt_arrdom_range(10, 12, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -430,11 +430,11 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: specDomainCreateRange(5, 17, true),
+          domain: fixt_arrdom_range(5, 17, true),
         });
         solver.addVar({
           id: 'D',
-          domain: specDomainCreateRange(13, 13, true),
+          domain: fixt_arrdom_range(13, 13, true),
         });
         solver.prepare({
           distribute: {
@@ -458,11 +458,11 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 1, true),
+          domain: fixt_arrdom_range(0, 1, true),
         });
         solver.addVar({
           id: 'B',
-          domain: specDomainCreateRange(10, 12, true),
+          domain: fixt_arrdom_range(10, 12, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -470,7 +470,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'C',
-          domain: specDomainCreateRange(5, 17, true),
+          domain: fixt_arrdom_range(5, 17, true),
           distributeOptions: {
             distributor_name: 'markov',
             expandVectorsWith: 1,
@@ -478,7 +478,7 @@ describe('distribution/var.spec', function() {
         });
         solver.addVar({
           id: 'D',
-          domain: specDomainCreateRange(13, 13, true),
+          domain: fixt_arrdom_range(13, 13, true),
         });
         solver.prepare({
           distribute: {

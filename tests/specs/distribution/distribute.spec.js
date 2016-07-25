@@ -1,6 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 import {
@@ -20,12 +20,12 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(121, 124),
+          domain: fixt_arrdom_range(121, 124),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(121, 124),
+          domain: fixt_arrdom_range(121, 124),
           distribute: 'max',
         });
         solver['>']('V1', 120);
@@ -62,12 +62,12 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(120, 124),
+          domain: fixt_arrdom_range(120, 124),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(120, 124),
+          domain: fixt_arrdom_range(120, 124),
           distribute: 'max',
         });
         solver['>']('V1', 120);
@@ -105,7 +105,7 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(120, 124),
+          domain: fixt_arrdom_range(120, 124),
           distribute: 'markov',
           distributeOptions: {
             legend: [121, 122, 123, 124],
@@ -117,7 +117,7 @@ describe('distribution/distribute.spec', function() {
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(120, 124, true),
+          domain: fixt_arrdom_range(120, 124, true),
           distribute: 'markov',
           distributeOptions: {
             legend: [121, 122, 123, 124],
@@ -160,12 +160,12 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(1, 4, true),
+          domain: fixt_arrdom_range(1, 4, true),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(1, 4, true),
+          domain: fixt_arrdom_range(1, 4, true),
           distribute: 'max',
         });
         solver['>']('V1', 0);
@@ -202,12 +202,12 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(0, 4, true),
+          domain: fixt_arrdom_range(0, 4, true),
           distribute: 'min',
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(0, 4, true),
+          domain: fixt_arrdom_range(0, 4, true),
           distribute: 'max',
         });
         solver['>']('V1', 0);
@@ -245,7 +245,7 @@ describe('distribution/distribute.spec', function() {
         let solver = new Solver({});
         solver.addVar({
           id: 'V1',
-          domain: specDomainCreateRange(0, 4, true),
+          domain: fixt_arrdom_range(0, 4, true),
           distribute: 'markov',
           distributeOptions: {
             legend: [1, 2, 3, 4],
@@ -257,7 +257,7 @@ describe('distribution/distribute.spec', function() {
         });
         solver.addVar({
           id: 'V2',
-          domain: specDomainCreateRange(0, 4, true),
+          domain: fixt_arrdom_range(0, 4, true),
           distribute: 'markov',
           distributeOptions: {
             legend: [1, 2, 3, 4],

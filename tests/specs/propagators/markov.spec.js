@@ -1,6 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
 } from '../../fixtures/domain.fixt';
 
 import Solver from '../../../src/solver';
@@ -22,7 +22,7 @@ describe('propagators/markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRange(0, 0, true),
+        domain: fixt_arrdom_range(0, 0, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [0],
@@ -43,7 +43,7 @@ describe('propagators/markov.spec', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
-        domain: specDomainCreateRange(0, 0, true),
+        domain: fixt_arrdom_range(0, 0, true),
         distributeOptions: {
           distributor_name: 'markov',
           legend: [1],
@@ -66,7 +66,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -87,7 +87,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -111,7 +111,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -137,7 +137,7 @@ describe('propagators/markov.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],

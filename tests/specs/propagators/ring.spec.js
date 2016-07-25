@@ -1,6 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainSmallRange,
+  fixt_numdom_range,
 } from '../../fixtures/domain.fixt';
 
 import propagator_ringStepBare from '../../../src/propagators/ring';
@@ -15,6 +15,6 @@ describe('propagators/ring.spec', function() {
 
     let S = propagator_ringStepBare(A, B, C, domain_minus, 'min');
 
-    expect(S).to.eql(specDomainSmallRange(0, 0));
+    expect(S).to.eql(fixt_numdom_range(0, 0));
   });
 });

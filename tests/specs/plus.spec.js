@@ -1,11 +1,11 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  fixt_arrdom_empty,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_value,
+  fixt_numdom_nums,
+  fixt_numdom_range,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -35,41 +35,41 @@ describe('src/plus.spec.js', function() {
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(specDomainCreateEmpty(), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+      expect(domain_plus(fixt_arrdom_empty(), fixt_arrdom_empty())).to.eql(fixt_arrdom_empty(1));
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(specDomainCreateEmpty(), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
+      expect(domain_plus(fixt_arrdom_empty(), fixt_arrdom_empty())).to.eql(fixt_arrdom_empty(1));
 
       let a = [];
-      expect(domain_plus(a, specDomainCreateEmpty())).to.not.equal(a);
+      expect(domain_plus(a, fixt_arrdom_empty())).to.not.equal(a);
 
       a = [];
-      expect(domain_plus(specDomainCreateEmpty(), a)).to.not.equal(a);
+      expect(domain_plus(fixt_arrdom_empty(), a)).to.not.equal(a);
     });
 
     describe('with array', function() {
 
       it('should add two ranges', function() {
-        let A = specDomainSmallRange(5, 10);
-        let B = specDomainCreateRange(50, 60);
-        let E = specDomainCreateRange(55, 70);
+        let A = fixt_numdom_range(5, 10);
+        let B = fixt_arrdom_range(50, 60);
+        let E = fixt_arrdom_range(55, 70);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([5, 10], [20, 35]);
-        let B = specDomainCreateRanges([50, 60], [110, 128]);
-        let E = specDomainCreateRanges([55, 95], [115, 163]);
+        let A = fixt_arrdom_ranges([5, 10], [20, 35]);
+        let B = fixt_arrdom_ranges([50, 60], [110, 128]);
+        let E = fixt_arrdom_ranges([55, 95], [115, 163]);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let E = specDomainCreateRanges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
+        let A = fixt_arrdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let B = fixt_arrdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let E = fixt_arrdom_ranges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -78,9 +78,9 @@ describe('src/plus.spec.js', function() {
         // since [SUP, SUP] + [1, 1] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = specDomainCreateValue(SUP);
-        let B = specDomainCreateValue(1, true);
-        let E = specDomainCreateEmpty(true);
+        let A = fixt_arrdom_value(SUP);
+        let B = fixt_arrdom_value(1, true);
+        let E = fixt_arrdom_empty(true);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -89,9 +89,9 @@ describe('src/plus.spec.js', function() {
         // since [1, 1] + [SUP, SUP] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = specDomainCreateValue(1, true);
-        let B = specDomainCreateValue(SUP);
-        let E = specDomainCreateEmpty(true);
+        let A = fixt_arrdom_value(1, true);
+        let B = fixt_arrdom_value(SUP);
+        let E = fixt_arrdom_empty(true);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -99,25 +99,25 @@ describe('src/plus.spec.js', function() {
     describe('with numbers', function() {
 
       it('should add two ranges', function() {
-        let A = specDomainSmallRange(5, 10);
-        let B = specDomainCreateRange(50, 60);
-        let E = specDomainCreateRange(55, 70);
+        let A = fixt_numdom_range(5, 10);
+        let B = fixt_arrdom_range(50, 60);
+        let E = fixt_arrdom_range(55, 70);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([5, 10], [20, 35]);
-        let B = specDomainCreateRanges([50, 60], [110, 128]);
-        let E = specDomainCreateRanges([55, 95], [115, 163]);
+        let A = fixt_arrdom_ranges([5, 10], [20, 35]);
+        let B = fixt_arrdom_ranges([50, 60], [110, 128]);
+        let E = fixt_arrdom_ranges([55, 95], [115, 163]);
 
         expect(domain_plus(A, B)).to.eql(E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
-        let B = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
-        let E = specDomainCreateRanges([0, 2], [4, 34]);
+        let A = fixt_numdom_nums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+        let B = fixt_numdom_nums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
+        let E = fixt_arrdom_ranges([0, 2], [4, 34]);
 
         expect(domain_plus(A, B)).to.eql(E);
       });

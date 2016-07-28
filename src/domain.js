@@ -53,8 +53,8 @@ let FORCE_STRING = 2;
 //let FIRST_RANGE = 0;
 let STR_FIRST_RANGE_LO = 0; // first and second char of a string
 let STR_FIRST_RANGE_HI = 2; // third and fourth char of a string
-let LO_BOUND = 0;
-let HI_BOUND = 1;
+let ARR_FIRST_RANGE_LO = 0;
+let ARR_FIRST_RANGE_HI = 1;
 
 // Cache static Math functions
 let MIN = Math.min;
@@ -250,7 +250,6 @@ function domain_isValue(domain, value) {
 function domain_isValueStr(domain, value) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   ASSERT_DOMAIN(domain);
-  //return domain.length === RANGE_SIZE && domain_getValueStr(domain, LO_BOUND) === value && domain_getValueStr(domain, HI_BOUND) === value;
   return domain.length === STR_RANGE_SIZE && (domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) | domain_strDecodeValue(domain, STR_FIRST_RANGE_HI)) === value;
 }
 
@@ -2065,8 +2064,8 @@ function domain_tryToFixLegacyDomain(domain) {
     if (rangeArr.length !== ARR_RANGE_SIZE) {
       return;
     }
-    let lo = rangeArr[LO_BOUND];
-    let hi = rangeArr[HI_BOUND];
+    let lo = rangeArr[ARR_FIRST_RANGE_LO];
+    let hi = rangeArr[ARR_FIRST_RANGE_HI];
     if (lo > hi) {
       return;
     }
@@ -2079,12 +2078,10 @@ function domain_tryToFixLegacyDomain(domain) {
 // BODY_STOP
 
 export {
-  STR_FIRST_RANGE_LO,
-  STR_FIRST_RANGE_HI,
+  ARR_FIRST_RANGE_HI,
+  ARR_FIRST_RANGE_LO,
   FORCE_ARRAY,
   FORCE_STRING,
-  LO_BOUND,
-  HI_BOUND,
   NO_CHANGES,
   NOT_FOUND,
   ARR_RANGE_SIZE,
@@ -2092,8 +2089,10 @@ export {
   SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
   SOME_CHANGES,
-  STR_VALUE_SIZE,
+  STR_FIRST_RANGE_HI,
+  STR_FIRST_RANGE_LO,
   STR_RANGE_SIZE,
+  STR_VALUE_SIZE,
 
   ZERO,
   ONE,

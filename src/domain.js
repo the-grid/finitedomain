@@ -51,8 +51,8 @@ let FORCE_STRING = 2;
 // ascending and no ranges overlap. We call this "simplified"
 
 //let FIRST_RANGE = 0;
-let FIRST_RANGE_LO = 0; // first and second char of a string
-let FIRST_RANGE_HI = 2; // third and fourth char of a string
+let STR_FIRST_RANGE_LO = 0; // first and second char of a string
+let STR_FIRST_RANGE_HI = 2; // third and fourth char of a string
 let LO_BOUND = 0;
 let HI_BOUND = 1;
 
@@ -251,7 +251,7 @@ function domain_isValueStr(domain, value) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   ASSERT_DOMAIN(domain);
   //return domain.length === RANGE_SIZE && domain_getValueStr(domain, LO_BOUND) === value && domain_getValueStr(domain, HI_BOUND) === value;
-  return domain.length === STR_RANGE_SIZE && (domain_strDecodeValue(domain, FIRST_RANGE_LO) | domain_strDecodeValue(domain, FIRST_RANGE_HI)) === value;
+  return domain.length === STR_RANGE_SIZE && (domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) | domain_strDecodeValue(domain, STR_FIRST_RANGE_HI)) === value;
 }
 
 /**
@@ -270,8 +270,8 @@ function domain_getValueStr(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
 
   if (domain.length !== STR_RANGE_SIZE) return NO_SUCH_VALUE;
-  let lo = domain_strDecodeValue(domain, FIRST_RANGE_LO);
-  let hi = domain_strDecodeValue(domain, FIRST_RANGE_HI);
+  let lo = domain_strDecodeValue(domain, STR_FIRST_RANGE_LO);
+  let hi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
   if (lo === hi) return lo;
   return NO_SUCH_VALUE;
 }
@@ -660,9 +660,9 @@ function _domain_mergeOverlappingRanges(domain) {
   let len = domain.length;
   if (len === STR_RANGE_SIZE) return domain;
 
-  let newDomain = domain[FIRST_RANGE_LO] + domain[FIRST_RANGE_LO + 1];
-  let lasthi = domain_strDecodeValue(domain, FIRST_RANGE_HI);
-  let lasthindex = FIRST_RANGE_HI;
+  let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
+  let lasthi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  let lasthindex = STR_FIRST_RANGE_HI;
 
   for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain, i);
@@ -702,9 +702,9 @@ function domain_isSimplified(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
 
   if (domain.length === STR_RANGE_SIZE) {
-    ASSERT(domain_strDecodeValue(domain, FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
-    ASSERT(domain_strDecodeValue(domain, FIRST_RANGE_HI) <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
-    ASSERT(domain_strDecodeValue(domain, FIRST_RANGE_LO) <= domain_strDecodeValue(domain, FIRST_RANGE_HI), 'A_RANGES_SHOULD_ASCEND');
+    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
+    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_HI) <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
+    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) <= domain_strDecodeValue(domain, STR_FIRST_RANGE_HI), 'A_RANGES_SHOULD_ASCEND');
     return true;
   }
 
@@ -815,10 +815,10 @@ function _domain_intersectionStrStr(domain1, domain2) {
   let index1 = 0;
   let index2 = 0;
 
-  let lo1 = domain_strDecodeValue(domain1, FIRST_RANGE_LO);
-  let hi1 = domain_strDecodeValue(domain1, FIRST_RANGE_HI);
-  let lo2 = domain_strDecodeValue(domain2, FIRST_RANGE_LO);
-  let hi2 = domain_strDecodeValue(domain2, FIRST_RANGE_HI);
+  let lo1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_LO);
+  let hi1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_HI);
+  let lo2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_LO);
+  let hi2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_HI);
 
   while (true) {
     if (hi1 < lo2) {
@@ -939,9 +939,9 @@ function domain_closeGapsStr(domain1, domain2) {
 function _domain_closeGapsStr(domain, gap) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
-  let newDomain = domain[FIRST_RANGE_LO] + domain[FIRST_RANGE_LO + 1];
-  let lasthi = domain_strDecodeValue(domain, FIRST_RANGE_HI);
-  let lasthindex = FIRST_RANGE_HI;
+  let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
+  let lasthi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  let lasthindex = STR_FIRST_RANGE_HI;
 
   for (let i = STR_RANGE_SIZE, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain, i);
@@ -1211,7 +1211,7 @@ function domain_min(domain) {
 function domain_minStr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  return domain_strDecodeValue(domain, FIRST_RANGE_LO);
+  return domain_strDecodeValue(domain, STR_FIRST_RANGE_LO);
 }
 
 /**
@@ -1270,7 +1270,7 @@ function domain_isSolvedStr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   // TODO: could do this by comparing strings, no need to convert
-  return domain.length === STR_RANGE_SIZE && domain_strDecodeValue(domain, FIRST_RANGE_LO) === domain_strDecodeValue(domain, FIRST_RANGE_HI);
+  return domain.length === STR_RANGE_SIZE && domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) === domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
 }
 
 /**
@@ -1295,7 +1295,7 @@ function domain_isUndeterminedStr(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   // TODO: could do this by comparing strings, no need to convert
-  return domain.length > STR_RANGE_SIZE || domain_strDecodeValue(domain, FIRST_RANGE_LO) !== domain_strDecodeValue(domain, FIRST_RANGE_HI);
+  return domain.length > STR_RANGE_SIZE || domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) !== domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
 }
 
 /**
@@ -1577,10 +1577,10 @@ function domain_sharesNoElementsStrStr(domain1, domain2) {
   let index1 = 0;
   let index2 = 0;
 
-  let lo1 = domain_strDecodeValue(domain1, FIRST_RANGE_LO);
-  let hi1 = domain_strDecodeValue(domain1, FIRST_RANGE_HI);
-  let lo2 = domain_strDecodeValue(domain2, FIRST_RANGE_LO);
-  let hi2 = domain_strDecodeValue(domain2, FIRST_RANGE_HI);
+  let lo1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_LO);
+  let hi1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_HI);
+  let lo2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_LO);
+  let hi2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_HI);
 
   while (true) {
     if (hi1 < lo2) {
@@ -2079,8 +2079,8 @@ function domain_tryToFixLegacyDomain(domain) {
 // BODY_STOP
 
 export {
-  FIRST_RANGE_LO,
-  FIRST_RANGE_HI,
+  STR_FIRST_RANGE_LO,
+  STR_FIRST_RANGE_HI,
   FORCE_ARRAY,
   FORCE_STRING,
   LO_BOUND,

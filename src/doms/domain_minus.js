@@ -18,6 +18,7 @@
 
 import {
   EMPTY,
+  EMPTY_STR,
   SUB,
 
   ASSERT,
@@ -93,7 +94,7 @@ function _domain_minusStrStrStr(domain1, domain2) {
   domain1 = domains[0];
   domain2 = domains[1];
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain1, index);
     let hi = domain_strDecodeValue(domain1, index + STR_VALUE_SIZE);
@@ -206,7 +207,7 @@ function _domain_minusStrNumStr(domain_str, domain_num) {
     return domain_createRange(0, domain_max(domain_str));
   }
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain_str, index);
     let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
@@ -227,7 +228,7 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
@@ -244,7 +245,7 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
 }
 function _domain_minusRangeStrStr(loi, hii, domain_str) {
   ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain_str, index);
     let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
@@ -268,7 +269,7 @@ function _domain_minusRangeRangeStr(loi, hii, loj, hij) {
     let lo = MAX(SUB, loi - hij);
     return domain_strEncodeRange(lo, hi);
   }
-  return '';
+  return EMPTY_STR;
 }
 function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
   let hi = hii - loj;

@@ -10,6 +10,7 @@
 
 import {
   EMPTY,
+  EMPTY_STR,
   SUP,
 
   ASSERT,
@@ -83,7 +84,7 @@ function _domain_plusStrStrStr(domain1, domain2) {
   domain1 = domains[0];
   domain2 = domains[1];
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain1, index);
     let hi = domain_strDecodeValue(domain1, index + STR_VALUE_SIZE);
@@ -111,7 +112,7 @@ function _domain_plusNumNumStr(domain1, domain2) {
 
   let flagValue = 1 << ++flagIndex;
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain1) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
@@ -197,7 +198,7 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
 
   let flagValue = 1 << ++flagIndex;
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
@@ -224,7 +225,7 @@ function _domain_plusRangeNumStr(loi, hii, domain_num) {
 
   let flagValue = 1 << ++flagIndex;
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
@@ -242,7 +243,7 @@ function _domain_plusRangeNumStr(loi, hii, domain_num) {
 function _domain_plusRangeStrStr(loi, hii, domain_str) {
   ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
 
-  let newDomain = '';
+  let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain_str, index);
     let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
@@ -257,7 +258,7 @@ function _domain_plusRangeRangeStr(loi, hii, loj, hij) {
     let hi = MIN(SUP, hii + hij);
     return domain_strEncodeRange(lo, hi);
   }
-  return '';
+  return EMPTY_STR;
 }
 function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
   ASSERT(loi + loj >= 0, 'DOMAINS_SHOULD_NOT_HAVE_NEGATIVES');

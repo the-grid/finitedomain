@@ -333,7 +333,7 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
     return d;
   }
 
-  let domain = '';
+  let domain = EMPTY_STR;
   let hi;
   let lo;
   for (let index = 0; index < list.length; index++) {
@@ -449,7 +449,7 @@ function domain_removeNextFromListNum(domain, list) {
  */
 function domain_removeNextFromListStr(domain, list) {
   let r = _domain_removeNextFromListStr(domain, list); // replace empty string
-  ASSERT(r || r === '', 'if it returns falsy it should be the empty string and not some other falsy');
+  ASSERT(r || r === EMPTY_STR, 'if it returns falsy it should be the empty string and not some other falsy');
   return r || EMPTY; // replace '' with 0
 }
 /**
@@ -566,7 +566,7 @@ function domain_complement(domain) {
   if (!domain) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
 
   let end = SUB;
-  let result = '';
+  let result = EMPTY_STR;
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain, i);
     ASSERT(!end || end < lo, 'domain is supposed to be csis, so ranges dont overlap nor touch');
@@ -622,8 +622,8 @@ function _domain_quickSortRangesStr(domain) {
   let pivotLo = domain_strDecodeValue(domain, pivotIndex);
   let pivotHi = domain_strDecodeValue(domain, pivotIndex + STR_VALUE_SIZE);
 
-  let left = '';
-  let right = '';
+  let left = EMPTY_STR;
+  let right = EMPTY_STR;
 
   for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_strDecodeValue(domain, i);
@@ -1003,7 +1003,7 @@ function domain_mulStrStr(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
-  let result = '';
+  let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
     let loi = domain_strDecodeValue(domain1, i);
     let hii = domain_strDecodeValue(domain1, i + STR_VALUE_SIZE);
@@ -1064,7 +1064,7 @@ function domain_divbyStrStr(domain1, domain2, floorFractions = true) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
-  let result = '';
+  let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
     let loi = domain_strDecodeValue(domain1, i);
     let hii = domain_strDecodeValue(domain1, i + STR_VALUE_SIZE);
@@ -1746,7 +1746,7 @@ function domain_numToStr(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   if (domain === EMPTY) return EMPTY_STR;
 
-  let str = '';
+  let str = EMPTY_STR;
   let lo = -1;
   let hi = -1;
 
@@ -1847,7 +1847,7 @@ function domain_arrToNumstr(domain_arr) {
 function domain_arrToStr(domain_arr) {
   ASSERT(domain_arr instanceof Array, 'ARRAYS_ONLY');
 
-  let str = '';
+  let str = EMPTY_STR;
   for (let i = 0, len = domain_arr.length; i < len; i += ARR_RANGE_SIZE) {
     let lo = domain_arr[i];
     let hi = domain_arr[i + 1];

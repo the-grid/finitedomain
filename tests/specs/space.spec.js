@@ -5,6 +5,7 @@ import {
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_numdom_nums,
+  fixt_strdom_range,
   stripAnonVars,
 } from '../fixtures/domain.fixt';
 
@@ -313,7 +314,7 @@ describe('src/space.spec', function() {
         let config = space_toConfig(space);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains, 'empty property should exist').to.eql([fixt_arrdom_range(SUB, SUP)]);
+        expect(config.initial_domains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);
       });
     });
 

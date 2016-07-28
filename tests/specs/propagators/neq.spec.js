@@ -1,13 +1,13 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_empty,
-  fixt_arrdom_range,
-  fixt_arrdom_ranges,
-  fixt_arrdom_value,
   fixt_arrdom_nums,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_strdom_range,
+  fixt_strdom_ranges,
+  fixt_strdom_value,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -115,16 +115,16 @@ describe('propagators/neq.spec', function() {
 
     describe('with array', function() {
       // these are the (non-solved) cases plucked from eq tests
-      test(fixt_arrdom_range(SUB, SUP), fixt_arrdom_ranges([0, 10], [20, 140]));
-      test(fixt_arrdom_range(SUP - 1, SUP), fixt_arrdom_range(SUP - 1, SUP));
-      test(fixt_arrdom_range(20, 50), fixt_arrdom_range(20, 50));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]));
-      test(fixt_arrdom_ranges([0, 10], [25, 25], [40, 50]), fixt_arrdom_ranges([0, 10], [25, 25], [40, 50]));
-      test(fixt_arrdom_range(SUP - 2, SUP), fixt_arrdom_range(SUP - 2, SUP));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]));
-      test(fixt_arrdom_range(SUP - 2, SUP), fixt_arrdom_range(SUP - 3, SUP - 1));
-      test(fixt_arrdom_range(SUP - 2, SUP), fixt_arrdom_range(SUP - 4, SUP - 1));
+      test(fixt_strdom_range(SUB, SUP), fixt_strdom_ranges([0, 10], [20, 140]));
+      test(fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP));
+      test(fixt_strdom_range(20, 50), fixt_strdom_range(20, 50));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
+      test(fixt_strdom_ranges([0, 10], [25, 25], [40, 50]), fixt_strdom_ranges([0, 10], [25, 25], [40, 50]));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 2, SUP));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([5, 15], [25, 35]));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([SUB, SUP]));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 3, SUP - 1));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 4, SUP - 1));
     });
 
     describe('with numbers', function() {
@@ -171,14 +171,14 @@ describe('propagators/neq.spec', function() {
     }
 
     describe('with array', function() {
-      test(fixt_arrdom_range(SUP, SUP), fixt_arrdom_range(SUP - 1, SUP), fixt_arrdom_range(SUP - 1, SUP - 1), SOME_CHANGES);
-      test(fixt_arrdom_range(SUP - 1, SUP - 1), fixt_arrdom_range(SUP - 1, SUP), fixt_arrdom_range(SUP, SUP), SOME_CHANGES);
-      test(fixt_arrdom_range(SUP, SUP), fixt_arrdom_range(SUP - 50, SUP), fixt_arrdom_range(SUP - 50, SUP - 1), SOME_CHANGES);
-      test(fixt_arrdom_range(120, 120), fixt_arrdom_ranges([120, SUP - 1]), fixt_arrdom_range(121, SUP - 1), SOME_CHANGES);
-      test(fixt_arrdom_range(910, 910), fixt_arrdom_ranges([910, 910], [912, 950]), fixt_arrdom_ranges([912, 950]), SOME_CHANGES);
-      test(fixt_arrdom_range(910, 910), fixt_arrdom_ranges([90, 98], [910, 910], [912, 920]), fixt_arrdom_ranges([90, 98], [912, 920]), SOME_CHANGES);
-      test(fixt_arrdom_range(910, 910), fixt_arrdom_ranges([90, 910], [912, 950]), fixt_arrdom_ranges([90, 909], [912, 950]), SOME_CHANGES);
-      test(fixt_arrdom_range(91, 91), fixt_arrdom_range(90, 93), fixt_arrdom_ranges([90, 90], [92, 93]), SOME_CHANGES);
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP), SOME_CHANGES);
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 98], [910, 910], [912, 920]), fixt_strdom_ranges([90, 98], [912, 920]), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 910], [912, 950]), fixt_strdom_ranges([90, 909], [912, 950]), SOME_CHANGES);
+      test(fixt_strdom_range(91, 91), fixt_strdom_range(90, 93), fixt_strdom_ranges([90, 90], [92, 93]), SOME_CHANGES);
     });
 
     describe('with numbers', function() {
@@ -258,11 +258,11 @@ describe('propagators/neq.spec', function() {
     }
 
     describe('with array', function() {
-      test(fixt_arrdom_value(SUP), fixt_arrdom_value(SUP - 1));
-      test(fixt_arrdom_value(SUP - 1), fixt_arrdom_value(SUP - 2));
-      test(fixt_arrdom_value(SUP - 1), fixt_arrdom_value(SUP - 20));
-      test(fixt_arrdom_value(SUP), fixt_arrdom_value(500));
-      test(fixt_arrdom_value(800), fixt_arrdom_value(801));
+      test(fixt_strdom_value(SUP), fixt_strdom_value(SUP - 1));
+      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 2));
+      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 20));
+      test(fixt_strdom_value(SUP), fixt_strdom_value(500));
+      test(fixt_strdom_value(800), fixt_strdom_value(801));
     });
 
     describe('with numbers', function() {

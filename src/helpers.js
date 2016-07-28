@@ -33,6 +33,7 @@ let SOLVED = 1;
 let UNDETERMINED = 0;
 let NOT_FOUND = -1;
 let EMPTY = 0;
+let EMPTY_STR = '';
 
 let LOG_NONE = 0;
 let LOG_STATS = 1;
@@ -45,9 +46,11 @@ let NO_SUCH_VALUE = Math.min(0, SUB) - 1; // make sure NO_SUCH_VALUE is a value 
 let ENABLED = true; // override for most tests (but not regular ASSERTs) like full domains and space validations
 let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha sees the expandos
 let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos
-let PAIR_SIZE = 2;
+let ARR_RANGE_SIZE = 2;
 
 // __REMOVE_BELOW_FOR_ASSERTS__
+
+ASSERT(NOT_FOUND === NO_SUCH_VALUE, 'keep not found constants equal to prevent confusion bugs');
 
 // For unit tests
 // Should be removed in production. Obviously.
@@ -94,9 +97,9 @@ function ASSERT_DOMAIN(domain) {
 }
 function _ASSERT_DOMAIN(domain) {
   ASSERT(domain instanceof Array, 'domains should be an array', domain);
-  ASSERT(domain.length % PAIR_SIZE === 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % PAIR_SIZE);
+  ASSERT(domain.length % ARR_RANGE_SIZE === 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % ARR_RANGE_SIZE);
   let phi = SUB - 2; // this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
-  for (let index = 0, step = PAIR_SIZE; index < domain.length; index += step) {
+  for (let index = 0, step = ARR_RANGE_SIZE; index < domain.length; index += step) {
     let lo = domain[index];
     let hi = domain[index + 1];
     ASSERT(typeof lo === 'number', 'domains should just be numbers', domain);
@@ -206,6 +209,7 @@ export {
   // __REMOVE_ABOVE_FOR_DIST__
 
   EMPTY,
+  EMPTY_STR,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -213,7 +217,7 @@ export {
   LOG_MIN,
   NOT_FOUND,
   NO_SUCH_VALUE,
-  PAIR_SIZE,
+  ARR_RANGE_SIZE,
   REJECTED,
   SOLVED,
   SOME_CHANGES,

@@ -1,9 +1,10 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_empty,
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_arrdom_nums,
+  fixt_strdom_ranges,
   fixt_numdom_empty,
   fixt_numdom_nums,
 } from '../../fixtures/domain.fixt';
@@ -18,6 +19,7 @@ import {
 import {
   FORCE_ARRAY,
 
+  domain_toNumstr,
   domain_clone,
 } from '../../../src/domain';
 import {
@@ -80,8 +82,8 @@ describe('propagators/eq.spec', function() {
     let B = config.all_var_names.indexOf('B');
 
     expect(propagator_eqStepBare(space, A, B)).to.equal(SOME_CHANGES);
-    expect(space.vardoms[A]).to.eql(fixt_arrdom_ranges([0, 10], [20, 300]));
-    expect(space.vardoms[B]).to.eql(fixt_arrdom_ranges([0, 10], [20, 300]));
+    expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
+    expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
   });
 
   it('with number should split a domain if it covers multiple ranges of other domain', function() {
@@ -113,8 +115,8 @@ describe('propagators/eq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         expect(propagator_eqStepBare(space, A, B)).to.equal(NO_CHANGES);
-        expect(space.vardoms[A]).to.eql(domain);
-        expect(space.vardoms[B]).to.eql(domain);
+        expect(space.vardoms[A]).to.eql(domain_toNumstr(domain));
+        expect(space.vardoms[B]).to.eql(domain_toNumstr(domain));
       });
     }
 
@@ -172,7 +174,7 @@ describe('propagators/eq.spec', function() {
     test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_nums(1, 1), SOME_CHANGES);
     test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_nums(5, 5), SOME_CHANGES);
     test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30), SOME_CHANGES);
-    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
     test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty(), REJECTED);
     test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_nums(2), SOME_CHANGES);
   });

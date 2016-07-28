@@ -25,6 +25,7 @@ import {
 import {
   FORCE_ARRAY,
 
+  domain_arrToStr,
   domain_clone,
   domain_createRange,
   domain_fromList,
@@ -32,7 +33,7 @@ import {
   domain_max,
   domain_toArr,
   domain_toList,
-  domain_validate,
+  domain_validateOldArr,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -90,7 +91,13 @@ class Solver {
       //console.log(doms)
       //console.log('##')
       delete config.initial_vars;
-      throw new Error('test');
+      throw new Error('update test');
+    }
+    if (config.initial_domains) {
+      let initialDomains = config.initial_domains;
+      for (let i = 0, len = initialDomains.length; i < len; ++i) {
+        if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
+      }
     }
 
     this._class = 'solver';
@@ -187,7 +194,7 @@ class Solver {
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
     if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    domain = domain_validate(domain);
+    domain = domain_validateOldArr(domain);
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -244,7 +251,7 @@ class Solver {
     if (domain === undefined) {
       domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
     } else {
-      domain = domain_validate(domain);
+      domain = domain_validateOldArr(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     }
 
@@ -655,6 +662,18 @@ class Solver {
    */
   domain_toList(domain) {
     return domain_toList(domain);
+  }
+
+  /**
+   * Expose a method to normalize the internal representation
+   * of a domain to always return an array representation
+   *
+   * @param {$space} space
+   * @param {number} varIndex
+   * @returns {$domain_arr}
+   */
+  getDomain(space, varIndex) {
+    return domain_toArr(space.vardoms[varIndex]);
   }
 
   /**

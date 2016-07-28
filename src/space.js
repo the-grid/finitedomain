@@ -25,7 +25,7 @@ import {
 } from './config';
 
 import {
-  FORCE_ARRAY,
+  FORCE_STRING,
 
   domain_clone,
   domain_getValue,
@@ -107,7 +107,7 @@ function space_toConfig(space) {
   let names = space.config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
-    newDomains[i] = domain_clone(domain, FORCE_ARRAY);
+    newDomains[i] = domain_clone(domain, FORCE_STRING);
   }
 
   return config_clone(space.config, newDomains);
@@ -390,12 +390,17 @@ function space_getVarSolveState(space, varIndex) {
   return domain_toArr(domain);
 }
 
+function space_getDomainArr(space, varIndex) {
+  return domain_toArr(space.vardoms[varIndex]);
+}
+
 // BODY_STOP
 
 export {
   space_createClone,
   space_createFromConfig,
   space_createRoot,
+  space_getDomainArr,
   space_getVarSolveState,
   space_initFromConfig,
   space_updateUnsolvedVarList,

@@ -6,6 +6,7 @@ new choice left it should return undefined to signify the end.
 */
 
 import {
+  EMPTY,
   NO_SUCH_VALUE,
 
   ASSERT,
@@ -13,6 +14,7 @@ import {
 } from '../helpers';
 
 import {
+  domain_appendRange,
   domain_containsValue,
   domain_createValue,
   domain_createRange,
@@ -254,18 +256,19 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
     case SECOND_CHOICE:
       let lo = domain_min(domain);
       let hi = domain_max(domain);
-      let arr = [];
+
+      let domainMask = EMPTY;
       if (middle > lo) {
-        arr.push(lo, middle - 1);
+        domainMask = domain_appendRange(domainMask, lo, middle - 1);
       }
       if (middle < hi) {
-        arr.push(middle + 1, hi);
+        domainMask = domain_appendRange(domainMask, middle + 1, hi);
       }
 
       // Note: domain is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-      return domain_intersection(domain, arr);
+      return domain_intersection(domain, domainMask);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -435,18 +438,19 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
       let lastValue = space._markov_last_value;
       let lo = domain_min(domain);
       let hi = domain_max(domain);
-      let arr = [];
+
+      let domainMask = EMPTY;
       if (lastValue > lo) {
-        arr.push(lo, lastValue - 1);
+        domainMask = domain_appendRange(domainMask, lo, lastValue - 1);
       }
       if (lastValue < hi) {
-        arr.push(lastValue + 1, hi);
+        domainMask = domain_appendRange(domainMask, lastValue + 1, hi);
       }
 
       // Note: domain is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
-      let newDomain = domain_intersection(domain, arr);
+      let newDomain = domain_intersection(domain, domainMask);
       if (domain_isRejected(newDomain)) return NO_CHOICE;
       return newDomain;
     }

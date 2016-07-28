@@ -553,10 +553,8 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', fixt_arrdom_range(100, 105));
         solver.callback(['A'], function(space, vars) {
-          if (space.vardoms[vars[0]][0] === space.vardoms[vars[0]][1] && (space.vardoms[vars[0]][0] % 2) === 0) {
-            return false;
-          }
-          return true;
+          let domain = solver.getDomain(space, vars[0]);
+          return !(domain[0] === domain[1] && (domain[0] % 2) === 0);
         });
         let solution = solver.solve({max: 10});
 
@@ -567,10 +565,8 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', fixt_arrdom_range(100, 105));
         solver.callback(['A'], function(space, vars) {
-          if (space.vardoms[vars[0]][0] === space.vardoms[vars[0]][1] && (space.vardoms[vars[0]][0] % 2) === 1) {
-            return false;
-          }
-          return true;
+          let domain = solver.getDomain(space, vars[0]);
+          return !(domain[0] === domain[1] && (domain[0] % 2) === 1);
         });
         let solution = solver.solve({max: 10});
 

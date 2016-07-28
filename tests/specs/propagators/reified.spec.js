@@ -3,6 +3,7 @@ import {
   fixt_arrdom_range,
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_strdom_range,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 import {
@@ -93,7 +94,7 @@ describe('propagators/reified.spec', function() {
         riftest(fixt_numdom_range(0, 5), fixt_numdom_range(10, 15), bool, 'eq', 'neq', SOME_CHANGES, zero, 'undetermined but can proof eq is impossible');
         riftest(fixt_numdom_range(0, 5), fixt_numdom_range(3, 8), bool, 'eq', 'neq', NO_CHANGES, bool, 'undetermined but with overlap so cannot proof eq/neq yet');
         riftest(fixt_numdom_range(0, 5), one, bool, 'eq', 'neq', NO_CHANGES, bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-        riftest(fixt_arrdom_range(110, 120), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
+        riftest(fixt_strdom_range(110, 120), one, bool, 'eq', 'neq', SOME_CHANGES, zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
   });

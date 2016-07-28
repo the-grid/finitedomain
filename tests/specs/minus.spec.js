@@ -15,8 +15,8 @@ import {
   SMALL_MAX_NUM,
 
   domain_debug,
-  domain_toNumstr,
   domain_fromList,
+  domain_toNumstr,
 } from '../../src/domain';
 import domain_minus from '../../src/doms/domain_minus';
 

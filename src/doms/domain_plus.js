@@ -24,11 +24,11 @@ import {
   STR_VALUE_SIZE,
 
   domain_closeGapsStr,
-  domain_numstr,
   domain_strDecodeValue,
   domain_strEncodeRange,
   domain_max,
   domain_simplifyStr,
+  domain_toNumstr,
 } from '../domain';
 import {
   asmdomain_createRange,
@@ -71,7 +71,7 @@ function domain_plus(domain1, domain2) {
     else result = _domain_plusStrStrStr(domain1, domain2);
   }
 
-  return domain_numstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_simplifyStr(result));
 }
 function _domain_plusStrStrStr(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);

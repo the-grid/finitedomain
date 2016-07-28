@@ -13,7 +13,7 @@ import {
   ZERO,
   BOOL,
 
-  domain_numstr,
+  domain_toNumstr,
 } from './domain';
 
 // BODY_START
@@ -59,9 +59,9 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     case 'eq': {
       var nopname = 'neq';
 
-      let A = domain_numstr(config.initial_domains[leftVarIndex]);
-      let B = domain_numstr(config.initial_domains[rightVarIndex]);
-      let C = domain_numstr(config.initial_domains[resultVarIndex]);
+      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
+      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
+      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
       if (C === BOOL) {
@@ -89,9 +89,9 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     case 'neq': {
       nopname = 'eq';
 
-      let A = domain_numstr(config.initial_domains[leftVarIndex]);
-      let B = domain_numstr(config.initial_domains[rightVarIndex]);
-      let C = domain_numstr(config.initial_domains[resultVarIndex]);
+      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
+      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
+      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
       if (C === BOOL) {

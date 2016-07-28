@@ -34,8 +34,8 @@ import {
   domain_strEncodeRange,
   domain_max,
   domain_min,
-  domain_numstr,
   domain_simplifyStr,
+  domain_toNumstr,
 } from '../domain';
 import {
   asmdomain_createRange,
@@ -81,7 +81,7 @@ function domain_minus(domain1, domain2) {
   if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
   else result = _domain_minusStrStrStr(domain1, domain2);
 
-  return domain_numstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_simplifyStr(result));
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'USED_WITH_STRINGS', domain1);

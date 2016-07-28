@@ -580,7 +580,7 @@ function domain_complement(domain) {
     result += domain_strEncodeRange(end, SUP);
   }
 
-  return domain_numstr(result); // TODO: test edge case where the inverted domain is actually a small domain
+  return domain_toNumstr(result); // TODO: test edge case where the inverted domain is actually a small domain
 }
 
 /**
@@ -791,7 +791,7 @@ function domain_intersectionStrStr(domain1, domain2) {
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
   let newDomain = _domain_intersectionStrStr(domain1, domain2);
-  return domain_numstr(newDomain);
+  return domain_toNumstr(newDomain);
 }
 /**
  * Recursively calls itself
@@ -1017,7 +1017,7 @@ function domain_mulStrStr(domain1, domain2) {
   }
 
   // TODO: is it worth doing this step immediately?
-  return domain_numstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_simplifyStr(result));
 }
 
 /**
@@ -1103,7 +1103,7 @@ function domain_divbyStrStr(domain1, domain2, floorFractions = true) {
     }
   }
 
-  return domain_numstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_simplifyStr(result));
 }
 
 /**
@@ -1361,14 +1361,14 @@ function domain_removeGteStr(domain_str, value) {
       // 67 9    -> empty
       // 012 789 -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
     if (lo === value) {
       // 567 9   -> empty
       // 012 567 -> 012
       // 012 5   -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
     if (value <= hi) {
       // 012 456 -> 012 4
@@ -1428,18 +1428,18 @@ function domain_removeLteStr(domain_str, value) {
 
       // 234 678 -> 678
       let newDomain = domain_str.slice(i);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
     if (hi === value) {
       // 45 89  => 89, 5  89  => 5 89
       let newDomain = domain_str.slice(i + STR_RANGE_SIZE);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
     if (value <= hi) {
       // 456 89 => 6 89, 56 89 => 6 89
 
       let newDomain = domain_strEncodeValue(value + 1) + domain_str.slice(i + STR_VALUE_SIZE);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
   }
   return EMPTY; // 012 -> empty
@@ -1474,7 +1474,7 @@ function domain_removeValueStr(domain, value) {
     if (value === lo) {
       let newDomain = domain.slice(0, i);
       if (value !== hi) newDomain += domain_strEncodeRange(value + 1, hi);
-      return domain_numstr(newDomain + domain.slice(i + STR_RANGE_SIZE));
+      return domain_toNumstr(newDomain + domain.slice(i + STR_RANGE_SIZE));
     }
     if (value === hi) {
       // note: we already checked value==lo so no need to do that again
@@ -1482,7 +1482,7 @@ function domain_removeValueStr(domain, value) {
         domain.slice(0, i) +
         domain_strEncodeRange(lo, value - 1) +
         domain.slice(i + STR_RANGE_SIZE);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
     if (value < lo) {
       // value sits between prev range (if not start) and current range so domain
@@ -1497,7 +1497,7 @@ function domain_removeValueStr(domain, value) {
         domain_strEncodeRange(lo, value - 1) +
         domain_strEncodeRange(value + 1, hi) +
         domain.slice(i + STR_RANGE_SIZE);
-      return domain_numstr(newDomain);
+      return domain_toNumstr(newDomain);
     }
   }
   // value must be higher than the max of domain because domain does not contain it
@@ -1626,7 +1626,7 @@ function domain_createRange(lo, hi) {
 
 /**
  * @param {$domain} domain
- * @param {boolean} [force] Always return in array or string form?
+ * @param {number} [force] Always return in array or string form?
  * @returns {$domain}
  */
 function domain_clone(domain, force) {
@@ -1660,18 +1660,6 @@ function domain_toStr(domain) {
   if (typeof domain === 'string') return domain;
   ASSERT(domain instanceof Array, 'can only be array now');
   return domain_arrToStr(domain);
-}
-/**
- * Get a domain representation in smallest form but never return an arrdom
- *
- * @param {$domain} domain
- * @returns {$domain_str|$domain_num}
- */
-function domain_toNumstr(domain) {
-  if (typeof domain === 'number') return domain;
-  if (typeof domain === 'string') return domain_numstr(domain);
-  ASSERT(domain instanceof Array, 'can only be array now');
-  return domain_arrToNumstr(domain);
 }
 /**
  * Create an array domain from a numbered domain (bit wise flags)
@@ -1910,7 +1898,7 @@ function _domain_arrToNum(domain, len) {
  * @param {$domain} domain
  * @returns {$domain}
  */
-function domain_numstr(domain) {
+function domain_toNumstr(domain) {
   // number is ideal
   if (typeof domain === 'number') return domain;
 
@@ -2143,7 +2131,6 @@ export {
   domain_debug,
   domain_divby,
   domain_isEqual,
-  domain_numToArr,
   domain_fromList,
   domain_getChangeState,
   domain_getValue,
@@ -2163,7 +2150,7 @@ export {
   domain_middleElement,
   domain_min,
   domain_mul,
-  domain_numstr,
+  domain_numToArr,
   domain_numToStr,
   domain_strToNum,
   domain_removeGte,

@@ -86,7 +86,6 @@ import {
   //domain_middleElement,
   domain_min,
   domain_mul,
-  domain_numstr,
   domain_rangeIndexOfStr,
   domain_removeGte,
   domain_removeLte,
@@ -98,6 +97,7 @@ import {
   _domain_quickSortRangesStr,
   domain_toArr,
   domain_toList,
+  domain_toNumstr,
 } from '../../src/domain';
 
 const FLOOR_FRACTIONS = true;
@@ -2310,7 +2310,7 @@ describe('src/domain.spec', function() {
 
           let outFromFlags = domain_numToStr(numdom);
           let outToList = domain_toList(numdom);
-          let outNumstr = domain_numstr(expStr);
+          let outNumstr = domain_toNumstr(expStr);
           let outFromList = domain_fromList(list);
 
           let is = 'i=' + numdom;

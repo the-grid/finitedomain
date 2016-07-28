@@ -18,8 +18,8 @@ import {
 
   domain_debug,
   domain_fromList,
-  domain_toNumstr,
   domain_toStr,
+  domain_toNumstr,
 } from '../../src/domain';
 import domain_plus from '../../src/doms/domain_plus';
 

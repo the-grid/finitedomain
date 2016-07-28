@@ -54,13 +54,13 @@ import {
   domain_getValueStr,
   domain_max,
   domain_min,
-  domain_numstr,
   domain_isSolvedStr,
   domain_intersection,
   domain_intersectionStrStr,
   domain_removeGteStr,
   domain_removeLteStr,
   domain_removeValueStr,
+  domain_toNumstr,
   domain_toStr,
 } from './domain';
 import domain_plus from './doms/domain_plus';
@@ -348,7 +348,7 @@ function config_generateVars(config, space) {
     let domain = initialDomains[varIndex];
     ASSERT(typeof domain === 'string', 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
 
-    space.vardoms[varIndex] = domain_numstr(domain);
+    space.vardoms[varIndex] = domain_toNumstr(domain);
   }
 }
 

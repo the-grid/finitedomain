@@ -19,8 +19,8 @@ import {
 import {
   FORCE_ARRAY,
 
-  domain_toNumstr,
   domain_clone,
+  domain_toNumstr,
 } from '../../../src/domain';
 import {
   config_addVarDomain,

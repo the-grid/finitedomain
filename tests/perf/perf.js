@@ -24,10 +24,10 @@ var perf = module.exports = function perf(config, max) {
   }
 
   var solver = new Solver({config: config});
-  console.log('start profile');
-  console.time('stop profile');
-  console.profile && console.profile('gridsolving');
+  console.log('start test');
+  console.time('test runtime');
+  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('gridsolving');
   solver.solve({log: 1, max: max, vars: solver.config.all_var_names});
-  console.profileEnd && console.profileEnd('gridsolving');
-  console.timeEnd('stop profile');
+  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('gridsolving');
+  console.timeEnd('test runtime');
 }

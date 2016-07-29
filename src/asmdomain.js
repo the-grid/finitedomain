@@ -31,7 +31,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
     // - shift those ones `from` times to the left
     // - OR that result with the domain and return it
 
-    return domain | (((1 << (1 + (to | 0) - (from | 0))) - 1) << from);
+    return domain | createRange(from, to);
   }
 
   /**
@@ -70,12 +70,14 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
     lo = lo | 0;
     hi = hi | 0;
 
-    var domain = 0;
-    while ((lo | 0) <= (hi | 0)) {
-      domain = domain | (1 << lo);
-      lo = (lo + 1) | 0;
-    }
-    return domain | 0;
+    return (((1 << (1 + (hi | 0) - (lo | 0))) - 1) << lo);
+
+    //var domain = 0;
+    //while ((lo | 0) <= (hi | 0)) {
+    //  domain = domain | (1 << lo);
+    //  lo = (lo + 1) | 0;
+    //}
+    //return domain | 0;
   }
 
   /**

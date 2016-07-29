@@ -5,13 +5,12 @@ import {
   SOME_CHANGES,
 
   ASSERT,
-  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
   domain_any_intersection,
   domain_any_isEqual,
-  domain_any_isRejected,
   domain_any_isSolved,
   domain_any_sharesNoElements,
 } from '../domain';
@@ -40,9 +39,9 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_any_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_any_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
-
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let result = domain_any_intersection(domain1, domain2);
 
@@ -74,8 +73,9 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_eqStepWouldReject(domain1, domain2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
-  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_any_sharesNoElements(domain1, domain2);
 }

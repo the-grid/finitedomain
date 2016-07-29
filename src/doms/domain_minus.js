@@ -19,14 +19,17 @@
 import {
   EMPTY,
   EMPTY_STR,
+  SMALL_MAX_NUM,
   SUB,
 
   ASSERT,
+  ASSERT_NUMDOM,
+  ASSERT_STRDOM,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
   STR_VALUE_SIZE,
   STR_RANGE_SIZE,
-  SMALL_MAX_NUM,
   ZERO,
   domain_str_closeGaps,
   domain_createRange,
@@ -54,8 +57,8 @@ let MAX = Math.max;
  * @returns {$domain}
  */
 function domain_minus(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number' || typeof domain1 === 'string', 'NUMDOM_OR_STRDOM');
-  ASSERT(typeof domain2 === 'number' || typeof domain2 === 'string', 'NUMDOM_OR_STRDOM');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
 
   // note: this is not x-0=x. this is nothing-something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -84,8 +87,8 @@ function domain_minus(domain1, domain2) {
   return domain_toNumstr(domain_str_simplify(result));
 }
 function _domain_minusStrStrStr(domain1, domain2) {
-  ASSERT(typeof domain1 === 'string', 'USED_WITH_STRINGS', domain1);
-  ASSERT(typeof domain2 === 'string', 'USED_WITH_STRINGS', domain2);
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
@@ -104,8 +107,8 @@ function _domain_minusStrStrStr(domain1, domain2) {
   return newDomain;
 }
 function _domain_minusNumNumNum(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
-  ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain1);
+  ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
@@ -136,8 +139,8 @@ function _domain_minusNumNumNum(domain1, domain2) {
   return newDomain | _domain_minusRangeNumNum(lo, hi, domain2);
 }
 function _domain_minusNumStrNum(domain_num, domain_str) {
-  ASSERT(typeof domain_num === 'number', 'ONLY_WITH_NUMBERS');
-  ASSERT(typeof domain_str !== 'number', 'NOT_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
 
@@ -169,7 +172,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   return newDomain | _domain_minusRangeStrNum(lo, hi, domain_str);
 }
 function _domain_minusRangeNumNum(loi, hii, domain_num) {
-  ASSERT(typeof domain_num === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
   let flagIndex = 0;
@@ -197,8 +200,9 @@ function _domain_minusRangeNumNum(loi, hii, domain_num) {
   return newDomain | _domain_minusRangeRangeNum(loi, hii, lo, hi);
 }
 function _domain_minusStrNumStr(domain_str, domain_num) {
-  ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof domain_num === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
+  ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
@@ -217,7 +221,8 @@ function _domain_minusStrNumStr(domain_str, domain_num) {
   return newDomain;
 }
 function _domain_minusRangeNumStr(loi, hii, domain_num) {
-  ASSERT(typeof domain_num === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain_num);
+
   if (domain_num === EMPTY) return EMPTY;
 
   let flagIndex = 0;
@@ -244,7 +249,8 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
   return newDomain + _domain_minusRangeRangeStr(loi, hii, lo, hi);
 }
 function _domain_minusRangeStrStr(loi, hii, domain_str) {
-  ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain_str);
+
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain_str, index);
@@ -254,7 +260,8 @@ function _domain_minusRangeStrStr(loi, hii, domain_str) {
   return newDomain;
 }
 function _domain_minusRangeStrNum(loi, hii, domain_str) {
-  ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain_str);
+
   let newDomain = EMPTY;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain_str, index);

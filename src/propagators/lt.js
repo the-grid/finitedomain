@@ -4,7 +4,7 @@ import {
   SOME_CHANGES,
 
   ASSERT,
-  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
@@ -31,8 +31,9 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_any_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_any_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let lo1 = domain_any_min(domain1);
   let hi1 = domain_any_max(domain1);
@@ -104,8 +105,9 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_ltStepWouldReject(domain1, domain2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
-  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_any_min(domain1) >= domain_any_max(domain2);
 }
@@ -121,6 +123,10 @@ function propagator_ltStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_ltSolved(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
+
   return domain_any_max(domain1) < domain_any_min(domain2);
 }
 

@@ -3,6 +3,7 @@ import {
   REJECTED,
 
   ASSERT,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
@@ -38,6 +39,9 @@ function propagator_markovStepBare(space, varIndex) {
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
   if (!domain_any_isSolved(domain)) {
     return NO_CHANGES;

@@ -7,7 +7,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
-  fixt_arrdom_ranges,
   fixt_assertStrings,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -23,6 +22,7 @@ import {
   EMPTY,
   EMPTY_STR,
   NO_SUCH_VALUE,
+  SMALL_MAX_NUM,
   SUP,
 } from '../../src/helpers';
 import {
@@ -57,7 +57,6 @@ import {
   TWENTYEIGHT,
   TWENTYNINE,
   THIRTY,
-  SMALL_MAX_NUM,
 
   NOT_FOUND,
   STR_RANGE_SIZE,
@@ -356,7 +355,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_any_toList()).to.throw('A_EXPECTING_DOMAIN');
+      expect(() => domain_any_toList()).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     describe('strdom', function() {
@@ -396,11 +395,11 @@ describe('src/domain.spec', function() {
     });
 
     it('should require an array', function() {
-      expect(() => domain_any_removeNextFromList(null, [0])).to.throw('A_EXPECTING_DOMAIN');
+      expect(() => domain_any_removeNextFromList(null, [0])).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     it('should require a list', function() {
-      expect(() => domain_any_removeNextFromList([1, 2])).to.throw('A_EXPECTING_LIST');
+      expect(() => domain_any_removeNextFromList(fixt_numdom_range(1, 2))).to.throw('A_EXPECTING_LIST');
     });
 
     describe('strdom', function() {
@@ -736,7 +735,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_any_isValue()).to.throw('A_EXPECTING_DOMAIN');
+      expect(() => domain_any_isValue()).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     describe('strdom', function() {
@@ -830,7 +829,7 @@ describe('src/domain.spec', function() {
     describe('strdom', function() {
 
       it('should require a domain', function() {
-        expect(() => domain_any_removeValue(null, 15)).to.throw('REQUIRES_DOMAIN');
+        expect(() => domain_any_removeValue(null, 15)).to.throw('ONLY_NUMDOM_OR_STRDOM');
       });
 
       // target: 5
@@ -917,11 +916,11 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_str_isSimplified()).to.throw('USED_WITH_STRINGS');
+      expect(() => domain_str_isSimplified()).to.throw('ONLY_STRDOM');
     });
 
     it('should throw for domains as numbers', function() {
-      expect(_ => domain_str_isSimplified(fixt_numdom_nums(1))).to.throw('USED_WITH_STRINGS');
+      expect(_ => domain_str_isSimplified(fixt_numdom_nums(1))).to.throw('ONLY_STRDOM');
     });
 
     it('should accept empty domain', function() {
@@ -1023,7 +1022,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should throw for domains as numbers', function() {
-      expect(_ => _domain_str_mergeOverlappingRanges(fixt_numdom_nums(1))).to.throw('USED_WITH_STRINGS');
+      expect(_ => _domain_str_mergeOverlappingRanges(fixt_numdom_nums(1))).to.throw('ONLY_STRDOM');
     });
 
     it('should return empty domain for empty domain', function() {
@@ -1078,9 +1077,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should throw for domains as numbers', function() {
-      expect(_ => domain_str_simplify(fixt_numdom_empty())).to.throw('USED_WITH_STRINGS');
-      expect(_ => domain_str_simplify(fixt_numdom_nums(1, 3, 9))).to.throw('USED_WITH_STRINGS');
-      expect(_ => domain_str_simplify()).to.throw('USED_WITH_STRINGS');
+      expect(_ => domain_str_simplify(fixt_numdom_empty())).to.throw('ONLY_STRDOM');
+      expect(_ => domain_str_simplify(fixt_numdom_nums(1, 3, 9))).to.throw('ONLY_STRDOM');
+      expect(_ => domain_str_simplify()).to.throw('ONLY_STRDOM');
     });
 
     it('should work with empty domain', function() {
@@ -1117,9 +1116,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require two domains', function() {
-      expect(() => domain_any_intersection()).to.throw('A_EXPECTING_TWO_DOMAINS');
-      expect(() => domain_any_intersection(EMPTY_STR)).to.throw('A_EXPECTING_TWO_DOMAINS');
-      expect(() => domain_any_intersection(null, EMPTY_STR)).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_any_intersection()).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_intersection(EMPTY_STR)).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_intersection(null, EMPTY_STR)).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     it('should return empty numdom unless both were empty strdoms', function() {
@@ -1358,7 +1357,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(() => domain_any_complement()).to.throw('ONLY_WITH_STRINGS');
+      expect(() => domain_any_complement()).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     describe('strdom', function() {
@@ -1495,9 +1494,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should requires two domains', function() {
-      expect(() => domain_str_closeGaps()).to.throw('USED_WITH_STRINGS');
-      expect(() => domain_str_closeGaps(fixt_strdom_empty(), undefined)).to.throw('USED_WITH_STRINGS');
-      expect(() => domain_str_closeGaps(undefined, fixt_strdom_empty())).to.throw('USED_WITH_STRINGS');
+      expect(() => domain_str_closeGaps()).to.throw('ONLY_STRDOM');
+      expect(() => domain_str_closeGaps(fixt_strdom_empty(), undefined)).to.throw('ONLY_STRDOM');
+      expect(() => domain_str_closeGaps(undefined, fixt_strdom_empty())).to.throw('ONLY_STRDOM');
     });
 
     it('should accept empty domains', function() {
@@ -1598,8 +1597,8 @@ describe('src/domain.spec', function() {
     });
 
     it('should require a domain', function() {
-      expect(_ => domain_any_size()).to.throw('REQUIRES_DOMAIN');
-      expect(_ => domain_any_size([])).to.throw('A_EXPECTING_NON_EMPTY_DOMAINS');
+      expect(_ => domain_any_size()).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(_ => domain_any_size(fixt_strdom_empty())).to.throw('A_EXPECTING_NON_EMPTY_DOMAINS');
     });
 
     describe('arrdom', function() {
@@ -1647,9 +1646,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_any_mul()).to.throw('ONLY_WITH_STRINGS');
-      expect(() => domain_any_mul(fixt_strdom_empty())).to.throw('ONLY_WITH_STRINGS');
-      expect(() => domain_any_mul(null, fixt_strdom_empty())).to.throw('ONLY_WITH_STRINGS');
+      expect(() => domain_any_mul()).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_mul(fixt_strdom_empty())).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_mul(null, fixt_strdom_empty())).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     it('should accept empty domains', function() {
@@ -1702,9 +1701,9 @@ describe('src/domain.spec', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_any_divby()).to.throw('ONLY_WITH_STRINGS');
-      expect(() => domain_any_divby(fixt_strdom_empty())).to.throw('ONLY_WITH_STRINGS');
-      expect(() => domain_any_divby(null, fixt_strdom_empty())).to.throw('ONLY_WITH_STRINGS');
+      expect(() => domain_any_divby()).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_divby(fixt_strdom_empty())).to.throw('ONLY_NUMDOM_OR_STRDOM');
+      expect(() => domain_any_divby(null, fixt_strdom_empty())).to.throw('ONLY_NUMDOM_OR_STRDOM');
     });
 
     it('should accept empty domains', function() {
@@ -1831,7 +1830,7 @@ describe('src/domain.spec', function() {
       });
 
       it('should return false if a domain is empty', function() {
-        expect(domain_any_isSolved([])).to.equal(false);
+        expect(domain_any_isSolved(fixt_strdom_empty())).to.equal(false);
       });
 
       it('should return false if a domain covers more than one value', function() {
@@ -1841,7 +1840,7 @@ describe('src/domain.spec', function() {
         expect(domain_any_isSolved(fixt_strdom_ranges([SUP - 10, SUP - 5], [SUP - 1, SUP]))).to.equal(false);
         expect(domain_any_isSolved(fixt_strdom_ranges([0, 1], [5, SUP]))).to.equal(false);
         expect(domain_any_isSolved(fixt_strdom_ranges([5, 8], [50, SUP]))).to.equal(false);
-        expect(domain_any_isSolved(fixt_arrdom_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
+        expect(domain_any_isSolved(fixt_strdom_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(false);
       });
     });
 

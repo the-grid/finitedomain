@@ -1,6 +1,7 @@
 import {
   NO_SUCH_VALUE,
   ASSERT,
+  ASSERT_NUMSTRDOM,
   THROW,
 } from '../helpers';
 
@@ -110,6 +111,9 @@ function distribution_varByMin(space, varIndex1, varIndex2) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
+  ASSERT_NUMSTRDOM(space.vardoms[varIndex1]);
+  ASSERT_NUMSTRDOM(space.vardoms[varIndex2]);
+  ASSERT(space.vardoms[varIndex1] && space.vardoms[varIndex2], 'EXPECTING_NON_EMPTY');
 
   let n = domain_any_min(space.vardoms[varIndex1]) - domain_any_min(space.vardoms[varIndex2]);
   if (n < 0) return BETTER;

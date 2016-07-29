@@ -11,6 +11,7 @@ import {
   SUP,
 
   ASSERT,
+  ASSERT_STRDOM,
   GET_NAMES,
   THROW,
 } from './helpers';
@@ -244,8 +245,9 @@ function _config_addVar(config, varName, domain) {
   ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
-  ASSERT(typeof domain === 'string', 'DOMAIN_MUST_BE_STRING_HERE');
   ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
+  ASSERT_STRDOM(domain);
+  ASSERT(domain, 'NON_EMPTY_DOMAIN');
   ASSERT(domain === EMPTY_STR || domain_any_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain === EMPTY_STR || domain_any_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
@@ -346,7 +348,7 @@ function config_generateVars(config, space) {
 
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let domain = initialDomains[varIndex];
-    ASSERT(typeof domain === 'string', 'ALL_VARS_GET_ARR_DOMAIN'); // all vars must have a domain
+    ASSERT_STRDOM(domain);
 
     space.vardoms[varIndex] = domain_toNumstr(domain);
   }
@@ -601,8 +603,9 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
 
-  ASSERT(typeof domainLeft === 'string', 'ALL_INITIAL_DOMAINS_STRINGS');
-  ASSERT(typeof domainRight === 'string', 'ALL_INITIAL_DOMAINS_STRINGS');
+  ASSERT_STRDOM(domainLeft);
+  ASSERT_STRDOM(domainRight);
+  if (!domainLeft || !domainRight) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
 
   let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
@@ -698,6 +701,9 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
+  if (!domain1 || !domain2) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
 
   let v1 = domain_str_getValue(initialDomains[varIndexLeft]);
   let v2 = domain_str_getValue(initialDomains[varIndexRight]);

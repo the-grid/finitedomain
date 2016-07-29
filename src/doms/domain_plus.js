@@ -11,15 +11,18 @@
 import {
   EMPTY,
   EMPTY_STR,
+  SMALL_MAX_NUM,
   SUP,
 
   ASSERT,
+  ASSERT_NUMDOM,
+  ASSERT_NUMSTRDOM,
+  ASSERT_STRDOM,
 } from '../helpers';
 import {
   EIGHT,
   NINE,
 
-  SMALL_MAX_NUM,
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 
@@ -45,10 +48,9 @@ let MIN = Math.min;
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_plus(domain1, domain2) {
-  //console.log('domain_plus', [domain1, domain2], domain_debug(domain1), domain_debug(domain2))
-  ASSERT(typeof domain1 === 'number' || typeof domain1 === 'string', 'NUMDOM_OR_STRDOM');
-  ASSERT(typeof domain2 === 'number' || typeof domain2 === 'string', 'NUMDOM_OR_STRDOM');
+function domain_any_plus(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
 
   // note: this is not 0+x=x. this is nothing+something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -74,8 +76,8 @@ function domain_plus(domain1, domain2) {
   return domain_toNumstr(domain_str_simplify(result));
 }
 function _domain_plusStrStrStr(domain1, domain2) {
-  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
-  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
@@ -100,8 +102,8 @@ function _domain_plusWillBeSmall(domain1, domain2) {
   return domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNumStr(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
-  ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain1);
+  ASSERT_NUMDOM(domain2);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -128,8 +130,8 @@ function _domain_plusNumNumStr(domain1, domain2) {
   return newDomain + _domain_plusRangeNumStr(lo, hi, domain2);
 }
 function _domain_plusNumNumNum(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
-  ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain1);
+  ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
@@ -158,7 +160,7 @@ function _domain_plusNumNumNum(domain1, domain2) {
   return newDomain | _domain_plusRangeNumNum(lo, hi, domain2);
 }
 function _domain_plusRangeNumNum(loi, hii, domain_num) {
-  ASSERT(typeof domain_num === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
 
@@ -187,7 +189,8 @@ function _domain_plusRangeNumNum(loi, hii, domain_num) {
   return newDomain | _domain_plusRangeRangeNum(loi, hii, lo, hi);
 }
 function _domain_plusNumStrStr(domain_num, domain_str) {
-  ASSERT(typeof domain_num === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -214,7 +217,7 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
   return newDomain + _domain_plusRangeStrStr(lo, hi, domain_str);
 }
 function _domain_plusRangeNumStr(loi, hii, domain_num) {
-  ASSERT(typeof domain_num === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -241,7 +244,7 @@ function _domain_plusRangeNumStr(loi, hii, domain_num) {
   return newDomain + _domain_plusRangeRangeStr(loi, hii, lo, hi);
 }
 function _domain_plusRangeStrStr(loi, hii, domain_str) {
-  ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain_str);
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
@@ -270,4 +273,4 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
 
 // BODY_STOP
 
-export default domain_plus;
+export default domain_any_plus;

@@ -10,6 +10,7 @@ import {
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_NUMSTRDOM,
   THROW,
 } from '../helpers';
 
@@ -83,6 +84,8 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varIndex, choiceI
       return distribution_valueByList(space, varIndex, choiceIndex);
 
     case 'naive':
+      ASSERT_NUMSTRDOM(space.vardoms[varIndex]);
+      ASSERT(space.vardoms[varIndex], 'NON_EMPTY_DOMAIN_EXPECTED');
       return domain_createValue(domain_any_min(space.vardoms[varIndex]));
 
     case 'splitMax':
@@ -174,6 +177,7 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
@@ -208,6 +212,7 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
@@ -246,7 +251,9 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+
   let middle = domain_any_middleElement(domain);
 
   switch (choiceIndex) {
@@ -290,6 +297,7 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let min = domain_any_min(domain);
@@ -331,6 +339,7 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let min = domain_any_min(domain);
@@ -395,6 +404,7 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {

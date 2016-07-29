@@ -630,7 +630,7 @@ describe('solver.spec', function() {
       alias('{}≠');
     });
 
-    describe('solver comparison with return .eq', function() {
+    describe('solver comparison with .eq and .neq', function() {
 
       function alias(method) {
         it('should work', function() {
@@ -683,9 +683,11 @@ describe('solver.spec', function() {
 
       alias('eq');
       alias('==');
+      alias('neq');
+      alias('!=');
     });
 
-    describe('solver comparisons', function() {
+    describe('solver relative comparisons', function() {
 
       function alias(method) {
         describe('method [' + method + ']', function() {
@@ -708,18 +710,17 @@ describe('solver.spec', function() {
             solver.decl('A', 100);
             expect(solver[method]('A', 2)).to.equal('1'); // if we change anonymous var naming, this'll break
           });
-
-          it('should work with an empty array', function() {
+          it('should not work with an empty array', function() {
             let solver = new Solver();
             solver.decl('B', 100);
-            expect(solver[method]([], 'B')).to.equal('B');
+            expect(_ => solver[method]([], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
           });
 
           it('should work with an array of one element', function() {
             let solver = new Solver();
             solver.decl('A', 100);
             solver.decl('B', 100);
-            expect(solver[method](['A'], 'B')).to.equal(undefined);
+            expect(_ => solver[method](['A'], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
           });
 
           it('should work with an array of multiple elements', function() {
@@ -728,13 +729,11 @@ describe('solver.spec', function() {
             solver.decl('B', 100);
             solver.decl('C', 100);
             solver.decl('D', 100);
-            expect(solver[method](['A', 'C', 'D'], 'B')).to.equal(undefined);
+            expect(_ => solver[method](['A', 'C', 'D'], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
           });
         });
       }
 
-      alias('neq');
-      alias('!=');
       alias('gte');
       alias('>=');
       alias('gt');

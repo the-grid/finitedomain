@@ -1,9 +1,9 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_numdom_empty,
+  fixt_arrdom_nums,
   fixt_numdom_range,
   fixt_strdom_range,
   fixt_strdom_ranges,
@@ -51,10 +51,12 @@ describe('propagators/lte.spec', function() {
       let config = config_create();
       config_addVarDomain(config, 'A', fixt_arrdom_range(90, 100));
       config_addVarDomain(config, 'B', fixt_arrdom_range(200, 300));
-      config_addVarDomain(config, 'C', fixt_arrdom_empty());
-      config_addVarDomain(config, 'D', fixt_arrdom_empty());
+      config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+      config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot(config);
       space_initFromConfig(space);
+      space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
+      space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
@@ -249,10 +251,12 @@ describe('propagators/lte.spec', function() {
       let config = config_create();
       config_addVarRange(config, 'A', 9, 10);
       config_addVarRange(config, 'B', 11, 15);
-      config_addVarDomain(config, 'C', fixt_arrdom_empty());
-      config_addVarDomain(config, 'D', fixt_arrdom_empty());
+      config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+      config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot(config);
       space_initFromConfig(space);
+      space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
+      space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');

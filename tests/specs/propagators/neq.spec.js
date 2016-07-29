@@ -1,6 +1,5 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
   fixt_arrdom_nums,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -62,10 +61,12 @@ describe('propagators/neq.spec', function() {
     let config = config_create();
     config_addVarDomain(config, 'A', fixt_arrdom_nums(9, 10));
     config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
-    config_addVarDomain(config, 'C', fixt_arrdom_empty());
-    config_addVarDomain(config, 'D', fixt_arrdom_empty());
+    config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+    config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot(config);
     space_initFromConfig(space);
+    space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
+    space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
     let A = space.config.all_var_names.indexOf('A');
     let B = space.config.all_var_names.indexOf('B');

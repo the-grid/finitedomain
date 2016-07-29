@@ -1,9 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
+  fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_strdom_range,
   stripAnonVars,
@@ -256,8 +257,9 @@ describe('src/space.spec', function() {
 
       it('should return false if a var covers no (more) elements', function() {
         let space = space_createRoot();
-        config_addVarDomain(space.config, 'test', fixt_arrdom_empty());
+        config_addVarDomain(space.config, 'test', fixt_arrdom_nums(100));
         space_initFromConfig(space);
+        space.vardoms[space.config.all_var_names.indexOf('test')] = fixt_numdom_empty();
 
         expect(space_solution(space)).to.eql({test: false});
       });

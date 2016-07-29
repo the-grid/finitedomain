@@ -382,6 +382,7 @@ class Solver {
     return this.gte(e1, e2);
   }
   gte(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -389,6 +390,7 @@ class Solver {
     return this.lte(e1, e2);
   }
   lte(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -396,6 +398,7 @@ class Solver {
     return this.gt(e1, e2);
   }
   gt(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -403,6 +406,7 @@ class Solver {
     return this.lt(e1, e2);
   }
   lt(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -697,15 +701,17 @@ class Solver {
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
+    clone.initial_domains = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
     clone._propagators = '<removed>';
     clone._varToPropagators = '<removed>';
+    clone._var_names_trie = '<removed>';
 
     console.log('\n## _debug:\n');
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: [${domains[index]}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${index}: [${domain_toArr(domains[index])}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }

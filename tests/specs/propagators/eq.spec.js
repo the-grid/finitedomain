@@ -1,6 +1,5 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
@@ -61,10 +60,12 @@ describe('propagators/eq.spec', function() {
     let config = config_create();
     config_addVarRange(config, 'A', 9, 10);
     config_addVarRange(config, 'B', 11, 15);
-    config_addVarDomain(config, 'C', fixt_arrdom_empty());
-    config_addVarDomain(config, 'D', fixt_arrdom_empty());
+    config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+    config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot(config);
     space_initFromConfig(space);
+    space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
+    space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
     expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
     expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');

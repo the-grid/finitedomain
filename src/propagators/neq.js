@@ -6,6 +6,7 @@ import {
   SOME_CHANGES,
 
   ASSERT,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
   domain_any_getValue,
@@ -31,8 +32,9 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_any_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_any_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let result = NO_CHANGES;
 

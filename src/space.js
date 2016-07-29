@@ -5,7 +5,6 @@ import {
   REJECTED,
 
   ASSERT,
-  ASSERT_DOMAIN,
   THROW,
 } from './helpers';
 
@@ -339,7 +338,6 @@ function space_updateUnsolvedVarList(space) {
   for (let i = 0, n = unsolvedVarIndexes.length; i < n; i++) {
     let varIndex = unsolvedVarIndexes[i];
     let domain = vardoms[varIndex];
-    ASSERT_DOMAIN(domain);
 
     if (!domain_any_isSolved(domain)) {
       unsolvedVarIndexes[j++] = varIndex;

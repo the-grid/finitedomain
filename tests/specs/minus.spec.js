@@ -10,10 +10,9 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
+  SMALL_MAX_NUM,
 } from '../../src/helpers';
 import {
-  SMALL_MAX_NUM,
-
   domainany__debug,
   domain_fromList,
   domain_toNumstr,

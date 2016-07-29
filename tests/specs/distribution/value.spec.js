@@ -1,10 +1,10 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
+  fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_strdom_range,
@@ -147,10 +147,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -229,10 +230,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -318,10 +320,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -400,10 +403,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -638,10 +642,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMid(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -902,10 +907,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueByMid(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueByMid(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1041,10 +1047,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1163,10 +1170,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1302,10 +1310,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1424,10 +1433,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_empty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');

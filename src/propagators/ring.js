@@ -1,5 +1,6 @@
 import {
   ASSERT,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
@@ -18,6 +19,10 @@ import {
  */
 function propagator_ringStepBare(domain1, domain2, domainResult, opFunc, opName) {
   ASSERT(typeof opFunc === 'function', 'EXPECTING_FUNC_TO_BE:', opName);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+
   let domain = opFunc(domain1, domain2);
 
   return domain_any_intersection(domainResult, domain);

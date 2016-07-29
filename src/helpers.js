@@ -48,8 +48,14 @@ let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha s
 let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos
 let ARR_RANGE_SIZE = 2;
 
+const SMALL_MAX_NUM = 30;
+// there are SMALL_MAX_NUM flags. if they are all on, this is the number value
+// (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
+const SMALL_MAX_FLAG = (1 << (SMALL_MAX_NUM + 1) >>> 0) - 1;
+
 // __REMOVE_BELOW_FOR_ASSERTS__
 
+ASSERT(SMALL_MAX_NUM <= 30, 'cant be larger because then shifting fails above and elsewhere');
 ASSERT(NOT_FOUND === NO_SUCH_VALUE, 'keep not found constants equal to prevent confusion bugs');
 
 // For unit tests
@@ -87,80 +93,23 @@ function _stringify(o) {
 // Simple function to completely validate a domain
 // Should be removed in production. Obviously.
 
-function ASSERT_DOMAIN(domain) {
-  /* istanbul ignore if */
-  if (ENABLED) {
-    if (ENABLE_DOMAIN_CHECK) {
-      _ASSERT_DOMAIN(domain);
-    }
-  }
+function ASSERT_STRDOM(domain) {
+  ASSERT(typeof domain === 'string', 'ONLY_STRDOM');
+  ASSERT((domain.length % 4) === 0, 'SHOULD_CONTAIN_RANGES');
 }
-function _ASSERT_DOMAIN(domain) {
-  ASSERT(domain instanceof Array, 'domains should be an array', domain);
-  ASSERT(domain.length % ARR_RANGE_SIZE === 0, 'domains should contain pairs so len should be even', domain, domain.length, domain.length % ARR_RANGE_SIZE);
-  let phi = SUB - 2; // this means that the lowest `lo` can be, is SUB, csis requires at least one value gap
-  for (let index = 0, step = ARR_RANGE_SIZE; index < domain.length; index += step) {
-    let lo = domain[index];
-    let hi = domain[index + 1];
-    ASSERT(typeof lo === 'number', 'domains should just be numbers', domain);
-    ASSERT(typeof hi === 'number', 'domains should just be numbers', domain);
-    ASSERT(lo >= SUB, `lo should be gte to SUB  [${lo}]`, domain);
-    ASSERT(hi >= SUB, `hi should be gte to SUB  [${hi}]`, domain);
-    ASSERT(hi <= SUP, `hi should be lte to SUP [${hi}]`, domain);
-    ASSERT(lo <= hi, `pairs should be lo<=hi ${lo} <= ${hi}`, domain);
-    ASSERT(lo > phi + 1, `domains should be in csis form internally, end point apis should normalize input to this: ${domain}`, domain);
-    ASSERT((lo % 1) === 0, 'domain should only contain integers', domain);
-    ASSERT((hi % 1) === 0, 'domain should only contain integers', domain);
-    phi = hi;
-  }
+function ASSERT_NUMDOM(domain) {
+  ASSERT(typeof domain === 'number', 'ONLY_NUMDOM');
+  ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
 }
-
-function ASSERT_DOMAIN_EMPTY_SET(domain) {
-  /* istanbul ignore if */
-  if (ENABLED) {
-    if (ENABLE_EMPTY_CHECK) {
-      _ASSERT_DOMAIN_EMPTY_SET(domain);
-    }
-  }
+function ASSERT_ARRDOM(domain) {
+  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
+  ASSERT(domain.length % 2 === 0, 'SHOULD_CONTAIN_RANGES');
 }
-function _ASSERT_DOMAIN_EMPTY_SET(domain) {
-  if (domain._trace) {
-    THROW(`Domain already marked as set to empty...: ${domain._trace}`);
-  }
-  // Note: if this expando is blowing up your test, make sure to include fixtures/helpers.fixt.coffee in your test file!
-  domain._trace = new Error().stack;
+function ASSERT_NUMSTRDOM(domain) {
+  ASSERT(typeof domain === 'string' || typeof domain === 'number', 'ONLY_NUMDOM_OR_STRDOM');
 }
-
-function ASSERT_DOMAIN_EMPTY_CHECK(domain) {
-  /* istanbul ignore if */
-  if (!ENABLED) {
-    return;
-  }
-
-  if (typeof domain === 'number' ? domain === EMPTY : (!domain.length && !domain.__skipEmptyCheck)) { // __skipEmptyCheck is to circumvent this check in tests
-    /* istanbul ignore if */
-    if (ENABLE_EMPTY_CHECK) {
-      if (domain._trace) {
-        THROW(`Domain should not be empty but was set empty at: ${domain._trace}`);
-      }
-      THROW('Domain should not be empty but was set empty at an untrapped point (investigate!)');
-    }
-    THROW('Domain should not be empty but was set empty (ASSERT_DOMAIN_EMPTY_CHECK is disabled so no trace)');
-  }
-  ASSERT_DOMAIN(domain);
-}
-
-function ASSERT_DOMAIN_EMPTY_SET_OR_CHECK(domain) {
-  /* istanbul ignore if */
-  if (!ENABLED) {
-    return;
-  }
-
-  if (domain.length) {
-    ASSERT_DOMAIN(domain);
-  } else {
-    ASSERT_DOMAIN_EMPTY_SET(domain);
-  }
+function ASSERT_ANYDOM(domain) {
+  ASSERT(typeof domain === 'string' || typeof domain === 'number' || domain instanceof Array, 'ONLY_VALID_DOM_TYPE');
 }
 
 //__REMOVE_ABOVE_FOR_ASSERTS__
@@ -219,6 +168,8 @@ export {
   NO_SUCH_VALUE,
   ARR_RANGE_SIZE,
   REJECTED,
+  SMALL_MAX_FLAG,
+  SMALL_MAX_NUM,
   SOLVED,
   SOME_CHANGES,
   SUB,
@@ -227,12 +178,11 @@ export {
   NO_CHANGES,
 
   ASSERT,
-  ASSERT_DOMAIN,
-  _ASSERT_DOMAIN,
-  ASSERT_DOMAIN_EMPTY_CHECK,
-  ASSERT_DOMAIN_EMPTY_SET,
-  _ASSERT_DOMAIN_EMPTY_SET,
-  ASSERT_DOMAIN_EMPTY_SET_OR_CHECK,
+  ASSERT_ANYDOM,
+  ASSERT_ARRDOM,
+  ASSERT_NUMDOM,
+  ASSERT_NUMSTRDOM,
+  ASSERT_STRDOM,
   GET_NAME,
   GET_NAMES,
   THROW,

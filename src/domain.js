@@ -12,13 +12,18 @@ import {
   NOT_FOUND,
   ARR_RANGE_SIZE,
   REJECTED,
+  SMALL_MAX_FLAG,
+  SMALL_MAX_NUM,
   SOME_CHANGES,
   SUB,
   SUP,
 
   ASSERT,
-  ASSERT_DOMAIN,
-  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_ANYDOM,
+  ASSERT_ARRDOM,
+  ASSERT_NUMDOM,
+  ASSERT_NUMSTRDOM,
+  ASSERT_STRDOM,
   THROW,
 } from './helpers';
 import {
@@ -135,10 +140,6 @@ FLAG_TO_NUM[TWENTYSEVEN] = 27;
 FLAG_TO_NUM[TWENTYEIGHT] = 28;
 FLAG_TO_NUM[TWENTYNINE] = 29;
 FLAG_TO_NUM[THIRTY] = 30;
-const SMALL_MAX_NUM = 30;
-// there are SMALL_MAX_NUM flags. if they are all on, this is the number value
-// (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
-const SMALL_MAX_FLAG = (1 << 31 >>> 0) - 1;
 
 // size of values and ranges in a string domain
 const STR_VALUE_SIZE = 2;
@@ -154,6 +155,8 @@ const STR_RANGE_SIZE = 4;
  * @returns {$domain}
  */
 function domain_any_appendRange(domain, lo, hi) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') {
     if (hi <= SMALL_MAX_NUM) return asmdomain_addRange(domain, lo, hi);
     domain = domain_numToStr(domain);
@@ -170,7 +173,7 @@ function domain_any_appendRange(domain, lo, hi) {
  * @returns {$domain_str}
  */
 function domain_str_addRange(domain, lo, hi) {
-  ASSERT(typeof domain === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
 
   return domain + domain_str_encodeRange(lo, hi);
 }
@@ -183,6 +186,8 @@ function domain_str_addRange(domain, lo, hi) {
  * @returns {boolean}
  */
 function domain_any_containsValue(domain, value) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_containsValue(domain, value) === 1;
   return domain_str_containsValue(domain, value);
 }
@@ -190,14 +195,13 @@ function domain_any_containsValue(domain, value) {
  * returns whether domain covers given value
  * for array domains
  *
- * @param {$domain_arr} domain
+ * @param {$domain_str} domain
  * @param {number} value
  * @returns {boolean}
  */
 function domain_str_containsValue(domain, value) {
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT_DOMAIN(domain);
+  ASSERT_STRDOM(domain);
   return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
 
@@ -210,7 +214,7 @@ function domain_str_containsValue(domain, value) {
  * @returns {number} >=0 actual index on strdom or NOT_FOUND
  */
 function domain_str_rangeIndexOf(domain, value) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
 
   let len = domain.length;
 
@@ -237,8 +241,9 @@ function domain_str_rangeIndexOf(domain, value) {
  * @returns {boolean}
  */
 function domain_any_isValue(domain, value) {
-  ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'A_EXPECTING_DOMAIN');
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
+
   if (typeof domain === 'number') return asmdomain_isValue(domain, value) === 1;
   return domain_str_isValue(domain, value);
 }
@@ -248,8 +253,8 @@ function domain_any_isValue(domain, value) {
  * @returns {boolean}
  */
 function domain_str_isValue(domain, value) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
-  ASSERT_DOMAIN(domain);
+  ASSERT_STRDOM(domain);
+
   return domain.length === STR_RANGE_SIZE && (domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) | domain_str_decodeValue(domain, STR_FIRST_RANGE_HI)) === value;
 }
 
@@ -258,6 +263,8 @@ function domain_str_isValue(domain, value) {
  * @returns {number}
  */
 function domain_any_getValue(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_getValue(domain);
   return domain_str_getValue(domain);
 }
@@ -266,7 +273,7 @@ function domain_any_getValue(domain) {
  * @returns {number}
  */
 function domain_str_getValue(domain) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
 
   if (domain.length !== STR_RANGE_SIZE) return NO_SUCH_VALUE;
   let lo = domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
@@ -275,6 +282,7 @@ function domain_str_getValue(domain) {
   return NO_SUCH_VALUE;
 }
 function domain_arr_getValue(domain) {
+  ASSERT_ARRDOM(domain);
   if (domain.length === ARR_RANGE_SIZE && domain[0] === domain[1]) return domain[0];
   return NO_SUCH_VALUE;
 }
@@ -284,6 +292,8 @@ function domain_arr_getValue(domain) {
  * @returns {number}
  */
 function domain_str_decodeValue(domain, index) {
+  ASSERT_STRDOM(domain);
+
   return (domain.charCodeAt(index) << 16) | domain.charCodeAt(index + 1);
 }
 /**
@@ -363,6 +373,8 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
  * @returns {number[]}
  */
 function domain_any_toList(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return domain_num_toList(domain);
   return domain_str_toList(domain);
 }
@@ -373,7 +385,8 @@ function domain_any_toList(domain) {
  * @returns {number[]}
  */
 function domain_num_toList(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain);
+
   let list = [];
   for (let i = 0; i < 16; ++i) {
     if ((domain & NUM_TO_FLAG[i]) > 0) list.push(i);
@@ -387,9 +400,7 @@ function domain_num_toList(domain) {
  * @returns {number[]}
  */
 function domain_str_toList(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(domain, 'A_EXPECTING_DOMAIN');
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT_STRDOM(domain);
 
   let list = [];
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
@@ -411,6 +422,8 @@ function domain_str_toList(domain) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_any_removeNextFromList(domain, list) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
   return domain_str_removeNextFromList(domain, list);
 }
@@ -425,8 +438,9 @@ function domain_any_removeNextFromList(domain, list) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_num_removeNextFromList(domain, list) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain);
   ASSERT(list, 'A_EXPECTING_LIST');
+
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
@@ -448,6 +462,8 @@ function domain_num_removeNextFromList(domain, list) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
 function domain_str_removeNextFromList(domain, list) {
+  ASSERT_STRDOM(domain);
+
   let r = _domain_str_removeNextFromList(domain, list); // replace empty string
   ASSERT(r || r === EMPTY_STR, 'if it returns falsy it should be the empty string and not some other falsy');
   return r || EMPTY; // replace '' with 0
@@ -460,10 +476,8 @@ function domain_str_removeNextFromList(domain, list) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
 function _domain_str_removeNextFromList(domain, list) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
   ASSERT(list, 'A_EXPECTING_LIST');
-  ASSERT(domain, 'A_EXPECTING_DOMAIN');
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
 
   let len = domain.length;
 
@@ -511,6 +525,8 @@ function _domain_str_removeNextFromList(domain, list) {
  * @returns {number} Can return NO_SUCH_VALUE
  */
 function domain_any_getValueOfFirstContainedValueInList(domain, list) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
   return domain_str_getValueOfFirstContainedValueInList(domain, list);
 }
@@ -520,8 +536,9 @@ function domain_any_getValueOfFirstContainedValueInList(domain, list) {
  * @returns {number} Can return NO_SUCH_VALUE
  */
 function domain_num_getValueOfFirstContainedValueInList(domain, list) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_DOMAIN');
+  ASSERT_NUMDOM(domain);
   ASSERT(list, 'EXPECTING_LIST');
+
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
@@ -536,9 +553,9 @@ function domain_num_getValueOfFirstContainedValueInList(domain, list) {
  * @returns {number} Can return NO_SUCH_VALUE
  */
 function domain_str_getValueOfFirstContainedValueInList(domain, list) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_DOMAIN');
+  ASSERT_STRDOM(domain);
   ASSERT(list, 'EXPECTING_LIST');
-  ASSERT_DOMAIN(domain);
+
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
@@ -558,11 +575,12 @@ function domain_str_getValueOfFirstContainedValueInList(domain, list) {
  * @returns {$domain}
  */
 function domain_any_complement(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   // for simplicity sake, convert them back to arrays
   // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
   if (typeof domain === 'number') domain = domain_numToStr(domain);
 
-  ASSERT(typeof domain === 'string', 'ONLY_WITH_STRINGS');
   if (!domain) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
 
   let end = SUB;
@@ -591,7 +609,8 @@ function domain_any_complement(domain) {
  * @returns {$domain_str} ironically, not optimized to a number if possible
  */
 function domain_str_simplify(domain) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
+
   if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
   if (domain.length === STR_RANGE_SIZE) return domain;
 
@@ -610,7 +629,8 @@ function domain_str_simplify(domain) {
  * @returns {$domain_str|string} ranges in this string will be ordered but may still overlap
  */
 function _domain_str_quickSortRanges(domain) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRING');
+  ASSERT_STRDOM(domain);
+
   if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
 
   let len = domain.length;
@@ -650,7 +670,7 @@ function _domain_str_quickSortRanges(domain) {
  * @returns {$domain_str}
  */
 function _domain_str_mergeOverlappingRanges(domain) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
   if (!domain) return EMPTY_STR; // prefer strings for return type consistency
 
   // assumes domain is sorted
@@ -698,7 +718,7 @@ function _domain_str_mergeOverlappingRanges(domain) {
  * @returns {boolean}
  */
 function domain_str_isSimplified(domain) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
 
   if (domain.length === STR_RANGE_SIZE) {
     ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
@@ -707,7 +727,6 @@ function domain_str_isSimplified(domain) {
     return true;
   }
 
-  ASSERT((domain.length % STR_RANGE_SIZE) === 0, 'A_SHOULD_BE_EVEN');
   if (domain === EMPTY_STR) {
     return true;
   }
@@ -740,7 +759,9 @@ function domain_str_isSimplified(domain) {
  * @returns {$domain}
  */
 function domain_any_intersection(domain1, domain2) {
-  ASSERT((domain1 || domain1 === EMPTY || domain1 === EMPTY_STR) && (domain2 || domain2 === EMPTY || domain2 === EMPTY_STR), 'A_EXPECTING_TWO_DOMAINS');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
   if (domain1 === domain2) return domain1;
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
@@ -760,8 +781,8 @@ function domain_any_intersection(domain1, domain2) {
  * @returns {$domain_num} Always a numdom because we already know numbers higher than max_small cant occur in _both_ domains
  */
 function domain_numstr_intersection(domain_num, domain_str) {
-  ASSERT(typeof domain_num === 'number', 'ONLY_WITH_NUMBERS');
-  ASSERT(typeof domain_str === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
 
   let domain = EMPTY;
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
@@ -787,8 +808,8 @@ function domain_numstr_intersection(domain_num, domain_str) {
  * @returns {$domain} can return a numdom
  */
 function domain_strstr_intersection(domain1, domain2) {
-  ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
-  ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   let newDomain = _domain_strstr_intersection(domain1, domain2);
   return domain_toNumstr(newDomain);
@@ -801,8 +822,8 @@ function domain_strstr_intersection(domain1, domain2) {
  * @returns {$domain_str} always a strdom
  */
 function _domain_strstr_intersection(domain1, domain2) {
-  ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
-  ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   let newDomain = EMPTY_STR;
 
@@ -873,6 +894,9 @@ function domainany__debug(domain) {
  * @returns {boolean}
  */
 function domain_any_isEqual(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
   // whether domain is a string or a number, we can === it
   return domain1 === domain2;
 }
@@ -896,8 +920,8 @@ function domain_any_isEqual(domain1, domain2) {
  * @returns {$domain_str[]}
  */
 function domain_str_closeGaps(domain1, domain2) {
-  ASSERT(typeof domain1 === 'string', 'USED_WITH_STRINGS');
-  ASSERT(typeof domain2 === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   if (domain1 && domain2) {
     let change;
@@ -936,7 +960,7 @@ function domain_str_closeGaps(domain1, domain2) {
  * @returns {$domain_str} (min/max won't be eliminated and input should be a "large" domain)
  */
 function _domain_str_closeGaps(domain, gap) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
 
   let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
   let lasthi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
@@ -962,7 +986,7 @@ function _domain_str_closeGaps(domain, gap) {
  * @returns {number}
  */
 function domain_str_smallestRangeSize(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
 
   let min_width = SUP;
 
@@ -985,6 +1009,9 @@ function domain_str_smallestRangeSize(domain) {
  * @returns {$domain}
  */
 function domain_any_mul(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
   // for simplicity sake, convert them back to arrays
   if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
   if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
@@ -1000,8 +1027,8 @@ function domain_any_mul(domain1, domain2) {
  * @returns {$domain_str} a strdom can never become a numdom when multiplying (can only grow or become zero)
  */
 function domain_strstr_mul(domain1, domain2) {
-  ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
-  ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
@@ -1037,6 +1064,9 @@ function domain_strstr_mul(domain1, domain2) {
  * @returns {$domain}
  */
 function domain_any_divby(domain1, domain2, floorFractions = true) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
   // for simplicity sake, convert them back to arrays
   if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
   if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
@@ -1061,8 +1091,8 @@ function domain_any_divby(domain1, domain2, floorFractions = true) {
  * @returns {$domain} strdom could become numdom after a div
  */
 function domain_strstr_divby(domain1, domain2, floorFractions = true) {
-  ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
-  ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
@@ -1113,7 +1143,8 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
  * @returns {number}
  */
 function domain_any_size(domain) {
-  ASSERT(domain || domain === 0, 'REQUIRES_DOMAIN');
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_size(domain);
   return domain_str_size(domain);
 }
@@ -1124,7 +1155,7 @@ function domain_any_size(domain) {
  * @returns {number}
  */
 function domain_str_size(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
   ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_DOMAINS');
 
   let count = 0;
@@ -1145,9 +1176,11 @@ function domain_str_size(domain) {
  * in other words; index=ceil(count/2).
  *
  * @param {$domain} domain
- * @returns {number}
+ * @returns {number} can return
  */
 function domain_any_middleElement(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   // for simplicity sake, convert them back to arrays
   if (typeof domain === 'number') domain = domain_numToStr(domain);
 
@@ -1165,8 +1198,10 @@ function domain_any_middleElement(domain) {
  * @returns {number}
  */
 function domain_str_middleElement(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT_STRDOM(domain);
+
+  if (!domain) return NO_SUCH_VALUE;
+
   let size = domain_str_size(domain);
   let targetValue = FLOOR(size / 2);
 
@@ -1197,6 +1232,8 @@ function domain_str_middleElement(domain) {
  * @returns {number}
  */
 function domain_any_min(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_min(domain);
   return domain_str_min(domain);
 }
@@ -1205,11 +1242,12 @@ function domain_any_min(domain) {
  * Only use if callsite doesn't use first range again
  *
  * @param {$domain_str} domain
- * @returns {number}
+ * @returns {number} can be NO_SUCH_VALUE
  */
 function domain_str_min(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT_STRDOM(domain);
+  if (!domain) return NO_SUCH_VALUE;
+
   return domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
 }
 
@@ -1217,9 +1255,11 @@ function domain_str_min(domain) {
  * Only use if callsite doesn't use last range again
  *
  * @param {$domain} domain
- * @returns {number}
+ * @returns {number} can be NO_SUCH_VALUE
  */
 function domain_any_max(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_max(domain);
   return domain_str_max(domain);
 }
@@ -1231,8 +1271,9 @@ function domain_any_max(domain) {
  * @returns {number}
  */
 function domain_str_max(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT_DOMAIN_EMPTY_CHECK(domain);
+  ASSERT_STRDOM(domain);
+  if (!domain) return NO_SUCH_VALUE;
+
   // last encoded value in the string should be the hi of the last range. so max is last value
   return domain_str_decodeValue(domain, domain.length - STR_VALUE_SIZE);
 }
@@ -1244,6 +1285,8 @@ function domain_str_max(domain) {
  * @returns {number}
  */
 function domain_arr_max(domain) {
+  ASSERT_ARRDOM(domain);
+
   let len = domain.length;
   if (len === 0) return NO_SUCH_VALUE;
   return domain[len - 1];
@@ -1256,6 +1299,8 @@ function domain_arr_max(domain) {
  * @returns {boolean}
  */
 function domain_any_isSolved(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_isSolved(domain) === 1;
   return domain_str_isSolved(domain);
 }
@@ -1266,7 +1311,7 @@ function domain_any_isSolved(domain) {
  * @returns {boolean}
  */
 function domain_str_isSolved(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
 
   // TODO: could do this by comparing strings, no need to convert
   return domain.length === STR_RANGE_SIZE && domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) === domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
@@ -1280,6 +1325,8 @@ function domain_str_isSolved(domain) {
  * @returns {boolean}
  */
 function domain_any_isUndetermined(domain) {
+  ASSERT_NUMSTRDOM(domain);
+
   if (typeof domain === 'number') return asmdomain_isUndetermined(domain) === 1;
   return domain_str_isUndetermined(domain);
 }
@@ -1291,7 +1338,7 @@ function domain_any_isUndetermined(domain) {
  * @returns {boolean}
  */
 function domain_str_isUndetermined(domain) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
 
   // TODO: could do this by comparing strings, no need to convert
   return domain.length > STR_RANGE_SIZE || domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) !== domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
@@ -1323,8 +1370,9 @@ function domain_any_isRejected(domain) {
  * @returns {$domain}
  */
 function domain_any_removeGte(domain, value) {
-  ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+
   if (typeof domain === 'number') return asmdomain_removeGte(domain, value);
   return domain_str_removeGte(domain, value);
 }
@@ -1343,7 +1391,7 @@ function domain_any_removeGte(domain, value) {
  * @returns {$domain}
  */
 function domain_str_removeGte(domain_str, value) {
-  ASSERT(typeof domain_str === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain_str);
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain_str, i);
@@ -1393,8 +1441,9 @@ function domain_str_removeGte(domain_str, value) {
  * @returns {$domain}
  */
 function domain_any_removeLte(domain, value) {
-  ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+
   if (typeof domain === 'number') return asmdomain_removeLte(domain, value);
   return domain_str_removeLte(domain, value);
 }
@@ -1411,7 +1460,7 @@ function domain_any_removeLte(domain, value) {
  * @returns {$domain}
  */
 function domain_str_removeLte(domain_str, value) {
-  ASSERT(typeof domain_str === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain_str);
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain_str, i);
@@ -1457,8 +1506,9 @@ function domain_str_removeLte(domain_str, value) {
  * @returns {$domain}
  */
 function domain_any_removeValue(domain, value) {
-  ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
+  ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+
   if (typeof domain === 'number') return asmdomain_removeValue(domain, value);
   return domain_str_removeValue(domain, value);
 }
@@ -1468,7 +1518,7 @@ function domain_any_removeValue(domain, value) {
  * @returns {$domain}
  */
 function domain_str_removeValue(domain, value) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
+  ASSERT_STRDOM(domain);
 
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain, i);
@@ -1519,6 +1569,9 @@ function domain_str_removeValue(domain, value) {
  * @returns {boolean}
  */
 function domain_any_sharesNoElements(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1 && isNum2) return asmdomain_sharesNoElements(domain1, domain2) === 1;
@@ -1535,6 +1588,9 @@ function domain_any_sharesNoElements(domain1, domain2) {
  * @returns {boolean}
  */
 function domain_numstr_sharesNoElements(domain_num, domain_str) {
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
+
   let strIndex = 0;
   let strlen = domain_str.length;
   for (let numIndex = 0; numIndex <= SMALL_MAX_NUM; ++numIndex) {
@@ -1573,6 +1629,9 @@ function domain_numstr_sharesNoElements(domain_num, domain_str) {
  * @returns {boolean}
  */
 function domain_strstr_sharesNoElements(domain1, domain2) {
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
+
   let len1 = domain1.length;
   let len2 = domain2.length;
 
@@ -1633,6 +1692,8 @@ function domain_createRange(lo, hi) {
  * @returns {$domain}
  */
 function domain_any_clone(domain, force) {
+  ASSERT_ANYDOM(domain);
+
   if (force === FORCE_ARRAY) return domain_toArr(domain, true);
   if (force === FORCE_STRING) return domain_toStr(domain);
   return domain; // TODO: eliminate this function. domains are strings and numbers now. array cases should be consolidated to config explicitly.
@@ -1671,7 +1732,8 @@ function domain_toStr(domain) {
  * @returns {$domain_arr}
  */
 function domain_numToArr(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain);
+
   if (domain === EMPTY) return [];
   let arr = [];
   let lo = -1;
@@ -1734,7 +1796,8 @@ function domain_numToArr(domain) {
  * @returns {$domain_str}
  */
 function domain_numToStr(domain) {
-  ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
+  ASSERT_NUMDOM(domain);
+
   if (domain === EMPTY) return EMPTY_STR;
 
   let str = EMPTY_STR;
@@ -1798,7 +1861,7 @@ function domain_numToStr(domain) {
  * @returns {$domain_arr}
  */
 function domain_strToArr(domain) {
-  ASSERT(typeof domain === 'string', 'ONLY_USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
 
   if (domain === EMPTY) return [];
 
@@ -1818,7 +1881,7 @@ function domain_strToArr(domain) {
  * @returns {$domain_num}
  */
 function domain_arrToNumstr(domain_arr) {
-  ASSERT(domain_arr instanceof Array, 'ARRAYS_ONLY');
+  ASSERT_ARRDOM(domain_arr);
 
   let len = domain_arr.length;
   if (len === 0) return EMPTY;
@@ -1836,7 +1899,7 @@ function domain_arrToNumstr(domain_arr) {
  * @returns {$domain_str}
  */
 function domain_arrToStr(domain_arr) {
-  ASSERT(domain_arr instanceof Array, 'ARRAYS_ONLY');
+  ASSERT_ARRDOM(domain_arr);
 
   let str = EMPTY_STR;
   for (let i = 0, len = domain_arr.length; i < len; i += ARR_RANGE_SIZE) {
@@ -1861,7 +1924,7 @@ function domain_arrToStr(domain_arr) {
  * @returns {$domain}
  */
 function domain_arrToNum(domain) {
-  if (typeof domain === 'number') return domain;
+  ASSERT_ARRDOM(domain);
 
   let len = domain.length;
   if (len === 0) return 0;
@@ -1882,7 +1945,7 @@ function domain_arrToNum(domain) {
  * @returns {$domain_num}
  */
 function _domain_arrToNum(domain, len) {
-  ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBER');
+  ASSERT_ARRDOM(domain);
   ASSERT(domain[domain.length - 1] <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain);
   let out = 0;
   for (let i = 0; i < len; i += ARR_RANGE_SIZE) {
@@ -1924,7 +1987,7 @@ function domain_toNumstr(domain) {
  * @returns {$domain_num}
  */
 function domain_strToNum(domain, len) {
-  ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
+  ASSERT_STRDOM(domain);
   ASSERT(domain.length === len, 'len should be cache of domain.length');
   ASSERT(domain_any_max(domain) <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain, domain_any_max(domain));
 
@@ -1937,7 +2000,6 @@ function domain_strToNum(domain, len) {
   return out;
 }
 
-
 /**
  * Given two domains compare the new domain to the old domain and
  * return REJECTED if the new domain is empty, NO_CHANGES if the
@@ -1948,6 +2010,9 @@ function domain_strToNum(domain, len) {
  * @returns {$fd_changeState}
  */
 function domain_any_getChangeState(newDom, oldDom) {
+  ASSERT_NUMSTRDOM(newDom);
+  ASSERT_NUMSTRDOM(oldDom);
+
   if (domain_any_isEqual(newDom, oldDom)) return NO_CHANGES;
   if (domain_any_isRejected(newDom)) return REJECTED;
   return SOME_CHANGES;
@@ -1960,7 +2025,7 @@ function domain_any_getChangeState(newDom, oldDom) {
  * @returns {number[]}
  */
 function domain_validateLegacyArray(domain) {
-  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
+  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
 
   // support legacy domains and validate input here
   let msg = domain_confirmLegacyDomain(domain);
@@ -1994,6 +2059,8 @@ function domain_validateLegacyArray(domain) {
  * @returns {string|undefined}
  */
 function domain_confirmLegacyDomain(domain) {
+  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
+
   for (let i = 0; i < domain.length; i += ARR_RANGE_SIZE) {
     let lo = domain[i];
     let hi = domain[i + 1];
@@ -2044,6 +2111,8 @@ function domain_confirmLegacyDomainElement(n) {
  * @returns {$domain_arr}
  */
 function domain_tryToFixLegacyDomain(domain) {
+  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
+
   let fixed = [];
   for (let i = 0; i < domain.length; i++) {
     let rangeArr = domain[i];
@@ -2075,7 +2144,6 @@ export {
   NOT_FOUND,
   PREV_CHANGED,
   SMALL_MAX_FLAG,
-  SMALL_MAX_NUM,
   SOME_CHANGES,
   STR_FIRST_RANGE_HI,
   STR_FIRST_RANGE_LO,

@@ -6,8 +6,8 @@ import {
 } from '../helpers';
 
 import {
-  domain_isSolved,
-  domain_min,
+  domain_any_isSolved,
+  domain_any_min,
 } from '../domain';
 
 import {
@@ -39,11 +39,11 @@ function propagator_markovStepBare(space, varIndex) {
 
   let domain = space.vardoms[varIndex];
 
-  if (!domain_isSolved(domain)) {
+  if (!domain_any_isSolved(domain)) {
     return NO_CHANGES;
   }
 
-  let value = domain_min(domain); // note: solved so lo=hi=value
+  let value = domain_any_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = space.config.var_dist_options;
   let distributionOptions = configVarDistOptions[space.config.all_var_names[varIndex]];

@@ -5,9 +5,9 @@ import {
 } from '../helpers';
 
 import {
-  domain_max,
-  domain_min,
-  domain_size,
+  domain_any_max,
+  domain_any_min,
+  domain_any_size,
 } from '../domain';
 
 // BODY_START
@@ -100,7 +100,7 @@ function distribution_varByMinSize(space, varIndex1, varIndex2) {
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let n = domain_size(space.vardoms[varIndex1]) - domain_size(space.vardoms[varIndex2]);
+  let n = domain_any_size(space.vardoms[varIndex1]) - domain_any_size(space.vardoms[varIndex2]);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
@@ -111,7 +111,7 @@ function distribution_varByMin(space, varIndex1, varIndex2) {
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let n = domain_min(space.vardoms[varIndex1]) - domain_min(space.vardoms[varIndex2]);
+  let n = domain_any_min(space.vardoms[varIndex1]) - domain_any_min(space.vardoms[varIndex2]);
   if (n < 0) return BETTER;
   if (n > 0) return WORSE;
   return SAME;
@@ -122,7 +122,7 @@ function distribution_varByMax(space, varIndex1, varIndex2) {
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let n = domain_max(space.vardoms[varIndex1]) - domain_max(space.vardoms[varIndex2]);
+  let n = domain_any_max(space.vardoms[varIndex1]) - domain_any_max(space.vardoms[varIndex2]);
   if (n > 0) return BETTER;
   if (n < 0) return WORSE;
   return SAME;

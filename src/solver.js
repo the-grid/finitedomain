@@ -26,14 +26,14 @@ import {
   FORCE_ARRAY,
 
   domain_arrToStr,
-  domain_clone,
+  domain_any_clone,
   domain_createRange,
   domain_fromList,
-  domain_isRejected,
-  domain_max,
+  domain_any_isRejected,
+  domain_any_max,
   domain_toArr,
-  domain_toList,
-  domain_validateOldArr,
+  domain_any_toList,
+  domain_validateLegacyArray,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -188,13 +188,13 @@ class Solver {
     else domain = domainOrValue;
 
     if (!domain) {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
     }
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
-    if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    domain = domain_validateOldArr(domain);
+    if (domain_any_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    domain = domain_validateLegacyArray(domain);
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -249,9 +249,9 @@ class Solver {
     ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
 
     if (domain === undefined) {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
     } else {
-      domain = domain_validateOldArr(domain);
+      domain = domain_validateLegacyArray(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     }
 
@@ -648,8 +648,8 @@ class Solver {
    * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
    */
   domain_max(domain) {
-    if (domain_isRejected(domain)) return NO_SUCH_VALUE;
-    return domain_max(domain);
+    if (domain_any_isRejected(domain)) return NO_SUCH_VALUE;
+    return domain_any_max(domain);
   }
 
   /**
@@ -661,7 +661,7 @@ class Solver {
    * @returns {number[]}
    */
   domain_toList(domain) {
-    return domain_toList(domain);
+    return domain_any_toList(domain);
   }
 
   /**

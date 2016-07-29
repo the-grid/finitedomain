@@ -50,16 +50,16 @@ import {
   domain_arrToStr,
   domain_createRange,
   domain_createValue,
-  domain_getValue,
-  domain_getValueStr,
-  domain_max,
-  domain_min,
-  domain_isSolvedStr,
-  domain_intersection,
-  domain_intersectionStrStr,
-  domain_removeGteStr,
-  domain_removeLteStr,
-  domain_removeValueStr,
+  domain_any_getValue,
+  domain_str_getValue,
+  domain_any_max,
+  domain_any_min,
+  domain_str_isSolved,
+  domain_any_intersection,
+  domain_strstr_intersection,
+  domain_str_removeGte,
+  domain_str_removeLte,
+  domain_str_removeValue,
   domain_toNumstr,
   domain_toStr,
 } from './domain';
@@ -246,8 +246,8 @@ function _config_addVar(config, varName, domain) {
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(typeof domain === 'string', 'DOMAIN_MUST_BE_STRING_HERE');
   ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
-  ASSERT(domain === EMPTY_STR || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(domain === EMPTY_STR || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(domain === EMPTY_STR || domain_any_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain === EMPTY_STR || domain_any_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
@@ -262,7 +262,7 @@ function _config_addVar(config, varName, domain) {
     THROW('Var varName already part of this config. Probably a bug?');
   }
 
-  let solvedTo = domain_getValueStr(domain);
+  let solvedTo = domain_str_getValue(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
 
   config.initial_domains[varIndex] = domain;
@@ -400,7 +400,7 @@ function config_populateVarPropHash(config) {
       let varIndex = pvars[propVarIndex];
       // dont bother adding props on unsolved vars because they can't affect
       // anything anymore. seems to prevent about 10% in our case so worth it.
-      if (!domain_isSolvedStr(initialDomains[varIndex])) {
+      if (!domain_str_isSolved(initialDomains[varIndex])) {
         if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
         else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
       }
@@ -528,7 +528,7 @@ function config_addConstraint(config, name, varNames, param) {
       let varIndex = varIndexes[i];
       maxDomain = domain_plus(maxDomain, initialDomains[varIndex]);
     }
-    initialDomains[param] = domain_toStr(domain_intersection(maxDomain, initialDomains[param]));
+    initialDomains[param] = domain_toStr(domain_any_intersection(maxDomain, initialDomains[param]));
 
     // eliminate multiple constants
     if (varIndexes.length > 1) {
@@ -537,19 +537,19 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varIndexes.length; i < n; ++i) {
         let varIndex = varIndexes[i];
         let domain = initialDomains[varIndex];
-        let value = domain_getValueStr(domain);
+        let value = domain_str_getValue(domain);
         if (value === NO_SUCH_VALUE) {
           newVarIndexes.push(varIndex);
         } else if (value !== 0) {
           constants = domain_plus(constants, domain);
         }
       }
-      let cValue = domain_getValue(constants);
+      let cValue = domain_any_getValue(constants);
       if (cValue !== 0) {
         let varIndex = config_addVarAnonConstant(config, cValue);
         newVarIndexes.push(varIndex);
       }
-      if (!newVarIndexes.length) initialDomains[param] = domain_toStr(domain_intersection(ZERO, initialDomains[param]));
+      if (!newVarIndexes.length) initialDomains[param] = domain_toStr(domain_any_intersection(ZERO, initialDomains[param]));
       varIndexes = newVarIndexes;
     }
   }
@@ -604,24 +604,24 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   ASSERT(typeof domainLeft === 'string', 'ALL_INITIAL_DOMAINS_STRINGS');
   ASSERT(typeof domainRight === 'string', 'ALL_INITIAL_DOMAINS_STRINGS');
 
-  let v = domain_getValueStr(domainLeft);
+  let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_removeLteStr(domainRight, v - (constraintName === 'lt' ? 0 : 1)));
+    initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, v - (constraintName === 'lt' ? 0 : 1)));
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  v = domain_getValueStr(domainRight);
+  v = domain_str_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_removeGteStr(domainLeft, v + (constraintName === 'lt' ? 0 : 1)));
+    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, v + (constraintName === 'lt' ? 0 : 1)));
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  initialDomains[varIndexLeft] = domain_toStr(domain_removeGteStr(domainLeft, domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_removeLteStr(domainRight, domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
+  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, domain_any_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, domain_any_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
 
   return false;
 }
@@ -633,25 +633,25 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
 
-  let v = domain_getValueStr(domainLeft);
+  let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_removeGteStr(domainRight, v + (constraintName === 'gt' ? 0 : 1)));
+    initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, v + (constraintName === 'gt' ? 0 : 1)));
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  v = domain_getValueStr(domainRight);
+  v = domain_str_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_removeLteStr(domainLeft, v - (constraintName === 'gt' ? 0 : 1)));
+    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, v - (constraintName === 'gt' ? 0 : 1)));
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
   // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
-  initialDomains[varIndexLeft] = domain_toStr(domain_removeLteStr(domainLeft, domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_removeGteStr(domainRight, domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
+  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, domain_any_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, domain_any_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
 
   return false;
 }
@@ -661,10 +661,10 @@ function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
   let varIndexRight = varIndexes[1];
   let a = initialDomains[varIndexLeft];
   let b = initialDomains[varIndexRight];
-  let v = domain_getValueStr(a);
-  if (v === NO_SUCH_VALUE) v = domain_getValueStr(b);
+  let v = domain_str_getValue(a);
+  if (v === NO_SUCH_VALUE) v = domain_str_getValue(b);
   if (v !== NO_SUCH_VALUE) {
-    let r = domain_toStr(domain_intersectionStrStr(a, b));
+    let r = domain_toStr(domain_strstr_intersection(a, b));
     initialDomains[varIndexLeft] = r;
     initialDomains[varIndexRight] = r;
     config._constrainedAway.push(varIndexLeft, varIndexRight);
@@ -676,15 +676,15 @@ function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
   let initialDomains = config.initial_domains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
-  let v = domain_getValueStr(initialDomains[varIndexLeft]);
+  let v = domain_str_getValue(initialDomains[varIndexLeft]);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_removeValueStr(initialDomains[varIndexRight], v));
+    initialDomains[varIndexRight] = domain_toStr(domain_str_removeValue(initialDomains[varIndexRight], v));
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
-  v = domain_getValueStr(initialDomains[varIndexRight]);
+  v = domain_str_getValue(initialDomains[varIndexRight]);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_removeValueStr(initialDomains[varIndexLeft], v));
+    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeValue(initialDomains[varIndexLeft], v));
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
@@ -699,15 +699,15 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
 
-  let v1 = domain_getValueStr(initialDomains[varIndexLeft]);
-  let v2 = domain_getValueStr(initialDomains[varIndexRight]);
+  let v1 = domain_str_getValue(initialDomains[varIndexLeft]);
+  let v2 = domain_str_getValue(initialDomains[varIndexRight]);
   let hasLeft = v1 !== NO_SUCH_VALUE;
   let hasRight = v2 !== NO_SUCH_VALUE;
   if (hasLeft && hasRight) { // just left or right would not force anything. but both does.
     return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
   }
 
-  let v3 = domain_getValueStr(initialDomains[varIndexResult]);
+  let v3 = domain_str_getValue(initialDomains[varIndexResult]);
   let hasResult = v3 !== NO_SUCH_VALUE;
   if (hasResult) {
     if (hasLeft) {
@@ -725,49 +725,49 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_max(domain1) < domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 0));
+      if (domain_any_max(domain1) < domain_any_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_min(domain1) >= domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 1));
+      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_max(domain1) <= domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 0));
+      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_min(domain1) > domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 1));
+      if (domain_any_min(domain1) > domain_any_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_min(domain1) > domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 0));
+      if (domain_any_min(domain1) > domain_any_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_max(domain1) <= domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 1));
+      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_min(domain1) >= domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 0));
+      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_max(domain1) < domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], 1));
+      if (domain_any_max(domain1) < domain_any_min(domain2)) {
+        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
@@ -806,7 +806,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
       return false;
   }
 
-  initialDomains[varIndexResult] = domain_toStr(domain_removeValueStr(initialDomains[varIndexResult], bool ? 0 : 1));
+  initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], bool ? 0 : 1));
   config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
   return true;
 }
@@ -816,28 +816,28 @@ function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, v
   let domainRight = initialDomains[varIndexRight];
   switch (opName) {
     case 'lt':
-      if (result) domainRight = domain_removeLteStr(domainRight, value);
-      else domainRight = domain_removeGteStr(domainRight, value + 1);
+      if (result) domainRight = domain_str_removeLte(domainRight, value);
+      else domainRight = domain_str_removeGte(domainRight, value + 1);
       break;
     case 'lte':
-      if (result) domainRight = domain_removeLteStr(domainRight, value - 1);
-      else domainRight = domain_removeGteStr(domainRight, value);
+      if (result) domainRight = domain_str_removeLte(domainRight, value - 1);
+      else domainRight = domain_str_removeGte(domainRight, value);
       break;
     case 'gt':
-      if (result) domainRight = domain_removeGteStr(domainRight, value);
-      else domainRight = domain_removeLteStr(domainRight, value - 1);
+      if (result) domainRight = domain_str_removeGte(domainRight, value);
+      else domainRight = domain_str_removeLte(domainRight, value - 1);
       break;
     case 'gte':
-      if (result) domainRight = domain_removeGteStr(domainRight, value + 1);
-      else domainRight = domain_removeLteStr(domainRight, value);
+      if (result) domainRight = domain_str_removeGte(domainRight, value + 1);
+      else domainRight = domain_str_removeLte(domainRight, value);
       break;
     case 'eq':
-      if (result) domainRight = domain_intersectionStrStr(domain1, domain2);
-      else domainRight = domain_removeValueStr(domainRight, value);
+      if (result) domainRight = domain_strstr_intersection(domain1, domain2);
+      else domainRight = domain_str_removeValue(domainRight, value);
       break;
     case 'neq':
-      if (result) domainRight = domain_removeValueStr(domainRight, value);
-      else domainRight = domain_intersectionStrStr(domain1, domain2);
+      if (result) domainRight = domain_str_removeValue(domainRight, value);
+      else domainRight = domain_strstr_intersection(domain1, domain2);
       break;
     default:
       return false;
@@ -853,28 +853,28 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v
   let domainLeft = initialDomains[varIndexLeft];
   switch (opName) {
     case 'lt':
-      if (result) domainLeft = domain_removeGteStr(domainLeft, value + 1);
-      else domainLeft = domain_removeLteStr(domainLeft, value);
+      if (result) domainLeft = domain_str_removeGte(domainLeft, value + 1);
+      else domainLeft = domain_str_removeLte(domainLeft, value);
       break;
     case 'lte':
-      if (result) domainLeft = domain_removeGteStr(domainLeft, value);
-      else domainLeft = domain_removeLteStr(domainLeft, value);
+      if (result) domainLeft = domain_str_removeGte(domainLeft, value);
+      else domainLeft = domain_str_removeLte(domainLeft, value);
       break;
     case 'gt':
-      if (result) domainLeft = domain_removeLteStr(domainLeft, value - 1);
-      else domainLeft = domain_removeGteStr(domainLeft, value);
+      if (result) domainLeft = domain_str_removeLte(domainLeft, value - 1);
+      else domainLeft = domain_str_removeGte(domainLeft, value);
       break;
     case 'gte':
-      if (result) domainLeft = domain_removeLteStr(domainLeft, value);
-      else domainLeft = domain_removeGteStr(domainLeft, value + 1);
+      if (result) domainLeft = domain_str_removeLte(domainLeft, value);
+      else domainLeft = domain_str_removeGte(domainLeft, value + 1);
       break;
     case 'eq':
-      if (result) domainLeft = domain_intersectionStrStr(domain1, domain2);
-      else domainLeft = domain_removeValueStr(domainLeft, value);
+      if (result) domainLeft = domain_strstr_intersection(domain1, domain2);
+      else domainLeft = domain_str_removeValue(domainLeft, value);
       break;
     case 'neq':
-      if (result) domainLeft = domain_removeValueStr(domainLeft, value);
-      else domainLeft = domain_intersectionStrStr(domain1, domain2);
+      if (result) domainLeft = domain_str_removeValue(domainLeft, value);
+      else domainLeft = domain_strstr_intersection(domain1, domain2);
       break;
     default:
       return false;
@@ -886,10 +886,10 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
   if (varIndexes.length === 1) {
-    let domain = domain_toStr(domain_intersectionStrStr(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
+    let domain = domain_toStr(domain_strstr_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
     config.initial_domains[resultIndex] = domain;
     config.initial_domains[varIndexes[0]] = domain;
-    if (domain_isSolvedStr(domain)) {
+    if (domain_str_isSolved(domain)) {
       config._constrainedAway.push(varIndexes[0], resultIndex);
       return true;
     }

@@ -14,7 +14,7 @@ import {
 import {
   SMALL_MAX_NUM,
 
-  domain_debug,
+  domainany__debug,
   domain_fromList,
   domain_toNumstr,
 } from '../../src/domain';
@@ -155,7 +155,7 @@ describe('src/minus.spec.js', function() {
             let A = inputs[i];
             let B = inputs[j];
             let C = domain_toNumstr(outcomes[n++]);
-            let desc = domain_debug(A) + ' - ' + domain_debug(B) + ' = ' + domain_debug(C);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
             if (typeof C === 'number') expect(domain_minus(A, B), desc).to.eql(C);
             else fixt_assertStrings(domain_minus(A, B), C, desc);
           }
@@ -191,7 +191,7 @@ describe('src/minus.spec.js', function() {
             let A = smalls[i];
             let B = domain_toNumstr(domain_fromList(large[j]));
             let C = smallLargeOut[n++];
-            let desc = domain_debug(A) + ' - ' + domain_debug(B) + ' = ' + domain_debug(C);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
             if (typeof C === 'number') expect(domain_minus(A, B), desc).to.eql(C);
             else fixt_assertStrings(domain_minus(A, B), C, desc);
           }
@@ -211,7 +211,7 @@ describe('src/minus.spec.js', function() {
             let A = domain_toNumstr(domain_fromList(large[i]));
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
-            let desc = domain_debug(A) + ' - ' + domain_debug(B) + ' = ' + domain_debug(C);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
             if (typeof C === 'number') expect(domain_minus(A, B), desc).to.eql(C);
             else fixt_assertStrings(domain_minus(A, B), C, desc);
           }
@@ -231,7 +231,7 @@ describe('src/minus.spec.js', function() {
             let A = domain_toNumstr(domain_fromList(large[i]));
             let B = domain_toNumstr(domain_fromList(large[j]));
             let C = domain_toNumstr(largeLargeOut[n++]);
-            let desc = domain_debug(A) + ' - ' + domain_debug(B) + ' = ' + domain_debug(C);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
             if (typeof C === 'number') expect(domain_minus(A, B), desc).to.eql(C);
             else fixt_assertStrings(domain_minus(A, B), C, desc);
           }

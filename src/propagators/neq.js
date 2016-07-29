@@ -8,11 +8,11 @@ import {
   ASSERT,
 } from '../helpers';
 import {
-  domain_getValue,
-  domain_isRejected,
-  domain_isSolved,
-  domain_removeValue,
-  domain_sharesNoElements,
+  domain_any_getValue,
+  domain_any_isRejected,
+  domain_any_isSolved,
+  domain_any_removeValue,
+  domain_any_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -31,17 +31,17 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_any_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_any_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
 
   let result = NO_CHANGES;
 
   // remove solved value from the other domain. confirm neither rejects over it.
-  let value = domain_getValue(domain1);
+  let value = domain_any_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
-    let newDomain = domain_removeValue(domain2, value);
+    let newDomain = domain_any_removeValue(domain2, value);
     if (domain2 !== newDomain) result = SOME_CHANGES;
-    if (domain_isRejected(newDomain)) {
+    if (domain_any_isRejected(newDomain)) {
       space.vardoms[varIndex1] = EMPTY;
       space.vardoms[varIndex2] = EMPTY;
       result = REJECTED;
@@ -50,11 +50,11 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
     }
   } else {
     // domain1 is not solved, just remove domain2 from domain1 if domain2 is solved
-    value = domain_getValue(domain2);
+    value = domain_any_getValue(domain2);
     if (value !== NO_SUCH_VALUE) {
-      let newDomain = domain_removeValue(domain1, value);
+      let newDomain = domain_any_removeValue(domain1, value);
       if (domain1 !== newDomain) result = SOME_CHANGES;
-      if (domain_isRejected(newDomain)) {
+      if (domain_any_isRejected(newDomain)) {
         space.vardoms[varIndex1] = EMPTY;
         space.vardoms[varIndex2] = EMPTY;
         result = REJECTED;
@@ -65,7 +65,7 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
   }
 
   ASSERT(result === REJECTED || result === NO_CHANGES || result === SOME_CHANGES, 'turning stuff into enum, must be sure about values');
-  ASSERT((result === REJECTED) === (domain_isRejected(space.vardoms[varIndex1]) || domain_isRejected(space.vardoms[varIndex2])), 'if either domain is rejected, r should reflect this already');
+  ASSERT((result === REJECTED) === (domain_any_isRejected(space.vardoms[varIndex1]) || domain_any_isRejected(space.vardoms[varIndex2])), 'if either domain is rejected, r should reflect this already');
   return result;
 }
 
@@ -78,11 +78,11 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_neqStepWouldReject(domain1, domain2) {
-  if (!domain_isSolved(domain1) || !domain_isSolved(domain2)) {
+  if (!domain_any_isSolved(domain1) || !domain_any_isSolved(domain2)) {
     return false; // can not reject if either domain isnt solved
   }
 
-  return domain_getValue(domain1) === domain_getValue(domain2);
+  return domain_any_getValue(domain1) === domain_any_getValue(domain2);
 }
 
 /**
@@ -93,7 +93,7 @@ function propagator_neqStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_neqSolved(domain1, domain2) {
-  return domain_sharesNoElements(domain1, domain2);
+  return domain_any_sharesNoElements(domain1, domain2);
 }
 
 // BODY_STOP

@@ -153,12 +153,12 @@ const STR_RANGE_SIZE = 4;
  * @param {number} hi
  * @returns {$domain}
  */
-function domain_appendRange(domain, lo, hi) {
+function domain_any_appendRange(domain, lo, hi) {
   if (typeof domain === 'number') {
     if (hi <= SMALL_MAX_NUM) return asmdomain_addRange(domain, lo, hi);
     domain = domain_numToStr(domain);
   }
-  return domain_addRangeStr(domain, lo, hi);
+  return domain_str_addRange(domain, lo, hi);
 }
 /**
  * Append given range to the end of given domain. Does not
@@ -169,10 +169,10 @@ function domain_appendRange(domain, lo, hi) {
  * @param {number} hi
  * @returns {$domain_str}
  */
-function domain_addRangeStr(domain, lo, hi) {
+function domain_str_addRange(domain, lo, hi) {
   ASSERT(typeof domain === 'string', 'ONLY_WITH_STRINGS');
 
-  return domain + domain_strEncodeRange(lo, hi);
+  return domain + domain_str_encodeRange(lo, hi);
 }
 
 /**
@@ -182,9 +182,9 @@ function domain_addRangeStr(domain, lo, hi) {
  * @param {number} value
  * @returns {boolean}
  */
-function domain_containsValue(domain, value) {
+function domain_any_containsValue(domain, value) {
   if (typeof domain === 'number') return asmdomain_containsValue(domain, value) === 1;
-  return domain_containsValueStr(domain, value);
+  return domain_str_containsValue(domain, value);
 }
 /**
  * returns whether domain covers given value
@@ -194,11 +194,11 @@ function domain_containsValue(domain, value) {
  * @param {number} value
  * @returns {boolean}
  */
-function domain_containsValueStr(domain, value) {
+function domain_str_containsValue(domain, value) {
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN(domain);
-  return domain_rangeIndexOfStr(domain, value) !== NOT_FOUND;
+  return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
 
 /**
@@ -209,15 +209,15 @@ function domain_containsValueStr(domain, value) {
  * @param {number} value
  * @returns {number} >=0 actual index on strdom or NOT_FOUND
  */
-function domain_rangeIndexOfStr(domain, value) {
+function domain_str_rangeIndexOf(domain, value) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
 
   let len = domain.length;
 
   for (let index = 0; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, index);
+    let lo = domain_str_decodeValue(domain, index);
     if (lo <= value) {
-      let hi = domain_strDecodeValue(domain, index + STR_VALUE_SIZE);
+      let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
       if (hi >= value) {
         // value is lo<=value<=hi
         return index;
@@ -236,45 +236,45 @@ function domain_rangeIndexOfStr(domain, value) {
  * @param {number} value
  * @returns {boolean}
  */
-function domain_isValue(domain, value) {
+function domain_any_isValue(domain, value) {
   ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'A_EXPECTING_DOMAIN');
   ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
   if (typeof domain === 'number') return asmdomain_isValue(domain, value) === 1;
-  return domain_isValueStr(domain, value);
+  return domain_str_isValue(domain, value);
 }
 /**
  * @param {$domain_str} domain
  * @param {number} value
  * @returns {boolean}
  */
-function domain_isValueStr(domain, value) {
+function domain_str_isValue(domain, value) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   ASSERT_DOMAIN(domain);
-  return domain.length === STR_RANGE_SIZE && (domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) | domain_strDecodeValue(domain, STR_FIRST_RANGE_HI)) === value;
+  return domain.length === STR_RANGE_SIZE && (domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) | domain_str_decodeValue(domain, STR_FIRST_RANGE_HI)) === value;
 }
 
 /**
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_getValue(domain) {
+function domain_any_getValue(domain) {
   if (typeof domain === 'number') return asmdomain_getValue(domain);
-  return domain_getValueStr(domain);
+  return domain_str_getValue(domain);
 }
 /**
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_getValueStr(domain) {
+function domain_str_getValue(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
 
   if (domain.length !== STR_RANGE_SIZE) return NO_SUCH_VALUE;
-  let lo = domain_strDecodeValue(domain, STR_FIRST_RANGE_LO);
-  let hi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  let lo = domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
+  let hi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
   if (lo === hi) return lo;
   return NO_SUCH_VALUE;
 }
-function domain_getValueArr(domain) {
+function domain_arr_getValue(domain) {
   if (domain.length === ARR_RANGE_SIZE && domain[0] === domain[1]) return domain[0];
   return NO_SUCH_VALUE;
 }
@@ -283,14 +283,14 @@ function domain_getValueArr(domain) {
  * @param {number} index
  * @returns {number}
  */
-function domain_strDecodeValue(domain, index) {
+function domain_str_decodeValue(domain, index) {
   return (domain.charCodeAt(index) << 16) | domain.charCodeAt(index + 1);
 }
 /**
  * @param {number} value
  * @returns {string}
  */
-function domain_strEncodeValue(value) {
+function domain_str_encodeValue(value) {
   return String.fromCharCode((value >>> 16) & 0xffff, value & 0xffff);
 }
 /**
@@ -298,7 +298,7 @@ function domain_strEncodeValue(value) {
  * @param {number} hi
  * @returns {$domain_str} One range is still a valid domain
  */
-function domain_strEncodeRange(lo, hi) {
+function domain_str_encodeRange(lo, hi) {
   return String.fromCharCode((lo >>> 16) & 0xffff, lo & 0xffff, (hi >>> 16) & 0xffff, hi & 0xffff);
 }
 
@@ -346,14 +346,14 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
     } else {
       ASSERT(value >= hi, 'LIST_SHOULD_BE_ORDERED_BY_NOW'); // imo it should not even contain dupe elements... but that may happen anyways
       if (value > hi + 1) {
-        domain += domain_strEncodeRange(lo, hi);
+        domain += domain_str_encodeRange(lo, hi);
         lo = value;
       }
       hi = value;
     }
   }
 
-  return domain + domain_strEncodeRange(lo, hi);
+  return domain + domain_str_encodeRange(lo, hi);
 }
 
 /**
@@ -362,9 +362,9 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
  * @param {$domain} domain
  * @returns {number[]}
  */
-function domain_toList(domain) {
-  if (typeof domain === 'number') return domain_toListNum(domain);
-  return domain_toListStr(domain);
+function domain_any_toList(domain) {
+  if (typeof domain === 'number') return domain_num_toList(domain);
+  return domain_str_toList(domain);
 }
 /**
  * domain to list of possible values
@@ -372,7 +372,7 @@ function domain_toList(domain) {
  * @param {$domain_num} domain
  * @returns {number[]}
  */
-function domain_toListNum(domain) {
+function domain_num_toList(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   let list = [];
   for (let i = 0; i < 16; ++i) {
@@ -386,14 +386,14 @@ function domain_toListNum(domain) {
  * @param {$domain_str} domain
  * @returns {number[]}
  */
-function domain_toListStr(domain) {
+function domain_str_toList(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(domain, 'A_EXPECTING_DOMAIN');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
 
   let list = [];
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    for (let n = domain_strDecodeValue(domain, i), m = domain_strDecodeValue(domain, i + STR_VALUE_SIZE); n <= m; ++n) {
+    for (let n = domain_str_decodeValue(domain, i), m = domain_str_decodeValue(domain, i + STR_VALUE_SIZE); n <= m; ++n) {
       list.push(n);
     }
   }
@@ -410,9 +410,9 @@ function domain_toListStr(domain) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
-function domain_removeNextFromList(domain, list) {
-  if (typeof domain === 'number') return domain_removeNextFromListNum(domain, list);
-  return domain_removeNextFromListStr(domain, list);
+function domain_any_removeNextFromList(domain, list) {
+  if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
+  return domain_str_removeNextFromList(domain, list);
 }
 /**
  * Given a list and domain, search items in the list in the domain and remove
@@ -424,7 +424,7 @@ function domain_removeNextFromList(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
-function domain_removeNextFromListNum(domain, list) {
+function domain_num_removeNextFromList(domain, list) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_NUMBERS');
   ASSERT(list, 'A_EXPECTING_LIST');
   for (let i = 0; i < list.length; ++i) {
@@ -447,8 +447,8 @@ function domain_removeNextFromListNum(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
-function domain_removeNextFromListStr(domain, list) {
-  let r = _domain_removeNextFromListStr(domain, list); // replace empty string
+function domain_str_removeNextFromList(domain, list) {
+  let r = _domain_str_removeNextFromList(domain, list); // replace empty string
   ASSERT(r || r === EMPTY_STR, 'if it returns falsy it should be the empty string and not some other falsy');
   return r || EMPTY; // replace '' with 0
 }
@@ -459,7 +459,7 @@ function domain_removeNextFromListStr(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
-function _domain_removeNextFromListStr(domain, list) {
+function _domain_str_removeNextFromList(domain, list) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(list, 'A_EXPECTING_LIST');
   ASSERT(domain, 'A_EXPECTING_DOMAIN');
@@ -472,9 +472,9 @@ function _domain_removeNextFromListStr(domain, list) {
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
 
     for (let index = 0; index < len; index += STR_RANGE_SIZE) {
-      let lo = domain_strDecodeValue(domain, index);
+      let lo = domain_str_decodeValue(domain, index);
       if (lo <= value) {
-        let hi = domain_strDecodeValue(domain, index + STR_VALUE_SIZE);
+        let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
         if (hi >= value) {
           // value is lo<=value<=hi
 
@@ -487,12 +487,12 @@ function _domain_removeNextFromListStr(domain, list) {
               // lo=hi=value; drop this range completely
               return before + after; // TODO: i dont think this is correct yet for empty strings but maybe?
             }
-            return before + domain_strEncodeRange(lo, hi - 1) + after;
+            return before + domain_str_encodeRange(lo, hi - 1) + after;
           } else if (lo === value) {
-            return before + domain_strEncodeRange(lo + 1, hi) + after;
+            return before + domain_str_encodeRange(lo + 1, hi) + after;
           } else {
             // we get new two ranges...
-            return before + domain_strEncodeRange(lo, value - 1) + domain_strEncodeRange(value + 1, hi) + after;
+            return before + domain_str_encodeRange(lo, value - 1) + domain_str_encodeRange(value + 1, hi) + after;
           }
         }
       } else {
@@ -510,16 +510,16 @@ function _domain_removeNextFromListStr(domain, list) {
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_getValueOfFirstContainedValueInList(domain, list) {
-  if (typeof domain === 'number') return domain_getValueOfFirstContainedValueInListNum(domain, list);
-  return domain_getValueOfFirstContainedValueInListStr(domain, list);
+function domain_any_getValueOfFirstContainedValueInList(domain, list) {
+  if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
+  return domain_str_getValueOfFirstContainedValueInList(domain, list);
 }
 /**
  * @param {$domain_num} domain
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_getValueOfFirstContainedValueInListNum(domain, list) {
+function domain_num_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT(typeof domain === 'number', 'ONLY_USED_WITH_DOMAIN');
   ASSERT(list, 'EXPECTING_LIST');
   for (let i = 0; i < list.length; ++i) {
@@ -535,14 +535,14 @@ function domain_getValueOfFirstContainedValueInListNum(domain, list) {
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_getValueOfFirstContainedValueInListStr(domain, list) {
+function domain_str_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_DOMAIN');
   ASSERT(list, 'EXPECTING_LIST');
   ASSERT_DOMAIN(domain);
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
-    if (domain_containsValueStr(domain, value)) {
+    if (domain_str_containsValue(domain, value)) {
       return value;
     }
   }
@@ -557,7 +557,7 @@ function domain_getValueOfFirstContainedValueInListStr(domain, list) {
  * @param {$domain} domain
  * @returns {$domain}
  */
-function domain_complement(domain) {
+function domain_any_complement(domain) {
   // for simplicity sake, convert them back to arrays
   // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
   if (typeof domain === 'number') domain = domain_numToStr(domain);
@@ -568,16 +568,16 @@ function domain_complement(domain) {
   let end = SUB;
   let result = EMPTY_STR;
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
+    let lo = domain_str_decodeValue(domain, i);
     ASSERT(!end || end < lo, 'domain is supposed to be csis, so ranges dont overlap nor touch');
     if (lo > SUB) { // prevent [SUB,SUB] if first range starts at SUB; that'd be bad
-      result += domain_strEncodeRange(end, lo - 1);
+      result += domain_str_encodeRange(end, lo - 1);
     }
-    end = domain_strDecodeValue(domain, i + STR_VALUE_SIZE) + 1;
+    end = domain_str_decodeValue(domain, i + STR_VALUE_SIZE) + 1;
   }
 
   if (end <= SUP) { // <= so SUP is inclusive...
-    result += domain_strEncodeRange(end, SUP);
+    result += domain_str_encodeRange(end, SUP);
   }
 
   return domain_toNumstr(result); // TODO: test edge case where the inverted domain is actually a small domain
@@ -590,14 +590,14 @@ function domain_complement(domain) {
  * @param {$domain_str|string} domain
  * @returns {$domain_str} ironically, not optimized to a number if possible
  */
-function domain_simplifyStr(domain) {
+function domain_str_simplify(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
   if (domain.length === STR_RANGE_SIZE) return domain;
 
   // order ranges, then merge overlapping ranges (TODO: can we squash this step together?)
-  domain = _domain_quickSortRangesStr(domain);
-  domain = _domain_mergeOverlappingRanges(domain);
+  domain = _domain_str_quickSortRanges(domain);
+  domain = _domain_str_mergeOverlappingRanges(domain);
 
   return domain;
 }
@@ -609,7 +609,7 @@ function domain_simplifyStr(domain) {
  * @param {$domain_str|string} domain MAY not be CSIS yet (that's probably why this function is called in the first place)
  * @returns {$domain_str|string} ranges in this string will be ordered but may still overlap
  */
-function _domain_quickSortRangesStr(domain) {
+function _domain_str_quickSortRanges(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRING');
   if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
 
@@ -619,17 +619,17 @@ function _domain_quickSortRangesStr(domain) {
   // TODO: right now we convert to actual values and concat with "direct" string access. would it be faster to use slices? and would it be faster to do string comparisons with the slices and no decoding?
 
   let pivotIndex = 0; // TODO: i think we'd be better off with a different pivot? middle probably performs better
-  let pivotLo = domain_strDecodeValue(domain, pivotIndex);
-  let pivotHi = domain_strDecodeValue(domain, pivotIndex + STR_VALUE_SIZE);
+  let pivotLo = domain_str_decodeValue(domain, pivotIndex);
+  let pivotHi = domain_str_decodeValue(domain, pivotIndex + STR_VALUE_SIZE);
 
   let left = EMPTY_STR;
   let right = EMPTY_STR;
 
   for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
+    let lo = domain_str_decodeValue(domain, i);
 
     // TODO: if we change assumptions elsewhere we could drop the `hi` stuff from this function altogether
-    if (lo < pivotLo || (lo === pivotLo && domain_strDecodeValue(domain, i + STR_VALUE_SIZE) < pivotHi)) {
+    if (lo < pivotLo || (lo === pivotLo && domain_str_decodeValue(domain, i + STR_VALUE_SIZE) < pivotHi)) {
       left += domain[i] + domain[i + 1] + domain[i + 2] + domain[i + 3];
     } else {
       right += domain[i] + domain[i + 1] + domain[i + 2] + domain[i + 3];
@@ -637,19 +637,19 @@ function _domain_quickSortRangesStr(domain) {
   }
 
   return ('' +
-    _domain_quickSortRangesStr(left) + // sort left part, without pivot
+    _domain_str_quickSortRanges(left) + // sort left part, without pivot
     domain[pivotIndex] +               // include pivot (4 chars)
     domain[pivotIndex + 1] +
     domain[pivotIndex + STR_VALUE_SIZE] +
     domain[pivotIndex + STR_VALUE_SIZE + 1] +
-    _domain_quickSortRangesStr(right)  // sort right part, without pivot
+    _domain_str_quickSortRanges(right)  // sort right part, without pivot
   );
 }
 /**
  * @param {$domain_str|string} domain May already be csis but at least all ranges should be ordered and are lo<=hi
  * @returns {$domain_str}
  */
-function _domain_mergeOverlappingRanges(domain) {
+function _domain_str_mergeOverlappingRanges(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   if (!domain) return EMPTY_STR; // prefer strings for return type consistency
 
@@ -659,13 +659,13 @@ function _domain_mergeOverlappingRanges(domain) {
   let len = domain.length;
   if (len === STR_RANGE_SIZE) return domain;
 
-  let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
-  let lasthi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1]; // just copy the first two characters...
+  let lasthi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
   let lasthindex = STR_FIRST_RANGE_HI;
 
   for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
     ASSERT(lo <= hi, 'ranges should be ascending');
 
     // either:
@@ -697,13 +697,13 @@ function _domain_mergeOverlappingRanges(domain) {
  * @param {$domain_str} domain
  * @returns {boolean}
  */
-function domain_isSimplified(domain) {
+function domain_str_isSimplified(domain) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
 
   if (domain.length === STR_RANGE_SIZE) {
-    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
-    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_HI) <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
-    ASSERT(domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) <= domain_strDecodeValue(domain, STR_FIRST_RANGE_HI), 'A_RANGES_SHOULD_ASCEND');
+    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
+    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_HI) <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
+    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) <= domain_str_decodeValue(domain, STR_FIRST_RANGE_HI), 'A_RANGES_SHOULD_ASCEND');
     return true;
   }
 
@@ -714,8 +714,8 @@ function domain_isSimplified(domain) {
 
   let phi = SUB;
   for (let index = 0, len = domain.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, index);
-    let hi = domain_strDecodeValue(domain, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, index);
+    let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
     ASSERT(lo >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
     ASSERT(hi <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
     ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
@@ -739,15 +739,15 @@ function domain_isSimplified(domain) {
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_intersection(domain1, domain2) {
+function domain_any_intersection(domain1, domain2) {
   ASSERT((domain1 || domain1 === EMPTY || domain1 === EMPTY_STR) && (domain2 || domain2 === EMPTY || domain2 === EMPTY_STR), 'A_EXPECTING_TWO_DOMAINS');
   if (domain1 === domain2) return domain1;
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1 && isNum2) return asmdomain_intersection(domain1, domain2);
-  if (isNum1) return domain_intersectionNumStr(domain1, domain2);
-  if (isNum2) return domain_intersectionNumStr(domain2, domain1); // swapped!
-  return domain_intersectionStrStr(domain1, domain2);
+  if (isNum1) return domain_numstr_intersection(domain1, domain2);
+  if (isNum2) return domain_numstr_intersection(domain2, domain1); // swapped!
+  return domain_strstr_intersection(domain1, domain2);
 }
 /**
  * Intersect the domain assuming domain1 is a numbered (small)
@@ -759,15 +759,15 @@ function domain_intersection(domain1, domain2) {
  * @param {$domain_str} domain_str
  * @returns {$domain_num} Always a numdom because we already know numbers higher than max_small cant occur in _both_ domains
  */
-function domain_intersectionNumStr(domain_num, domain_str) {
+function domain_numstr_intersection(domain_num, domain_str) {
   ASSERT(typeof domain_num === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain_str === 'string', 'ONLY_WITH_STRINGS');
 
   let domain = EMPTY;
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, i);
+    let lo = domain_str_decodeValue(domain_str, i);
     if (lo > SMALL_MAX_NUM) break;
-    let hi = domain_strDecodeValue(domain_str, i + STR_VALUE_SIZE);
+    let hi = domain_str_decodeValue(domain_str, i + STR_VALUE_SIZE);
 
     for (let j = lo, m = MIN(SMALL_MAX_NUM, hi); j <= m; ++j) {
       let flag = NUM_TO_FLAG[j];
@@ -786,11 +786,11 @@ function domain_intersectionNumStr(domain_num, domain_str) {
  * @param {$domain_str} domain2
  * @returns {$domain} can return a numdom
  */
-function domain_intersectionStrStr(domain1, domain2) {
+function domain_strstr_intersection(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
-  let newDomain = _domain_intersectionStrStr(domain1, domain2);
+  let newDomain = _domain_strstr_intersection(domain1, domain2);
   return domain_toNumstr(newDomain);
 }
 /**
@@ -800,7 +800,7 @@ function domain_intersectionStrStr(domain1, domain2) {
  * @param {$domain_str} domain2
  * @returns {$domain_str} always a strdom
  */
-function _domain_intersectionStrStr(domain1, domain2) {
+function _domain_strstr_intersection(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
@@ -814,27 +814,27 @@ function _domain_intersectionStrStr(domain1, domain2) {
   let index1 = 0;
   let index2 = 0;
 
-  let lo1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_LO);
-  let hi1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_HI);
-  let lo2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_LO);
-  let hi2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_HI);
+  let lo1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_LO);
+  let hi1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_HI);
+  let lo2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_LO);
+  let hi2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_HI);
 
   while (true) {
     if (hi1 < lo2) {
       index1 += STR_RANGE_SIZE;
       if (index1 >= len1) break;
-      lo1 = domain_strDecodeValue(domain1, index1);
-      hi1 = domain_strDecodeValue(domain1, index1 + STR_VALUE_SIZE);
+      lo1 = domain_str_decodeValue(domain1, index1);
+      hi1 = domain_str_decodeValue(domain1, index1 + STR_VALUE_SIZE);
     } else if (hi2 < lo1) {
       index2 += STR_RANGE_SIZE;
       if (index2 >= len2) break;
-      lo2 = domain_strDecodeValue(domain2, index2);
-      hi2 = domain_strDecodeValue(domain2, index2 + STR_VALUE_SIZE);
+      lo2 = domain_str_decodeValue(domain2, index2);
+      hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
       ASSERT((lo1 <= lo2 && hi1 >= lo2) || (lo2 <= lo1 && hi2 >= lo1), 'both ranges must overlap at least for some element because neither ends before the other');
 
       let mh = MIN(hi1, hi2);
-      newDomain += domain_strEncodeRange(MAX(lo1, lo2), mh);
+      newDomain += domain_str_encodeRange(MAX(lo1, lo2), mh);
 
       // put all ranges after the one we just added...
       mh += 2; // last added range + 1 position gap
@@ -843,14 +843,14 @@ function _domain_intersectionStrStr(domain1, domain2) {
       if (hi1 < mh) {
         index1 += STR_RANGE_SIZE;
         if (index1 >= len1) break;
-        lo1 = domain_strDecodeValue(domain1, index1);
-        hi1 = domain_strDecodeValue(domain1, index1 + STR_VALUE_SIZE);
+        lo1 = domain_str_decodeValue(domain1, index1);
+        hi1 = domain_str_decodeValue(domain1, index1 + STR_VALUE_SIZE);
       }
       if (hi2 < mh) {
         index2 += STR_RANGE_SIZE;
         if (index2 >= len2) break;
-        lo2 = domain_strDecodeValue(domain2, index2);
-        hi2 = domain_strDecodeValue(domain2, index2 + STR_VALUE_SIZE);
+        lo2 = domain_str_decodeValue(domain2, index2);
+        hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
       }
     }
   }
@@ -858,7 +858,7 @@ function _domain_intersectionStrStr(domain1, domain2) {
   return newDomain;
 }
 
-function domain_debug(domain) {
+function domainany__debug(domain) {
   if (typeof domain === 'number') return 'numdom([' + domain_numToArr(domain) + '])';
   if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';
   if (domain instanceof Array) return 'arrdom([' + domain + '])';
@@ -872,7 +872,7 @@ function domain_debug(domain) {
  * @param {$domain} domain2
  * @returns {boolean}
  */
-function domain_isEqual(domain1, domain2) {
+function domain_any_isEqual(domain1, domain2) {
   // whether domain is a string or a number, we can === it
   return domain1 === domain2;
 }
@@ -895,7 +895,7 @@ function domain_isEqual(domain1, domain2) {
  * @param {$domain_str} domain2
  * @returns {$domain_str[]}
  */
-function domain_closeGapsStr(domain1, domain2) {
+function domain_str_closeGaps(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'USED_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'USED_WITH_STRINGS');
 
@@ -905,15 +905,15 @@ function domain_closeGapsStr(domain1, domain2) {
       change = NO_CHANGES;
 
       if (domain1.length > STR_RANGE_SIZE) {
-        let smallestRangeSize = domain_smallestRangeSize(domain2);
-        let domain = _domain_closeGapsStr(domain1, smallestRangeSize);
+        let smallestRangeSize = domain_str_smallestRangeSize(domain2);
+        let domain = _domain_str_closeGaps(domain1, smallestRangeSize);
         change += domain1.length - domain.length;
         domain1 = domain;
       }
 
       if (domain2.length > STR_RANGE_SIZE) {
-        let smallestRangeSize = domain_smallestRangeSize(domain1);
-        let domain = _domain_closeGapsStr(domain2, smallestRangeSize);
+        let smallestRangeSize = domain_str_smallestRangeSize(domain1);
+        let domain = _domain_str_closeGaps(domain2, smallestRangeSize);
         change += domain2.length - domain.length;
         domain2 = domain;
       }
@@ -935,16 +935,16 @@ function domain_closeGapsStr(domain1, domain2) {
  * @param {number} gap
  * @returns {$domain_str} (min/max won't be eliminated and input should be a "large" domain)
  */
-function _domain_closeGapsStr(domain, gap) {
+function _domain_str_closeGaps(domain, gap) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
-  let lasthi = domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  let lasthi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
   let lasthindex = STR_FIRST_RANGE_HI;
 
   for (let i = STR_RANGE_SIZE, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
 
     if ((lo - lasthi) > gap) {
       newDomain += domain[lasthindex] + domain[lasthindex + 1] + domain[i] + domain[i + 1];
@@ -961,14 +961,14 @@ function _domain_closeGapsStr(domain, gap) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_smallestRangeSize(domain) {
+function domain_str_smallestRangeSize(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   let min_width = SUP;
 
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
     let width = 1 + hi - lo;
     if (width < min_width) {
       min_width = width;
@@ -984,13 +984,13 @@ function domain_smallestRangeSize(domain) {
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_mul(domain1, domain2) {
+function domain_any_mul(domain1, domain2) {
   // for simplicity sake, convert them back to arrays
   if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
   if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
 
   // TODO domain_mulNum
-  return domain_mulStrStr(domain1, domain2);
+  return domain_strstr_mul(domain1, domain2);
 }
 /**
  * Note that this one isn't domain consistent.
@@ -999,25 +999,25 @@ function domain_mul(domain1, domain2) {
  * @param {$domain_str} domain2
  * @returns {$domain_str} a strdom can never become a numdom when multiplying (can only grow or become zero)
  */
-function domain_mulStrStr(domain1, domain2) {
+function domain_strstr_mul(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
   let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
-    let loi = domain_strDecodeValue(domain1, i);
-    let hii = domain_strDecodeValue(domain1, i + STR_VALUE_SIZE);
+    let loi = domain_str_decodeValue(domain1, i);
+    let hii = domain_str_decodeValue(domain1, i + STR_VALUE_SIZE);
 
     for (let j = 0, lenj = domain2.length; j < lenj; j += STR_RANGE_SIZE) {
-      let loj = domain_strDecodeValue(domain2, j);
-      let hij = domain_strDecodeValue(domain2, j + STR_VALUE_SIZE);
+      let loj = domain_str_decodeValue(domain2, j);
+      let hij = domain_str_decodeValue(domain2, j + STR_VALUE_SIZE);
 
-      result += domain_strEncodeRange(MIN(SUP, loi * loj), MIN(SUP, hii * hij));
+      result += domain_str_encodeRange(MIN(SUP, loi * loj), MIN(SUP, hii * hij));
     }
   }
 
   // TODO: is it worth doing this step immediately?
-  return domain_toNumstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_str_simplify(result));
 }
 
 /**
@@ -1036,13 +1036,13 @@ function domain_mulStrStr(domain1, domain2) {
  *         <2,2>, otherwise it will not include anything for that division.
  * @returns {$domain}
  */
-function domain_divby(domain1, domain2, floorFractions = true) {
+function domain_any_divby(domain1, domain2, floorFractions = true) {
   // for simplicity sake, convert them back to arrays
   if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
   if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
 
   // TODO: domain_divByNum
-  return domain_divbyStrStr(domain1, domain2, floorFractions);
+  return domain_strstr_divby(domain1, domain2, floorFractions);
 }
 /**
  * Divide one range by another
@@ -1060,18 +1060,18 @@ function domain_divby(domain1, domain2, floorFractions = true) {
  *         <2,2>, otherwise it will not include anything for that division.
  * @returns {$domain} strdom could become numdom after a div
  */
-function domain_divbyStrStr(domain1, domain2, floorFractions = true) {
+function domain_strstr_divby(domain1, domain2, floorFractions = true) {
   ASSERT(typeof domain1 === 'string', 'ONLY_WITH_STRINGS');
   ASSERT(typeof domain2 === 'string', 'ONLY_WITH_STRINGS');
 
   let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
-    let loi = domain_strDecodeValue(domain1, i);
-    let hii = domain_strDecodeValue(domain1, i + STR_VALUE_SIZE);
+    let loi = domain_str_decodeValue(domain1, i);
+    let hii = domain_str_decodeValue(domain1, i + STR_VALUE_SIZE);
 
     for (let j = 0, lenj = domain2.length; j < lenj; j += STR_RANGE_SIZE) {
-      let loj = domain_strDecodeValue(domain2, j);
-      let hij = domain_strDecodeValue(domain2, j + STR_VALUE_SIZE);
+      let loj = domain_str_decodeValue(domain2, j);
+      let hij = domain_str_decodeValue(domain2, j + STR_VALUE_SIZE);
 
       // cannot /0
       // we ignore it right now. should we...
@@ -1090,20 +1090,20 @@ function domain_divbyStrStr(domain1, domain2, floorFractions = true) {
         // if the fraction is within the same integer this could result in
         // lo>hi so we must prevent this case
         if (left <= right) {
-          result += domain_strEncodeRange(left, right);
+          result += domain_str_encodeRange(left, right);
         } else {
           ASSERT(FLOOR(lo) === FLOOR(hi), 'left>right when fraction is in same int, which can happen', lo, hi);
           if (floorFractions) {
             // only use the floored value
             // note: this is a choice. not both floor/ceil because then 5/2=2.5 becomes [2,3]. should be [2,2] or [3,3]
-            result += domain_strEncodeRange(right, right);
+            result += domain_str_encodeRange(right, right);
           }
         }
       }
     }
   }
 
-  return domain_toNumstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_str_simplify(result));
 }
 
 /**
@@ -1112,10 +1112,10 @@ function domain_divbyStrStr(domain1, domain2, floorFractions = true) {
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_size(domain) {
+function domain_any_size(domain) {
   ASSERT(domain || domain === 0, 'REQUIRES_DOMAIN');
   if (typeof domain === 'number') return asmdomain_size(domain);
-  return domain_sizeStr(domain);
+  return domain_str_size(domain);
 }
 /**
  * Return the number of elements this domain covers
@@ -1123,7 +1123,7 @@ function domain_size(domain) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_sizeStr(domain) {
+function domain_str_size(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_DOMAINS');
 
@@ -1131,7 +1131,7 @@ function domain_sizeStr(domain) {
 
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     // TODO: add test to confirm this still works fine if SUB is negative
-    count += 1 + domain_strDecodeValue(domain, i + STR_VALUE_SIZE) - domain_strDecodeValue(domain, i);
+    count += 1 + domain_str_decodeValue(domain, i + STR_VALUE_SIZE) - domain_str_decodeValue(domain, i);
   }
 
   return count;
@@ -1147,12 +1147,12 @@ function domain_sizeStr(domain) {
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_middleElement(domain) {
+function domain_any_middleElement(domain) {
   // for simplicity sake, convert them back to arrays
   if (typeof domain === 'number') domain = domain_numToStr(domain);
 
   // TODO: domain_middleElementNum(domain);
-  return domain_middleElementStr(domain);
+  return domain_str_middleElement(domain);
 }
 /**
  * Get the middle element of all elements in domain.
@@ -1164,17 +1164,17 @@ function domain_middleElement(domain) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_middleElementStr(domain) {
+function domain_str_middleElement(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  let size = domain_sizeStr(domain);
+  let size = domain_str_size(domain);
   let targetValue = FLOOR(size / 2);
 
   let lo;
   let hi;
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    lo = domain_strDecodeValue(domain, i);
-    hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    lo = domain_str_decodeValue(domain, i);
+    hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
 
     let count = 1 + hi - lo;
     if (targetValue < count) {
@@ -1196,9 +1196,9 @@ function domain_middleElementStr(domain) {
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_min(domain) {
+function domain_any_min(domain) {
   if (typeof domain === 'number') return asmdomain_min(domain);
-  return domain_minStr(domain);
+  return domain_str_min(domain);
 }
 /**
  * Get lowest value in the domain
@@ -1207,10 +1207,10 @@ function domain_min(domain) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_minStr(domain) {
+function domain_str_min(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
-  return domain_strDecodeValue(domain, STR_FIRST_RANGE_LO);
+  return domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
 }
 
 /**
@@ -1219,9 +1219,9 @@ function domain_minStr(domain) {
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_max(domain) {
+function domain_any_max(domain) {
   if (typeof domain === 'number') return asmdomain_max(domain);
-  return domain_maxStr(domain);
+  return domain_str_max(domain);
 }
 /**
  * Returns highest value in domain
@@ -1230,11 +1230,11 @@ function domain_max(domain) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_maxStr(domain) {
+function domain_str_max(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
   ASSERT_DOMAIN_EMPTY_CHECK(domain);
   // last encoded value in the string should be the hi of the last range. so max is last value
-  return domain_strDecodeValue(domain, domain.length - STR_VALUE_SIZE);
+  return domain_str_decodeValue(domain, domain.length - STR_VALUE_SIZE);
 }
 /**
  * Returns highest value in domain
@@ -1243,7 +1243,7 @@ function domain_maxStr(domain) {
  * @param {$domain_arr} domain
  * @returns {number}
  */
-function domain_maxArr(domain) {
+function domain_arr_max(domain) {
   let len = domain.length;
   if (len === 0) return NO_SUCH_VALUE;
   return domain[len - 1];
@@ -1255,9 +1255,9 @@ function domain_maxArr(domain) {
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_isSolved(domain) {
+function domain_any_isSolved(domain) {
   if (typeof domain === 'number') return asmdomain_isSolved(domain) === 1;
-  return domain_isSolvedStr(domain);
+  return domain_str_isSolved(domain);
 }
 /**
  * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
@@ -1265,11 +1265,11 @@ function domain_isSolved(domain) {
  * @param {$domain_str} domain
  * @returns {boolean}
  */
-function domain_isSolvedStr(domain) {
+function domain_str_isSolved(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   // TODO: could do this by comparing strings, no need to convert
-  return domain.length === STR_RANGE_SIZE && domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) === domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  return domain.length === STR_RANGE_SIZE && domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) === domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
 }
 
 /**
@@ -1279,9 +1279,9 @@ function domain_isSolvedStr(domain) {
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_isUndetermined(domain) {
+function domain_any_isUndetermined(domain) {
   if (typeof domain === 'number') return asmdomain_isUndetermined(domain) === 1;
-  return domain_isUndeterminedStr(domain);
+  return domain_str_isUndetermined(domain);
 }
 /**
  * A domain is "determined" if it's either one value (solved) or none at all (rejected)
@@ -1290,11 +1290,11 @@ function domain_isUndetermined(domain) {
  * @param {$domain_str} domain
  * @returns {boolean}
  */
-function domain_isUndeterminedStr(domain) {
+function domain_str_isUndetermined(domain) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   // TODO: could do this by comparing strings, no need to convert
-  return domain.length > STR_RANGE_SIZE || domain_strDecodeValue(domain, STR_FIRST_RANGE_LO) !== domain_strDecodeValue(domain, STR_FIRST_RANGE_HI);
+  return domain.length > STR_RANGE_SIZE || domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) !== domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
 }
 
 /**
@@ -1307,8 +1307,11 @@ function domain_isUndeterminedStr(domain) {
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_isRejected(domain) {
-  return !domain; // typeof domain === 'number' ? domain === EMPTY_NUM : domain === EMPTY_STR;
+function domain_any_isRejected(domain) {
+  if (typeof domain === 'string') return domain === EMPTY_STR;
+  if (typeof domain === 'number') return domain === EMPTY;
+  ASSERT(domain instanceof Array, 'SHOULD_BE_ARRAY_NOW');
+  return domain.length === 0;
 }
 
 /**
@@ -1319,11 +1322,11 @@ function domain_isRejected(domain) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeGte(domain, value) {
+function domain_any_removeGte(domain, value) {
   ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
   if (typeof domain === 'number') return asmdomain_removeGte(domain, value);
-  return domain_removeGteStr(domain, value);
+  return domain_str_removeGte(domain, value);
 }
 /**
  * Remove any value from domain that is bigger than or equal to given value.
@@ -1339,12 +1342,12 @@ function domain_removeGte(domain, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeGteStr(domain_str, value) {
+function domain_str_removeGte(domain_str, value) {
   ASSERT(typeof domain_str === 'string', 'USED_WITH_STRINGS');
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, i);
-    let hi = domain_strDecodeValue(domain_str, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, i);
+    let hi = domain_str_decodeValue(domain_str, i + STR_VALUE_SIZE);
 
     // case: v=5
     // 012 456 // => 012 4
@@ -1373,7 +1376,7 @@ function domain_removeGteStr(domain_str, value) {
     if (value <= hi) {
       // 012 456 -> 012 4
       // 012 45  -> 012 4
-      let newDomain = domain_str.slice(0, i + STR_VALUE_SIZE) + domain_strEncodeValue(value - 1);
+      let newDomain = domain_str.slice(0, i + STR_VALUE_SIZE) + domain_str_encodeValue(value - 1);
       if (value - 1 <= SMALL_MAX_NUM) return domain_strToNum(newDomain, i + STR_RANGE_SIZE);
       return newDomain;
     }
@@ -1389,11 +1392,11 @@ function domain_removeGteStr(domain_str, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeLte(domain, value) {
+function domain_any_removeLte(domain, value) {
   ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
   if (typeof domain === 'number') return asmdomain_removeLte(domain, value);
-  return domain_removeLteStr(domain, value);
+  return domain_str_removeLte(domain, value);
 }
 /**
  * Remove any value from domain that is lesser than or equal to given value.
@@ -1407,12 +1410,12 @@ function domain_removeLte(domain, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeLteStr(domain_str, value) {
+function domain_str_removeLte(domain_str, value) {
   ASSERT(typeof domain_str === 'string', 'USED_WITH_STRINGS');
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, i);
-    let hi = domain_strDecodeValue(domain_str, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, i);
+    let hi = domain_str_decodeValue(domain_str, i + STR_VALUE_SIZE);
 
     // case: v=5
     // 456 89 => 6 89
@@ -1438,7 +1441,7 @@ function domain_removeLteStr(domain_str, value) {
     if (value <= hi) {
       // 456 89 => 6 89, 56 89 => 6 89
 
-      let newDomain = domain_strEncodeValue(value + 1) + domain_str.slice(i + STR_VALUE_SIZE);
+      let newDomain = domain_str_encodeValue(value + 1) + domain_str.slice(i + STR_VALUE_SIZE);
       return domain_toNumstr(newDomain);
     }
   }
@@ -1453,34 +1456,34 @@ function domain_removeLteStr(domain_str, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeValue(domain, value) {
+function domain_any_removeValue(domain, value) {
   ASSERT(domain || domain === EMPTY || domain === EMPTY_STR, 'REQUIRES_DOMAIN');
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
   if (typeof domain === 'number') return asmdomain_removeValue(domain, value);
-  return domain_removeValueStr(domain, value);
+  return domain_str_removeValue(domain, value);
 }
 /**
  * @param {$domain_str} domain
  * @param {number} value
  * @returns {$domain}
  */
-function domain_removeValueStr(domain, value) {
+function domain_str_removeValue(domain, value) {
   ASSERT(typeof domain !== 'number', 'NOT_USED_WITH_NUMBERS');
 
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
 
     if (value === lo) {
       let newDomain = domain.slice(0, i);
-      if (value !== hi) newDomain += domain_strEncodeRange(value + 1, hi);
+      if (value !== hi) newDomain += domain_str_encodeRange(value + 1, hi);
       return domain_toNumstr(newDomain + domain.slice(i + STR_RANGE_SIZE));
     }
     if (value === hi) {
       // note: we already checked value==lo so no need to do that again
       let newDomain =
         domain.slice(0, i) +
-        domain_strEncodeRange(lo, value - 1) +
+        domain_str_encodeRange(lo, value - 1) +
         domain.slice(i + STR_RANGE_SIZE);
       return domain_toNumstr(newDomain);
     }
@@ -1494,15 +1497,15 @@ function domain_removeValueStr(domain, value) {
       // does not start or end at value, so just split it
       let newDomain =
         domain.slice(0, i) +
-        domain_strEncodeRange(lo, value - 1) +
-        domain_strEncodeRange(value + 1, hi) +
+        domain_str_encodeRange(lo, value - 1) +
+        domain_str_encodeRange(value + 1, hi) +
         domain.slice(i + STR_RANGE_SIZE);
       return domain_toNumstr(newDomain);
     }
   }
   // value must be higher than the max of domain because domain does not contain it
   // return domain to indicate no change
-  ASSERT(domain_isRejected(domain) || domain_max(domain) < value, 'MAX_DOMAIN_SHOULD_BE_UNDER_VALUE');
+  ASSERT(domain_any_isRejected(domain) || domain_any_max(domain) < value, 'MAX_DOMAIN_SHOULD_BE_UNDER_VALUE');
   // "no change"
   return domain;
 }
@@ -1515,13 +1518,13 @@ function domain_removeValueStr(domain, value) {
  * @param {$domain} domain2
  * @returns {boolean}
  */
-function domain_sharesNoElements(domain1, domain2) {
+function domain_any_sharesNoElements(domain1, domain2) {
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1 && isNum2) return asmdomain_sharesNoElements(domain1, domain2) === 1;
-  if (isNum1) return domain_sharesNoElementsNumStr(domain1, domain2);
-  if (isNum2) return domain_sharesNoElementsNumStr(domain2, domain1);
-  return domain_sharesNoElementsStrStr(domain1, domain2);
+  if (isNum1) return domain_numstr_sharesNoElements(domain1, domain2);
+  if (isNum2) return domain_numstr_sharesNoElements(domain2, domain1);
+  return domain_strstr_sharesNoElements(domain1, domain2);
 }
 /**
  * Check if every element in one domain not
@@ -1531,7 +1534,7 @@ function domain_sharesNoElements(domain1, domain2) {
  * @param {$domain_str} domain_str
  * @returns {boolean}
  */
-function domain_sharesNoElementsNumStr(domain_num, domain_str) {
+function domain_numstr_sharesNoElements(domain_num, domain_str) {
   let strIndex = 0;
   let strlen = domain_str.length;
   for (let numIndex = 0; numIndex <= SMALL_MAX_NUM; ++numIndex) {
@@ -1539,8 +1542,8 @@ function domain_sharesNoElementsNumStr(domain_num, domain_str) {
       // find numIndex (as value) in domain_str. return true when
       // found. return false if number above small_max_num is found
       while (strIndex < strlen) {
-        let lo = domain_strDecodeValue(domain_str, strIndex);
-        let hi = domain_strDecodeValue(domain_str, strIndex + STR_VALUE_SIZE);
+        let lo = domain_str_decodeValue(domain_str, strIndex);
+        let hi = domain_str_decodeValue(domain_str, strIndex + STR_VALUE_SIZE);
 
         // there is overlap if numIndex is within current range so return false
         if (numIndex >= lo && numIndex <= hi) return false;
@@ -1569,29 +1572,29 @@ function domain_sharesNoElementsNumStr(domain_num, domain_str) {
  * @param {$domain_str} domain2
  * @returns {boolean}
  */
-function domain_sharesNoElementsStrStr(domain1, domain2) {
+function domain_strstr_sharesNoElements(domain1, domain2) {
   let len1 = domain1.length;
   let len2 = domain2.length;
 
   let index1 = 0;
   let index2 = 0;
 
-  let lo1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_LO);
-  let hi1 = domain_strDecodeValue(domain1, STR_FIRST_RANGE_HI);
-  let lo2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_LO);
-  let hi2 = domain_strDecodeValue(domain2, STR_FIRST_RANGE_HI);
+  let lo1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_LO);
+  let hi1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_HI);
+  let lo2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_LO);
+  let hi2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_HI);
 
   while (true) {
     if (hi1 < lo2) {
       index1 += STR_RANGE_SIZE;
       if (index1 >= len1) break;
-      lo1 = domain_strDecodeValue(domain1, index1);
-      hi1 = domain_strDecodeValue(domain1, index1 + STR_VALUE_SIZE);
+      lo1 = domain_str_decodeValue(domain1, index1);
+      hi1 = domain_str_decodeValue(domain1, index1 + STR_VALUE_SIZE);
     } else if (hi2 < lo1) {
       index2 += STR_RANGE_SIZE;
       if (index2 >= len2) break;
-      lo2 = domain_strDecodeValue(domain2, index2);
-      hi2 = domain_strDecodeValue(domain2, index2 + STR_VALUE_SIZE);
+      lo2 = domain_str_decodeValue(domain2, index2);
+      hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
       ASSERT(lo1 <= hi2 && hi1 <= lo2, 'both ranges must overlap at least for some element because neither ends before the other');
       return false;
@@ -1610,7 +1613,7 @@ function domain_createValue(value) {
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
 
   if (value <= SMALL_MAX_NUM) return asmdomain_createValue(value);
-  return domain_strEncodeRange(value, value);
+  return domain_str_encodeRange(value, value);
 }
 /**
  * @param {number} lo
@@ -1621,7 +1624,7 @@ function domain_createRange(lo, hi) {
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
 
   if (hi <= SMALL_MAX_NUM) return asmdomain_createRange(lo, hi);
-  return domain_strEncodeRange(lo, hi);
+  return domain_str_encodeRange(lo, hi);
 }
 
 /**
@@ -1629,7 +1632,7 @@ function domain_createRange(lo, hi) {
  * @param {number} [force] Always return in array or string form?
  * @returns {$domain}
  */
-function domain_clone(domain, force) {
+function domain_any_clone(domain, force) {
   if (force === FORCE_ARRAY) return domain_toArr(domain, true);
   if (force === FORCE_STRING) return domain_toStr(domain);
   return domain; // TODO: eliminate this function. domains are strings and numbers now. array cases should be consolidated to config explicitly.
@@ -1750,7 +1753,7 @@ function domain_numToStr(domain) {
   }
   if (TWO & domain) {
     if (hi === 0) {
-      str = domain_strEncodeRange(0, 0);
+      str = domain_str_encodeRange(0, 0);
       lo = 2;
     } else if (hi !== 1) {
       // if hi isnt 0 and hi isnt 1 then hi isnt set and so lo isnt set
@@ -1762,7 +1765,7 @@ function domain_numToStr(domain) {
     if (hi < 0) { // this is the LSB that is set
       lo = 3;
     } else if (hi !== 2) { // there's a gap so push prev range now
-      str += domain_strEncodeRange(lo, hi);
+      str += domain_str_encodeRange(lo, hi);
       lo = 3;
     }
     hi = 3;
@@ -1774,7 +1777,7 @@ function domain_numToStr(domain) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
-          str += domain_strEncodeRange(lo, hi);
+          str += domain_str_encodeRange(lo, hi);
           lo = i;
         }
         hi = i;
@@ -1784,7 +1787,7 @@ function domain_numToStr(domain) {
 
   // since the domain wasn't empty (checked at start) there
   // must now be an unpushed lo/hi pair left to push...
-  str += domain_strEncodeRange(lo, hi);
+  str += domain_str_encodeRange(lo, hi);
 
   return str;
 }
@@ -1801,8 +1804,8 @@ function domain_strToArr(domain) {
 
   let arr = [];
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
 
     arr.push(lo, hi);
   }
@@ -1821,7 +1824,7 @@ function domain_arrToNumstr(domain_arr) {
   if (len === 0) return EMPTY;
 
   ASSERT(typeof domain_arr[domain_arr.length - 1] === 'number');
-  let max = domain_maxArr(domain_arr);
+  let max = domain_arr_max(domain_arr);
   if (max <= SMALL_MAX_NUM) return _domain_arrToNum(domain_arr, len);
 
   return domain_arrToStr(domain_arr);
@@ -1842,12 +1845,11 @@ function domain_arrToStr(domain_arr) {
     ASSERT(typeof lo === 'number');
     ASSERT(typeof hi === 'number');
 
-    str += domain_strEncodeRange(lo, hi);
+    str += domain_str_encodeRange(lo, hi);
   }
 
   return str;
 }
-
 /**
  * Accept a domain and if it is an array, try to reduce it
  * to a number. Either returns the original input or a
@@ -1864,8 +1866,8 @@ function domain_arrToNum(domain) {
   let len = domain.length;
   if (len === 0) return 0;
 
-  ASSERT(domain_min(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN'); // no need to check in dist
-  if (domain_max(domain) > SMALL_MAX_NUM) return domain;
+  ASSERT(domain_any_min(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN'); // no need to check in dist
+  if (domain_any_max(domain) > SMALL_MAX_NUM) return domain;
 
   return _domain_arrToNum(domain, len);
 }
@@ -1888,7 +1890,6 @@ function _domain_arrToNum(domain, len) {
   }
   return out;
 }
-
 /**
  * Accept a domain and if it is an array, try to reduce it
  * to a number if its max value is low enough for it.
@@ -1906,8 +1907,8 @@ function domain_toNumstr(domain) {
   if (len === 0) return EMPTY;
 
   if (typeof domain === 'string') {
-    ASSERT(domain_minStr(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN');
-    if (domain_maxStr(domain) <= SMALL_MAX_NUM) return domain_strToNum(domain, len);
+    ASSERT(domain_str_min(domain) >= SUB, 'SHOULD_BE_VALID_DOMAIN');
+    if (domain_str_max(domain) <= SMALL_MAX_NUM) return domain_strToNum(domain, len);
     return domain;
   }
 
@@ -1925,12 +1926,12 @@ function domain_toNumstr(domain) {
 function domain_strToNum(domain, len) {
   ASSERT(typeof domain === 'string', 'USED_WITH_STRINGS');
   ASSERT(domain.length === len, 'len should be cache of domain.length');
-  ASSERT(domain_max(domain) <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain, domain_max(domain));
+  ASSERT(domain_any_max(domain) <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain, domain_any_max(domain));
 
   let out = EMPTY;
   for (let i = 0; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain, i);
-    let hi = domain_strDecodeValue(domain, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain, i);
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
     out = asmdomain_addRange(out, lo, hi);
   }
   return out;
@@ -1946,9 +1947,9 @@ function domain_strToNum(domain, len) {
  * @param {$domain} oldDom
  * @returns {$fd_changeState}
  */
-function domain_getChangeState(newDom, oldDom) {
-  if (domain_isEqual(newDom, oldDom)) return NO_CHANGES;
-  if (domain_isRejected(newDom)) return REJECTED;
+function domain_any_getChangeState(newDom, oldDom) {
+  if (domain_any_isEqual(newDom, oldDom)) return NO_CHANGES;
+  if (domain_any_isRejected(newDom)) return REJECTED;
   return SOME_CHANGES;
 }
 
@@ -1958,11 +1959,11 @@ function domain_getChangeState(newDom, oldDom) {
  * @param {$domain} domain
  * @returns {number[]}
  */
-function domain_validateOldArr(domain) {
+function domain_validateLegacyArray(domain) {
   ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
 
   // support legacy domains and validate input here
-  let msg = domain_confirmDomain(domain);
+  let msg = domain_confirmLegacyDomain(domain);
   if (msg) {
     let fixedDomain = domain_tryToFixLegacyDomain(domain);
     //console.error('Fixed domain '+domain+' to '+fixedDomain);
@@ -1992,15 +1993,15 @@ function domain_validateOldArr(domain) {
  * @param {$domain_arr} domain
  * @returns {string|undefined}
  */
-function domain_confirmDomain(domain) {
+function domain_confirmLegacyDomain(domain) {
   for (let i = 0; i < domain.length; i += ARR_RANGE_SIZE) {
     let lo = domain[i];
     let hi = domain[i + 1];
-    let e = domain_confirmDomainElement(lo);
+    let e = domain_confirmLegacyDomainElement(lo);
     if (e) {
       return e;
     }
-    let f = domain_confirmDomainElement(hi);
+    let f = domain_confirmLegacyDomainElement(hi);
     if (f) {
       return f;
     }
@@ -2022,7 +2023,7 @@ function domain_confirmDomain(domain) {
  * @param {number} n
  * @returns {string|undefined}
  */
-function domain_confirmDomainElement(n) {
+function domain_confirmLegacyDomainElement(n) {
   if (typeof n !== 'number') {
     if (n instanceof Array) {
       return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
@@ -2062,17 +2063,16 @@ function domain_tryToFixLegacyDomain(domain) {
   return fixed;
 }
 
-
 // BODY_STOP
 
 export {
   ARR_FIRST_RANGE_HI,
   ARR_FIRST_RANGE_LO,
+  ARR_RANGE_SIZE,
   FORCE_ARRAY,
   FORCE_STRING,
   NO_CHANGES,
   NOT_FOUND,
-  ARR_RANGE_SIZE,
   PREV_CHANGED,
   SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
@@ -2117,66 +2117,66 @@ export {
   NUM_TO_FLAG,
   FLAG_TO_NUM,
 
-  domain_appendRange,
+  domain_any_appendRange,
   domain_arrToNum,
   domain_arrToNumstr,
   domain_arrToStr,
-  domain_clone,
-  domain_closeGapsStr,
-  domain_complement,
-  domain_containsValue,
-  domain_containsValueStr,
+  domain_any_clone,
+  domain_str_closeGaps,
+  domain_any_complement,
+  domain_any_containsValue,
+  domain_str_containsValue,
   domain_createRange,
   domain_createValue,
-  domain_debug,
-  domain_divby,
-  domain_isEqual,
+  domainany__debug,
+  domain_any_divby,
+  domain_any_isEqual,
   domain_fromList,
-  domain_getChangeState,
-  domain_getValue,
-  domain_getValueArr,
-  domain_getValueStr,
-  domain_getValueOfFirstContainedValueInList,
-  domain_intersection,
-  domain_intersectionStrStr,
-  domain_isRejected,
-  domain_isSolved,
-  domain_isSolvedStr,
-  domain_isUndetermined,
-  domain_isUndeterminedStr,
-  domain_isValue,
-  domain_isValueStr,
-  domain_max,
-  domain_middleElement,
-  domain_min,
-  domain_mul,
+  domain_any_getChangeState,
+  domain_any_getValue,
+  domain_arr_getValue,
+  domain_str_getValue,
+  domain_any_getValueOfFirstContainedValueInList,
+  domain_any_intersection,
+  domain_strstr_intersection,
+  domain_any_isRejected,
+  domain_any_isSolved,
+  domain_str_isSolved,
+  domain_any_isUndetermined,
+  domain_str_isUndetermined,
+  domain_any_isValue,
+  domain_str_isValue,
+  domain_any_max,
+  domain_any_middleElement,
+  domain_any_min,
+  domain_any_mul,
   domain_numToArr,
   domain_numToStr,
   domain_strToNum,
-  domain_removeGte,
-  domain_removeGteStr,
-  domain_removeLte,
-  domain_removeLteStr,
-  domain_removeNextFromList,
-  domain_removeValue,
-  domain_removeValueStr,
-  domain_sharesNoElements,
-  domain_simplifyStr,
-  domain_size,
-  domain_strDecodeValue,
-  domain_strEncodeRange,
-  domain_strEncodeValue,
+  domain_any_removeGte,
+  domain_str_removeGte,
+  domain_any_removeLte,
+  domain_str_removeLte,
+  domain_any_removeNextFromList,
+  domain_any_removeValue,
+  domain_str_removeValue,
+  domain_any_sharesNoElements,
+  domain_str_simplify,
+  domain_any_size,
+  domain_str_decodeValue,
+  domain_str_encodeRange,
+  domain_str_encodeValue,
   domain_toArr,
-  domain_toList,
+  domain_any_toList,
   domain_toStr,
   domain_toNumstr,
-  domain_validateOldArr,
+  domain_validateLegacyArray,
 
   // __REMOVE_BELOW_FOR_DIST__
   // testing only:
-  domain_rangeIndexOfStr,
-  domain_isSimplified,
-  _domain_mergeOverlappingRanges,
-  _domain_quickSortRangesStr,
+  domain_str_rangeIndexOf,
+  domain_str_isSimplified,
+  _domain_str_mergeOverlappingRanges,
+  _domain_str_quickSortRanges,
   // __REMOVE_ABOVE_FOR_DIST__
 };

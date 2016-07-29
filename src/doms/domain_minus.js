@@ -28,13 +28,13 @@ import {
   STR_RANGE_SIZE,
   SMALL_MAX_NUM,
   ZERO,
-  domain_closeGapsStr,
+  domain_str_closeGaps,
   domain_createRange,
-  domain_strDecodeValue,
-  domain_strEncodeRange,
-  domain_max,
-  domain_min,
-  domain_simplifyStr,
+  domain_str_decodeValue,
+  domain_str_encodeRange,
+  domain_any_max,
+  domain_any_min,
+  domain_str_simplify,
   domain_toNumstr,
 } from '../domain';
 import {
@@ -64,8 +64,8 @@ function domain_minus(domain1, domain2) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
-    return domain_createRange(0, domain_max(domain1));
+  if (domain_any_min(domain1) === 0 && domain_any_min(domain2) === 0) {
+    return domain_createRange(0, domain_any_max(domain1));
   }
 
   let isNum1 = typeof domain1 === 'number';
@@ -81,7 +81,7 @@ function domain_minus(domain1, domain2) {
   if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
   else result = _domain_minusStrStrStr(domain1, domain2);
 
-  return domain_toNumstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_str_simplify(result));
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT(typeof domain1 === 'string', 'USED_WITH_STRINGS', domain1);
@@ -90,14 +90,14 @@ function _domain_minusStrStrStr(domain1, domain2) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  let domains = domain_closeGapsStr(domain1, domain2);
+  let domains = domain_str_closeGaps(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain1, index);
-    let hi = domain_strDecodeValue(domain1, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain1, index);
+    let hi = domain_str_decodeValue(domain1, index + STR_VALUE_SIZE);
     newDomain += _domain_minusRangeStrStr(lo, hi, domain2);
   }
 
@@ -107,7 +107,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
 
@@ -139,10 +139,10 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT(typeof domain_num === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain_str !== 'number', 'NOT_WITH_NUMBERS');
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain_num) - domain_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain_num & ZERO && domain_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
+  if (domain_num & ZERO && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -203,14 +203,14 @@ function _domain_minusStrNumStr(domain_str, domain_num) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_min(domain_str) === 0 && domain_min(domain_num) === 0) {
-    return domain_createRange(0, domain_max(domain_str));
+  if (domain_any_min(domain_str) === 0 && domain_any_min(domain_num) === 0) {
+    return domain_createRange(0, domain_any_max(domain_str));
   }
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, index);
-    let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
     newDomain += _domain_minusRangeNumStr(lo, hi, domain_num);
   }
 
@@ -247,8 +247,8 @@ function _domain_minusRangeStrStr(loi, hii, domain_str) {
   ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, index);
-    let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
     newDomain += _domain_minusRangeRangeStr(loi, hii, lo, hi);
   }
   return newDomain;
@@ -257,8 +257,8 @@ function _domain_minusRangeStrNum(loi, hii, domain_str) {
   ASSERT(typeof domain_str !== 'number', 'NOT_USED_WITH_NUMBERS');
   let newDomain = EMPTY;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, index);
-    let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
     newDomain |= _domain_minusRangeRangeNum(loi, hii, lo, hi);
   }
   return newDomain;
@@ -267,7 +267,7 @@ function _domain_minusRangeRangeStr(loi, hii, loj, hij) {
   let hi = hii - loj;
   if (hi >= SUB) { // silently ignore results that are OOB
     let lo = MAX(SUB, loi - hij);
-    return domain_strEncodeRange(lo, hi);
+    return domain_str_encodeRange(lo, hi);
   }
   return EMPTY_STR;
 }

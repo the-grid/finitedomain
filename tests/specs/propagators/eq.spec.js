@@ -19,7 +19,7 @@ import {
 import {
   FORCE_ARRAY,
 
-  domain_clone,
+  domain_any_clone,
   domain_toNumstr,
 } from '../../../src/domain';
 import {
@@ -106,8 +106,8 @@ describe('propagators/eq.spec', function() {
     function test(domain) {
       it(`should not change anything: ${domain}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -142,8 +142,8 @@ describe('propagators/eq.spec', function() {
     function test(left, right, result, changes) {
       it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(left, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(right, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(left, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(right, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -156,8 +156,8 @@ describe('propagators/eq.spec', function() {
 
       it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(right, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(left, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(right, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(left, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');

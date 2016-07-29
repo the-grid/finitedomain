@@ -4,7 +4,7 @@ import {
   THROW,
 } from './helpers';
 import {
-  domain_toList,
+  domain_any_toList,
 } from './domain';
 import {
   asmdomain_isValue,
@@ -48,7 +48,7 @@ function markov_mergeDomainAndLegend(inputLegend, domain) {
     legend = [];
   }
 
-  let listed = domain_toList(domain);
+  let listed = domain_any_toList(domain);
   for (let i = 0; i < listed.length; ++i) {
     let val = listed[i];
     if (legend.indexOf(val) < 0) {

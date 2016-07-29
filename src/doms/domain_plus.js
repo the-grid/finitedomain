@@ -23,11 +23,11 @@ import {
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 
-  domain_closeGapsStr,
-  domain_strDecodeValue,
-  domain_strEncodeRange,
-  domain_max,
-  domain_simplifyStr,
+  domain_str_closeGaps,
+  domain_str_decodeValue,
+  domain_str_encodeRange,
+  domain_any_max,
+  domain_str_simplify,
   domain_toNumstr,
 } from '../domain';
 import {
@@ -71,7 +71,7 @@ function domain_plus(domain1, domain2) {
     else result = _domain_plusStrStrStr(domain1, domain2);
   }
 
-  return domain_toNumstr(domain_simplifyStr(result));
+  return domain_toNumstr(domain_str_simplify(result));
 }
 function _domain_plusStrStrStr(domain1, domain2) {
   ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
@@ -80,14 +80,14 @@ function _domain_plusStrStrStr(domain1, domain2) {
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  let domains = domain_closeGapsStr(domain1, domain2);
+  let domains = domain_str_closeGaps(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain1, index);
-    let hi = domain_strDecodeValue(domain1, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain1, index);
+    let hi = domain_str_decodeValue(domain1, index + STR_VALUE_SIZE);
     newDomain += _domain_plusRangeStrStr(lo, hi, domain2);
   }
   return newDomain;
@@ -97,7 +97,7 @@ function _domain_plusWillBeSmall(domain1, domain2) {
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
   // if both domains are small enough they cannot add to a domain beyond the max
   if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
-  return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
+  return domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNumStr(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
@@ -131,7 +131,7 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -245,8 +245,8 @@ function _domain_plusRangeStrStr(loi, hii, domain_str) {
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_strDecodeValue(domain_str, index);
-    let hi = domain_strDecodeValue(domain_str, index + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
     newDomain += _domain_plusRangeRangeStr(loi, hii, lo, hi);
   }
   return newDomain;
@@ -256,7 +256,7 @@ function _domain_plusRangeRangeStr(loi, hii, loj, hij) {
   let lo = loi + loj;
   if (lo <= SUP) { // if lo exceeds SUP the resulting range is completely OOB and we ignore it.
     let hi = MIN(SUP, hii + hij);
-    return domain_strEncodeRange(lo, hi);
+    return domain_str_encodeRange(lo, hi);
   }
   return EMPTY_STR;
 }

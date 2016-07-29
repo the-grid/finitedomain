@@ -1,6 +1,6 @@
 import {
-  domain_divby,
-  domain_intersection,
+  domain_any_divby,
+  domain_any_intersection,
 } from '../domain';
 
 // BODY_START
@@ -12,8 +12,8 @@ import {
  * @returns {$domain}
  */
 function propagator_divStep(dom1, dom2, domResult) {
-  let domain = domain_divby(dom1, dom2);
-  return domain_intersection(domResult, domain);
+  let domain = domain_any_divby(dom1, dom2);
+  return domain_any_intersection(domResult, domain);
 }
 
 // BODY_STOP

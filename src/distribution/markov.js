@@ -50,7 +50,7 @@ import {
 } from '../helpers';
 
 import {
-  domain_containsValue,
+  domain_any_containsValue,
 } from '../domain';
 
 // BODY_START
@@ -83,7 +83,7 @@ function distribution_markovSampleNextFromDomain(domain, probVector, valLegend, 
     let prob = probVector[index];
     if (prob > 0) {
       let value = valLegend[index];
-      if (domain_containsValue(domain, value)) {
+      if (domain_any_containsValue(domain, value)) {
         totalProb += prob;
         cumulativeFilteredProbVector.push(totalProb);
         filteredLegend.push(value);

@@ -8,7 +8,7 @@ import {
   space_propagate,
 } from './space';
 import {
-  domain_isSolved,
+  domain_any_isSolved,
 } from './domain';
 import distribution_getNextVar from './distribution/var';
 import distribute_getNextDomainForVar from './distribution/value';
@@ -118,7 +118,7 @@ function search_defaultSpaceFactory(space) {
     ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
 
     let domain = space.vardoms[varIndex];
-    if (!domain_isSolved(domain)) {
+    if (!domain_any_isSolved(domain)) {
       let choice = space.next_distribution_choice++;
       let nextDomain = distribute_getNextDomainForVar(space, varIndex, choice);
       if (nextDomain) {

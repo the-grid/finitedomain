@@ -8,11 +8,11 @@ import {
 } from '../helpers';
 
 import {
-  domain_isRejected,
-  domain_max,
-  domain_min,
-  domain_removeGte,
-  domain_removeLte,
+  domain_any_isRejected,
+  domain_any_max,
+  domain_any_min,
+  domain_any_removeGte,
+  domain_any_removeLte,
 } from '../domain';
 
 // BODY_START
@@ -31,22 +31,22 @@ function propagator_lteStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_any_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(!domain_any_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
 
-  let lo1 = domain_min(domain1);
-  let hi1 = domain_max(domain1);
-  let lo2 = domain_min(domain2);
-  let hi2 = domain_max(domain2);
+  let lo1 = domain_any_min(domain1);
+  let hi1 = domain_any_max(domain1);
+  let lo2 = domain_any_min(domain2);
+  let hi2 = domain_any_max(domain2);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
   var leftChanged = NO_CHANGES;
   if (hi1 > hi2) {
-    let newDomain = domain_removeGte(domain1, hi2 + 1);
+    let newDomain = domain_any_removeGte(domain1, hi2 + 1);
     if (newDomain !== domain1) {
       space.vardoms[varIndex1] = newDomain;
-      if (domain_isRejected(newDomain)) { // TODO: there is no test throwing when you remove this check
+      if (domain_any_isRejected(newDomain)) { // TODO: there is no test throwing when you remove this check
         leftChanged = REJECTED;
       } else {
         leftChanged = SOME_CHANGES;
@@ -58,10 +58,10 @@ function propagator_lteStepBare(space, varIndex1, varIndex2) {
   // smallest value of v1 can never satisfy lt so prune them as well
   var rightChanged = NO_CHANGES;
   if (lo1 > lo2) {
-    let newDomain = domain_removeLte(domain2, lo1 - 1);
+    let newDomain = domain_any_removeLte(domain2, lo1 - 1);
     if (newDomain !== domain2) {
       space.vardoms[varIndex2] = newDomain;
-      if (domain_isRejected(domain2)) { // TODO: there is no test covering this
+      if (domain_any_isRejected(domain2)) { // TODO: there is no test covering this
         leftChanged = REJECTED;
       } else {
         rightChanged = SOME_CHANGES;
@@ -86,7 +86,7 @@ function propagator_lteStepWouldReject(domain1, domain2) {
   ASSERT_DOMAIN_EMPTY_CHECK(domain1);
   ASSERT_DOMAIN_EMPTY_CHECK(domain2);
 
-  return domain_min(domain1) > domain_max(domain2);
+  return domain_any_min(domain1) > domain_any_max(domain2);
 }
 
 /**
@@ -100,7 +100,7 @@ function propagator_lteStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_lteSolved(domain1, domain2) {
-  return domain_max(domain1) <= domain_min(domain2);
+  return domain_any_max(domain1) <= domain_any_min(domain2);
 }
 
 // BODY_STOP

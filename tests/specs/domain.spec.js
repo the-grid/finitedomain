@@ -2220,7 +2220,7 @@ describe('src/domain.spec', function() {
 
     describe('strdom', function() {
 
-      function gteTest(domain, value, expected) {
+      function lteTest(domain, value, expected) {
         it(`should lte [${domain}] <= ${value} -> [${expected}]`, function() {
           let clone = domain_any_clone(domain);
           let result = domain_any_removeLte(domain, value);
@@ -2230,15 +2230,15 @@ describe('src/domain.spec', function() {
         });
       }
 
-      gteTest(fixt_strdom_ranges([100, 110]), 105, fixt_strdom_ranges([106, 110]));
-      gteTest(fixt_strdom_ranges([104, 106], [108, 109]), 105, fixt_strdom_ranges([106, 106], [108, 109]));
-      gteTest(fixt_strdom_ranges([104, 105], [108, 109]), 105, fixt_strdom_ranges([108, 109]));
-      gteTest(fixt_strdom_ranges([105, 107], [109, 109]), 105, fixt_strdom_ranges([106, 107], [109, 109]));
-      gteTest(fixt_strdom_ranges([105, 105], [108, 109]), 105, fixt_strdom_ranges([108, 109]));
-      gteTest(fixt_strdom_ranges([105, 105]), 105, EMPTY);
-      gteTest(fixt_strdom_ranges([106, 108]), 105, fixt_strdom_ranges([106, 108]));
-      gteTest(fixt_strdom_ranges([100, 104]), 105, EMPTY);
-      gteTest(fixt_strdom_ranges([0, SMALL_MAX_NUM]), 10, fixt_numdom_range(11, SMALL_MAX_NUM));
+      lteTest(fixt_strdom_ranges([100, 110]), 105, fixt_strdom_ranges([106, 110]));
+      lteTest(fixt_strdom_ranges([104, 106], [108, 109]), 105, fixt_strdom_ranges([106, 106], [108, 109]));
+      lteTest(fixt_strdom_ranges([104, 105], [108, 109]), 105, fixt_strdom_ranges([108, 109]));
+      lteTest(fixt_strdom_ranges([105, 107], [109, 109]), 105, fixt_strdom_ranges([106, 107], [109, 109]));
+      lteTest(fixt_strdom_ranges([105, 105], [108, 109]), 105, fixt_strdom_ranges([108, 109]));
+      lteTest(fixt_strdom_ranges([105, 105]), 105, EMPTY);
+      lteTest(fixt_strdom_ranges([106, 108]), 105, fixt_strdom_ranges([106, 108]));
+      lteTest(fixt_strdom_ranges([100, 104]), 105, EMPTY);
+      lteTest(fixt_strdom_ranges([0, SMALL_MAX_NUM]), 10, fixt_numdom_range(11, SMALL_MAX_NUM));
     });
 
     describe('numdom', function() {

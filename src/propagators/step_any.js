@@ -23,46 +23,26 @@ import {
   propagator_stepComparison,
 } from './step_comparison';
 
-import {
-  PROP_PNAME,
-  PROP_VAR_INDEXES,
-  PROP_ARG1,
-  PROP_ARG2,
-} from '../propagator';
-
 // BODY_START
-
-let PROP_OP_NAME = PROP_ARG1;
-let PROP_NOP_NAME = PROP_ARG2;
-let PROP_CALLBACK = PROP_ARG1;
-let PROP_OP_FUNC = PROP_ARG1;
 
 /**
  * @param {$propagator} propagator
  * @param {$space} space
  */
 function propagator_stepAny(propagator, space) {
+  ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
   ASSERT(!!space, 'requires a space');
 
-  return _propagator_stepAny(space, propagator[PROP_PNAME], propagator[PROP_VAR_INDEXES], propagator);
-}
+  let varIndex1 = propagator.index1;
+  let varIndex2 = propagator.index2;
 
-/**
- * @param {$space} space
- * @param {string} opName
- * @param {number[]} propVarIndexes
- * @param {$propagator} propagator
- * @returns {$fd_changeState}
- */
-function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
-  let varIndex1 = propVarIndexes[0];
-  let varIndex2 = propVarIndexes[1];
+  let opName = propagator.name;
 
-  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'SHOULD_HAVE_SECOND_VAR');
+  ASSERT(varIndex2 >= 0 || opName === 'markov' || opName === 'callback', 'SHOULD_HAVE_SECOND_VAR', JSON.stringify(propagator));
 
   switch (opName) {
     case 'reified':
-      return _propagator_reified(space, varIndex1, varIndex2, propVarIndexes, propagator);
+      return _propagator_reified(space, varIndex1, varIndex2, propagator);
 
     case 'lt':
       return propagator_stepComparison(space, opName, varIndex1, varIndex2);
@@ -77,31 +57,30 @@ function _propagator_stepAny(space, opName, propVarIndexes, propagator) {
       return propagator_stepComparison(space, opName, varIndex1, varIndex2);
 
     case 'callback':
-      return propagator_callbackStepBare(space, propVarIndexes, propagator[PROP_CALLBACK]);
+      return propagator_callbackStepBare(space, propagator.index1, propagator.arg1);
 
     case 'ring':
-      return _propagator_ring(space, varIndex1, varIndex2, propVarIndexes[2], propagator[PROP_OP_FUNC]);
+      return _propagator_ring(space, varIndex1, varIndex2, propagator.index3, propagator.arg1);
 
     case 'markov':
       return _propagator_markov(space, varIndex1);
 
     case 'min':
-      return _propagator_min(space, varIndex1, varIndex2, propVarIndexes[2]);
+      return _propagator_min(space, varIndex1, varIndex2, propagator.index3);
 
     case 'mul':
-      return _propagator_mul(space, varIndex1, varIndex2, propVarIndexes[2]);
+      return _propagator_mul(space, varIndex1, varIndex2, propagator.index3);
 
     case 'div':
-      return _propagator_div(space, varIndex1, varIndex2, propVarIndexes[2]);
+      return _propagator_div(space, varIndex1, varIndex2, propagator.index3);
 
     default:
       THROW(`unsupported propagator: [${propagator}]`);
   }
 }
 
-function _propagator_reified(space, varIndex1, varIndex2, propVarIndexes, propagator) {
-  let varIndex3 = propVarIndexes[2];
-  return propagator_reifiedStepBare(space, varIndex1, varIndex2, varIndex3, propagator[PROP_OP_NAME], propagator[PROP_NOP_NAME]);
+function _propagator_reified(space, varIndex1, varIndex2, propagator) {
+  return propagator_reifiedStepBare(space, varIndex1, varIndex2, propagator.index3, propagator.arg1, propagator.arg2);
 }
 
 function _propagator_min(space, varIndex1, varIndex2, varIndex3) {
@@ -182,9 +161,3 @@ function _propagator_markov(space, varIndex) {
 // BODY_STOP
 
 export default propagator_stepAny;
-export {
-  PROP_OP_NAME,
-  PROP_NOP_NAME,
-  PROP_CALLBACK,
-  PROP_OP_FUNC,
-};

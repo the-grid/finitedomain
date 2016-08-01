@@ -5,7 +5,7 @@ import {
 import {
   domain_any_intersection,
 } from '../domain';
-import domain_minus from '../doms/domain_minus';
+import domain_any_minus from '../doms/domain_minus';
 
 // BODY_START
 
@@ -20,7 +20,7 @@ function propagator_minStep(domain1, domain2, domResult) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let domain = domain_minus(domain1, domain2);
+  let domain = domain_any_minus(domain1, domain2);
 
   return domain_any_intersection(domResult, domain);
 }

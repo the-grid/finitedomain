@@ -8,8 +8,8 @@ import {
   domain_any_getChangeState,
   domain_any_mul,
 } from '../domain';
-import domain_plus from '../doms/domain_plus';
-import domain_minus from '../doms/domain_minus';
+import domain_any_plus from '../doms/domain_plus';
+import domain_any_minus from '../doms/domain_minus';
 
 import propagator_callbackStepBare from './callback';
 import propagator_markovStepBare from './markov';
@@ -154,10 +154,10 @@ function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
   let opFunc;
   switch (opName) {
     case 'plus':
-      opFunc = domain_plus;
+      opFunc = domain_any_plus;
       break;
     case 'min':
-      opFunc = domain_minus;
+      opFunc = domain_any_minus;
       break;
     case 'mul':
       opFunc = domain_any_mul;

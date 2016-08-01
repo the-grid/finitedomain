@@ -64,7 +64,7 @@ import {
   domain_toNumstr,
   domain_toStr,
 } from './domain';
-import domain_plus from './doms/domain_plus';
+import domain_any_plus from './doms/domain_plus';
 import {
   constraint_create,
 } from './constraint';
@@ -528,7 +528,7 @@ function config_addConstraint(config, name, varNames, param) {
     let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
     for (let i = 1, n = varIndexes.length; i < n; ++i) {
       let varIndex = varIndexes[i];
-      maxDomain = domain_plus(maxDomain, initialDomains[varIndex]);
+      maxDomain = domain_any_plus(maxDomain, initialDomains[varIndex]);
     }
     initialDomains[param] = domain_toStr(domain_any_intersection(maxDomain, initialDomains[param]));
 
@@ -543,7 +543,7 @@ function config_addConstraint(config, name, varNames, param) {
         if (value === NO_SUCH_VALUE) {
           newVarIndexes.push(varIndex);
         } else if (value !== 0) {
-          constants = domain_plus(constants, domain);
+          constants = domain_any_plus(constants, domain);
         }
       }
       let cValue = domain_any_getValue(constants);

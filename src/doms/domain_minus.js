@@ -56,7 +56,7 @@ let MAX = Math.max;
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_minus(domain1, domain2) {
+function domain_any_minus(domain1, domain2) {
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
 
@@ -291,4 +291,4 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
 
 // BODY_STOP
 
-export default domain_minus;
+export default domain_any_minus;

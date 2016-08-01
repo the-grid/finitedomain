@@ -21,7 +21,7 @@ import {
   domain_toStr,
   domain_toNumstr,
 } from '../../src/domain';
-import domain_plus from '../../src/doms/domain_plus';
+import domain_any_plus from '../../src/doms/domain_plus';
 
 describe('src/plus.spec.js', function() {
 
@@ -30,20 +30,20 @@ describe('src/plus.spec.js', function() {
   describe('domain_plus unit tests', function() {
 
     it('should exist', function() {
-      expect(domain_plus).to.be.a('function');
+      expect(domain_any_plus).to.be.a('function');
     });
 
     it('should require domains', function() {
-      expect(() => domain_plus()).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_plus(fixt_numdom_empty())).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_plus(null, fixt_strdom_empty())).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus()).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus(fixt_numdom_empty())).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus(null, fixt_strdom_empty())).to.throw('NUMDOM_OR_STRDOM');
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
     });
 
     describe('with array', function() {
@@ -53,7 +53,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_range(50, 60);
         let E = fixt_strdom_range(55, 70);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains', function() {
@@ -61,7 +61,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_ranges([50, 60], [110, 128]);
         let E = fixt_strdom_ranges([55, 95], [115, 163]);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains', function() {
@@ -69,7 +69,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
         let E = fixt_strdom_ranges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should not exceed SUP (SUP+1)', function() {
@@ -80,7 +80,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_value(1);
         let E = fixt_numdom_empty();
 
-        expect(domain_plus(A, B)).to.eql(E);
+        expect(domain_any_plus(A, B)).to.eql(E);
       });
 
       it('should not exceed SUP (1+SUP)', function() {
@@ -91,7 +91,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_value(SUP);
         let E = fixt_numdom_empty();
 
-        expect(domain_plus(A, B)).to.eql(E);
+        expect(domain_any_plus(A, B)).to.eql(E);
       });
     });
     describe('with numbers', function() {
@@ -101,7 +101,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_range(50, 60);
         let E = fixt_strdom_range(55, 70);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains (1)', function() {
@@ -109,7 +109,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_strdom_ranges([50, 60], [110, 128]);
         let E = fixt_strdom_ranges([55, 95], [115, 163]);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains (2)', function() {
@@ -117,7 +117,7 @@ describe('src/plus.spec.js', function() {
         let B = fixt_numdom_ranges([0, 1], [4, 12], [15, 17]);
         let E = fixt_strdom_ranges([0, 2], [4, 34]);
 
-        fixt_assertStrings(domain_plus(A, B), E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add small numbers to a small domain', function() {
@@ -126,7 +126,7 @@ describe('src/plus.spec.js', function() {
         for (let i = 0; i < 7; ++i) {
           for (let j = 0; j < 8; ++j) {
             if (i !== 8 || j !== 8) { // 16
-              expect(domain_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
+              expect(domain_any_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
             }
           }
         }
@@ -164,8 +164,8 @@ describe('src/plus.spec.js', function() {
             let B = inputs[j];
             let C = domain_toNumstr(outcomes[n++]);
             let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
-            if (typeof C === 'number') expect(domain_plus(A, B, desc)).to.eql(C);
-            else fixt_assertStrings(domain_plus(A, B), C, desc);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -201,8 +201,8 @@ describe('src/plus.spec.js', function() {
             let B = domain_toStr(domain_fromList(large[j]));
             let C = domain_toNumstr(smallLargeOut[n++]);
             let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
-            if (typeof C === 'number') expect(domain_plus(A, B, desc)).to.eql(C);
-            else fixt_assertStrings(domain_plus(A, B), C, desc);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -221,8 +221,8 @@ describe('src/plus.spec.js', function() {
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
             let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
-            if (typeof C === 'number') expect(domain_plus(A, B, desc)).to.eql(C);
-            else fixt_assertStrings(domain_plus(A, B), C, desc);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -241,8 +241,8 @@ describe('src/plus.spec.js', function() {
             let B = domain_toStr(domain_fromList(large[j]));
             let C = domain_toNumstr(largeLargeOut[n++]);
             let desc = A + ' - ' + B + ' = ' + C;
-            if (typeof C === 'number') expect(domain_plus(A, B, desc)).to.eql(C);
-            else fixt_assertStrings(domain_plus(A, B), C, desc);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });

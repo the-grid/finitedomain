@@ -388,7 +388,7 @@ describe('src/config.spec', function() {
 
     it('should copy the var', function() {
       let config = config_create();
-      config_setOptions(config, {var: 'A'});
+      config_setOptions(config, {varStrategy: 'A'});
 
       expect(config.next_var_func).to.equal('A');
     });
@@ -399,7 +399,7 @@ describe('src/config.spec', function() {
         dist_name: 'max',
       };
       config_setOptions(config, {
-        var: opt,
+        varStrategy: opt,
       });
 
       expect(config.next_var_func).to.eql({dist_name: 'max'});
@@ -413,7 +413,7 @@ describe('src/config.spec', function() {
         priority_list: ['B_list', 'A_list'],
       };
       config_setOptions(config, {
-        var: opt,
+        varStrategy: opt,
       });
 
       expect(config.next_var_func, 'next var func').to.equal(opt);
@@ -430,7 +430,7 @@ describe('src/config.spec', function() {
           fallback_config: 'size',
         },
       };
-      config_setOptions(config, {var: opt});
+      config_setOptions(config, {varStrategy: opt});
 
       expect(config.next_var_func).to.equal(opt);
       expect(opt.priority_hash).to.eql({B_list: 2, A_list: 1});
@@ -445,7 +445,7 @@ describe('src/config.spec', function() {
           priority_list: ['B_list', 'A_list'],
         },
       };
-      config_setOptions(config, {var: opt});
+      config_setOptions(config, {varStrategy: opt});
 
       expect(config.next_var_func).to.equal(opt);
       expect(opt.priority_hash).to.eql(undefined);

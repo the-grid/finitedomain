@@ -43,9 +43,9 @@ describe('solver.max.spec', function() {
     }
 
     itDistributes({0: 99, 98: 1}, {distribute: {val: 'max'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'naive'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'size'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'min'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'max'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', varStrategy: 'naive'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', varStrategy: 'size'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', varStrategy: 'min'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', varStrategy: 'max'}});
   });
 });

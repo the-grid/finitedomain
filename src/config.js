@@ -287,11 +287,23 @@ function config_setDefaults(config, varName) {
 
 // Set solving options on this config. Only required for the root.
 
+/**
+ * @param {$config} config
+ * @param {Object} options
+ * @property {Object} [options.varStrategy]
+ * @property {string} [options.varStrategy.name]
+ * @property {string[]} [options.varStrategy.list] Only if name=list
+ * @property {string[]} [options.varStrategy.priority_list] Only if name=list
+ * @property {boolean} [options.varStrategy.inverted] Only if name=list
+ * @property {Object} [options.varStrategy.fallback_config] Same struct as options.varStrategy (recursive)
+ */
 function config_setOptions(config, options) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   if (!options) return;
 
-  if (options.var) {
+  if (options.var) THROW('REMOVED. Replace `var` with `varStrategy`');
+
+  if (options.varStrategy) {
     // see distribution.var
     // either
     // - a function: should return the _name_ of the next var to process
@@ -299,8 +311,8 @@ function config_setOptions(config, options) {
     // - an object: a complex object like {dist_name:string, fallback_config: string|object, data...?}
     // fallback_config has the same struct as the main config.next_var_func and is used when the dist returns SAME
     // this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
-    config.next_var_func = options.var;
-    config_initConfigsAndFallbacks(options.var);
+    config.next_var_func = options.varStrategy;
+    config_initConfigsAndFallbacks(options.varStrategy);
   }
   if (options.val) {
     // see distribution.value

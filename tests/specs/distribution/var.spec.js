@@ -53,7 +53,7 @@ describe('distribution/var.spec', function() {
       });
       solver.prepare({
         distribute: {
-          var: dist_name,
+          varStrategy: dist_name,
         },
       });
       let A = solver._space.config.all_var_names.indexOf('A');
@@ -245,7 +245,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 50], [60, 90]), // 82 elements
         });
-        solver.prepare({distribute: {var: 'size'}});
+        solver.prepare({distribute: {varStrategy: 'size'}});
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
@@ -266,7 +266,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
         });
-        solver.prepare({distribute: {var: 'size'}});
+        solver.prepare({distribute: {varStrategy: 'size'}});
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
@@ -438,7 +438,7 @@ describe('distribution/var.spec', function() {
         });
         solver.prepare({
           distribute: {
-            var: 'markov',
+            varStrategy: 'markov',
           },
         });
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -482,7 +482,7 @@ describe('distribution/var.spec', function() {
         });
         solver.prepare({
           distribute: {
-            var: 'markov',
+            varStrategy: 'markov',
           },
         });
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -822,7 +822,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'B'});
         solver.prepare({
           distribute: {
-            var: {
+            varStrategy: {
               dist_name: 'list',
               priority_list: ['A', 'B'],
             },
@@ -843,7 +843,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'B'});
         solver.prepare({
           distribute: {
-            var: {
+            varStrategy: {
               dist_name: 'list',
               priority_list: ['B', 'A'],
             },
@@ -863,7 +863,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'A'});
         solver.prepare({
           distribute: {
-            var: {
+            varStrategy: {
               dist_name: 'list',
               priority_list: [],
             },
@@ -884,7 +884,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'C'});
         solver.prepare({
           distribute: {
-            var: {
+            varStrategy: {
               dist_name: 'list',
               priority_list: ['A', 'C'],
             },
@@ -918,7 +918,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'C'});
         solver.prepare({
           distribute: {
-            var: {
+            varStrategy: {
               dist_name: 'markov', // there are no markov vars so it will fallback immediately
               fallback_config: {
                 dist_name: 'list',
@@ -997,7 +997,7 @@ describe('distribution/var.spec', function() {
       });
       solver.prepare({
         distribute: {
-          var: {
+          varStrategy: {
             dist_name: 'list',
             priority_list: ['B_list', 'A_list'],
             fallback_config: {
@@ -1114,7 +1114,7 @@ describe('distribution/var.spec', function() {
       });
       solver.prepare({
         distribute: {
-          var: {
+          varStrategy: {
             dist_name: 'list',
             priority_list: ['B', 'A'],
             fallback_config: {

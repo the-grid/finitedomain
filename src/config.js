@@ -81,7 +81,7 @@ function config_create() {
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _var_names_trie: trie_create(),
 
-    next_var_func: 'naive',
+    varStratConfig: config_createVarStratConfig(),
     next_value_func: 'min',
     targetedVars: 'all',
     var_dist_options: {},
@@ -107,7 +107,7 @@ function config_clone(config, newDomains) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let {
-    next_var_func,
+    varStratConfig,
     next_value_func,
     targetedVars,
     var_dist_options,
@@ -125,7 +125,7 @@ function config_clone(config, newDomains) {
     _class: '$config',
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
 
-    next_var_func,
+    varStratConfig,
     next_value_func,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
     var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
@@ -285,7 +285,29 @@ function config_setDefaults(config, varName) {
   config_setOptions(config, distribution_getDefaults(varName));
 }
 
-// Set solving options on this config. Only required for the root.
+/**
+ * Create a config object for the var distribution
+ *
+ * @param {Object} obj
+ * @property {string} [obj.type] Map to the internal names for var distribution strategies
+ * @property {string} [obj.priorityList] An ordered list of var names to prioritize. Names not in the list go implicitly and unordered last.
+ * @property {boolean} [obj.inverted] Should the list be interpreted inverted? Unmentioned names still go last, regardless.
+ * @property {Object} [obj.fallback] Same struct as obj. If current strategy is inconclusive it can fallback to another strategy.
+ * @returns {$var_strat_config}
+ */
+function config_createVarStratConfig(obj) {
+  /**
+   * @typedef {$var_strat_config}
+   */
+  return {
+    _class: '$var_strat_config',
+    type: (obj && obj.type) || 'naive',
+    priorityByName: obj && obj.priorityList,
+    _priorityByIndex: undefined,
+    inverted: !!(obj && obj.inverted),
+    fallback: obj && obj.fallback,
+  };
+}
 
 /**
  * @param {$config} config
@@ -293,9 +315,9 @@ function config_setDefaults(config, varName) {
  * @property {Object} [options.varStrategy]
  * @property {string} [options.varStrategy.name]
  * @property {string[]} [options.varStrategy.list] Only if name=list
- * @property {string[]} [options.varStrategy.priority_list] Only if name=list
+ * @property {string[]} [options.varStrategy.priorityList] Only if name=list
  * @property {boolean} [options.varStrategy.inverted] Only if name=list
- * @property {Object} [options.varStrategy.fallback_config] Same struct as options.varStrategy (recursive)
+ * @property {Object} [options.varStrategy.fallback] Same struct as options.varStrategy (recursive)
  */
 function config_setOptions(config, options) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -304,15 +326,18 @@ function config_setOptions(config, options) {
   if (options.var) THROW('REMOVED. Replace `var` with `varStrategy`');
 
   if (options.varStrategy) {
-    // see distribution.var
-    // either
-    // - a function: should return the _name_ of the next var to process
-    // - a string: the name of the var distributor to use
-    // - an object: a complex object like {dist_name:string, fallback_config: string|object, data...?}
-    // fallback_config has the same struct as the main config.next_var_func and is used when the dist returns SAME
-    // this way you can chain distributors if they cant decide on their own (list -> markov -> naive)
-    config.next_var_func = options.varStrategy;
-    config_initConfigsAndFallbacks(options.varStrategy);
+    if (typeof options.varStrategy === 'function') THROW('functions no longer supported');
+    if (typeof options.varStrategy === 'string') THROW('strings should be type property');
+    if (typeof options.varStrategy !== 'object') THROW('varStrategy should be object');
+    if (options.varStrategy.name) THROW('name should be type');
+    if (options.varStrategy.dist_name) THROW('dist_name should be type');
+
+    let vsc = config_createVarStratConfig(options.varStrategy);
+    config.varStratConfig = vsc;
+    while (vsc.fallback) {
+      vsc.fallback = config_createVarStratConfig(vsc.fallback);
+      vsc = vsc.fallback;
+    }
   }
   if (options.val) {
     // see distribution.value
@@ -365,36 +390,6 @@ function config_generateVars(config, space) {
     ASSERT_STRDOM(domain);
 
     space.vardoms[varIndex] = domain_toNumstr(domain);
-  }
-}
-
-/**
- * Create a simple lookup hash from an array of strings
- * to an object that looks up the index from the string.
- * This is used for finding the priority of a var elsewhere.
- *
- * @param {$config} [config] This is the var dist config (-> space.config.next_var_func)
- * @property {string[]} [config.priority_list] If present, creates a priority_hash on config which maps string>index
- */
-function config_initConfigsAndFallbacks(config) {
-  // populate the priority hashes for all (sub)configs
-  while (config != null) {
-    // explicit list of priorities. vars not in this list have equal
-    // priority, but lower than any var that is in the list.
-    let list = config.priority_list;
-    if (list) {
-      let hash = {};
-      config.priority_hash = hash;
-      for (let index = 0, max = list.length; index < max; index++) {
-        // note: lowest priority still in the list is one, not zero
-        // this way you dont have to check -1 for non-existing, later
-        let varName = list[index];
-        hash[varName] = max - index;
-      }
-    }
-
-    // do it for all the fallback configs as well...
-    config = config.fallback_config;
   }
 }
 
@@ -1009,6 +1004,24 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
   }
 }
 
+function config_populateVarStrategyListHash(config) {
+  let vsc = config.varStratConfig;
+  while (vsc) {
+    if (vsc.priorityByName) {
+      let obj = {};
+      let list = vsc.priorityByName;
+      for (let i = 0, len = list.length; i < len; ++i) {
+        let varIndex = trie_get(config._var_names_trie, list[i]);
+        ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'VARS_IN_PRIO_LIST_SHOULD_BE_KNOWN_NOW');
+        obj[varIndex] = len - i; // never 0, offset at 1. higher value is higher prio
+      }
+      vsc._priorityByIndex = obj;
+    }
+
+    vsc = vsc.fallback;
+  }
+}
+
 /**
  * At the start of a search, populate this config with the dynamic data
  *
@@ -1023,6 +1036,7 @@ function config_initForSpace(config, space) {
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
+  config_populateVarStrategyListHash(config);
 
   ASSERT(config._varToPropagators, 'should have generated hash');
 }
@@ -1041,6 +1055,7 @@ export {
   config_addVarRange,
   config_clone,
   config_create,
+  config_createVarStratConfig,
   config_generateVars,
   config_generatePropagators,
   config_initForSpace,
@@ -1050,5 +1065,4 @@ export {
 
   // testing
   _config_addVar,
-  config_initConfigsAndFallbacks,
 };

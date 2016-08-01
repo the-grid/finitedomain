@@ -43,9 +43,9 @@ describe('solver.mid.spec', function() {
     }
 
     itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid'}});
-    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: 'naive'}});
-    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: 'size'}});
-    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: 'min'}});
-    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: 'max'}});
+    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: {type: 'size'}}});
+    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: {type: 'min'}}});
+    itDistributes({0: 50, 97: 99, 98: 1}, {distribute: {val: 'mid', varStrategy: {type: 'max'}}});
   });
 });

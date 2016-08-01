@@ -33,15 +33,15 @@ describe('distribution/var.spec', function() {
 
   describe('distribution_var_by_throw', function() {
     it('should throw', function() {
-      expect(_ => distribution_getNextVar({config: {next_var_func: 'throw'}})).to.throw('not expecting to pick this distributor');
+      expect(_ => distribution_getNextVar({config: {varStratConfig: {type: 'throw'}}})).to.throw('not expecting to pick this distributor');
     });
   });
 
-  function itAvsB(dist_name, range_a, range_b, out, desc) {
+  function itAvsB(type, range_a, range_b, out, desc) {
     let stack = new Error('from').stack; // mocha wont tell us which line called itAvsB :(
     if (stack && stack.slice) stack = stack.slice(0, stack.indexOf('._compile')) + ' ...'; // dont need the whole thing
 
-    it(`${desc}; distName: ${dist_name}, rangeA: ${range_a}, rangeB: ${range_b}, out: ${out}`, function() {
+    it(`${desc}; type: ${type}, rangeA: ${range_a}, rangeB: ${range_b}, out: ${out}`, function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
@@ -53,7 +53,9 @@ describe('distribution/var.spec', function() {
       });
       solver.prepare({
         distribute: {
-          varStrategy: dist_name,
+          varStrategy: {
+            type: type,
+          },
         },
       });
       let A = solver._space.config.all_var_names.indexOf('A');
@@ -245,7 +247,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 50], [60, 90]), // 82 elements
         });
-        solver.prepare({distribute: {varStrategy: 'size'}});
+        solver.prepare({distribute: {varStrategy: {type: 'size'}}});
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
@@ -266,7 +268,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
         });
-        solver.prepare({distribute: {varStrategy: 'size'}});
+        solver.prepare({distribute: {varStrategy: {type: 'size'}}});
         let A = solver._space.config.all_var_names.indexOf('A');
         let B = solver._space.config.all_var_names.indexOf('B');
 
@@ -368,11 +370,11 @@ describe('distribution/var.spec', function() {
         });
         let space = space_createRoot(config);
         space_initFromConfig(space);
-        let fallback_config = {fallback_config: 'size'};
+        let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(distribution_varByMarkov(space, A, B, fallback_config)).to.equal(BETTER);
+        expect(distribution_varByMarkov(space, A, B, fallback)).to.equal(BETTER);
       });
 
       it('should use fallback if available and vars are SAME but then still return SAME', function() {
@@ -386,11 +388,11 @@ describe('distribution/var.spec', function() {
         });
         let space = space_createRoot(config);
         space_initFromConfig(space);
-        let fallback_config = {fallback_config: 'size'};
+        let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(distribution_varByMarkov(space, A, B, fallback_config)).to.equal(SAME);
+        expect(distribution_varByMarkov(space, A, B, fallback)).to.equal(SAME);
       });
 
       it('should use fallback if available and vars are SAME and then return WORSE', function() {
@@ -404,11 +406,11 @@ describe('distribution/var.spec', function() {
         });
         let space = space_createRoot(config);
         space_initFromConfig(space);
-        let fallback_config = {fallback_config: 'size'};
+        let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(distribution_varByMarkov(space, A, B, fallback_config)).to.equal(WORSE);
+        expect(distribution_varByMarkov(space, A, B, fallback)).to.equal(WORSE);
       });
     });
 
@@ -438,7 +440,7 @@ describe('distribution/var.spec', function() {
         });
         solver.prepare({
           distribute: {
-            varStrategy: 'markov',
+            varStrategy: {type: 'markov'},
           },
         });
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -482,7 +484,7 @@ describe('distribution/var.spec', function() {
         });
         solver.prepare({
           distribute: {
-            varStrategy: 'markov',
+            varStrategy: {type: 'markov'},
           },
         });
         let A = solver._space.config.all_var_names.indexOf('A');
@@ -512,9 +514,9 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            A: 2,
-            B: 1,
+          _priorityByIndex: {
+            [A]: 2,
+            [B]: 1,
           },
         };
 
@@ -532,9 +534,9 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {
-            A: 2,
-            B: 1,
+          _priorityByIndex: {
+            [A]: 2,
+            [B]: 1,
           },
         };
 
@@ -551,9 +553,9 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            A: 2,
-            B: 2,
+          _priorityByIndex: {
+            [A]: 2,
+            [B]: 2,
           },
         };
 
@@ -570,9 +572,9 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            A: 1,
-            B: 2,
+          _priorityByIndex: {
+            [A]: 1,
+            [B]: 2,
           },
         };
 
@@ -590,9 +592,9 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {
-            A: 1,
-            B: 2,
+          _priorityByIndex: {
+            [A]: 1,
+            [B]: 2,
           },
         };
 
@@ -609,8 +611,8 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            A: 2,
+          _priorityByIndex: {
+            [A]: 2,
           },
         };
 
@@ -628,8 +630,8 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {
-            A: 2,
+          _priorityByIndex: {
+            [A]: 2,
           },
         };
 
@@ -646,8 +648,8 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            B: 2,
+          _priorityByIndex: {
+            [B]: 2,
           },
         };
 
@@ -665,8 +667,8 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {
-            B: 2,
+          _priorityByIndex: {
+            [B]: 2,
           },
         };
 
@@ -683,8 +685,8 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            A: 0,
+          _priorityByIndex: {
+            [A]: 0,
           },
         };
 
@@ -702,8 +704,8 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {
-            B: 0,
+          _priorityByIndex: {
+            [B]: 0,
           },
         };
 
@@ -721,7 +723,7 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {},
+          _priorityByIndex: {},
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(SAME);
@@ -738,7 +740,7 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {},
+          _priorityByIndex: {},
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(SAME);
@@ -754,8 +756,10 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {},
-          fallback_config: 'size',
+          _priorityByIndex: {},
+          fallback: {
+            type: 'size',
+          },
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(BETTER);
@@ -772,8 +776,10 @@ describe('distribution/var.spec', function() {
 
         let nvconfig = {
           inverted: true,
-          priority_hash: {},
-          fallback_config: 'size',
+          _priorityByIndex: {},
+          fallback: {
+            type: 'size',
+          },
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(BETTER);
@@ -789,8 +795,10 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {},
-          fallback_config: 'size',
+          _priorityByIndex: {},
+          fallback: {
+            type: 'size',
+          },
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(SAME);
@@ -806,8 +814,10 @@ describe('distribution/var.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         let nvconfig = {
-          priority_hash: {},
-          fallback_config: 'size',
+          _priorityByIndex: {},
+          fallback: {
+            type: 'size',
+          },
         };
 
         expect(distribution_varByList(space, A, B, nvconfig)).to.equal(WORSE);
@@ -823,8 +833,8 @@ describe('distribution/var.spec', function() {
         solver.prepare({
           distribute: {
             varStrategy: {
-              dist_name: 'list',
-              priority_list: ['A', 'B'],
+              type: 'list',
+              priorityList: ['A', 'B'],
             },
           },
         });
@@ -844,8 +854,8 @@ describe('distribution/var.spec', function() {
         solver.prepare({
           distribute: {
             varStrategy: {
-              dist_name: 'list',
-              priority_list: ['B', 'A'],
+              type: 'list',
+              priorityList: ['B', 'A'],
             },
           },
         });
@@ -864,8 +874,8 @@ describe('distribution/var.spec', function() {
         solver.prepare({
           distribute: {
             varStrategy: {
-              dist_name: 'list',
-              priority_list: [],
+              type: 'list',
+              priorityList: [],
             },
           },
         });
@@ -885,8 +895,8 @@ describe('distribution/var.spec', function() {
         solver.prepare({
           distribute: {
             varStrategy: {
-              dist_name: 'list',
-              priority_list: ['A', 'C'],
+              type: 'list',
+              priorityList: ['A', 'C'],
             },
           },
         });
@@ -919,10 +929,10 @@ describe('distribution/var.spec', function() {
         solver.prepare({
           distribute: {
             varStrategy: {
-              dist_name: 'markov', // there are no markov vars so it will fallback immediately
-              fallback_config: {
-                dist_name: 'list',
-                priority_list: ['A', 'C'],
+              type: 'markov', // there are no markov vars so it will fallback immediately
+              fallback: {
+                type: 'list',
+                priorityList: ['A', 'C'],
               },
             },
           },
@@ -998,11 +1008,13 @@ describe('distribution/var.spec', function() {
       solver.prepare({
         distribute: {
           varStrategy: {
-            dist_name: 'list',
-            priority_list: ['B_list', 'A_list'],
-            fallback_config: {
-              dist_name: 'markov',
-              fallback_config: 'size',
+            type: 'list',
+            priorityList: ['B_list', 'A_list'],
+            fallback: {
+              type: 'markov',
+              fallback: {
+                type: 'size',
+              },
             },
           },
         },
@@ -1115,13 +1127,15 @@ describe('distribution/var.spec', function() {
       solver.prepare({
         distribute: {
           varStrategy: {
-            dist_name: 'list',
-            priority_list: ['B', 'A'],
-            fallback_config: {
-              dist_name: 'list',
+            type: 'list',
+            priorityList: ['B', 'A'],
+            fallback: {
+              type: 'list',
               inverted: true,
-              priority_list: ['D', 'C'],
-              fallback_config: 'min',
+              priorityList: ['D', 'C'],
+              fallback: {
+                type: 'min',
+              },
             },
           },
         },

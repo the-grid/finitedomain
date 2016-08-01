@@ -46,11 +46,11 @@ describe('solver.min.spec', function() {
     itDistributes({0: 1, 98: 99}, {distribute: 'naive'});
     itDistributes({0: 1, 98: 99}, {distribute: 'fail_first'});
     itDistributes({0: 1, 98: 99}, {distribute: 'split'});
-    itDistributes({0: 1, 98: 99}, {distribute: {varStrategy: 'naive'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {varStrategy: {type: 'naive'}}});
     itDistributes({0: 1, 98: 99}, {distribute: {val: 'min'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: 'naive'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: 'size'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: 'min'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: 'max'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: {type: 'size'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: {type: 'min'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', varStrategy: {type: 'max'}}});
   });
 });

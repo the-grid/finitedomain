@@ -43,9 +43,9 @@ describe('solver.splitmax.spec', function() {
     }
 
     itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax'}});
-    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: 'naive'}});
-    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: 'size'}});
-    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: 'min'}});
-    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: 'max'}});
+    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: {type: 'size'}}});
+    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: {type: 'min'}}});
+    itDistributes({0: 99, 97: 2, 98: 1}, {distribute: {val: 'splitMax', varStrategy: {type: 'max'}}});
   });
 });

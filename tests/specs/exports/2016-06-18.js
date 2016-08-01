@@ -3,7 +3,9 @@
 
 let config = {
   _class: '$config',
-  nextVarStrat: 'naive',
+  varStratConfig: {
+    type: 'naive',
+  },
   next_value_func: 'min',
   targetedVars: ['ITEM_INDEX',
     'ITEM_INDEX&n=1',

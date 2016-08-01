@@ -23,7 +23,7 @@ var config = module.exports = {
   callbackTimeoutMax: 10000000,
 
   _class: '$config',
-  next_var_func: 'naive',
+  varStratConfig: {type: 'naive'},
   next_value_func: 'min',
   targetedVars: 'all',
   var_dist_options: {},

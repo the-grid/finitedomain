@@ -289,7 +289,9 @@ function config_setDefaults(config, varName) {
 
 function config_setOptions(config, options) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  if (options && options.var) {
+  if (!options) return;
+
+  if (options.var) {
     // see distribution.var
     // either
     // - a function: should return the _name_ of the next var to process
@@ -300,24 +302,24 @@ function config_setOptions(config, options) {
     config.next_var_func = options.var;
     config_initConfigsAndFallbacks(options.var);
   }
-  if (options && options.val) {
+  if (options.val) {
     // see distribution.value
     config.next_value_func = options.val;
   }
-  if (options && options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
+  if (options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
     // which vars must be solved for this space to be solved
     // string: 'all'
     // string[]: list of vars that must be solved
     // function: callback to return list of names to be solved
     config.targetedVars = options.targeted_var_names;
   }
-  if (options && options.var_dist_config) {
+  if (options.var_dist_config) {
     // An object which defines a value distributor per variable
     // which overrides the globally set value distributor.
     // See Bvar#distributionOptions (in multiverse)
     config.var_dist_options = options.var_dist_config;
   }
-  if (options && options.timeout_callback) {
+  if (options.timeout_callback) {
     // A function that returns true if the current search should stop
     // Can be called multiple times after the search is stopped, should
     // keep returning false (or assume an uncertain outcome).

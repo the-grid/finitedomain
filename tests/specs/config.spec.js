@@ -494,7 +494,7 @@ describe('src/config.spec', function() {
 
     it('should copy the var distribution config', function() {
       let config = config_create();
-      config_setOptions(config, {var_dist_config: 'A'});
+      config_setOptions(config, {varStratOverrides: 'A'});
 
       expect(config.var_dist_options).to.equal('A');
     });

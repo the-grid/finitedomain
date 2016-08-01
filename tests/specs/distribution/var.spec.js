@@ -288,7 +288,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             A: {
               distributor_name: 'markov',
             },
@@ -307,7 +307,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             B: {
               distributor_name: 'markov',
             },
@@ -326,7 +326,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             A: {
               distributor_name: 'markov',
             },
@@ -348,7 +348,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
           },
         });
         let space = space_createRoot(config);
@@ -364,7 +364,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 12);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             var_dist_options: {}, // neither is markov
           },
         });
@@ -382,7 +382,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             var_dist_options: {}, // neither is markov
           },
         });
@@ -400,7 +400,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         config_setOptions(config, {
-          var_dist_config: {
+          varStratOverrides: {
             var_dist_options: {}, // neither is markov
           },
         });

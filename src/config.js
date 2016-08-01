@@ -351,11 +351,11 @@ function config_setOptions(config, options) {
     // function: callback to return list of names to be solved
     config.targetedVars = options.targeted_var_names;
   }
-  if (options.var_dist_config) {
+  if (options.varStratOverrides) {
     // An object which defines a value distributor per variable
     // which overrides the globally set value distributor.
     // See Bvar#distributionOptions (in multiverse)
-    config.var_dist_options = options.var_dist_config;
+    config.var_dist_options = options.varStratOverrides;
   }
   if (options.timeout_callback) {
     // A function that returns true if the current search should stop

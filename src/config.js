@@ -324,6 +324,7 @@ function config_setOptions(config, options) {
   if (!options) return;
 
   if (options.var) THROW('REMOVED. Replace `var` with `varStrategy`');
+  if (options.val) THROW('REMOVED. Replace `var` with `valueStrategy`');
 
   if (options.varStrategy) {
     if (typeof options.varStrategy === 'function') THROW('functions no longer supported');
@@ -339,9 +340,9 @@ function config_setOptions(config, options) {
       vsc = vsc.fallback;
     }
   }
-  if (options.val) {
+  if (options.valueStrategy) {
     // see distribution.value
-    config.next_value_func = options.val;
+    config.next_value_func = options.valueStrategy;
   }
   if (options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
     // which vars must be solved for this space to be solved

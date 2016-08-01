@@ -399,7 +399,7 @@ describe('solver.markov.spec', function() {
         distribute: {
           // distribute should be ignored as it should reject immediately
           varStrategy: {type: 'throw'},
-          val: 'throw',
+          valueStrategy: 'throw',
         },
       });
 

@@ -7,19 +7,19 @@ import {
 const PRESETS = {
   defaults: {
     varStrategy: {type: 'naive'},
-    val: 'min',
+    valueStrategy: 'min',
   },
   // The native distribution strategy simply steps through all
   // undetermined variables.
   naive: {
     varStrategy: {type: 'naive'},
-    val: 'min',
+    valueStrategy: 'min',
   },
   // The "fail first" strategy branches on the variable with the
   // smallest domain size.
   fail_first: {
     varStrategy: {type: 'size'},
-    val: 'min',
+    valueStrategy: 'min',
   },
   // The "domain splitting" strategy where each domain is roughly
   // halved in each step. The 'varname' argument can be either a
@@ -27,7 +27,7 @@ const PRESETS = {
   // values are var names.
   split: {
     varStrategy: {type: 'size'},
-    val: 'splitMin',
+    valueStrategy: 'splitMin',
   },
 };
 

@@ -41,10 +41,10 @@ describe('solver.splitmin.spec', function() {
       });
     }
 
-    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: { val: 'splitMin'}});
-    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: { val: 'splitMin', varStrategy: {type: 'naive'}}});
-    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: { val: 'splitMin', varStrategy: {type: 'size'}}});
-    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: { val: 'splitMin', varStrategy: {type: 'min'}}});
-    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: { val: 'splitMin', varStrategy: {type: 'max'}}});
+    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: {valueStrategy: 'splitMin'}});
+    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: {valueStrategy: 'splitMin', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: {valueStrategy: 'splitMin', varStrategy: {type: 'size'}}});
+    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: {valueStrategy: 'splitMin', varStrategy: {type: 'min'}}});
+    itDistributes({0: 1, 97: 98, 98: 99}, {distribute: {valueStrategy: 'splitMin', varStrategy: {type: 'max'}}});
   });
 });

@@ -476,11 +476,13 @@ describe('src/config.spec', function() {
     it('should throw for some legacy config structs', function() {
       let config = config_create();
 
+      expect(_ => config_setOptions(config, {var: {}})).to.throw('REMOVED. Replace `var` with `varStrategy`');
       expect(_ => config_setOptions(config, {varStrategy: _ => 0})).to.throw('functions no longer supported');
       expect(_ => config_setOptions(config, {varStrategy: 'foo'})).to.throw('strings should be type property');
       expect(_ => config_setOptions(config, {varStrategy: 15})).to.throw('varStrategy should be object');
       expect(_ => config_setOptions(config, {varStrategy: {name: 'foo'}})).to.throw('name should be type');
       expect(_ => config_setOptions(config, {varStrategy: {dist_name: 'foo'}})).to.throw('dist_name should be type');
+      expect(_ => config_setOptions(config, {val: {}})).to.throw('REMOVED. Replace `var` with `valueStrategy`');
     });
 
     it('should copy the targeted var names', function() {

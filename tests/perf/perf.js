@@ -10,7 +10,12 @@ perf(config, 1);
 // run this from any of the subdirs (`./composer/node.js`)
 var Solver = (typeof require === 'function') ? require(__dirname + '/../../dist/browser').default : exports.default;
 
-var perf = module.exports = function perf(config, max) {
+var perf = module.exports = function perf(config, max, _waited) {
+
+  if (typeof location === 'object' && location.href.indexOf('wait=1') >= 0 && !_waited) {
+    console.log('delaying start by five seconds');
+    return setTimeout(function(){ perf(config, max, true); }, 5000);
+  }
 
   if (config.callbackTimeoutMax) {
     var counter = config.callbackTimeoutMax;

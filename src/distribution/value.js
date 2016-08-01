@@ -56,7 +56,7 @@ function distribute_getNextDomainForVar(space, varIndex, choiceIndex) {
   let configVarDistOptions = space.config.var_dist_options;
   let varName = space.config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].distributor_name;
+  let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].valtype;
   if (valueDistributorName) valueStrategy = valueDistributorName;
 
   if (typeof valueStrategy === 'function') return valueStrategy;

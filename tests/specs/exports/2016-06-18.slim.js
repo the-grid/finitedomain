@@ -9,9 +9,9 @@ let config = {
   valueStratName: 'min',
   targetedVars: 'all',
   var_dist_options: {
-    width: {list: [4], distributor_name: 'list'},
-    'width&n=1': {list: [4], distributor_name: 'list'},
-    'width&n=2': {list: [4], distributor_name: 'list'},
+    width: {list: [4], valtype: 'list'},
+    'width&n=1': {list: [4], valtype: 'list'},
+    'width&n=2': {list: [4], valtype: 'list'},
   },
   timeout_callback: undefined,
   all_var_names: [

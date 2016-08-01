@@ -382,7 +382,7 @@ describe('solver.markov.spec', function() {
         id: 'B_MARK',
         domain: fixt_arrdom_range(0, 1, true),
         distributeOptions: {
-          distributor_name: 'markov',
+          valtype: 'markov',
           legend: [2],
           matrix: [
             {vector: [1]},

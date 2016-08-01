@@ -3511,11 +3511,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    COMPONENT_START: {list: [1, 0], distributor_name: 'list'},
-    COMPONENT_END: {list: [1, 0], distributor_name: 'list'},
-    ITEM: {list: [1], distributor_name: 'list'},
+    COMPONENT_START: {list: [1, 0], valtype: 'list'},
+    COMPONENT_END: {list: [1, 0], valtype: 'list'},
+    ITEM: {list: [1], valtype: 'list'},
     'COMPONENT&n=1': {
       matrix: [{
         vector: [1,
@@ -3687,11 +3687,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=1': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=1': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=1': {list: [2], distributor_name: 'list'},
+    'COMPONENT_START&n=1': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=1': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=1': {list: [2], valtype: 'list'},
     'COMPONENT&n=2': {
       matrix: [{
         booleanId: '1401',
@@ -3864,11 +3864,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=2': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=2': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=2': {list: [3], distributor_name: 'list'},
+    'COMPONENT_START&n=2': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=2': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=2': {list: [3], valtype: 'list'},
     'COMPONENT&n=3': {
       matrix: [{
         booleanId: '1402',
@@ -4041,11 +4041,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=3': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=3': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=3': {list: [4], distributor_name: 'list'},
+    'COMPONENT_START&n=3': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=3': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=3': {list: [4], valtype: 'list'},
     'COMPONENT&n=4': {
       matrix: [{
         booleanId: '1403',
@@ -4218,11 +4218,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=4': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=4': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=4': {list: [5], distributor_name: 'list'},
+    'COMPONENT_START&n=4': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=4': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=4': {list: [5], valtype: 'list'},
     'COMPONENT&n=5': {
       matrix: [{
         booleanId: '1404',
@@ -4395,11 +4395,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=5': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=5': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=5': {list: [6], distributor_name: 'list'},
+    'COMPONENT_START&n=5': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=5': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=5': {list: [6], valtype: 'list'},
     'COMPONENT&n=6': {
       matrix: [{
         booleanId: '1405',
@@ -4572,11 +4572,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=6': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=6': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=6': {list: [7], distributor_name: 'list'},
+    'COMPONENT_START&n=6': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=6': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=6': {list: [7], valtype: 'list'},
     'COMPONENT&n=7': {
       matrix: [{
         booleanId: '1406',
@@ -4749,11 +4749,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=7': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=7': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=7': {list: [8], distributor_name: 'list'},
+    'COMPONENT_START&n=7': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=7': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=7': {list: [8], valtype: 'list'},
     'COMPONENT&n=8': {
       matrix: [{
         booleanId: '1407',
@@ -4926,11 +4926,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=8': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=8': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=8': {list: [9], distributor_name: 'list'},
+    'COMPONENT_START&n=8': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=8': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=8': {list: [9], valtype: 'list'},
     'COMPONENT&n=9': {
       matrix: [{
         booleanId: '1408',
@@ -5103,11 +5103,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=9': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=9': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=9': {list: [10], distributor_name: 'list'},
+    'COMPONENT_START&n=9': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=9': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=9': {list: [10], valtype: 'list'},
     'COMPONENT&n=10': {
       matrix: [{
         booleanId: '1409',
@@ -5280,11 +5280,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=10': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=10': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=10': {list: [11], distributor_name: 'list'},
+    'COMPONENT_START&n=10': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=10': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=10': {list: [11], valtype: 'list'},
     'COMPONENT&n=11': {
       matrix: [{
         booleanId: '1410',
@@ -5457,11 +5457,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=11': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=11': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=11': {list: [12], distributor_name: 'list'},
+    'COMPONENT_START&n=11': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=11': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=11': {list: [12], valtype: 'list'},
     'COMPONENT&n=12': {
       matrix: [{
         booleanId: '1411',
@@ -5634,11 +5634,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=12': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=12': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=12': {list: [13], distributor_name: 'list'},
+    'COMPONENT_START&n=12': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=12': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=12': {list: [13], valtype: 'list'},
     'COMPONENT&n=13': {
       matrix: [{
         booleanId: '1412',
@@ -5811,11 +5811,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=13': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=13': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=13': {list: [14], distributor_name: 'list'},
+    'COMPONENT_START&n=13': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=13': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=13': {list: [14], valtype: 'list'},
     'COMPONENT&n=14': {
       matrix: [{
         booleanId: '1413',
@@ -5988,11 +5988,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=14': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=14': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=14': {list: [15], distributor_name: 'list'},
+    'COMPONENT_START&n=14': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=14': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=14': {list: [15], valtype: 'list'},
     'COMPONENT&n=15': {
       matrix: [{
         booleanId: '1414',
@@ -6165,11 +6165,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=15': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=15': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=15': {list: [16], distributor_name: 'list'},
+    'COMPONENT_START&n=15': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=15': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=15': {list: [16], valtype: 'list'},
     'COMPONENT&n=16': {
       matrix: [{
         booleanId: '1415',
@@ -6342,11 +6342,11 @@ var config = module.exports = {
       random: function () {
         return 0;
       },
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'COMPONENT_START&n=16': {list: [1, 0], distributor_name: 'list'},
-    'COMPONENT_END&n=16': {list: [1, 0], distributor_name: 'list'},
-    'ITEM&n=16': {list: [17], distributor_name: 'list'}
+    'COMPONENT_START&n=16': {list: [1, 0], valtype: 'list'},
+    'COMPONENT_END&n=16': {list: [1, 0], valtype: 'list'},
+    'ITEM&n=16': {list: [17], valtype: 'list'}
   },
   timeout_callback: undefined,
   constant_cache: {

@@ -1230,7 +1230,7 @@ describe('src/constraint.spec', function() {
           id: 'A',
           domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
-            distributor_name: 'markov',
+            valtype: 'markov',
             legend: [0],
             matrix: [
               {vector: [1]},
@@ -1248,7 +1248,7 @@ describe('src/constraint.spec', function() {
           id: 'A',
           domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
-            distributor_name: 'markov',
+            valtype: 'markov',
             legend: [1],
             matrix: [
               {vector: [1]},
@@ -1268,7 +1268,7 @@ describe('src/constraint.spec', function() {
             id: 'A',
             domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
-              distributor_name: 'markov',
+              valtype: 'markov',
               legend: [0],
               matrix: [
                 {vector: [0]},
@@ -1286,7 +1286,7 @@ describe('src/constraint.spec', function() {
             id: 'A',
             domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
-              distributor_name: 'markov',
+              valtype: 'markov',
               legend: [0],
               matrix: [
                 {vector: [1]},
@@ -1307,7 +1307,7 @@ describe('src/constraint.spec', function() {
             id: 'A',
             domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
-              distributor_name: 'markov',
+              valtype: 'markov',
               legend: [0],
               matrix: [{
                 vector: [0],
@@ -1329,7 +1329,7 @@ describe('src/constraint.spec', function() {
             id: 'A',
             domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
-              distributor_name: 'markov',
+              valtype: 'markov',
               legend: [0],
               matrix: [{
                 vector: [1],

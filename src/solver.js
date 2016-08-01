@@ -268,7 +268,7 @@ class Solver {
       vars.byName[name].push(v);
     }
 
-    if (distribute === 'markov' || (v.distributeOptions && v.distributeOptions.distributor_name === 'markov')) {
+    if (distribute === 'markov' || (v.distributeOptions && v.distributeOptions.valtype === 'markov')) {
       let { matrix } = v.distributeOptions;
       if (!matrix) {
         if (v.distributeOptions.expandVectorsWith) {
@@ -856,9 +856,9 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
       if (bvar && bvar.distribute) {
         if (!overrides) overrides = {};
         if (!overrides[name]) overrides[name] = {};
-        overrides[name].distributor_name = bvar.distribute;
+        overrides[name].valtype = bvar.distribute;
       }
-      if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
+      if (overrides && overrides[name] && overrides[name].valtype === 'markov') {
         config_addConstraint(config, 'markov', [name]);
       }
     }

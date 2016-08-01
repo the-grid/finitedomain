@@ -132,13 +132,13 @@ function distribution_varByMarkov(space, varIndex1, varIndex2, varStratConfig) {
 
   let varName1 = space.config.all_var_names[varIndex1];
   ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  if (distOptions[varName1] && distOptions[varName1].distributor_name === 'markov') {
+  if (distOptions[varName1] && distOptions[varName1].valtype === 'markov') {
     return BETTER;
   }
 
   let varName2 = space.config.all_var_names[varIndex2];
   ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  if (distOptions[varName2] && distOptions[varName2].distributor_name === 'markov') {
+  if (distOptions[varName2] && distOptions[varName2].valtype === 'markov') {
     return WORSE;
   }
 

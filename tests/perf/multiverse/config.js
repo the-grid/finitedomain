@@ -948,260 +948,260 @@ var config = module.exports = {
       matrix: [{vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    CLUSTER_START: {list: [1, 0], distributor_name: 'list'},
-    CLUSTER_END: {list: [1, 0], distributor_name: 'list'},
+    CLUSTER_START: {list: [1, 0], valtype: 'list'},
+    CLUSTER_END: {list: [1, 0], valtype: 'list'},
     item: {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=1': {
       matrix: [{booleanId: '262', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=1': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=1': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=1': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=1': {list: [1, 0], valtype: 'list'},
     'item&n=1': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=2': {
       matrix: [{booleanId: '264', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=2': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=2': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=2': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=2': {list: [1, 0], valtype: 'list'},
     'item&n=2': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=3': {
       matrix: [{booleanId: '266', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=3': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=3': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=3': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=3': {list: [1, 0], valtype: 'list'},
     'item&n=3': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=4': {
       matrix: [{booleanId: '268', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=4': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=4': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=4': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=4': {list: [1, 0], valtype: 'list'},
     'item&n=4': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=5': {
       matrix: [{booleanId: '270', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=5': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=5': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=5': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=5': {list: [1, 0], valtype: 'list'},
     'item&n=5': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=6': {
       matrix: [{booleanId: '272', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=6': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=6': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=6': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=6': {list: [1, 0], valtype: 'list'},
     'item&n=6': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=7': {
       matrix: [{booleanId: '274', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=7': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=7': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=7': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=7': {list: [1, 0], valtype: 'list'},
     'item&n=7': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=8': {
       matrix: [{booleanId: '276', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=8': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=8': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=8': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=8': {list: [1, 0], valtype: 'list'},
     'item&n=8': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=9': {
       matrix: [{booleanId: '278', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=9': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=9': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=9': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=9': {list: [1, 0], valtype: 'list'},
     'item&n=9': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=10': {
       matrix: [{booleanId: '280', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=10': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=10': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=10': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=10': {list: [1, 0], valtype: 'list'},
     'item&n=10': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=11': {
       matrix: [{booleanId: '282', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=11': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=11': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=11': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=11': {list: [1, 0], valtype: 'list'},
     'item&n=11': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=12': {
       matrix: [{booleanId: '284', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=12': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=12': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=12': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=12': {list: [1, 0], valtype: 'list'},
     'item&n=12': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=13': {
       matrix: [{booleanId: '286', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=13': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=13': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=13': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=13': {list: [1, 0], valtype: 'list'},
     'item&n=13': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=14': {
       matrix: [{booleanId: '288', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=14': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=14': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=14': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=14': {list: [1, 0], valtype: 'list'},
     'item&n=14': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=15': {
       matrix: [{booleanId: '290', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=15': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=15': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=15': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=15': {list: [1, 0], valtype: 'list'},
     'item&n=15': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=16': {
       matrix: [{booleanId: '292', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=16': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=16': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=16': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=16': {list: [1, 0], valtype: 'list'},
     'item&n=16': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=17': {
       matrix: [{booleanId: '294', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=17': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=17': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=17': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=17': {list: [1, 0], valtype: 'list'},
     'item&n=17': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=18': {
       matrix: [{booleanId: '296', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=18': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=18': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=18': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=18': {list: [1, 0], valtype: 'list'},
     'item&n=18': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     },
     'CLUSTER&n=19': {
       matrix: [{booleanId: '298', vector: [1, 0.1, 100, 1]},
         {vector: [1, 10000, 1, 1]}],
       legend: [1, 2, 3, 4],
       random: rng,
-      distributor_name: 'markov'
+      valtype: 'markov'
     },
-    'CLUSTER_START&n=19': {list: [1, 0], distributor_name: 'list'},
-    'CLUSTER_END&n=19': {list: [1, 0], distributor_name: 'list'},
+    'CLUSTER_START&n=19': {list: [1, 0], valtype: 'list'},
+    'CLUSTER_END&n=19': {list: [1, 0], valtype: 'list'},
     'item&n=19': {
       list: [11, 1, 12, 2, 20, 8, 9, 10, 19, 18, 7, 5, 6, 17, 15, 16, 14, 4, 13, 3],
-      distributor_name: 'list'
+      valtype: 'list'
     }
   },
   timeout_callback: undefined,

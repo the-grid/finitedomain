@@ -290,7 +290,7 @@ describe('distribution/var.spec', function() {
         config_setOptions(config, {
           varStratOverrides: {
             A: {
-              distributor_name: 'markov',
+              valtype: 'markov',
             },
           },
         });
@@ -309,7 +309,7 @@ describe('distribution/var.spec', function() {
         config_setOptions(config, {
           varStratOverrides: {
             B: {
-              distributor_name: 'markov',
+              valtype: 'markov',
             },
           },
         });
@@ -328,10 +328,10 @@ describe('distribution/var.spec', function() {
         config_setOptions(config, {
           varStratOverrides: {
             A: {
-              distributor_name: 'markov',
+              valtype: 'markov',
             },
             B: {
-              distributor_name: 'markov',
+              valtype: 'markov',
             },
           },
         });
@@ -426,7 +426,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_range(10, 12, true),
           distributeOptions: {
-            distributor_name: 'markov',
+            valtype: 'markov',
             expandVectorsWith: 1,
           },
         });
@@ -466,7 +466,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_range(10, 12, true),
           distributeOptions: {
-            distributor_name: 'markov',
+            valtype: 'markov',
             expandVectorsWith: 1,
           },
         });
@@ -474,7 +474,7 @@ describe('distribution/var.spec', function() {
           id: 'C',
           domain: fixt_arrdom_range(5, 17, true),
           distributeOptions: {
-            distributor_name: 'markov',
+            valtype: 'markov',
             expandVectorsWith: 1,
           },
         });
@@ -985,7 +985,7 @@ describe('distribution/var.spec', function() {
         id: 'C_markov',
         domain: [0, 100],
         distributeOptions: {
-          distributor_name: 'markov',
+          valtype: 'markov',
           expandVectorsWith: 1,
         },
       });
@@ -993,7 +993,7 @@ describe('distribution/var.spec', function() {
         id: 'D_markov',
         domain: [0, 50],
         distributeOptions: {
-          distributor_name: 'markov',
+          valtype: 'markov',
           expandVectorsWith: 1,
         },
       });

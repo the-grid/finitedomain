@@ -8,7 +8,7 @@ import {
   NO_SUCH_VALUE,
 } from '../../../src/helpers';
 import {
-  domain_getValue,
+  domain_any_getValue,
 } from '../../../src/domain';
 
 describe('propagators/callback.spec', function() {
@@ -20,9 +20,9 @@ describe('propagators/callback.spec', function() {
       let [R, G, B] = [2, 120, 201];
 
       function callback(space, varIndexes) {
-        let rv = domain_getValue(space.vardoms[varIndexes[0]]);
-        let gv = domain_getValue(space.vardoms[varIndexes[1]]);
-        let bv = domain_getValue(space.vardoms[varIndexes[2]]);
+        let rv = domain_any_getValue(space.vardoms[varIndexes[0]]);
+        let gv = domain_any_getValue(space.vardoms[varIndexes[1]]);
+        let bv = domain_any_getValue(space.vardoms[varIndexes[2]]);
 
         if (rv === NO_SUCH_VALUE || gv === NO_SUCH_VALUE || bv === NO_SUCH_VALUE) {
           return true; // at least one domain isnt a single value; keep searching

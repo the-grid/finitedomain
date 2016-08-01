@@ -4,12 +4,12 @@ import {
 } from '../helpers';
 
 import {
-  domain_divby,
-  domain_getChangeState,
-  domain_mul,
+  domain_any_divby,
+  domain_any_getChangeState,
+  domain_any_mul,
 } from '../domain';
-import domain_plus from '../doms/domain_plus';
-import domain_minus from '../doms/domain_minus';
+import domain_any_plus from '../doms/domain_plus';
+import domain_any_minus from '../doms/domain_minus';
 
 import propagator_callbackStepBare from './callback';
 import propagator_markovStepBare from './markov';
@@ -114,7 +114,7 @@ function _propagator_min(space, varIndex1, varIndex2, varIndex3) {
   let domNext = propagator_minStep(domain1, domain2, domain3);
   space.vardoms[varIndex3] = domNext;
 
-  return domain_getChangeState(domNext, domain3);
+  return domain_any_getChangeState(domNext, domain3);
 }
 
 function _propagator_mul(space, varIndex1, varIndex2, varIndex3) {
@@ -127,7 +127,7 @@ function _propagator_mul(space, varIndex1, varIndex2, varIndex3) {
   let domNext = propagator_mulStep(domain1, domain2, domain3);
   space.vardoms[varIndex3] = domNext;
 
-  return domain_getChangeState(domNext, domain3);
+  return domain_any_getChangeState(domNext, domain3);
 }
 
 function _propagator_div(space, varIndex1, varIndex2, varIndex3) {
@@ -140,7 +140,7 @@ function _propagator_div(space, varIndex1, varIndex2, varIndex3) {
   let domNext = propagator_divStep(domain1, domain2, domain3);
   space.vardoms[varIndex3] = domNext;
 
-  return domain_getChangeState(domNext, domain3);
+  return domain_any_getChangeState(domNext, domain3);
 }
 
 function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
@@ -154,16 +154,16 @@ function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
   let opFunc;
   switch (opName) {
     case 'plus':
-      opFunc = domain_plus;
+      opFunc = domain_any_plus;
       break;
     case 'min':
-      opFunc = domain_minus;
+      opFunc = domain_any_minus;
       break;
     case 'mul':
-      opFunc = domain_mul;
+      opFunc = domain_any_mul;
       break;
     case 'div':
-      opFunc = domain_divby;
+      opFunc = domain_any_divby;
       break;
     default:
       THROW('UNKNOWN ring opname', opName);
@@ -172,7 +172,7 @@ function _propagator_ring(space, varIndex1, varIndex2, varIndex3, opName) {
   let domNext = propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
   space.vardoms[varIndex3] = domNext;
 
-  return domain_getChangeState(domNext, domain3);
+  return domain_any_getChangeState(domNext, domain3);
 }
 
 function _propagator_markov(space, varIndex) {

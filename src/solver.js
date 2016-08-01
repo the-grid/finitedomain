@@ -25,14 +25,15 @@ import {
 import {
   FORCE_ARRAY,
 
-  domain_clone,
+  domain_arrToStr,
+  domain_any_clone,
   domain_createRange,
   domain_fromList,
-  domain_isRejected,
-  domain_max,
+  domain_any_isRejected,
+  domain_any_max,
   domain_toArr,
-  domain_toList,
-  domain_validate,
+  domain_any_toList,
+  domain_validateLegacyArray,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -90,7 +91,13 @@ class Solver {
       //console.log(doms)
       //console.log('##')
       delete config.initial_vars;
-      throw new Error('test');
+      throw new Error('update test');
+    }
+    if (config.initial_domains) {
+      let initialDomains = config.initial_domains;
+      for (let i = 0, len = initialDomains.length; i < len; ++i) {
+        if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
+      }
     }
 
     this._class = 'solver';
@@ -181,13 +188,13 @@ class Solver {
     else domain = domainOrValue;
 
     if (!domain) {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
     }
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
-    if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    domain = domain_validate(domain);
+    if (domain_any_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    domain = domain_validateLegacyArray(domain);
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -242,9 +249,9 @@ class Solver {
     ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
 
     if (domain === undefined) {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
     } else {
-      domain = domain_validate(domain);
+      domain = domain_validateLegacyArray(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     }
 
@@ -375,6 +382,7 @@ class Solver {
     return this.gte(e1, e2);
   }
   gte(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -382,6 +390,7 @@ class Solver {
     return this.lte(e1, e2);
   }
   lte(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -389,6 +398,7 @@ class Solver {
     return this.gt(e1, e2);
   }
   gt(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -396,6 +406,7 @@ class Solver {
     return this.lt(e1, e2);
   }
   lt(e1, e2) {
+    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     return config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
@@ -641,8 +652,8 @@ class Solver {
    * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
    */
   domain_max(domain) {
-    if (domain_isRejected(domain)) return NO_SUCH_VALUE;
-    return domain_max(domain);
+    if (domain_any_isRejected(domain)) return NO_SUCH_VALUE;
+    return domain_any_max(domain);
   }
 
   /**
@@ -654,7 +665,19 @@ class Solver {
    * @returns {number[]}
    */
   domain_toList(domain) {
-    return domain_toList(domain);
+    return domain_any_toList(domain);
+  }
+
+  /**
+   * Expose a method to normalize the internal representation
+   * of a domain to always return an array representation
+   *
+   * @param {$space} space
+   * @param {number} varIndex
+   * @returns {$domain_arr}
+   */
+  getDomain(space, varIndex) {
+    return domain_toArr(space.vardoms[varIndex]);
   }
 
   /**
@@ -678,15 +701,17 @@ class Solver {
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
+    clone.initial_domains = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
     clone._propagators = '<removed>';
     clone._varToPropagators = '<removed>';
+    clone._var_names_trie = '<removed>';
 
     console.log('\n## _debug:\n');
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: [${domains[index]}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${index}: [${domain_toArr(domains[index])}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }

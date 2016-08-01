@@ -5,6 +5,7 @@ import {
   SOME_CHANGES,
 
   ASSERT,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
@@ -50,16 +51,19 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
     return propagator_stepComparison(space, opName, leftVarIndex, rightVarIndex);
   }
 
-  let dom1 = space.vardoms[leftVarIndex];
-  let dom2 = space.vardoms[rightVarIndex];
-  ASSERT(dom1 !== undefined && dom2 !== undefined, 'should have two domains', leftVarIndex, rightVarIndex, resultVarIndex, opName, invOpName);
+  let domain1 = space.vardoms[leftVarIndex];
+  let domain2 = space.vardoms[rightVarIndex];
+
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   // domResult can only shrink so we only need to check its current state
-  if ((domResult & ZERO) && propagator_stepWouldReject(invOpName, dom1, dom2)) {
+  if ((domResult & ZERO) && propagator_stepWouldReject(invOpName, domain1, domain2)) {
     space.vardoms[resultVarIndex] = domResult &= ONE;
     return domResult === EMPTY ? REJECTED : SOME_CHANGES;
   }
-  if ((domResult & ONE) && propagator_stepWouldReject(opName, dom1, dom2)) {
+  if ((domResult & ONE) && propagator_stepWouldReject(opName, domain1, domain2)) {
     space.vardoms[resultVarIndex] = domResult &= ZERO;
     return domResult === EMPTY ? REJECTED : SOME_CHANGES;
   }

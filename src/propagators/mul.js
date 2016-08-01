@@ -1,6 +1,10 @@
 import {
-  domain_mul,
-  domain_intersection,
+  ASSERT,
+  ASSERT_NUMSTRDOM,
+} from '../helpers';
+import {
+  domain_any_mul,
+  domain_any_intersection,
 } from '../domain';
 
 // BODY_START
@@ -12,9 +16,13 @@ import {
  * @returns {$domain}
  */
 function propagator_mulStep(domain1, domain2, domResult) {
-  let domain = domain_mul(domain1, domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  return domain_intersection(domResult, domain);
+  let domain = domain_any_mul(domain1, domain2);
+
+  return domain_any_intersection(domResult, domain);
 }
 
 // BODY_STOP

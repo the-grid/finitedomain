@@ -1,19 +1,28 @@
 import {
-  domain_divby,
-  domain_intersection,
+  ASSERT,
+  ASSERT_NUMSTRDOM,
+} from '../helpers';
+
+import {
+  domain_any_divby,
+  domain_any_intersection,
 } from '../domain';
 
 // BODY_START
 
 /**
- * @param {$domain} dom1
- * @param {$domain} dom2
+ * @param {$domain} domain1
+ * @param {$domain} domain2
  * @param {$domain} domResult
  * @returns {$domain}
  */
-function propagator_divStep(dom1, dom2, domResult) {
-  let domain = domain_divby(dom1, dom2);
-  return domain_intersection(domResult, domain);
+function propagator_divStep(domain1, domain2, domResult) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+
+  let domain = domain_any_divby(domain1, domain2);
+  return domain_any_intersection(domResult, domain);
 }
 
 // BODY_STOP

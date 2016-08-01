@@ -1,11 +1,13 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  fixt_numdom_empty,
+  fixt_numdom_range,
+  fixt_numdom_ranges,
+  fixt_assertStrings,
+  fixt_strdom_empty,
+  fixt_strdom_range,
+  fixt_strdom_ranges,
+  fixt_strdom_value,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -14,9 +16,12 @@ import {
 import {
   NUM_TO_FLAG,
 
+  domainany__debug,
   domain_fromList,
+  domain_toStr,
+  domain_toNumstr,
 } from '../../src/domain';
-import domain_plus from '../../src/doms/domain_plus';
+import domain_any_plus from '../../src/doms/domain_plus';
 
 describe('src/plus.spec.js', function() {
 
@@ -25,101 +30,94 @@ describe('src/plus.spec.js', function() {
   describe('domain_plus unit tests', function() {
 
     it('should exist', function() {
-      expect(domain_plus).to.be.a('function');
+      expect(domain_any_plus).to.be.a('function');
     });
 
     it('should require domains', function() {
-      expect(() => domain_plus()).to.throw('A_EXPECTING_TWO_DOMAINS');
-      expect(() => domain_plus([])).to.throw('A_EXPECTING_TWO_DOMAINS');
-      expect(() => domain_plus(null, [])).to.throw('A_EXPECTING_TWO_DOMAINS');
+      expect(() => domain_any_plus()).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus(fixt_numdom_empty())).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus(null, fixt_strdom_empty())).to.throw('NUMDOM_OR_STRDOM');
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(specDomainCreateEmpty(), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
-    });
-
-    it('should accept empty domains', function() {
-      expect(domain_plus(specDomainCreateEmpty(), specDomainCreateEmpty())).to.eql(specDomainCreateEmpty(1));
-
-      let a = [];
-      expect(domain_plus(a, specDomainCreateEmpty())).to.not.equal(a);
-
-      a = [];
-      expect(domain_plus(specDomainCreateEmpty(), a)).to.not.equal(a);
+      expect(domain_any_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_any_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
     });
 
     describe('with array', function() {
 
       it('should add two ranges', function() {
-        let A = specDomainSmallRange(5, 10);
-        let B = specDomainCreateRange(50, 60);
-        let E = specDomainCreateRange(55, 70);
+        let A = fixt_numdom_range(5, 10);
+        let B = fixt_strdom_range(50, 60);
+        let E = fixt_strdom_range(55, 70);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([5, 10], [20, 35]);
-        let B = specDomainCreateRanges([50, 60], [110, 128]);
-        let E = specDomainCreateRanges([55, 95], [115, 163]);
+        let A = fixt_strdom_ranges([5, 10], [20, 35]);
+        let B = fixt_strdom_ranges([50, 60], [110, 128]);
+        let E = fixt_strdom_ranges([55, 95], [115, 163]);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add two domains', function() {
-        let A = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let B = specDomainCreateRanges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let E = specDomainCreateRanges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
+        let A = fixt_strdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let B = fixt_strdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let E = fixt_strdom_ranges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should not exceed SUP (SUP+1)', function() {
         // since [SUP, SUP] + [1, 1] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = specDomainCreateValue(SUP);
-        let B = specDomainCreateValue(1, true);
-        let E = specDomainCreateEmpty(true);
+        let A = fixt_strdom_value(SUP);
+        let B = fixt_strdom_value(1);
+        let E = fixt_numdom_empty();
 
-        expect(domain_plus(A, B)).to.eql(E);
+        expect(domain_any_plus(A, B)).to.eql(E);
       });
 
       it('should not exceed SUP (1+SUP)', function() {
         // since [1, 1] + [SUP, SUP] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = specDomainCreateValue(1, true);
-        let B = specDomainCreateValue(SUP);
-        let E = specDomainCreateEmpty(true);
+        let A = fixt_strdom_value(1);
+        let B = fixt_strdom_value(SUP);
+        let E = fixt_numdom_empty();
 
-        expect(domain_plus(A, B)).to.eql(E);
+        expect(domain_any_plus(A, B)).to.eql(E);
       });
     });
     describe('with numbers', function() {
 
       it('should add two ranges', function() {
-        let A = specDomainSmallRange(5, 10);
-        let B = specDomainCreateRange(50, 60);
-        let E = specDomainCreateRange(55, 70);
+        let A = fixt_numdom_range(5, 10);
+        let B = fixt_strdom_range(50, 60);
+        let E = fixt_strdom_range(55, 70);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
-      it('should add two domains', function() {
-        let A = specDomainCreateRanges([5, 10], [20, 35]);
-        let B = specDomainCreateRanges([50, 60], [110, 128]);
-        let E = specDomainCreateRanges([55, 95], [115, 163]);
+      it('should add two domains (1)', function() {
+        let A = fixt_strdom_ranges([5, 10], [20, 35]);
+        let B = fixt_strdom_ranges([50, 60], [110, 128]);
+        let E = fixt_strdom_ranges([55, 95], [115, 163]);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
-      it('should add two domains', function() {
-        let A = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
-        let B = specDomainSmallNums(0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17);
-        let E = specDomainCreateRanges([0, 2], [4, 34]);
+      it('should add two domains (2)', function() {
+        let A = fixt_numdom_ranges([0, 1], [4, 12], [15, 17]);
+        let B = fixt_numdom_ranges([0, 1], [4, 12], [15, 17]);
+        let E = fixt_strdom_ranges([0, 2], [4, 34]);
 
-        expect(domain_plus(A, B)).to.eql(E);
+        fixt_assertStrings(domain_any_plus(A, B), E);
       });
 
       it('should add small numbers to a small domain', function() {
@@ -128,7 +126,7 @@ describe('src/plus.spec.js', function() {
         for (let i = 0; i < 7; ++i) {
           for (let j = 0; j < 8; ++j) {
             if (i !== 8 || j !== 8) { // 16
-              expect(domain_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
+              expect(domain_any_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
             }
           }
         }
@@ -164,9 +162,10 @@ describe('src/plus.spec.js', function() {
             //console.log(inputs[i].toString(2).padLeft(32, '0'), '-', inputs[j].toString(2).padLeft(32, '0'), '=', domain_plus(inputs[i], inputs[j]).toString(2).padLeft(32, '0'), '          ', inputs[i], '-', inputs[j], '=', domain_plus(inputs[i], inputs[j]), '          ', domain_toList(inputs[i]), '-', domain_toList(inputs[j]), '=', domain_toList(domain_plus(inputs[i], inputs[j])));
             let A = inputs[i];
             let B = inputs[j];
-            let C = outcomes[n++];
-            let desc = A + ' - ' + B + ' = ' + C;
-            expect(domain_plus(A, B), desc).to.eql(C);
+            let C = domain_toNumstr(outcomes[n++]);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -199,10 +198,11 @@ describe('src/plus.spec.js', function() {
         for (let i = 0; i < smalls.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
-            let B = domain_fromList(large[j]);
-            let C = smallLargeOut[n++];
-            let desc = A + ' - ' + B + ' = ' + C;
-            expect(domain_plus(A, B), desc).to.eql(C);
+            let B = domain_toStr(domain_fromList(large[j]));
+            let C = domain_toNumstr(smallLargeOut[n++]);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -217,11 +217,12 @@ describe('src/plus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < smalls.length; ++j) {
-            let A = domain_fromList(large[i]);
+            let A = domain_toStr(domain_fromList(large[i]));
             let B = smalls[j];
-            let C = largeSmallOut[n++];
-            let desc = A + ' - ' + B + ' = ' + C;
-            expect(domain_plus(A, B), desc).to.eql(C);
+            let C = domain_toNumstr(largeSmallOut[n++]);
+            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });
@@ -236,11 +237,12 @@ describe('src/plus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
-            let A = domain_fromList(large[i]);
-            let B = domain_fromList(large[j]);
-            let C = largeLargeOut[n++];
+            let A = domain_toStr(domain_fromList(large[i]));
+            let B = domain_toStr(domain_fromList(large[j]));
+            let C = domain_toNumstr(largeLargeOut[n++]);
             let desc = A + ' - ' + B + ' = ' + C;
-            expect(domain_plus(A, B), desc).to.eql(C);
+            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
       });

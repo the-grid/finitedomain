@@ -1,6 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
+  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -21,11 +21,11 @@ describe('solver.minmaxcycle.spec', function() {
       let solver = new Solver({distribute: {val: 'minMaxCycle'}});
       solver.addVar({
         id: 'V1',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
       });
       solver.addVar({
         id: 'V2',
-        domain: specDomainCreateRange(1, 4, true),
+        domain: fixt_arrdom_range(1, 4, true),
       });
       solver['>']('V1', solver.constant(0));
       solver['>']('V2', solver.constant(0));

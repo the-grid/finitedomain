@@ -1,7 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
-  specDomainCreateValue,
+  fixt_arrdom_range,
+  fixt_arrdom_value,
 } from '../fixtures/domain.fixt';
 import {
   countSolutions,
@@ -22,11 +22,11 @@ describe('solver.mid.spec', function() {
         let solver = new Solver(options);
         solver.addVar({
           id: 'Hello',
-          domain: specDomainCreateRange(1, 99),
+          domain: fixt_arrdom_range(1, 99),
         });
         solver.addVar({
           id: 'World',
-          domain: specDomainCreateValue(0, true),
+          domain: fixt_arrdom_value(0, true),
         });
         solver['>']('Hello', 'World');
 

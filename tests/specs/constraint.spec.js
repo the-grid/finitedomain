@@ -1,7 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateRange,
-  specDomainCreateRanges,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -40,7 +40,7 @@ describe('src/constraint.spec', function() {
       it('should work with a simple solved and unsolved vars', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.eq('A', 'B');
         let solution = solver.solve({});
 
@@ -49,8 +49,8 @@ describe('src/constraint.spec', function() {
 
       it('should work with a simple unsolved vars that do not reject', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.eq('A', 'B');
         let solution = solver.solve({});
 
@@ -59,8 +59,8 @@ describe('src/constraint.spec', function() {
 
       it('should work with a simple unsolved vars that reduce but do not reject', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 102));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 102));
         solver.eq('A', 'B');
         let solution = solver.solve({});
 
@@ -69,8 +69,8 @@ describe('src/constraint.spec', function() {
 
       it('should work with a simple unsolved vars that reject', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(200, 201));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(200, 201));
         solver.eq('A', 'B');
         let solution = solver.solve({});
 
@@ -92,14 +92,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preEq('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 101}]);
-        preEq('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 101}]);
-        preEq('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 101, B: 101}]);
-        preEq('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 101, B: 101}]);
+        preEq('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 101, B: 101}]);
         preEq('should not create a constraint if A and B solved as number and reject', 100, 99, []);
         preEq('should not create a constraint if A and B solved as number and pass', 101, 101, [{A: 101, B: 101}]);
-        preEq('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
-        preEq('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(101, 101), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
+        preEq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), [{A: 101, B: 101}]);
       });
     });
 
@@ -118,7 +118,7 @@ describe('src/constraint.spec', function() {
       it('should work with a simple solved and unsolved vars', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.neq('A', 'B');
         let solution = solver.solve({});
 
@@ -127,8 +127,8 @@ describe('src/constraint.spec', function() {
 
       it('should work with a simple unsolved vars', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.neq('A', 'B');
         let solution = solver.solve({});
 
@@ -150,14 +150,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preNeq('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
-        preNeq('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
-        preNeq('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}, {A: 102, B: 101}]);
-        preNeq('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}, {A: 102, B: 101}]);
+        preNeq('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
+        preNeq('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
+        preNeq('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 100, B: 101}, {A: 102, B: 101}]);
+        preNeq('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 100, B: 101}, {A: 102, B: 101}]);
         preNeq('should not create a constraint if A and B solved as number and reject', 101, 101, []);
         preNeq('should not create a constraint if A and B solved as number and pass', 100, 99, [{A: 100, B: 99}]);
-        preNeq('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(101, 101), specDomainCreateRange(101, 101), []);
-        preNeq('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), [{A: 100, B: 99}]);
+        preNeq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), []);
+        preNeq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), [{A: 100, B: 99}]);
       });
     });
 
@@ -176,7 +176,7 @@ describe('src/constraint.spec', function() {
       it('should work when A <= B', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.lt('A', 'B');
         let solution = solver.solve({});
 
@@ -185,8 +185,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A >= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.lt('A', 'B');
         let solution = solver.solve({});
 
@@ -195,8 +195,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A <= B <= A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(101, 101));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(101, 101));
         solver.lt('A', 'B');
         let solution = solver.solve({});
 
@@ -205,8 +205,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when B <= A <= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 102));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 102));
         solver.lt('A', 'B');
         let solution = solver.solve({});
 
@@ -215,8 +215,8 @@ describe('src/constraint.spec', function() {
 
       it('should work A > B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.lt('A', 'B');
         let solution = solver.solve({});
 
@@ -238,14 +238,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preLt('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 102}]);
-        preLt('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 102}]);
-        preLt('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}]);
-        preLt('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}]);
+        preLt('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 102}]);
+        preLt('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 102}]);
+        preLt('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 100, B: 101}]);
+        preLt('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 100, B: 101}]);
         preLt('should not create a constraint if A and B solved as number and reject', 100, 99, []);
         preLt('should not create a constraint if A and B solved as number and pass', 100, 101, [{A: 100, B: 101}]);
-        preLt('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
-        preLt('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(101, 101), [{A: 100, B: 101}]);
+        preLt('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
+        preLt('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(101, 101), [{A: 100, B: 101}]);
       });
     });
 
@@ -264,7 +264,7 @@ describe('src/constraint.spec', function() {
       it('should work when A <= B', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.lte('A', 'B');
         let solution = solver.solve({});
 
@@ -273,8 +273,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A >= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.lte('A', 'B');
         let solution = solver.solve({});
 
@@ -283,8 +283,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A <= B <= A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(101, 101));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(101, 101));
         solver.lte('A', 'B');
         let solution = solver.solve({});
 
@@ -293,8 +293,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when B <= A <= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 102));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 102));
         solver.lte('A', 'B');
         let solution = solver.solve({});
 
@@ -303,8 +303,8 @@ describe('src/constraint.spec', function() {
 
       it('should work A > B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.lte('A', 'B');
         let solution = solver.solve({});
 
@@ -326,14 +326,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preLte('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
-        preLte('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
-        preLte('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 100, B: 101}, {A: 101, B: 101}]);
-        preLte('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 100, B: 101}, {A: 101, B: 101}]);
+        preLte('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
+        preLte('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 101}, {A: 101, B: 102}]);
+        preLte('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 100, B: 101}, {A: 101, B: 101}]);
+        preLte('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 100, B: 101}, {A: 101, B: 101}]);
         preLte('should not create a constraint if A and B solved as number and reject', 100, 99, []);
         preLte('should not create a constraint if A and B solved as number and pass', 100, 100, [{A: 100, B: 100}]);
-        preLte('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(100, 100), specDomainCreateRange(99, 99), []);
-        preLte('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(100, 100), specDomainCreateRange(100, 100), [{A: 100, B: 100}]);
+        preLte('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
+        preLte('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(100, 100), [{A: 100, B: 100}]);
       });
     });
 
@@ -352,7 +352,7 @@ describe('src/constraint.spec', function() {
       it('should work when A <= B', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.gt('A', 'B');
         let solution = solver.solve({});
 
@@ -361,8 +361,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A >= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.gt('A', 'B');
         let solution = solver.solve({});
 
@@ -371,8 +371,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A <= B <= A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(101, 101));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(101, 101));
         solver.gt('A', 'B');
         let solution = solver.solve({});
 
@@ -381,8 +381,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when B <= A <= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 102));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 102));
         solver.gt('A', 'B');
         let solution = solver.solve({});
 
@@ -391,8 +391,8 @@ describe('src/constraint.spec', function() {
 
       it('should work A > B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.gt('A', 'B');
         let solution = solver.solve({});
 
@@ -414,14 +414,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preGt('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}]);
-        preGt('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}]);
-        preGt('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 102, B: 101}]);
-        preGt('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 102, B: 101}]);
+        preGt('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 100}]);
+        preGt('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 100}]);
+        preGt('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 102, B: 101}]);
+        preGt('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 102, B: 101}]);
         preGt('should not create a constraint if A and B solved as number and reject', 99, 100, []);
         preGt('should not create a constraint if A and B solved as number and pass', 101, 100, [{A: 101, B: 100}]);
-        preGt('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(99, 99), specDomainCreateRange(100, 100), []);
-        preGt('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(100, 100), [{A: 101, B: 100}]);
+        preGt('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(99, 99), fixt_arrdom_range(100, 100), []);
+        preGt('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 100), [{A: 101, B: 100}]);
       });
     });
 
@@ -440,7 +440,7 @@ describe('src/constraint.spec', function() {
       it('should work when A <= B', function() {
         let solver = new Solver();
         solver.decl('A', 100);
-        solver.decl('B', specDomainCreateRange(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 101));
         solver.gte('A', 'B');
         let solution = solver.solve({});
 
@@ -449,8 +449,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A >= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(100, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.gte('A', 'B');
         let solution = solver.solve({});
 
@@ -459,8 +459,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when A <= B <= A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(101, 101));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(101, 101));
         solver.gte('A', 'B');
         let solution = solver.solve({});
 
@@ -469,8 +469,8 @@ describe('src/constraint.spec', function() {
 
       it('should work when B <= A <= B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 102));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 102));
         solver.gte('A', 'B');
         let solution = solver.solve({});
 
@@ -479,8 +479,8 @@ describe('src/constraint.spec', function() {
 
       it('should work A > B', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(101, 101));
-        solver.decl('B', specDomainCreateRange(100, 100));
+        solver.decl('A', fixt_arrdom_range(101, 101));
+        solver.decl('B', fixt_arrdom_range(100, 100));
         solver.gte('A', 'B');
         let solution = solver.solve({});
 
@@ -502,14 +502,14 @@ describe('src/constraint.spec', function() {
           });
         }
 
-        preGte('should not create a constraint if A is solved as number', 101, specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
-        preGte('should not create a constraint if A is solved as array', specDomainCreateRange(101, 101), specDomainCreateRange(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
-        preGte('should not create a constraint if B is solved as number', specDomainCreateRange(100, 102), 101, [{A: 101, B: 101}, {A: 102, B: 101}]);
-        preGte('should not create a constraint if B is solved as array', specDomainCreateRange(100, 102), specDomainCreateRange(101, 101), [{A: 101, B: 101}, {A: 102, B: 101}]);
+        preGte('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
+        preGte('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 101}]);
+        preGte('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 101, B: 101}, {A: 102, B: 101}]);
+        preGte('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 101, B: 101}, {A: 102, B: 101}]);
         preGte('should not create a constraint if A and B solved as number and reject', 99, 100, []);
         preGte('should not create a constraint if A and B solved as number and pass', 101, 100, [{A: 101, B: 100}]);
-        preGte('should not create a constraint if A and B solved as array and reject', specDomainCreateRange(99, 99), specDomainCreateRange(100, 100), []);
-        preGte('should not create a constraint if A and B solved as array and pass', specDomainCreateRange(101, 101), specDomainCreateRange(100, 100), [{A: 101, B: 100}]);
+        preGte('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(99, 99), fixt_arrdom_range(100, 100), []);
+        preGte('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 100), [{A: 101, B: 100}]);
       });
     });
 
@@ -542,7 +542,7 @@ describe('src/constraint.spec', function() {
 
       it('should be able to fail everything', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 105));
+        solver.decl('A', fixt_arrdom_range(100, 105));
         solver.callback(['A'], function() { return false; });
         let solution = solver.solve({});
 
@@ -551,12 +551,10 @@ describe('src/constraint.spec', function() {
 
       it('should be able to fail uneven choices', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 105));
+        solver.decl('A', fixt_arrdom_range(100, 105));
         solver.callback(['A'], function(space, vars) {
-          if (space.vardoms[vars[0]][0] === space.vardoms[vars[0]][1] && (space.vardoms[vars[0]][0] % 2) === 0) {
-            return false;
-          }
-          return true;
+          let domain = solver.getDomain(space, vars[0]);
+          return !(domain[0] === domain[1] && (domain[0] % 2) === 0);
         });
         let solution = solver.solve({max: 10});
 
@@ -565,12 +563,10 @@ describe('src/constraint.spec', function() {
 
       it('should be able to fail even choices', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 105));
+        solver.decl('A', fixt_arrdom_range(100, 105));
         solver.callback(['A'], function(space, vars) {
-          if (space.vardoms[vars[0]][0] === space.vardoms[vars[0]][1] && (space.vardoms[vars[0]][0] % 2) === 1) {
-            return false;
-          }
-          return true;
+          let domain = solver.getDomain(space, vars[0]);
+          return !(domain[0] === domain[1] && (domain[0] % 2) === 1);
         });
         let solution = solver.solve({max: 10});
 
@@ -584,7 +580,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', 100);
         solver.decl('B', 101);
-        solver.decl('C', specDomainCreateRange(150, 250));
+        solver.decl('C', fixt_arrdom_range(150, 250));
         solver.plus('A', 'B', 'C');
         let solution = solver.solve({});
 
@@ -610,7 +606,7 @@ describe('src/constraint.spec', function() {
       testABC(0, 0, 0, [{A: 0, B: 0, C: 0}]);
       testABC(1, 1, 2, [{A: 1, B: 1, C: 2}]);
 
-      testABC(specDomainCreateRange(100, 110), specDomainCreateRange(50, 60), specDomainCreateRange(150, 151), [
+      testABC(fixt_arrdom_range(100, 110), fixt_arrdom_range(50, 60), fixt_arrdom_range(150, 151), [
         {A: 100, B: 50, C: 150},
         {A: 100, B: 51, C: 151},
         {A: 101, B: 50, C: 151},
@@ -618,8 +614,8 @@ describe('src/constraint.spec', function() {
 
       it('should work without C', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(50, 52));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(50, 52));
         solver.plus('A', 'B');
         let solution = solver.solve({});
 
@@ -639,8 +635,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(SUB, 50));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(SUB, 50));
         solver.decl('C', 200);
         solver.plus('A', 'B', 'C');
         let solution = solver.solve({});
@@ -666,7 +662,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', 100);
         solver.decl('B', 101);
-        solver.decl('C', EMPTY);
+        solver.decl('C', EMPTY); // TODO: fix this test. if EMPTY is `undefined` this test still passes.
         solver.min('A', 'B', 'C');
         let solution = solver.solve({});
 
@@ -691,8 +687,8 @@ describe('src/constraint.spec', function() {
       testABC(0, 0, 0, [{A: 0, B: 0, C: 0}]);
       testABC(1, 1, 0, [{A: 1, B: 1, C: 0}]);
 
-      testABC(specDomainCreateRange(100, 110), specDomainCreateRange(50, 60), specDomainCreateRange(150, 151), []);
-      testABC(specDomainCreateRange(100, 110), specDomainCreateRange(50, 60), specDomainCreateRange(59, 100), [
+      testABC(fixt_arrdom_range(100, 110), fixt_arrdom_range(50, 60), fixt_arrdom_range(150, 151), []);
+      testABC(fixt_arrdom_range(100, 110), fixt_arrdom_range(50, 60), fixt_arrdom_range(59, 100), [
         // Note: order irrelevant to test
         {A: 109, B: 50, C: 59},
         {A: 110, B: 50, C: 60},
@@ -701,8 +697,8 @@ describe('src/constraint.spec', function() {
 
       it('should work without C', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 102));
-        solver.decl('B', specDomainCreateRange(50, 52));
+        solver.decl('A', fixt_arrdom_range(100, 102));
+        solver.decl('B', fixt_arrdom_range(50, 52));
         solver.min('A', 'B');
         let solution = solver.solve({});
 
@@ -722,8 +718,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(50, SUP));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(50, SUP));
         solver.decl('C', 100);
         solver.min('A', 'B', 'C');
         let solution = solver.solve({});
@@ -759,12 +755,12 @@ describe('src/constraint.spec', function() {
       }
 
       testABC(1, 1, 1, [{A: 1, B: 1, C: 1}]);
-      testABC(specDomainCreateRange(100, 110), specDomainCreateRange(50, 60), specDomainCreateRange(150, 151), []);
+      testABC(fixt_arrdom_range(100, 110), fixt_arrdom_range(50, 60), fixt_arrdom_range(150, 151), []);
 
       it('should work without C', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(50, 52));
-        solver.decl('B', specDomainCreateRange(70, 72));
+        solver.decl('A', fixt_arrdom_range(50, 52));
+        solver.decl('B', fixt_arrdom_range(70, 72));
         solver.times('A', 'B');
         let solution = solver.solve({});
 
@@ -784,8 +780,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(10, SUP));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(10, SUP));
         solver.decl('C', 1000);
         solver.times('A', 'B', 'C');
         let solution = solver.solve({});
@@ -898,12 +894,12 @@ describe('src/constraint.spec', function() {
       }
 
       testABC(1, 1, 1, [{A: 1, B: 1, C: 1}]);
-      testABC(specDomainCreateRange(100, 110), specDomainCreateRange(50, 60), specDomainCreateRange(150, 151), []);
+      testABC(fixt_arrdom_range(100, 110), fixt_arrdom_range(50, 60), fixt_arrdom_range(150, 151), []);
 
       it('should work without C', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(70, 72));
-        solver.decl('B', specDomainCreateRange(50, 52));
+        solver.decl('A', fixt_arrdom_range(70, 72));
+        solver.decl('B', fixt_arrdom_range(50, 52));
         solver.mul('A', 'B');
         let solution = solver.solve({});
 
@@ -923,8 +919,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(10, SUP));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(10, SUP));
         solver.decl('C', 1000);
         solver.mul('A', 'B', 'C');
         let solution = solver.solve({});
@@ -990,7 +986,7 @@ describe('src/constraint.spec', function() {
 
       testABC(1, 1, 1, 3, [{A: 1, B: 1, C: 1, S: 3}]);
       testABC(5, 1, 0, 6, [{A: 5, B: 1, C: 0, S: 6}]);
-      testABC(specDomainCreateRange(100, 101), specDomainCreateRange(50, 51), specDomainCreateRange(150, 151), specDomainCreateRange(300, 321), [
+      testABC(fixt_arrdom_range(100, 101), fixt_arrdom_range(50, 51), fixt_arrdom_range(150, 151), fixt_arrdom_range(300, 321), [
         // note: order not relevant to this test
         {A: 100, B: 50, C: 150, S: 300},
         {A: 100, B: 50, C: 151, S: 301},
@@ -1004,8 +1000,8 @@ describe('src/constraint.spec', function() {
 
       it('should work without param', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(70, 72));
-        solver.decl('B', specDomainCreateRange(50, 52));
+        solver.decl('A', fixt_arrdom_range(70, 72));
+        solver.decl('B', fixt_arrdom_range(50, 52));
         solver.sum(['A', 'B']);
         let solution = solver.solve({});
 
@@ -1025,8 +1021,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(99, SUP));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(99, SUP));
         solver.decl('C', 200);
         solver.sum(['A', 'B'], 'C');
         let solution = solver.solve({});
@@ -1040,7 +1036,7 @@ describe('src/constraint.spec', function() {
       it('should sum a single zero', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(0, 0, true));
+        solver.decl('A', fixt_arrdom_range(0, 0, true));
         solver.sum(['A']);
         let solution = solver.solve({});
 
@@ -1050,8 +1046,8 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(0, 0, true));
-        solver.decl('B', specDomainCreateRange(0, 0, true));
+        solver.decl('A', fixt_arrdom_range(0, 0, true));
+        solver.decl('B', fixt_arrdom_range(0, 0, true));
         solver.sum(['A', 'B']);
         let solution = solver.solve({});
 
@@ -1061,9 +1057,9 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(0, 0, true));
-        solver.decl('B', specDomainCreateRange(0, 0, true));
-        solver.decl('C', specDomainCreateRange(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0, true));
+        solver.decl('B', fixt_arrdom_range(0, 0, true));
+        solver.decl('C', fixt_arrdom_range(0, 10, true));
         solver.sum(['A', 'B'], 'C');
         let solution = solver.solve({});
 
@@ -1073,10 +1069,10 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes and a one into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(0, 0, true));
-        solver.decl('B', specDomainCreateRange(0, 0, true));
-        solver.decl('C', specDomainCreateRange(1, 1, true));
-        solver.decl('S', specDomainCreateRange(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0, true));
+        solver.decl('B', fixt_arrdom_range(0, 0, true));
+        solver.decl('C', fixt_arrdom_range(1, 1, true));
+        solver.decl('S', fixt_arrdom_range(0, 10, true));
         solver.sum(['A', 'B', 'C'], 'S');
         let solution = solver.solve({});
 
@@ -1086,10 +1082,10 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes and a bool into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(0, 0, true));
-        solver.decl('B', specDomainCreateRange(0, 0, true));
-        solver.decl('C', specDomainCreateRange(0, 1, true));
-        solver.decl('S', specDomainCreateRange(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0, true));
+        solver.decl('B', fixt_arrdom_range(0, 0, true));
+        solver.decl('C', fixt_arrdom_range(0, 1, true));
+        solver.decl('S', fixt_arrdom_range(0, 10, true));
         solver.sum(['A', 'B', 'C'], 'S');
         let solution = solver.solve({});
 
@@ -1138,7 +1134,7 @@ describe('src/constraint.spec', function() {
       }
 
       testABC(1, 1, 1, 1, [{A: 1, B: 1, C: 1, S: 1}]);
-      testABC(specDomainCreateRange(100, 101), specDomainCreateRange(50, 51), specDomainCreateRange(150, 151), specDomainCreateRange(750000, 777801), [
+      testABC(fixt_arrdom_range(100, 101), fixt_arrdom_range(50, 51), fixt_arrdom_range(150, 151), fixt_arrdom_range(750000, 777801), [
         // note: order not relevant to this test
         {A: 100, B: 50, C: 150, S: 100 * 50 * 150},
         {A: 100, B: 50, C: 151, S: 100 * 50 * 151},
@@ -1152,8 +1148,8 @@ describe('src/constraint.spec', function() {
 
       it('should work without param', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(70, 72));
-        solver.decl('B', specDomainCreateRange(50, 52));
+        solver.decl('A', fixt_arrdom_range(70, 72));
+        solver.decl('B', fixt_arrdom_range(50, 52));
         solver.product(['A', 'B']);
         let solution = solver.solve({});
 
@@ -1173,8 +1169,8 @@ describe('src/constraint.spec', function() {
 
       it('should find a solution for A', function() {
         let solver = new Solver();
-        solver.decl('A', specDomainCreateRange(100, 150));
-        solver.decl('B', specDomainCreateRange(99, SUP));
+        solver.decl('A', fixt_arrdom_range(100, 150));
+        solver.decl('B', fixt_arrdom_range(99, SUP));
         solver.decl('C', 10000);
         solver.product(['A', 'B'], 'C');
         let solution = solver.solve({});
@@ -1207,11 +1203,11 @@ describe('src/constraint.spec', function() {
       test(0, 0, 0, []);
       test(0, 1, 2, [{A: 0, B: 1, C: 2}]);
       test(1, 2, 3, [{A: 1, B: 2, C: 3}]);
-      test(specDomainCreateRange(4, 7, true), 5, 6, [
+      test(fixt_arrdom_range(4, 7, true), 5, 6, [
         {A: 4, B: 5, C: 6},
         {A: 7, B: 5, C: 6},
       ]);
-      test(specDomainCreateRanges([4, 5], [100, 101]), specDomainCreateRange(4, 5, true), specDomainCreateRange(100, 101), [
+      test(fixt_arrdom_ranges([4, 5], [100, 101]), fixt_arrdom_range(4, 5, true), fixt_arrdom_range(100, 101), [
         {A: 4, B: 5, C: 100},
         {A: 4, B: 5, C: 101},
         {A: 5, B: 4, C: 100},
@@ -1232,7 +1228,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [0],
@@ -1250,7 +1246,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.addVar({
           id: 'A',
-          domain: specDomainCreateRange(0, 0, true),
+          domain: fixt_arrdom_range(0, 0, true),
           distributeOptions: {
             distributor_name: 'markov',
             legend: [1],
@@ -1270,7 +1266,7 @@ describe('src/constraint.spec', function() {
           let solver = new Solver();
           solver.addVar({
             id: 'A',
-            domain: specDomainCreateRange(0, 0, true),
+            domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
               distributor_name: 'markov',
               legend: [0],
@@ -1288,7 +1284,7 @@ describe('src/constraint.spec', function() {
           let solver = new Solver();
           solver.addVar({
             id: 'A',
-            domain: specDomainCreateRange(0, 0, true),
+            domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
               distributor_name: 'markov',
               legend: [0],
@@ -1309,7 +1305,7 @@ describe('src/constraint.spec', function() {
           let solver = new Solver();
           solver.addVar({
             id: 'A',
-            domain: specDomainCreateRange(0, 0, true),
+            domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
               distributor_name: 'markov',
               legend: [0],
@@ -1331,7 +1327,7 @@ describe('src/constraint.spec', function() {
           let solver = new Solver();
           solver.addVar({
             id: 'A',
-            domain: specDomainCreateRange(0, 0, true),
+            domain: fixt_arrdom_range(0, 0, true),
             distributeOptions: {
               distributor_name: 'markov',
               legend: [0],

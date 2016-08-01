@@ -1,9 +1,11 @@
+import expect from '../fixtures/mocha_proxy.fixt';
+
 const SUB = 0;
 const SUP = 100000000;
 const SMALL_MAX_FLAG = (1 << 30) - 1; // there are n flags. if they are all on, this is the number value
 const SMALL_MAX_NUM = 30;
 
-function specDomainCreateRange(lo, hi, _b) {
+function fixt_arrdom_range(lo, hi, _b) {
   if (_b !== true && lo >= 0 && hi <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
 
   if (typeof lo !== 'number') {
@@ -15,7 +17,7 @@ function specDomainCreateRange(lo, hi, _b) {
 
   return [lo, hi];
 }
-function specDomainCreateRanges(...ranges) {
+function fixt_arrdom_ranges(...ranges) {
   let arr = [];
   ranges.forEach(function(range) {
     if (!(range instanceof Array)) {
@@ -38,16 +40,16 @@ function specDomainCreateRanges(...ranges) {
   // hack. makes sure the DOMAIN_CHECK test doesnt trigger a fail for adding that property...
   return arr;
 }
-function specDomainCreateValue(value, _b) {
+function fixt_arrdom_value(value, _b) {
   if (_b !== true && _b !== undefined) throw new Error('ILLEGAL_SECOND_ARG');
   if (_b !== true && value >= 0 && value <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
 
   if (typeof value !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }
-  return specDomainCreateRange(value, value, _b);
+  return fixt_arrdom_range(value, value, _b);
 }
-function specDomainCreateList(list) {
+function fixt_arrdom_list(list) {
   let arr = [];
   list.forEach(value => {
     if (value >= 0 && value <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
@@ -55,15 +57,15 @@ function specDomainCreateList(list) {
   });
   return arr;
 }
-function specDomainCreateEmpty(no) {
+function fixt_arrdom_empty(no) {
   let A = [];
   if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
   return A;
 }
 
-function specDomainFromNums(...list) {
+function fixt_arrdom_nums(...list) {
   if (!list.length) return [];
-  list.sort((a, b) => a - b);
+  list.sort((a, b) => a - b); // note: default sort is lexicographic!
 
   let domain = [];
   let hi;
@@ -130,7 +132,7 @@ const NUM_TO_FLAG = [
   TWENTYNINE, THIRTY
 ];
 
-function specDomainSmallNums(...values) {
+function fixt_numdom_nums(...values) {
   let d = 0;
   for (let i = 0; i < values.length; ++i) {
     if (typeof values[i] !== 'number') throw new Error('EXPECTING_NUMBERS_ONLY ['+values[i]+']');
@@ -139,19 +141,65 @@ function specDomainSmallNums(...values) {
   }
   return d;
 }
-function specDomainSmallRange(lo, hi) {
+function fixt_numdom_range(lo, hi) {
   if (typeof lo !== 'number') throw new Error('LO_MUST_BE_NUMBER');
   if (typeof hi !== 'number') throw new Error('HI_MUST_BE_NUMBER');
-  if (lo < 0 || hi > SMALL_MAX_NUM) throw new Error('OOB_FOR_SMALL_DOMAIN');
+  if (lo < 0 || hi > SMALL_MAX_NUM) throw new Error('OOB_FOR_SMALL_DOMAIN ['+lo+','+hi+']');
   let d = 0;
   for (; lo <= hi; ++lo) {
     d |= NUM_TO_FLAG[lo];
   }
   return d;
 }
-function specDomainSmallEmpty() {
+function fixt_numdom_ranges(...ranges) {
+  return ranges.reduce((domain, range) => domain | fixt_numdom_range(...range), 0);
+}
+function fixt_numdom_empty() {
   return 0; // magic value yo. no flags means zero
 }
+
+function fixt_strdom_empty() {
+  return '';
+}
+function fixt_strdom_value(value) {
+  return String.fromCharCode((value >>> 16) & 0xffff, value & 0xffff, (value >>> 16) & 0xffff, value & 0xffff);
+}
+function fixt_strdom_range(lo, hi) {
+  return String.fromCharCode((lo >>> 16) & 0xffff, lo & 0xffff, (hi >>> 16) & 0xffff, hi & 0xffff);
+}
+function fixt_strdom_ranges(...ranges) {
+  return ranges.map(([lo,hi]) => fixt_strdom_range(lo, hi)).join('');
+}
+function fixt_strdom_nums(...nums) {
+  if (!nums.length) return '';
+
+  nums.sort((a, b) => a - b); // note: default sort is lexicographic!
+
+  let s  = '';
+  let lo;
+  let hi;
+  for (let i = 0; i < nums.length; ++i) {
+    if (i === 0) {
+      lo = hi = nums[i];
+    } else if (nums[i] === hi + 1) {
+      hi = nums[i];
+    } else if (nums[i] > hi + 1) {
+      s += fixt_strdom_range(lo, hi);
+      lo = hi = nums[i];
+    } else {
+      throw new Error('NUMS_SHOULD_BE_UNIQUE [' + nums + ']');
+    }
+  }
+
+  s += fixt_strdom_range(lo, hi);
+
+  return s;
+}
+function fixt_bytes(str, desc) {
+  expect(typeof str, desc).to.eql('string');
+  return [].map.call(str, s => s.charCodeAt(0)).join(', ');
+}
+
 
 function stripAnonVars(solution) {
   for (let name in solution) {
@@ -161,6 +209,7 @@ function stripAnonVars(solution) {
   }
   return solution;
 }
+
 function stripAnonVarsFromArrays(solutions) {
   for (let i = 0; i < solutions.length; i++) {
     let solution = solutions[i];
@@ -173,16 +222,28 @@ function ASSERT(b, d) {
   if (!b) throw new Error(d);
 }
 
+function fixt_assertStrings(a, b, desc) {
+  expect(fixt_bytes(a, desc), desc).to.eql(fixt_bytes(b, desc));
+}
+
 export {
-  specDomainCreateEmpty,
-  specDomainCreateList,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainFromNums,
-  specDomainSmallEmpty,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  fixt_arrdom_empty,
+  fixt_arrdom_list,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_value,
+  fixt_arrdom_nums,
+  fixt_assertStrings,
+  fixt_numdom_empty,
+  fixt_numdom_nums,
+  fixt_numdom_range,
+  fixt_numdom_ranges,
+  fixt_bytes,
+  fixt_strdom_empty,
+  fixt_strdom_value,
+  fixt_strdom_range,
+  fixt_strdom_ranges,
+  fixt_strdom_nums,
   stripAnonVars,
   stripAnonVarsFromArrays,
 };

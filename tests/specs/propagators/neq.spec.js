@@ -1,13 +1,12 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainCreateValue,
-  specDomainFromNums,
-  specDomainSmallEmpty,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  fixt_arrdom_nums,
+  fixt_numdom_empty,
+  fixt_numdom_nums,
+  fixt_numdom_range,
+  fixt_strdom_range,
+  fixt_strdom_ranges,
+  fixt_strdom_value,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -20,7 +19,7 @@ import {
 import {
   FORCE_ARRAY,
 
-  domain_clone,
+  domain_any_clone,
 } from '../../../src/domain';
 import {
   config_addVarDomain,
@@ -42,8 +41,8 @@ describe('propagators/neq.spec', function() {
 
   it('should expect args', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainFromNums(11, 15));
-    config_addVarDomain(config, 'B', specDomainFromNums(5, 8));
+    config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15));
+    config_addVarDomain(config, 'B', fixt_arrdom_nums(5, 8));
     let space = space_createRoot(config);
     space_initFromConfig(space);
 
@@ -60,12 +59,14 @@ describe('propagators/neq.spec', function() {
 
   it('should throw for empty domains', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', specDomainFromNums(9, 10));
-    config_addVarDomain(config, 'B', specDomainFromNums(11, 15));
-    config_addVarDomain(config, 'C', specDomainCreateEmpty());
-    config_addVarDomain(config, 'D', specDomainCreateEmpty());
+    config_addVarDomain(config, 'A', fixt_arrdom_nums(9, 10));
+    config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
+    config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+    config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot(config);
     space_initFromConfig(space);
+    space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
+    space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
     let A = space.config.all_var_names.indexOf('A');
     let B = space.config.all_var_names.indexOf('B');
@@ -83,8 +84,8 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -99,8 +100,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -115,24 +116,24 @@ describe('propagators/neq.spec', function() {
 
     describe('with array', function() {
       // these are the (non-solved) cases plucked from eq tests
-      test(specDomainCreateRange(SUB, SUP), specDomainCreateRanges([0, 10], [20, 140]));
-      test(specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP));
-      test(specDomainCreateRange(20, 50), specDomainCreateRange(20, 50));
-      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([0, 10], [20, 30], [40, 50]));
-      test(specDomainCreateRanges([0, 10], [25, 25], [40, 50]), specDomainCreateRanges([0, 10], [25, 25], [40, 50]));
-      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 2, SUP));
-      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([5, 15], [25, 35]));
-      test(specDomainCreateRanges([0, 10], [20, 30], [40, 50]), specDomainCreateRanges([SUB, SUP]));
-      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 3, SUP - 1));
-      test(specDomainCreateRange(SUP - 2, SUP), specDomainCreateRange(SUP - 4, SUP - 1));
+      test(fixt_strdom_range(SUB, SUP), fixt_strdom_ranges([0, 10], [20, 140]));
+      test(fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP));
+      test(fixt_strdom_range(20, 50), fixt_strdom_range(20, 50));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
+      test(fixt_strdom_ranges([0, 10], [25, 25], [40, 50]), fixt_strdom_ranges([0, 10], [25, 25], [40, 50]));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 2, SUP));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([5, 15], [25, 35]));
+      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([SUB, SUP]));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 3, SUP - 1));
+      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 4, SUP - 1));
     });
 
     describe('with numbers', function() {
-      test(specDomainSmallRange(0, 1), specDomainSmallRange(0, 1));
-      test(specDomainSmallRange(2, 5), specDomainSmallRange(2, 5));
-      test(specDomainSmallRange(0, 1), specDomainSmallRange(0, 2));
-      test(specDomainSmallRange(0, 2), specDomainSmallRange(0, 3));
-      test(specDomainSmallRange(0, 2), specDomainSmallRange(0, 4));
+      test(fixt_numdom_range(0, 1), fixt_numdom_range(0, 1));
+      test(fixt_numdom_range(2, 5), fixt_numdom_range(2, 5));
+      test(fixt_numdom_range(0, 1), fixt_numdom_range(0, 2));
+      test(fixt_numdom_range(0, 2), fixt_numdom_range(0, 3));
+      test(fixt_numdom_range(0, 2), fixt_numdom_range(0, 4));
     });
   });
 
@@ -141,8 +142,8 @@ describe('propagators/neq.spec', function() {
     function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter, changes) {
       it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(solvedDomain, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -156,8 +157,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(unsolvedDomainBefore, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(solvedDomain, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(solvedDomain, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -171,25 +172,25 @@ describe('propagators/neq.spec', function() {
     }
 
     describe('with array', function() {
-      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP - 1, SUP - 1), SOME_CHANGES);
-      test(specDomainCreateRange(SUP - 1, SUP - 1), specDomainCreateRange(SUP - 1, SUP), specDomainCreateRange(SUP, SUP), SOME_CHANGES);
-      test(specDomainCreateRange(SUP, SUP), specDomainCreateRange(SUP - 50, SUP), specDomainCreateRange(SUP - 50, SUP - 1), SOME_CHANGES);
-      test(specDomainCreateRange(120, 120), specDomainCreateRanges([120, SUP - 1]), specDomainCreateRange(121, SUP - 1), SOME_CHANGES);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([910, 910], [912, 950]), specDomainCreateRanges([912, 950]), SOME_CHANGES);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 98], [910, 910], [912, 920]), specDomainCreateRanges([90, 98], [912, 920]), SOME_CHANGES);
-      test(specDomainCreateRange(910, 910), specDomainCreateRanges([90, 910], [912, 950]), specDomainCreateRanges([90, 909], [912, 950]), SOME_CHANGES);
-      test(specDomainCreateRange(91, 91), specDomainCreateRange(90, 93), specDomainCreateRanges([90, 90], [92, 93]), SOME_CHANGES);
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP), SOME_CHANGES);
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 98], [910, 910], [912, 920]), fixt_strdom_ranges([90, 98], [912, 920]), SOME_CHANGES);
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 910], [912, 950]), fixt_strdom_ranges([90, 909], [912, 950]), SOME_CHANGES);
+      test(fixt_strdom_range(91, 91), fixt_strdom_range(90, 93), fixt_strdom_ranges([90, 90], [92, 93]), SOME_CHANGES);
     });
 
     describe('with numbers', function() {
-      test(specDomainSmallNums(0), specDomainSmallRange(0, 1), specDomainSmallRange(1, 1), SOME_CHANGES);
-      test(specDomainSmallNums(1), specDomainSmallRange(0, 1), specDomainSmallRange(0, 0), SOME_CHANGES);
-      test(specDomainSmallNums(0), specDomainSmallRange(0, 15), specDomainSmallRange(1, 15), SOME_CHANGES);
-      test(specDomainSmallNums(2), specDomainSmallRange(2, 5), specDomainSmallRange(3, 5), SOME_CHANGES);
-      test(specDomainSmallNums(10), specDomainSmallNums(10, 13, 14, 15), specDomainSmallRange(13, 15), SOME_CHANGES);
-      test(specDomainSmallNums(10), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOME_CHANGES);
-      test(specDomainSmallNums(4), specDomainSmallNums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), specDomainSmallNums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOME_CHANGES);
-      test(specDomainSmallNums(1), specDomainSmallRange(0, 3), specDomainSmallNums(0, 2, 3), SOME_CHANGES);
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_range(1, 1), SOME_CHANGES);
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_range(0, 0), SOME_CHANGES);
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15), SOME_CHANGES);
+      test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5), SOME_CHANGES);
+      test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15), SOME_CHANGES);
+      test(fixt_numdom_nums(10), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOME_CHANGES);
+      test(fixt_numdom_nums(4), fixt_numdom_nums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOME_CHANGES);
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 3), fixt_numdom_nums(0, 2, 3), SOME_CHANGES);
     });
   });
 
@@ -198,8 +199,8 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -213,8 +214,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -228,8 +229,8 @@ describe('propagators/neq.spec', function() {
 
       it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -237,14 +238,14 @@ describe('propagators/neq.spec', function() {
         let B = space.config.all_var_names.indexOf('B');
 
         expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
-        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
-        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
+        expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });
 
       it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
@@ -252,25 +253,25 @@ describe('propagators/neq.spec', function() {
         let B = space.config.all_var_names.indexOf('B');
 
         expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
-        expect(space.vardoms[A]).to.eql(specDomainSmallEmpty());
-        expect(space.vardoms[B]).to.eql(specDomainSmallEmpty());
+        expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
+        expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });
     }
 
     describe('with array', function() {
-      test(specDomainCreateValue(SUP), specDomainCreateValue(SUP - 1));
-      test(specDomainCreateValue(SUP - 1), specDomainCreateValue(SUP - 2));
-      test(specDomainCreateValue(SUP - 1), specDomainCreateValue(SUP - 20));
-      test(specDomainCreateValue(SUP), specDomainCreateValue(500));
-      test(specDomainCreateValue(800), specDomainCreateValue(801));
+      test(fixt_strdom_value(SUP), fixt_strdom_value(SUP - 1));
+      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 2));
+      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 20));
+      test(fixt_strdom_value(SUP), fixt_strdom_value(500));
+      test(fixt_strdom_value(800), fixt_strdom_value(801));
     });
 
     describe('with numbers', function() {
-      test(specDomainSmallNums(0), specDomainSmallNums(1));
-      test(specDomainSmallNums(1), specDomainSmallNums(2));
-      test(specDomainSmallNums(1), specDomainSmallNums(15));
-      test(specDomainSmallNums(0), specDomainSmallNums(5));
-      test(specDomainSmallNums(8), specDomainSmallNums(1));
+      test(fixt_numdom_nums(0), fixt_numdom_nums(1));
+      test(fixt_numdom_nums(1), fixt_numdom_nums(2));
+      test(fixt_numdom_nums(1), fixt_numdom_nums(15));
+      test(fixt_numdom_nums(0), fixt_numdom_nums(5));
+      test(fixt_numdom_nums(8), fixt_numdom_nums(1));
     });
   });
 });

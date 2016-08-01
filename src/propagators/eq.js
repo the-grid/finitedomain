@@ -5,15 +5,14 @@ import {
   SOME_CHANGES,
 
   ASSERT,
-  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
-  domain_intersection,
-  domain_isEqual,
-  domain_isRejected,
-  domain_isSolved,
-  domain_sharesNoElements,
+  domain_any_intersection,
+  domain_any_isEqual,
+  domain_any_isSolved,
+  domain_any_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -40,11 +39,11 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-
-  let result = domain_intersection(domain1, domain2);
+  let result = domain_any_intersection(domain1, domain2);
 
   if (result === EMPTY) {
     space.vardoms[varIndex1] = EMPTY;
@@ -55,7 +54,7 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
   if (result !== domain1 || result !== domain2) {
     space.vardoms[varIndex1] = result;
     space.vardoms[varIndex2] = result;
-    if (!domain_isEqual(domain1, result) || !domain_isEqual(domain2, result)) {
+    if (!domain_any_isEqual(domain1, result) || !domain_any_isEqual(domain2, result)) {
       return SOME_CHANGES;
     }
   }
@@ -74,10 +73,11 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_eqStepWouldReject(domain1, domain2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
-  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_sharesNoElements(domain1, domain2);
+  return domain_any_sharesNoElements(domain1, domain2);
 }
 
 /**
@@ -89,7 +89,7 @@ function propagator_eqStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(domain1, domain2) {
-  return domain_isSolved(domain1) && domain_isSolved(domain2);
+  return domain_any_isSolved(domain1) && domain_any_isSolved(domain2);
 }
 
 // BODY_STOP

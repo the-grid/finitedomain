@@ -4,15 +4,15 @@ import {
   SOME_CHANGES,
 
   ASSERT,
-  ASSERT_DOMAIN_EMPTY_CHECK,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
-  domain_isRejected,
-  domain_max,
-  domain_min,
-  domain_removeGte,
-  domain_removeLte,
+  domain_any_isRejected,
+  domain_any_max,
+  domain_any_min,
+  domain_any_removeGte,
+  domain_any_removeLte,
 } from '../domain';
 
 // BODY_START
@@ -31,13 +31,14 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT(!domain_isRejected(domain1), 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(!domain_isRejected(domain2), 'SHOULD_NOT_BE_REJECTED');
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let lo1 = domain_min(domain1);
-  let hi1 = domain_max(domain1);
-  let lo2 = domain_min(domain2);
-  let hi2 = domain_max(domain2);
+  let lo1 = domain_any_min(domain1);
+  let hi1 = domain_any_max(domain1);
+  let lo2 = domain_any_min(domain2);
+  let hi2 = domain_any_max(domain2);
 
   // there six possible cases:
   // - 1: v1 already satisfies v2 completely (only case where the constraint is solved)
@@ -64,10 +65,10 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   // value in v2. bigger values will never satisfy lt so prune them.
   var leftChanged = NO_CHANGES;
   if (hi1 >= hi2) {
-    let result = domain_removeGte(domain1, hi2);
+    let result = domain_any_removeGte(domain1, hi2);
     if (result !== domain1) {
       space.vardoms[varIndex1] = result;
-      if (domain_isRejected(result)) { // TODO: there is no test throwing when you remove this check
+      if (domain_any_isRejected(result)) { // TODO: there is no test throwing when you remove this check
         leftChanged = REJECTED;
       } else {
         leftChanged = SOME_CHANGES;
@@ -79,10 +80,10 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   // smallest value of v1 can never satisfy lt so prune them as well
   var rightChanged = NO_CHANGES;
   if (lo1 >= lo2) {
-    let newDomain = domain_removeLte(domain2, lo1);
+    let newDomain = domain_any_removeLte(domain2, lo1);
     if (newDomain !== domain2) {
       space.vardoms[varIndex2] = newDomain;
-      if (domain_isRejected(domain2)) { // TODO: there is no test covering this
+      if (domain_any_isRejected(domain2)) { // TODO: there is no test covering this
         rightChanged = REJECTED; // TODO: add a test that throws if this was assigning to leftChanged instead (that used to be the case without any bells going off)
       } else {
         rightChanged = SOME_CHANGES;
@@ -104,10 +105,11 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_ltStepWouldReject(domain1, domain2) {
-  ASSERT_DOMAIN_EMPTY_CHECK(domain1);
-  ASSERT_DOMAIN_EMPTY_CHECK(domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_min(domain1) >= domain_max(domain2);
+  return domain_any_min(domain1) >= domain_any_max(domain2);
 }
 
 /**
@@ -121,7 +123,11 @@ function propagator_ltStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_ltSolved(domain1, domain2) {
-  return domain_max(domain1) < domain_min(domain2);
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
+
+  return domain_any_max(domain1) < domain_any_min(domain2);
 }
 
 // BODY_STOP

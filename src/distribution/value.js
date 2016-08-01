@@ -6,24 +6,27 @@ new choice left it should return undefined to signify the end.
 */
 
 import {
+  EMPTY,
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_NUMSTRDOM,
   THROW,
 } from '../helpers';
 
 import {
-  domain_containsValue,
+  domain_any_appendRange,
+  domain_any_containsValue,
   domain_createValue,
   domain_createRange,
-  domain_getValueOfFirstContainedValueInList,
-  domain_intersection,
-  domain_isRejected,
-  domain_isUndetermined,
-  domain_max,
-  domain_middleElement,
-  domain_min,
-  domain_removeNextFromList,
+  domain_any_getValueOfFirstContainedValueInList,
+  domain_any_intersection,
+  domain_any_isRejected,
+  domain_any_isUndetermined,
+  domain_any_max,
+  domain_any_middleElement,
+  domain_any_min,
+  domain_any_removeNextFromList,
 } from '../domain';
 
 import distribution_markovSampleNextFromDomain from './markov';
@@ -45,7 +48,7 @@ const MATH_RANDOM = Math.random;
 function distribute_getNextDomainForVar(space, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-  ASSERT(domain_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
+  ASSERT(domain_any_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
   let configNextValueFunc = space.config.next_value_func;
 
@@ -81,7 +84,9 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varIndex, choiceI
       return distribution_valueByList(space, varIndex, choiceIndex);
 
     case 'naive':
-      return domain_createValue(domain_min(space.vardoms[varIndex]));
+      ASSERT_NUMSTRDOM(space.vardoms[varIndex]);
+      ASSERT(space.vardoms[varIndex], 'NON_EMPTY_DOMAIN_EXPECTED');
+      return domain_createValue(domain_any_min(space.vardoms[varIndex]));
 
     case 'splitMax':
       return distribution_valueBySplitMax(space, varIndex, choiceIndex);
@@ -114,7 +119,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
   let domain = space.vardoms[varIndex];
   let varName = space.config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let configVarDistOptions = space.config.var_dist_options;
   ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
@@ -134,7 +139,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      let nextValue = domain_getValueOfFirstContainedValueInList(domain, list);
+      let nextValue = domain_any_getValueOfFirstContainedValueInList(domain, list);
       if (nextValue === NO_SUCH_VALUE) {
         if (fallbackDistName) {
           return _distribute_getNextDomainForVar(fallbackDistName, space, varIndex, choiceIndex);
@@ -144,7 +149,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
       return domain_createValue(nextValue);
 
     case SECOND_CHOICE:
-      let newDomain = domain_removeNextFromList(domain, list);
+      let newDomain = domain_any_removeNextFromList(domain, list);
       // note: d can be a new array-domain, a new small-domain, or NO_SUCH_VALUE (-1)
       if (newDomain === NO_SUCH_VALUE && fallbackDistName) {
         return _distribute_getNextDomainForVar(fallbackDistName, space, varIndex, choiceIndex);
@@ -172,18 +177,19 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      return domain_createValue(domain_min(domain));
+      return domain_createValue(domain_any_min(domain));
 
     case SECOND_CHOICE:
       // Cannot lead to empty domain because lo can only be SUP if
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      return domain_intersection(domain, domain_createRange(domain_min(domain) + 1, domain_max(domain)));
+      return domain_any_intersection(domain, domain_createRange(domain_any_min(domain) + 1, domain_any_max(domain)));
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -206,21 +212,22 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      return domain_createValue(domain_max(domain));
+      return domain_createValue(domain_any_max(domain));
 
     case SECOND_CHOICE:
       // Cannot lead to empty domain because hi can only be SUB if
       // domain was solved and we assert it wasn't.
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this can be done more efficiently directly
-      let lo = domain_min(domain);
-      let hi = domain_max(domain);
+      let lo = domain_any_min(domain);
+      let hi = domain_any_max(domain);
       let targetDomain = domain_createRange(lo, hi - 1);
-      return domain_intersection(domain, targetDomain);
+      return domain_any_intersection(domain, targetDomain);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -244,28 +251,31 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
-  let middle = domain_middleElement(domain);
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+
+  let middle = domain_any_middleElement(domain);
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
       return domain_createValue(middle);
 
     case SECOND_CHOICE:
-      let lo = domain_min(domain);
-      let hi = domain_max(domain);
-      let arr = [];
+      let lo = domain_any_min(domain);
+      let hi = domain_any_max(domain);
+
+      let domainMask = EMPTY;
       if (middle > lo) {
-        arr.push(lo, middle - 1);
+        domainMask = domain_any_appendRange(domainMask, lo, middle - 1);
       }
       if (middle < hi) {
-        arr.push(middle + 1, hi);
+        domainMask = domain_any_appendRange(domainMask, middle + 1, hi);
       }
 
       // Note: domain is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-      return domain_intersection(domain, arr);
+      return domain_any_intersection(domain, domainMask);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -287,10 +297,11 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
-  let min = domain_min(domain);
-  let max = domain_max(domain);
+  let min = domain_any_min(domain);
+  let max = domain_any_max(domain);
   let mmhalf = min + Math.floor((max - min) / 2);
 
   switch (choiceIndex) {
@@ -298,14 +309,14 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(domain, domain_createRange(min, mmhalf));
+      return domain_any_intersection(domain, domain_createRange(min, mmhalf));
     }
 
     case SECOND_CHOICE: {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(domain, domain_createRange(mmhalf + 1, max));
+      return domain_any_intersection(domain, domain_createRange(mmhalf + 1, max));
     }
   }
 
@@ -328,10 +339,11 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
-  let min = domain_min(domain);
-  let max = domain_max(domain);
+  let min = domain_any_min(domain);
+  let max = domain_any_max(domain);
   let mmhalf = min + Math.floor((max - min) / 2);
 
   switch (choiceIndex) {
@@ -339,14 +351,14 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(domain, domain_createRange(mmhalf + 1, max));
+      return domain_any_intersection(domain, domain_createRange(mmhalf + 1, max));
     }
 
     case SECOND_CHOICE: {
       // Note: domain is not determined so the operation cannot fail
       // Note: this must do some form of intersect, though maybe not constrain
       // TOFIX: can do this more optimal if coding it out explicitly
-      return domain_intersection(domain, domain_createRange(min, mmhalf));
+      return domain_any_intersection(domain, domain_createRange(min, mmhalf));
     }
   }
 
@@ -392,7 +404,8 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  ASSERT(domain_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT_NUMSTRDOM(domain);
+  ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE: {
@@ -424,7 +437,7 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
         return NO_CHOICE;
       }
 
-      ASSERT(domain_containsValue(domain, value), 'markov picks a value from the existing domain so no need for a constrain below');
+      ASSERT(domain_any_containsValue(domain, value), 'markov picks a value from the existing domain so no need for a constrain below');
       space._markov_last_value = value;
 
       return domain_createValue(value);
@@ -433,21 +446,22 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
     case SECOND_CHOICE: {
       ASSERT((space._markov_last_value != null), 'should have cached previous value');
       let lastValue = space._markov_last_value;
-      let lo = domain_min(domain);
-      let hi = domain_max(domain);
-      let arr = [];
+      let lo = domain_any_min(domain);
+      let hi = domain_any_max(domain);
+
+      let domainMask = EMPTY;
       if (lastValue > lo) {
-        arr.push(lo, lastValue - 1);
+        domainMask = domain_any_appendRange(domainMask, lo, lastValue - 1);
       }
       if (lastValue < hi) {
-        arr.push(lastValue + 1, hi);
+        domainMask = domain_any_appendRange(domainMask, lastValue + 1, hi);
       }
 
       // Note: domain is not determined so the operation cannot fail
       // note: must use some kind of intersect here (there's a test if you mess this up :)
       // TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
-      let newDomain = domain_intersection(domain, arr);
-      if (domain_isRejected(newDomain)) return NO_CHOICE;
+      let newDomain = domain_any_intersection(domain, domainMask);
+      if (domain_any_isRejected(newDomain)) return NO_CHOICE;
       return newDomain;
     }
   }

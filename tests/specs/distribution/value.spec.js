@@ -1,12 +1,15 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  specDomainCreateEmpty,
-  specDomainCreateValue,
-  specDomainCreateRange,
-  specDomainCreateRanges,
-  specDomainFromNums,
-  specDomainSmallNums,
-  specDomainSmallRange,
+  fixt_arrdom_nums,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
+  fixt_arrdom_value,
+  fixt_numdom_empty,
+  fixt_numdom_nums,
+  fixt_numdom_range,
+  fixt_strdom_range,
+  fixt_strdom_ranges,
+  fixt_strdom_value,
 } from '../../fixtures/domain.fixt';
 
 import distribute_getNextDomainForVar, {
@@ -32,6 +35,7 @@ import {
 } from '../../../src/config';
 import {
   space_createRoot,
+  space_getDomainArr,
   space_initFromConfig,
 } from '../../../src/space';
 
@@ -63,7 +67,7 @@ describe('distribution/value.spec', function() {
 
       let dom = _distribute_getNextDomainForVar('naive', space, A);
 
-      expect(dom).to.eql(specDomainSmallNums(0));
+      expect(dom).to.eql(fixt_numdom_nums(0));
     });
   });
 
@@ -77,60 +81,60 @@ describe('distribution/value.spec', function() {
 
       it('should pick lo for FIRST_CHOICE ', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateValue(101));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(101));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateValue(102));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_value(102));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 111], [113, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 111], [113, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateValue(110));
+        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(110));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 111], [113, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 111], [113, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
         let A = config.all_var_names.indexOf('A');
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([111, 111], [113, 120]));
+        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([111, 111], [113, 120]));
       });
 
       it('should reject a "solved" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 110]));
+        config_addVarRange(config, 'A', 110, 110);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -143,10 +147,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -159,60 +164,60 @@ describe('distribution/value.spec', function() {
 
       it('should pick lo for FIRST_CHOICE ', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+        config_addVarRange(config, 'A', 1, 2);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(1));
-        expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+        config_addVarRange(config, 'A', 1, 2);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(2));
-        expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+        config_addVarRange(config, 'A', 1, 2);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(10, 11, 13, 14, 15));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(10, 11, 13, 14, 15));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(10));
+        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(10));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(10, 11, 13, 14, 15));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(10, 11, 13, 14, 15));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(11, 13, 14, 15));
+        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(11, 13, 14, 15));
       });
 
       it('should reject a "solved" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(10));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(10));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -225,10 +230,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -248,60 +254,60 @@ describe('distribution/value.spec', function() {
 
       it('should pick lo for FIRST_CHOICE ', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 101));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+        config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 117], [119, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 117], [119, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateValue(120));
+        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(120));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 117], [119, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 117], [119, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([110, 117], [119, 119]));
+        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([110, 117], [119, 119]));
       });
 
       it('should reject a "solved" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(120));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(120));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -314,10 +320,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -335,8 +342,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(10));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -346,8 +353,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallRange(6, 9));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_range(6, 9));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for third choice', function() {
@@ -358,32 +365,32 @@ describe('distribution/value.spec', function() {
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(2, 3, 4, 6, 7, 8, 10, 11));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(2, 3, 4, 6, 7, 8, 10, 11));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(11));
+        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(11));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(2, 3, 4, 6, 7, 8, 10, 11));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(2, 3, 4, 6, 7, 8, 10, 11));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(2, 3, 4, 6, 7, 8, 10));
+        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2, 3, 4, 6, 7, 8, 10));
       });
 
       it('should reject a "solved" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -396,10 +403,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -423,35 +431,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick hi for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+          config_addVarRange(config, 'A', 101, 102);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+          config_addVarRange(config, 'A', 101, 102);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 101));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+          config_addVarRange(config, 'A', 101, 102);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 102));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
         });
       });
 
@@ -459,35 +467,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 103));
+          config_addVarRange(config, 'A', 101, 103);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 103));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 103));
+          config_addVarRange(config, 'A', 101, 103);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([101, 101], [103, 103]));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 103));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([101, 101], [103, 103]));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 103));
+          config_addVarRange(config, 'A', 101, 103);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 103));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
         });
       });
 
@@ -495,35 +503,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick low-mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 104));
+          config_addVarRange(config, 'A', 101, 104);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(103, 103));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 104));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 103));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 104));
+          config_addVarRange(config, 'A', 101, 104);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([101, 102], [104, 104]));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 104));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([101, 102], [104, 104]));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 104));
+          config_addVarRange(config, 'A', 101, 104);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(101, 104));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
         });
       });
 
@@ -531,35 +539,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 120));
+          config_addVarRange(config, 'A', 100, 120);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(110, 110));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 120));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(110, 110));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 120));
+          config_addVarRange(config, 'A', 100, 120);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([100, 109], [111, 120]));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 120));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 109], [111, 120]));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 120));
+          config_addVarRange(config, 'A', 100, 120);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 120));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
         });
       });
 
@@ -567,61 +575,61 @@ describe('distribution/value.spec', function() {
 
         it('should pick hi-mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 121));
+          config_addVarRange(config, 'A', 100, 121);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(111, 111));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 121));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(111, 111));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 121));
+          config_addVarRange(config, 'A', 100, 121);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([100, 110], [112, 121]));
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 121));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 110], [112, 121]));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(100, 121));
+          config_addVarRange(config, 'A', 100, 121);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainCreateRange(100, 121));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
         });
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainCreateValue(118));
+        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(118));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([110, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([110, 112], [119, 120]));
+        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([110, 112], [119, 120]));
       });
 
       it('should reject a "solved" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateValue(120));
+        config_addVarDomain(config, 'A', fixt_arrdom_value(120));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -634,10 +642,11 @@ describe('distribution/value.spec', function() {
 
       it('should reject a "rejected" var', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         // note: only rejects with ASSERTs
         expect(() => distribution_valueByMid(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -652,35 +661,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick hi for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+          config_addVarRange(config, 'A', 1, 2);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(2));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+          config_addVarRange(config, 'A', 1, 2);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+          config_addVarRange(config, 'A', 1, 2);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
         });
       });
 
@@ -688,35 +697,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(2));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 3));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 3));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
         });
       });
 
@@ -724,35 +733,35 @@ describe('distribution/value.spec', function() {
 
         it('should pick low-mid for FIRST_CHOICE ', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3, 4));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3, 4));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(3));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3, 4));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3, 4));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 2, 4));
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2, 4));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3, 4));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3, 4));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainSmallNums(1, 2, 3, 4));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
         });
       });
 
@@ -765,8 +774,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(5));
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 10));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(5));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -776,8 +785,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 10));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -788,7 +797,7 @@ describe('distribution/value.spec', function() {
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 10));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
         });
       });
 
@@ -801,8 +810,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(6));
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 11));
+          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(6));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -812,8 +821,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 11));
+          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -824,7 +833,7 @@ describe('distribution/value.spec', function() {
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 11));
+          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
         });
       });
 
@@ -835,8 +844,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(1));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 1));
+        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -846,8 +855,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(0));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 1));
+        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -858,33 +867,33 @@ describe('distribution/value.spec', function() {
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(0, 1));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 2, 8, 9, 10));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 2, 8, 9, 10));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(8));
+        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(8));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 2, 8, 9, 10));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 2, 8, 9, 10));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 2, 9, 10));
+        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 9, 10));
       });
 
       it('should reject a "solved" var', function() {
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(5));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(5));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -898,10 +907,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueByMid(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueByMid(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -918,7 +928,7 @@ describe('distribution/value.spec', function() {
 
     it('should throw if choice is not a number', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+      config_addVarRange(config, 'A', 110, 120);
       let space = space_createRoot(config);
       space_initFromConfig(space);
       let A = config.all_var_names.indexOf('A');
@@ -930,92 +940,92 @@ describe('distribution/value.spec', function() {
 
       it('should pick lower half for FIRST_CHOICE ', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(110, 115));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(110, 115));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(116, 120));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(116, 120));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([100, 101], [108, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([100, 101], [108, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRanges([100, 101], [108, 110]));
+        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_ranges([100, 101], [108, 110]));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([100, 101], [108, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([100, 101], [108, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([111, 112], [118, 120]));
+        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([111, 112], [118, 120]));
       });
 
       describe('range splitting unit tests', function() {
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+          config_addVarRange(config, 'A', 101, 102);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(101, 101));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(102, 102));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 101));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(102, 102));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 103));
+          config_addVarRange(config, 'A', 101, 103);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(101, 102));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(103, 103));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 102));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(103, 103));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 104));
+          config_addVarRange(config, 'A', 101, 104);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(101, 102));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(103, 104));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 102));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(103, 104));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1023,7 +1033,7 @@ describe('distribution/value.spec', function() {
       it('should reject a "solved" var', function() {
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(120, 120));
+        config_addVarRange(config, 'A', 120, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -1037,10 +1047,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1057,8 +1068,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(6, 7, 8));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(6, 7, 8));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1068,8 +1079,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(9, 10));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(9, 10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1080,64 +1091,64 @@ describe('distribution/value.spec', function() {
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 5, 6, 7, 8, 11, 12, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 5, 6, 7, 8, 11, 12, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(0, 1, 5, 6, 7));
+        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 5, 6, 7));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 5, 6, 7, 8, 11, 12, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 5, 6, 7, 8, 11, 12, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(8, 11, 12, 14));
+        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(8, 11, 12, 14));
       });
 
       describe('range splitting unit tests', function() {
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+          config_addVarRange(config, 'A', 1, 2);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(1));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(2));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(1, 2));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(3));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(3));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3, 4));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3, 4));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(1, 2));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(3, 4));
+          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
+          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(3, 4));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1145,7 +1156,7 @@ describe('distribution/value.spec', function() {
       it('should reject a "solved" var', function() {
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(5, 5));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(5, 5));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -1159,10 +1170,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1179,7 +1191,7 @@ describe('distribution/value.spec', function() {
 
     it('should throw if choice is not a number', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+      config_addVarRange(config, 'A', 110, 120);
       let space = space_createRoot(config);
       space_initFromConfig(space);
       let A = config.all_var_names.indexOf('A');
@@ -1191,92 +1203,92 @@ describe('distribution/value.spec', function() {
 
       it('should pick lower half for FIRST_CHOICE ', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(116, 120));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(116, 120));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(110, 115));
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(110, 115));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(110, 120));
+        config_addVarRange(config, 'A', 110, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainCreateRange(110, 120));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([100, 101], [108, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([100, 101], [108, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRanges([111, 112], [118, 120]));
+        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_ranges([111, 112], [118, 120]));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRanges([100, 101], [108, 112], [118, 120]));
+        config_addVarDomain(config, 'A', fixt_arrdom_ranges([100, 101], [108, 112], [118, 120]));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRanges([100, 101], [108, 110]));
+        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 101], [108, 110]));
       });
 
       describe('range splitting unit tests', function() {
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 102));
+          config_addVarRange(config, 'A', 101, 102);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(102, 102));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 101));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 103));
+          config_addVarRange(config, 'A', 101, 103);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(103, 103));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 102));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 103));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 102));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainCreateRange(101, 104));
+          config_addVarRange(config, 'A', 101, 104);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainCreateRange(103, 104));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainCreateRange(101, 102));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 104));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 102));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1284,7 +1296,7 @@ describe('distribution/value.spec', function() {
       it('should reject a "solved" var', function() {
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateRange(120, 120));
+        config_addVarRange(config, 'A', 120, 120);
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -1298,10 +1310,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
@@ -1318,8 +1331,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(9, 10));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(9, 10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1329,8 +1342,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(6, 7, 8));
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(6, 7, 8));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1341,64 +1354,64 @@ describe('distribution/value.spec', function() {
         let A = config.all_var_names.indexOf('A');
 
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space.vardoms[A]).to.eql(specDomainSmallRange(6, 10));
+        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 5, 6, 7, 8, 11, 12, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 5, 6, 7, 8, 11, 12, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(8, 11, 12, 14));
+        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(8, 11, 12, 14));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(0, 1, 5, 6, 7, 8, 11, 12, 14));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 1, 5, 6, 7, 8, 11, 12, 14));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(0, 1, 5, 6, 7));
+        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 5, 6, 7));
       });
 
       describe('range splitting unit tests', function() {
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2));
+          config_addVarRange(config, 'A', 1, 2);
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(2));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(3));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 2));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
         it('should work with two values in one range', function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', specDomainFromNums(1, 2, 3, 4));
+          config_addVarDomain(config, 'A', fixt_arrdom_nums(1, 2, 3, 4));
           let space = space_createRoot(config);
           space_initFromConfig(space);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(specDomainSmallNums(3, 4));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(specDomainSmallNums(1, 2));
+          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3, 4));
+          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1406,7 +1419,7 @@ describe('distribution/value.spec', function() {
       it('should reject a "solved" var', function() {
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainFromNums(5, 5));
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(5, 5));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -1420,10 +1433,11 @@ describe('distribution/value.spec', function() {
         // note: only rejects with ASSERTs
         // note: only rejects with ASSERTs
         let config = config_create();
-        config_addVarDomain(config, 'A', specDomainCreateEmpty());
+        config_addVarDomain(config, 'A', fixt_arrdom_nums(100));
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
+        space.vardoms[A] = fixt_numdom_empty();
 
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');

@@ -18,24 +18,30 @@
 
 import {
   EMPTY,
+  EMPTY_STR,
+  SMALL_MAX_NUM,
   SUB,
 
   ASSERT,
-  ASSERT_DOMAIN,
+  ASSERT_NUMDOM,
+  ASSERT_STRDOM,
+  ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
-  PAIR_SIZE,
-  SMALL_MAX_NUM,
+  STR_VALUE_SIZE,
+  STR_RANGE_SIZE,
   ZERO,
-
-  domain_closeGapsArr,
+  domain_str_closeGaps,
   domain_createRange,
-  domain_max,
-  domain_min,
-  domain_simplifyInlineArr,
+  domain_str_decodeValue,
+  domain_str_encodeRange,
+  domain_any_max,
+  domain_any_min,
+  domain_str_simplify,
+  domain_toNumstr,
 } from '../domain';
 import {
-  asmdomain_addRange,
+  asmdomain_createRange,
   asmdomain_createRangeZeroToMax,
 } from '../asmdomain';
 
@@ -44,63 +50,67 @@ let MAX = Math.max;
 // BODY_START
 
 /**
- * Does not harm input domains
+ * Subtract one domain from the other
  *
  * @param {$domain} domain1
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_minus(domain1, domain2) {
+function domain_any_minus(domain1, domain2) {
+  ASSERT_NUMSTRDOM(domain1);
+  ASSERT_NUMSTRDOM(domain2);
+
+  // note: this is not x-0=x. this is nothing-something=nothing because the domains contain no value
+  if (!domain1) return EMPTY;
+  if (!domain2) return EMPTY;
+
+  // optimize an easy path: if both domains contain zero the
+  // result will always be [0, max(domain1)], because:
+  // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
+  if (domain_any_min(domain1) === 0 && domain_any_min(domain2) === 0) {
+    return domain_createRange(0, domain_any_max(domain1));
+  }
+
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
 
   if (isNum1) {
     // note: if domain1 is a small domain the result is always a small domain
     if (isNum2) return _domain_minusNumNumNum(domain1, domain2);
-    return _domain_minusNumArrNum(domain1, domain2);
+    return _domain_minusNumStrNum(domain1, domain2);
   }
 
   let result;
-  if (isNum2) result = _domain_minusArrNum(domain1, domain2); // cannot swap minus args!
-  else result = _domain_minusArrArr(domain1, domain2);
+  if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
+  else result = _domain_minusStrStrStr(domain1, domain2);
 
-  domain_simplifyInlineArr(result);
-
-  return result;
+  return domain_toNumstr(domain_str_simplify(result));
 }
-function _domain_minusArrArr(domain1, domain2) {
-  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS', domain1);
-  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS', domain2);
-  ASSERT_DOMAIN(domain1);
-  ASSERT_DOMAIN(domain2);
-  ASSERT(domain1 && domain2, 'A_EXPECTING_TWO_DOMAINS');
-
-  // optimize an easy path: if both domains contain zero the
-  // result will always be [0, max(domain1)], because:
-  // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
-    return domain_createRange(0, domain_max(domain1));
-  }
+function _domain_minusStrStrStr(domain1, domain2) {
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
 
   // Simplify the domains by closing gaps since when we add
   // the domains, the gaps will close according to the
   // smallest interval width in the other domain.
-  let domains = domain_closeGapsArr(domain1, domain2);
+  let domains = domain_str_closeGaps(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
 
-  let result = [];
-  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
-    _domain_minusRangeArr(domain1[index], domain1[index + 1], domain2, result);
+  let newDomain = EMPTY_STR;
+  for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain1, index);
+    let hi = domain_str_decodeValue(domain1, index + STR_VALUE_SIZE);
+    newDomain += _domain_minusRangeStrStr(lo, hi, domain2);
   }
 
-  return result;
+  return newDomain;
 }
 function _domain_minusNumNumNum(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number', 'THAT_IS_THE_POINT');
-  ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
+  ASSERT_NUMDOM(domain1);
+  ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
 
@@ -113,11 +123,11 @@ function _domain_minusNumNumNum(domain1, domain2) {
 
   let flagValue = 1 << ++flagIndex;
 
-  let domain = EMPTY;
+  let newDomain = EMPTY;
   while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain1) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
-        domain = _domain_minusRangeNumNum(lo, hi, domain2, domain);
+        newDomain |= _domain_minusRangeNumNum(lo, hi, domain2);
         lo = flagIndex;
       }
       hi = flagIndex;
@@ -126,31 +136,31 @@ function _domain_minusNumNumNum(domain1, domain2) {
     flagValue = 1 << ++flagIndex;
   }
 
-  return _domain_minusRangeNumNum(lo, hi, domain2, domain);
+  return newDomain | _domain_minusRangeNumNum(lo, hi, domain2);
 }
-function _domain_minusNumArrNum(domain1, domain2) {
-  ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
-  ASSERT(typeof domain2 !== 'number', 'NOT_WITH_NUMBERS');
-  ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+function _domain_minusNumStrNum(domain_num, domain_str) {
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
+  ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
+  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain1 & ZERO && domain_min(domain2) === 0) return asmdomain_createRangeZeroToMax(domain1);
+  if (domain_num & ZERO && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
-  while ((domain1 & (1 << flagIndex)) === 0) ++flagIndex;
+  while ((domain_num & (1 << flagIndex)) === 0) ++flagIndex;
 
   let lo = flagIndex;
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
 
-  let domain = EMPTY;
-  while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
-    if ((flagValue & domain1) > 0) {
+  let newDomain = EMPTY;
+  while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
-        domain = _domain_minusRangeArrNum(lo, hi, domain2, domain);
+        newDomain |= _domain_minusRangeStrNum(lo, hi, domain_str);
         lo = flagIndex;
       }
       hi = flagIndex;
@@ -159,26 +169,26 @@ function _domain_minusNumArrNum(domain1, domain2) {
     flagValue = 1 << ++flagIndex;
   }
 
-  return _domain_minusRangeArrNum(lo, hi, domain2, domain);
+  return newDomain | _domain_minusRangeStrNum(lo, hi, domain_str);
 }
-function _domain_minusRangeNumNum(loi, hii, domain2, domain) {
-  ASSERT(typeof domain2 === 'number', 'THAT_IS_THE_POINT');
-  ASSERT(typeof domain === 'number', 'OUTPUTTING_INTO_NUMBER');
-  ASSERT(domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
+function _domain_minusRangeNumNum(loi, hii, domain_num) {
+  ASSERT_NUMDOM(domain_num);
+  ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
-  while ((domain2 & (1 << flagIndex)) === 0) ++flagIndex;
+  while ((domain_num & (1 << flagIndex)) === 0) ++flagIndex;
 
   let lo = flagIndex;
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
 
-  while (flagValue <= domain2 && flagIndex <= SMALL_MAX_NUM) {
-    if ((flagValue & domain2) > 0) {
+  let newDomain = EMPTY;
+  while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
-        domain = _domain_minusRangeRangeNum(loi, hii, lo, hi, domain);
+        newDomain |= _domain_minusRangeRangeNum(loi, hii, lo, hi);
         lo = flagIndex;
       }
       hi = flagIndex;
@@ -187,45 +197,47 @@ function _domain_minusRangeNumNum(loi, hii, domain2, domain) {
     flagValue = 1 << ++flagIndex;
   }
 
-  return _domain_minusRangeRangeNum(loi, hii, lo, hi, domain);
+  return newDomain | _domain_minusRangeRangeNum(loi, hii, lo, hi);
 }
-function _domain_minusArrNum(domain1, domain2) {
-  ASSERT(typeof domain1 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  ASSERT(typeof domain2 === 'number', 'ONLY_USED_WITH_NUMBERS');
-  ASSERT_DOMAIN(domain1);
+function _domain_minusStrNumStr(domain_str, domain_num) {
+  ASSERT_NUMDOM(domain_num);
+  ASSERT_STRDOM(domain_str);
+  ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
-    return domain_createRange(0, domain_max(domain1));
+  if (domain_any_min(domain_str) === 0 && domain_any_min(domain_num) === 0) {
+    return domain_createRange(0, domain_any_max(domain_str));
   }
 
-  let result = [];
-  for (let index = 0, step = PAIR_SIZE; index < domain1.length; index += step) {
-    _domain_minusRangeNum(domain1[index], domain1[index + 1], domain2, result);
+  let newDomain = EMPTY_STR;
+  for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
+    newDomain += _domain_minusRangeNumStr(lo, hi, domain_num);
   }
 
-  return result;
+  return newDomain;
 }
-function _domain_minusRangeNum(loi, hii, domain, result) {
-  ASSERT(typeof domain === 'number', 'THAT_IS_THE_POINT');
-  if (domain === EMPTY) return;
+function _domain_minusRangeNumStr(loi, hii, domain_num) {
+  ASSERT_NUMDOM(domain_num);
 
+  if (domain_num === EMPTY) return EMPTY;
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
-  while ((domain & (1 << flagIndex)) === 0) ++flagIndex;
+  while ((domain_num & (1 << flagIndex)) === 0) ++flagIndex;
 
   let lo = flagIndex;
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
-
-  while (flagValue <= domain && flagIndex <= SMALL_MAX_NUM) {
-    if ((flagValue & domain) > 0) {
+  let newDomain = EMPTY_STR;
+  while (flagValue <= domain_num && flagIndex <= SMALL_MAX_NUM) {
+    if ((flagValue & domain_num) > 0) {
       if (hi !== flagIndex - 1) { // there's a gap so push prev range now
-        _domain_minusRangeRange(loi, hii, lo, hi, result);
+        newDomain += _domain_minusRangeRangeStr(loi, hii, lo, hi);
         lo = flagIndex;
       }
       hi = flagIndex;
@@ -234,39 +246,49 @@ function _domain_minusRangeNum(loi, hii, domain, result) {
     flagValue = 1 << ++flagIndex;
   }
 
-  _domain_minusRangeRange(loi, hii, lo, hi, result);
+  return newDomain + _domain_minusRangeRangeStr(loi, hii, lo, hi);
 }
-function _domain_minusRangeArr(loi, hii, domain2, result) {
-  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
-    _domain_minusRangeRange(loi, hii, domain2[index2], domain2[index2 + 1], result);
+function _domain_minusRangeStrStr(loi, hii, domain_str) {
+  ASSERT_STRDOM(domain_str);
+
+  let newDomain = EMPTY_STR;
+  for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
+    newDomain += _domain_minusRangeRangeStr(loi, hii, lo, hi);
   }
+  return newDomain;
 }
-function _domain_minusRangeArrNum(loi, hii, domain2, result) {
-  ASSERT(typeof domain2 !== 'number', 'NOT_USED_WITH_NUMBERS');
-  for (let index2 = 0, step1 = PAIR_SIZE; index2 < domain2.length; index2 += step1) {
-    result = _domain_minusRangeRangeNum(loi, hii, domain2[index2], domain2[index2 + 1], result);
+function _domain_minusRangeStrNum(loi, hii, domain_str) {
+  ASSERT_STRDOM(domain_str);
+
+  let newDomain = EMPTY;
+  for (let index = 0, len = domain_str.length; index < len; index += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain_str, index);
+    let hi = domain_str_decodeValue(domain_str, index + STR_VALUE_SIZE);
+    newDomain |= _domain_minusRangeRangeNum(loi, hii, lo, hi);
   }
-  return result;
+  return newDomain;
 }
-function _domain_minusRangeRange(loi, hii, loj, hij, result) {
+function _domain_minusRangeRangeStr(loi, hii, loj, hij) {
   let hi = hii - loj;
   if (hi >= SUB) { // silently ignore results that are OOB
     let lo = MAX(SUB, loi - hij);
-    result.push(lo, hi);
+    return domain_str_encodeRange(lo, hi);
   }
+  return EMPTY_STR;
 }
-function _domain_minusRangeRangeNum(loi, hii, loj, hij, domain) {
+function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
   let hi = hii - loj;
   if (hi >= SUB) { // silently ignore results that are OOB
     let lo = MAX(SUB, loi - hij);
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    return asmdomain_addRange(domain, lo, hi);
+    return asmdomain_createRange(lo, hi);
   }
-  return domain;
+  return EMPTY;
 }
 
 // BODY_STOP
 
-export default domain_minus;
+export default domain_any_minus;

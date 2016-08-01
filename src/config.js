@@ -82,7 +82,7 @@ function config_create() {
     _var_names_trie: trie_create(),
 
     varStratConfig: config_createVarStratConfig(),
-    next_value_func: 'min',
+    valueStratName: 'min',
     targetedVars: 'all',
     var_dist_options: {},
     timeout_callback: undefined,
@@ -108,7 +108,7 @@ function config_clone(config, newDomains) {
 
   let {
     varStratConfig,
-    next_value_func,
+    valueStratName,
     targetedVars,
     var_dist_options,
     timeout_callback,
@@ -126,7 +126,7 @@ function config_clone(config, newDomains) {
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
 
     varStratConfig,
-    next_value_func,
+    valueStratName,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
     var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
     timeout_callback, // by reference because it's a function if passed on...
@@ -342,7 +342,7 @@ function config_setOptions(config, options) {
   }
   if (options.valueStrategy) {
     // see distribution.value
-    config.next_value_func = options.valueStrategy;
+    config.valueStratName = options.valueStrategy;
   }
   if (options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
     // which vars must be solved for this space to be solved

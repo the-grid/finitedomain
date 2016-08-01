@@ -3,7 +3,7 @@
 var config = module.exports = {
   _class: '$config',
   nextVarStrat: 'naive',
-  next_value_func: 'min',
+  valueStratName: 'min',
   targetedVars: ['ITEM_INDEX',
     'ITEM_INDEX&n=1',
     'ITEM_INDEX&n=2',

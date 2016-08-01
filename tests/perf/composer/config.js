@@ -22,7 +22,7 @@
 var config = module.exports = {
   _class: '$config',
   varStratConfig: {type: 'naive'},
-  next_value_func: 'min',
+  valueStratName: 'min',
   targetedVars: ['_ROOT_BRANCH_',
     'COMPONENT',
     'COMPONENT_START',

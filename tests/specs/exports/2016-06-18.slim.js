@@ -6,7 +6,7 @@ let config = {
   varStratConfig: {
     type: 'naive',
   },
-  next_value_func: 'min',
+  valueStratName: 'min',
   targetedVars: 'all',
   var_dist_options: {
     width: {list: [4], distributor_name: 'list'},

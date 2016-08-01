@@ -113,7 +113,7 @@ describe('exports/export.cases.spec', function() {
       let config = {
         _class: '$config',
         nextVarStrat: 'naive',
-        next_value_func: 'min',
+        valueStratName: 'min',
         targetedVars: 'all',
         var_dist_options: {},
         timeout_callback: undefined,

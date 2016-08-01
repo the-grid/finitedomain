@@ -24,7 +24,7 @@ var config = module.exports = {
 
   _class: '$config',
   varStratConfig: {type: 'naive'},
-  next_value_func: 'min',
+  valueStratName: 'min',
   targetedVars: 'all',
   var_dist_options: {},
   timeout_callback: undefined,

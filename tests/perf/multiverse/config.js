@@ -29,7 +29,7 @@ rng = function(){ return 0; };
 var config = module.exports = {
   _class: '$config',
   varStratConfig: {type: 'naive'},
-  next_value_func: 'min',
+  valueStratName: 'min',
   targetedVars: ['ITEM_INDEX',
     'ITEM_INDEX&n=1',
     'ITEM_INDEX&n=2',

@@ -41,7 +41,8 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_NUMBER');
   ASSERT(typeof invOpName === 'string', 'NOP_SHOULD_BE_NUMBER');
 
-  let domResult = space.vardoms[resultVarIndex];
+  let vardoms = space.vardoms;
+  let domResult = vardoms[resultVarIndex];
   ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (domResult === ZERO) {
@@ -52,21 +53,31 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
     return opFunc(space, leftVarIndex, rightVarIndex);
   }
 
-  let domain1 = space.vardoms[leftVarIndex];
-  let domain2 = space.vardoms[rightVarIndex];
+  let domain1 = vardoms[leftVarIndex];
+  let domain2 = vardoms[rightVarIndex];
 
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
-  // domResult can only shrink so we only need to check its current state
-  if ((domResult & ZERO) && propagator_stepWouldReject(invOpName, domain1, domain2)) {
-    space.vardoms[resultVarIndex] = domResult &= ONE;
-    return domResult === EMPTY ? REJECTED : SOME_CHANGES;
+  // we'll need to confirm both in any case so do it first now
+  let opRejects = propagator_stepWouldReject(opName, domain1, domain2);
+  let nopRejects = propagator_stepWouldReject(invOpName, domain1, domain2);
+
+  // if op and nop both reject then we cant fulfill the constraints
+  // otherwise the reifier must solve to the other op
+  if (nopRejects) {
+    if (opRejects) {
+      vardoms[resultVarIndex] = EMPTY;
+      return REJECTED;
+    }
+    vardoms[resultVarIndex] = ONE;
+    return SOME_CHANGES;
   }
-  if ((domResult & ONE) && propagator_stepWouldReject(opName, domain1, domain2)) {
-    space.vardoms[resultVarIndex] = domResult &= ZERO;
-    return domResult === EMPTY ? REJECTED : SOME_CHANGES;
+  if (opRejects) {
+    vardoms[resultVarIndex] = ZERO;
+    return SOME_CHANGES;
   }
 
   return NO_CHANGES;

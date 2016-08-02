@@ -53,6 +53,10 @@ import {
  * @param {number} [index3=-1]
  * @param {string} [arg1='']
  * @param {string} [arg2='']
+ * @param {string} [arg3='']
+ * @param {string} [arg4='']
+ * @param {string} [arg5]
+ * @param {string} [arg6]
  * @returns {$propagator}
  */
 function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '', arg5, arg6) {

@@ -76,7 +76,7 @@ class Solver {
       config = config_create(),
     } = options;
 
-    if (config.initial_vars) {
+    if (config.initial_vars) { // deprecated
       let doms = [];
       for (let i = 0, n = config.all_var_names.length; i < n; ++i) {
         doms[i] = config.initial_vars[config.all_var_names[i]];
@@ -94,6 +94,8 @@ class Solver {
         if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
       }
     }
+    if (config._propagators) config._propagators = undefined; // will be regenerated
+    if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
 
     this._class = 'solver';
 

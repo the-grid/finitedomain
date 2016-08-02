@@ -30,6 +30,15 @@ import {
 } from '../../../src/space';
 import Solver from '../../../src/solver';
 import propagator_reifiedStepBare from '../../../src/propagators/reified';
+import {
+  propagator_eqStepBare,
+  propagator_eqStepWouldReject,
+} from '../../../src/propagators/eq';
+import {
+  propagator_neqStepBare,
+  propagator_neqStepWouldReject,
+} from '../../../src/propagators/neq';
+
 
 describe('propagators/reified.spec', function() {
 
@@ -57,10 +66,16 @@ describe('propagators/reified.spec', function() {
           let space = space_createRoot(config);
           space_initFromConfig(space);
 
+          expect(op === 'eq' || op === 'neq', 'if this breaks just update the test and update the new values').to.equal(true);
+          let opFunc = op === 'eq' ? propagator_eqStepBare : propagator_neqStepBare;
+          let nopFunc = op !== 'eq' ? propagator_eqStepBare : propagator_neqStepBare;
+          let rejectsOp = op === 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
+          let rejectsNop = op !== 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
+
           let A = space.config.all_var_names.indexOf('A');
           let B = space.config.all_var_names.indexOf('B');
           let bool = space.config.all_var_names.indexOf('bool');
-          let out = propagator_reifiedStepBare(space, A, B, bool, op, invop);
+          let out = propagator_reifiedStepBare(space, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
           expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);

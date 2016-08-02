@@ -16,12 +16,65 @@ import {
   domain_toNumstr,
 } from './domain';
 
+import propagator_callbackStepBare from './propagators/callback';
+import propagator_markovStepBare from './propagators/markov';
+import propagator_reifiedStepBare from './propagators/reified';
+import propagator_ringStepBare from './propagators/ring';
+import propagator_minStep from './propagators/min';
+import propagator_mulStep from './propagators/mul';
+import propagator_divStep from './propagators/div';
+import {
+  propagator_gtStepBare,
+  propagator_gtStepWouldReject,
+  propagator_ltStepBare,
+  propagator_ltStepWouldReject,
+} from './propagators/lt';
+import {
+  propagator_gteStepBare,
+  propagator_gteStepWouldReject,
+  propagator_lteStepBare,
+  propagator_lteStepWouldReject,
+} from './propagators/lte';
+import {
+  propagator_eqStepBare,
+  propagator_eqStepWouldReject,
+} from './propagators/eq';
+import {
+  propagator_neqStepBare,
+  propagator_neqStepWouldReject,
+} from './propagators/neq';
+
 // BODY_START
 
-const PROP_PNAME = 0;
-const PROP_VAR_INDEXES = 1;
-const PROP_ARG1 = 2;
-const PROP_ARG2 = 3;
+/**
+ * @param {string} name
+ * @param {number|number[]} index1 Only number[] for name=callback
+ * @param {number} [index2=-1]
+ * @param {number} [index3=-1]
+ * @param {string} [arg1='']
+ * @param {string} [arg2='']
+ * @param {string} [arg3='']
+ * @param {string} [arg4='']
+ * @param {string} [arg5]
+ * @param {string} [arg6]
+ * @returns {$propagator}
+ */
+function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '', arg5, arg6) {
+  return {
+    _class: '$propagator',
+    name: name,
+    stepper: stepFunc,
+    index1: index1,
+    index2: index2,
+    index3: index3,
+    arg1: arg1,
+    arg2: arg2,
+    arg3: arg3,
+    arg4: arg4,
+    arg5: arg5,
+    arg6: arg6,
+  };
+}
 
 /**
  * Adds propagators which reify the given operator application
@@ -55,9 +108,18 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
+  let nopName;
+  let opFunc;
+  let nopFunc;
+  let opRejectChecker;
+  let nopRejectChecker;
   switch (opname) {
     case 'eq': {
-      var nopname = 'neq';
+      opFunc = propagator_eqStepBare;
+      opRejectChecker = propagator_eqStepWouldReject;
+      nopName = 'neq';
+      nopFunc = propagator_neqStepBare;
+      nopRejectChecker = propagator_neqStepWouldReject;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -87,7 +149,11 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     }
 
     case 'neq': {
-      nopname = 'eq';
+      opFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_neqStepWouldReject;
+      nopName = 'eq';
+      nopFunc = propagator_eqStepBare;
+      nopRejectChecker = propagator_eqStepWouldReject;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -116,26 +182,42 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       break;
     }
     case 'lt':
-      nopname = 'gte';
+      opFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_ltStepWouldReject;
+      nopName = 'gte';
+      nopFunc = propagator_gteStepBare;
+      nopRejectChecker = propagator_gteStepWouldReject;
       break;
 
     case 'gt':
-      nopname = 'lte';
+      opFunc = propagator_gtStepBare;
+      opRejectChecker = propagator_gtStepWouldReject;
+      nopName = 'lte';
+      nopFunc = propagator_lteStepBare;
+      nopRejectChecker = propagator_lteStepWouldReject;
       break;
 
     case 'lte':
-      nopname = 'gt';
+      opFunc = propagator_lteStepBare;
+      opRejectChecker = propagator_lteStepWouldReject;
+      nopName = 'gt';
+      nopFunc = propagator_gtStepBare;
+      nopRejectChecker = propagator_gtStepWouldReject;
       break;
 
     case 'gte':
-      nopname = 'lt';
+      opFunc = propagator_gteStepBare;
+      opRejectChecker = propagator_gteStepWouldReject;
+      nopName = 'lt';
+      nopFunc = propagator_ltStepBare;
+      nopRejectChecker = propagator_ltStepWouldReject;
       break;
 
     default:
       THROW('UNKNOWN_REIFIED_OP');
   }
 
-  config_addPropagator(config, ['reified', [leftVarIndex, rightVarIndex, resultVarIndex], opname, nopname]);
+  config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opname, nopName, opRejectChecker, nopRejectChecker));
 }
 
 /**
@@ -146,7 +228,7 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 function propagator_addCallback(config, varIndexes, callback) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  config_addPropagator(config, ['callback', varIndexes, callback]);
+  config_addPropagator(config, propagator_create('callback', propagator_callbackStepBare, varIndexes, 0, 0, callback));
 }
 
 /**
@@ -165,7 +247,7 @@ function propagator_addEq(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
-  config_addPropagator(config, ['eq', [leftVarIndex, rightVarIndex]]);
+  config_addPropagator(config, propagator_create('eq', propagator_eqStepBare, leftVarIndex, rightVarIndex));
 }
 
 /**
@@ -181,7 +263,7 @@ function propagator_addLt(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
-  config_addPropagator(config, ['lt', [leftVarIndex, rightVarIndex]]);
+  config_addPropagator(config, propagator_create('lt', propagator_ltStepBare, leftVarIndex, rightVarIndex));
 }
 
 /**
@@ -208,7 +290,7 @@ function propagator_addLte(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
-  config_addPropagator(config, ['lte', [leftVarIndex, rightVarIndex]]);
+  config_addPropagator(config, propagator_create('lte', propagator_lteStepBare, leftVarIndex, rightVarIndex));
 }
 
 /**
@@ -223,7 +305,7 @@ function propagator_addMul(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
-  config_addPropagator(config, ['mul', [leftVarIndex, rightVarIndex, resultVarIndex]]);
+  config_addPropagator(config, propagator_create('mul', propagator_mulStep, leftVarIndex, rightVarIndex, resultVarIndex));
 }
 
 /**
@@ -238,7 +320,7 @@ function propagator_addDiv(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
-  config_addPropagator(config, ['div', [leftVarIndex, rightVarIndex, resultVarIndex]]);
+  config_addPropagator(config, propagator_create('div', propagator_divStep, leftVarIndex, rightVarIndex, resultVarIndex));
 }
 
 /**
@@ -265,7 +347,7 @@ function propagator_addNeq(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
-  config_addPropagator(config, ['neq', [leftVarIndex, rightVarIndex]]);
+  config_addPropagator(config, propagator_create('neq', propagator_neqStepBare, leftVarIndex, rightVarIndex));
 }
 
 /**
@@ -320,7 +402,7 @@ function propagator_addRing(config, A, B, C, op) {
   ASSERT(typeof B === 'number' && B >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', B);
   ASSERT(typeof C === 'number' && C >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', C);
 
-  config_addPropagator(config, ['ring', [A, B, C], op]);
+  config_addPropagator(config, propagator_create('ring', propagator_ringStepBare, A, B, C, op));
 }
 
 /**
@@ -347,7 +429,7 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
-  config_addPropagator(config, ['min', [leftVarIndex, rightVarIndex, resultVarIndex]]);
+  config_addPropagator(config, propagator_create('min', propagator_minStep, leftVarIndex, rightVarIndex, resultVarIndex));
 }
 
 /**
@@ -458,17 +540,12 @@ function propagator_addMarkov(config, varIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varIndex === 'number' && varIndex >= 0, 'VAR_SHOULD_BE_VALID_INDEX', varIndex);
 
-  config_addPropagator(config, ['markov', [varIndex]]);
+  config_addPropagator(config, propagator_create('markov', propagator_markovStepBare, varIndex));
 }
 
 // BODY_STOP
 
 export {
-  PROP_PNAME,
-  PROP_VAR_INDEXES,
-  PROP_ARG1,
-  PROP_ARG2,
-
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,

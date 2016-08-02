@@ -9,10 +9,6 @@ import {
 } from '../helpers';
 
 import {
-  propagator_stepComparison,
-  propagator_stepWouldReject,
-} from './step_comparison';
-import {
   ZERO,
   ONE,
   BOOL,
@@ -28,11 +24,13 @@ import {
  * @param {number} leftVarIndex
  * @param {number} rightVarIndex
  * @param {number} resultVarIndex
+ * @param {Function} opFunc like propagator_ltStepBare
+ * @param {Function} nopFunc opposite of opFunc like propagator_gtStepBare
  * @param {string} opName
  * @param {string} invOpName
  * @returns {$fd_changeState}
  */
-function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opName, invOpName) {
+function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName, opRejectChecker, nopRejectChecker) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -40,32 +38,43 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_NUMBER');
   ASSERT(typeof invOpName === 'string', 'NOP_SHOULD_BE_NUMBER');
 
-  let domResult = space.vardoms[resultVarIndex];
+  let vardoms = space.vardoms;
+  let domResult = vardoms[resultVarIndex];
   ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (domResult === ZERO) {
-    return propagator_stepComparison(space, invOpName, leftVarIndex, rightVarIndex);
+    return nopFunc(space, leftVarIndex, rightVarIndex);
   }
 
   if (domResult === ONE) {
-    return propagator_stepComparison(space, opName, leftVarIndex, rightVarIndex);
+    return opFunc(space, leftVarIndex, rightVarIndex);
   }
 
-  let domain1 = space.vardoms[leftVarIndex];
-  let domain2 = space.vardoms[rightVarIndex];
+  let domain1 = vardoms[leftVarIndex];
+  let domain2 = vardoms[rightVarIndex];
 
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+  ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
-  // domResult can only shrink so we only need to check its current state
-  if ((domResult & ZERO) && propagator_stepWouldReject(invOpName, domain1, domain2)) {
-    space.vardoms[resultVarIndex] = domResult &= ONE;
-    return domResult === EMPTY ? REJECTED : SOME_CHANGES;
+  // we'll need to confirm both in any case so do it first now
+  let opRejects = opRejectChecker(domain1, domain2);
+  let nopRejects = nopRejectChecker(domain1, domain2);
+
+  // if op and nop both reject then we cant fulfill the constraints
+  // otherwise the reifier must solve to the other op
+  if (nopRejects) {
+    if (opRejects) {
+      vardoms[resultVarIndex] = EMPTY;
+      return REJECTED;
+    }
+    vardoms[resultVarIndex] = ONE;
+    return SOME_CHANGES;
   }
-  if ((domResult & ONE) && propagator_stepWouldReject(opName, domain1, domain2)) {
-    space.vardoms[resultVarIndex] = domResult &= ZERO;
-    return domResult === EMPTY ? REJECTED : SOME_CHANGES;
+  if (opRejects) {
+    vardoms[resultVarIndex] = ZERO;
+    return SOME_CHANGES;
   }
 
   return NO_CHANGES;

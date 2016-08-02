@@ -94,6 +94,10 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   return leftChanged || rightChanged || NO_CHANGES;
 }
 
+function propagator_gtStepBare(space, varIndex1, varIndex2) {
+  return propagator_ltStepBare(space, varIndex2, varIndex1);
+}
+
 /**
  * lt would reject if all elements in the left var are bigger or equal to
  * the right var. And since everything is CSIS, we only have to check the
@@ -110,6 +114,17 @@ function propagator_ltStepWouldReject(domain1, domain2) {
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_any_min(domain1) >= domain_any_max(domain2);
+}
+
+/**
+ * Reverse of propagator_ltStepWouldReject
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
+ */
+function propagator_gtStepWouldReject(domain1, domain2) {
+  return propagator_ltStepWouldReject(domain2, domain1);
 }
 
 /**
@@ -133,6 +148,8 @@ function propagator_ltSolved(domain1, domain2) {
 // BODY_STOP
 
 export {
+  propagator_gtStepBare,
+  propagator_gtStepWouldReject,
   propagator_ltStepBare,
   propagator_ltStepWouldReject,
   propagator_ltSolved,

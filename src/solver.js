@@ -45,11 +45,6 @@ import {
 } from './space';
 
 import {
-  PROP_PNAME,
-  PROP_VAR_INDEXES,
-  PROP_ARG1,
-} from './propagator';
-import {
   config_addConstraint,
 } from './config';
 
@@ -81,7 +76,7 @@ class Solver {
       config = config_create(),
     } = options;
 
-    if (config.initial_vars) {
+    if (config.initial_vars) { // deprecated
       let doms = [];
       for (let i = 0, n = config.all_var_names.length; i < n; ++i) {
         doms[i] = config.initial_vars[config.all_var_names[i]];
@@ -99,6 +94,8 @@ class Solver {
         if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
       }
     }
+    if (config._propagators) config._propagators = undefined; // will be regenerated
+    if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
 
     this._class = 'solver';
 
@@ -753,7 +750,7 @@ class Solver {
     let propagators = config._propagators;
     console.log('  index name vars args');
     for (let i = 0; i < propagators.length; ++i) {
-      console.log('  ', i, ':', propagators[i][PROP_PNAME], ':', propagators[i][PROP_VAR_INDEXES], ':', propagators[i].slice(PROP_ARG1));
+      console.log('  ', i, ':', propagators[i].name, ':', propagators[i].index1, propagators[i].index2, propagators[i].index3, ':', propagators[i].arg1, propagators[i].arg2);
     }
 
     console.log('##');

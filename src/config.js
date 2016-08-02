@@ -24,8 +24,6 @@ import {
   trie_has,
 } from './trie';
 import {
-  PROP_VAR_INDEXES,
-
   propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
@@ -373,6 +371,7 @@ function config_setOptions(config, options) {
  */
 function config_addPropagator(config, propagator) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
   config._propagators.push(propagator);
 }
 
@@ -407,18 +406,27 @@ function config_populateVarPropHash(config) {
   let propagators = config._propagators;
   let initialDomains = config.initial_domains;
   for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
-    let pvars = propagators[propagatorIndex][PROP_VAR_INDEXES];
-    for (let propVarIndex = 0, vlen = pvars.length; propVarIndex < vlen; ++propVarIndex) {
-      let varIndex = pvars[propVarIndex];
-      // dont bother adding props on unsolved vars because they can't affect
-      // anything anymore. seems to prevent about 10% in our case so worth it.
-      if (!domain_str_isSolved(initialDomains[varIndex])) {
-        if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
-        else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
-      }
-    }
+    let propagator = propagators[propagatorIndex];
+    _config_addVarConditionally(propagator.index1, initialDomains, hash, propagatorIndex);
+    if (propagator.index2 >= 0) _config_addVarConditionally(propagator.index2, initialDomains, hash, propagatorIndex);
+    if (propagator.index3 >= 0) _config_addVarConditionally(propagator.index3, initialDomains, hash, propagatorIndex);
   }
   config._varToPropagators = hash;
+}
+function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorIndex) {
+  if (typeof varIndex === 'number') {
+    // dont bother adding props on unsolved vars because they can't affect
+    // anything anymore. seems to prevent about 10% in our case so worth it.
+    if (!domain_str_isSolved(initialDomains[varIndex])) {
+      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
+    }
+  } else {
+    ASSERT(varIndex instanceof Array);
+    for (let i = 0, len = varIndex.length; i < len; ++i) {
+      _config_addVarConditionally(varIndex[i], initialDomains, hash, propagatorIndex);
+    }
+  }
 }
 
 function config_addConstraint(config, name, varNames, param) {

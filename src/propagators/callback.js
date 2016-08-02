@@ -15,7 +15,7 @@ import {
  * @param {Function} func
  * @returns {$fd_changeState}
  */
-function propagator_callbackStepBare(space, varIndexes, func) {
+function propagator_callbackStepBare(space, varIndexes, _2, _3, func) {
   // the callback should return `false` if the state should be rejected, `true` otherwise
   if (func(space, varIndexes)) {
     return NO_CHANGES;

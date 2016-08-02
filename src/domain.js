@@ -2013,6 +2013,9 @@ function domain_any_getChangeState(newDom, oldDom) {
   ASSERT_NUMSTRDOM(newDom);
   ASSERT_NUMSTRDOM(oldDom);
 
+  if (newDom === oldDom) return NO_CHANGES;
+  if (!newDom) return REJECTED;
+
   if (domain_any_isEqual(newDom, oldDom)) return NO_CHANGES;
   if (domain_any_isRejected(newDom)) return REJECTED;
   return SOME_CHANGES;

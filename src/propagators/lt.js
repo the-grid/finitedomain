@@ -94,6 +94,10 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   return leftChanged || rightChanged || NO_CHANGES;
 }
 
+function propagator_gtStepBare(space, varIndex1, varIndex2) {
+  return propagator_ltStepBare(space, varIndex2, varIndex1);
+}
+
 /**
  * lt would reject if all elements in the left var are bigger or equal to
  * the right var. And since everything is CSIS, we only have to check the
@@ -133,6 +137,7 @@ function propagator_ltSolved(domain1, domain2) {
 // BODY_STOP
 
 export {
+  propagator_gtStepBare,
   propagator_ltStepBare,
   propagator_ltStepWouldReject,
   propagator_ltSolved,

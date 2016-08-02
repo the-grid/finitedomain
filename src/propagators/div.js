@@ -5,10 +5,31 @@ import {
 
 import {
   domain_any_divby,
+  domain_any_getChangeState,
   domain_any_intersection,
 } from '../domain';
 
 // BODY_START
+
+
+/**
+ * @param {$space} space
+ * @param {number} varIndex1
+ * @param {number} varIndex2
+ * @param {number} varIndex3
+ * @returns {$fd_changeState}
+ */
+function propagator_divStep(space, varIndex1, varIndex2, varIndex3) {
+  ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
+  let domain1 = space.vardoms[varIndex1];
+  let domain2 = space.vardoms[varIndex2];
+  let domain3 = space.vardoms[varIndex3];
+
+  let domNext = _propagator_divStep(domain1, domain2, domain3);
+  space.vardoms[varIndex3] = domNext;
+
+  return domain_any_getChangeState(domNext, domain3);
+}
 
 /**
  * @param {$domain} domain1
@@ -16,7 +37,7 @@ import {
  * @param {$domain} domResult
  * @returns {$domain}
  */
-function propagator_divStep(domain1, domain2, domResult) {
+function _propagator_divStep(domain1, domain2, domResult) {
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');

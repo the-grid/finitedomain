@@ -11,10 +11,12 @@ import {
 } from '../helpers';
 
 import {
+  propagator_gtStepWouldReject,
   propagator_ltStepWouldReject,
 } from './lt';
 
 import {
+  propagator_gteStepWouldReject,
   propagator_lteStepWouldReject,
 } from './lte';
 
@@ -26,55 +28,7 @@ import {
   propagator_neqStepWouldReject,
 } from './neq';
 
-import {
-  propagator_ltStepBare,
-} from './lt';
-
-import {
-  propagator_lteStepBare,
-} from './lte';
-
-import {
-  propagator_eqStepBare,
-} from './eq';
-
-import {
-  propagator_neqStepBare,
-} from './neq';
-
 // BODY_START
-
-/**
- * @param {$space} space
- * @param {string} opName
- * @param {number} varIndex1
- * @param {number} varIndex2
- * @returns {$fd_changeState}
- */
-function propagator_stepComparison(space, opName, varIndex1, varIndex2) {
-  switch (opName) {
-    case 'eq':
-      return propagator_eqStepBare(space, varIndex1, varIndex2);
-
-    case 'lt':
-      return propagator_ltStepBare(space, varIndex1, varIndex2);
-
-    case 'lte':
-      return propagator_lteStepBare(space, varIndex1, varIndex2);
-
-    case 'gt':
-      return propagator_stepComparison(space, 'lt', varIndex2, varIndex1);
-
-    case 'gte':
-      return propagator_stepComparison(space, 'lte', varIndex2, varIndex1);
-
-    case 'neq':
-      return propagator_neqStepBare(space, varIndex1, varIndex2);
-
-    default:
-      return THROW(`unsupported propagator: [${opName}]`);
-  }
-}
 
 /**
  * Do a fast dry run of one of the comparison propagators. Only returns
@@ -93,11 +47,11 @@ function propagator_stepWouldReject(opName, domain1, domain2) {
     case 'lte':
       return propagator_lteStepWouldReject(domain1, domain2);
 
-    case 'gt': // A > B   <=>   B < A
-      return propagator_ltStepWouldReject(domain2, domain1); // swapped vars!
+    case 'gt':
+      return propagator_gtStepWouldReject(domain1, domain2);
 
-    case 'gte': // A >= B   <=>   B <= A
-      return propagator_lteStepWouldReject(domain2, domain1); // swapped vars!
+    case 'gte':
+      return propagator_gteStepWouldReject(domain1, domain2);
 
     case 'eq':
       return propagator_eqStepWouldReject(domain1, domain2);
@@ -112,6 +66,5 @@ function propagator_stepWouldReject(opName, domain1, domain2) {
 // BODY_STOP
 
 export {
-  propagator_stepComparison,
   propagator_stepWouldReject,
 };

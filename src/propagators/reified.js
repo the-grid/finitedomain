@@ -9,7 +9,6 @@ import {
 } from '../helpers';
 
 import {
-  propagator_stepComparison,
   propagator_stepWouldReject,
 } from './step_comparison';
 import {
@@ -28,11 +27,13 @@ import {
  * @param {number} leftVarIndex
  * @param {number} rightVarIndex
  * @param {number} resultVarIndex
+ * @param {Function} opFunc like propagator_ltStepBare
+ * @param {Function} nopFunc opposite of opFunc like propagator_gtStepBare
  * @param {string} opName
  * @param {string} invOpName
  * @returns {$fd_changeState}
  */
-function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opName, invOpName) {
+function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -44,11 +45,11 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (domResult === ZERO) {
-    return propagator_stepComparison(space, invOpName, leftVarIndex, rightVarIndex);
+    return nopFunc(space, leftVarIndex, rightVarIndex);
   }
 
   if (domResult === ONE) {
-    return propagator_stepComparison(space, opName, leftVarIndex, rightVarIndex);
+    return opFunc(space, leftVarIndex, rightVarIndex);
   }
 
   let domain1 = space.vardoms[leftVarIndex];

@@ -117,6 +117,17 @@ function propagator_ltStepWouldReject(domain1, domain2) {
 }
 
 /**
+ * Reverse of propagator_ltStepWouldReject
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
+ */
+function propagator_gtStepWouldReject(domain1, domain2) {
+  return propagator_ltStepWouldReject(domain2, domain1);
+}
+
+/**
  * lt is solved if dom1 contains no values that are equal
  * to or higher than any numbers in dom2. Since domains
  * only shrink we can assume that the lt constraint will not
@@ -138,6 +149,7 @@ function propagator_ltSolved(domain1, domain2) {
 
 export {
   propagator_gtStepBare,
+  propagator_gtStepWouldReject,
   propagator_ltStepBare,
   propagator_ltStepWouldReject,
   propagator_ltSolved,

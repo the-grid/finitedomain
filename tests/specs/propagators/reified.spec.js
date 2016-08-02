@@ -60,7 +60,7 @@ describe('propagators/reified.spec', function() {
           let A = space.config.all_var_names.indexOf('A');
           let B = space.config.all_var_names.indexOf('B');
           let bool = space.config.all_var_names.indexOf('bool');
-          let out = propagator_reifiedStepBare(space, A, B, bool, op, invop);
+          let out = propagator_reifiedStepBare(space, A, B, bool, null, null, op, invop);
 
           expect(out, 'should reflect changed state').to.equal(expected_out);
           expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);

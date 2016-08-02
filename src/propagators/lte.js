@@ -81,7 +81,6 @@ function propagator_gteStepBare(space, varIndex1, varIndex2) {
  * lte would reject if all elements in the left var are bigger than the
  * right var. And since everything is CSIS, we only have to check the
  * lo bound of left to the high bound of right for that answer.
- * Read-only check
  *
  * @param {$domain} domain1
  * @param {$domain} domain2
@@ -93,6 +92,17 @@ function propagator_lteStepWouldReject(domain1, domain2) {
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_any_min(domain1) > domain_any_max(domain2);
+}
+
+/**
+ * Reverse of propagator_lteStepWouldReject
+ *
+ * @param {$domain} domain1
+ * @param {$domain} domain2
+ * @returns {boolean}
+ */
+function propagator_gteStepWouldReject(domain1, domain2) {
+  return propagator_lteStepWouldReject(domain2, domain1);
 }
 
 /**
@@ -117,6 +127,7 @@ function propagator_lteSolved(domain1, domain2) {
 
 export {
   propagator_gteStepBare,
+  propagator_gteStepWouldReject,
   propagator_lteStepBare,
   propagator_lteStepWouldReject,
   propagator_lteSolved,

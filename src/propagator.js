@@ -24,9 +24,11 @@ import propagator_minStep from './propagators/min';
 import propagator_mulStep from './propagators/mul';
 import propagator_divStep from './propagators/div';
 import {
+  propagator_gtStepBare,
   propagator_ltStepBare,
 } from './propagators/lt';
 import {
+  propagator_gteStepBare,
   propagator_lteStepBare,
 } from './propagators/lte';
 import {
@@ -47,7 +49,7 @@ import {
  * @param {string} [arg2='']
  * @returns {$propagator}
  */
-function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '') {
+function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '') {
   return {
     _class: '$propagator',
     name: name,
@@ -57,6 +59,8 @@ function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg
     index3: index3,
     arg1: arg1,
     arg2: arg2,
+    arg3: arg3,
+    arg4: arg4,
   };
 }
 
@@ -92,9 +96,14 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
+  let nopName;
+  let opFunc;
+  let nopFunc;
   switch (opname) {
     case 'eq': {
-      var nopname = 'neq';
+      opFunc = propagator_eqStepBare;
+      nopName = 'neq';
+      nopFunc = propagator_neqStepBare;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -124,7 +133,9 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     }
 
     case 'neq': {
-      nopname = 'eq';
+      opFunc = propagator_neqStepBare;
+      nopName = 'eq';
+      nopFunc = propagator_eqStepBare;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -153,26 +164,34 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       break;
     }
     case 'lt':
-      nopname = 'gte';
+      opFunc = propagator_neqStepBare;
+      nopName = 'gte';
+      nopFunc = propagator_gteStepBare;
       break;
 
     case 'gt':
-      nopname = 'lte';
+      opFunc = propagator_gtStepBare;
+      nopName = 'lte';
+      nopFunc = propagator_lteStepBare;
       break;
 
     case 'lte':
-      nopname = 'gt';
+      opFunc = propagator_lteStepBare;
+      nopName = 'gt';
+      nopFunc = propagator_gtStepBare;
       break;
 
     case 'gte':
-      nopname = 'lt';
+      opFunc = propagator_gteStepBare;
+      nopName = 'lt';
+      nopFunc = propagator_ltStepBare;
       break;
 
     default:
       THROW('UNKNOWN_REIFIED_OP');
   }
 
-  config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opname, nopname));
+  config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opname, nopName));
 }
 
 /**

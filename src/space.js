@@ -257,7 +257,7 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, _i) {
   ASSERT(typeof func === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
-  let n = func(space, propagator.index1, propagator.index2, propagator.index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4);
+  let n = func(space, propagator.index1, propagator.index2, propagator.index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   // the domain of either var of a propagator can only be empty if the prop REJECTED
   ASSERT(n === REJECTED || space.vardoms[propagator.index1] || propagator.name === 'callback', 'prop var empty but it didnt REJECT', JSON.stringify(propagator));

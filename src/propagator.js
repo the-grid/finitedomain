@@ -25,17 +25,23 @@ import propagator_mulStep from './propagators/mul';
 import propagator_divStep from './propagators/div';
 import {
   propagator_gtStepBare,
+  propagator_gtStepWouldReject,
   propagator_ltStepBare,
+  propagator_ltStepWouldReject,
 } from './propagators/lt';
 import {
   propagator_gteStepBare,
+  propagator_gteStepWouldReject,
   propagator_lteStepBare,
+  propagator_lteStepWouldReject,
 } from './propagators/lte';
 import {
   propagator_eqStepBare,
+  propagator_eqStepWouldReject,
 } from './propagators/eq';
 import {
   propagator_neqStepBare,
+  propagator_neqStepWouldReject,
 } from './propagators/neq';
 
 // BODY_START
@@ -49,7 +55,7 @@ import {
  * @param {string} [arg2='']
  * @returns {$propagator}
  */
-function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '') {
+function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '', arg5, arg6) {
   return {
     _class: '$propagator',
     name: name,
@@ -61,6 +67,8 @@ function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg
     arg2: arg2,
     arg3: arg3,
     arg4: arg4,
+    arg5: arg5,
+    arg6: arg6,
   };
 }
 
@@ -99,11 +107,15 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   let nopName;
   let opFunc;
   let nopFunc;
+  let opRejectChecker;
+  let nopRejectChecker;
   switch (opname) {
     case 'eq': {
       opFunc = propagator_eqStepBare;
+      opRejectChecker = propagator_eqStepWouldReject;
       nopName = 'neq';
       nopFunc = propagator_neqStepBare;
+      nopRejectChecker = propagator_neqStepWouldReject;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -134,8 +146,10 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
     case 'neq': {
       opFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_neqStepWouldReject;
       nopName = 'eq';
       nopFunc = propagator_eqStepBare;
+      nopRejectChecker = propagator_eqStepWouldReject;
 
       let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
       let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
@@ -165,33 +179,41 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     }
     case 'lt':
       opFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_ltStepWouldReject;
       nopName = 'gte';
       nopFunc = propagator_gteStepBare;
+      nopRejectChecker = propagator_gteStepWouldReject;
       break;
 
     case 'gt':
       opFunc = propagator_gtStepBare;
+      opRejectChecker = propagator_gtStepWouldReject;
       nopName = 'lte';
       nopFunc = propagator_lteStepBare;
+      nopRejectChecker = propagator_lteStepWouldReject;
       break;
 
     case 'lte':
       opFunc = propagator_lteStepBare;
+      opRejectChecker = propagator_lteStepWouldReject;
       nopName = 'gt';
       nopFunc = propagator_gtStepBare;
+      nopRejectChecker = propagator_gtStepWouldReject;
       break;
 
     case 'gte':
       opFunc = propagator_gteStepBare;
+      opRejectChecker = propagator_gteStepWouldReject;
       nopName = 'lt';
       nopFunc = propagator_ltStepBare;
+      nopRejectChecker = propagator_ltStepWouldReject;
       break;
 
     default:
       THROW('UNKNOWN_REIFIED_OP');
   }
 
-  config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opname, nopName));
+  config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opname, nopName, opRejectChecker, nopRejectChecker));
 }
 
 /**

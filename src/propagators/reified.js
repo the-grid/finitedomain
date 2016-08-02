@@ -9,9 +9,6 @@ import {
 } from '../helpers';
 
 import {
-  propagator_stepWouldReject,
-} from './step_comparison';
-import {
   ZERO,
   ONE,
   BOOL,
@@ -33,7 +30,7 @@ import {
  * @param {string} invOpName
  * @returns {$fd_changeState}
  */
-function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName) {
+function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName, opRejectChecker, nopRejectChecker) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -62,8 +59,8 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
   // we'll need to confirm both in any case so do it first now
-  let opRejects = propagator_stepWouldReject(opName, domain1, domain2);
-  let nopRejects = propagator_stepWouldReject(invOpName, domain1, domain2);
+  let opRejects = opRejectChecker(domain1, domain2);
+  let nopRejects = nopRejectChecker(domain1, domain2);
 
   // if op and nop both reject then we cant fulfill the constraints
   // otherwise the reifier must solve to the other op

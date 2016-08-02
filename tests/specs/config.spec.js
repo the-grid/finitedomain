@@ -21,6 +21,7 @@ import {
   config_addVarRange,
   config_clone,
   config_create,
+  config_createVarStratConfig,
   config_generateVars,
   //config_setDefaults,
   config_setOptions,
@@ -388,68 +389,100 @@ describe('src/config.spec', function() {
 
     it('should copy the var', function() {
       let config = config_create();
-      config_setOptions(config, {var: 'A'});
+      config_setOptions(config, {varStrategy: {type: 'A'}});
 
-      expect(config.next_var_func).to.equal('A');
+      expect(config.varStratConfig.type).to.equal('A');
     });
 
-    it('should init the var config of a single level without priority_list', function() {
+    it('should init the var config of a single level without priorityList', function() {
       let config = config_create();
-      let opt = {
-        dist_name: 'max',
-      };
       config_setOptions(config, {
-        var: opt,
+        varStrategy: {
+          type: 'max',
+        },
       });
 
-      expect(config.next_var_func).to.eql({dist_name: 'max'});
-      expect(opt.priority_hash).to.equal(undefined);
+      expect(config.varStratConfig.type).to.eql('max');
+      expect(config.varStratConfig._priorityByIndex).to.equal(undefined);
     });
 
-    it('should init the var config of a single level and a priority_list', function() {
+    it('should init the var config of a single level and a priorityList', function() {
       let config = config_create();
-      let opt = {
-        dist_name: 'list',
-        priority_list: ['B_list', 'A_list'],
-      };
       config_setOptions(config, {
-        var: opt,
+        varStrategy: {
+          type: 'list',
+          priorityList: ['B_list', 'A_list'],
+        },
       });
 
-      expect(config.next_var_func, 'next var func').to.equal(opt);
-      expect(opt.priority_hash, 'priority hash').to.eql({B_list: 2, A_list: 1});
+      expect(config.varStratConfig).to.eql({
+        _class: '$var_strat_config',
+        type: 'list',
+        inverted: false,
+        priorityByName: ['B_list', 'A_list'],
+        _priorityByIndex: undefined, // not yet initialized
+        fallback: undefined,
+      });
     });
 
     it('should init the var config with a fallback level', function() {
       let config = config_create();
-      let opt = {
-        dist_name: 'list',
-        priority_list: ['B_list', 'A_list'],
-        fallback_config: {
-          dist_name: 'markov',
-          fallback_config: 'size',
+      config_setOptions(config, {
+        varStrategy: {
+          type: 'list',
+          priorityList: ['B_list', 'A_list'],
+          fallback: {
+            type: 'markov',
+            fallback: {
+              type: 'size',
+            },
+          },
         },
-      };
-      config_setOptions(config, {var: opt});
+      });
 
-      expect(config.next_var_func).to.equal(opt);
-      expect(opt.priority_hash).to.eql({B_list: 2, A_list: 1});
+      expect(config.varStratConfig).to.eql(config_createVarStratConfig({
+        type: 'list',
+        priorityList: ['B_list', 'A_list'],
+        fallback: config_createVarStratConfig({
+          type: 'markov',
+          fallback: config_createVarStratConfig({
+            type: 'size',
+          }),
+        }),
+      }));
     });
 
     it('should put the priority hash on the var opts even if fallback', function() {
       let config = config_create();
-      let opt = {
-        dist_name: 'max',
-        fallback_config: {
-          dist_name: 'list',
-          priority_list: ['B_list', 'A_list'],
+      config_setOptions(config, {
+        varStrategy: {
+          type: 'max',
+          fallback: {
+            type: 'list',
+            priorityList: ['B_list', 'A_list'],
+          },
         },
-      };
-      config_setOptions(config, {var: opt});
+      });
 
-      expect(config.next_var_func).to.equal(opt);
-      expect(opt.priority_hash).to.eql(undefined);
-      expect(opt.fallback_config.priority_hash).to.eql({B_list: 2, A_list: 1});
+      expect(config.varStratConfig).to.eql(config_createVarStratConfig({
+        type: 'max',
+        fallback: config_createVarStratConfig({
+          type: 'list',
+          priorityList: ['B_list', 'A_list'],
+        }),
+      }));
+    });
+
+    it('should throw for some legacy config structs', function() {
+      let config = config_create();
+
+      expect(_ => config_setOptions(config, {var: {}})).to.throw('REMOVED. Replace `var` with `varStrategy`');
+      expect(_ => config_setOptions(config, {varStrategy: _ => 0})).to.throw('functions no longer supported');
+      expect(_ => config_setOptions(config, {varStrategy: 'foo'})).to.throw('strings should be type property');
+      expect(_ => config_setOptions(config, {varStrategy: 15})).to.throw('varStrategy should be object');
+      expect(_ => config_setOptions(config, {varStrategy: {name: 'foo'}})).to.throw('name should be type');
+      expect(_ => config_setOptions(config, {varStrategy: {dist_name: 'foo'}})).to.throw('dist_name should be type');
+      expect(_ => config_setOptions(config, {val: {}})).to.throw('REMOVED. Replace `var` with `valueStrategy`');
     });
 
     it('should copy the targeted var names', function() {
@@ -461,7 +494,7 @@ describe('src/config.spec', function() {
 
     it('should copy the var distribution config', function() {
       let config = config_create();
-      config_setOptions(config, {var_dist_config: 'A'});
+      config_setOptions(config, {varStratOverrides: 'A'});
 
       expect(config.var_dist_options).to.equal('A');
     });

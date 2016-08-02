@@ -268,7 +268,7 @@ class Solver {
       vars.byName[name].push(v);
     }
 
-    if (distribute === 'markov' || (v.distributeOptions && v.distributeOptions.distributor_name === 'markov')) {
+    if (distribute === 'markov' || (v.distributeOptions && v.distributeOptions.valtype === 'markov')) {
       let { matrix } = v.distributeOptions;
       if (!matrix) {
         if (v.distributeOptions.expandVectorsWith) {
@@ -518,7 +518,7 @@ class Solver {
 
     let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
     if (overrides) {
-      config_setOptions(this.config, {var_dist_config: overrides});
+      config_setOptions(this.config, {varStratOverrides: overrides});
     }
 
     if (!targetAll) config_setOptions(this.config, {targeted_var_names: varNames});
@@ -830,7 +830,7 @@ function solver_runLoop(state, searchFunc, max) {
 /**
  * Visit the branch vars and collect var specific configuration overrides if
  * there are any and put them on the root space. Mainly used for Markov
- * searching. The result is set to be Space#var_dist_config
+ * searching. The result is set to be config.var_dist_options
  *
  * @param {string[]} varNames
  * @param {Object} bvarsById Maps var names to their Bvar
@@ -856,9 +856,9 @@ function solver_collectDistributionOverrides(varNames, bvarsById, config) {
       if (bvar && bvar.distribute) {
         if (!overrides) overrides = {};
         if (!overrides[name]) overrides[name] = {};
-        overrides[name].distributor_name = bvar.distribute;
+        overrides[name].valtype = bvar.distribute;
       }
-      if (overrides && overrides[name] && overrides[name].distributor_name === 'markov') {
+      if (overrides && overrides[name] && overrides[name].valtype === 'markov') {
         config_addConstraint(config, 'markov', [name]);
       }
     }

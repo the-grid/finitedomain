@@ -42,10 +42,10 @@ describe('solver.max.spec', function() {
       });
     }
 
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'naive'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'size'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'min'}});
-    itDistributes({0: 99, 98: 1}, {distribute: {val: 'max', var: 'max'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {valueStrategy: 'max'}});
+    itDistributes({0: 99, 98: 1}, {distribute: {valueStrategy: 'max', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 99, 98: 1}, {distribute: {valueStrategy: 'max', varStrategy: {type: 'size'}}});
+    itDistributes({0: 99, 98: 1}, {distribute: {valueStrategy: 'max', varStrategy: {type: 'min'}}});
+    itDistributes({0: 99, 98: 1}, {distribute: {valueStrategy: 'max', varStrategy: {type: 'max'}}});
   });
 });

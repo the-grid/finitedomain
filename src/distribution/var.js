@@ -26,21 +26,10 @@ const WORSE = 3;
  */
 function distribution_getNextVar(space) {
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
-  let configNextVarFunc = space.config.next_var_func;
-  // if it's a function it should return the name of the next var to process
-  if (typeof configNextVarFunc === 'function') {
-    return configNextVarFunc(space, unsolvedVarIndexes);
-  }
+  let varStratConfig = space.config.varStratConfig;
+  let isBetterVarFunc = distribution_getFunc(varStratConfig.type);
 
-  let distName = configNextVarFunc;
-  // if it's an object it's a more complex config
-  if (typeof configNextVarFunc === 'object') {
-    distName = configNextVarFunc.dist_name;
-  }
-
-  let isBetterVar = distribution_getFunc(distName);
-
-  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVar, configNextVarFunc);
+  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVarFunc, varStratConfig);
 }
 
 /**
@@ -74,10 +63,10 @@ function distribution_getFunc(distName) {
  * @param {$space} space
  * @param {number[]} indexes A subset of indexes that are properties on space.vardoms
  * @param {Function($space, string, string, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
- * @param {string|Object} configNextVarFunc From Space; either the varIndex of the dist or specific options for a var dist
+ * @param {Object} varStratConfig
  * @returns {number} The varIndex of the next var or NO_SUCH_VALUE
  */
-function _distribution_varFindBest(space, indexes, fitnessFunc, configNextVarFunc) {
+function _distribution_varFindBest(space, indexes, fitnessFunc, varStratConfig) {
   ASSERT(indexes.length, 'SHOULD_HAVE_VARS');
   let bestVarIndex = NO_SUCH_VALUE;
   for (let i = 0; i < indexes.length; i++) {
@@ -85,7 +74,7 @@ function _distribution_varFindBest(space, indexes, fitnessFunc, configNextVarFun
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
     ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 
-    if (bestVarIndex === NO_SUCH_VALUE || (fitnessFunc && BETTER === fitnessFunc(space, varIndex, bestVarIndex, configNextVarFunc))) {
+    if (bestVarIndex === NO_SUCH_VALUE || (fitnessFunc && BETTER === fitnessFunc(space, varIndex, bestVarIndex, varStratConfig))) {
       bestVarIndex = varIndex;
     }
   }
@@ -132,7 +121,7 @@ function distribution_varByMax(space, varIndex1, varIndex2) {
   return SAME;
 }
 
-function distribution_varByMarkov(space, varIndex1, varIndex2, configNextVarFunc) {
+function distribution_varByMarkov(space, varIndex1, varIndex2, varStratConfig) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
@@ -143,47 +132,41 @@ function distribution_varByMarkov(space, varIndex1, varIndex2, configNextVarFunc
 
   let varName1 = space.config.all_var_names[varIndex1];
   ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  if (distOptions[varName1] && distOptions[varName1].distributor_name === 'markov') {
+  if (distOptions[varName1] && distOptions[varName1].valtype === 'markov') {
     return BETTER;
   }
 
   let varName2 = space.config.all_var_names[varIndex2];
   ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  if (distOptions[varName2] && distOptions[varName2].distributor_name === 'markov') {
+  if (distOptions[varName2] && distOptions[varName2].valtype === 'markov') {
     return WORSE;
   }
 
-  return distribution_varFallback(space, varIndex1, varIndex2, configNextVarFunc.fallback_config);
+  return distribution_varFallback(space, varIndex1, varIndex2, varStratConfig.fallback);
 }
 
-function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) {
+function distribution_varByList(space, varIndex1, varIndex2, varStratConfig) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let varName1 = space.config.all_var_names[varIndex1];
-  ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  let varName2 = space.config.all_var_names[varIndex2];
-  ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-
-  // note: config.priority_hash is compiled by Solver#prepare from given priority_list
+  // note: config._priorityByIndex is compiled by Solver#prepare from given priorityByName
   // if in the list, lowest prio can be 1. if not in the list, prio will be undefined
-  let hash = configNextVarFunc.priority_hash;
+  let hash = varStratConfig._priorityByIndex;
 
   // if v1 or v2 is not in the list they will end up as undefined
-  let p1 = hash[varName1];
-  let p2 = hash[varName2];
+  let p1 = hash[varIndex1];
+  let p2 = hash[varIndex2];
 
   ASSERT(p1 !== 0, 'SHOULD_NOT_USE_INDEX_ZERO');
   ASSERT(p2 !== 0, 'SHOULD_NOT_USE_INDEX_ZERO');
 
-  if (!p1 && !p2) {
-    // either p1 and p2 both dont exist on the list, or ... well no that's it
-    return distribution_varFallback(space, varIndex1, varIndex2, configNextVarFunc.fallback_config);
+  if (!p1 && !p2) { // neither has a priority
+    return distribution_varFallback(space, varIndex1, varIndex2, varStratConfig.fallback);
   }
 
   // invert this operation? ("deprioritizing").
-  let inverted = configNextVarFunc.inverted;
+  let inverted = varStratConfig.inverted;
 
   // if inverted being on the list makes it worse than not.
 
@@ -196,20 +179,17 @@ function distribution_varByList(space, varIndex1, varIndex2, configNextVarFunc) 
     return WORSE;
   }
 
-  // if inverted being low on the list makes it better
+  // the higher the p, the higher the prio. (the input array is compiled that way)
+  // if inverted then low p is higher prio
 
   if (p1 > p2) {
     if (inverted) return WORSE;
     return BETTER;
   }
-  if (p2 > p1) {
-    if (inverted) return BETTER;
-    return WORSE;
-  }
 
-  ASSERT(p1 !== p2, 'A_CANNOT_GET_SAME_INDEX_FOR_DIFFERENT_NAME');
-  THROW('T_SHOULD_NOT_REACH_HERE');
-  return SAME;
+  ASSERT(p1 < p2, 'A_CANNOT_GET_SAME_INDEX_FOR_DIFFERENT_NAME');
+  if (inverted) return BETTER;
+  return WORSE;
 }
 
 function distribution_varFallback(space, varIndex1, varIndex2, fallbackConfig) {
@@ -221,26 +201,7 @@ function distribution_varFallback(space, varIndex1, varIndex2, fallbackConfig) {
     return SAME;
   }
 
-  let distName = fallbackConfig;
-  switch (typeof fallbackConfig) {
-    case 'string':
-      break;
-
-    case 'object':
-      distName = fallbackConfig.dist_name;
-      if (!distName) {
-        THROW(`Missing fallback var distribution name: ${JSON.stringify(fallbackConfig)}`);
-      }
-      break;
-
-    case 'function':
-      // TODO: pass on index or name?
-      return fallbackConfig(varIndex1, varIndex2, space);
-
-    default:
-      THROW('Unexpected fallback config', fallbackConfig);
-  }
-
+  let distName = fallbackConfig.type;
   switch (distName) {
     case 'size':
       return distribution_varByMinSize(space, varIndex1, varIndex2);

@@ -46,11 +46,11 @@ describe('solver.min.spec', function() {
     itDistributes({0: 1, 98: 99}, {distribute: 'naive'});
     itDistributes({0: 1, 98: 99}, {distribute: 'fail_first'});
     itDistributes({0: 1, 98: 99}, {distribute: 'split'});
-    itDistributes({0: 1, 98: 99}, {distribute: {var: 'naive'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'naive'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'size'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'min'}});
-    itDistributes({0: 1, 98: 99}, {distribute: {val: 'min', var: 'max'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {varStrategy: {type: 'naive'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {valueStrategy: 'min'}});
+    itDistributes({0: 1, 98: 99}, {distribute: {valueStrategy: 'min', varStrategy: {type: 'naive'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {valueStrategy: 'min', varStrategy: {type: 'size'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {valueStrategy: 'min', varStrategy: {type: 'min'}}});
+    itDistributes({0: 1, 98: 99}, {distribute: {valueStrategy: 'min', varStrategy: {type: 'max'}}});
   });
 });

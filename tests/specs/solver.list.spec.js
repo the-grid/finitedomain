@@ -200,7 +200,7 @@ describe('src/solver.list.spec', function() {
         id: 'V1',
         domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
-          distributor_name: 'list',
+          valtype: 'list',
           list: [0, 3, 4],
         },
       });
@@ -220,7 +220,7 @@ describe('src/solver.list.spec', function() {
         id: 'V1',
         domain: fixt_arrdom_range(0, 10, true),
         distributeOptions: {
-          distributor_name: 'list',
+          valtype: 'list',
           list: [0, 15],
         },
       });
@@ -236,7 +236,7 @@ describe('src/solver.list.spec', function() {
         id: 'V1',
         domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
-          distributor_name: 'list',
+          valtype: 'list',
           list: [0, 15],
           fallback_dist_name: 'max',
         },
@@ -276,7 +276,7 @@ describe('src/solver.list.spec', function() {
         id: 'V1',
         domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
-          distributor_name: 'list',
+          valtype: 'list',
           list: [3, 0, 1, 5],
           fallback_dist_name: 'max',
         },
@@ -300,7 +300,7 @@ describe('src/solver.list.spec', function() {
         id: 'V1',
         domain: fixt_arrdom_range(0, 5, true),
         distributeOptions: {
-          distributor_name: 'list',
+          valtype: 'list',
           list: [3, 0, 1, 15, 5],
           fallback_dist_name: 'max',
         },

@@ -3,8 +3,10 @@
 
 let config = {
   _class: '$config',
-  nextVarStrat: 'naive',
-  next_value_func: 'min',
+  varStratConfig: {
+    type: 'naive',
+  },
+  valueStratName: 'min',
   targetedVars: ['ITEM_INDEX',
     'ITEM_INDEX&n=1',
     'ITEM_INDEX&n=2',
@@ -108,13 +110,13 @@ let config = {
     '272',
     '274'],
   var_dist_options: {
-    width: {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=1': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=2': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=3': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=4': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=5': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
-    'width&n=6': {list: [4, 3, 2, 1, 5, 6, 7, 8], distributor_name: 'list'},
+    width: {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=1': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=2': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=3': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=4': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=5': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
+    'width&n=6': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
   },
   timeout_callback: undefined,
   all_var_names: ['0',

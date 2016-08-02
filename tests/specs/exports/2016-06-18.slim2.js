@@ -3,8 +3,10 @@
 
 let config = {
   _class: '$config',
-  nextVarStrat: 'naive',
-  next_value_func: 'min',
+  varStratConfig: {
+    type: 'naive',
+  },
+  valueStratName: 'min',
   targetedVars: 'all',
   var_dist_options: {},
   timeout_callback: undefined,

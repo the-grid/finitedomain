@@ -50,21 +50,21 @@ function distribute_getNextDomainForVar(space, varIndex, choiceIndex) {
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(domain_any_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
-  let configNextValueFunc = space.config.next_value_func;
+  let valueStrategy = space.config.valueStratName;
 
   // each var can override the value distributor
   let configVarDistOptions = space.config.var_dist_options;
   let varName = space.config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].distributor_name;
-  if (valueDistributorName) configNextValueFunc = valueDistributorName;
+  let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].valtype;
+  if (valueDistributorName) valueStrategy = valueDistributorName;
 
-  if (typeof configNextValueFunc === 'function') return configNextValueFunc;
-  return _distribute_getNextDomainForVar(configNextValueFunc, space, varIndex, choiceIndex);
+  if (typeof valueStrategy === 'function') return valueStrategy;
+  return _distribute_getNextDomainForVar(valueStrategy, space, varIndex, choiceIndex);
 }
 
-function _distribute_getNextDomainForVar(valueFuncName, space, varIndex, choiceIndex) {
-  switch (valueFuncName) {
+function _distribute_getNextDomainForVar(stratName, space, varIndex, choiceIndex) {
+  switch (stratName) {
     case 'max':
       return distribution_valueByMax(space, varIndex, choiceIndex);
 
@@ -98,7 +98,7 @@ function _distribute_getNextDomainForVar(valueFuncName, space, varIndex, choiceI
       return ASSERT(false, 'not expecting to pick this distributor');
   }
 
-  THROW('unknown next var func', valueFuncName);
+  THROW('unknown next var func', stratName);
 }
 
 /**

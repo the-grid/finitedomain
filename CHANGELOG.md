@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Dropped support for `options.filter` and `options.var_filter_func`; simple truth is we weren't using them and they were causing overhead.
+- Cleaned up config (`config` being the argument to `new Solver({..})` or `config_setOptions(config, {...})`)
+  - `config.var` 
+    - Dropped support for `var` as  a config property, replaced by `varStrategy`
+    - Dropped support for `varStrategy` as a string (the name/type) or function (callback). For the name use the property. There is no alternative for the callback, you need to hardcode it.
+    - `varStrategy` must always be an object
+    - The property `varStrategy.dist_name` is replaced by `varStrategy.type`
+    - The property `varStrategy.fallback_config` is replaced by `varStrategy.fallback`. The fallback is internally now recursively the exact same structure as the root `varStratConfig`.
 
 ## v2.3.4:
 

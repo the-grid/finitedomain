@@ -18,7 +18,7 @@ describe('solver.minmaxcycle.spec', function() {
   describe('process values by alternating between picking the lowest and highest value', function() {
 
     it('should cycle', function() {
-      let solver = new Solver({distribute: {val: 'minMaxCycle'}});
+      let solver = new Solver({distribute: {valueStrategy: 'minMaxCycle'}});
       solver.addVar({
         id: 'V1',
         domain: fixt_arrdom_range(1, 4, true),

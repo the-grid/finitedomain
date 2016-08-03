@@ -52,7 +52,7 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   //
   //  space.vardoms[varIndex1] = EMPTY;
   //  space.vardoms[varIndex2] = EMPTY;
-  //  return REJECTED;
+  //  return;
   //}
 
   // every number in v1 can only be smaller than or equal to the biggest

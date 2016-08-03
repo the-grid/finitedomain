@@ -1,12 +1,10 @@
 import {
   ASSERT,
   ASSERT_NUMSTRDOM,
-  THROW,
 } from '../helpers';
 
 import {
   domain_any_divby,
-  domain_any_getChangeState,
   domain_any_intersection,
   domain_any_mul,
 } from '../domain';
@@ -21,37 +19,18 @@ import domain_any_minus from '../doms/domain_minus';
  * @param {number} varIndex2
  * @param {number} varIndex3
  * @param {string} opName
- * @returns {$fd_changeState}
+ * @param {Function} opFunc
  */
-function propagator_ringStepBare(space, varIndex1, varIndex2, varIndex3, opName) {
+function propagator_ringStepBare(space, varIndex1, varIndex2, varIndex3, opName, opFunc) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
 
-  let opFunc;
-  switch (opName) {
-    case 'plus':
-      opFunc = domain_any_plus;
-      break;
-    case 'min':
-      opFunc = domain_any_minus;
-      break;
-    case 'mul':
-      opFunc = domain_any_mul;
-      break;
-    case 'div':
-      opFunc = domain_any_divby;
-      break;
-    default:
-      THROW('UNKNOWN ring opname', opName);
-  }
+  ASSERT(opName === 'plus' ? opFunc === domain_any_plus : opName === 'min' ? opFunc === domain_any_minus : opName === 'mul' ? opFunc === domain_any_mul : opName === 'div' ? opFunc === domain_any_divby : false, 'should get proper opfunc');
 
-  let domNext = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
-  space.vardoms[varIndex3] = domNext;
-
-  return domain_any_getChangeState(domNext, domain3);
+  space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
 }
 
 /**

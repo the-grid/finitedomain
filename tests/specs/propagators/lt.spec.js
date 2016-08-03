@@ -10,9 +10,6 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
   SUP,
 } from '../../../src/helpers';
 import {
@@ -74,7 +71,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 98));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(95, 99));
     });
@@ -89,7 +86,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, SUP - 1));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(95, SUP));
     });
@@ -104,7 +101,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(NO_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 100));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(101, 101));
     });
@@ -119,7 +116,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(NO_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 150));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(100, 200));
     });
@@ -134,7 +131,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(REJECTED);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
       expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
     });
@@ -149,7 +146,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
     });
@@ -164,7 +161,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
       expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
     });
@@ -270,7 +267,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 8));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(5, 9));
     });
@@ -285,7 +282,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 14));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(5, 15));
     });
@@ -300,7 +297,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(NO_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 10));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(11, 15));
     });
@@ -315,7 +312,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(NO_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 13));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(10, 15));
     });
@@ -330,7 +327,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(REJECTED);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
       expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
     });
@@ -345,7 +342,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(8, 8));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(9, 10));
     });
@@ -360,7 +357,7 @@ describe('propagators/lt.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
 
-      expect(propagator_ltStepBare(space, A, B)).to.eql(SOME_CHANGES);
+      propagator_ltStepBare(space, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(7, 7));
       expect(space.vardoms[B]).to.eql(fixt_numdom_range(8, 13));
     });

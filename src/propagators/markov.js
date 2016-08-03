@@ -1,6 +1,5 @@
 import {
-  NO_CHANGES,
-  REJECTED,
+  EMPTY,
 
   ASSERT,
   ASSERT_NUMSTRDOM,
@@ -25,13 +24,11 @@ import {
  * based on this domain anyways we will need this extra step to verify
  * whether a solved var is solved to a valid value in current context.
  *
- * Return REJECTED if that is the value is invalid, else NO_CHANGES.
  * Every markov variable should have a propagator. Perhaps later
  * there can be one markov propagator that checks all markov vars.
  *
  * @param {$space} space
  * @param {number} varIndex
- * @returns {$fd_changeState}
  */
 function propagator_markovStepBare(space, varIndex) {
   // THIS IS VERY EXPENSIVE IF expandVectorsWith IS ENABLED
@@ -43,9 +40,7 @@ function propagator_markovStepBare(space, varIndex) {
   ASSERT_NUMSTRDOM(domain);
   ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
-  if (!domain_any_isSolved(domain)) {
-    return NO_CHANGES;
-  }
+  if (!domain_any_isSolved(domain)) return;
 
   let value = domain_any_min(domain); // note: solved so lo=hi=value
 
@@ -64,11 +59,9 @@ function propagator_markovStepBare(space, varIndex) {
   let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, values.length);
 
   let pos = values.indexOf(value);
-  if (pos >= 0 && pos < probabilities.length && probabilities[pos] !== 0) {
-    return NO_CHANGES;
+  if (pos < 0 || pos >= probabilities.length || probabilities[pos] === 0) {
+    space.vardoms[varIndex] = EMPTY;
   }
-
-  return REJECTED;
 }
 
 // BODY_STOP

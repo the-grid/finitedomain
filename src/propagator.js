@@ -16,7 +16,6 @@ import {
   domain_toNumstr,
 } from './domain';
 
-import propagator_callbackStepBare from './propagators/callback';
 import propagator_markovStepBare from './propagators/markov';
 import propagator_reifiedStepBare from './propagators/reified';
 import propagator_ringStepBare from './propagators/ring';
@@ -43,12 +42,18 @@ import {
   propagator_neqStepBare,
   propagator_neqStepWouldReject,
 } from './propagators/neq';
+import {
+  domain_any_divby,
+  domain_any_mul,
+} from './domain';
+import domain_any_plus from './doms/domain_plus';
+import domain_any_minus from './doms/domain_minus';
 
 // BODY_START
 
 /**
  * @param {string} name
- * @param {number|number[]} index1 Only number[] for name=callback
+ * @param {number} index1
  * @param {number} [index2=-1]
  * @param {number} [index3=-1]
  * @param {string} [arg1='']
@@ -221,17 +226,6 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 }
 
 /**
- * @param {$config} config
- * @param {number[]} varIndexes
- * @param {Function} callback
- */
-function propagator_addCallback(config, varIndexes, callback) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-
-  config_addPropagator(config, propagator_create('callback', propagator_callbackStepBare, varIndexes, 0, 0, callback));
-}
-
-/**
  * Domain equality propagator. Creates the propagator
  * in given config.
  * Can pass in vars or numbers that become anonymous
@@ -372,11 +366,13 @@ function propagator_addDistinct(config, varIndexes) {
  * @param {$config} config
  * @param {string} targetOpName
  * @param {string} invOpName
+ * @param {Function} opFunc
+ * @param {Function} nopFunc
  * @param {number} leftVarIndex
  * @param {number} rightVarIndex
  * @param {number} resultVarIndex
  */
-function propagator_addRingPlusOrMul(config, targetOpName, invOpName, leftVarIndex, rightVarIndex, resultVarIndex) {
+function propagator_addRingPlusOrMul(config, targetOpName, invOpName, opFunc, nopFunc, leftVarIndex, rightVarIndex, resultVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof targetOpName === 'string', 'OP_SHOULD_BE_STRING');
   ASSERT(typeof invOpName === 'string', 'INV_OP_SHOULD_BE_STRING');
@@ -384,9 +380,9 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, leftVarInd
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
-  propagator_addRing(config, leftVarIndex, rightVarIndex, resultVarIndex, targetOpName);
-  propagator_addRing(config, resultVarIndex, rightVarIndex, leftVarIndex, invOpName);
-  propagator_addRing(config, resultVarIndex, leftVarIndex, rightVarIndex, invOpName);
+  propagator_addRing(config, leftVarIndex, rightVarIndex, resultVarIndex, targetOpName, opFunc);
+  propagator_addRing(config, resultVarIndex, rightVarIndex, leftVarIndex, invOpName, nopFunc);
+  propagator_addRing(config, resultVarIndex, leftVarIndex, rightVarIndex, invOpName, nopFunc);
 }
 
 /**
@@ -394,15 +390,16 @@ function propagator_addRingPlusOrMul(config, targetOpName, invOpName, leftVarInd
  * @param {string} A
  * @param {string} B
  * @param {string} C
- * @param {string} op
+ * @param {string} opName
+ * @param {Function} opFunc
  */
-function propagator_addRing(config, A, B, C, op) {
+function propagator_addRing(config, A, B, C, opName, opFunc) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof A === 'number' && A >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', A);
   ASSERT(typeof B === 'number' && B >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', B);
   ASSERT(typeof C === 'number' && C >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', C);
 
-  config_addPropagator(config, propagator_create('ring', propagator_ringStepBare, A, B, C, op));
+  config_addPropagator(config, propagator_create('ring', propagator_ringStepBare, A, B, C, opName, opFunc));
 }
 
 /**
@@ -414,7 +411,7 @@ function propagator_addRing(config, A, B, C, op) {
  * @param {number} resultVarIndex
  */
 function propagator_addPlus(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'plus', 'min', leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'plus', 'min', domain_any_plus, domain_any_minus, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**
@@ -441,7 +438,7 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'mul', 'div', leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_any_mul, domain_any_divby, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**
@@ -546,7 +543,6 @@ function propagator_addMarkov(config, varIndex) {
 // BODY_STOP
 
 export {
-  propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,

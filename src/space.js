@@ -1,8 +1,6 @@
 import {
   EMPTY,
   NO_SUCH_VALUE,
-  SOME_CHANGES,
-  REJECTED,
 
   ASSERT,
   THROW,
@@ -14,7 +12,7 @@ import {
   trie_addNum,
   trie_create,
   trie_get,
-  trie_hasNum,
+  trie_getNum,
 } from './trie';
 
 import {
@@ -34,6 +32,8 @@ import {
 
 // BODY_START
 
+let space_uid = 0;
+
 /**
  * @param {$config} config
  * @returns {$space}
@@ -45,6 +45,8 @@ function space_createRoot(config) {
   let _depth = 0;
   let _child = 0;
   let _path = '';
+
+  ASSERT(!(space_uid = 0));
 
   return space_createNew(config, [], [], _depth, _child, _path);
 }
@@ -78,7 +80,7 @@ function space_createClone(space) {
   let _child;
   let _path;
   // do it inside ASSERTs so they are eliminated in the dist
-  ASSERT(!void (_depth = space.depth + 1));
+  ASSERT(!void (_depth = space._depth + 1));
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
@@ -139,6 +141,7 @@ function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _p
   ASSERT(!void (space._child = _child));
   ASSERT(!void (space._child_count = 0));
   ASSERT(!void (space._path = _path + _child));
+  ASSERT(!void (space._uid = ++space_uid));
 
   return space;
 }
@@ -200,15 +203,17 @@ function space_propagate(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   let propagators = space.config._propagators;
 
-  let changedVars;
+  let changedTrie = trie_create(); // double role: track updated vars per cycle and for all cycles in this call
+  let trieValue = 0; // serves to tell us whether a var was updated in the current propagate cycle
+  let changedVars; // in one cycle
+  let allChangedVars = []; // records any changed vars during these propagation cycles. afterwards update the unsolved var list by just checking these vars. use the changedTrie to dedupe. gotta juggle it too
   let minimal = 1;
   if (space.updatedVarIndex >= 0) {
     changedVars = [space.updatedVarIndex];
   } else {
     changedVars = [];
-    let changedTrie = trie_create();
     // very first run of the search. all propagators must be visited at least once now.
-    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie);
+    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie, ++trieValue, allChangedVars);
     if (rejected) return true;
   }
 
@@ -216,76 +221,95 @@ function space_propagate(space) {
     return true;
   }
 
+  let returnValue = false;
   while (changedVars.length) {
     let newChangedVars = [];
-    let newChangedTrie = trie_create();
-    let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, newChangedTrie, minimal);
-    if (rejected) return true;
+    let rejected = space_propagateChanges(space, propagators, changedVars, newChangedVars, changedTrie, minimal, ++trieValue, allChangedVars);
+    if (rejected) {
+      returnValue = true;
+      break;
+    }
 
     if (space_abortSearch(space)) {
-      return true;
+      returnValue = true;
+      break;
     }
 
     changedVars = newChangedVars;
     minimal = 2; // see space_propagateChanges
   }
 
-  return false;
+  return returnValue;
 }
 
-function space_propagateAll(space, propagators, changedVars, changedTrie) {
+function space_propagateAll(space, propagators, changedVars, changedTrie, trieValue, allChangedVars) {
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie);
+    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, trieValue, allChangedVars);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie) {
+function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie, trieValue, allChangedVars) {
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, i);
+    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, trieValue, allChangedVars);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateStep(space, propagator, changedVars, changedTrie, _i) {
+function space_propagateStep(space, propagator, changedVars, changedTrie, trieValue, allChangedVars) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
-  let func = propagator.stepper;
-  ASSERT(typeof func === 'function', 'stepper should be a func');
+  let vardoms = space.vardoms;
+
+  let index1 = propagator.index1;
+  let index2 = propagator.index2;
+  let index3 = propagator.index3;
+  ASSERT(index1 !== 'undefined', 'all props at least use the first var...');
+  let domain1 = vardoms[index1];
+  let domain2 = index2 !== undefined && vardoms[index2];
+  let domain3 = index3 !== undefined && vardoms[index3];
+
+  let stepper = propagator.stepper;
+  ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+  stepper(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
-  let n = func(space, propagator.index1, propagator.index2, propagator.index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
-
-  // the domain of either var of a propagator can only be empty if the prop REJECTED
-  ASSERT(n === REJECTED || space.vardoms[propagator.index1] || propagator.name === 'callback', 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
-  ASSERT(n === REJECTED || propagator.index2 < 0 || space.vardoms[propagator.index2], 'prop var empty but it didnt REJECT');
-
-  if (n === SOME_CHANGES) {
-    space_recordChange(propagator.index1, changedTrie, changedVars);
-    if (propagator.index2 >= 0) space_recordChange(propagator.index2, changedTrie, changedVars);
-    if (propagator.index3 >= 0) space_recordChange(propagator.index3, changedTrie, changedVars);
-  } else if (n === REJECTED) {
-    return true; // solution impossible
+  if (domain1 !== vardoms[index1]) {
+    if (vardoms[index1] === EMPTY) return true; // fail
+    space_recordChange(index1, changedTrie, changedVars, trieValue, allChangedVars);
   }
+  if (index2 !== undefined && domain2 !== vardoms[index2]) {
+    if (vardoms[index2] === EMPTY) return true; // fail
+    space_recordChange(index2, changedTrie, changedVars, trieValue, allChangedVars);
+  }
+  if (index3 !== undefined && domain3 !== vardoms[index3]) {
+    if (vardoms[index3] === EMPTY) return true; // fail
+    space_recordChange(index3, changedTrie, changedVars, trieValue, allChangedVars);
+  }
+
   return false;
 }
-function space_recordChange(varIndex, changedTrie, changedVars) {
+function space_recordChange(varIndex, changedTrie, changedVars, trieValue, allChangedVars) {
   if (typeof varIndex === 'number') {
-    if (!trie_hasNum(changedTrie, varIndex)) {
+    let status = trie_getNum(changedTrie, varIndex);
+    if (status !== trieValue) {
+      if (status === TRIE_KEY_NOT_FOUND) {
+        allChangedVars.push(varIndex);
+      }
       changedVars.push(varIndex);
-      trie_addNum(changedTrie, varIndex, 1);
+      trie_addNum(changedTrie, varIndex, trieValue);
     }
   } else {
     ASSERT(varIndex instanceof Array, 'index1 is always used');
     for (let i = 0, len = varIndex.length; i < len; ++i) {
-      space_recordChange(varIndex[i], changedTrie, changedVars);
+      space_recordChange(varIndex[i], changedTrie, changedVars, trieValue, allChangedVars);
     }
   }
 }
-function space_propagateChanges(space, allPropagators, targetVars, changedVars, changedTrie, minimal) {
+function space_propagateChanges(space, allPropagators, targetVars, changedVars, changedTrie, minimal, trieValue, allChangedVars) {
   let varToPropagators = space.config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
     let propagatorIndexes = varToPropagators[targetVars[i]];
@@ -299,7 +323,7 @@ function space_propagateChanges(space, allPropagators, targetVars, changedVars, 
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
     if (propagatorIndexes && propagatorIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie);
+      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie, trieValue, allChangedVars);
       if (result) return true; // rejected
     }
   }

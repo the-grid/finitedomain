@@ -1,16 +1,10 @@
 import {
-  EMPTY,
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
-
   ASSERT,
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
   domain_any_intersection,
-  domain_any_isEqual,
   domain_any_isSolved,
   domain_any_sharesNoElements,
 } from '../domain';
@@ -45,20 +39,8 @@ function propagator_eqStepBare(space, varIndex1, varIndex2) {
 
   let result = domain_any_intersection(domain1, domain2);
 
-  if (result === EMPTY) {
-    space.vardoms[varIndex1] = EMPTY;
-    space.vardoms[varIndex2] = EMPTY;
-    return REJECTED;
-  }
-
-  if (result !== domain1 || result !== domain2) {
-    space.vardoms[varIndex1] = result;
-    space.vardoms[varIndex2] = result;
-    if (!domain_any_isEqual(domain1, result) || !domain_any_isEqual(domain2, result)) {
-      return SOME_CHANGES;
-    }
-  }
-  return NO_CHANGES;
+  space.vardoms[varIndex1] = result;
+  space.vardoms[varIndex2] = result;
 }
 
 /**

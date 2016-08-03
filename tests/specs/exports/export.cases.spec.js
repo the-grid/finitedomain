@@ -10,6 +10,8 @@ import case20160613 from './2016-06-13';
 import case20160618 from './2016-06-18';
 import case20160618_slim from './2016-06-18.slim';
 import case20160618_slim2 from './2016-06-18.slim2';
+import case20160803 from './2016-08-03';
+import case201608032 from './2016-08-03-2';
 
 describe('exports/export.cases.spec', function() {
 
@@ -815,6 +817,28 @@ describe('exports/export.cases.spec', function() {
       solver.isGte('x203', 1, 'x204');
 
       solver.solve({log: 1, max: 1});
+    });
+  });
+
+  describe('2016-08-03', function() {
+
+    it('should have three solutions', function() {
+      var solver = new Solver({config: config_clone(case20160803)});
+
+      solver.solve({log: 1, max: 4});
+
+      expect(solver.solutions.length).to.eql(3);
+    });
+  });
+
+  describe('2016-08-03-2', function() {
+
+    it('should solve quickly', function() {
+      var solver = new Solver({config: config_clone(case201608032)});
+
+      solver.solve({log: 1, max: 1});
+
+      expect(solver.solutions.length).to.eql(1);
     });
   });
 });

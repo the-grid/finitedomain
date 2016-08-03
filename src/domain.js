@@ -7,14 +7,11 @@
 import {
   EMPTY,
   EMPTY_STR,
-  NO_CHANGES,
   NO_SUCH_VALUE,
   NOT_FOUND,
   ARR_RANGE_SIZE,
-  REJECTED,
   SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
-  SOME_CHANGES,
   SUB,
   SUP,
 
@@ -852,7 +849,7 @@ function _domain_strstr_intersection(domain1, domain2) {
       lo2 = domain_str_decodeValue(domain2, index2);
       hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
-      ASSERT((lo1 <= lo2 && hi1 >= lo2) || (lo2 <= lo1 && hi2 >= lo1), 'both ranges must overlap at least for some element because neither ends before the other');
+      ASSERT((lo1 <= lo2 && lo2 <= hi1) || (lo2 <= lo1 && lo1 <= hi2), '_domain_strstr_intersection: both ranges must overlap at least for some element because neither ends before the other [' + lo1 + ',' + hi1 + ' - ' + lo2 + ',' + hi2 + ']');
 
       let mh = MIN(hi1, hi2);
       newDomain += domain_str_encodeRange(MAX(lo1, lo2), mh);
@@ -926,7 +923,7 @@ function domain_str_closeGaps(domain1, domain2) {
   if (domain1 && domain2) {
     let change;
     do {
-      change = NO_CHANGES;
+      change = 0;
 
       if (domain1.length > STR_RANGE_SIZE) {
         let smallestRangeSize = domain_str_smallestRangeSize(domain2);
@@ -941,7 +938,7 @@ function domain_str_closeGaps(domain1, domain2) {
         change += domain2.length - domain.length;
         domain2 = domain;
       }
-    } while (change !== NO_CHANGES);
+    } while (change !== 0);
   }
 
   // TODO: we could return a concatted string and prefix the split, instead of this temporary array...
@@ -1381,10 +1378,7 @@ function domain_any_removeGte(domain, value) {
  * Since domains are assumed to be in CSIS form, we can start from the back and
  * search for the first range that is smaller or contains given value. Prune
  * any range that follows it and trim the found range if it contains the value.
- * Returns whether the domain was changed somehow. Does not returned REJECTED
- * because propagator_ltStepBare will check this... I don't like that but it
- * still is the reason.
- * Does not harm domain. May return the same domain (if nothing changes).
+ * Returns whether the domain was changed somehow.
  *
  * @param {$domain_str} domain_str
  * @param {number} value
@@ -1655,7 +1649,7 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
       lo2 = domain_str_decodeValue(domain2, index2);
       hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
-      ASSERT(lo1 <= hi2 && hi1 <= lo2, 'both ranges must overlap at least for some element because neither ends before the other');
+      ASSERT((lo1 <= lo2 && lo2 <= hi1) || (lo2 <= lo1 && lo1 <= hi2), 'domain_strstr_sharesNoElements: both ranges must overlap at least for some element because neither ends before the other [' + lo1 + ',' + hi1 + ' - ' + lo2 + ',' + hi2 + ']');
       return false;
     }
   }
@@ -2001,27 +1995,6 @@ function domain_strToNum(domain, len) {
 }
 
 /**
- * Given two domains compare the new domain to the old domain and
- * return REJECTED if the new domain is empty, NO_CHANGES if the
- * new domain is equal to the old domain, and SOME_CHANGES otherwise.
- *
- * @param {$domain} newDom
- * @param {$domain} oldDom
- * @returns {$fd_changeState}
- */
-function domain_any_getChangeState(newDom, oldDom) {
-  ASSERT_NUMSTRDOM(newDom);
-  ASSERT_NUMSTRDOM(oldDom);
-
-  if (newDom === oldDom) return NO_CHANGES;
-  if (!newDom) return REJECTED;
-
-  if (domain_any_isEqual(newDom, oldDom)) return NO_CHANGES;
-  if (domain_any_isRejected(newDom)) return REJECTED;
-  return SOME_CHANGES;
-}
-
-/**
  * validate domains, filter and fix legacy domains, throw for bad inputs
  *
  * @param {$domain} domain
@@ -2111,7 +2084,7 @@ function domain_confirmLegacyDomainElement(n) {
  * step fails, return nothing.
  *
  * @param {$domain_arr|number[][]} domain
- * @returns {$domain_arr}
+ * @returns {$domain_arr|undefined}
  */
 function domain_tryToFixLegacyDomain(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
@@ -2143,11 +2116,9 @@ export {
   ARR_RANGE_SIZE,
   FORCE_ARRAY,
   FORCE_STRING,
-  NO_CHANGES,
   NOT_FOUND,
   PREV_CHANGED,
   SMALL_MAX_FLAG,
-  SOME_CHANGES,
   STR_FIRST_RANGE_HI,
   STR_FIRST_RANGE_LO,
   STR_RANGE_SIZE,
@@ -2203,7 +2174,6 @@ export {
   domain_any_divby,
   domain_any_isEqual,
   domain_fromList,
-  domain_any_getChangeState,
   domain_any_getValue,
   domain_arr_getValue,
   domain_str_getValue,

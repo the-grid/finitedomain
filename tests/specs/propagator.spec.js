@@ -1,7 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 
 import {
-  propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,
@@ -132,7 +131,6 @@ describe('src/propagator.spec', function() {
   testUnbound('propagator_addSum', propagator_addSum, true);
   testUnbound('propagator_addProduct', propagator_addProduct, true);
   testUnbound('propagator_addDistinct', propagator_addDistinct);
-  testUnbound('propagator_addCallback', propagator_addCallback);
 
   describe('propagator_addRingPlusOrMul', function() {
 
@@ -142,7 +140,7 @@ describe('src/propagator.spec', function() {
 
     it('should return undefined', function() {
       let config = config_create();
-      expect(propagator_addRingPlusOrMul(config, 'a', 'b', 0, 1, 2)).to.equal(undefined);
+      expect(propagator_addRingPlusOrMul(config, 'a', 'b', _ => 0, _ => 0, 0, 1, 2)).to.equal(undefined);
     });
   });
 });

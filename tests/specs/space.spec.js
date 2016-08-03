@@ -117,15 +117,16 @@ describe('src/space.spec', function() {
       });
 
       it('should not care about the order of the var names', function() {
+        let targets = ['B', 'A'];
         let config = config_create();
         config_addVarRange(config, 'A', 32, 55);
         config_addVarRange(config, 'B', 0, 1);
-        config.targetedVars = ['B', 'A'];
+        config.targetedVars = targets.slice(0);
 
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(space.unsolvedVarIndexes).to.eql(['B', 'A'].map(name => config.all_var_names.indexOf(name))); // fickle test :/ should just check whether all values exist, irrelevant order
+        expect(space.unsolvedVarIndexes.sort()).to.eql(targets.map(name => config.all_var_names.indexOf(name)).sort());
       });
 
       it('should throw if var names dont exist', function() {

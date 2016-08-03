@@ -9,9 +9,6 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
   SUB,
   SUP,
 } from '../../../src/helpers';
@@ -82,7 +79,7 @@ describe('propagators/eq.spec', function() {
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
 
-    expect(propagator_eqStepBare(space, A, B)).to.equal(SOME_CHANGES);
+    propagator_eqStepBare(space, A, B);
     expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
     expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
   });
@@ -98,7 +95,7 @@ describe('propagators/eq.spec', function() {
 
     let C = fixt_numdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
 
-    expect(propagator_eqStepBare(space, A, B)).to.equal(SOME_CHANGES);
+    propagator_eqStepBare(space, A, B);
     expect(space.vardoms[B]).to.eql(C);
     expect(space.vardoms[A]).to.eql(C);
   });
@@ -115,7 +112,7 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(propagator_eqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        propagator_eqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(domain_toNumstr(domain));
         expect(space.vardoms[B]).to.eql(domain_toNumstr(domain));
       });
@@ -140,7 +137,7 @@ describe('propagators/eq.spec', function() {
 
   describe('when v1 != v2', function() {
 
-    function test(left, right, result, changes) {
+    function test(left, right, result) {
       it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(left, FORCE_ARRAY));
@@ -150,7 +147,7 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(propagator_eqStepBare(space, A, B)).to.equal(changes);
+        propagator_eqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(result);
         expect(space.vardoms[B]).to.eql(result);
       });
@@ -164,20 +161,20 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        expect(propagator_eqStepBare(space, A, B)).to.equal(changes);
+        propagator_eqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(result);
         expect(space.vardoms[B]).to.eql(result);
       });
     }
 
-    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_nums(0, 0), SOME_CHANGES);
-    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_nums(1, 1), SOME_CHANGES);
-    test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_nums(1, 1), SOME_CHANGES);
-    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_nums(5, 5), SOME_CHANGES);
-    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30), SOME_CHANGES);
-    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), SOME_CHANGES);
-    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty(), REJECTED);
-    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_nums(2), SOME_CHANGES);
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_nums(0, 0));
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_nums(1, 1));
+    test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_nums(1, 1));
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_nums(5, 5));
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30));
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
+    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty());
+    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_nums(2));
   });
 });
 

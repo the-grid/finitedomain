@@ -852,7 +852,7 @@ function _domain_strstr_intersection(domain1, domain2) {
       lo2 = domain_str_decodeValue(domain2, index2);
       hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
-      ASSERT((lo1 <= lo2 && hi1 >= lo2) || (lo2 <= lo1 && hi2 >= lo1), 'both ranges must overlap at least for some element because neither ends before the other');
+      ASSERT((lo1 <= lo2 && lo2 <= hi1) || (lo2 <= lo1 && lo1 <= hi2), '_domain_strstr_intersection: both ranges must overlap at least for some element because neither ends before the other [' + lo1 + ',' + hi1 + ' - ' + lo2 + ',' + hi2 + ']');
 
       let mh = MIN(hi1, hi2);
       newDomain += domain_str_encodeRange(MAX(lo1, lo2), mh);
@@ -1655,7 +1655,7 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
       lo2 = domain_str_decodeValue(domain2, index2);
       hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
     } else {
-      ASSERT(lo1 <= hi2 && hi1 <= lo2, 'both ranges must overlap at least for some element because neither ends before the other');
+      ASSERT((lo1 <= lo2 && lo2 <= hi1) || (lo2 <= lo1 && lo1 <= hi2), 'domain_strstr_sharesNoElements: both ranges must overlap at least for some element because neither ends before the other [' + lo1 + ',' + hi1 + ' - ' + lo2 + ',' + hi2 + ']');
       return false;
     }
   }

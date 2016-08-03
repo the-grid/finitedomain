@@ -10,9 +10,6 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
   SUB,
   SUP,
 } from '../../../src/helpers';
@@ -92,8 +89,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
-
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -108,7 +104,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -139,7 +135,7 @@ describe('propagators/neq.spec', function() {
 
   describe('with one solved domain', function() {
 
-    function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter, changes) {
+    function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter) {
       it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
@@ -150,7 +146,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(solvedDomain);
         expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
@@ -165,32 +161,32 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(changes);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
         expect(space.vardoms[B]).to.eql(solvedDomain);
       });
     }
 
     describe('with array', function() {
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1), SOME_CHANGES);
-      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP), SOME_CHANGES);
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1), SOME_CHANGES);
-      test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1), SOME_CHANGES);
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]), SOME_CHANGES);
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 98], [910, 910], [912, 920]), fixt_strdom_ranges([90, 98], [912, 920]), SOME_CHANGES);
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 910], [912, 950]), fixt_strdom_ranges([90, 909], [912, 950]), SOME_CHANGES);
-      test(fixt_strdom_range(91, 91), fixt_strdom_range(90, 93), fixt_strdom_ranges([90, 90], [92, 93]), SOME_CHANGES);
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1));
+      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP));
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1));
+      test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1));
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]));
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 98], [910, 910], [912, 920]), fixt_strdom_ranges([90, 98], [912, 920]));
+      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 910], [912, 950]), fixt_strdom_ranges([90, 909], [912, 950]));
+      test(fixt_strdom_range(91, 91), fixt_strdom_range(90, 93), fixt_strdom_ranges([90, 90], [92, 93]));
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_range(1, 1), SOME_CHANGES);
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_range(0, 0), SOME_CHANGES);
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15), SOME_CHANGES);
-      test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5), SOME_CHANGES);
-      test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15), SOME_CHANGES);
-      test(fixt_numdom_nums(10), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15), SOME_CHANGES);
-      test(fixt_numdom_nums(4), fixt_numdom_nums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 10, 12, 13, 14, 15), SOME_CHANGES);
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 3), fixt_numdom_nums(0, 2, 3), SOME_CHANGES);
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_range(1, 1));
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_range(0, 0));
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15));
+      test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5));
+      test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15));
+      test(fixt_numdom_nums(10), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15));
+      test(fixt_numdom_nums(4), fixt_numdom_nums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 10, 12, 13, 14, 15));
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 3), fixt_numdom_nums(0, 2, 3));
     });
   });
 
@@ -207,7 +203,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -222,7 +218,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(NO_CHANGES);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -237,7 +233,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });
@@ -252,7 +248,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        expect(propagator_neqStepBare(space, A, B)).to.equal(REJECTED);
+        propagator_neqStepBare(space, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });

@@ -1,16 +1,12 @@
 import {
   EMPTY,
-  NO_CHANGES,
   NO_SUCH_VALUE,
-  REJECTED,
-  SOME_CHANGES,
 
   ASSERT,
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
   domain_any_getValue,
-  domain_any_isRejected,
   domain_any_isSolved,
   domain_any_removeValue,
   domain_any_sharesNoElements,
@@ -36,39 +32,22 @@ function propagator_neqStepBare(space, varIndex1, varIndex2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let result = NO_CHANGES;
-
   // remove solved value from the other domain. confirm neither rejects over it.
   let value = domain_any_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
-    let newDomain = domain_any_removeValue(domain2, value);
-    if (domain2 !== newDomain) result = SOME_CHANGES;
-    if (domain_any_isRejected(newDomain)) {
+    if (domain1 === domain2) {
       space.vardoms[varIndex1] = EMPTY;
       space.vardoms[varIndex2] = EMPTY;
-      result = REJECTED;
-    } else if (result === SOME_CHANGES) {
-      space.vardoms[varIndex2] = newDomain;
+    } else {
+      space.vardoms[varIndex2] = domain_any_removeValue(domain2, value);
     }
   } else {
-    // domain1 is not solved, just remove domain2 from domain1 if domain2 is solved
+    // domain1 is not solved, remove domain2 from domain1 if domain2 is solved
     value = domain_any_getValue(domain2);
     if (value !== NO_SUCH_VALUE) {
-      let newDomain = domain_any_removeValue(domain1, value);
-      if (domain1 !== newDomain) result = SOME_CHANGES;
-      if (domain_any_isRejected(newDomain)) {
-        space.vardoms[varIndex1] = EMPTY;
-        space.vardoms[varIndex2] = EMPTY;
-        result = REJECTED;
-      } else if (result === SOME_CHANGES) {
-        space.vardoms[varIndex1] = newDomain;
-      }
+      space.vardoms[varIndex1] = domain_any_removeValue(domain1, value);
     }
   }
-
-  ASSERT(result === REJECTED || result === NO_CHANGES || result === SOME_CHANGES, 'turning stuff into enum, must be sure about values');
-  ASSERT((result === REJECTED) === (domain_any_isRejected(space.vardoms[varIndex1]) || domain_any_isRejected(space.vardoms[varIndex2])), 'if either domain is rejected, r should reflect this already');
-  return result;
 }
 
 /**

@@ -1,8 +1,5 @@
 import {
   EMPTY,
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
 
   ASSERT,
   ASSERT_NUMSTRDOM,
@@ -28,7 +25,8 @@ import {
  * @param {Function} nopFunc opposite of opFunc like propagator_gtStepBare
  * @param {string} opName
  * @param {string} invOpName
- * @returns {$fd_changeState}
+ * @param {Function} opRejectChecker
+ * @param {Function} nopRejectChecker
  */
 function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName, opRejectChecker, nopRejectChecker) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
@@ -43,11 +41,13 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (domResult === ZERO) {
-    return nopFunc(space, leftVarIndex, rightVarIndex);
+    nopFunc(space, leftVarIndex, rightVarIndex);
+    return;
   }
 
   if (domResult === ONE) {
-    return opFunc(space, leftVarIndex, rightVarIndex);
+    opFunc(space, leftVarIndex, rightVarIndex);
+    return;
   }
 
   let domain1 = vardoms[leftVarIndex];
@@ -67,17 +67,12 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   if (nopRejects) {
     if (opRejects) {
       vardoms[resultVarIndex] = EMPTY;
-      return REJECTED;
+    } else {
+      vardoms[resultVarIndex] = ONE;
     }
-    vardoms[resultVarIndex] = ONE;
-    return SOME_CHANGES;
-  }
-  if (opRejects) {
+  } else if (opRejects) {
     vardoms[resultVarIndex] = ZERO;
-    return SOME_CHANGES;
   }
-
-  return NO_CHANGES;
 }
 
 // BODY_STOP

@@ -4,7 +4,6 @@ import {
 } from '../helpers';
 import {
   domain_any_mul,
-  domain_any_getChangeState,
   domain_any_intersection,
 } from '../domain';
 
@@ -15,7 +14,6 @@ import {
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @param {number} varIndex3
- * @returns {$fd_changeState}
  */
 function propagator_mulStep(space, varIndex1, varIndex2, varIndex3) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
@@ -23,10 +21,7 @@ function propagator_mulStep(space, varIndex1, varIndex2, varIndex3) {
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
 
-  let domNext = _propagator_mulStep(domain1, domain2, domain3);
-  space.vardoms[varIndex3] = domNext;
-
-  return domain_any_getChangeState(domNext, domain3);
+  space.vardoms[varIndex3] = _propagator_mulStep(domain1, domain2, domain3);
 }
 
 /**

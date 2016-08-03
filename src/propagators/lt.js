@@ -58,19 +58,13 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
   if (hi1 >= hi2) {
-    let result = domain_any_removeGte(domain1, hi2);
-    if (result !== domain1) {
-      space.vardoms[varIndex1] = result;
-    }
+    space.vardoms[varIndex1] = domain_any_removeGte(domain1, hi2);
   }
 
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
   if (lo1 >= lo2) {
-    let newDomain = domain_any_removeLte(domain2, lo1);
-    if (newDomain !== domain2) {
-      space.vardoms[varIndex2] = newDomain;
-    }
+    space.vardoms[varIndex2] = domain_any_removeLte(domain2, lo1);
   }
 }
 

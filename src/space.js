@@ -34,6 +34,8 @@ import {
 
 // BODY_START
 
+let space_uid = 0;
+
 /**
  * @param {$config} config
  * @returns {$space}
@@ -45,6 +47,8 @@ function space_createRoot(config) {
   let _depth = 0;
   let _child = 0;
   let _path = '';
+
+  ASSERT(!(space_uid = 0));
 
   return space_createNew(config, [], [], _depth, _child, _path);
 }
@@ -139,6 +143,7 @@ function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _p
   ASSERT(!void (space._child = _child));
   ASSERT(!void (space._child_count = 0));
   ASSERT(!void (space._path = _path + _child));
+  ASSERT(!void (space._uid = ++space_uid));
 
   return space;
 }

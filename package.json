@@ -10,7 +10,7 @@
   },
   "scripts": {
     "install": "bin/create-git-hooks.sh",
-    "test": "bin/lint.prod.sh && bin/coverage.sh",
+    "test": "bin/lint.prod.sh && bin/mocha.sh",
     "prepublish": "grunt dist",
     "lint": "bin/lint.prod.sh",
     "lintdev": "bin/lint.dev.sh",

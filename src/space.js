@@ -78,7 +78,7 @@ function space_createClone(space) {
   let _child;
   let _path;
   // do it inside ASSERTs so they are eliminated in the dist
-  ASSERT(!void (_depth = space.depth + 1));
+  ASSERT(!void (_depth = space._depth + 1));
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 

@@ -1,7 +1,6 @@
 import {
   EMPTY,
   NO_SUCH_VALUE,
-  REJECTED,
 
   ASSERT,
   THROW,
@@ -263,29 +262,33 @@ function space_propagateByIndexes(space, propagators, propagatorIndexes, changed
 function space_propagateStep(space, propagator, changedVars, changedTrie, trieValue, allChangedVars) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
-  let func = propagator.stepper;
-  ASSERT(typeof func === 'function', 'stepper should be a func');
-  // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
-
   let vardoms = space.vardoms;
+
   let index1 = propagator.index1;
   let index2 = propagator.index2;
   let index3 = propagator.index3;
+  ASSERT(index1 !== 'undefined', 'all props at least use the first var...');
   let domain1 = vardoms[index1];
-  let domain2 = vardoms[index2];
-  let domain3 = vardoms[index3];
+  let domain2 = index2 !== undefined && vardoms[index2];
+  let domain3 = index3 !== undefined && vardoms[index3];
 
-  let n = func(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
+  let stepper = propagator.stepper;
+  ASSERT(typeof stepper === 'function', 'stepper should be a func');
+  // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+  stepper(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
-  // the domain of either var of a propagator can only be empty if the prop REJECTED
-  ASSERT(n === REJECTED || vardoms[propagator.index1], 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
-  ASSERT(n === REJECTED || propagator.index2 < 0 || vardoms[propagator.index2], 'prop var empty but it didnt REJECT');
-
-  if (n === REJECTED) return true; // current search branch failed
-
-  if (domain1 !== vardoms[index1]) space_recordChange(index1, changedTrie, changedVars, trieValue, allChangedVars);
-  if (domain2 !== vardoms[index2]) space_recordChange(index2, changedTrie, changedVars, trieValue, allChangedVars);
-  if (domain3 !== vardoms[index3]) space_recordChange(index3, changedTrie, changedVars, trieValue, allChangedVars);
+  if (domain1 !== vardoms[index1]) {
+    if (vardoms[index1] === EMPTY) return true; // fail
+    space_recordChange(index1, changedTrie, changedVars, trieValue, allChangedVars);
+  }
+  if (index2 !== undefined && domain2 !== vardoms[index2]) {
+    if (vardoms[index2] === EMPTY) return true; // fail
+    space_recordChange(index2, changedTrie, changedVars, trieValue, allChangedVars);
+  }
+  if (index3 !== undefined && domain3 !== vardoms[index3]) {
+    if (vardoms[index3] === EMPTY) return true; // fail
+    space_recordChange(index3, changedTrie, changedVars, trieValue, allChangedVars);
+  }
 
   return false;
 }

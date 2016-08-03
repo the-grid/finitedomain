@@ -1,4 +1,5 @@
 import {
+  EMPTY,
   NO_CHANGES,
   REJECTED,
 
@@ -68,6 +69,7 @@ function propagator_markovStepBare(space, varIndex) {
     return NO_CHANGES;
   }
 
+  space.vardoms[varIndex] = EMPTY;
   return REJECTED;
 }
 

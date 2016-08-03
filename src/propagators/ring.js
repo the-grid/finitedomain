@@ -6,7 +6,6 @@ import {
 
 import {
   domain_any_divby,
-  domain_any_getChangeState,
   domain_any_intersection,
   domain_any_mul,
 } from '../domain';
@@ -21,7 +20,6 @@ import domain_any_minus from '../doms/domain_minus';
  * @param {number} varIndex2
  * @param {number} varIndex3
  * @param {string} opName
- * @returns {$fd_changeState}
  */
 function propagator_ringStepBare(space, varIndex1, varIndex2, varIndex3, opName) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
@@ -48,10 +46,7 @@ function propagator_ringStepBare(space, varIndex1, varIndex2, varIndex3, opName)
       THROW('UNKNOWN ring opname', opName);
   }
 
-  let domNext = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
-  space.vardoms[varIndex3] = domNext;
-
-  return domain_any_getChangeState(domNext, domain3);
+  space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
 }
 
 /**

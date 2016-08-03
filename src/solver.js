@@ -480,7 +480,7 @@ class Solver {
     let obj = this.prepare(options);
 
     if (options._debug) this._debugLegible();
-    if (options._debugConfig) console.log('## _debugConfig:\n', getInspector()(this.config));
+    if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__
     if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
     // __REMOVE_ABOVE_FOR_DIST__
@@ -754,6 +754,13 @@ class Solver {
     }
 
     console.log('##');
+  }
+
+  _debugConfig() {
+    let config = _clone(this.config);
+    config.initial_domains = config.initial_domains.map(domain_toArr);
+
+    console.log('## _debugConfig:\n', getInspector()(config));
   }
 }
 

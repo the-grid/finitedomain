@@ -42,36 +42,36 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
 
   if (domResult === ZERO) {
     nopFunc(space, leftVarIndex, rightVarIndex);
-    return;
-  }
-
-  if (domResult === ONE) {
+  } else if (domResult === ONE) {
     opFunc(space, leftVarIndex, rightVarIndex);
-    return;
-  }
+  } else {
+    ASSERT(domResult === BOOL, 'failsafe assertion');
 
-  let domain1 = vardoms[leftVarIndex];
-  let domain2 = vardoms[rightVarIndex];
+    let domain1 = vardoms[leftVarIndex];
+    let domain2 = vardoms[rightVarIndex];
 
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
-  ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
-  ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
+    ASSERT_NUMSTRDOM(domain1);
+    ASSERT_NUMSTRDOM(domain2);
+    ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+    ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
-  // we'll need to confirm both in any case so do it first now
-  let opRejects = opRejectChecker(domain1, domain2);
-  let nopRejects = nopRejectChecker(domain1, domain2);
+    // we'll need to confirm both in any case so do it first now
+    let opRejects = opRejectChecker(domain1, domain2);
+    let nopRejects = nopRejectChecker(domain1, domain2);
 
-  // if op and nop both reject then we cant fulfill the constraints
-  // otherwise the reifier must solve to the other op
-  if (nopRejects) {
-    if (opRejects) {
-      vardoms[resultVarIndex] = EMPTY;
-    } else {
-      vardoms[resultVarIndex] = ONE;
+    // if op and nop both reject then we cant fulfill the constraints
+    // otherwise the reifier must solve to the other op
+    if (nopRejects) {
+      if (opRejects) {
+        vardoms[resultVarIndex] = EMPTY;
+      } else {
+        vardoms[resultVarIndex] = ONE;
+        opFunc(space, leftVarIndex, rightVarIndex);
+      }
+    } else if (opRejects) {
+      vardoms[resultVarIndex] = ZERO;
+      nopFunc(space, leftVarIndex, rightVarIndex);
     }
-  } else if (opRejects) {
-    vardoms[resultVarIndex] = ZERO;
   }
 }
 

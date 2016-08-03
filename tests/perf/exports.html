@@ -1,0 +1,29 @@
+<head>
+  <title>curator exports perf test</title>
+</head>
+<body>
+  Use url arg `path=../specs/exports/2016-08-03.js` to specify which config to include.
+  The magic happens in your console.<br>
+  Run <code>grunt distperf</code> for a perf build. You can also run <code>grunt distbug</code> for debugging (includes ASSERTS) or <code>grunt distheat</code> for a debug build without the ASSERTS.<br>
+
+  <script>var exports= {};</script>
+  <script>var module = {exports: {}};</script>
+  <script src="../../dist/browser.js"></script>
+  <script src="perf.js"></script>
+  <script>
+    let path = location.href.match(/(?:\?|&)path=(.*?)(?:&|$)/)[1];
+    console.log('importing', path);
+    let req = new XMLHttpRequest();
+    req.addEventListener("load", function(){
+      let file = this.responseText;
+      console.log('generating config');
+      let config = eval(file.replace('export default config', 'config'));
+      console.log('starting');
+      console.time('runtime');
+      perf(config, 1);
+      console.timeEnd('runtime');
+    });
+    req.open('GET', path);
+    req.send();
+  </script>
+</body>

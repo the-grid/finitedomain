@@ -1,14 +1,9 @@
 import {
-  NO_CHANGES,
-  REJECTED,
-  SOME_CHANGES,
-
   ASSERT,
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 
 import {
-  domain_any_isRejected,
   domain_any_max,
   domain_any_min,
   domain_any_removeGte,
@@ -21,7 +16,6 @@ import {
  * @param {$space} space
  * @param {number} varIndex1
  * @param {number} varIndex2
- * @returns {$fd_changeState} changed status constant
  */
 function propagator_ltStepBare(space, varIndex1, varIndex2) {
   ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
@@ -63,35 +57,21 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
-  var leftChanged = NO_CHANGES;
   if (hi1 >= hi2) {
     let result = domain_any_removeGte(domain1, hi2);
     if (result !== domain1) {
       space.vardoms[varIndex1] = result;
-      if (domain_any_isRejected(result)) { // TODO: there is no test throwing when you remove this check
-        leftChanged = REJECTED;
-      } else {
-        leftChanged = SOME_CHANGES;
-      }
     }
   }
 
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
-  var rightChanged = NO_CHANGES;
   if (lo1 >= lo2) {
     let newDomain = domain_any_removeLte(domain2, lo1);
     if (newDomain !== domain2) {
       space.vardoms[varIndex2] = newDomain;
-      if (domain_any_isRejected(domain2)) { // TODO: there is no test covering this
-        rightChanged = REJECTED; // TODO: add a test that throws if this was assigning to leftChanged instead (that used to be the case without any bells going off)
-      } else {
-        rightChanged = SOME_CHANGES;
-      }
     }
   }
-
-  return leftChanged || rightChanged || NO_CHANGES;
 }
 
 function propagator_gtStepBare(space, varIndex1, varIndex2) {

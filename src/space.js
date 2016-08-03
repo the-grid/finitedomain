@@ -1,7 +1,6 @@
 import {
   EMPTY,
   NO_SUCH_VALUE,
-  SOME_CHANGES,
   REJECTED,
 
   ASSERT,
@@ -268,19 +267,26 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, trieVa
   ASSERT(typeof func === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
 
-  let n = func(space, propagator.index1, propagator.index2, propagator.index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
+  let vardoms = space.vardoms;
+  let index1 = propagator.index1;
+  let index2 = propagator.index2;
+  let index3 = propagator.index3;
+  let domain1 = vardoms[index1];
+  let domain2 = vardoms[index2];
+  let domain3 = vardoms[index3];
+
+  let n = func(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   // the domain of either var of a propagator can only be empty if the prop REJECTED
-  ASSERT(n === REJECTED || space.vardoms[propagator.index1] || propagator.name === 'callback', 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
-  ASSERT(n === REJECTED || propagator.index2 < 0 || space.vardoms[propagator.index2], 'prop var empty but it didnt REJECT');
+  ASSERT(n === REJECTED || vardoms[propagator.index1] || propagator.name === 'callback', 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
+  ASSERT(n === REJECTED || propagator.index2 < 0 || vardoms[propagator.index2], 'prop var empty but it didnt REJECT');
 
-  if (n === SOME_CHANGES) {
-    space_recordChange(propagator.index1, changedTrie, changedVars, trieValue, allChangedVars);
-    if (propagator.index2 >= 0) space_recordChange(propagator.index2, changedTrie, changedVars, trieValue, allChangedVars);
-    if (propagator.index3 >= 0) space_recordChange(propagator.index3, changedTrie, changedVars, trieValue, allChangedVars);
-  } else if (n === REJECTED) {
-    return true; // solution impossible
-  }
+  if (n === REJECTED) return true; // current search branch failed
+
+  if (domain1 !== vardoms[index1]) space_recordChange(index1, changedTrie, changedVars, trieValue, allChangedVars);
+  if (domain2 !== vardoms[index2]) space_recordChange(index2, changedTrie, changedVars, trieValue, allChangedVars);
+  if (domain3 !== vardoms[index3]) space_recordChange(index3, changedTrie, changedVars, trieValue, allChangedVars);
+
   return false;
 }
 function space_recordChange(varIndex, changedTrie, changedVars, trieValue, allChangedVars) {

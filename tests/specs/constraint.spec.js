@@ -538,42 +538,6 @@ describe('src/constraint.spec', function() {
       });
     });
 
-    describe('callback', function() {
-
-      it('should be able to fail everything', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 105));
-        solver.callback(['A'], function() { return false; });
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([]);
-      });
-
-      it('should be able to fail uneven choices', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 105));
-        solver.callback(['A'], function(space, vars) {
-          let domain = solver.getDomain(space, vars[0]);
-          return !(domain[0] === domain[1] && (domain[0] % 2) === 0);
-        });
-        let solution = solver.solve({max: 10});
-
-        expect(solution).to.eql([{A: 101}, {A: 103}, {A: 105}]);
-      });
-
-      it('should be able to fail even choices', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 105));
-        solver.callback(['A'], function(space, vars) {
-          let domain = solver.getDomain(space, vars[0]);
-          return !(domain[0] === domain[1] && (domain[0] % 2) === 1);
-        });
-        let solution = solver.solve({max: 10});
-
-        expect(solution).to.eql([{A: 100}, {A: 102}, {A: 104}]);
-      });
-    });
-
     describe('plus', function() {
 
       it('should work with simple case', function() {

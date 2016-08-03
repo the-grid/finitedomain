@@ -10,6 +10,9 @@
     - `varStrategy` must always be an object
     - The property `varStrategy.dist_name` is replaced by `varStrategy.type`
     - The property `varStrategy.fallback_config` is replaced by `varStrategy.fallback`. The fallback is internally now recursively the exact same structure as the root `varStratConfig`.
+  - `config.val`
+    - Dropped support for `val` as a cofnig property, replaced by `valStrategy`
+- Dropped the `callback` propagator, to return later. It was all kinds of messed up, anyways. This propagator was the only anomaly in the code and now we can run with more assumptions.
 
 ## v2.3.4:
 

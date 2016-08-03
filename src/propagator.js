@@ -16,7 +16,6 @@ import {
   domain_toNumstr,
 } from './domain';
 
-import propagator_callbackStepBare from './propagators/callback';
 import propagator_markovStepBare from './propagators/markov';
 import propagator_reifiedStepBare from './propagators/reified';
 import propagator_ringStepBare from './propagators/ring';
@@ -48,7 +47,7 @@ import {
 
 /**
  * @param {string} name
- * @param {number|number[]} index1 Only number[] for name=callback
+ * @param {number} index1
  * @param {number} [index2=-1]
  * @param {number} [index3=-1]
  * @param {string} [arg1='']
@@ -218,17 +217,6 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   }
 
   config_addPropagator(config, propagator_create('reified', propagator_reifiedStepBare, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opname, nopName, opRejectChecker, nopRejectChecker));
-}
-
-/**
- * @param {$config} config
- * @param {number[]} varIndexes
- * @param {Function} callback
- */
-function propagator_addCallback(config, varIndexes, callback) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-
-  config_addPropagator(config, propagator_create('callback', propagator_callbackStepBare, varIndexes, 0, 0, callback));
 }
 
 /**
@@ -546,7 +534,6 @@ function propagator_addMarkov(config, varIndex) {
 // BODY_STOP
 
 export {
-  propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,

@@ -609,7 +609,7 @@ describe('solver.spec', function() {
 
         it('accept zero vars', function() {
           let solver = new Solver();
-          expect(solver[method]([])).to.equal(undefined);
+          expect(_ => solver[method]([])).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
         });
 
         it('accept one var', function() {

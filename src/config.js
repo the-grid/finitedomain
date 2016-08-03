@@ -24,7 +24,6 @@ import {
   trie_has,
 } from './trie';
 import {
-  propagator_addCallback,
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,
@@ -501,7 +500,6 @@ function config_addConstraint(config, name, varNames, param) {
 
     case 'markov':
     case 'distinct':
-    case 'callback':
     case 'eq':
     case 'neq':
     case 'lt':
@@ -510,8 +508,8 @@ function config_addConstraint(config, name, varNames, param) {
     case 'gte': {
       ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
 
-      // require at least one non-constant variable... except callback/distinct can have zero vars
-      let hasNonConstant = (name !== 'callback' || name !== 'distinct') && varNames.length === 0;
+      // require at least one non-constant variable... except distinct can have zero vars
+      let hasNonConstant = (name !== 'distinct') && varNames.length === 0;
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
@@ -949,7 +947,7 @@ function config_generatePropagators(config) {
  * @param {$config} config
  * @param {string} name
  * @param {number[]} varIndexes
- * @param {string|Function|undefined} param Depends on the prop; reifier=op name, product/sum=result var, callback=func
+ * @param {string|undefined} param Depends on the prop; reifier=op name, product/sum=result var
  */
 function config_generatePropagator(config, name, varIndexes, param, _constraint) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
@@ -983,9 +981,6 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
 
     case 'markov':
       return propagator_addMarkov(config, varIndexes[0]);
-
-    case 'callback':
-      return propagator_addCallback(config, varIndexes.slice(0), param);
 
     case 'reifier':
       return propagator_addReified(config, param, varIndexes[0], varIndexes[1], varIndexes[2]);

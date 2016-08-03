@@ -457,10 +457,6 @@ class Solver {
 
   // Various rest
 
-  callback(es, cb) {
-    return config_addConstraint(this.config, 'callback', GET_NAMES(es), cb);
-  }
-
   /**
    * Solve this solver. It should be setup with all the constraints.
    *

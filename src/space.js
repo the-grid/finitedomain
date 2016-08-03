@@ -278,7 +278,7 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, trieVa
   let n = func(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   // the domain of either var of a propagator can only be empty if the prop REJECTED
-  ASSERT(n === REJECTED || vardoms[propagator.index1] || propagator.name === 'callback', 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
+  ASSERT(n === REJECTED || vardoms[propagator.index1], 'prop var empty but it didnt REJECT', JSON.stringify(propagator));
   ASSERT(n === REJECTED || propagator.index2 < 0 || vardoms[propagator.index2], 'prop var empty but it didnt REJECT');
 
   if (n === REJECTED) return true; // current search branch failed

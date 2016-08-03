@@ -140,7 +140,7 @@ describe('src/propagator.spec', function() {
 
     it('should return undefined', function() {
       let config = config_create();
-      expect(propagator_addRingPlusOrMul(config, 'a', 'b', 0, 1, 2)).to.equal(undefined);
+      expect(propagator_addRingPlusOrMul(config, 'a', 'b', _ => 0, _ => 0, 0, 1, 2)).to.equal(undefined);
     });
   });
 });

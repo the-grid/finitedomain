@@ -27,7 +27,35 @@ describe('src/tries.spec', function() {
     expect(trie.buffer instanceof Uint16Array).to.eql(true);
   });
 
+  describe('size hint', function() {
+
+    it('should work with 8bits', function() {
+      let trie = trie_create(undefined, 50, 8);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+    });
+
+    it('should work with 16bits', function() {
+      let trie = trie_create(undefined, 50, 16);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+    });
+
+    it('should work with 32bits', function() {
+      let trie = trie_create(undefined, 50, 32);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+    });
+
+    it('should work with 64bits', function() {
+      let trie = trie_create(undefined, 50, 64);
+
+      expect(trie.buffer).to.be.an.instanceof(Float64Array);
+    });
+  });
+
   describe('string keys', function() {
+
     it('should be able to add a key', function() {
       let trie = trie_create();
       let before = trie_add(trie, 'foo', 15);
@@ -110,6 +138,59 @@ describe('src/tries.spec', function() {
       }
 
       //console.log(_trie_debug(trie));
+    });
+
+    describe('value bitsize', function() {
+
+      it('should work incrementally', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1', 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_get(trie, '1')).to.eql(1);
+
+        trie_add(trie, '1 << 10', 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_get(trie, '1 << 10')).to.eql(1 << 10);
+
+        trie_add(trie, '1 << 20', 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_get(trie, '1 << 20')).to.eql(1 << 20);
+
+        trie_add(trie, '0xA000000000', 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_get(trie, '0xA000000000')).to.eql(0xA000000000);
+      });
+
+      it('should grow from min to max bitsize', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1', 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_get(trie, '1')).to.eql(1);
+
+        trie_add(trie, '0xA000000000', 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_get(trie, '0xA000000000')).to.eql(0xA000000000);
+      });
+
+      it('should grow from 16 to 32bit', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1 << 10', 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_get(trie, '1 << 10')).to.eql(1 << 10);
+
+        trie_add(trie, '1 << 20', 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_get(trie, '1 << 20')).to.eql(1 << 20);
+      });
     });
   });
 
@@ -206,5 +287,93 @@ describe('src/tries.spec', function() {
 
       if (false) console.log(_trie_debug(trie));
     });
+
+    describe('value bitsize', function() {
+
+      it('should work incrementally', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1, 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_getNum(trie, 1)).to.eql(1);
+
+        trie_addNum(trie, 1 << 10, 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_getNum(trie, 1 << 10)).to.eql(1 << 10);
+
+        trie_addNum(trie, 1 << 20, 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_getNum(trie, 1 << 20)).to.eql(1 << 20);
+
+        trie_addNum(trie, 0xA000000000, 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_getNum(trie, 0xA000000000)).to.eql(0xA000000000);
+      });
+
+      it('should grow from min to max bitsize', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1, 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_getNum(trie, 1)).to.eql(1);
+
+        trie_addNum(trie, 0xA000000000, 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_getNum(trie, 0xA000000000)).to.eql(0xA000000000);
+      });
+
+      it('should grow from 16 to 32bit', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1 << 10, 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_getNum(trie, 1 << 10)).to.eql(1 << 10);
+
+        trie_addNum(trie, 1 << 20, 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_getNum(trie, 1 << 20)).to.eql(1 << 20);
+      });
+    });
+  });
+
+  describe('key bitsize', function() {
+
+    it('should ignore bitsize if it is too small to address the whole space', function() {
+      let trie = trie_create(undefined, 300, 8); // note: the 0 was an important value for the regression
+
+      expect(trie.bits).to.eql(16);
+    });
+
+    it('should adjust bitsize even if there is enough "space"', function() {
+      // regression
+      let trie = trie_create(undefined, 0, 8); // note: the 0 was an important value for the regression
+      // add 300 keys to the table, so the key size overflows the 8 bit cell size
+      for (let i = 0; i < 300; ++i) {
+        let prevValue = trie_addNum(trie, i, 0);
+        expect(prevValue, 'key = ' + i + ' should not yet have a value').to.eql(-1);
+      }
+      expect(trie.count).to.eql(300);
+    });
+  });
+
+  it.skip('benchmark size', function() {
+    let trie = trie_create(undefined, 1, 8);
+
+    let arr1k = new Array(1000).fill(0);
+    arr1k.forEach((_, i) => trie_addNum(trie, i, 0));
+    arr1k.forEach((_, i) => trie_getNum(trie, i));
+    console.log(_trie_debug(trie, true));
+
+    new Array(10000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
+    console.log(_trie_debug(trie, true));
+
+    new Array(25000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
+    console.log(_trie_debug(trie, true));
   });
 });

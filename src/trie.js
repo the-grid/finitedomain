@@ -531,6 +531,7 @@ export {
   TRIE_INITIAL_SIZE,
   TRIE_KEY_NOT_FOUND,
   TRIE_MINIMAL_GROWTH,
+  TRIE_NODE_SIZE,
   TRIE_EMPTY,
 
   trie_add,
@@ -539,6 +540,7 @@ export {
   _trie_debug,
   trie_get,
   trie_getNum,
+  trie_getValueBitsize,
   trie_has,
   trie_hasNum,
 };

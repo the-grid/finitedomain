@@ -16,10 +16,9 @@ import {
   THROW,
 } from './helpers';
 import {
-  TRIE_16_BIT,
-  TRIE_DEFAULT_SIZE,
-  TRIE_KEY_NOT_FOUND,
   TRIE_EMPTY,
+  TRIE_KEY_NOT_FOUND,
+  TRIE_NODE_SIZE,
 
   trie_add,
   trie_create,
@@ -1047,7 +1046,13 @@ function config_initForSpace(config, space) {
   if (!config._var_names_trie) {
     config._var_names_trie = trie_create(config.all_var_names);
   }
-  config._changedVarsTrie = trie_create(TRIE_EMPTY, TRIE_DEFAULT_SIZE, TRIE_16_BIT); // values very likely to exceed 255 so start at 16bit. it grows automatically if we exceed that.
+  // we know the max number of var names used in this search so we
+  // know the number of indexes the changevars trie may need to hash
+  // worst case. set the size accordingly. after some benchmarking
+  // it turns out these tries use about 1.1 node per index so just
+  // reserve that many cells. this saves some memcopies when growing.
+  let cells = Math.ceil(config.all_var_names.length * TRIE_NODE_SIZE * 1.1);
+  config._changedVarsTrie = trie_create(TRIE_EMPTY, cells);
   config._propagationBatch = 0;
   config._propagationCycles = 0;
 

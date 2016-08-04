@@ -341,4 +341,19 @@ describe('src/tries.spec', function() {
       });
     });
   });
+
+  it.skip('test', function() {
+    let trie = trie_create(undefined, 1, 8);
+
+    let arr1k = new Array(1000).fill(0);
+    arr1k.forEach((_, i) => trie_addNum(trie, i, 0));
+    arr1k.forEach((_, i) => trie_getNum(trie, i));
+    console.log(_trie_debug(trie, true));
+
+    new Array(10000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
+    console.log(_trie_debug(trie, true));
+
+    new Array(25000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
+    console.log(_trie_debug(trie, true));
+  });
 });

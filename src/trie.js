@@ -18,6 +18,15 @@ const TRIE_MINIMAL_GROWTH = 4 * 1024;
 
 const TRIE_KEY_NOT_FOUND = -1;
 
+const TRIE_EMPTY = undefined;
+const TRIE_DEFAULT_SIZE = undefined;
+const TRIE_8_BIT = 8;
+const TRIE_16_BIT = 16;
+const TRIE_32_BIT = 32;
+const TRIE_64_BIT = 64;
+const TRIE_DEFAULT_BITS = undefined;
+
+
 // every trie node needs space for 10 jumps + 1 leaf value (must be capable of containing `size(Trie)-1`) so initially 11 bytes, later 12 bytes and then 22 bytes once the number of nodes exceeds 255
 
 /**
@@ -75,13 +84,13 @@ function trie_create(valuesByIndex, initialLength, initialBitsize) {
  */
 function trie_createBuffer(size, bits) {
   switch (bits) {
-    case 8:
+    case TRIE_8_BIT:
       return new Uint8Array(size);
     case 16:
       return new Uint16Array(size);
-    case 32:
+    case TRIE_32_BIT:
       return new Uint32Array(size);
-    case 64:
+    case TRIE_64_BIT:
       return new Float64Array(size); // let's hope not ;)
   }
   THROW('Unsupported bit size');
@@ -162,10 +171,10 @@ function trie_malloc(trie, size) {
  * @returns {number}
  */
 function trie_getValueBitsize(value) {
-  if (value < 0x100) return 8;
-  else if (value < 0x10000) return 16;
-  else if (value < 0x100000000) return 32;
-  else return 64;
+  if (value < 0x100) return TRIE_8_BIT;
+  else if (value < 0x10000) return TRIE_16_BIT;
+  else if (value < 0x100000000) return TRIE_32_BIT;
+  else return TRIE_64_BIT;
 }
 
 /**
@@ -513,7 +522,16 @@ function _trie_debug(trie, skipBuffer) {
 // BODY_STOP
 
 export {
+  TRIE_8_BIT,
+  TRIE_16_BIT,
+  TRIE_32_BIT,
+  TRIE_64_BIT,
+  TRIE_DEFAULT_BITS,
+  TRIE_DEFAULT_SIZE,
+  TRIE_INITIAL_SIZE,
   TRIE_KEY_NOT_FOUND,
+  TRIE_MINIMAL_GROWTH,
+  TRIE_EMPTY,
 
   trie_add,
   trie_addNum,

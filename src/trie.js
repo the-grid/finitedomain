@@ -478,6 +478,16 @@ function _trie_debug(trie, skipBuffer) {
     Uint8Array.prototype.slice = Uint16Array.prototype.slice = Uint32Array.prototype.slice = Float64Array.prototype.slice = Array.prototype.slice;
   }
 
+  function bytes(b) {
+    if (b < 1024) return b + ' b';
+    b /= 1024;
+    if (b < 1024) return ~~(b * 100) / 100 + ' kb';
+    b /= 1024;
+    if (b < 1024) return ~~(b * 100) / 100 + ' mb';
+    b /= 1024;
+    return ~~(b * 100) / 100 + ' gb';
+  }
+
   let pad = 20;
   let npad = 6;
   let s = '' +
@@ -491,7 +501,8 @@ function _trie_debug(trie, skipBuffer) {
     'Node len:'.padEnd(pad, ' ') + TRIE_NODE_SIZE + '\n' +
     'Node size:'.padEnd(pad, ' ') + TRIE_NODE_SIZE + '\n' +
     'Last Node:'.padEnd(pad, ' ') + lastNode + '\n' +
-    'Unused space:'.padEnd(pad, ' ') + (buf.length - (lastNode + TRIE_NODE_SIZE)) + ' cells, ' + ((buf.length - (lastNode + TRIE_NODE_SIZE)) * (trie.bits >> 3)) + ' bytes\n' +
+    'Used space:'.padEnd(pad, ' ') + (lastNode + TRIE_NODE_SIZE) + ' cells, ' + bytes((lastNode + TRIE_NODE_SIZE) * (trie.bits >> 3)) + '\n' +
+    'Unused space:'.padEnd(pad, ' ') + (buf.length - (lastNode + TRIE_NODE_SIZE)) + ' cells, ' + bytes((buf.length - (lastNode + TRIE_NODE_SIZE)) * (trie.bits >> 3)) + '\n' +
 
     // __REMOVE_BELOW_FOR_DIST__
     'Mallocs:'.padEnd(pad, ' ') + trie._mallocs + '\n' +

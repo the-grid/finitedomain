@@ -26,7 +26,7 @@ const TRIE_KEY_NOT_FOUND = -1;
  * Check `trie_add` for assumed key composition restrictions
  *
  * @param {string[]} [valuesByIndex] If exists, adds all values in array as keys, index as values
- * @param {number} [initialLength] Hint to help control memory consumption for large/small tries
+ * @param {number} [initialLength] Hint to help control memory consumption for large/small tries. This length is in cells, not bytes. (byteLength=length*(bitsize/8))
  * @param {number} [initialBitsize] Hint to set bitsize explicitly. One of: 8 16 32 64
  * @returns {$trie}
  */
@@ -69,7 +69,7 @@ function trie_create(valuesByIndex, initialLength, initialBitsize) {
 /**
  * Create a buffer
  *
- * @param {number} size Length of the buffer
+ * @param {number} size Length of the buffer in cells, not bytes (!)
  * @param {number} bits One of: 8 16 32 64
  * @returns {TypedArray}
  */
@@ -105,6 +105,7 @@ function trie_addNode(trie) {
   trie.lastNode = newNodePtr;
   // technically the `while` is valid (instead of an `if`) but only
   // if the buffer could grow by a smaller amount than the node size...
+  // note: buffer.length is cell size, buffer.byteLength is byte size. we want cells here.
   while (newNodePtr + TRIE_NODE_SIZE >= trie.buffer.length) trie_grow(trie);
   return newNodePtr;
 }
@@ -121,7 +122,7 @@ function trie_addNode(trie) {
  * @param {$trie} trie
  */
 function trie_grow(trie) {
-  let len = trie.buffer.length;
+  let len = trie.buffer.length; // cell size! not byte size.
   let newSize = ~~(len * 1.1); // grow by 10% (an arbitrary number)
   if (len + TRIE_MINIMAL_GROWTH > newSize) newSize = TRIE_MINIMAL_GROWTH + len;
 
@@ -131,15 +132,17 @@ function trie_grow(trie) {
 /**
  * Allocate space for a Trie and copy given Trie to it.
  * Will grow bitsize if required, but never shrink it.
+ * (Bitsize must grow if cell size exceeds certain threshholds
+ * because otherwise we can't address all bytes in the buffer)
  *
  * @param {$trie} trie
- * @param {number} size
+ * @param {number} size Cell size, not byte size
  */
 function trie_malloc(trie, size) {
   // make sure addressing fits
   let newBits = trie_getValueBitsize(size);
 
-  // dont shrink bit size even if length would allow it; "large" values may require it
+  // dont shrink bit size even if length would allow it; "large" _values_ may require it
   // (our tries dont need to shrink)
   trie.bits = Math.max(trie.bits, newBits);
 
@@ -292,7 +295,7 @@ function trie_ensureValueFits(trie, value) {
   let bitsNeeded = trie_getValueBitsize(value);
   if (bitsNeeded > trie.bits) {
     trie.bits = bitsNeeded;
-    trie_malloc(trie, trie.buffer.length);
+    trie_malloc(trie, trie.buffer.length); // note: length = cell size, byteLength = byte size. we mean cell here.
   }
 }
 
@@ -473,12 +476,13 @@ function _trie_debug(trie, skipBuffer) {
     '###\n' +
     'Key count:'.padEnd(pad, ' ') + trie.count + '\n' +
     'Node count:'.padEnd(pad, ' ') + ((lastNode / TRIE_NODE_SIZE) + 1) + ' (' + (((lastNode / TRIE_NODE_SIZE) + 1) / trie.count) + ' nodes per key)\n' +
-    'Buffer length:'.padEnd(pad, ' ') + buf.length + '\n' +
+    'Buffer cell length:'.padEnd(pad, ' ') + buf.length + '\n' +
+    'Buffer byte length:'.padEnd(pad, ' ') + buf.byteLength + '\n' +
     'Bit size:'.padEnd(pad, ' ') + trie.bits + '\n' +
     'Node len:'.padEnd(pad, ' ') + TRIE_NODE_SIZE + '\n' +
     'Node size:'.padEnd(pad, ' ') + TRIE_NODE_SIZE + '\n' +
     'Last Node:'.padEnd(pad, ' ') + lastNode + '\n' +
-    'Unused space:'.padEnd(pad, ' ') + (buf.length - (lastNode + TRIE_NODE_SIZE)) + '\n' +
+    'Unused space:'.padEnd(pad, ' ') + (buf.length - (lastNode + TRIE_NODE_SIZE)) + ' cells, ' + ((buf.length - (lastNode + TRIE_NODE_SIZE)) * (trie.bits >> 3)) + ' bytes\n' +
 
     // __REMOVE_BELOW_FOR_DIST__
     'Mallocs:'.padEnd(pad, ' ') + trie._mallocs + '\n' +

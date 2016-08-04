@@ -42,7 +42,7 @@ const TRIE_DEFAULT_BITS = undefined;
 function trie_create(valuesByIndex, initialLength, initialBitsize) {
   let size = (initialLength | 0) || TRIE_INITIAL_SIZE;
   if (!size) THROW('fixme'); // blabla it's possible the constant is not yet initialized due to minification. dont initialize a trie in module global space
-  let bits = (initialBitsize | 0) || trie_getValueBitsize(size);
+  let bits = Math.max(trie_getValueBitsize(size), (initialBitsize | 0)); // given bitsize might be lower than max address, ignore it in that case
   let buf = trie_createBuffer(size, bits);
 
   // have to use a wrapper because the buffer ref may change when it grows

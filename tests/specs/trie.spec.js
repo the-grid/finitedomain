@@ -342,7 +342,27 @@ describe('src/tries.spec', function() {
     });
   });
 
-  it.skip('test', function() {
+  describe('key bitsize', function() {
+
+    it('should ignore bitsize if it is too small to address the whole space', function() {
+      let trie = trie_create(undefined, 300, 8); // note: the 0 was an important value for the regression
+
+      expect(trie.bits).to.eql(16);
+    });
+
+    it('should adjust bitsize even if there is enough "space"', function() {
+      // regression
+      let trie = trie_create(undefined, 0, 8); // note: the 0 was an important value for the regression
+      // add 300 keys to the table, so the key size overflows the 8 bit cell size
+      for (let i = 0; i < 300; ++i) {
+        let prevValue = trie_addNum(trie, i, 0);
+        expect(prevValue, 'key = ' + i + ' should not yet have a value').to.eql(-1);
+      }
+      expect(trie.count).to.eql(300);
+    });
+  });
+
+  it.skip('benchmark size', function() {
     let trie = trie_create(undefined, 1, 8);
 
     let arr1k = new Array(1000).fill(0);

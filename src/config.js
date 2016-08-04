@@ -16,7 +16,10 @@ import {
   THROW,
 } from './helpers';
 import {
+  TRIE_16_BIT,
+  TRIE_DEFAULT_SIZE,
   TRIE_KEY_NOT_FOUND,
+  TRIE_EMPTY,
 
   trie_add,
   trie_create,
@@ -77,6 +80,9 @@ function config_create() {
     _class: '$config',
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _var_names_trie: trie_create(),
+    _changedVarsTrie: undefined,
+    _propagationBatch: 0,
+    _propagationCycles: 0,
 
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
@@ -116,11 +122,16 @@ function config_clone(config, newDomains) {
     _propagators,
     _varToPropagators,
     _constrainedAway,
+    _propagationBatch,
+    _propagationCycles,
   } = config;
 
   return {
     _class: '$config',
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
+    _changedVarsTrie: undefined,
+    _propagationBatch, // track _propagationCycles at start of last propagate() call
+    _propagationCycles, // current step value
 
     varStratConfig,
     valueStratName,
@@ -1036,6 +1047,9 @@ function config_initForSpace(config, space) {
   if (!config._var_names_trie) {
     config._var_names_trie = trie_create(config.all_var_names);
   }
+  config._changedVarsTrie = trie_create(TRIE_EMPTY, TRIE_DEFAULT_SIZE, TRIE_16_BIT); // values very likely to exceed 255 so start at 16bit. it grows automatically if we exceed that.
+  config._propagationBatch = 0;
+  config._propagationCycles = 0;
 
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)

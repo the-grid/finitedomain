@@ -9,14 +9,14 @@ import {
 
 // BODY_START
 
-let TRIE_ROOT_OFFSET = 0;
-let TRIE_BUCKET_COUNT = 10; // 10 digits
-let TRIE_NODE_SIZE = TRIE_BUCKET_COUNT + 1; // inc value
+const TRIE_ROOT_OFFSET = 0;
+const TRIE_BUCKET_COUNT = 10; // 10 digits
+const TRIE_NODE_SIZE = TRIE_BUCKET_COUNT + 1; // inc value
 
-let TRIE_INITIAL_SIZE = 16 * 1024;
-let TRIE_MINIMAL_GROWTH = 4 * 1024;
+const TRIE_INITIAL_SIZE = 16 * 1024;
+const TRIE_MINIMAL_GROWTH = 4 * 1024;
 
-let TRIE_KEY_NOT_FOUND = -1;
+const TRIE_KEY_NOT_FOUND = -1;
 
 // every trie node needs space for 10 jumps + 1 leaf value (must be capable of containing `size(Trie)-1`) so initially 11 bytes, later 12 bytes and then 22 bytes once the number of nodes exceeds 255
 
@@ -32,6 +32,7 @@ let TRIE_KEY_NOT_FOUND = -1;
  */
 function trie_create(valuesByIndex, initialLength, initialBitsize) {
   let size = (initialLength | 0) || TRIE_INITIAL_SIZE;
+  if (!size) THROW('fixme'); // blabla it's possible the constant is not yet initialized due to minification. dont initialize a trie in module global space
   let bits = (initialBitsize | 0) || trie_getValueBitsize(size);
   let buf = trie_createBuffer(size, bits);
 

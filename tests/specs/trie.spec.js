@@ -27,7 +27,35 @@ describe('src/tries.spec', function() {
     expect(trie.buffer instanceof Uint16Array).to.eql(true);
   });
 
+  describe('size hint', function() {
+
+    it('should work with 8bits', function() {
+      let trie = trie_create(undefined, 50, 8);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+    });
+
+    it('should work with 16bits', function() {
+      let trie = trie_create(undefined, 50, 16);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+    });
+
+    it('should work with 32bits', function() {
+      let trie = trie_create(undefined, 50, 32);
+
+      expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+    });
+
+    it('should work with 64bits', function() {
+      let trie = trie_create(undefined, 50, 64);
+
+      expect(trie.buffer).to.be.an.instanceof(Float64Array);
+    });
+  });
+
   describe('string keys', function() {
+
     it('should be able to add a key', function() {
       let trie = trie_create();
       let before = trie_add(trie, 'foo', 15);
@@ -110,6 +138,59 @@ describe('src/tries.spec', function() {
       }
 
       //console.log(_trie_debug(trie));
+    });
+
+    describe('value bitsize', function() {
+
+      it('should work incrementally', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1', 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_get(trie, '1')).to.eql(1);
+
+        trie_add(trie, '1 << 10', 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_get(trie, '1 << 10')).to.eql(1 << 10);
+
+        trie_add(trie, '1 << 20', 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_get(trie, '1 << 20')).to.eql(1 << 20);
+
+        trie_add(trie, '0xA000000000', 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_get(trie, '0xA000000000')).to.eql(0xA000000000);
+      });
+
+      it('should grow from min to max bitsize', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1', 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_get(trie, '1')).to.eql(1);
+
+        trie_add(trie, '0xA000000000', 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_get(trie, '0xA000000000')).to.eql(0xA000000000);
+      });
+
+      it('should grow from 16 to 32bit', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_add(trie, '1 << 10', 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_get(trie, '1 << 10')).to.eql(1 << 10);
+
+        trie_add(trie, '1 << 20', 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_get(trie, '1 << 20')).to.eql(1 << 20);
+      });
     });
   });
 
@@ -205,6 +286,59 @@ describe('src/tries.spec', function() {
       }
 
       if (false) console.log(_trie_debug(trie));
+    });
+
+    describe('value bitsize', function() {
+
+      it('should work incrementally', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1, 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_getNum(trie, 1)).to.eql(1);
+
+        trie_addNum(trie, 1 << 10, 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_getNum(trie, 1 << 10)).to.eql(1 << 10);
+
+        trie_addNum(trie, 1 << 20, 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_getNum(trie, 1 << 20)).to.eql(1 << 20);
+
+        trie_addNum(trie, 0xA000000000, 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_getNum(trie, 0xA000000000)).to.eql(0xA000000000);
+      });
+
+      it('should grow from min to max bitsize', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1, 1);
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+        expect(trie_getNum(trie, 1)).to.eql(1);
+
+        trie_addNum(trie, 0xA000000000, 0xA000000000);
+        expect(trie.buffer).to.be.an.instanceof(Float64Array);
+        expect(trie_getNum(trie, 0xA000000000)).to.eql(0xA000000000);
+      });
+
+      it('should grow from 16 to 32bit', function() {
+        let trie = trie_create(undefined, 50, 8);
+
+        expect(trie.buffer).to.be.an.instanceof(Uint8Array);
+
+        trie_addNum(trie, 1 << 10, 1 << 10);
+        expect(trie.buffer).to.be.an.instanceof(Uint16Array);
+        expect(trie_getNum(trie, 1 << 10)).to.eql(1 << 10);
+
+        trie_addNum(trie, 1 << 20, 1 << 20);
+        expect(trie.buffer).to.be.an.instanceof(Uint32Array);
+        expect(trie_getNum(trie, 1 << 20)).to.eql(1 << 20);
+      });
     });
   });
 });

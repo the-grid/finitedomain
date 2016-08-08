@@ -205,21 +205,19 @@ function space_propagate(space) {
 
   // "cycle" is one step, "epoch" all steps until stable (but not solved per se)
   let cycles = config._propagationCycles;
-  let epochFence = ++cycles; // any key in the trie below this value is considered "new"
   let changedTrie = config._changedVarsTrie; // track changed vars per cycle, epoch. persists across propagate calls for efficiency reasons.
 
   ASSERT(typeof cycles === 'number', 'cycles is a number?');
   ASSERT(changedTrie._class === '$trie', 'trie is a trie?');
 
   let changedVars = []; // in one cycle
-  let allChangedVars = []; // all cycles in this epoch
 
   let minimal = 1;
   if (space.updatedVarIndex >= 0) {
     changedVars.push(space.updatedVarIndex);
   } else {
     // very first cycle of first epoch of the search. all propagators must be visited at least once now.
-    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie, epochFence, ++cycles, allChangedVars);
+    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie, ++cycles);
     if (rejected) {
       config._propagationCycles = cycles;
       return true;
@@ -234,7 +232,7 @@ function space_propagate(space) {
   let returnValue = false;
   while (changedVars.length) {
     let newChangedVars = [];
-    let rejected = space_propagateChanges(space, propagators, minimal, changedVars, newChangedVars, changedTrie, epochFence, ++cycles, allChangedVars);
+    let rejected = space_propagateChanges(space, propagators, minimal, changedVars, newChangedVars, changedTrie, ++cycles);
     if (rejected) {
       returnValue = true;
       break;
@@ -253,24 +251,24 @@ function space_propagate(space) {
   return returnValue;
 }
 
-function space_propagateAll(space, propagators, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars) {
+function space_propagateAll(space, propagators, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars);
+    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars) {
+function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars);
+    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateStep(space, propagator, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars) {
+function space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
   let vardoms = space.vardoms;
@@ -290,37 +288,34 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, epochF
 
   if (domain1 !== vardoms[index1]) {
     if (vardoms[index1] === EMPTY) return true; // fail
-    space_recordChange(index1, changedTrie, changedVars, epochFence, cycleIndex, allChangedVars);
+    space_recordChange(index1, changedTrie, changedVars, cycleIndex);
   }
   if (index2 !== undefined && domain2 !== vardoms[index2]) {
     if (vardoms[index2] === EMPTY) return true; // fail
-    space_recordChange(index2, changedTrie, changedVars, epochFence, cycleIndex, allChangedVars);
+    space_recordChange(index2, changedTrie, changedVars, cycleIndex);
   }
   if (index3 !== undefined && domain3 !== vardoms[index3]) {
     if (vardoms[index3] === EMPTY) return true; // fail
-    space_recordChange(index3, changedTrie, changedVars, epochFence, cycleIndex, allChangedVars);
+    space_recordChange(index3, changedTrie, changedVars, cycleIndex);
   }
 
   return false;
 }
-function space_recordChange(varIndex, changedTrie, changedVars, epochFence, cycleIndex, allChangedVars) {
+function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
   if (typeof varIndex === 'number') {
     let status = trie_getNum(changedTrie, varIndex);
     if (status !== cycleIndex) {
-      if (status < epochFence) {
-        allChangedVars.push(varIndex);
-      }
       changedVars.push(varIndex);
       trie_addNum(changedTrie, varIndex, cycleIndex);
     }
   } else {
     ASSERT(varIndex instanceof Array, 'index1 is always used');
     for (let i = 0, len = varIndex.length; i < len; ++i) {
-      space_recordChange(varIndex[i], changedTrie, changedVars, cycleIndex, allChangedVars);
+      space_recordChange(varIndex[i], changedTrie, changedVars, cycleIndex);
     }
   }
 }
-function space_propagateChanges(space, allPropagators, minimal, targetVars, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars) {
+function space_propagateChanges(space, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
   let varToPropagators = space.config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
     let propagatorIndexes = varToPropagators[targetVars[i]];
@@ -334,7 +329,7 @@ function space_propagateChanges(space, allPropagators, minimal, targetVars, chan
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
     if (propagatorIndexes && propagatorIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie, epochFence, cycleIndex, allChangedVars);
+      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie, cycleIndex);
       if (result) return true; // rejected
     }
   }

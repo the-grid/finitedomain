@@ -165,6 +165,19 @@ describe('src/config.spec', function() {
         expect(config.all_var_names.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
       });
+
+      it('should make a constant if lo=hi', function() {
+        let config = config_create();
+
+        let lo = 58778;
+        let hi = 58778;
+
+        let varIndex = config_addVarAnonRange(config, lo, hi);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.constant_cache[lo]).to.eql(varIndex);
+      });
     });
 
     describe('with numbers', function() {
@@ -179,6 +192,19 @@ describe('src/config.spec', function() {
 
         expect(config.all_var_names.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi, true));
+      });
+
+      it('should make a constant if lo=hi', function() {
+        let config = config_create();
+
+        let lo = 28;
+        let hi = 28;
+
+        let varIndex = config_addVarAnonRange(config, lo, hi);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.constant_cache[lo]).to.eql(varIndex);
       });
     });
   });

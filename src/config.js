@@ -617,7 +617,7 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
   } else if (constraintName === 'sum') {
     if (!varIndexes.length) return true;
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
-  } else if (constraintName === 'sum') {
+  } else if (constraintName === 'product') {
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
   }
   return false;
@@ -919,6 +919,8 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
   if (varIndexes.length === 1) {
+    // both in the case of sum and product, if there is only one value in the set, the result must be that value
+    // so here we do an intersect that one value with the result because that's what must happen anyways
     let domain = domain_toStr(domain_strstr_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
     config.initial_domains[resultIndex] = domain;
     config.initial_domains[varIndexes[0]] = domain;

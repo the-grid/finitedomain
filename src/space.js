@@ -15,6 +15,16 @@ import {
 } from './trie';
 
 import {
+  front_addNode,
+  front_addCell,
+  front_getCell,
+  _front_getCell,
+  front_getSizeOf,
+  _front_getSizeOf,
+  front_setSizeOf,
+} from './front';
+
+import {
   config_clone,
   config_create,
   config_initForSpace,
@@ -47,7 +57,7 @@ function space_createRoot(config) {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew(config, [], [], _depth, _child, _path);
+  return space_createNew(config, [], 0, _depth, _child, _path);
 }
 
 /**
@@ -72,7 +82,7 @@ function space_createClone(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let vardomsCopy = space.vardoms.slice(0);
-  let unsolvedVarIndexes = space.unsolvedVarIndexes.slice(0); // note: the list should have been updated before cloning
+  let frontNodeIndex = space.frontNodeIndex;
 
   // only for debugging
   let _depth;
@@ -83,7 +93,7 @@ function space_createClone(space) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(space.config, vardomsCopy, unsolvedVarIndexes, _depth, _child, _path);
+  return space_createNew(space.config, vardomsCopy, frontNodeIndex, _depth, _child, _path);
 }
 
 /**
@@ -112,15 +122,14 @@ function space_toConfig(space) {
  *
  * @param {$config} config
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {number[]} unsolvedVarIndexes Note: Indexes to the config.all_var_names array
+ * @param {number} frontNodeIndex
  * @param {number} _depth
  * @param {number} _child
  * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _path) {
+function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path) {
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
-  ASSERT(unsolvedVarIndexes instanceof Array, 'unsolvedVarIndexes should be an array', unsolvedVarIndexes);
 
   let space = {
     _class: '$space',
@@ -128,7 +137,8 @@ function space_createNew(config, vardoms, unsolvedVarIndexes, _depth, _child, _p
     config,
 
     vardoms,
-    unsolvedVarIndexes,
+
+    frontNodeIndex,
 
     next_distribution_choice: 0,
     updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
@@ -156,25 +166,81 @@ function space_initFromConfig(space) {
   config_initForSpace(config, space);
   initializeUnsolvedVars(space, config);
 }
+
 /**
- * Initialized space.unsolvedVarIndexes with either the explicitly targeted var indexes
- * or any index that is currently unsolved and either constrained or marked as such
+ * Return the current number of unsolved vars for given space.
+ * Due to the nature of how we use a $front this is not reliable
+ * retroactively.
+ * This is only used for testing, prevents leaking internals into tests
  *
  * @param {$space} space
- * @param {$config} config
+ * @returns {number}
+ */
+function space_getUnsolvedVarCount(space) {
+  return front_getSizeOf(space.config._front, space.frontNodeIndex);
+}
+/**
+ * Return the index of the nth unsolved var in given node
+ * You are responsible for making sure that node is still relevant
+ * This is only used for testing, prevents leaking internals into tests
+ *
+ * @param {$space} space
+ * @param {number} nodeIndex The node (offset of the list) to access
+ * @param {number} cellIndex The cell offset relative to the node to return
+ * @returns {number}
+ */
+function space_getUnsolvedVarAt(space, nodeIndex, cellIndex) {
+  return front_getCell(space.config._front, nodeIndex, cellIndex);
+}
+/**
+ * Return the index of the nth unsolved var in the node of this space
+ * Only reliable if this space is the current active one
+ * This is only used for testing, prevents leaking internals into tests
+ *
+ * @param {$space} space
+ * @param {number} cellIndex The cell offset relative to the space's node to return
+ * @returns {number}
+ */
+function space_getUnsolvedIndex(space, cellIndex) {
+  return front_getCell(space.config._front, space.frontNodeIndex, cellIndex);
+}
+/**
+ * Only use this for testing or debugging as it creates a fresh array
+ * for the result. We don't use the names internally, anyways.
+ *
+ * @param {$space} space
+ * @returns {string[]} var names of all unsolved vars of given space
+ */
+function _space_getUnsolvedVarNamesFresh(space) {
+  let nodeIndex = space.frontNodeIndex;
+  // fugly! :)
+  let buf = space.config._front.buffer;
+  let sub = [].slice.call(buf, nodeIndex + 1, nodeIndex + 1 + buf[nodeIndex]); // or .subArray() or something like that... or even toArray?
+  return sub.map(index => space.config.all_var_names[index]);
+}
+
+/**
+ * Initialized the front with unsolved variables. These are either the explicitly
+ * targeted variables, or any unsolved variables if none were explicitly targeted.
+ *
+ * @param {$space} space
+ * @param {$config} config (=space.config)
  */
 function initializeUnsolvedVars(space, config) {
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
+  ASSERT(space.config === config);
+
   let targetVarNames = config.targetedVars;
   let vardoms = space.vardoms;
 
-  ASSERT(unsolvedVarIndexes.length === 0, 'should be initialized with empty list');
+  let unsolvedFront = config._front;
+  let nodeIndexStart = space.frontNodeIndex;
+  let cellIndex = 0;
 
   if (targetVarNames === 'all') {
     for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
       if (!domain_any_isSolved(vardoms[varIndex])) {
         if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
-          unsolvedVarIndexes.push(varIndex);
+          front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
         }
       }
     }
@@ -185,10 +251,12 @@ function initializeUnsolvedVars(space, config) {
       let varIndex = trie_get(varNamesTrie, varName);
       if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
       if (!domain_any_isSolved(vardoms[varIndex])) {
-        unsolvedVarIndexes.push(varIndex);
+        front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
       }
     }
   }
+
+  front_setSizeOf(unsolvedFront, nodeIndexStart, cellIndex);
 }
 
 /**
@@ -370,20 +438,26 @@ function space_abortSearch(space) {
  */
 function space_updateUnsolvedVarList(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
   let vardoms = space.vardoms;
 
-  let j = 0;
-  for (let i = 0, n = unsolvedVarIndexes.length; i < n; i++) {
-    let varIndex = unsolvedVarIndexes[i];
+  let unsolvedFront = space.config._front;
+  let lastNodeIndex = unsolvedFront.lastNodeIndex;
+  let nodeIndex = front_addNode(unsolvedFront);
+  space.frontNodeIndex = nodeIndex;
+
+  let cellIndex = 0;
+
+  for (let i = 0, n = _front_getSizeOf(unsolvedFront.buffer, lastNodeIndex); i < n; i++) {
+    let varIndex = _front_getCell(unsolvedFront.buffer, lastNodeIndex, i);
     let domain = vardoms[varIndex];
 
     if (!domain_any_isSolved(domain)) {
-      unsolvedVarIndexes[j++] = varIndex;
+      front_addCell(unsolvedFront, nodeIndex, cellIndex++, varIndex);
     }
   }
-  unsolvedVarIndexes.length = j;
-  return j === 0;
+
+  front_setSizeOf(unsolvedFront, nodeIndex, cellIndex);
+  return cellIndex === 0; // 0 unsolved means we've solved it :)
 }
 
 /**
@@ -431,6 +505,23 @@ function space_getDomainArr(space, varIndex) {
   return domain_toArr(space.vardoms[varIndex]);
 }
 
+
+function _space_debug(space, printPath) {
+  console.log('\n## Space:');
+  //__REMOVE_BELOW_FOR_ASSERTS__
+  console.log('# Meta:');
+  console.log('uid:', space._uid);
+  console.log('depth:', space._depth);
+  console.log('child:', space._child);
+  console.log('children:', space._child_count);
+  if (printPath) console.log('path:', space._path);
+  //__REMOVE_ABOVE_FOR_ASSERTS__
+  console.log('# Domains:');
+  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + (space.config.all_var_names[i] === String(i) ? '' : ' (' + space.config.all_var_names[i] + ')')).join('\n'));
+  console.log('##\n');
+}
+
+
 // BODY_STOP
 
 export {
@@ -438,10 +529,15 @@ export {
   space_createFromConfig,
   space_createRoot,
   space_getDomainArr,
+  space_getUnsolvedVarCount,
+  space_getUnsolvedVarAt,
+  space_getUnsolvedIndex,
+  _space_getUnsolvedVarNamesFresh,
   space_getVarSolveState,
   space_initFromConfig,
   space_updateUnsolvedVarList,
   space_propagate,
   space_solution,
   space_toConfig,
+  _space_debug,
 };

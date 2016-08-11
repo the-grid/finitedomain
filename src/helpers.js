@@ -119,6 +119,8 @@ function GET_NAME(e) {
 // @returns {string[]}
 
 function GET_NAMES(es) {
+  if (typeof es === 'string') return es;
+
   let varNames = [];
   for (let i = 0; i < es.length; i++) {
     let varName = es[i];

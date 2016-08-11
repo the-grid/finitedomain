@@ -520,8 +520,8 @@ function config_addConstraint(config, name, varNames, param) {
     case 'gte': {
       ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
 
-      // require at least one non-constant variable... except distinct can have zero vars
-      let hasNonConstant = (name !== 'distinct') && varNames.length === 0;
+      // require at least one non-constant variable...
+      let hasNonConstant = false;
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
@@ -532,8 +532,7 @@ function config_addConstraint(config, name, varNames, param) {
         }
       }
 
-      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
-      if (varNames.length === 0) varNameToReturn = param;
+      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME_ONLY_GOT_CONSTANTS');
       break;
     }
 

@@ -430,18 +430,13 @@ function config_populateVarPropHash(config) {
   config._varToPropagators = hash;
 }
 function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorIndex) {
-  if (typeof varIndex === 'number') {
-    // dont bother adding props on unsolved vars because they can't affect
-    // anything anymore. seems to prevent about 10% in our case so worth it.
-    if (!domain_str_isSolved(initialDomains[varIndex])) {
-      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
-      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
-    }
-  } else {
-    ASSERT(varIndex instanceof Array);
-    for (let i = 0, len = varIndex.length; i < len; ++i) {
-      _config_addVarConditionally(varIndex[i], initialDomains, hash, propagatorIndex);
-    }
+  // (at some point this could be a strings, or array, or whatever)
+  ASSERT(typeof varIndex === 'number', 'must be number');
+  // dont bother adding props on unsolved vars because they can't affect
+  // anything anymore. seems to prevent about 10% in our case so worth it.
+  if (!domain_str_isSolved(initialDomains[varIndex])) {
+    if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+    else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
   }
 }
 

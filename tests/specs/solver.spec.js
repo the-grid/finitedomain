@@ -347,6 +347,13 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+        });
       }
 
       alias('plus');
@@ -386,6 +393,13 @@ describe('solver.spec', function() {
           solver3.decl('A', 100);
           solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
+        });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
         });
       }
 
@@ -428,6 +442,13 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+        });
       }
 
       alias('times');
@@ -469,6 +490,13 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
         });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+        });
       }
 
       alias('div');
@@ -508,6 +536,13 @@ describe('solver.spec', function() {
           solver3.decl('A', 100);
           solver3.decl('B', 100);
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
+        });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('expecting result var name to be absent or a number or string:');
         });
       }
 
@@ -587,6 +622,13 @@ describe('solver.spec', function() {
           solver3.decl('A', 100);
           solver3.decl('B', 100);
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
+        });
+
+        it('should throw for bad result name', function() {
+          let solver3 = new Solver();
+          solver3.decl('A', 100);
+          solver3.decl('B', 100);
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('expecting result var name to be absent or a number or string:');
         });
       }
 
@@ -781,6 +823,13 @@ describe('solver.spec', function() {
             solver.decl('A', 100);
             solver.decl('B', 1);
             expect(solver[method]('A', 'B', 1)).to.be.a('string');
+          });
+
+          it('should throw for bad result name', function() {
+            let solver3 = new Solver();
+            solver3.decl('A', 100);
+            solver3.decl('B', 100);
+            expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
           });
         });
       }

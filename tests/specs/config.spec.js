@@ -580,4 +580,25 @@ describe('src/config.spec', function() {
       expect(clone.initial_domains).to.eql(newVars);
     });
   });
+
+  it('should reject a known var', function() {
+    let config = config_create();
+    config_addVarRange(config, 'again', 0, 10);
+    expect(_ => config_addVarRange(config, 'again', 0, 10)).to.throw('Do not declare the same varName twice');
+  });
+
+  it('should reject number as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, 200, 0, 10)).to.throw('A_VARNAME_SHOULD_BE_STRING_OR_TRUE');
+  });
+
+  it('should reject zero as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, 0, 0, 10)).to.throw('A_VARNAME_SHOULD_BE_STRING_OR_TRUE');
+  });
+
+  it('should reject stringified zero as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+  });
 });

@@ -11,6 +11,7 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
+  config_addConstraint,
   //config_addPropagator,
   config_addVarAnonConstant,
   config_addVarAnonNothing,
@@ -31,6 +32,18 @@ import {
 } from '../../src/space';
 
 describe('src/config.spec', function() {
+
+  describe('config_addConstraint', function() {
+
+    it('should exist', function() {
+      expect(config_addConstraint).to.be.a('function');
+    });
+
+    it('should throw for unknown names', function() {
+      let config = config_create();
+      expect(_ => config_addConstraint(config, 'crap', [])).to.throw('UNKNOWN_PROPAGATOR');
+    });
+  });
 
   describe('config_create', function() {
 

@@ -236,17 +236,14 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
       case 2: return 1;
       case 3: return 1;
     }
-    if ((domain | 0) == 1) return 0;
-    if ((domain | 0) == 2) return 1;
-    if ((domain | 0) == 3) return 1;
 
     // there's no pretty way to do this
-    while ((i | 0) >= 0) {
-      if (domain & (1 << i)) return i | 0;
+    do {
+      if (domain & (1 << i)) break;
       i = (i - 1) | 0;
-    }
+    } while ((i | 0) >= 0);
 
-    return -1; // I don't think this really happens, or should, but just in case it does...
+    return i | 0; // note: the 31 case is unused in our system and assumed impossible here
   }
 
   /**

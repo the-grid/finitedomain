@@ -284,7 +284,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
       case 0:
         //return 32;
         return -1; // note: we dont use bits 31 and 32 so we can check for empty domain here "for free"
-      case 1:
+      case 1: // does not exist within 32bits
         return 0;
       case 2:
         return 1;
@@ -296,7 +296,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
         return 23;
       case 6:
         return 27;
-      case 7:
+      case 7: // does not exist within 32bits
         return 0;
       case 8:
         return 3;
@@ -310,7 +310,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
         return 28;
       case 13:
         return 11;
-      case 14:
+      case 14: // does not exist within 32bits
         return 0;
       case 15:
         return 13;
@@ -320,7 +320,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
         return 7;
       case 18:
         return 17;
-      case 19:
+      case 19: // does not exist within 32bits
         return 0;
       case 20:
         return 25;
@@ -339,7 +339,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
         return 12;
       case 27:
         return 6;
-      case 28:
+      case 28: // does not exist within 32bits
         return 0;
       case 29:
         return 21;
@@ -355,11 +355,9 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
         return 8;
       case 35:
         return 19;
-      case 36:
-        return 18;
     }
-
-    return -1; // I don't think this really happens, or should, but just in case it does...
+    // case 36:
+    return 18;
   }
 
   /**

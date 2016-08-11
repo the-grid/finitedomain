@@ -72,7 +72,12 @@ function search_depthFirst(state) {
  * @returns {boolean}
  */
 function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+  // we backtrack, update the last node in the data model with the previous space
+  // I don't like doing it this way but what else?
+  space.config._front.lastNodeIndex = space.frontNodeIndex;
+
   let rejected = space_propagate(space);
+
   if (rejected) {
     _search_onReject(state, space, stack);
     return false;

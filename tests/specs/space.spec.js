@@ -29,6 +29,8 @@ import {
   space_createClone,
   //space_createFromConfig,
   space_createRoot,
+  space_getUnsolvedVarCount,
+  _space_getUnsolvedVarNamesFresh,
   space_initFromConfig,
   space_updateUnsolvedVarList,
   space_propagate,
@@ -53,7 +55,6 @@ describe('src/space.spec', function() {
 
       it('should init vars and var_names', function() {
         expect(space_createRoot().vardoms).to.be.an('array');
-        expect(space_createRoot().unsolvedVarIndexes).to.be.an('array');
         expect(space_createRoot().config.all_var_names).to.be.an('array');
       });
     });
@@ -83,8 +84,6 @@ describe('src/space.spec', function() {
 
       // note: the deep clone check is already done above, no need to repeat it
       it('should clone certain props, copy others', function() {
-        expect(space.unsolvedVarIndexes).to.not.equal(clone.unsolvedVarIndexes);
-        expect(space.unsolvedVarIndexes.join()).to.equal(clone.unsolvedVarIndexes.join());
         expect(space.config).to.equal(clone.config);
       });
     });
@@ -101,7 +100,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(space.unsolvedVarIndexes).to.eql([]);
+        expect(space_getUnsolvedVarCount(space)).to.eql(0);
       });
 
       it('should use explicitly targeted vars regardless of being constrained', function() {
@@ -113,7 +112,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(space.unsolvedVarIndexes).to.eql(['A', 'B'].map(name => config.all_var_names.indexOf(name)));
+        expect(_space_getUnsolvedVarNamesFresh(space).sort()).to.eql(['A', 'B']);
       });
 
       it('should not care about the order of the var names', function() {
@@ -126,7 +125,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space);
 
-        expect(space.unsolvedVarIndexes.sort()).to.eql(targets.map(name => config.all_var_names.indexOf(name)).sort());
+        expect(_space_getUnsolvedVarNamesFresh(space).sort()).to.eql(targets.sort());
       });
 
       it('should throw if var names dont exist', function() {
@@ -144,7 +143,9 @@ describe('src/space.spec', function() {
     describe('space_isSolved()', function() {
 
       it('should return true if there are no vars', function() {
-        expect(space_updateUnsolvedVarList(space_createRoot())).to.equal(true);
+        let space = space_createRoot();
+        space_initFromConfig(space);
+        expect(space_updateUnsolvedVarList(space)).to.equal(true);
       });
 
       it('should return true if all 1 vars are solved', function() {
@@ -179,7 +180,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = [];
         space_initFromConfig(space);
 
-        expect(space.unsolvedVarIndexes.length, 'unsolved vars to solve').to.equal(0);
+        expect(space_getUnsolvedVarCount(space), 'unsolved vars to solve').to.equal(0);
       });
 
       it('should return false if at least one var of two is not solved and targeted', function() {

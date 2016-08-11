@@ -4,6 +4,10 @@ import Solver from '../../../src/solver';
 import {
   config_clone,
 } from '../../../src/config';
+import {
+  space_getUnsolvedVarCount,
+  _space_getUnsolvedVarNamesFresh,
+} from '../../../src/space';
 
 import case20160611 from './2016-06-11';
 import case20160613 from './2016-06-13';
@@ -735,7 +739,7 @@ describe('exports/export.cases.spec', function() {
         let solution = solver.solve();
 
         expect(solution).to.eql([{A: [19, 20], B: [20, 21]}]); // return all valid values that still satisfy all constraints (->none)
-        expect(solver._space.unsolvedVarIndexes).to.eql([]); // should not target A or B because they are unconstrained
+        expect(space_getUnsolvedVarCount(solver._space)).to.eql(0); // should not target A or B because they are unconstrained
       });
       it('constrained AB should appear in spaces unsolved vars list', function() {
         let solver = new Solver();
@@ -745,7 +749,7 @@ describe('exports/export.cases.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 19, B: 21}, {A: 19, B: 22}, {A: 20, B: 21}, {A: 20, B: 22}]); // now it must solve. note: result will be different when we optimize neq to "solve" properly
-        expect(solver._space.unsolvedVarIndexes).to.eql([0, 1]); // should A and B because they are under neq
+        expect(_space_getUnsolvedVarNamesFresh(solver._space).sort()).to.eql(['A', 'B']); // should A and B because they are under neq
       });
     });
   });

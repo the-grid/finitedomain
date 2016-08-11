@@ -11,6 +11,11 @@ import {
   domain_any_size,
 } from '../domain';
 
+import {
+  _front_getCell,
+  _front_getSizeOf,
+} from '../front';
+
 // BODY_START
 
 const BETTER = 1;
@@ -25,11 +30,11 @@ const WORSE = 3;
  * @returns {number}
  */
 function distribution_getNextVarIndex(space) {
-  let unsolvedVarIndexes = space.unsolvedVarIndexes;
+  let front = space.config._front;
   let varStratConfig = space.config.varStratConfig;
   let isBetterVarFunc = distribution_getFunc(varStratConfig.type);
 
-  return _distribution_varFindBest(space, unsolvedVarIndexes, isBetterVarFunc, varStratConfig);
+  return _distribution_varFindBest(space, front, isBetterVarFunc, varStratConfig);
 }
 
 /**
@@ -61,16 +66,19 @@ function distribution_getFunc(distName) {
  * Return the best varIndex according to a fitness function
  *
  * @param {$space} space
- * @param {number[]} indexes A subset of indexes that are properties on space.vardoms
- * @param {Function($space, string, string, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
+ * @param {$front} unsolvedFront
+ * @param {Function($space, currentIndex, bestIndex, Function)} [fitnessFunc] Given two var indexes returns true iif the first var is better than the second var
  * @param {Object} varStratConfig
  * @returns {number} The varIndex of the next var or NO_SUCH_VALUE
  */
-function _distribution_varFindBest(space, indexes, fitnessFunc, varStratConfig) {
-  ASSERT(indexes.length, 'SHOULD_HAVE_VARS');
+function _distribution_varFindBest(space, unsolvedFront, fitnessFunc, varStratConfig) {
   let bestVarIndex = NO_SUCH_VALUE;
-  for (let i = 0; i < indexes.length; i++) {
-    let varIndex = indexes[i];
+
+  let buf = unsolvedFront.buffer;
+  let nodeIndex = space.frontNodeIndex;
+
+  for (let i = 0, len = _front_getSizeOf(buf, nodeIndex); i < len; i++) {
+    let varIndex = _front_getCell(buf, nodeIndex, i);
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
     ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 

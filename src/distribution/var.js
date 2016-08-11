@@ -24,7 +24,7 @@ const WORSE = 3;
  * @param {$space} space
  * @returns {number}
  */
-function distribution_getNextVar(space) {
+function distribution_getNextVarIndex(space) {
   let unsolvedVarIndexes = space.unsolvedVarIndexes;
   let varStratConfig = space.config.varStratConfig;
   let isBetterVarFunc = distribution_getFunc(varStratConfig.type);
@@ -231,7 +231,7 @@ function distribution_varThrow(s) {
 
 // BODY_STOP
 
-export default distribution_getNextVar;
+export default distribution_getNextVarIndex;
 export {
   BETTER,
   SAME,

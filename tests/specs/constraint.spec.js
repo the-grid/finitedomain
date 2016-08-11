@@ -7,7 +7,6 @@ import {
 import {
   SUB,
   SUP,
-  EMPTY,
 } from '../../src/helpers';
 import Solver from '../../src/solver';
 
@@ -20,7 +19,7 @@ describe('src/constraint.spec', function() {
       let solver = new Solver();
       solver.decl('A', 100);
       solver.decl('B', 100);
-      let solution = solver.solve({});
+      let solution = solver.solve();
 
       expect(solution).to.eql([{A: 100, B: 100}]);
     });
@@ -626,9 +625,9 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', 100);
         solver.decl('B', 101);
-        solver.decl('C', EMPTY); // TODO: fix this test. if EMPTY is `undefined` this test still passes.
+        solver.decl('C', fixt_arrdom_range(0, 0, true)); // it should not even clamp to zero...
         solver.min('A', 'B', 'C');
-        let solution = solver.solve({});
+        let solution = solver.solve();
 
         expect(solution).to.eql([]);
       });

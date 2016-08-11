@@ -2175,6 +2175,14 @@ describe('src/domain.spec', function() {
       gteTest(fixt_numdom_nums(5), 5, EMPTY);
       gteTest(fixt_numdom_nums(0, 1, 2), 5, fixt_numdom_nums(0, 1, 2));
       gteTest(fixt_numdom_nums(6, 7, 8), 5, EMPTY);
+
+      it('should improve code coverage', function() {
+        let numdom = fixt_numdom_range(0, 30);
+        for (let i = 0; i <= 50; ++i) {
+          let v = domain_any_removeGte(numdom, i);
+          expect(v).to.be.a('number');
+        }
+      });
     });
   });
 
@@ -2261,6 +2269,14 @@ describe('src/domain.spec', function() {
       lteTest(fixt_numdom_nums(5), 5, EMPTY);
       lteTest(fixt_numdom_nums(6, 7, 8), 5, fixt_numdom_nums(6, 7, 8));
       lteTest(fixt_numdom_nums(0, 1, 2, 3, 4), 5, EMPTY);
+
+      it('should improve code coverage', function() {
+        let numdom = fixt_numdom_range(0, 30);
+        for (let i = 0; i <= 50; ++i) {
+          let v = domain_any_removeLte(numdom, i);
+          expect(v).to.be.a('number');
+        }
+      });
     });
   });
 

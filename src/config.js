@@ -632,7 +632,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
 
   ASSERT_STRDOM(domainLeft);
   ASSERT_STRDOM(domainRight);
-  if (!domainLeft || !domainRight) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
+  ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
   let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
@@ -662,6 +662,10 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
 
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
+
+  ASSERT_STRDOM(domainLeft);
+  ASSERT_STRDOM(domainRight);
+  ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
   let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {

@@ -109,7 +109,7 @@ function ASSERT_ANYDOM(domain) {
 
 function GET_NAME(e) {
   // e can be the empty string (TOFIX: let's not allow this...)
-  if (e.id != null) {
+  if (e.id !== undefined && e.id !== null) {
     return e.id;
   }
   return e;

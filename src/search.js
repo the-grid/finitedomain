@@ -10,7 +10,7 @@ import {
 import {
   domain_any_isSolved,
 } from './domain';
-import distribution_getNextVar from './distribution/var';
+import distribution_getNextVarIndex from './distribution/var';
 import distribute_getNextDomainForVar from './distribution/value';
 
 // BODY_START
@@ -72,7 +72,12 @@ function search_depthFirst(state) {
  * @returns {boolean}
  */
 function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+  // we backtrack, update the last node in the data model with the previous space
+  // I don't like doing it this way but what else?
+  space.config._front.lastNodeIndex = space.frontNodeIndex;
+
   let rejected = space_propagate(space);
+
   if (rejected) {
     _search_onReject(state, space, stack);
     return false;
@@ -111,7 +116,7 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
 function search_defaultSpaceFactory(space) {
-  let varIndex = distribution_getNextVar(space);
+  let varIndex = distribution_getNextVarIndex(space);
 
   if (varIndex !== NO_SUCH_VALUE) {
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');

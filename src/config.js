@@ -26,6 +26,9 @@ import {
   trie_has,
 } from './trie';
 import {
+  front_create,
+} from './front';
+import {
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,
@@ -83,6 +86,8 @@ function config_create() {
     _propagationBatch: 0,
     _propagationCycles: 0,
 
+    _front: undefined,
+
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
     targetedVars: 'all',
@@ -131,6 +136,8 @@ function config_clone(config, newDomains) {
     _changedVarsTrie: undefined,
     _propagationBatch, // track _propagationCycles at start of last propagate() call
     _propagationCycles, // current step value
+
+    _front: undefined, // dont clone this, that's useless.
 
     varStratConfig,
     valueStratName,
@@ -423,18 +430,13 @@ function config_populateVarPropHash(config) {
   config._varToPropagators = hash;
 }
 function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorIndex) {
-  if (typeof varIndex === 'number') {
-    // dont bother adding props on unsolved vars because they can't affect
-    // anything anymore. seems to prevent about 10% in our case so worth it.
-    if (!domain_str_isSolved(initialDomains[varIndex])) {
-      if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
-      else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
-    }
-  } else {
-    ASSERT(varIndex instanceof Array);
-    for (let i = 0, len = varIndex.length; i < len; ++i) {
-      _config_addVarConditionally(varIndex[i], initialDomains, hash, propagatorIndex);
-    }
+  // (at some point this could be a strings, or array, or whatever)
+  ASSERT(typeof varIndex === 'number', 'must be number');
+  // dont bother adding props on unsolved vars because they can't affect
+  // anything anymore. seems to prevent about 10% in our case so worth it.
+  if (!domain_str_isSolved(initialDomains[varIndex])) {
+    if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
+    else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
   }
 }
 
@@ -518,8 +520,8 @@ function config_addConstraint(config, name, varNames, param) {
     case 'gte': {
       ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
 
-      // require at least one non-constant variable... except distinct can have zero vars
-      let hasNonConstant = (name !== 'distinct') && varNames.length === 0;
+      // require at least one non-constant variable...
+      let hasNonConstant = false;
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
@@ -530,8 +532,7 @@ function config_addConstraint(config, name, varNames, param) {
         }
       }
 
-      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
-      if (varNames.length === 0) varNameToReturn = param;
+      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME_ONLY_GOT_CONSTANTS');
       break;
     }
 
@@ -616,7 +617,7 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
   } else if (constraintName === 'sum') {
     if (!varIndexes.length) return true;
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
-  } else if (constraintName === 'sum') {
+  } else if (constraintName === 'product') {
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
   }
   return false;
@@ -631,7 +632,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
 
   ASSERT_STRDOM(domainLeft);
   ASSERT_STRDOM(domainRight);
-  if (!domainLeft || !domainRight) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
+  ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
   let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
@@ -661,6 +662,10 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
 
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
+
+  ASSERT_STRDOM(domainLeft);
+  ASSERT_STRDOM(domainRight);
+  ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
   let v = domain_str_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
@@ -918,6 +923,8 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
   if (varIndexes.length === 1) {
+    // both in the case of sum and product, if there is only one value in the set, the result must be that value
+    // so here we do an intersect that one value with the result because that's what must happen anyways
     let domain = domain_toStr(domain_strstr_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
     config.initial_domains[resultIndex] = domain;
     config.initial_domains[varIndexes[0]] = domain;
@@ -1046,6 +1053,8 @@ function config_initForSpace(config, space) {
   if (!config._var_names_trie) {
     config._var_names_trie = trie_create(config.all_var_names);
   }
+  // always create a new front (we may assume this is a new search)
+  config._front = front_create();
   // we know the max number of var names used in this search so we
   // know the number of indexes the changevars trie may need to hash
   // worst case. set the size accordingly. after some benchmarking

@@ -11,6 +11,7 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
+  config_addConstraint,
   //config_addPropagator,
   config_addVarAnonConstant,
   config_addVarAnonNothing,
@@ -31,6 +32,18 @@ import {
 } from '../../src/space';
 
 describe('src/config.spec', function() {
+
+  describe('config_addConstraint', function() {
+
+    it('should exist', function() {
+      expect(config_addConstraint).to.be.a('function');
+    });
+
+    it('should throw for unknown names', function() {
+      let config = config_create();
+      expect(_ => config_addConstraint(config, 'crap', [])).to.throw('UNKNOWN_PROPAGATOR');
+    });
+  });
 
   describe('config_create', function() {
 
@@ -165,6 +178,19 @@ describe('src/config.spec', function() {
         expect(config.all_var_names.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
       });
+
+      it('should make a constant if lo=hi', function() {
+        let config = config_create();
+
+        let lo = 58778;
+        let hi = 58778;
+
+        let varIndex = config_addVarAnonRange(config, lo, hi);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.constant_cache[lo]).to.eql(varIndex);
+      });
     });
 
     describe('with numbers', function() {
@@ -179,6 +205,19 @@ describe('src/config.spec', function() {
 
         expect(config.all_var_names.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi, true));
+      });
+
+      it('should make a constant if lo=hi', function() {
+        let config = config_create();
+
+        let lo = 28;
+        let hi = 28;
+
+        let varIndex = config_addVarAnonRange(config, lo, hi);
+
+        expect(config.all_var_names.length).to.equal(1);
+        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.constant_cache[lo]).to.eql(varIndex);
       });
     });
   });
@@ -553,5 +592,26 @@ describe('src/config.spec', function() {
 
       expect(clone.initial_domains).to.eql(newVars);
     });
+  });
+
+  it('should reject a known var', function() {
+    let config = config_create();
+    config_addVarRange(config, 'again', 0, 10);
+    expect(_ => config_addVarRange(config, 'again', 0, 10)).to.throw('Do not declare the same varName twice');
+  });
+
+  it('should reject number as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, 200, 0, 10)).to.throw('A_VARNAME_SHOULD_BE_STRING_OR_TRUE');
+  });
+
+  it('should reject zero as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, 0, 0, 10)).to.throw('A_VARNAME_SHOULD_BE_STRING_OR_TRUE');
+  });
+
+  it('should reject stringified zero as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
   });
 });

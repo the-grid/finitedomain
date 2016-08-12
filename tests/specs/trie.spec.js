@@ -370,10 +370,69 @@ describe('src/tries.spec', function() {
     arr1k.forEach((_, i) => trie_getNum(trie, i));
     console.log(_trie_debug(trie, true));
 
+    /*
+    Key count:          1000
+    Node count:         1013 (1.013 nodes per key)
+    Buffer cell length: 12289
+    Buffer byte length: 24578
+    Bit size:           16
+    Node len:           11
+    Node size:          11
+    Last Node:          11132
+    Used space:         11143 cells, 21.76 kb
+    Unused space:       1146 cells, 2.23 kb
+    Mallocs:            1 4097 8193 12289
+    trie_adds:          1000
+    Avg key distance:   3.893
+    trie_hass:          0
+    trie_gets:          1000
+    Avg get distance:   3893 -> 3.893
+    */
+
     new Array(10000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
     console.log(_trie_debug(trie, true));
 
+    /*
+    Key count:          10000
+    Node count:         10113 (1.0113 nodes per key)
+    Buffer cell length: 116857
+    Buffer byte length: 467428
+    Bit size:           32
+    Node len:           11
+    Node size:          11
+    Last Node:          111232
+    Used space:         111243 cells, 434.54 kb
+    Unused space:       5614 cells, 21.92 kb
+    Mallocs:            1 4097 8193 12289 16385 20481 24577 28673 32769 36865 40961 45057 49562 54518 59969 65965 72561 79817 87798 96577 106234 116857
+    trie_adds:          11000
+    Avg key distance:   4.798818181818182
+    trie_hass:          0
+    trie_gets:          1000
+    Avg get distance:   3893 -> 3.893
+    */
+
+
     new Array(25000).fill(0).forEach((_, i) => trie_addNum(trie, i, 0));
     console.log(_trie_debug(trie, true));
+
+    /*
+    Key count:          25000
+    Node count:         26112 (1.04448 nodes per key)
+    Buffer cell length: 303088
+    Buffer byte length: 1212352
+    Bit size:           32
+    Node len:           11
+    Node size:          11
+    Last Node:          287221
+    Used space:         287232 cells, 1.09 mb
+    Unused space:       15856 cells, 61.93 kb
+    Mallocs:            1 4097 8193 12289 16385 20481 24577 28673 32769 36865 40961 45057 49562 54518 59969 65965 72561 79817 87798 96577 106234 116857 128542 141396 155535 171088 188196 207015 227716 250487 275535 303088
+    trie_adds:          36000
+    Avg key distance:   5.324472222222222
+    trie_hass:          0
+    trie_gets:          1000
+    Avg get distance:   3893 -> 3.893
+    */
+
   });
 });

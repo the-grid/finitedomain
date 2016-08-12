@@ -109,7 +109,7 @@ function ASSERT_ANYDOM(domain) {
 
 function GET_NAME(e) {
   // e can be the empty string (TOFIX: let's not allow this...)
-  if (e.id != null) {
+  if (e.id !== undefined && e.id !== null) {
     return e.id;
   }
   return e;
@@ -119,6 +119,8 @@ function GET_NAME(e) {
 // @returns {string[]}
 
 function GET_NAMES(es) {
+  if (typeof es === 'string') return es;
+
   let varNames = [];
   for (let i = 0; i < es.length; i++) {
     let varName = es[i];

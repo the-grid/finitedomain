@@ -60,24 +60,24 @@ import domain_any_minus from './doms/domain_minus';
  * @param {string} [arg2='']
  * @param {string} [arg3='']
  * @param {string} [arg4='']
- * @param {string} [arg5]
- * @param {string} [arg6]
+ * @param {string} [arg5='']
+ * @param {string} [arg6='']
  * @returns {$propagator}
  */
-function propagator_create(name, stepFunc, index1, index2 = -1, index3 = -1, arg1 = '', arg2 = '', arg3 = '', arg4 = '', arg5, arg6) {
+function propagator_create(name, stepFunc, index1, index2, index3, arg1, arg2, arg3, arg4, arg5, arg6) {
   return {
     _class: '$propagator',
     name: name,
     stepper: stepFunc,
-    index1: index1,
-    index2: index2,
-    index3: index3,
-    arg1: arg1,
-    arg2: arg2,
-    arg3: arg3,
-    arg4: arg4,
-    arg5: arg5,
-    arg6: arg6,
+    index1: index1 === undefined ? -1 : index1,
+    index2: index2 === undefined ? -1 : index2,
+    index3: index3 === undefined ? -1 : index3,
+    arg1: arg1 === undefined ? '' : arg1,
+    arg2: arg2 === undefined ? '' : arg2,
+    arg3: arg3 === undefined ? '' : arg3,
+    arg4: arg4 === undefined ? '' : arg4,
+    arg5: arg5 === undefined ? '' : arg5,
+    arg6: arg6 === undefined ? '' : arg6,
   };
 }
 

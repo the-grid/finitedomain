@@ -14,11 +14,13 @@ import {
 } from './helpers';
 
 import {
+  config_addConstraint,
   config_addVarAnonConstant,
   config_addVarDomain,
   config_addVarRange,
   config_create,
   config_setDefaults,
+  config_setOption,
   config_setOptions,
 } from './config';
 
@@ -44,10 +46,6 @@ import {
   space_toConfig,
 } from './space';
 
-import {
-  config_addConstraint,
-} from './config';
-
 // BODY_START
 
 //
@@ -63,31 +61,17 @@ class Solver {
   /**
    * @param {Object} options = {}
    * @property {string} [options.distribute='naive']
-   * @property {string} [options.search='depth_first']
    * @property {number[]} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    */
   constructor(options = {}) {
-    let {
-      distribute = 'naive',
-      search = 'depth_first',
-      defaultDomain = domain_createRange(0, 1),
-      config = config_create(),
-    } = options;
+    this._class = 'solver';
+    this.distribute = options.distribute || 'naive';
 
-    if (config.initial_vars) { // deprecated
-      let doms = [];
-      for (let i = 0, n = config.all_var_names.length; i < n; ++i) {
-        doms[i] = config.initial_vars[config.all_var_names[i]];
-      }
-      config.initial_domains = doms;
-      console.log('### converted initial_vars to initial_domains, log out result and update examples accordingly!');
-      //console.log(doms)
-      //console.log('##')
-      delete config.initial_vars;
-      throw new Error('update test');
-    }
+    let config = options.config || config_create();
+    this.config = config;
+
     if (config.initial_domains) {
       let initialDomains = config.initial_domains;
       for (let i = 0, len = initialDomains.length; i < len; ++i) {
@@ -97,20 +81,7 @@ class Solver {
     if (config._propagators) config._propagators = undefined; // will be regenerated
     if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
 
-    this._class = 'solver';
-
-    this.distribute = distribute;
-    this.search = search;
-    this.defaultDomain = defaultDomain;
-    this.config = config;
-
-    if (typeof distribute === 'string') {
-      config_setDefaults(this.config, this.distribute);
-    } else if (typeof distribute === 'object') {
-      config_setOptions(this.config, this.distribute);
-    } else {
-      THROW('SOLVER_OPTIONS_UNKNOWN_TYPE');
-    }
+    this.defaultDomain = options.defaultDomain || domain_createRange(0, 1);
 
     this.vars = {
       byId: {},
@@ -212,66 +183,46 @@ class Solver {
    * S.addVar {id: 'foo', domain: [1, 2]}
    * S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
    *
-   * @param v
-   * @param [dom=v.domain] Note: this cannot be a "small domain"! Numbers are interpreted to be constants in Solver
+   * @param varOptions
+   * @param [domain=v.domain] Note: this cannot be a "small domain"! Numbers are interpreted to be constants in Solver
    * @returns {*}
    */
-  addVar(v, dom) {
-    ASSERT(!(v instanceof Array), 'Not expecting to receive an array', v);
-    if (typeof v === 'string') {
-      v = {
-        id: v,
-        domain: dom,
-      };
-    } else {
-      ASSERT(typeof v === 'object', 'v should be an id or an object containing meta');
+  addVar(varOptions, domain) {
+    if (typeof varOptions === 'string') {
+      ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
+      if (domain === undefined) domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
+      ASSERT(domain, 'NO_EMPTY_DOMAIN', domain);
+      domain = domain_validateLegacyArray(domain);
+      config_addVarDomain(this.config, varOptions, domain);
+
+      return varOptions;
     }
 
-    let {
-      id,
-      domain,
-      name,
-      distribute,
-    } = v;
+    // the rest is mostly legacy stuff that should move to multiverse's pathsolver subclass
+    ASSERT(!(varOptions instanceof Array), 'Not expecting to receive an array', varOptions);
+    ASSERT(typeof varOptions === 'object', 'v should be an id or an object containing meta');
 
-    if (id == null) {
-      THROW('Solver#addVar: requires id');
-    }
-
-    let vars = this.vars;
-    if (vars.byId[id]) {
-      THROW(`Solver#addVar: var.id already added: ${id}`);
-    }
-
-    ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
-
-    if (domain === undefined) {
-      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
-    } else {
+    domain = varOptions.domain;
+    ASSERT(domain === undefined || domain instanceof Array, 'ARRAY_DOMAIN_OR_DEFAULT');
+    if (domain) {
       domain = domain_validateLegacyArray(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
+    } else {
+      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
     }
+
+    let id = varOptions.id;
+    if (!id) THROW('Solver#addVar: requires id');
 
     config_addVarDomain(this.config, id, domain);
-    ASSERT(!vars.byId[id], 'var should not yet exist', id, v);
-    vars.byId[id] = v;
-    ASSERT(vars.all.indexOf(v) < 0, 'var should not yet be part of vars.all', id, v);
-    vars.all.push(v);
 
-    if (name != null) {
-      if (vars.byName[name] == null) {
-        vars.byName[name] = [];
-      }
-      vars.byName[name].push(v);
-    }
-
-    if (distribute === 'markov' || (v.distributeOptions && v.distributeOptions.valtype === 'markov')) {
-      let { matrix } = v.distributeOptions;
+    if (varOptions.distributeOptions && varOptions.distributeOptions.valtype === 'markov') {
+      let matrix = varOptions.distributeOptions.matrix;
       if (!matrix) {
-        if (v.distributeOptions.expandVectorsWith) {
-          matrix = v.distributeOptions.matrix = [{vector: []}];
+        if (varOptions.distributeOptions.expandVectorsWith) {
+          matrix = varOptions.distributeOptions.matrix = [{vector: []}];
         } else {
-          THROW(`Solver#addVar: markov distribution requires SolverVar ${JSON.stringify(v)} w/ distributeOptions:{matrix:[]}`);
+          THROW(`Solver#addVar: markov distribution requires SolverVar ${JSON.stringify(varOptions)} w/ distributeOptions:{matrix:[]}`);
         }
       }
 
@@ -279,7 +230,7 @@ class Solver {
         let row = matrix[i];
         let boolFunc = row.boolean;
         if (typeof boolFunc === 'function') {
-          row.booleanId = boolFunc(this, v);
+          row.booleanId = boolFunc(this, varOptions);
         } else if (typeof boolFunc === 'string') {
           row.booleanId = boolFunc;
         } else {
@@ -288,7 +239,23 @@ class Solver {
       }
     }
 
-    return v;
+    // the rest is this.vars stuff for multiverse...
+
+    let vars = this.vars;
+    if (vars.byId[id]) THROW(`Solver#addVar: var.id already added: ${id}`);
+
+    vars.byId[id] = varOptions;
+    vars.all.push(varOptions);
+
+    let name = varOptions.name;
+    if (name != null) {
+      if (vars.byName[name] == null) {
+        vars.byName[name] = [];
+      }
+      vars.byName[name].push(varOptions);
+    }
+
+    return varOptions;
   }
 
   // Arithmetic Propagators
@@ -464,7 +431,6 @@ class Solver {
    * @property {number} [options.max=1000]
    * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
    * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
-   * @property {number} [options.search='depth_first'] See FD.Search
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} [_debug] A more human readable print of the configuration for this solver
    * @property {boolean} [_debugConfig] Log out solver.config after prepare() but before run()
@@ -473,7 +439,10 @@ class Solver {
    * @return {Object[]}
    */
   solve(options = {}) {
-    let obj = this.prepare(options);
+    let log = options.log === undefined ? LOG_NONE : options.log;
+    let max = options.max || 1000;
+
+    this._prepare(options, log);
 
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
@@ -482,7 +451,8 @@ class Solver {
     // __REMOVE_ABOVE_FOR_DIST__
     if (options._debugSolver) this._debugSolver();
 
-    this.run(obj);
+    this._run(max, log);
+
     return this.solutions;
   }
 
@@ -491,36 +461,34 @@ class Solver {
    * Collects one-time config data and sets up defaults
    *
    * @param {Object} [options={}] See @solve
+   * @param {number} log One of the LOG_* constants
    */
-  prepare(options = {}) {
-    let {
-      max = 1000,
-      log = LOG_NONE,
-      vars: branchVars = this.vars.all,
-      search,
-      distribute: distributionOptions = this.distribute,
-    } = options;
-
+  _prepare(options, log) {
+    ASSERT(log === undefined || log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value or be undefined (in tests)');
     if (log >= LOG_STATS) {
       console.log('      - FD Preparing...');
       console.time('      - FD Prepare Time');
     }
 
-    let targetAll = branchVars === 'all' || branchVars === this.vars.all; // TOFIX: clean this mess up
-    let varNames = GET_NAMES(branchVars);
+    let config = this.config;
 
-    let overrides = solver_collectDistributionOverrides(varNames, this.vars.byId, this.config);
-    if (overrides) {
-      config_setOptions(this.config, {varStratOverrides: overrides});
+    // TODO: cant move this to addVar yet because mv can alter these settings after the addVar call
+    let allVars = config.all_var_names;
+    for (var i = 0; i < allVars.length; ++i) {
+      var name = allVars[i];
+      var bvar = this.vars.byId[name];
+      if (bvar) solver_varDistOptions(name, bvar, config);
     }
 
-    if (!targetAll) config_setOptions(this.config, {targeted_var_names: varNames});
-    config_setOptions(this.config, distributionOptions);
+    // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
+    if (options.vars && options.vars !== 'all') config_setOption(config, 'targeted_var_names', GET_NAMES(options.vars));
 
-    let searchFunc = this._get_search_func_or_die(search);
+    let distributionSettings = options.distribute || this.distribute;
+    if (typeof distributionSettings === 'string') config_setDefaults(config, distributionSettings);
+    else config_setOptions(config, distributionSettings); // TOFIX: get rid of this in mv
 
     // create the root node of the search tree (each node is a Space)
-    let rootSpace = space_createFromConfig(this.config);
+    let rootSpace = space_createFromConfig(config);
 
     // __REMOVE_BELOW_FOR_DIST__
     this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
@@ -531,41 +499,16 @@ class Solver {
 
     this._prepared = true;
     if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
-
-    return ({
-      searchFunc,
-      max,
-      log,
-    });
   }
 
   /**
-   * @param {string} [search=this.search]
-   * @returns {Function}
-   */
-  _get_search_func_or_die(search = this.search) {
-    switch (search) {
-      case 'depth_first':
-        var searchFunc = search_depthFirst;
-        break;
-      default:
-        THROW(`Unknown search strategy: ${search}`);
-    }
-
-    return searchFunc;
-  }
-
-  /**
-   * Run the solver. You should call @prepare before calling this function.
+   * Run the solver. You should call @_prepare before calling this function.
    *
-   * @param {Object} options
-   * @property {Function} options.searchFunc
-   * @property {number} options.max
-   * @property {number} options.log
+   * @param {number} max Hard stop the solver when this many solutions have been found
+   * @param {number} log One of the LOG_* constants
    * @param {boolean} [squash] If squashed, dont get the actual solutions. They are irrelevant for perf tests.
    */
-  run({searchFunc, max, log}, squash) {
-    ASSERT(typeof searchFunc === 'function', 'search func should be a function');
+  _run(max, log, squash) {
     ASSERT(typeof max === 'number', 'max should be a number');
     ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
@@ -596,7 +539,7 @@ class Solver {
     if (alreadyRejected) {
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, searchFunc, max);
+      solvedSpaces = solver_runLoop(state, max);
     }
 
     if (log >= LOG_STATS) {
@@ -681,6 +624,17 @@ class Solver {
     // use new config as base for new solver
     let solvedConfig = space_toConfig(this.state.space);
     return new Solver({config: solvedConfig});
+  }
+
+  /**
+   * Set a search option for this solver
+   *
+   * @param {string} optionName
+   * @param {*} value
+   * @param {string} [target] Certain options target specific var names
+   */
+  setOption(optionName, value, target) {
+    config_setOption(this.config, optionName, value, target);
   }
 
   _debugLegible() {
@@ -812,14 +766,13 @@ function getInspector() {
  * probably only need one solution. Won't return more solutions than max.
  *
  * @param {Object} state
- * @param {Function} searchFunc
  * @param {number} max Stop after finding this many solutions
  * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, searchFunc, max) {
+function solver_runLoop(state, max) {
   let list = [];
   while (state.more && list.length < max) {
-    searchFunc(state);
+    search_depthFirst(state);
     if (state.status !== 'end') {
       list.push(state.space);
     }
@@ -827,43 +780,16 @@ function solver_runLoop(state, searchFunc, max) {
   return list;
 }
 
-/**
- * Visit the branch vars and collect var specific configuration overrides if
- * there are any and put them on the root space. Mainly used for Markov
- * searching. The result is set to be config.var_dist_options
- *
- * @param {string[]} varNames
- * @param {Object} bvarsById Maps var names to their Bvar
- * @param {$config} config
- * @returns {Object|null} Contains data for each var that has dist options
- */
-function solver_collectDistributionOverrides(varNames, bvarsById, config) {
-  let overrides;
-  for (var i = 0; i < varNames.length; ++i) {
-    var name = varNames[i];
-    if (!overrides || !overrides[name]) {
-      var bvar = bvarsById[name];
-      let distributeOptions = bvar && bvar.distributeOptions;
-      if (distributeOptions) {
-        if (!overrides) overrides = {};
-        ASSERT(!overrides[name], 'each name is visited only once so this key should not yet exist', name, distributeOptions);
-        overrides[name] = {};
-        for (let key in distributeOptions) {
-          overrides[name][key] = distributeOptions[key];
-        }
-      }
-      // TOFIX: change upstreams to put this override in the config as well instead of directly on the bvar
-      if (bvar && bvar.distribute) {
-        if (!overrides) overrides = {};
-        if (!overrides[name]) overrides[name] = {};
-        overrides[name].valtype = bvar.distribute;
-      }
-      if (overrides && overrides[name] && overrides[name].valtype === 'markov') {
-        config_addConstraint(config, 'markov', [name]);
-      }
+function solver_varDistOptions(name, bvar, config) {
+  let options = bvar.distributeOptions;
+  if (options) {
+    // TOFIX: change usages of .distribute as a string with valtype
+    if (bvar.distribute) options.valtype = bvar.distribute;
+    config_setOption(config, 'varStratOverride', options, name);
+    if (options.valtype === 'markov') {
+      config_addConstraint(config, 'markov', [name]);
     }
   }
-  return overrides;
 }
 
 function solver_getSolutions(solvedSpaces, solutions, log) {

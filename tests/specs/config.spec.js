@@ -25,7 +25,7 @@ import {
   config_createVarStratConfig,
   config_generateVars,
   //config_setDefaults,
-  config_setOptions,
+  config_setOption,
 } from '../../src/config';
 import {
   space_createRoot,
@@ -413,33 +413,22 @@ describe('src/config.spec', function() {
     });
   });
 
-  describe('config_setOptions', function() {
+  describe('config_setOption', function() {
 
     it('should exist', function() {
-      expect(config_setOptions).to.be.a('function');
+      expect(config_setOption).to.be.a('function');
     });
 
-    it('should not require an object', function() {
+    it('should set general var strategy', function() {
       let config = config_create();
-      config_setOptions(config);
-
-      expect(true, 'no crash').to.equal(true);
-    });
-
-    it('should copy the var', function() {
-      let config = config_create();
-      config_setOptions(config, {varStrategy: {type: 'A'}});
+      config_setOption(config, 'varStrategy', {type: 'A'});
 
       expect(config.varStratConfig.type).to.equal('A');
     });
 
     it('should init the var config of a single level without priorityList', function() {
       let config = config_create();
-      config_setOptions(config, {
-        varStrategy: {
-          type: 'max',
-        },
-      });
+      config_setOption(config, 'varStrategy', {type: 'max'});
 
       expect(config.varStratConfig.type).to.eql('max');
       expect(config.varStratConfig._priorityByIndex).to.equal(undefined);
@@ -447,34 +436,23 @@ describe('src/config.spec', function() {
 
     it('should init the var config of a single level and a priorityList', function() {
       let config = config_create();
-      config_setOptions(config, {
-        varStrategy: {
-          type: 'list',
-          priorityList: ['B_list', 'A_list'],
-        },
+      config_setOption(config, 'varStrategy', {
+        type: 'list',
+        priorityList: ['B_list', 'A_list'],
       });
 
-      expect(config.varStratConfig).to.eql({
-        _class: '$var_strat_config',
-        type: 'list',
-        inverted: false,
-        priorityByName: ['B_list', 'A_list'],
-        _priorityByIndex: undefined, // not yet initialized
-        fallback: undefined,
-      });
+      expect(config.varStratConfig.priorityByName).to.eql(['B_list', 'A_list']);
     });
 
-    it('should init the var config with a fallback level', function() {
+    it('should init the var config with two fallback levels', function() {
       let config = config_create();
-      config_setOptions(config, {
-        varStrategy: {
-          type: 'list',
-          priorityList: ['B_list', 'A_list'],
+      config_setOption(config, 'varStrategy', {
+        type: 'list',
+        priorityList: ['B_list', 'A_list'],
+        fallback: {
+          type: 'markov',
           fallback: {
-            type: 'markov',
-            fallback: {
-              type: 'size',
-            },
+            type: 'size',
           },
         },
       });
@@ -493,13 +471,11 @@ describe('src/config.spec', function() {
 
     it('should put the priority hash on the var opts even if fallback', function() {
       let config = config_create();
-      config_setOptions(config, {
-        varStrategy: {
-          type: 'max',
-          fallback: {
-            type: 'list',
-            priorityList: ['B_list', 'A_list'],
-          },
+      config_setOption(config, 'varStrategy', {
+        type: 'max',
+        fallback: {
+          type: 'list',
+          priorityList: ['B_list', 'A_list'],
         },
       });
 
@@ -515,32 +491,32 @@ describe('src/config.spec', function() {
     it('should throw for some legacy config structs', function() {
       let config = config_create();
 
-      expect(_ => config_setOptions(config, {var: {}})).to.throw('REMOVED. Replace `var` with `varStrategy`');
-      expect(_ => config_setOptions(config, {varStrategy: _ => 0})).to.throw('functions no longer supported');
-      expect(_ => config_setOptions(config, {varStrategy: 'foo'})).to.throw('strings should be type property');
-      expect(_ => config_setOptions(config, {varStrategy: 15})).to.throw('varStrategy should be object');
-      expect(_ => config_setOptions(config, {varStrategy: {name: 'foo'}})).to.throw('name should be type');
-      expect(_ => config_setOptions(config, {varStrategy: {dist_name: 'foo'}})).to.throw('dist_name should be type');
-      expect(_ => config_setOptions(config, {val: {}})).to.throw('REMOVED. Replace `var` with `valueStrategy`');
+      expect(_ => config_setOption(config, 'var', {})).to.throw('REMOVED. Replace `var` with `varStrategy`');
+      expect(_ => config_setOption(config, 'varStrategy', _ => 0)).to.throw('functions no longer supported');
+      expect(_ => config_setOption(config, 'varStrategy', 'foo')).to.throw('strings should be type property');
+      expect(_ => config_setOption(config, 'varStrategy', 15)).to.throw('varStrategy should be object');
+      expect(_ => config_setOption(config, 'varStrategy', {name: 'foo'})).to.throw('name should be type');
+      expect(_ => config_setOption(config, 'varStrategy', {dist_name: 'foo'})).to.throw('dist_name should be type');
+      expect(_ => config_setOption(config, 'val', {})).to.throw('REMOVED. Replace `var` with `valueStrategy`');
     });
 
     it('should copy the targeted var names', function() {
       let config = config_create();
-      config_setOptions(config, {targeted_var_names: 'A'});
+      config_setOption(config, 'targeted_var_names', ['A']);
 
-      expect(config.targetedVars).to.equal('A');
+      expect(config.targetedVars).to.eql(['A']);
     });
 
     it('should copy the var distribution config', function() {
       let config = config_create();
-      config_setOptions(config, {varStratOverrides: 'A'});
+      config_setOption(config, 'varStratOverride', {valtype: 'B'}, 'A');
 
-      expect(config.var_dist_options).to.equal('A');
+      expect(config.var_dist_options).to.eql({A: {valtype: 'B'}});
     });
 
     it('should copy the timeout callback', function() {
       let config = config_create();
-      config_setOptions(config, {timeout_callback: 'A'});
+      config_setOption(config, 'timeout_callback', 'A');
 
       expect(config.timeout_callback).to.equal('A');
     });

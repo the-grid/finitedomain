@@ -47,14 +47,8 @@ describe('solver.spec', function() {
       });
 
       it('should throw for unknown distribute strings', function() {
-        expect(_ => new Solver({distribute: 'fail'})).to.throw('distribution.get_defaults: Unknown preset: fail');
-      });
-
-      it('should throw if options is a function', function() {
-        expect(_ => new Solver({
-          distribute: function() {
-          },
-        })).to.throw('SOLVER_OPTIONS_UNKNOWN_TYPE');
+        expect(_ => new Solver({distribute: 'fail'}).solve()).to.throw('distribution.get_defaults: Unknown preset: fail');
+        expect(_ => new Solver().solve({distribute: 'fail'})).to.throw('distribution.get_defaults: Unknown preset: fail');
       });
 
       it('should accept an object for distribution options', function() {
@@ -248,7 +242,7 @@ describe('solver.spec', function() {
         let opts2 = {id: 'foo'}; // to ensure opts isnt adjusted
 
         expect(solver.addVar(opts)).to.equal(opts);
-        expect(_ => solver.addVar(opts2)).to.throw('Solver#addVar: var.id already added: foo');
+        expect(_ => solver.addVar(opts2)).to.throw('Do not declare the same varName twice');
       });
 
       it('should update byId', function() {
@@ -1043,26 +1037,20 @@ describe('solver.spec', function() {
       forLevel(LOG_MIN);
     });
 
-    describe('solver.prepare', function() {
+    describe('solver._prepare', function() {
 
       it('should prepare for war', function() {
         let solver = new Solver();
 
-        solver.prepare({});
+        solver._prepare({});
         expect(true).to.equal(true);
       });
 
       it('should not require options object', function() {
         let solver = new Solver();
 
-        solver.prepare();
+        solver._prepare({});
         expect(true).to.equal(true);
-      });
-
-      it('should throw with an unknown search function', function() {
-        let solver = new Solver();
-
-        expect(_ => solver.prepare({search: 'fail'})).to.throw('Unknown search strategy: fail');
       });
     });
 
@@ -1528,7 +1516,7 @@ describe('solver.spec', function() {
       ]);
     });
 
-    it('should want to solve all vars if targets is an empty array', function() {
+    it('should throw if explicitly targeting no vars', function() {
       let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
       solver.decl('A');
@@ -1536,18 +1524,7 @@ describe('solver.spec', function() {
       solver.decl('C');
       solver['==?']('A', 'B', solver.decl('AnotB'));
 
-      let solutions = solver.solve({vars: []});
-      // a, b, c are not constrained in any way, so 2^3=8
-      // no var is targeted so they should all solve
-      // however, the constraint will force A and B to solve
-      // to a single value, where C is left as "any"
-      expect(countSolutions(solver)).to.equal(8);
-      expect(solutions).to.eql([
-        {A: 0, B: 0, C: [0, 1], AnotB: 1},
-        {A: 0, B: 1, C: [0, 1], AnotB: 0},
-        {A: 1, B: 0, C: [0, 1], AnotB: 0},
-        {A: 1, B: 1, C: [0, 1], AnotB: 1},
-      ]);
+      expect(_ => solver.solve({vars: []})).to.throw('ONLY_USE_WITH_SOME_TARGET_VARS');
     });
 
     it('should ignore C when only A and B are targeted', function() {
@@ -1595,20 +1572,6 @@ describe('solver.spec', function() {
       solver['==?']('A', 'B');
 
       solver.solve({});
-      // internally there will be three vars; A B and the reifier result var
-      // make sure we don't accidentally require to solve that one too
-      expect(countSolutions(solver)).to.equal(4);
-    });
-
-    it('should not solve anonymous vars if targets is empty array', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
-
-      solver.decl('A');
-      solver.decl('B');
-      solver['==?']('A', 'B');
-
-
-      solver.solve({vars: []});
       // internally there will be three vars; A B and the reifier result var
       // make sure we don't accidentally require to solve that one too
       expect(countSolutions(solver)).to.equal(4);
@@ -2575,6 +2538,14 @@ describe('solver.spec', function() {
       }]);
 
       expect(countSolutions(solver)).to.equal(1);
+    });
+  });
+
+  describe('solver.setOption', function() {
+
+    it('should exist', function() {
+      let solver = new Solver();
+      expect(solver.setOption).to.be.a('function');
     });
   });
 

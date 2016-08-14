@@ -22,7 +22,7 @@ import {
   config_addVarDomain,
   config_addVarRange,
   config_create,
-  config_setOptions,
+  config_setOption,
 } from '../../../src/config';
 import {
   space_createRoot,
@@ -51,7 +51,7 @@ describe('distribution/var.spec', function() {
         id: 'B',
         domain: fixt_arrdom_range(...range_b, true),
       });
-      solver.prepare({
+      solver._prepare({
         distribute: {
           varStrategy: {
             type: type,
@@ -245,7 +245,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 50], [60, 90]), // 82 elements
         });
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'size',
@@ -270,7 +270,7 @@ describe('distribution/var.spec', function() {
           id: 'B',
           domain: fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
         });
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'size',
@@ -293,13 +293,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-            A: {
-              valtype: 'markov',
-            },
-          },
-        });
+        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -312,13 +306,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-            B: {
-              valtype: 'markov',
-            },
-          },
-        });
+        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -330,17 +318,9 @@ describe('distribution/var.spec', function() {
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
+        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-            A: {
-              valtype: 'markov',
-            },
-            B: {
-              valtype: 'markov',
-            },
-          },
-        });
+        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -353,10 +333,6 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-          },
-        });
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let A = config.all_var_names.indexOf('A');
@@ -369,11 +345,6 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 12);
-        config_setOptions(config, {
-          varStratOverrides: {
-            var_dist_options: {}, // neither is markov
-          },
-        });
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let fallback = {fallback: {type: 'size'}};
@@ -387,11 +358,6 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-            var_dist_options: {}, // neither is markov
-          },
-        });
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let fallback = {fallback: {type: 'size'}};
@@ -405,11 +371,6 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOptions(config, {
-          varStratOverrides: {
-            var_dist_options: {}, // neither is markov
-          },
-        });
         let space = space_createRoot(config);
         space_initFromConfig(space);
         let fallback = {fallback: {type: 'size'}};
@@ -444,7 +405,7 @@ describe('distribution/var.spec', function() {
           id: 'D',
           domain: fixt_arrdom_range(13, 13, true),
         });
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {type: 'markov'},
           },
@@ -485,7 +446,7 @@ describe('distribution/var.spec', function() {
           id: 'D',
           domain: fixt_arrdom_range(13, 13, true),
         });
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {type: 'markov'},
           },
@@ -828,7 +789,7 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({id: 'A'});
         solver.addVar({id: 'B'});
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'list',
@@ -847,7 +808,7 @@ describe('distribution/var.spec', function() {
         let solver = new Solver();
         solver.addVar({id: 'A'});
         solver.addVar({id: 'B'});
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'list',
@@ -865,7 +826,7 @@ describe('distribution/var.spec', function() {
       it('should not crash if a var is not on the list or when list is empty', function() {
         let solver = new Solver();
         solver.addVar({id: 'A'});
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'list',
@@ -885,7 +846,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'A'});
         solver.addVar({id: 'B'});
         solver.addVar({id: 'C'});
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'list',
@@ -911,7 +872,7 @@ describe('distribution/var.spec', function() {
         solver.addVar({id: 'A'});
         solver.addVar({id: 'B'});
         solver.addVar({id: 'C'});
-        solver.prepare({
+        solver._prepare({
           distribute: {
             varStrategy: {
               type: 'markov', // there are no markov vars so it will fallback immediately
@@ -977,7 +938,7 @@ describe('distribution/var.spec', function() {
         domain: [0, 75],
       });
 
-      solver.prepare({
+      solver._prepare({
         distribute: {
           varStrategy: {
             type: 'list',
@@ -1065,7 +1026,7 @@ describe('distribution/var.spec', function() {
         id: 'F',
         domain: [10, 20],
       });
-      solver.prepare({
+      solver._prepare({
         distribute: {
           varStrategy: {
             type: 'list',

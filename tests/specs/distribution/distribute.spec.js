@@ -21,12 +21,12 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(121, 124),
-          distribute: 'min',
+          distributeOptions: {valtype: 'min'},
         });
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(121, 124),
-          distribute: 'max',
+          distributeOptions: {valtype: 'max'},
         });
         solver['>']('V1', 120);
         solver['>']('V2', 120);
@@ -63,12 +63,12 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(120, 124),
-          distribute: 'min',
+          distributeOptions: {valtype: 'min'},
         });
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(120, 124),
-          distribute: 'max',
+          distributeOptions: {valtype: 'max'},
         });
         solver['>']('V1', 120);
         solver['>']('V2', 120);
@@ -106,8 +106,8 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(120, 124),
-          distribute: 'markov',
           distributeOptions: {
+            valtype: 'markov',
             legend: [121, 122, 123, 124],
             random() { return 0; }, // always take the first element
             matrix: [
@@ -118,8 +118,8 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(120, 124, true),
-          distribute: 'markov',
           distributeOptions: {
+            valtype: 'markov',
             legend: [121, 122, 123, 124],
             random() { return 1 - 1e-5; }, // always take the last element
             matrix: [
@@ -161,12 +161,12 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(1, 4, true),
-          distribute: 'min',
+          distributeOptions: {valtype: 'min'},
         });
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(1, 4, true),
-          distribute: 'max',
+          distributeOptions: {valtype: 'max'},
         });
         solver['>']('V1', 0);
         solver['>']('V2', 0);
@@ -203,12 +203,12 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(0, 4, true),
-          distribute: 'min',
+          distributeOptions: {valtype: 'min'},
         });
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(0, 4, true),
-          distribute: 'max',
+          distributeOptions: {valtype: 'max'},
         });
         solver['>']('V1', 0);
         solver['>']('V2', 0);
@@ -246,8 +246,8 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V1',
           domain: fixt_arrdom_range(0, 4, true),
-          distribute: 'markov',
           distributeOptions: {
+            valtype: 'markov',
             legend: [1, 2, 3, 4],
             random() { return 0; }, // always take the first element
             matrix: [
@@ -258,8 +258,8 @@ describe('distribution/distribute.spec', function() {
         solver.addVar({
           id: 'V2',
           domain: fixt_arrdom_range(0, 4, true),
-          distribute: 'markov',
           distributeOptions: {
+            valtype: 'markov',
             legend: [1, 2, 3, 4],
             random() { return 1 - 1e-5; }, // always take the last element
             matrix: [

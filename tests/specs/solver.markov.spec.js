@@ -30,8 +30,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V',
       domain: fixt_arrdom_range(0, 1, true),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
         matrix: [
           {vector: [1, 1]},
@@ -79,8 +79,8 @@ describe('solver.markov.spec', function() {
       solver.addVar({
         id: 'V1',
         domain: fixt_arrdom_range(0, 1, true),
-        distribute: 'markov',
         distributeOptions: {
+          valtype: 'markov',
           legend: [0, 1],
           random: random_func,
           matrix: [
@@ -98,8 +98,8 @@ describe('solver.markov.spec', function() {
       solver.addVar({
         id: 'V2',
         domain: fixt_arrdom_range(0, 1, true),
-        distribute: 'markov',
         distributeOptions: {
+          valtype: 'markov',
           legend: [0, 1],
           random: random_func,
           matrix: [
@@ -212,8 +212,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V1',
       domain: fixt_arrdom_range(0, 100),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         legend: [10, 100],
         matrix: [
           {
@@ -230,8 +230,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V2',
       domain: fixt_arrdom_range(0, 100),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         legend: [10, 100],
         matrix: [
           {
@@ -269,8 +269,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V1',
       domain: fixt_arrdom_range(1, 4, true),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         legend: [1, 2], // 3,4]
         expandVectorsWith: 1,
         random() { return 0; }, // always pick first element
@@ -283,8 +283,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V2',
       domain: fixt_arrdom_range(1, 4, true),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         legend: [1, 2], // 3,4]
         expandVectorsWith: 1,
         random() { return 1 - 1e-5; }, // always pick last element
@@ -323,8 +323,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V1',
       domain: fixt_arrdom_range(1, 4, true),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         // legend: [1,2,3,4]
         expandVectorsWith: 1,
         random() { return 0; }, // pick first eligible legend value
@@ -334,8 +334,8 @@ describe('solver.markov.spec', function() {
     solver.addVar({
       id: 'V2',
       domain: fixt_arrdom_range(1, 4, true),
-      distribute: 'markov',
       distributeOptions: {
+        valtype: 'markov',
         // legend: [1,2,3,4]
         expandVectorsWith: 1,
         random() { return 1 - 1e-5; }, // pick last eligible legend value

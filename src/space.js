@@ -288,7 +288,7 @@ function space_propagate(space, config) {
     }
   }
 
-  if (space_abortSearch(space)) {
+  if (space_abortSearch(space, config)) {
     config._propagationCycles = cycles;
     return true;
   }
@@ -302,7 +302,7 @@ function space_propagate(space, config) {
       break;
     }
 
-    if (space_abortSearch(space)) {
+    if (space_abortSearch(space, config)) {
       returnValue = true;
       break;
     }
@@ -406,10 +406,14 @@ function space_propagateChanges(space, config, allPropagators, minimal, targetVa
 
 /**
  * @param {$space} space
+ * @param {$config} config
  * @returns {boolean}
  */
-function space_abortSearch(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+function space_abortSearch(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
   let callback = space.config.timeout_callback;
   if (callback) {
     return callback(space);

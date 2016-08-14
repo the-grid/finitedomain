@@ -23,7 +23,7 @@ import {
   config_addVarNothing,
   config_addVarRange,
   config_create,
-  config_setOptions,
+  config_setOption,
 } from '../../src/config';
 import {
   space_createClone,
@@ -429,7 +429,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(space.config, 'lt', ['A', 'B']);
 
-          config_setOptions(space.config, {timeout_callback() { return false; }});
+          config_setOption(space.config, 'timeout_callback', _ => false);
           space_initFromConfig(space);
 
           expect(space_propagate(space)).to.eql(false);
@@ -443,7 +443,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(space.config, 'lt', ['A', 'B']);
 
-          config_setOptions(space.config, {timeout_callback() { return true; }});
+          config_setOption(space.config, 'timeout_callback', _ => true);
           space_initFromConfig(space);
 
           expect(space_propagate(space)).to.eql(true);

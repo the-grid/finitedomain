@@ -296,7 +296,8 @@ function _config_addVar(config, varName, domain) {
  */
 function config_setDefaults(config, varName) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  config_setOptions(config, distribution_getDefaults(varName));
+  let defs = distribution_getDefaults(varName);
+  for (let key in defs) config_setOption(config, key, defs[key]);
 }
 
 /**
@@ -324,6 +325,93 @@ function config_createVarStratConfig(obj) {
 }
 
 /**
+ * Configure an option for the solver
+ *
+ * @param {$config} config
+ * @param {string} optionName
+ * @param {*} optionValue
+ * @param {string} [optionTarget] For certain options, this is the target var name
+ */
+function config_setOption(config, optionName, optionValue, optionTarget) {
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(typeof optionName === 'string', 'option name is a string');
+  ASSERT(optionValue !== undefined, 'should get a value');
+  ASSERT(optionTarget === undefined || typeof optionTarget === 'string', 'the optional name is a string');
+
+  switch (optionName) {
+    case 'varStrategy':
+      if (typeof optionValue === 'function') THROW('functions no longer supported');
+      if (typeof optionValue === 'string') THROW('strings should be type property');
+      if (typeof optionValue !== 'object') THROW('varStrategy should be object');
+      if (optionValue.name) THROW('name should be type');
+      if (optionValue.dist_name) THROW('dist_name should be type');
+
+      let vsc = config_createVarStratConfig(optionValue);
+      config.varStratConfig = vsc;
+      while (vsc.fallback) {
+        vsc.fallback = config_createVarStratConfig(vsc.fallback);
+        vsc = vsc.fallback;
+      }
+      break;
+
+    case 'valueStrategy':
+      // determine how the next value of a variable is picked when creating a new space
+      config.valueStratName = optionValue;
+      break;
+
+    case 'targeted_var_names':
+      if (!optionValue || !optionValue.length) THROW('ONLY_USE_WITH_SOME_TARGET_VARS'); // omit otherwise to target all
+      // which vars must be solved for this space to be solved
+      // string: 'all'
+      // string[]: list of vars that must be solved
+      // function: callback to return list of names to be solved
+      config.targetedVars = optionValue;
+      break;
+
+    case 'varStratOverrides':
+      // An object which defines a value distributor per variable
+      // which overrides the globally set value distributor.
+      // See Bvar#distributionOptions (in multiverse)
+
+      for (let key in optionValue) {
+        config_setOption(config, 'varStratOverride', optionValue[key], key);
+      }
+      break;
+
+    case 'varStratOverride':
+      // specific strategy parameters for one variable
+      ASSERT(typeof optionTarget === 'string', 'expecting a name');
+      if (!config.var_dist_options) config.var_dist_options = {};
+      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet'); // there is one test in mv that breaks this....?
+      config.var_dist_options[optionTarget] = optionValue;
+      break;
+
+    case 'varValueStrat':
+      ASSERT(typeof optionTarget === 'string', 'expecting a name');
+      if (!config.var_dist_options[optionTarget]) config.var_dist_options[optionTarget] = {};
+      config.var_dist_options[optionTarget] = optionValue;
+      break;
+
+    case 'timeout_callback':
+      // A function that returns true if the current search should stop
+      // Can be called multiple times after the search is stopped, should
+      // keep returning false (or assume an uncertain outcome).
+      // The function is called after the first batch of propagators is
+      // called so it won't immediately stop. But it stops quickly.
+      config.timeout_callback = optionValue;
+      break;
+
+    case 'var': return THROW('REMOVED. Replace `var` with `varStrategy`');
+    case 'val': return THROW('REMOVED. Replace `var` with `valueStrategy`');
+
+    default: THROW('unknown option');
+  }
+}
+
+/**
+ * This function should be removed once we can update mv
+ *
+ * @deprecated in favor of config_setOption
  * @param {$config} config
  * @param {Object} options
  * @property {Object} [options.varStrategy]
@@ -334,51 +422,15 @@ function config_createVarStratConfig(obj) {
  * @property {Object} [options.varStrategy.fallback] Same struct as options.varStrategy (recursive)
  */
 function config_setOptions(config, options) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   if (!options) return;
 
-  if (options.var) THROW('REMOVED. Replace `var` with `varStrategy`');
-  if (options.val) THROW('REMOVED. Replace `var` with `valueStrategy`');
-
-  if (options.varStrategy) {
-    if (typeof options.varStrategy === 'function') THROW('functions no longer supported');
-    if (typeof options.varStrategy === 'string') THROW('strings should be type property');
-    if (typeof options.varStrategy !== 'object') THROW('varStrategy should be object');
-    if (options.varStrategy.name) THROW('name should be type');
-    if (options.varStrategy.dist_name) THROW('dist_name should be type');
-
-    let vsc = config_createVarStratConfig(options.varStrategy);
-    config.varStratConfig = vsc;
-    while (vsc.fallback) {
-      vsc.fallback = config_createVarStratConfig(vsc.fallback);
-      vsc = vsc.fallback;
-    }
-  }
-  if (options.valueStrategy) {
-    // see distribution.value
-    config.valueStratName = options.valueStrategy;
-  }
-  if (options.targeted_var_names && (options.targeted_var_names === 'all' || options.targeted_var_names.length)) {
-    // which vars must be solved for this space to be solved
-    // string: 'all'
-    // string[]: list of vars that must be solved
-    // function: callback to return list of names to be solved
-    config.targetedVars = options.targeted_var_names;
-  }
-  if (options.varStratOverrides) {
-    // An object which defines a value distributor per variable
-    // which overrides the globally set value distributor.
-    // See Bvar#distributionOptions (in multiverse)
-    config.var_dist_options = options.varStratOverrides;
-  }
-  if (options.timeout_callback) {
-    // A function that returns true if the current search should stop
-    // Can be called multiple times after the search is stopped, should
-    // keep returning false (or assume an uncertain outcome).
-    // The function is called after the first batch of propagators is
-    // called so it won't immediately stop. But it stops quickly.
-    config.timeout_callback = options.timeout_callback;
-  }
+  if (options.varStrategy) config_setOption(config, 'varStrategy', options.varStrategy);
+  if (options.valueStrategy) config_setOption(config, 'valueStrategy', options.valueStrategy);
+  if (options.targeted_var_names) config_setOption(config, 'targeted_var_names', options.targeted_var_names);
+  if (options.varStratOverrides) config_setOption(config, 'varStratOverrides', options.varStratOverrides);
+  if (options.varStratOverride) config_setOption(config, 'varStratOverride', options.varStratOverride, options.varStratOverrideName);
+  if (options.varValueStrat) config_setOption(config, 'varValueStrat', options.varValueStrat, options.varStratOverrideName);
+  if (options.timeout_callback) config_setOption(config, 'timeout_callback', options.timeout_callback);
 }
 
 /**
@@ -391,21 +443,27 @@ function config_addPropagator(config, propagator) {
   config._propagators.push(propagator);
 }
 
+/**
+ * Initialize the vardoms array on the first space node.
+ *
+ * @param {$config} config
+ * @param {$space} space
+ */
 function config_generateVars(config, space) {
-  ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space && space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
-  ASSERT(space.vardoms, 'expecting var domains');
+  let vardoms = space.vardoms;
+  ASSERT(vardoms, 'expecting var domains');
   let initialDomains = config.initial_domains;
   ASSERT(initialDomains, 'config should have initial vars');
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
-  for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
+  for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
     let domain = initialDomains[varIndex];
     ASSERT_STRDOM(domain);
-
-    space.vardoms[varIndex] = domain_toNumstr(domain);
+    vardoms[varIndex] = domain_toNumstr(domain);
   }
 }
 
@@ -1093,6 +1151,7 @@ export {
   config_initForSpace,
   config_populateVarPropHash,
   config_setDefaults,
+  config_setOption,
   config_setOptions,
 
   // testing

@@ -29,7 +29,7 @@ describe('propagators/markov.spec', function() {
           ],
         },
       });
-      solver.prepare();
+      solver._prepare({});
 
       let Aindex = solver._space.config.all_var_names.indexOf('A');
 
@@ -51,7 +51,7 @@ describe('propagators/markov.spec', function() {
           ],
         },
       });
-      solver.prepare();
+      solver._prepare({});
 
       let Aindex = solver._space.config.all_var_names.indexOf('A');
 
@@ -75,7 +75,7 @@ describe('propagators/markov.spec', function() {
             ],
           },
         });
-        solver.prepare();
+        solver._prepare({});
 
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 
@@ -97,7 +97,7 @@ describe('propagators/markov.spec', function() {
             ],
           },
         });
-        solver.prepare();
+        solver._prepare({});
 
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 
@@ -125,7 +125,7 @@ describe('propagators/markov.spec', function() {
             }],
           },
         });
-        solver.prepare();
+        solver._prepare({});
 
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 
@@ -152,7 +152,7 @@ describe('propagators/markov.spec', function() {
             }],
           },
         });
-        solver.prepare();
+        solver._prepare({});
 
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 

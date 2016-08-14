@@ -25,16 +25,16 @@ describe('src/solver.list.spec', function() {
       solver.addVar({
         id: 'V1',
         domain: fixt_arrdom_range(1, 4, true),
-        distribute: 'list',
         distributeOptions: {
+          valtype: 'list',
           list: [2, 4, 3, 1],
         },
       });
       solver.addVar({
         id: 'V2',
         domain: fixt_arrdom_range(1, 4, true),
-        distribute: 'list',
         distributeOptions: {
+          valtype: 'list',
           list: [3, 1, 4, 2],
         },
       });
@@ -71,8 +71,8 @@ describe('src/solver.list.spec', function() {
       solver.addVar({
         id: 'V1',
         domain: [1, 4],
-        distribute: 'markov',
         distributeOptions: {
+          valtype: 'markov',
           legend: [2, 4, 3, 1],
           expandVectorsWith: 1,
           random() { return 0; }, // causes first element in legend to be picked
@@ -81,8 +81,8 @@ describe('src/solver.list.spec', function() {
       solver.addVar({
         id: 'V2',
         domain: [1, 4],
-        distribute: 'markov',
         distributeOptions: {
+          valtype: 'markov',
           legend: [3, 1, 4, 2],
           expandVectorsWith: 1,
           random() { return 0; }, // causes first element in legend to be picked
@@ -149,16 +149,16 @@ describe('src/solver.list.spec', function() {
       solver.addVar({
         id: 'V1',
         domain: fixt_arrdom_range(1, 4, true),
-        distribute: 'list',
         distributeOptions: {
+          valtype: 'list',
           list: listCallback,
         },
       });
       solver.addVar({
         id: 'V2',
         domain: fixt_arrdom_range(1, 4, true),
-        distribute: 'list',
         distributeOptions: {
+          valtype: 'list',
           list: listCallback,
         },
       });

@@ -68,7 +68,7 @@ function search_depthFirstLoop(space, stack, state) {
   // I don't like doing it this way but what else?
   space.config._front.lastNodeIndex = space.frontNodeIndex;
 
-  let rejected = space_propagate(space);
+  let rejected = space_propagate(space, space.config);
 
   if (rejected) {
     _search_onReject(state, space, stack);

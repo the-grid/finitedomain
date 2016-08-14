@@ -218,6 +218,8 @@ function _space_getUnsolvedVarNamesFresh(space, config) {
  * @param {$config} config (=space.config)
  */
 function initializeUnsolvedVars(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(space.config === config);
 
   let targetVarNames = config.targetedVars;
@@ -255,11 +257,14 @@ function initializeUnsolvedVars(space, config) {
  * Returns true if any propagator rejects.
  *
  * @param {$space} space
+ * @param {$config} config (=space.config)
  * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
-function space_propagate(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let config = space.config;
+function space_propagate(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
   let propagators = config._propagators;
 
   // "cycle" is one step, "epoch" all steps until stable (but not solved per se)

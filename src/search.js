@@ -108,7 +108,7 @@ function search_depthFirstLoop(space, stack, state) {
  * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
 function search_createNextSpace(space) {
-  let varIndex = distribution_getNextVarIndex(space);
+  let varIndex = distribution_getNextVarIndex(space, space.config);
 
   if (varIndex !== NO_SUCH_VALUE) {
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');

@@ -17,7 +17,6 @@ import {
 import {
   front_addNode,
   front_addCell,
-  front_getCell,
   _front_getCell,
   front_getSizeOf,
   _front_getSizeOf,
@@ -192,43 +191,23 @@ function space_getUnsolvedVarCount(space, config) {
   return front_getSizeOf(config._front, space.frontNodeIndex);
 }
 /**
- * Return the index of the nth unsolved var in given node
- * You are responsible for making sure that node is still relevant
- * This is only used for testing, prevents leaking internals into tests
- *
- * @param {$space} space
- * @param {number} nodeIndex The node (offset of the list) to access
- * @param {number} cellIndex The cell offset relative to the node to return
- * @returns {number}
- */
-function space_getUnsolvedVarAt(space, nodeIndex, cellIndex) {
-  return front_getCell(space.config._front, nodeIndex, cellIndex);
-}
-/**
- * Return the index of the nth unsolved var in the node of this space
- * Only reliable if this space is the current active one
- * This is only used for testing, prevents leaking internals into tests
- *
- * @param {$space} space
- * @param {number} cellIndex The cell offset relative to the space's node to return
- * @returns {number}
- */
-function space_getUnsolvedIndex(space, cellIndex) {
-  return front_getCell(space.config._front, space.frontNodeIndex, cellIndex);
-}
-/**
  * Only use this for testing or debugging as it creates a fresh array
  * for the result. We don't use the names internally, anyways.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {string[]} var names of all unsolved vars of given space
  */
-function _space_getUnsolvedVarNamesFresh(space) {
+function _space_getUnsolvedVarNamesFresh(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
   let nodeIndex = space.frontNodeIndex;
   // fugly! :)
-  let buf = space.config._front.buffer;
+  let buf = config._front.buffer;
   let sub = [].slice.call(buf, nodeIndex + 1, nodeIndex + 1 + buf[nodeIndex]); // or .subArray() or something like that... or even toArray?
-  return sub.map(index => space.config.all_var_names[index]);
+  return sub.map(index => config.all_var_names[index]);
 }
 
 /**
@@ -537,8 +516,6 @@ export {
   space_createRoot,
   space_getDomainArr,
   space_getUnsolvedVarCount,
-  space_getUnsolvedVarAt,
-  space_getUnsolvedIndex,
   _space_getUnsolvedVarNamesFresh,
   space_getVarSolveState,
   space_initFromConfig,

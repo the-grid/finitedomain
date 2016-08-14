@@ -112,7 +112,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space, config);
 
-        expect(_space_getUnsolvedVarNamesFresh(space).sort()).to.eql(['A', 'B']);
+        expect(_space_getUnsolvedVarNamesFresh(space, config).sort()).to.eql(['A', 'B']);
       });
 
       it('should not care about the order of the var names', function() {
@@ -125,7 +125,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space, config);
 
-        expect(_space_getUnsolvedVarNamesFresh(space).sort()).to.eql(targets.sort());
+        expect(_space_getUnsolvedVarNamesFresh(space, config).sort()).to.eql(targets.sort());
       });
 
       it('should throw if var names dont exist', function() {

@@ -117,7 +117,7 @@ function search_createNextSpace(space) {
     let domain = space.vardoms[varIndex];
     if (!domain_any_isSolved(domain)) {
       let choice = space.next_distribution_choice++;
-      let nextDomain = distribute_getNextDomainForVar(space, varIndex, choice);
+      let nextDomain = distribute_getNextDomainForVar(space, space.config, varIndex, choice);
       if (nextDomain) {
         let clone = space_createClone(space, space.config);
         clone.updatedVarIndex = varIndex;

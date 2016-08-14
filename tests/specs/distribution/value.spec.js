@@ -46,13 +46,17 @@ describe('distribution/value.spec', function() {
   });
 
   it('should throw for unknown name', function() {
-    expect(_ => _distribute_getNextDomainForVar('error')).to.throw('unknown next var func');
+    let config = config_create();
+    let space = space_createRoot(config);
+    expect(_ => _distribute_getNextDomainForVar('error', space, config)).to.throw('unknown next var func');
   });
 
   describe('distribution_valueByThrow', function() {
 
     it('should throw', function() {
-      expect(_ => _distribute_getNextDomainForVar('throw')).to.throw('not expecting to pick this distributor');
+      let config = config_create();
+      let space = space_createRoot(config);
+      expect(_ => _distribute_getNextDomainForVar('throw', space, config)).to.throw('not expecting to pick this distributor');
     });
   });
 
@@ -65,7 +69,7 @@ describe('distribution/value.spec', function() {
       space_initFromConfig(space, config);
       let A = config.all_var_names.indexOf('A');
 
-      let dom = _distribute_getNextDomainForVar('naive', space, A);
+      let dom = _distribute_getNextDomainForVar('naive', space, space.config, A);
 
       expect(dom).to.eql(fixt_numdom_nums(0));
     });

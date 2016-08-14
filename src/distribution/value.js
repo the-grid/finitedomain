@@ -45,31 +45,37 @@ const NO_CHOICE = undefined;
 
 const MATH_RANDOM = Math.random;
 
-function distribute_getNextDomainForVar(space, varIndex, choiceIndex) {
+function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(domain_any_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
-  let valueStrategy = space.config.valueStratName;
+  let valueStrategy = config.valueStratName;
 
   // each var can override the value distributor
-  let configVarDistOptions = space.config.var_dist_options;
-  let varName = space.config.all_var_names[varIndex];
+  let configVarDistOptions = config.var_dist_options;
+  let varName = config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].valtype;
   if (valueDistributorName) valueStrategy = valueDistributorName;
 
   if (typeof valueStrategy === 'function') return valueStrategy;
-  return _distribute_getNextDomainForVar(valueStrategy, space, varIndex, choiceIndex);
+  return _distribute_getNextDomainForVar(valueStrategy, space, config, varIndex, choiceIndex);
 }
 
-function _distribute_getNextDomainForVar(stratName, space, varIndex, choiceIndex) {
+function _distribute_getNextDomainForVar(stratName, space, config, varIndex, choiceIndex) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
   switch (stratName) {
     case 'max':
       return distribution_valueByMax(space, varIndex, choiceIndex);
 
     case 'markov':
-      return distribution_valueByMarkov(space, varIndex, choiceIndex);
+      return distribution_valueByMarkov(space, config, varIndex, choiceIndex);
 
     case 'mid':
       return distribution_valueByMid(space, varIndex, choiceIndex);
@@ -81,7 +87,7 @@ function _distribute_getNextDomainForVar(stratName, space, varIndex, choiceIndex
       return distribution_valueByMinMaxCycle(space, varIndex, choiceIndex);
 
     case 'list':
-      return distribution_valueByList(space, varIndex, choiceIndex);
+      return distribution_valueByList(space, config, varIndex, choiceIndex);
 
     case 'naive':
       ASSERT_NUMSTRDOM(space.vardoms[varIndex]);
@@ -107,21 +113,23 @@ function _distribute_getNextDomainForVar(stratName, space, varIndex, choiceIndex
  * return a new domain given the space, var index, and choice index.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex
  * @param {number} choiceIndex
  * @returns {$domain|undefined} The new domain for this var index in the next space TOFIX: support small domains
  */
-function distribution_valueByList(space, varIndex, choiceIndex) {
+function distribution_valueByList(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  let varName = space.config.all_var_names[varIndex];
+  let varName = config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(domain_any_isUndetermined(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
-  let configVarDistOptions = space.config.var_dist_options;
+  let configVarDistOptions = config.var_dist_options;
   ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
   ASSERT(configVarDistOptions[varName], 'there should be distribution options available for every var', varName);
   ASSERT(configVarDistOptions[varName].list, 'there should be a distribution list available for every var', varName);
@@ -142,7 +150,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
       let nextValue = domain_any_getValueOfFirstContainedValueInList(domain, list);
       if (nextValue === NO_SUCH_VALUE) {
         if (fallbackDistName) {
-          return _distribute_getNextDomainForVar(fallbackDistName, space, varIndex, choiceIndex);
+          return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
         }
         return NO_CHOICE;
       }
@@ -152,7 +160,7 @@ function distribution_valueByList(space, varIndex, choiceIndex) {
       let newDomain = domain_any_removeNextFromList(domain, list);
       // note: d can be a new array-domain, a new small-domain, or NO_SUCH_VALUE (-1)
       if (newDomain === NO_SUCH_VALUE && fallbackDistName) {
-        return _distribute_getNextDomainForVar(fallbackDistName, space, varIndex, choiceIndex);
+        return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
       }
       return newDomain;
   }
@@ -394,11 +402,12 @@ function _isEven(n) { return n % 2 === 0; }
  * checking path.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex
  * @param {number} choiceIndex
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
-function distribution_valueByMarkov(space, varIndex, choiceIndex) {
+function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -411,9 +420,9 @@ function distribution_valueByMarkov(space, varIndex, choiceIndex) {
     case FIRST_CHOICE: {
       // THIS IS AN EXPENSIVE STEP!
 
-      let varName = space.config.all_var_names[varIndex];
+      let varName = config.all_var_names[varIndex];
       ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-      let configVarDistOptions = space.config.var_dist_options;
+      let configVarDistOptions = config.var_dist_options;
       ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
       let distOptions = configVarDistOptions[varName];
       ASSERT(distOptions, 'markov vars should have  distribution options');

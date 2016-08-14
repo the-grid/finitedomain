@@ -296,7 +296,7 @@ function space_propagate(space, config) {
   let returnValue = false;
   while (changedVars.length) {
     let newChangedVars = [];
-    let rejected = space_propagateChanges(space, propagators, minimal, changedVars, newChangedVars, changedTrie, ++cycles);
+    let rejected = space_propagateChanges(space, config, propagators, minimal, changedVars, newChangedVars, changedTrie, ++cycles);
     if (rejected) {
       returnValue = true;
       break;
@@ -379,8 +379,12 @@ function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
     }
   }
 }
-function space_propagateChanges(space, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
-  let varToPropagators = space.config._varToPropagators;
+function space_propagateChanges(space, config, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
+  let varToPropagators = config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
     let propagatorIndexes = varToPropagators[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if

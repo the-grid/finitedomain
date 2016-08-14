@@ -75,7 +75,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -87,7 +87,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -99,7 +99,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -123,7 +123,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -135,7 +135,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -147,7 +147,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -172,7 +172,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 5, 5);
         config_addVarRange(config, 'B', 11, 12);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -184,7 +184,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 8, 8);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -196,7 +196,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15, 16, 17, 18, 19));
         config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 12, 13, 14));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -208,7 +208,7 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 13, 14, 18, 19));
         config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 13, 14));
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -220,7 +220,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -295,7 +295,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 11);
         config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -308,7 +308,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 11);
         config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -322,7 +322,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 11);
         config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -334,7 +334,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -346,7 +346,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 12);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
@@ -359,7 +359,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 11);
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
@@ -372,7 +372,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
@@ -468,7 +468,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -487,7 +487,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -507,7 +507,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -526,7 +526,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -545,7 +545,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -565,7 +565,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -583,7 +583,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -602,7 +602,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -620,7 +620,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -639,7 +639,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -658,7 +658,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -677,7 +677,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -693,7 +693,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -710,7 +710,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -729,7 +729,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 0);
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -749,7 +749,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 10);
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
@@ -768,7 +768,7 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'A', 0, 10);
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot(config);
-        space_initFromConfig(space);
+        space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 

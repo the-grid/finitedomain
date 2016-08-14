@@ -68,7 +68,7 @@ function space_createFromConfig(config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let space = space_createRoot(config);
-  space_initFromConfig(space);
+  space_initFromConfig(space, config);
   return space;
 }
 
@@ -163,11 +163,12 @@ function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path)
 
 /**
  * @param {$space} space
+ * @param {$config} config
  */
-function space_initFromConfig(space) {
-  let config = space.config;
-  ASSERT(config, 'should have a config');
-  ASSERT(config._class === '$config', 'should be a config');
+function space_initFromConfig(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
 
   config_initForSpace(config, space);
   initializeUnsolvedVars(space, config);

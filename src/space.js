@@ -238,7 +238,7 @@ function initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let varNamesTrie = space.config._var_names_trie;
+    let varNamesTrie = config._var_names_trie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
@@ -414,7 +414,7 @@ function space_abortSearch(space, config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(space.config === config);
 
-  let callback = space.config.timeout_callback;
+  let callback = config.timeout_callback;
   if (callback) {
     return callback(space);
   }
@@ -443,7 +443,7 @@ function space_updateUnsolvedVarList(space, config) {
 
   let vardoms = space.vardoms;
 
-  let unsolvedFront = space.config._front;
+  let unsolvedFront = config._front;
   let lastNodeIndex = unsolvedFront.lastNodeIndex;
   let nodeIndex = front_addNode(unsolvedFront);
   space.frontNodeIndex = nodeIndex;
@@ -512,8 +512,12 @@ function space_getDomainArr(space, varIndex) {
   return domain_toArr(space.vardoms[varIndex]);
 }
 
-
-function _space_debug(space, printPath) {
+/**
+ * @param {$space} space
+ * @param {$config} [config]
+ * @param {boolean} [printPath]
+ */
+function _space_debug(space, config, printPath) {
   console.log('\n## Space:');
   //__REMOVE_BELOW_FOR_ASSERTS__
   console.log('# Meta:');
@@ -524,7 +528,7 @@ function _space_debug(space, printPath) {
   if (printPath) console.log('path:', space._path);
   //__REMOVE_ABOVE_FOR_ASSERTS__
   console.log('# Domains:');
-  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + (space.config.all_var_names[i] === String(i) ? '' : ' (' + space.config.all_var_names[i] + ')')).join('\n'));
+  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.all_var_names[i] === String(i)) ? '' : ' (' + config.all_var_names[i] + ')')).join('\n'));
   console.log('##\n');
 }
 

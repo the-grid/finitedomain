@@ -76,10 +76,13 @@ function space_createFromConfig(config) {
  * Create a space node that is a child of given space node
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {$space}
  */
-function space_createClone(space) {
+function space_createClone(space, config) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
 
   let vardomsCopy = space.vardoms.slice(0);
   let frontNodeIndex = space.frontNodeIndex;
@@ -93,7 +96,7 @@ function space_createClone(space) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(space.config, vardomsCopy, frontNodeIndex, _depth, _child, _path);
+  return space_createNew(config, vardomsCopy, frontNodeIndex, _depth, _child, _path);
 }
 
 /**

@@ -62,7 +62,7 @@ describe('src/space.spec', function() {
     describe('space_createClone()', function() {
 
       let space = space_createRoot();
-      let clone = space_createClone(space);
+      let clone = space_createClone(space, space.config);
 
       it('should return a new space', function() {
         expect(clone).to.not.equal(space);

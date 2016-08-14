@@ -519,9 +519,9 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Var Count: ${state.space.config.all_var_names.length}`);
-      console.log(`      - FD Constraint Count: ${state.space.config.all_constraints.length}`);
-      console.log(`      - FD Propagator Count: ${state.space.config._propagators.length}`);
+      console.log(`      - FD Var Count: ${this.config.all_var_names.length}`);
+      console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
+      console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
     }

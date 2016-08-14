@@ -104,20 +104,23 @@ function space_createClone(space, config) {
  * Basically clones its config but updates the `initial_domains` with fresh state
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {$space}
  */
-function space_toConfig(space) {
+function space_toConfig(space, config) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
 
   let vardoms = space.vardoms;
   let newDomains = [];
-  let names = space.config.all_var_names;
+  let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
     newDomains[i] = domain_any_clone(domain, FORCE_STRING);
   }
 
-  return config_clone(space.config, newDomains);
+  return config_clone(config, newDomains);
 }
 
 /**

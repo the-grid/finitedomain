@@ -307,7 +307,7 @@ describe('src/space.spec', function() {
 
         // if a space has no special things, it should produce a
         // fresh config... (but it's a fickle test at best)
-        expect(space_toConfig(space)).to.eql(config);
+        expect(space_toConfig(space, space.config)).to.eql(config);
       });
 
       it('should convert a space with a var without domain', function() {
@@ -315,7 +315,7 @@ describe('src/space.spec', function() {
         config_addVarNothing(space.config, 'A'); // becomes [SUB SUP]
         space_initFromConfig(space);
 
-        let config = space_toConfig(space);
+        let config = space_toConfig(space, space.config);
 
         expect(config.all_var_names).to.eql(['A']);
         expect(config.initial_domains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);

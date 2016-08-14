@@ -622,7 +622,7 @@ class Solver {
   branch_from_current_solution() {
     // get the _solved_ space, convert to config,
     // use new config as base for new solver
-    let solvedConfig = space_toConfig(this.state.space);
+    let solvedConfig = space_toConfig(this.state.space, this.config);
     return new Solver({config: solvedConfig});
   }
 

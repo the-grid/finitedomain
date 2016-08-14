@@ -75,7 +75,7 @@ function search_depthFirstLoop(space, stack, state) {
     return false;
   }
 
-  let solved = space_updateUnsolvedVarList(space);
+  let solved = space_updateUnsolvedVarList(space, space.config);
   if (solved) {
     _search_onSolve(state, space, stack);
     return true;

@@ -433,10 +433,14 @@ function space_abortSearch(space, config) {
  * those solutions.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {boolean}
  */
-function space_updateUnsolvedVarList(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+function space_updateUnsolvedVarList(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
   let vardoms = space.vardoms;
 
   let unsolvedFront = space.config._front;

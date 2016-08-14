@@ -145,7 +145,7 @@ describe('src/space.spec', function() {
       it('should return true if there are no vars', function() {
         let space = space_createRoot();
         space_initFromConfig(space, space.config);
-        expect(space_updateUnsolvedVarList(space)).to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config)).to.equal(true);
       });
 
       it('should return true if all 1 vars are solved', function() {
@@ -153,7 +153,7 @@ describe('src/space.spec', function() {
         config_addVarAnonConstant(space.config, 1);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'only one solved var').to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config), 'only one solved var').to.equal(true);
       });
 
       it('should return true if all 2 vars are solved', function() {
@@ -162,7 +162,7 @@ describe('src/space.spec', function() {
         config_addVarAnonConstant(space.config, 1);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two solved vars').to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two solved vars').to.equal(true);
       });
 
       it('should return false if one var is not solved and is targeted', function() {
@@ -171,7 +171,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = space.config.all_var_names.slice(0);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'only one unsolved var').to.equal(false);
+        expect(space_updateUnsolvedVarList(space, space.config), 'only one unsolved var').to.equal(false);
       });
 
       it('should have no unsolved var indexes if explicitly targeting no vars', function() {
@@ -190,7 +190,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = space.config.all_var_names.slice(0);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars').to.equal(false);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars').to.equal(false);
       });
 
       it('should return false if at least one var of two is not solved and not targeted', function() {
@@ -199,7 +199,7 @@ describe('src/space.spec', function() {
         config_addVarAnonRange(space.config, 0, 1);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars').to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars').to.equal(true);
       });
 
       it('should return false if at least one var of three is not solved and all targeted', function() {
@@ -210,7 +210,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = space.config.all_var_names.slice(0);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(false);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars and a solved var').to.equal(false);
       });
 
       it('should return false if at least one var of three is not solved and not targeted', function() {
@@ -220,7 +220,7 @@ describe('src/space.spec', function() {
         config_addVarAnonConstant(space.config, 1);
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars and a solved var').to.equal(true);
       });
 
       it('should return false if at least one var of three is not solved and only that one not is targeted', function() {
@@ -231,7 +231,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = [space.config.all_var_names[A]];
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(true);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars and a solved var').to.equal(true);
       });
 
       it('should return false if at least one var of three is not solved and that one is targeted', function() {
@@ -242,7 +242,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = [space.config.all_var_names[A], space.config.all_var_names[B]];
         space_initFromConfig(space, space.config);
 
-        expect(space_updateUnsolvedVarList(space), 'two unsolved vars and a solved var').to.equal(false);
+        expect(space_updateUnsolvedVarList(space, space.config), 'two unsolved vars and a solved var').to.equal(false);
       });
     });
 

@@ -739,7 +739,7 @@ describe('exports/export.cases.spec', function() {
         let solution = solver.solve();
 
         expect(solution).to.eql([{A: [19, 20], B: [20, 21]}]); // return all valid values that still satisfy all constraints (->none)
-        expect(space_getUnsolvedVarCount(solver._space)).to.eql(0); // should not target A or B because they are unconstrained
+        expect(space_getUnsolvedVarCount(solver._space, solver.config)).to.eql(0); // should not target A or B because they are unconstrained
       });
       it('constrained AB should appear in spaces unsolved vars list', function() {
         let solver = new Solver();

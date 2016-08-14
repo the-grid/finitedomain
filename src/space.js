@@ -181,10 +181,15 @@ function space_initFromConfig(space, config) {
  * This is only used for testing, prevents leaking internals into tests
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {number}
  */
-function space_getUnsolvedVarCount(space) {
-  return front_getSizeOf(space.config._front, space.frontNodeIndex);
+function space_getUnsolvedVarCount(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
+  return front_getSizeOf(config._front, space.frontNodeIndex);
 }
 /**
  * Return the index of the nth unsolved var in given node

@@ -100,7 +100,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot(config);
         space_initFromConfig(space, config);
 
-        expect(space_getUnsolvedVarCount(space)).to.eql(0);
+        expect(space_getUnsolvedVarCount(space, config)).to.eql(0);
       });
 
       it('should use explicitly targeted vars regardless of being constrained', function() {
@@ -180,7 +180,7 @@ describe('src/space.spec', function() {
         space.config.targetedVars = [];
         space_initFromConfig(space, space.config);
 
-        expect(space_getUnsolvedVarCount(space), 'unsolved vars to solve').to.equal(0);
+        expect(space_getUnsolvedVarCount(space, space.config), 'unsolved vars to solve').to.equal(0);
       });
 
       it('should return false if at least one var of two is not solved and targeted', function() {

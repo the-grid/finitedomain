@@ -351,7 +351,7 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, cycleI
 
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
-  // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
+  // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
   stepper(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
@@ -427,11 +427,6 @@ function space_abortSearch(space) {
  * ranges for all variables under which all conditions
  * are met and there would be no further need to enumerate
  * those solutions.
- *
- * For weaker tests, use the solve_for_variables function
- * to create an appropriate "is_solved" tester and
- * set the "state.is_solved" field at search time to
- * that function.
  *
  * @param {$space} space
  * @returns {boolean}

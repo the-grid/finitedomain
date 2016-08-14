@@ -31,8 +31,6 @@ import distribute_getNextDomainForVar from './distribution/value';
  * @property {$space} state.space Root space if this is the start of searching
  * @property {boolean} [state.more] Are there spaces left to investigate after the last solve?
  * @property {$space[]} [state.stack]=[state,space] The search stack as initialized by this class
- * @property {Function} [state.is_solved] Custom function to tell us whether a space is solved
- * @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
  * @property {string} [state.status] Set to 'solved' or 'end'
  */
 function search_depthFirst(state) {
@@ -46,14 +44,9 @@ function search_depthFirst(state) {
     }
   }
 
-  // this function clones the current space and then restricts an unsolved
-  // var in the clone to see whether this breaks anything. The loop below
-  // keeps doing this until something breaks or all target vars are solved.
-  let createNextSpaceNode = state.next_choice || search_defaultSpaceFactory;
   let stack = state.stack;
-
   while (stack.length > 0) {
-    let solved = search_depthFirstLoop(stack[stack.length - 1], stack, state, createNextSpaceNode);
+    let solved = search_depthFirstLoop(stack[stack.length - 1], stack, state);
     if (solved) return;
   }
 
@@ -68,10 +61,9 @@ function search_depthFirst(state) {
  * @param {$space} space
  * @param {$space[]} stack
  * @param {Object} state See search_depthFirst
- * @param {Function} createNextSpaceNode Clones the current space and reduces one var in the new space
  * @returns {boolean}
  */
-function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+function search_depthFirstLoop(space, stack, state) {
   // we backtrack, update the last node in the data model with the previous space
   // I don't like doing it this way but what else?
   space.config._front.lastNodeIndex = space.frontNodeIndex;
@@ -89,7 +81,7 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
     return true;
   }
 
-  let next_space = createNextSpaceNode(space, state);
+  let next_space = search_createNextSpace(space);
   if (next_space) {
     // Now this space is neither solved nor failed but since
     // no constraints are rejecting we must look further.
@@ -115,7 +107,7 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  * @param {$space} space
  * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
-function search_defaultSpaceFactory(space) {
+function search_createNextSpace(space) {
   let varIndex = distribution_getNextVarIndex(space);
 
   if (varIndex !== NO_SUCH_VALUE) {

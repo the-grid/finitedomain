@@ -469,11 +469,15 @@ function space_updateUnsolvedVarList(space, config) {
  * be already in a solved state for this to work.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {Object}
  */
-function space_solution(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let allVarNames = space.config.all_var_names;
+function space_solution(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(space.config === config);
+
+  let allVarNames = config.all_var_names;
   let result = {};
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];

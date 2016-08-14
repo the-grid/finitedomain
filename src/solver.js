@@ -798,7 +798,7 @@ function solver_getSolutions(solvedSpaces, solutions, log) {
     console.time('      - FD Solution Construction Time');
   }
   for (let i = 0; i < solvedSpaces.length; ++i) {
-    let solution = space_solution(solvedSpaces[i]);
+    let solution = space_solution(solvedSpaces[i], solvedSpaces[i].config);
     solutions.push(solution);
     if (log >= LOG_SOLVES) {
       console.log('      - FD solution() ::::::::::::::::::::::::::::');

@@ -249,12 +249,14 @@ describe('src/space.spec', function() {
     describe('space_solution()', function() {
 
       it('should return an object, not array', function() {
-        expect(space_solution(space_createRoot())).to.be.an('object');
-        expect(space_solution(space_createRoot())).not.to.be.an('array');
+        let space;
+        expect(space_solution(space = space_createRoot(), space.config)).to.be.an('object');
+        expect(space_solution(space = space_createRoot(), space.config)).not.to.be.an('array');
       });
 
       it('should return an empty object if there are no vars', function() {
-        expect(space_solution(space_createRoot())).to.eql({});
+        let space = space_createRoot();
+        expect(space_solution(space, space.config)).to.eql({});
       });
 
       it('should return false if a var covers no (more) elements', function() {
@@ -263,7 +265,7 @@ describe('src/space.spec', function() {
         space_initFromConfig(space, space.config);
         space.vardoms[space.config.all_var_names.indexOf('test')] = fixt_numdom_empty();
 
-        expect(space_solution(space)).to.eql({test: false});
+        expect(space_solution(space, space.config)).to.eql({test: false});
       });
 
       it('should return the value of a var is solved', function() {
@@ -271,7 +273,7 @@ describe('src/space.spec', function() {
         config_addVarDomain(space.config, 'test', fixt_arrdom_value(5, true));
         space_initFromConfig(space, space.config);
 
-        expect(space_solution(space)).to.eql({test: 5});
+        expect(space_solution(space, space.config)).to.eql({test: 5});
       });
 
       it('should return the domain of a var if not yet determined', function() {
@@ -281,7 +283,7 @@ describe('src/space.spec', function() {
         config_addVarDomain(space.config, 'multi_range_with_solved', fixt_arrdom_ranges([18, 20], [25, 25], [30, 40]));
         space_initFromConfig(space, space.config);
 
-        expect(space_solution(space)).to.eql({
+        expect(space_solution(space, space.config)).to.eql({
           single_range: fixt_arrdom_range(10, 120),
           multi_range: fixt_arrdom_ranges([10, 20], [30, 40]),
           multi_range_with_solved: fixt_arrdom_ranges([18, 20], [25, 25], [30, 40]),
@@ -294,7 +296,7 @@ describe('src/space.spec', function() {
         config_addVarConstant(space.config, 'addme', 20);
         space_initFromConfig(space, space.config);
 
-        expect(stripAnonVars(space_solution(space))).to.eql({addme: 20});
+        expect(stripAnonVars(space_solution(space, space.config))).to.eql({addme: 20});
       });
     });
 

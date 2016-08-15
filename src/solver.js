@@ -539,7 +539,7 @@ class Solver {
     if (alreadyRejected) {
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, max);
+      solvedSpaces = solver_runLoop(state, this.config, max);
     }
 
     if (log >= LOG_STATS) {
@@ -766,13 +766,14 @@ function getInspector() {
  * probably only need one solution. Won't return more solutions than max.
  *
  * @param {Object} state
+ * @param {$config} config
  * @param {number} max Stop after finding this many solutions
  * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, max) {
+function solver_runLoop(state, config, max) {
   let list = [];
   while (state.more && list.length < max) {
-    search_depthFirst(state);
+    search_depthFirst(state, config);
     if (state.status !== 'end') {
       list.push(state.space);
     }

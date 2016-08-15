@@ -122,7 +122,7 @@ function search_createNextSpace(space, config) {
       let choice = space.next_distribution_choice++;
       let nextDomain = distribute_getNextDomainForVar(space, config, varIndex, choice);
       if (nextDomain) {
-        let clone = space_createClone(space, config);
+        let clone = space_createClone(space);
         clone.updatedVarIndex = varIndex;
         clone.vardoms[varIndex] = nextDomain;
         return clone;

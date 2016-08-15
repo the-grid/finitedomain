@@ -60,7 +60,7 @@ describe('src/config.spec', function() {
 
     it('should require config and space', function() {
       let config = config_create();
-      let space = space_createRoot(config);
+      let space = space_createRoot();
 
       expect(_ => config_generateVars({}, space)).to.throw('EXPECTING_CONFIG');
       expect(_ => config_generateVars(config, {})).to.throw('SPACE_SHOULD_BE_SPACE');
@@ -69,7 +69,7 @@ describe('src/config.spec', function() {
     it('should create a constant', function() {
       let config = config_create();
       let name = config_addVarAnonConstant(config, 10);
-      let space = space_createRoot(config);
+      let space = space_createRoot();
 
       config_generateVars(config, space);
 
@@ -79,7 +79,7 @@ describe('src/config.spec', function() {
     it('should create a full width var', function() {
       let config = config_create();
       let name = config_addVarAnonNothing(config);
-      let space = space_createRoot(config);
+      let space = space_createRoot();
 
       config_generateVars(config, space);
 
@@ -89,7 +89,7 @@ describe('src/config.spec', function() {
     it('should clone a domained var', function() {
       let config = config_create();
       let name = config_addVarAnonRange(config, 32, 55);
-      let space = space_createRoot(config);
+      let space = space_createRoot();
 
       config_generateVars(config, space);
 

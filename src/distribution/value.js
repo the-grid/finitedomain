@@ -48,7 +48,6 @@ const MATH_RANDOM = Math.random;
 function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(domain_any_isUndetermined(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
@@ -68,7 +67,6 @@ function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
 function _distribute_getNextDomainForVar(stratName, space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   switch (stratName) {
     case 'max':

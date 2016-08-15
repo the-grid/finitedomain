@@ -42,7 +42,7 @@ describe('propagators/eq.spec', function() {
     let config = config_create();
     config_addVarRange(config, 'A', 11, 15);
     config_addVarRange(config, 'B', 5, 8);
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
 
     expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
@@ -57,7 +57,7 @@ describe('propagators/eq.spec', function() {
     config_addVarRange(config, 'B', 11, 15);
     config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
     config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
     space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
     space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
@@ -72,7 +72,7 @@ describe('propagators/eq.spec', function() {
     let config = config_create();
     config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
     config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
@@ -86,7 +86,7 @@ describe('propagators/eq.spec', function() {
     let config = config_create();
     config_addVarRange(config, 'A', SUB, 15);
     config_addVarDomain(config, 'B', fixt_arrdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
@@ -104,7 +104,7 @@ describe('propagators/eq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -140,7 +140,7 @@ describe('propagators/eq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(left, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(right, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
@@ -154,7 +154,7 @@ describe('propagators/eq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(right, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(left, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');

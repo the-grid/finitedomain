@@ -40,7 +40,7 @@ describe('propagators/neq.spec', function() {
     let config = config_create();
     config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15));
     config_addVarDomain(config, 'B', fixt_arrdom_nums(5, 8));
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
 
     let A = config.all_var_names.indexOf('A');
@@ -60,7 +60,7 @@ describe('propagators/neq.spec', function() {
     config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
     config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
     config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
-    let space = space_createRoot(config);
+    let space = space_createRoot();
     space_initFromConfig(space, config);
     space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
     space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
@@ -83,7 +83,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -98,7 +98,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -140,7 +140,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -155,7 +155,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(solvedDomain, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let B = config.all_var_names.indexOf('B');
@@ -197,7 +197,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -212,7 +212,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -227,7 +227,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');
@@ -242,7 +242,7 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         let A = config.all_var_names.indexOf('A');

@@ -25,7 +25,6 @@ import {
 
 import {
   config_clone,
-  config_create,
   config_initForSpace,
 } from './config';
 
@@ -43,12 +42,9 @@ import {
 let space_uid = 0;
 
 /**
- * @param {$config} config
  * @returns {$space}
  */
-function space_createRoot(config) {
-  if (!config) config = config_create();
-
+function space_createRoot() {
   // only for debugging
   let _depth = 0;
   let _child = 0;
@@ -56,7 +52,7 @@ function space_createRoot(config) {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew(config, [], 0, _depth, _child, _path);
+  return space_createNew([], 0, _depth, _child, _path);
 }
 
 /**
@@ -66,7 +62,7 @@ function space_createRoot(config) {
 function space_createFromConfig(config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let space = space_createRoot(config);
+  let space = space_createRoot();
   space_initFromConfig(space, config);
   return space;
 }
@@ -75,13 +71,10 @@ function space_createFromConfig(config) {
  * Create a space node that is a child of given space node
  *
  * @param {$space} space
- * @param {$config} config
  * @returns {$space}
  */
-function space_createClone(space, config) {
+function space_createClone(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let vardomsCopy = space.vardoms.slice(0);
   let frontNodeIndex = space.frontNodeIndex;
@@ -95,7 +88,7 @@ function space_createClone(space, config) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(config, vardomsCopy, frontNodeIndex, _depth, _child, _path);
+  return space_createNew(vardomsCopy, frontNodeIndex, _depth, _child, _path);
 }
 
 /**
@@ -109,7 +102,6 @@ function space_createClone(space, config) {
 function space_toConfig(space, config) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let vardoms = space.vardoms;
   let newDomains = [];
@@ -125,7 +117,6 @@ function space_toConfig(space, config) {
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
- * @param {$config} config
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
  * @param {number} frontNodeIndex
  * @param {number} _depth
@@ -133,13 +124,11 @@ function space_toConfig(space, config) {
  * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path) {
+function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
 
   let space = {
     _class: '$space',
-
-    config,
 
     vardoms,
 
@@ -167,7 +156,6 @@ function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path)
 function space_initFromConfig(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   config_initForSpace(config, space);
   initializeUnsolvedVars(space, config);
@@ -186,7 +174,6 @@ function space_initFromConfig(space, config) {
 function space_getUnsolvedVarCount(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   return front_getSizeOf(config._front, space.frontNodeIndex);
 }
@@ -201,7 +188,6 @@ function space_getUnsolvedVarCount(space, config) {
 function _space_getUnsolvedVarNamesFresh(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let nodeIndex = space.frontNodeIndex;
   // fugly! :)
@@ -215,12 +201,11 @@ function _space_getUnsolvedVarNamesFresh(space, config) {
  * targeted variables, or any unsolved variables if none were explicitly targeted.
  *
  * @param {$space} space
- * @param {$config} config (=space.config)
+ * @param {$config} config
  */
 function initializeUnsolvedVars(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let targetVarNames = config.targetedVars;
   let vardoms = space.vardoms;
@@ -257,13 +242,12 @@ function initializeUnsolvedVars(space, config) {
  * Returns true if any propagator rejects.
  *
  * @param {$space} space
- * @param {$config} config (=space.config)
+ * @param {$config} config
  * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
 function space_propagate(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let propagators = config._propagators;
 
@@ -382,7 +366,6 @@ function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
 function space_propagateChanges(space, config, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let varToPropagators = config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
@@ -412,7 +395,6 @@ function space_propagateChanges(space, config, allPropagators, minimal, targetVa
 function space_abortSearch(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let callback = config.timeout_callback;
   if (callback) {
@@ -439,7 +421,6 @@ function space_abortSearch(space, config) {
 function space_updateUnsolvedVarList(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let vardoms = space.vardoms;
 
@@ -475,7 +456,6 @@ function space_updateUnsolvedVarList(space, config) {
 function space_solution(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space.config === config);
 
   let allVarNames = config.all_var_names;
   let result = {};

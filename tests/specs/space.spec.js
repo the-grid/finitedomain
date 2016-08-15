@@ -55,15 +55,14 @@ describe('src/space.spec', function() {
 
       it('should init vars and var_names', function() {
         expect(space_createRoot().vardoms).to.be.an('array');
-        expect(space_createRoot().config.all_var_names).to.be.an('array');
       });
     });
 
     describe('space_createClone()', function() {
 
       let config = config_create();
-      let space = space_createRoot(config);
-      let clone = space_createClone(space, config);
+      let space = space_createRoot();
+      let clone = space_createClone(space);
 
       it('should return a new space', function() {
         expect(clone).to.not.equal(space);
@@ -82,11 +81,6 @@ describe('src/space.spec', function() {
           expect(clone.vardoms[varName]).to.eql(space.vardoms[varName]);
         }
       });
-
-      // note: the deep clone check is already done above, no need to repeat it
-      it('should clone certain props, copy others', function() {
-        expect(config).to.equal(clone.config);
-      });
     });
 
     describe('targeted vars', function() {
@@ -98,7 +92,7 @@ describe('src/space.spec', function() {
         config_addVarRange(config, 'C', 0, 1);
         config.targetedVars = 'all';
 
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         expect(space_getUnsolvedVarCount(space, config)).to.eql(0);
@@ -110,7 +104,7 @@ describe('src/space.spec', function() {
         config_addVarRange(config, 'B', 0, 1);
         config.targetedVars = ['A', 'B'];
 
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         expect(_space_getUnsolvedVarNamesFresh(space, config).sort()).to.eql(['A', 'B']);
@@ -123,7 +117,7 @@ describe('src/space.spec', function() {
         config_addVarRange(config, 'B', 0, 1);
         config.targetedVars = targets.slice(0);
 
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
 
         expect(_space_getUnsolvedVarNamesFresh(space, config).sort()).to.eql(targets.sort());
@@ -136,7 +130,7 @@ describe('src/space.spec', function() {
         config_addVarRange(config, 'C', 0, 1);
         config.targetedVars = ['FAIL'];
 
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         expect(_ => space_initFromConfig(space, config)).to.throw('E_TARGETED_VARS_SHOULD_EXIST_NOW');
       });
     });
@@ -145,14 +139,14 @@ describe('src/space.spec', function() {
 
       it('should return true if there are no vars', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
         expect(space_updateUnsolvedVarList(space, config)).to.equal(true);
       });
 
       it('should return true if all 1 vars are solved', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonConstant(config, 1);
         space_initFromConfig(space, config);
 
@@ -161,7 +155,7 @@ describe('src/space.spec', function() {
 
       it('should return true if all 2 vars are solved', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonConstant(config, 1);
         config_addVarAnonConstant(config, 1);
         space_initFromConfig(space, config);
@@ -171,7 +165,7 @@ describe('src/space.spec', function() {
 
       it('should return false if one var is not solved and is targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config.targetedVars = config.all_var_names.slice(0);
         space_initFromConfig(space, config);
@@ -181,7 +175,7 @@ describe('src/space.spec', function() {
 
       it('should have no unsolved var indexes if explicitly targeting no vars', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config.targetedVars = [];
         space_initFromConfig(space, config);
@@ -191,7 +185,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of two is not solved and targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         config.targetedVars = config.all_var_names.slice(0);
@@ -202,7 +196,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of two is not solved and not targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         space_initFromConfig(space, config);
@@ -212,7 +206,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of three is not solved and all targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonConstant(config, 1);
@@ -224,7 +218,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of three is not solved and not targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonConstant(config, 1);
@@ -235,7 +229,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of three is not solved and only that one not is targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         let A = config_addVarAnonConstant(config, 1);
@@ -247,7 +241,7 @@ describe('src/space.spec', function() {
 
       it('should return false if at least one var of three is not solved and that one is targeted', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         let A = config_addVarAnonRange(config, 0, 1);
         let B = config_addVarAnonRange(config, 0, 1);
         config_addVarAnonConstant(config, 1);
@@ -262,19 +256,19 @@ describe('src/space.spec', function() {
 
       it('should return an object, not array', function() {
         let config = config_create();
-        expect(space_solution(space_createRoot(config), config)).to.be.an('object');
-        expect(space_solution(space_createRoot(config), config)).not.to.be.an('array');
+        expect(space_solution(space_createRoot(), config)).to.be.an('object');
+        expect(space_solution(space_createRoot(), config)).not.to.be.an('array');
       });
 
       it('should return an empty object if there are no vars', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         expect(space_solution(space, config)).to.eql({});
       });
 
       it('should return false if a var covers no (more) elements', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarDomain(config, 'test', fixt_arrdom_nums(100));
         space_initFromConfig(space, config);
         space.vardoms[config.all_var_names.indexOf('test')] = fixt_numdom_empty();
@@ -284,7 +278,7 @@ describe('src/space.spec', function() {
 
       it('should return the value of a var is solved', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarDomain(config, 'test', fixt_arrdom_value(5, true));
         space_initFromConfig(space, config);
 
@@ -293,7 +287,7 @@ describe('src/space.spec', function() {
 
       it('should return the domain of a var if not yet determined', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarRange(config, 'single_range', 10, 120);
         config_addVarDomain(config, 'multi_range', fixt_arrdom_ranges([10, 20], [30, 40]));
         config_addVarDomain(config, 'multi_range_with_solved', fixt_arrdom_ranges([18, 20], [25, 25], [30, 40]));
@@ -308,7 +302,7 @@ describe('src/space.spec', function() {
 
       it('should not add anonymous vars to the result', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         config_addVarAnonConstant(config, 15);
         config_addVarConstant(config, 'addme', 20);
         space_initFromConfig(space, config);
@@ -321,7 +315,7 @@ describe('src/space.spec', function() {
 
       it('should convert a space to its config', function() {
         let config = config_create();
-        let space = space_createRoot(config);
+        let space = space_createRoot();
         space_initFromConfig(space, config);
         let config2 = config_create(); // fresh config object
 
@@ -332,7 +326,7 @@ describe('src/space.spec', function() {
 
       it('should convert a space with a var without domain', function() {
         let config = config_create();
-        let space = space_createRoot(config); // fresh space object
+        let space = space_createRoot(); // fresh space object
         config_addVarNothing(config, 'A'); // becomes [SUB SUP]
         space_initFromConfig(space, config);
 
@@ -349,7 +343,7 @@ describe('src/space.spec', function() {
 
         it('should not reject this multiply case', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 10);
           config_addVarRange(config, 'B', 0, 10);
@@ -369,7 +363,7 @@ describe('src/space.spec', function() {
 
         it('step 0; two bools at start of search', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 1);
           config_addVarRange(config, 'B', 0, 1);
@@ -389,7 +383,7 @@ describe('src/space.spec', function() {
 
         it('step 1; first bool updated', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 0);
           config_addVarRange(config, 'B', 0, 1);
@@ -410,7 +404,7 @@ describe('src/space.spec', function() {
 
         it('step 1; second bool updated', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 1);
           config_addVarRange(config, 'B', 0, 0);
@@ -436,7 +430,7 @@ describe('src/space.spec', function() {
           // (base timeout callback test)
 
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 10);
           config_addVarRange(config, 'B', 0, 10);
@@ -449,7 +443,7 @@ describe('src/space.spec', function() {
 
         it('should not break early if callback doesnt return true', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 10);
           config_addVarRange(config, 'B', 0, 10);
@@ -464,7 +458,7 @@ describe('src/space.spec', function() {
 
         it('should break early if callback returns true', function() {
           let config = config_create();
-          let space = space_createRoot(config);
+          let space = space_createRoot();
 
           config_addVarRange(config, 'A', 0, 10);
           config_addVarRange(config, 'B', 0, 10);

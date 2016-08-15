@@ -547,7 +547,7 @@ class Solver {
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 
-    if (!squash) solver_getSolutions(solvedSpaces, this.solutions, log);
+    if (!squash) solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
   /**
@@ -793,13 +793,13 @@ function solver_varDistOptions(name, bvar, config) {
   }
 }
 
-function solver_getSolutions(solvedSpaces, solutions, log) {
+function solver_getSolutions(solvedSpaces, config, solutions, log) {
   ASSERT(solutions instanceof Array);
   if (log >= LOG_STATS) {
     console.time('      - FD Solution Construction Time');
   }
   for (let i = 0; i < solvedSpaces.length; ++i) {
-    let solution = space_solution(solvedSpaces[i], solvedSpaces[i].config);
+    let solution = space_solution(solvedSpaces[i], config);
     solutions.push(solution);
     if (log >= LOG_SOLVES) {
       console.log('      - FD solution() ::::::::::::::::::::::::::::');

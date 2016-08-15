@@ -58,7 +58,7 @@ describe('propagators/reified.spec', function() {
           config_addVarDomain(config, 'A', domain_any_clone(A_in, FORCE_ARRAY));
           config_addVarDomain(config, 'B', domain_any_clone(B_in, FORCE_ARRAY));
           config_addVarDomain(config, 'bool', domain_any_clone(bool_in, FORCE_ARRAY));
-          let space = space_createRoot(config);
+          let space = space_createRoot();
           space_initFromConfig(space, config);
 
           expect(op === 'eq' || op === 'neq', 'if this breaks just update the test and update the new values').to.equal(true);

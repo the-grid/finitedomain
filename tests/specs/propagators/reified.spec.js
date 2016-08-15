@@ -67,9 +67,9 @@ describe('propagators/reified.spec', function() {
           let rejectsOp = op === 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
           let rejectsNop = op !== 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
 
-          let A = space.config.all_var_names.indexOf('A');
-          let B = space.config.all_var_names.indexOf('B');
-          let bool = space.config.all_var_names.indexOf('bool');
+          let A = config.all_var_names.indexOf('A');
+          let B = config.all_var_names.indexOf('B');
+          let bool = config.all_var_names.indexOf('bool');
           propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
           expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);

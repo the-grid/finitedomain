@@ -69,7 +69,7 @@ describe('distribution/value.spec', function() {
       space_initFromConfig(space, config);
       let A = config.all_var_names.indexOf('A');
 
-      let dom = _distribute_getNextDomainForVar('naive', space, space.config, A);
+      let dom = _distribute_getNextDomainForVar('naive', space, config, A);
 
       expect(dom).to.eql(fixt_numdom_nums(0));
     });

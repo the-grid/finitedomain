@@ -46,7 +46,7 @@ function propagator_markovStepBare(space, config, varIndex) {
   let value = domain_any_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = config.var_dist_options;
-  let distributionOptions = configVarDistOptions[space.config.all_var_names[varIndex]];
+  let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
 
   ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions || JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);

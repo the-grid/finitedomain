@@ -281,7 +281,7 @@ function space_propagate(space, config) {
     changedVars.push(space.updatedVarIndex);
   } else {
     // very first cycle of first epoch of the search. all propagators must be visited at least once now.
-    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie, ++cycles);
+    let rejected = space_propagateAll(space, config, propagators, changedVars, changedTrie, ++cycles);
     if (rejected) {
       config._propagationCycles = cycles;
       return true;
@@ -315,24 +315,24 @@ function space_propagate(space, config) {
   return returnValue;
 }
 
-function space_propagateAll(space, propagators, changedVars, changedTrie, cycleIndex) {
+function space_propagateAll(space, config, propagators, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
+    let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
+function space_propagateByIndexes(space, config, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
+    let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex) {
+function space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
   let vardoms = space.vardoms;
@@ -348,7 +348,7 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, cycleI
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
-  stepper(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
+  stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
     if (vardoms[index1] === EMPTY) return true; // fail
@@ -397,7 +397,7 @@ function space_propagateChanges(space, config, allPropagators, minimal, targetVa
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
     if (propagatorIndexes && propagatorIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie, cycleIndex);
+      let result = space_propagateByIndexes(space, config, allPropagators, propagatorIndexes, changedVars, changedTrie, cycleIndex);
       if (result) return true; // rejected
     }
   }

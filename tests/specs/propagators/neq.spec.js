@@ -46,10 +46,10 @@ describe('propagators/neq.spec', function() {
     let A = space.config.all_var_names.indexOf('A');
     let B = space.config.all_var_names.indexOf('B');
 
-    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
     expect(_ => propagator_neqStepBare(space)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-    expect(_ => propagator_neqStepBare(space, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, config, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
     expect(_ => propagator_neqStepBare(space, undefined, B)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
     expect(_ => propagator_neqStepBare(undefined, A, B)).to.throw('SHOULD_GET_SPACE');
   });
@@ -70,10 +70,10 @@ describe('propagators/neq.spec', function() {
     let C = space.config.all_var_names.indexOf('C');
     let D = space.config.all_var_names.indexOf('D');
 
-    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
-    expect(_ => propagator_neqStepBare(space, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
   });
 
   describe('should not change anything as long as both domains are unsolved', function() {
@@ -89,7 +89,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -104,7 +104,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -146,7 +146,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(solvedDomain);
         expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
@@ -161,7 +161,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
         expect(space.vardoms[B]).to.eql(solvedDomain);
       });
@@ -203,7 +203,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -218,7 +218,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -233,7 +233,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });
@@ -248,7 +248,7 @@ describe('propagators/neq.spec', function() {
         let A = space.config.all_var_names.indexOf('A');
         let B = space.config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });

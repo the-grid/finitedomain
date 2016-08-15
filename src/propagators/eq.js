@@ -21,12 +21,13 @@ import {
  * can potentially skip a lot of values early.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @returns {$fd_changeState}
  */
-function propagator_eqStepBare(space, varIndex1, varIndex2) {
-  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
+function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
+  ASSERT(space._class === '$space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 

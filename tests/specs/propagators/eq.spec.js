@@ -45,12 +45,10 @@ describe('propagators/eq.spec', function() {
     let space = space_createRoot(config);
     space_initFromConfig(space, config);
 
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
-    expect(_ => propagator_eqStepBare()).to.throw('SHOULD_GET_SPACE');
-    expect(_ => propagator_eqStepBare(space)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-    expect(_ => propagator_eqStepBare(space, undefined, config.all_var_names.indexOf('B'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-    expect(_ => propagator_eqStepBare(undefined, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).to.throw('SHOULD_GET_SPACE');
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
+    expect(_ => propagator_eqStepBare(space, config)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_eqStepBare(space, config, undefined, config.all_var_names.indexOf('B'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
   });
 
   it('should throw for empty domains', function() {
@@ -64,10 +62,10 @@ describe('propagators/eq.spec', function() {
     space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
     space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('B'))).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_eqStepBare(space, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('B'))).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
   });
 
   it('with array should split a domain if it covers multiple ranges of other domain', function() {
@@ -79,7 +77,7 @@ describe('propagators/eq.spec', function() {
     let A = config.all_var_names.indexOf('A');
     let B = config.all_var_names.indexOf('B');
 
-    propagator_eqStepBare(space, A, B);
+    propagator_eqStepBare(space, config, A, B);
     expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
     expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
   });
@@ -95,7 +93,7 @@ describe('propagators/eq.spec', function() {
 
     let C = fixt_numdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
 
-    propagator_eqStepBare(space, A, B);
+    propagator_eqStepBare(space, config, A, B);
     expect(space.vardoms[B]).to.eql(C);
     expect(space.vardoms[A]).to.eql(C);
   });
@@ -112,7 +110,7 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        propagator_eqStepBare(space, A, B);
+        propagator_eqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain_toNumstr(domain));
         expect(space.vardoms[B]).to.eql(domain_toNumstr(domain));
       });
@@ -147,7 +145,7 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        propagator_eqStepBare(space, A, B);
+        propagator_eqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(result);
         expect(space.vardoms[B]).to.eql(result);
       });
@@ -161,7 +159,7 @@ describe('propagators/eq.spec', function() {
         let A = config.all_var_names.indexOf('A');
         let B = config.all_var_names.indexOf('B');
 
-        propagator_eqStepBare(space, A, B);
+        propagator_eqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(result);
         expect(space.vardoms[B]).to.eql(result);
       });

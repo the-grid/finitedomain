@@ -13,11 +13,12 @@ import domain_any_minus from '../doms/domain_minus';
  * Min as in minus. Only updates the result domain.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @param {number} varIndex3
  */
-function propagator_minStep(space, varIndex1, varIndex2, varIndex3) {
+function propagator_minStep(space, config, varIndex1, varIndex2, varIndex3) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];

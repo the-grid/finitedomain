@@ -34,7 +34,7 @@ describe('propagators/markov.spec', function() {
       let Aindex = solver._space.config.all_var_names.indexOf('A');
 
       // A=0, which is in legend and has prob=1
-      propagator_markovStepBare(solver._space, Aindex);
+      propagator_markovStepBare(solver._space, solver.config, Aindex);
       expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_nums(0));
     });
 
@@ -56,7 +56,7 @@ describe('propagators/markov.spec', function() {
       let Aindex = solver._space.config.all_var_names.indexOf('A');
 
       // A=0, which is not in legend
-      propagator_markovStepBare(solver._space, Aindex);
+      propagator_markovStepBare(solver._space, solver.config, Aindex);
       expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
     });
 
@@ -80,7 +80,7 @@ describe('propagators/markov.spec', function() {
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 
         // A=0, which is in legend but has prob=0
-        propagator_markovStepBare(solver._space, Aindex);
+        propagator_markovStepBare(solver._space, solver.config, Aindex);
         expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
       });
 
@@ -102,7 +102,7 @@ describe('propagators/markov.spec', function() {
         let Aindex = solver._space.config.all_var_names.indexOf('A');
 
         // A=0, which is in legend and has prob=1
-        propagator_markovStepBare(solver._space, Aindex);
+        propagator_markovStepBare(solver._space, solver.config, Aindex);
         expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
       });
     });
@@ -131,7 +131,7 @@ describe('propagators/markov.spec', function() {
 
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
-        propagator_markovStepBare(solver._space, Aindex);
+        propagator_markovStepBare(solver._space, solver.config, Aindex);
         expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_nums(0));
       });
 
@@ -158,7 +158,7 @@ describe('propagators/markov.spec', function() {
 
         // A=0, which is in legend and has prob=1 in first row,
         // but only second row is considered which gives prob=0
-        propagator_markovStepBare(solver._space, Aindex);
+        propagator_markovStepBare(solver._space, solver.config, Aindex);
         expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
       });
     });

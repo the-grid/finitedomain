@@ -15,13 +15,14 @@ import domain_any_minus from '../doms/domain_minus';
 
 /**
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @param {number} varIndex3
  * @param {string} opName
  * @param {Function} opFunc
  */
-function propagator_ringStepBare(space, varIndex1, varIndex2, varIndex3, opName, opFunc) {
+function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3, opName, opFunc) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
   let domain1 = space.vardoms[varIndex1];

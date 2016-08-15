@@ -14,11 +14,12 @@ import {
 
 /**
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
  */
-function propagator_ltStepBare(space, varIndex1, varIndex2) {
-  ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
+function propagator_ltStepBare(space, config, varIndex1, varIndex2) {
+  ASSERT(space._class === '$space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
@@ -68,8 +69,8 @@ function propagator_ltStepBare(space, varIndex1, varIndex2) {
   }
 }
 
-function propagator_gtStepBare(space, varIndex1, varIndex2) {
-  return propagator_ltStepBare(space, varIndex2, varIndex1);
+function propagator_gtStepBare(space, config, varIndex1, varIndex2) {
+  return propagator_ltStepBare(space, config, varIndex2, varIndex1);
 }
 
 /**

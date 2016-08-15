@@ -16,11 +16,12 @@ import {
 
 /**
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
  * @returns {$fd_changeState}
  */
-function propagator_neqStepBare(space, varIndex1, varIndex2) {
+function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');

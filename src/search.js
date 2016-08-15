@@ -31,11 +31,10 @@ import distribute_getNextDomainForVar from './distribution/value';
  * @property {$space} state.space Root space if this is the start of searching
  * @property {boolean} [state.more] Are there spaces left to investigate after the last solve?
  * @property {$space[]} [state.stack]=[state,space] The search stack as initialized by this class
- * @property {Function} [state.is_solved] Custom function to tell us whether a space is solved
- * @property {Function} [state.next_choice] Custom function to create new space (-> searching nodes)
  * @property {string} [state.status] Set to 'solved' or 'end'
+ * @param {$config} config
  */
-function search_depthFirst(state) {
+function search_depthFirst(state, config) {
   let isStart = !state.stack || state.stack.length === 0;
   if (isStart) {
     // If no stack argument, then search begins with state.space
@@ -46,14 +45,9 @@ function search_depthFirst(state) {
     }
   }
 
-  // this function clones the current space and then restricts an unsolved
-  // var in the clone to see whether this breaks anything. The loop below
-  // keeps doing this until something breaks or all target vars are solved.
-  let createNextSpaceNode = state.next_choice || search_defaultSpaceFactory;
   let stack = state.stack;
-
   while (stack.length > 0) {
-    let solved = search_depthFirstLoop(stack[stack.length - 1], stack, state, createNextSpaceNode);
+    let solved = search_depthFirstLoop(stack[stack.length - 1], config, stack, state);
     if (solved) return;
   }
 
@@ -66,30 +60,30 @@ function search_depthFirst(state) {
  * One search step of the given space
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {$space[]} stack
  * @param {Object} state See search_depthFirst
- * @param {Function} createNextSpaceNode Clones the current space and reduces one var in the new space
  * @returns {boolean}
  */
-function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
+function search_depthFirstLoop(space, config, stack, state) {
   // we backtrack, update the last node in the data model with the previous space
   // I don't like doing it this way but what else?
-  space.config._front.lastNodeIndex = space.frontNodeIndex;
+  config._front.lastNodeIndex = space.frontNodeIndex;
 
-  let rejected = space_propagate(space);
+  let rejected = space_propagate(space, config);
 
   if (rejected) {
     _search_onReject(state, space, stack);
     return false;
   }
 
-  let solved = space_updateUnsolvedVarList(space);
+  let solved = space_updateUnsolvedVarList(space, config);
   if (solved) {
     _search_onSolve(state, space, stack);
     return true;
   }
 
-  let next_space = createNextSpaceNode(space, state);
+  let next_space = search_createNextSpace(space, config);
   if (next_space) {
     // Now this space is neither solved nor failed but since
     // no constraints are rejecting we must look further.
@@ -113,10 +107,11 @@ function search_depthFirstLoop(space, stack, state, createNextSpaceNode) {
  * into account.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {$space|undefined} a clone with small modification or nothing if this is an unsolved leaf node
  */
-function search_defaultSpaceFactory(space) {
-  let varIndex = distribution_getNextVarIndex(space);
+function search_createNextSpace(space, config) {
+  let varIndex = distribution_getNextVarIndex(space, config);
 
   if (varIndex !== NO_SUCH_VALUE) {
     ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -125,7 +120,7 @@ function search_defaultSpaceFactory(space) {
     let domain = space.vardoms[varIndex];
     if (!domain_any_isSolved(domain)) {
       let choice = space.next_distribution_choice++;
-      let nextDomain = distribute_getNextDomainForVar(space, varIndex, choice);
+      let nextDomain = distribute_getNextDomainForVar(space, config, varIndex, choice);
       if (nextDomain) {
         let clone = space_createClone(space);
         clone.updatedVarIndex = varIndex;

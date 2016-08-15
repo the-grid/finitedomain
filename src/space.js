@@ -17,7 +17,6 @@ import {
 import {
   front_addNode,
   front_addCell,
-  front_getCell,
   _front_getCell,
   front_getSizeOf,
   _front_getSizeOf,
@@ -26,7 +25,6 @@ import {
 
 import {
   config_clone,
-  config_create,
   config_initForSpace,
 } from './config';
 
@@ -44,12 +42,9 @@ import {
 let space_uid = 0;
 
 /**
- * @param {$config} config
  * @returns {$space}
  */
-function space_createRoot(config) {
-  if (!config) config = config_create();
-
+function space_createRoot() {
   // only for debugging
   let _depth = 0;
   let _child = 0;
@@ -57,7 +52,7 @@ function space_createRoot(config) {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew(config, [], 0, _depth, _child, _path);
+  return space_createNew([], 0, _depth, _child, _path);
 }
 
 /**
@@ -67,8 +62,8 @@ function space_createRoot(config) {
 function space_createFromConfig(config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let space = space_createRoot(config);
-  space_initFromConfig(space);
+  let space = space_createRoot();
+  space_initFromConfig(space, config);
   return space;
 }
 
@@ -93,7 +88,7 @@ function space_createClone(space) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(space.config, vardomsCopy, frontNodeIndex, _depth, _child, _path);
+  return space_createNew(vardomsCopy, frontNodeIndex, _depth, _child, _path);
 }
 
 /**
@@ -101,26 +96,27 @@ function space_createClone(space) {
  * Basically clones its config but updates the `initial_domains` with fresh state
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {$space}
  */
-function space_toConfig(space) {
+function space_toConfig(space, config) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let vardoms = space.vardoms;
   let newDomains = [];
-  let names = space.config.all_var_names;
+  let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
     newDomains[i] = domain_any_clone(domain, FORCE_STRING);
   }
 
-  return config_clone(space.config, newDomains);
+  return config_clone(config, newDomains);
 }
 
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
- * @param {$config} config
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
  * @param {number} frontNodeIndex
  * @param {number} _depth
@@ -128,13 +124,11 @@ function space_toConfig(space) {
  * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path) {
+function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
 
   let space = {
     _class: '$space',
-
-    config,
 
     vardoms,
 
@@ -157,11 +151,11 @@ function space_createNew(config, vardoms, frontNodeIndex, _depth, _child, _path)
 
 /**
  * @param {$space} space
+ * @param {$config} config
  */
-function space_initFromConfig(space) {
-  let config = space.config;
-  ASSERT(config, 'should have a config');
-  ASSERT(config._class === '$config', 'should be a config');
+function space_initFromConfig(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   config_initForSpace(config, space);
   initializeUnsolvedVars(space, config);
@@ -174,49 +168,32 @@ function space_initFromConfig(space) {
  * This is only used for testing, prevents leaking internals into tests
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {number}
  */
-function space_getUnsolvedVarCount(space) {
-  return front_getSizeOf(space.config._front, space.frontNodeIndex);
-}
-/**
- * Return the index of the nth unsolved var in given node
- * You are responsible for making sure that node is still relevant
- * This is only used for testing, prevents leaking internals into tests
- *
- * @param {$space} space
- * @param {number} nodeIndex The node (offset of the list) to access
- * @param {number} cellIndex The cell offset relative to the node to return
- * @returns {number}
- */
-function space_getUnsolvedVarAt(space, nodeIndex, cellIndex) {
-  return front_getCell(space.config._front, nodeIndex, cellIndex);
-}
-/**
- * Return the index of the nth unsolved var in the node of this space
- * Only reliable if this space is the current active one
- * This is only used for testing, prevents leaking internals into tests
- *
- * @param {$space} space
- * @param {number} cellIndex The cell offset relative to the space's node to return
- * @returns {number}
- */
-function space_getUnsolvedIndex(space, cellIndex) {
-  return front_getCell(space.config._front, space.frontNodeIndex, cellIndex);
+function space_getUnsolvedVarCount(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  return front_getSizeOf(config._front, space.frontNodeIndex);
 }
 /**
  * Only use this for testing or debugging as it creates a fresh array
  * for the result. We don't use the names internally, anyways.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {string[]} var names of all unsolved vars of given space
  */
-function _space_getUnsolvedVarNamesFresh(space) {
+function _space_getUnsolvedVarNamesFresh(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
   let nodeIndex = space.frontNodeIndex;
   // fugly! :)
-  let buf = space.config._front.buffer;
+  let buf = config._front.buffer;
   let sub = [].slice.call(buf, nodeIndex + 1, nodeIndex + 1 + buf[nodeIndex]); // or .subArray() or something like that... or even toArray?
-  return sub.map(index => space.config.all_var_names[index]);
+  return sub.map(index => config.all_var_names[index]);
 }
 
 /**
@@ -224,10 +201,11 @@ function _space_getUnsolvedVarNamesFresh(space) {
  * targeted variables, or any unsolved variables if none were explicitly targeted.
  *
  * @param {$space} space
- * @param {$config} config (=space.config)
+ * @param {$config} config
  */
 function initializeUnsolvedVars(space, config) {
-  ASSERT(space.config === config);
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let targetVarNames = config.targetedVars;
   let vardoms = space.vardoms;
@@ -245,7 +223,7 @@ function initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let varNamesTrie = space.config._var_names_trie;
+    let varNamesTrie = config._var_names_trie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
@@ -264,11 +242,13 @@ function initializeUnsolvedVars(space, config) {
  * Returns true if any propagator rejects.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
-function space_propagate(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let config = space.config;
+function space_propagate(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
   let propagators = config._propagators;
 
   // "cycle" is one step, "epoch" all steps until stable (but not solved per se)
@@ -285,14 +265,14 @@ function space_propagate(space) {
     changedVars.push(space.updatedVarIndex);
   } else {
     // very first cycle of first epoch of the search. all propagators must be visited at least once now.
-    let rejected = space_propagateAll(space, propagators, changedVars, changedTrie, ++cycles);
+    let rejected = space_propagateAll(space, config, propagators, changedVars, changedTrie, ++cycles);
     if (rejected) {
       config._propagationCycles = cycles;
       return true;
     }
   }
 
-  if (space_abortSearch(space)) {
+  if (space_abortSearch(space, config)) {
     config._propagationCycles = cycles;
     return true;
   }
@@ -300,13 +280,13 @@ function space_propagate(space) {
   let returnValue = false;
   while (changedVars.length) {
     let newChangedVars = [];
-    let rejected = space_propagateChanges(space, propagators, minimal, changedVars, newChangedVars, changedTrie, ++cycles);
+    let rejected = space_propagateChanges(space, config, propagators, minimal, changedVars, newChangedVars, changedTrie, ++cycles);
     if (rejected) {
       returnValue = true;
       break;
     }
 
-    if (space_abortSearch(space)) {
+    if (space_abortSearch(space, config)) {
       returnValue = true;
       break;
     }
@@ -319,24 +299,24 @@ function space_propagate(space) {
   return returnValue;
 }
 
-function space_propagateAll(space, propagators, changedVars, changedTrie, cycleIndex) {
+function space_propagateAll(space, config, propagators, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
+    let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateByIndexes(space, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
+function space_propagateByIndexes(space, config, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
-    let rejected = space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex);
+    let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
     if (rejected) return true;
   }
   return false;
 }
-function space_propagateStep(space, propagator, changedVars, changedTrie, cycleIndex) {
+function space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
   let vardoms = space.vardoms;
@@ -351,8 +331,8 @@ function space_propagateStep(space, propagator, changedVars, changedTrie, cycleI
 
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
-  // TODO: if we can get a "solved" state here we can prevent an "is_solved" check later...
-  stepper(space, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
+  // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
+  stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
     if (vardoms[index1] === EMPTY) return true; // fail
@@ -383,8 +363,11 @@ function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
     }
   }
 }
-function space_propagateChanges(space, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
-  let varToPropagators = space.config._varToPropagators;
+function space_propagateChanges(space, config, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  let varToPropagators = config._varToPropagators;
   for (let i = 0, vlen = targetVars.length; i < vlen; i++) {
     let propagatorIndexes = varToPropagators[targetVars[i]];
     // note: the first loop of propagate() should require all propagators affected, even if
@@ -397,7 +380,7 @@ function space_propagateChanges(space, allPropagators, minimal, targetVars, chan
     // ultimately a list of propagators should perform better but the indexOf negates that perf
     // (this doesn't affect a whole lot of vars... most of them touch multiple propas)
     if (propagatorIndexes && propagatorIndexes.length >= minimal) {
-      let result = space_propagateByIndexes(space, allPropagators, propagatorIndexes, changedVars, changedTrie, cycleIndex);
+      let result = space_propagateByIndexes(space, config, allPropagators, propagatorIndexes, changedVars, changedTrie, cycleIndex);
       if (result) return true; // rejected
     }
   }
@@ -406,11 +389,14 @@ function space_propagateChanges(space, allPropagators, minimal, targetVars, chan
 
 /**
  * @param {$space} space
+ * @param {$config} config
  * @returns {boolean}
  */
-function space_abortSearch(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let callback = space.config.timeout_callback;
+function space_abortSearch(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  let callback = config.timeout_callback;
   if (callback) {
     return callback(space);
   }
@@ -428,19 +414,17 @@ function space_abortSearch(space) {
  * are met and there would be no further need to enumerate
  * those solutions.
  *
- * For weaker tests, use the solve_for_variables function
- * to create an appropriate "is_solved" tester and
- * set the "state.is_solved" field at search time to
- * that function.
- *
  * @param {$space} space
+ * @param {$config} config
  * @returns {boolean}
  */
-function space_updateUnsolvedVarList(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+function space_updateUnsolvedVarList(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
   let vardoms = space.vardoms;
 
-  let unsolvedFront = space.config._front;
+  let unsolvedFront = config._front;
   let lastNodeIndex = unsolvedFront.lastNodeIndex;
   let nodeIndex = front_addNode(unsolvedFront);
   space.frontNodeIndex = nodeIndex;
@@ -466,11 +450,14 @@ function space_updateUnsolvedVarList(space) {
  * be already in a solved state for this to work.
  *
  * @param {$space} space
+ * @param {$config} config
  * @returns {Object}
  */
-function space_solution(space) {
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-  let allVarNames = space.config.all_var_names;
+function space_solution(space, config) {
+  ASSERT(space._class === '$space', 'EXPECTING_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  let allVarNames = config.all_var_names;
   let result = {};
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
@@ -505,8 +492,12 @@ function space_getDomainArr(space, varIndex) {
   return domain_toArr(space.vardoms[varIndex]);
 }
 
-
-function _space_debug(space, printPath) {
+/**
+ * @param {$space} space
+ * @param {$config} [config]
+ * @param {boolean} [printPath]
+ */
+function _space_debug(space, config, printPath) {
   console.log('\n## Space:');
   //__REMOVE_BELOW_FOR_ASSERTS__
   console.log('# Meta:');
@@ -517,7 +508,7 @@ function _space_debug(space, printPath) {
   if (printPath) console.log('path:', space._path);
   //__REMOVE_ABOVE_FOR_ASSERTS__
   console.log('# Domains:');
-  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + (space.config.all_var_names[i] === String(i) ? '' : ' (' + space.config.all_var_names[i] + ')')).join('\n'));
+  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.all_var_names[i] === String(i)) ? '' : ' (' + config.all_var_names[i] + ')')).join('\n'));
   console.log('##\n');
 }
 
@@ -530,8 +521,6 @@ export {
   space_createRoot,
   space_getDomainArr,
   space_getUnsolvedVarCount,
-  space_getUnsolvedVarAt,
-  space_getUnsolvedIndex,
   _space_getUnsolvedVarNamesFresh,
   space_getVarSolveState,
   space_initFromConfig,

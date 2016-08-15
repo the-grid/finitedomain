@@ -519,9 +519,9 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Var Count: ${state.space.config.all_var_names.length}`);
-      console.log(`      - FD Constraint Count: ${state.space.config.all_constraints.length}`);
-      console.log(`      - FD Propagator Count: ${state.space.config._propagators.length}`);
+      console.log(`      - FD Var Count: ${this.config.all_var_names.length}`);
+      console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
+      console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
     }
@@ -539,7 +539,7 @@ class Solver {
     if (alreadyRejected) {
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, max);
+      solvedSpaces = solver_runLoop(state, this.config, max);
     }
 
     if (log >= LOG_STATS) {
@@ -547,7 +547,7 @@ class Solver {
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 
-    if (!squash) solver_getSolutions(solvedSpaces, this.solutions, log);
+    if (!squash) solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
   /**
@@ -622,7 +622,7 @@ class Solver {
   branch_from_current_solution() {
     // get the _solved_ space, convert to config,
     // use new config as base for new solver
-    let solvedConfig = space_toConfig(this.state.space);
+    let solvedConfig = space_toConfig(this.state.space, this.config);
     return new Solver({config: solvedConfig});
   }
 
@@ -766,13 +766,14 @@ function getInspector() {
  * probably only need one solution. Won't return more solutions than max.
  *
  * @param {Object} state
+ * @param {$config} config
  * @param {number} max Stop after finding this many solutions
  * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, max) {
+function solver_runLoop(state, config, max) {
   let list = [];
   while (state.more && list.length < max) {
-    search_depthFirst(state);
+    search_depthFirst(state, config);
     if (state.status !== 'end') {
       list.push(state.space);
     }
@@ -792,13 +793,13 @@ function solver_varDistOptions(name, bvar, config) {
   }
 }
 
-function solver_getSolutions(solvedSpaces, solutions, log) {
+function solver_getSolutions(solvedSpaces, config, solutions, log) {
   ASSERT(solutions instanceof Array);
   if (log >= LOG_STATS) {
     console.time('      - FD Solution Construction Time');
   }
   for (let i = 0; i < solvedSpaces.length; ++i) {
-    let solution = space_solution(solvedSpaces[i]);
+    let solution = space_solution(solvedSpaces[i], config);
     solutions.push(solution);
     if (log >= LOG_SOLVES) {
       console.log('      - FD solution() ::::::::::::::::::::::::::::');

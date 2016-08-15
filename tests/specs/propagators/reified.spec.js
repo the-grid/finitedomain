@@ -58,8 +58,8 @@ describe('propagators/reified.spec', function() {
           config_addVarDomain(config, 'A', domain_any_clone(A_in, FORCE_ARRAY));
           config_addVarDomain(config, 'B', domain_any_clone(B_in, FORCE_ARRAY));
           config_addVarDomain(config, 'bool', domain_any_clone(bool_in, FORCE_ARRAY));
-          let space = space_createRoot(config);
-          space_initFromConfig(space);
+          let space = space_createRoot();
+          space_initFromConfig(space, config);
 
           expect(op === 'eq' || op === 'neq', 'if this breaks just update the test and update the new values').to.equal(true);
           let opFunc = op === 'eq' ? propagator_eqStepBare : propagator_neqStepBare;
@@ -67,10 +67,10 @@ describe('propagators/reified.spec', function() {
           let rejectsOp = op === 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
           let rejectsNop = op !== 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
 
-          let A = space.config.all_var_names.indexOf('A');
-          let B = space.config.all_var_names.indexOf('B');
-          let bool = space.config.all_var_names.indexOf('bool');
-          propagator_reifiedStepBare(space, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
+          let A = config.all_var_names.indexOf('A');
+          let B = config.all_var_names.indexOf('B');
+          let bool = config.all_var_names.indexOf('bool');
+          propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
           expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);
           expect(space.vardoms[B], 'B should be unchanged').to.eql(B_in);

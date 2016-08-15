@@ -18,6 +18,7 @@ import {
  * condition between two variables currently holds or not.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} leftVarIndex
  * @param {number} rightVarIndex
  * @param {number} resultVarIndex
@@ -28,7 +29,7 @@ import {
  * @param {Function} opRejectChecker
  * @param {Function} nopRejectChecker
  */
-function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName, opRejectChecker, nopRejectChecker) {
+function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, resultVarIndex, opFunc, nopFunc, opName, invOpName, opRejectChecker, nopRejectChecker) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -41,9 +42,9 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
   ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (domResult === ZERO) {
-    nopFunc(space, leftVarIndex, rightVarIndex);
+    nopFunc(space, config, leftVarIndex, rightVarIndex);
   } else if (domResult === ONE) {
-    opFunc(space, leftVarIndex, rightVarIndex);
+    opFunc(space, config, leftVarIndex, rightVarIndex);
   } else {
     ASSERT(domResult === BOOL, 'failsafe assertion');
 
@@ -66,11 +67,11 @@ function propagator_reifiedStepBare(space, leftVarIndex, rightVarIndex, resultVa
         vardoms[resultVarIndex] = EMPTY;
       } else {
         vardoms[resultVarIndex] = ONE;
-        opFunc(space, leftVarIndex, rightVarIndex);
+        opFunc(space, config, leftVarIndex, rightVarIndex);
       }
     } else if (opRejects) {
       vardoms[resultVarIndex] = ZERO;
-      nopFunc(space, leftVarIndex, rightVarIndex);
+      nopFunc(space, config, leftVarIndex, rightVarIndex);
     }
   }
 }

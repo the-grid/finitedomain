@@ -28,9 +28,10 @@ import {
  * there can be one markov propagator that checks all markov vars.
  *
  * @param {$space} space
+ * @param {$config} config
  * @param {number} varIndex
  */
-function propagator_markovStepBare(space, varIndex) {
+function propagator_markovStepBare(space, config, varIndex) {
   // THIS IS VERY EXPENSIVE IF expandVectorsWith IS ENABLED
 
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -44,8 +45,8 @@ function propagator_markovStepBare(space, varIndex) {
 
   let value = domain_any_min(domain); // note: solved so lo=hi=value
 
-  let configVarDistOptions = space.config.var_dist_options;
-  let distributionOptions = configVarDistOptions[space.config.all_var_names[varIndex]];
+  let configVarDistOptions = config.var_dist_options;
+  let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
 
   ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions || JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);

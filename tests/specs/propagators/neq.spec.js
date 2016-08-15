@@ -40,16 +40,16 @@ describe('propagators/neq.spec', function() {
     let config = config_create();
     config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15));
     config_addVarDomain(config, 'B', fixt_arrdom_nums(5, 8));
-    let space = space_createRoot(config);
-    space_initFromConfig(space);
+    let space = space_createRoot();
+    space_initFromConfig(space, config);
 
-    let A = space.config.all_var_names.indexOf('A');
-    let B = space.config.all_var_names.indexOf('B');
+    let A = config.all_var_names.indexOf('A');
+    let B = config.all_var_names.indexOf('B');
 
-    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
     expect(_ => propagator_neqStepBare(space)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-    expect(_ => propagator_neqStepBare(space, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+    expect(_ => propagator_neqStepBare(space, config, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
     expect(_ => propagator_neqStepBare(space, undefined, B)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
     expect(_ => propagator_neqStepBare(undefined, A, B)).to.throw('SHOULD_GET_SPACE');
   });
@@ -60,20 +60,20 @@ describe('propagators/neq.spec', function() {
     config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
     config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
     config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
-    let space = space_createRoot(config);
-    space_initFromConfig(space);
+    let space = space_createRoot();
+    space_initFromConfig(space, config);
     space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
     space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
 
-    let A = space.config.all_var_names.indexOf('A');
-    let B = space.config.all_var_names.indexOf('B');
-    let C = space.config.all_var_names.indexOf('C');
-    let D = space.config.all_var_names.indexOf('D');
+    let A = config.all_var_names.indexOf('A');
+    let B = config.all_var_names.indexOf('B');
+    let C = config.all_var_names.indexOf('C');
+    let D = config.all_var_names.indexOf('D');
 
-    expect(_ => propagator_neqStepBare(space, A, B)).not.to.throw();
-    expect(_ => propagator_neqStepBare(space, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
-    expect(_ => propagator_neqStepBare(space, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
+    expect(_ => propagator_neqStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
+    expect(_ => propagator_neqStepBare(space, config, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
   });
 
   describe('should not change anything as long as both domains are unsolved', function() {
@@ -83,13 +83,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -98,13 +98,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -140,13 +140,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(solvedDomain);
         expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
@@ -155,13 +155,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(solvedDomain, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let B = config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
         expect(space.vardoms[B]).to.eql(solvedDomain);
       });
@@ -197,13 +197,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain1);
         expect(space.vardoms[B]).to.eql(domain2);
       });
@@ -212,13 +212,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(domain2);
         expect(space.vardoms[B]).to.eql(domain1);
       });
@@ -227,13 +227,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });
@@ -242,13 +242,13 @@ describe('propagators/neq.spec', function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
-        let space = space_createRoot(config);
-        space_initFromConfig(space);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
 
-        let A = space.config.all_var_names.indexOf('A');
-        let B = space.config.all_var_names.indexOf('B');
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
 
-        propagator_neqStepBare(space, A, B);
+        propagator_neqStepBare(space, config, A, B);
         expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
         expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
       });

@@ -9,13 +9,13 @@
  - press start
  - wait until the spinner spins again (can take a while...), reduce the max to make this go faster
 
- @ console.log('starting now...');
- @ var exports = {};
- @ var module = {exports: {}};
- + http://localhost/path/to/finitedomain/dist/browser.js
- - http://localhost/path/to/finitedomain/tests/perf/gridsolver/config.js
- - http://localhost/path/to/finitedomain/tests/perf/perf.js
- @ perf(config, 1);
+@ console.log('starting now...');
+@ var exports = {};
+@ var module = {exports: {}};
++ http://localhost/path/to/finitedomain/dist/browser.js
+- http://localhost/path/to/finitedomain/tests/perf/curator/config.js
+- http://localhost/path/to/finitedomain/tests/perf/perf.js
+@ perf(config, 1);
 
  */
 

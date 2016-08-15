@@ -15,6 +15,7 @@
 - Dropped the `callback` propagator, to return later. It was all kinds of messed up, anyways. This propagator was the only anomaly in the code and now we can run with more assumptions.
 - Dropped support for custom `search` function option. May return later.
 - Dropped support for `initial_vars` in the `Solver` constructor options
+- Dropped support for `next_choice`. I don't think it was really exposed, but either way internally it doesn't exist anymore. Everything uses the same space factory now, until we need this functionality back.
 
 ## v2.3.4:
 

@@ -678,26 +678,26 @@ class Solver {
     console.log('## _debugSolver:\n');
     let inspect = getInspector();
 
-    console.log('# Config:');
     let config = this.config;
+    console.log('# Config:');
     console.log(inspect(_clone(config)));
 
-    console.log('# Variables (' + names.length + 'x):');
     let names = config.all_var_names;
+    console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
       console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_domains[varIndex], '(= [' + domain_toArr(config.initial_domains[varIndex]) + '])');
     }
 
-    console.log('# Constraints (' + constraints.length + 'x):');
     let constraints = config.all_constraints;
+    console.log('# Constraints (' + constraints.length + 'x):');
     console.log('  index name vars param');
     for (let i = 0; i < constraints.length; ++i) {
       console.log('  ', i, ':', constraints[i].name, ':', constraints[i].varIndexes.join(','), ':', constraints[i].param);
     }
 
-    console.log('# Propagators (' + propagators.length + 'x):');
     let propagators = config._propagators;
+    console.log('# Propagators (' + propagators.length + 'x):');
     console.log('  index name vars args');
     for (let i = 0; i < propagators.length; ++i) {
       console.log('  ', i, ':', propagators[i].name, ':', propagators[i].index1, propagators[i].index2, propagators[i].index3, ':', propagators[i].arg1, propagators[i].arg2);

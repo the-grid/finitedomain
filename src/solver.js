@@ -524,7 +524,6 @@ class Solver {
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
-      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
     }
 
     let alreadyRejected = false;
@@ -545,6 +544,8 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solving Time');
+      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
+      ASSERT(!void console.log(`      - FD stats: actual propagate steps: ${this.config._steps}x`));
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 

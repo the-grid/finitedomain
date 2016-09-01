@@ -13,6 +13,11 @@ import {
 import distribution_getNextVarIndex from './distribution/var';
 import distribute_getNextDomainForVar from './distribution/value';
 
+import {
+  domt_duplicateNode,
+  domt_replaceDomain,
+} from './domt';
+
 // BODY_START
 
 /**
@@ -55,7 +60,7 @@ function search_depthFirst(state, config) {
   state.status = 'end';
   state.more = false;
 }
-
+//let steps = 0;
 /**
  * One search step of the given space
  *
@@ -69,16 +74,39 @@ function search_depthFirstLoop(space, config, stack, state) {
   // we backtrack, update the last node in the data model with the previous space
   // I don't like doing it this way but what else?
   config._front.lastNodeIndex = space.frontNodeIndex;
+  config._domt.lastNodeIndex = space._domtNodeIndex;
+
+  //++steps;
+  //console.log('step', steps, 'of 2455 ('+(steps/24.55).toPrecision(2)+'%) last node size:', config._domt.buffer[config._domt.lastNodeIndex], 'propsteps:', config._steps - ssteps);
 
   let rejected = space_propagate(space, config);
 
+  // tmp
+  // copy domain state from this space, now, to the domt
+
+  // ok domains could actually expand meaning we'd need to move them in the struct
+  // that's fine because the only time when this may happen is when the node is the last
+  // it may lead to a few inefficiencies but we can fix that by sealing the node next time we dupe it. or just leave it as is.
+
+  let vardoms = space.vardoms;
+  for (let i = 0, len = vardoms.length; i < len; ++i) {
+    domt_replaceDomain(config._domt, space._domtNodeIndex, i, vardoms[i]);
+  }
+
+  //console.log('last index before clone:', config._domt.lastNodeIndex);
+  //_domt_debug(config._domt, config._domt.lastNodeIndex, 0, false, 'search_depthFirstLoop');
+
   if (rejected) {
+    //_domt_debug(config._domt, 0, config._domt.lastNodeIndex, false, 'on_fail');
+
     _search_onReject(state, space, stack);
     return false;
   }
 
   let solved = space_updateUnsolvedVarList(space, config);
   if (solved) {
+    //_domt_debug(config._domt, true);
+
     _search_onSolve(state, space, stack);
     return true;
   }
@@ -123,6 +151,12 @@ function search_createNextSpace(space, config) {
       let nextDomain = distribute_getNextDomainForVar(space, config, varIndex, choice);
       if (nextDomain) {
         let clone = space_createClone(space);
+
+        domt_duplicateNode(config._domt);
+        clone._domtNodeIndex = config._domt.lastNodeIndex;
+        //console.log('last index of clone:', config._domt.lastNodeIndex);
+        //_domt_debug(config._domt, config._domt.lastNodeIndex, 0, false, 'search_createNextSpace');
+
         clone.updatedVarIndex = varIndex;
         clone.vardoms[varIndex] = nextDomain;
         return clone;

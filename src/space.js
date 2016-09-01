@@ -15,6 +15,8 @@ import {
 } from './trie';
 
 import {
+  FRONT_FIRST_NODE_OFFSET,
+
   front_addNode,
   front_addCell,
   _front_getCell,
@@ -37,6 +39,10 @@ import {
   domain_toArr,
 } from './domain';
 
+import {
+  DOMT_DEFAULT_FIRST_NODE,
+} from './domt';
+
 // BODY_START
 
 let space_uid = 0;
@@ -52,7 +58,7 @@ function space_createRoot() {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew([], 0, _depth, _child, _path);
+  return space_createNew([], FRONT_FIRST_NODE_OFFSET, _depth, _child, _path);
 }
 
 /**
@@ -92,6 +98,42 @@ function space_createClone(space) {
 }
 
 /**
+ * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
+ *
+ * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
+ * @param {number} frontNodeIndex
+ * @param {number} _depth
+ * @param {number} _child
+ * @param {string} _path
+ * @returns {$space}
+ */
+function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
+  ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
+
+  let space = {
+    _class: '$space',
+
+    vardoms,
+
+    frontNodeIndex,
+    _domtNodeIndex: DOMT_DEFAULT_FIRST_NODE,
+
+    next_distribution_choice: 0,
+    updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
+  };
+
+  // search graph metrics
+  // debug only. do it inside ASSERT so they are stripped in the dist
+  ASSERT(!void (space._depth = _depth));
+  ASSERT(!void (space._child = _child));
+  ASSERT(!void (space._child_count = 0));
+  ASSERT(!void (space._path = _path + _child));
+  ASSERT(!void (space._uid = ++space_uid));
+
+  return space;
+}
+
+/**
  * Create a new config with the configuration of the given Space
  * Basically clones its config but updates the `initial_domains` with fresh state
  *
@@ -112,41 +154,6 @@ function space_toConfig(space, config) {
   }
 
   return config_clone(config, newDomains);
-}
-
-/**
- * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
- *
- * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {number} frontNodeIndex
- * @param {number} _depth
- * @param {number} _child
- * @param {string} _path
- * @returns {$space}
- */
-function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
-  ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
-
-  let space = {
-    _class: '$space',
-
-    vardoms,
-
-    frontNodeIndex,
-
-    next_distribution_choice: 0,
-    updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
-  };
-
-  // search graph metrics
-  // debug only. do it inside ASSERT so they are stripped in the dist
-  ASSERT(!void (space._depth = _depth));
-  ASSERT(!void (space._child = _child));
-  ASSERT(!void (space._child_count = 0));
-  ASSERT(!void (space._path = _path + _child));
-  ASSERT(!void (space._uid = ++space_uid));
-
-  return space;
 }
 
 /**
@@ -330,6 +337,7 @@ function space_propagateStep(space, config, propagator, changedVars, changedTrie
   let domain2 = index2 !== undefined && vardoms[index2];
   let domain3 = index3 !== undefined && vardoms[index3];
 
+  ASSERT(!void (config._steps = (config._steps | 0) + 1), 'number of stepper calls in propagate');
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an isSolved check later...

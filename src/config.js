@@ -71,6 +71,10 @@ import {
   constraint_create,
 } from './constraint';
 import distribution_getDefaults from './distribution/defaults';
+import {
+  domt_create,
+  domt_initDomain,
+} from './domt';
 
 // BODY_START
 
@@ -110,6 +114,7 @@ function config_create() {
   };
 
   ASSERT(!void (config._propagates = 0), 'number of propagate() calls');
+  ASSERT(!void (config._steps = 0), 'number of stepper calls in propagate');
 
   return config;
 }
@@ -161,6 +166,7 @@ function config_clone(config, newDomains) {
   };
 
   ASSERT(!void (clone._propagates = 0), 'number of propagate() calls');
+  ASSERT(!void (clone._steps = 0), 'number of stepper calls in propagate');
 
   return clone;
 }
@@ -338,13 +344,13 @@ function config_createVarStratConfig(obj) {
  * @param {$config} config
  * @param {string} optionName
  * @param {*} optionValue
- * @param {string} [optionTarget] For certain options, this is the target var name
+ * @param {string} [optionTargetVarName] For certain options, this is the target var name
  */
-function config_setOption(config, optionName, optionValue, optionTarget) {
+function config_setOption(config, optionName, optionValue, optionTargetVarName) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof optionName === 'string', 'option name is a string');
   ASSERT(optionValue !== undefined, 'should get a value');
-  ASSERT(optionTarget === undefined || typeof optionTarget === 'string', 'the optional name is a string');
+  ASSERT(optionTargetVarName === undefined || typeof optionTargetVarName === 'string', 'the optional name is a string');
 
   switch (optionName) {
     case 'varStrategy':
@@ -387,17 +393,18 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
       break;
 
     case 'varStratOverride':
+      console.log('--', optionTargetVarName);
       // specific strategy parameters for one variable
-      ASSERT(typeof optionTarget === 'string', 'expecting a name');
+      ASSERT(typeof optionTargetVarName === 'string', 'expecting a name');
       if (!config.var_dist_options) config.var_dist_options = {};
-      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet'); // there is one test in mv that breaks this....?
-      config.var_dist_options[optionTarget] = optionValue;
+      ASSERT(!config.var_dist_options[optionTargetVarName], 'should not be known yet', optionTargetVarName, config.var_dist_options[optionTargetVarName]);
+      config.var_dist_options[optionTargetVarName] = optionValue;
       break;
 
     case 'varValueStrat':
-      ASSERT(typeof optionTarget === 'string', 'expecting a name');
-      if (!config.var_dist_options[optionTarget]) config.var_dist_options[optionTarget] = {};
-      config.var_dist_options[optionTarget] = optionValue;
+      ASSERT(typeof optionTargetVarName === 'string', 'expecting a name');
+      if (!config.var_dist_options[optionTargetVarName]) config.var_dist_options[optionTargetVarName] = {};
+      config.var_dist_options[optionTargetVarName] = optionValue;
       break;
 
     case 'timeout_callback':
@@ -468,11 +475,18 @@ function config_generateVars(config, space) {
   let allVarNames = config.all_var_names;
   ASSERT(allVarNames, 'config should have a list of vars');
 
+  let domt = domt_create(allVarNames.length);
+  config._domt = domt;
+  space._domtNodeIndex = domt.lastNodeIndex;
+
   for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
     let domain = initialDomains[varIndex];
     ASSERT_STRDOM(domain);
     vardoms[varIndex] = domain_toNumstr(domain);
+    domt_initDomain(domt, varIndex, domain);
   }
+
+  //_domt_debug(domt, 0);
 }
 
 /**

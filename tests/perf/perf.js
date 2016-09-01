@@ -9,7 +9,6 @@ perf(config, 1);
 
 // run this from any of the subdirs (`./composer/node.js`)
 var Solver = (typeof require === 'function') ? require(__dirname + '/../../dist/browser').default : exports.default;
-
 var perf = module.exports = function perf(config, max, _waited) {
 
   if (typeof location === 'object' && location.href.indexOf('wait=1') >= 0 && !_waited) {

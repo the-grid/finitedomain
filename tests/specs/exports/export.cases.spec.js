@@ -8,7 +8,6 @@ import {
   space_getUnsolvedVarCount,
   _space_getUnsolvedVarNamesFresh,
 } from '../../../src/space';
-
 import case20160611 from './2016-06-11';
 import case20160613 from './2016-06-13';
 import case20160618 from './2016-06-18';
@@ -26,6 +25,7 @@ describe('exports/export.cases.spec', function() {
 
     console.log('run 1:');
     solver.solve({log: 1, max: 1});
+
     console.log('run 2:');
     solver.solve({log: 1, max: 1});
   });

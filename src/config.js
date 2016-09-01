@@ -78,7 +78,7 @@ import distribution_getDefaults from './distribution/defaults';
  * @returns {$finitedomain_config}
  */
 function config_create() {
-  return {
+  let config = {
     _class: '$config',
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _var_names_trie: trie_create(),
@@ -108,6 +108,10 @@ function config_create() {
     _varToPropagators: [], // initialized later
     _constrainedAway: [], // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
   };
+
+  ASSERT(!void (config._propagates = 0), 'number of propagate() calls');
+
+  return config;
 }
 
 function config_clone(config, newDomains) {
@@ -130,7 +134,7 @@ function config_clone(config, newDomains) {
     _propagationCycles,
   } = config;
 
-  return {
+  let clone = {
     _class: '$config',
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
     _changedVarsTrie: undefined,
@@ -155,6 +159,10 @@ function config_clone(config, newDomains) {
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
     _constrainedAway: _constrainedAway && _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
   };
+
+  ASSERT(!void (clone._propagates = 0), 'number of propagate() calls');
+
+  return clone;
 }
 
 /**

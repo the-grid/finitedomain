@@ -524,6 +524,7 @@ class Solver {
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
+      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
     }
 
     let alreadyRejected = false;

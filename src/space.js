@@ -248,6 +248,7 @@ function initializeUnsolvedVars(space, config) {
 function space_propagate(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(!void (config._propagates = (config._propagates | 0) + 1), 'number of calls to space_propagate');
 
   let propagators = config._propagators;
 

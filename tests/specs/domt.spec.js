@@ -67,11 +67,9 @@ describe('src/domt.spec', function() {
 
     let solution = solver.solve({max: 1});
 
-    _domt_debug(solver.config._domt, 0, 100);
-
-      // There are only three values that multiply to 20 or
-      // 21 (and none to 19 because it is a prime). Times
-      // two because each value appears in A and B.
+    // There are only three values that multiply to 20 or
+    // 21 (and none to 19 because it is a prime). Times
+    // two because each value appears in A and B.
     expect(solution).to.eql([
         {A: 2, B: 10, MIN: 19, MAX: 21, S: 20},
     ]);

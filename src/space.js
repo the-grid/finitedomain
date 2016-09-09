@@ -43,6 +43,18 @@ import {
   DOMT_DEFAULT_FIRST_NODE,
 } from './domt';
 
+import {
+  ddom_getJmp,
+  ddom_$isNumDom,
+  ddom_$getNumdom,
+  ddom_isSolved,
+  _ddom_isSolved,
+  ddom_$isSolved,
+  ddom_$getSolved,
+  ddom_$getLen,
+  ddom_$getBodyOffset,
+} from './ddom';
+
 // BODY_START
 
 let space_uid = 0;
@@ -221,9 +233,12 @@ function initializeUnsolvedVars(space, config) {
   let nodeIndexStart = space.frontNodeIndex;
   let cellIndex = 0;
 
+  let domt = config._domt;
+  let buf = domt.buffer;
+
   if (targetVarNames === 'all') {
     for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!_ddom_isSolved(buf, nodeIndexStart, varIndex)) {
         if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
           front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
         }
@@ -235,7 +250,7 @@ function initializeUnsolvedVars(space, config) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
       if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!_ddom_isSolved(buf, nodeIndexStart, varIndex)) {
         front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
       }
     }

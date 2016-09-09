@@ -46,6 +46,19 @@ import {
   space_toConfig,
 } from './space';
 
+import {
+  DOMT_DEFAULT_FIRST_NODE,
+  DOMT_NODE_CELL_COUNT,
+  DOMT_VAR_COUNT,
+  DOMT_JUMP_TABLE,
+  DOMT_IS_NUMDOM,
+  DOMT_IS_SOLVED,
+  DOMT_HAS_CHANGED,
+  DOMT_MAX_DOM_COUNT,
+
+  domt_isNodeRejected,
+} from './domt';
+
 // BODY_START
 
 //
@@ -522,31 +535,28 @@ class Solver {
       console.log(`      - FD Var Count: ${this.config.all_var_names.length}`);
       console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
-      console.log('      - FD Solving...');
-      console.time('      - FD Solving Time');
-    }
-
-    let alreadyRejected = false;
-    let vardoms = state.space.vardoms;
-    for (let i = 0, n = vardoms.length; i < n; ++i) {
-      if (vardoms[i] === EMPTY) {
-        alreadyRejected = true;
-        break;
-      }
     }
 
     let solvedSpaces;
-    if (alreadyRejected) {
+    if (domt_isNodeRejected(this.config._domt, DOMT_DEFAULT_FIRST_NODE, this.config.all_var_names.length)) {
+      if (log >= LOG_STATS) {
+        console.log('      - FD Rejected At Compile Time...');
+      }
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, this.config, max);
-    }
+      if (log >= LOG_STATS) {
+        console.log('      - FD Solving...');
+        console.time('      - FD Solving Time');
+      }
 
-    if (log >= LOG_STATS) {
-      console.timeEnd('      - FD Solving Time');
-      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
-      ASSERT(!void console.log(`      - FD stats: actual propagate steps: ${this.config._steps}x`));
-      console.log(`      - FD Solutions: ${solvedSpaces.length}`);
+      solvedSpaces = solver_runLoop(state, this.config, max);
+
+      if (log >= LOG_STATS) {
+        console.timeEnd('      - FD Solving Time');
+        ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
+        ASSERT(!void console.log(`      - FD stats: actual propagate steps: ${this.config._steps}x`));
+        console.log(`      - FD Solutions: ${solvedSpaces.length}`);
+      }
     }
 
     if (!squash) solver_getSolutions(solvedSpaces, this.config, this.solutions, log);

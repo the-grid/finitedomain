@@ -360,7 +360,10 @@ function domt_verifyNode(domt, nodeIndex, desc) {
   nodeIndex = DOMT_DEFAULT_FIRST_NODE;
   while (nodeIndex <= domt.lastNodeIndex) {
     let varCount = buf[nodeIndex + DOMT_VAR_COUNT];
-    if (!varCount) _domt_debug(domt, true);
+    if (!varCount) {
+      console.log('no var count!?');
+      _domt_debug(domt, true);
+    }
     ASSERT(varCount > 0, 'expecting vars', varCount);
     ASSERT(buf[nodeIndex + DOMT_NODE_CELL_COUNT] >= DOMT_JUMP_TABLE + varCount, 'cells should at least cover jump table');
 
@@ -590,6 +593,25 @@ function domt_getSize(domt) {
   return domt_getNodeEnd(domt, domt.lastNodeIndex);
 }
 
+
+/**
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @returns {boolean}
+ */
+function domt_isNodeRejected(domt, nodeIndex, llen) {
+  let buf = domt.buffer;
+  let offset = nodeIndex + DOMT_JUMP_TABLE;
+  let count = buf[nodeIndex + DOMT_VAR_COUNT];
+  ASSERT(llen === count, 'node should have proper var count', llen, count);
+  for (let i = 0; i < count; ++i) {
+    // if $jmp equals the flag, the numdom is 0, meaning it contains no values (==rejected)
+    let $jmp = buf[offset + i];
+    if ($jmp === DOMT_IS_NUMDOM) return true;
+  }
+  return false;
+}
+
 // __REMOVE_ABOVE_FOR_DIST__
 
 function _domt_debug(domt, fromNodeNumber, toNodeNumber, printBuf, msg) {
@@ -652,6 +674,7 @@ export {
   _domt_debug,
   domt_create,
   domt_initDomain,
+  domt_isNodeRejected,
   domt_duplicateNode,
   domt_replaceDomain,
   domt_sizeOf,

@@ -1,8 +1,13 @@
-// a domain, in this lib, is a set of numbers denoted by lo-hi range pairs (inclusive)
-// for memory and performance reasons finitedomain has three different representations for a domain;
-// - arrdom: an array with number pairs. mostly used by external apis because its easier to deal with. GC sensitive.
-// - numdom: a 31bit field where each bit represents the inclusion of a value of its index (0 through 30). 31st bit unused
-// - strdom: each value of an arrdom encoded as a double 16bit character. fixed range size (4 characters).
+// domt domains stuff
+
+// function that expect a jmp table value are prefixed with $, they skip the jump table fetch (obviously as that's what you're passing on)
+// functions that start with _$ are (generally!) expecting buf, domain len, and offset params to work on actual domains as arrays.
+// other functions are main entry functions, they expect a var index
+// in this file, $jmp signifies the jump table value for some varIndex. it is either:
+// - a jump relative to the nodeIndex of said table, jumps to DOMT_DOMAIN_HEADER_OFFSET
+// - a numdom, in that case it has bitflag DOMT_IS_NUMDOM set
+// - a "solved domain", in that case DOMT_IS_NUMDOM is unset and DOMT_IS_SOLVED is set. the remainder is the value
+// (note that a rejected domain will be `$jmp===DOMT_IS_SOLVED`)
 
 import {
   EMPTY,
@@ -41,6 +46,17 @@ import {
   asmdomain_sharesNoElements,
   asmdomain_size,
 } from './asmdomain';
+
+import {
+  DOMT_DEFAULT_FIRST_NODE,
+  DOMT_NODE_CELL_COUNT,
+  DOMT_VAR_COUNT,
+  DOMT_JUMP_TABLE,
+  DOMT_IS_NUMDOM,
+  DOMT_IS_SOLVED,
+  DOMT_HAS_CHANGED,
+  DOMT_MAX_DOM_COUNT,
+} from './domt';
 
 // BODY_START
 
@@ -142,6 +158,41 @@ FLAG_TO_NUM[THIRTY] = 30;
 const STR_VALUE_SIZE = 2;
 const STR_RANGE_SIZE = 4;
 
+// generic dmt domain manipulators
+
+function ddom_getJmp(domt, nodeIndex, varIndex) {
+  return domt.buffer[nodeIndex + DOMT_JUMP_TABLE + varIndex];
+}
+function ddom_$isNumDom($jmp) {
+  return ($jmp & DOMT_IS_NUMDOM) === DOMT_IS_NUMDOM;
+}
+function ddom_$getNumdom($jmp) {
+  ASSERT(ddom_$isNumDom($jmp), 'should be checked to be numdom');
+  return $jmp ^ DOMT_IS_NUMDOM;
+}
+function ddom_isSolved(domt, nodeIndex, varIndex) {
+  return (ddom_getJmp(domt, nodeIndex, varIndex) & (DOMT_IS_NUMDOM | DOMT_IS_SOLVED)) === DOMT_IS_SOLVED;
+}
+function _ddom_isSolved(buf, nodeIndex, varIndex) {
+  return (ddom_getJmp(buf, nodeIndex, varIndex) & (DOMT_IS_NUMDOM | DOMT_IS_SOLVED)) === DOMT_IS_SOLVED;
+}
+function _ddom_isRejected(buf, nodeIndex, varIndex) {
+  return ddom_getJmp(buf, nodeIndex, varIndex) === DOMT_IS_NUMDOM;
+}
+function ddom_$isSolved($jmp) {
+  return ($jmp & (DOMT_IS_NUMDOM | DOMT_IS_SOLVED)) === DOMT_IS_SOLVED;
+}
+function ddom_$getSolved($jmp) {
+  ASSERT($jmp & DOMT_IS_SOLVED, 'should be checked to be solved');
+  return $jmp ^ DOMT_IS_SOLVED;
+}
+function ddom_$getLen(buf, nodeIndex, $jmp) {
+  return buf[nodeIndex + $jmp + DOMT_DOMAIN_LENGTH_OFFSET];
+}
+function ddom_$getBodyOffset(buf, nodeIndex, $jmp) {
+  return nodeIndex + $jmp + DOMT_DOMAIN_BODY_OFFSET;
+}
+
 /**
  * Append given range to the end of given domain. Does not
  * check if the range belongs there! Dumbly appends.
@@ -151,7 +202,8 @@ const STR_RANGE_SIZE = 4;
  * @param {number} hi
  * @returns {$domain}
  */
-function domain_any_appendRange(domain, lo, hi) {
+function xdomain_any_appendRange(domt, domain, lo, hi) {
+  // TOFIX: this function is only used as a masking thing, once, so maybe we can do special paths there?
   ASSERT_NUMSTRDOM(domain);
 
   if (typeof domain === 'number') {
@@ -178,47 +230,54 @@ function domain_str_addRange(domain, lo, hi) {
 /**
  * returns whether domain covers given value
  *
- * @param {$domain} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @param {number} value
  * @returns {boolean}
  */
-function domain_any_containsValue(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_containsValue(domain, value) === 1;
-  return domain_str_containsValue(domain, value);
+function domain_dmt_containsValue(domt, nodeIndex, varIndex, value) {
+  if (value > SMALL_MAX_NUM) return false;
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_containsValue(domt, nodeIndex, $jmp, value);
 }
-/**
- * returns whether domain covers given value
- * for array domains
- *
- * @param {$domain_str} domain
- * @param {number} value
- * @returns {boolean}
- */
-function domain_str_containsValue(domain, value) {
-  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-  ASSERT_STRDOM(domain);
-  return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
+function $domain_dmt_containsValue(domt, nodeIndex, $jmp, value) {
+  ASSERT(value <= SMALL_MAX_NUM, 'dont call this internal function with oob value');
+
+  if (ddom_$isNumDom($jmp)) {
+    // note $jmp is the numdom + bit 31 set to indicate this. but the biggest bit for a numdom is below 31 so we can ignore that
+    return ($jmp & (1 << value)) > 0;
+  } else if (ddom_$isSolved($jmp)) {
+    return ddom_$getSolved($jmp) === value;
+  } else {
+    return $domain_dmt_rangeIndexOf(domt, nodeIndex, $jmp, value) !== NOT_FOUND;
+  }
 }
 
 /**
  * return the range index in given domain that covers given
  * value, or if the domain does not cover it at all
  *
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
  * @param {number} value
- * @returns {number} >=0 actual index on strdom or NOT_FOUND
+ * @returns {number} >=0 actual index on dom or NOT_FOUND
  */
-function domain_str_rangeIndexOf(domain, value) {
+function $domain_dmt_rangeIndexOf(domt, nodeIndex, $jmp, value) {
   ASSERT_STRDOM(domain);
 
-  let len = domain.length;
+  let buf = domt.buffer;
+  let len = ddom_$getLen(buf, nodeIndex, $jmp);
+  let domainOffset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
 
-  for (let index = 0; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_str_decodeValue(domain, index);
+  return _$domain_dmt_rangeIndexOf(buf, len, domainOffset, value);
+}
+function _$domain_dmt_rangeIndexOf(buf, domainLen, domainOffset, value) {
+  for (let index = 0; index < domainLen; index += ARR_RANGE_SIZE) {
+    let lo = buf[domainOffset + index];
     if (lo <= value) {
-      let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
+      let hi = buf[domainOffset + index + 1];
       if (hi >= value) {
         // value is lo<=value<=hi
         return index;
@@ -233,80 +292,50 @@ function domain_str_rangeIndexOf(domain, value) {
 }
 
 /**
- * @param {$domain} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @param {number} value
  * @returns {boolean}
  */
-function domain_any_isValue(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
-  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
-
-  if (typeof domain === 'number') return asmdomain_isValue(domain, value) === 1;
-  return domain_str_isValue(domain, value);
+function domain_dmt_isValue(domt, nodeIndex, varIndex, value) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_isValue(domt, nodeIndex, $jmp, value);
 }
 /**
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
  * @param {number} value
  * @returns {boolean}
  */
-function domain_str_isValue(domain, value) {
-  ASSERT_STRDOM(domain);
-
-  return domain.length === STR_RANGE_SIZE && (domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) | domain_str_decodeValue(domain, STR_FIRST_RANGE_HI)) === value;
+function $domain_dmt_isValue(domt, nodeIndex, $jmp, value) {
+  // if the domain is solved, it must have the flag set but the numdom flag unset.
+  return (value === (($jmp | DOMT_IS_SOLVED | DOMT_IS_NUMDOM) ^ DOMT_IS_NUMDOM));
 }
 
 /**
- * @param {$domain} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @returns {number}
  */
-function domain_any_getValue(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_getValue(domain);
-  return domain_str_getValue(domain);
+function domain_dmt_getValue(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_getValue(domt, nodeIndex, $jmp, value);
 }
 /**
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
  * @returns {number}
  */
-function domain_str_getValue(domain) {
-  ASSERT_STRDOM(domain);
-
-  if (domain.length !== STR_RANGE_SIZE) return NO_SUCH_VALUE;
-  let lo = domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
-  let hi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
-  if (lo === hi) return lo;
+function $domain_dmt_getValue(domt, nodeIndex, $jmp) {
+  if ($jmp & (DOMT_IS_SOLVED | DOMT_IS_NUMDOM) === DOMT_IS_NUMDOM) {
+    // $jmp is a solved value, so DOMT_IS_NUMDOM is already unset and we only must remove the DOMT_IS_SOLVED flag
+    return ddom_$getSolved($jmp);
+  }
   return NO_SUCH_VALUE;
-}
-function domain_arr_getValue(domain) {
-  ASSERT_ARRDOM(domain);
-  if (domain.length === ARR_RANGE_SIZE && domain[0] === domain[1]) return domain[0];
-  return NO_SUCH_VALUE;
-}
-/**
- * @param {$domain_str} domain
- * @param {number} index
- * @returns {number}
- */
-function domain_str_decodeValue(domain, index) {
-  ASSERT_STRDOM(domain);
-
-  return (domain.charCodeAt(index) << 16) | domain.charCodeAt(index + 1);
-}
-/**
- * @param {number} value
- * @returns {string}
- */
-function domain_str_encodeValue(value) {
-  return String.fromCharCode((value >>> 16) & 0xffff, value & 0xffff);
-}
-/**
- * @param {number} lo
- * @param {number} hi
- * @returns {$domain_str} One range is still a valid domain
- */
-function domain_str_encodeRange(lo, hi) {
-  return String.fromCharCode((lo >>> 16) & 0xffff, lo & 0xffff, (hi >>> 16) & 0xffff, hi & 0xffff);
 }
 
 /**
@@ -319,7 +348,9 @@ function domain_str_encodeRange(lo, hi) {
  * @param {boolean} [_forceArray=false] Force creation of an array. Probably to convert a number for certain operations
  * @returns {$domain_str}
  */
-function domain_fromList(list, clone = true, sort = true, _forceArray = false) { // FIXME: force array
+function xdomain_fromList(list, clone = true, sort = true, _forceArray = false) {
+  // TOFIX: use scratchpad array for this or optimize in it even better if possible
+
   if (!list.length) return EMPTY;
   if (sort) { // note: the list must be sorted for the algorithm below to work...
     if (clone) { // clone before sorting?
@@ -369,7 +400,8 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
  * @param {$domain} domain
  * @returns {number[]}
  */
-function domain_any_toList(domain) {
+function xdomain_any_toList(domain) {
+  // TOFIX: use scratchpad arrays or pass on a domt to inline an array or something?
   ASSERT_NUMSTRDOM(domain);
 
   if (typeof domain === 'number') return domain_num_toList(domain);
@@ -381,7 +413,7 @@ function domain_any_toList(domain) {
  * @param {$domain_num} domain
  * @returns {number[]}
  */
-function domain_num_toList(domain) {
+function xdomain_num_toList(domain) {
   ASSERT_NUMDOM(domain);
 
   let list = [];
@@ -396,7 +428,7 @@ function domain_num_toList(domain) {
  * @param {$domain_str} domain
  * @returns {number[]}
  */
-function domain_str_toList(domain) {
+function xdomain_str_toList(domain) {
   ASSERT_STRDOM(domain);
 
   let list = [];
@@ -418,7 +450,8 @@ function domain_str_toList(domain) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
-function domain_any_removeNextFromList(domain, list) {
+function xdomain_any_removeNextFromList(domain, list) {
+  // TOFIX: figure out the temp domain stuff. scratch pad?
   ASSERT_NUMSTRDOM(domain);
 
   if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
@@ -434,7 +467,7 @@ function domain_any_removeNextFromList(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
-function domain_num_removeNextFromList(domain, list) {
+function xdomain_num_removeNextFromList(domain, list) {
   ASSERT_NUMDOM(domain);
   ASSERT(list, 'A_EXPECTING_LIST');
 
@@ -458,7 +491,7 @@ function domain_num_removeNextFromList(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
-function domain_str_removeNextFromList(domain, list) {
+function xdomain_str_removeNextFromList(domain, list) {
   ASSERT_STRDOM(domain);
 
   let r = _domain_str_removeNextFromList(domain, list); // replace empty string
@@ -472,7 +505,7 @@ function domain_str_removeNextFromList(domain, list) {
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
  */
-function _domain_str_removeNextFromList(domain, list) {
+function x_domain_str_removeNextFromList(domain, list) {
   ASSERT_STRDOM(domain);
   ASSERT(list, 'A_EXPECTING_LIST');
 
@@ -517,22 +550,39 @@ function _domain_str_removeNextFromList(domain, list) {
 }
 
 /**
- * @param {$domain} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @param {number[]} list
- * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_any_getValueOfFirstContainedValueInList(domain, list) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
-  return domain_str_getValueOfFirstContainedValueInList(domain, list);
+function domain_dmt_getFirstIntersectingValueFromList(domt, nodeIndex, varIndex, list) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_getFirstIntersectingValueFromList(domt, nodeIndex, $jmp, list);
+}
+/**
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
+ * @param {number[]} list
+ * @returns {number}
+ */
+function $domain_dmt_getFirstIntersectingValueFromList(domt, nodeIndex, $jmp, list) {
+  if (ddom_$isNumDom($jmp)) {
+    return domain_num_getFirstIntersectingValueFromList(ddom_$getNumdom($jmp), list);
+  } else if (ddom_$isSolved($jmp)) {
+    let value = ddom_$getSolved($jmp);
+    if (list.indexOf() >= 0) return value;
+    return NOT_FOUND;
+  } else {
+    return _$domain_dmt_getFirstIntersectingValueFromList(domt, nodeIndex, $jmp, list)
+  }
 }
 /**
  * @param {$domain_num} domain
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_num_getValueOfFirstContainedValueInList(domain, list) {
+function domain_num_getFirstIntersectingValueFromList(domain, list) {
   ASSERT_NUMDOM(domain);
   ASSERT(list, 'EXPECTING_LIST');
 
@@ -545,57 +595,24 @@ function domain_num_getValueOfFirstContainedValueInList(domain, list) {
   return NO_SUCH_VALUE;
 }
 /**
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_str_getValueOfFirstContainedValueInList(domain, list) {
-  ASSERT_STRDOM(domain);
-  ASSERT(list, 'EXPECTING_LIST');
+function _$domain_dmt_getFirstIntersectingValueFromList(domt, nodeIndex, $jmp, list) {
+  let buf = domt.buffer;
+  let domainLen = ddom_$getLen(buf, nodeIndex, $jmp);
+  let domainOffset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
 
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG'); // internally all domains elements should be sound; SUB>=n>=SUP
-    if (domain_str_containsValue(domain, value)) {
-      return value;
-    }
+
+    if (_$domain_dmt_rangeIndexOf(buf, domainLen, domainOffset, value) !== NOT_FOUND) return value;
   }
   return NO_SUCH_VALUE;
-}
-
-/**
- * The complement of a domain is such that domain U domain' = [SUB, SUP].
- * Assumes domain is in CSIS form
- * Returns a domain that covers any range in (SUB...SUP) that was not covered by given domain
- *
- * @param {$domain} domain
- * @returns {$domain}
- */
-function domain_any_complement(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  // for simplicity sake, convert them back to arrays
-  // TODO: i think we could just bitwise invert, convert to domain, swap out last element with SUP
-  if (typeof domain === 'number') domain = domain_numToStr(domain);
-
-  if (!domain) THROW('EMPTY_DOMAIN_PROBABLY_BUG');
-
-  let end = SUB;
-  let result = EMPTY_STR;
-  for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_str_decodeValue(domain, i);
-    ASSERT(!end || end < lo, 'domain is supposed to be csis, so ranges dont overlap nor touch');
-    if (lo > SUB) { // prevent [SUB,SUB] if first range starts at SUB; that'd be bad
-      result += domain_str_encodeRange(end, lo - 1);
-    }
-    end = domain_str_decodeValue(domain, i + STR_VALUE_SIZE) + 1;
-  }
-
-  if (end <= SUP) { // <= so SUP is inclusive...
-    result += domain_str_encodeRange(end, SUP);
-  }
-
-  return domain_toNumstr(result); // TODO: test edge case where the inverted domain is actually a small domain
 }
 
 /**
@@ -605,149 +622,136 @@ function domain_any_complement(domain) {
  * @param {$domain_str|string} domain
  * @returns {$domain_str} ironically, not optimized to a number if possible
  */
-function domain_str_simplify(domain) {
-  ASSERT_STRDOM(domain);
+function domain_dmt_simplifyInline(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
 
-  if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
-  if (domain.length === STR_RANGE_SIZE) return domain;
+  return $domain_dmt_simplify(domt, nodeIndex, $jmp);
+}
+function $domain_dmt_simplify(domt, nodeIndex, $jmp) {
+  if ($jmp & (DOMT_IS_NUMDOM | DOMT_IS_SOLVED)) return; // nothing to do
 
-  // order ranges, then merge overlapping ranges (TODO: can we squash this step together?)
-  domain = _domain_str_quickSortRanges(domain);
-  domain = _domain_str_mergeOverlappingRanges(domain);
+  let buf = domt.buffer;
+  let domainLen = ddom_$getLen(buf, nodeIndex, $jmp);
+  if (domainLen === 2) {
+    ASSERT(buf[ddom_$getBodyOffset(buf, nodeIndex, $jmp)] <= buf[ddom_$getBodyOffset(buf, nodeIndex, $jmp) + 1], 'pairs should always be lo<=hi');
+    return;
+  }
+  let domainOffset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
+
+  return _$domain_dmt_simplify(buf, domainLen, domainOffset);
+}
+function _$domain_dmt_simplify(buf, domainLen, domainOffset) {
+  // order ranges, then merge overlapping ranges
+  _$domain_dmt_quickSortRanges(buf, domainLen, domainOffset);
+  _domain_str_mergeOverlappingRanges(buf, domainLen, domainOffset);
 
   return domain;
 }
 /**
- * Sort all ranges in this pseudo-strdom from lo to hi. Domain
- * may already be csis but we're not sure. This function call
- * is part of the process of ensuring that.
+ * Sort all ranges in this pseudo-dmtdom (pseudo because it may
+ * not be csis) from lo to hi. Domain may already be csis but
+ * we're not sure. This function call is part of the process of
+ * ensuring that.
  *
- * @param {$domain_str|string} domain MAY not be CSIS yet (that's probably why this function is called in the first place)
- * @returns {$domain_str|string} ranges in this string will be ordered but may still overlap
+ * @param {TypedArray} buf
+ * @param {number} len (Actual domain may be longer, this is subset)
+ * @param {number} offset (Subset of an actual domain body)
+ * @returns {$domain_str|string} ranges in this string will be _ordered_ but may still overlap
  */
-function _domain_str_quickSortRanges(domain) {
-  ASSERT_STRDOM(domain);
+function _$domain_dmt_quickSortRanges(buf, len, offset) {
+  if (!len) return;
 
-  if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
+  // [pivot] starts with 3, target starts with 1
+  // [3] _1_ 4 2 5 0 // move 1 left
+  // 1 [3] _4_ 2 5 0 // 4>3, no changes
+  // 1 [3] 4 _2_ 5 0 // 2 goes to 3, 3 goes to 4, 4 goes to 2
+  // 1 2 [3] 4 _5_ 0 // 5>3, no changes
+  // 1 2 [3] 4 5 _0_ // 0 to 3, 3 to 4, 4 to 0
+  // 1 2 0 [3] 5 4   // (NOT 45, think scaled up and the move would be super expensive and equally possibly bad anyways)
+  // repeat on 1 2 0 and 5 4 with new pivots
 
-  let len = domain.length;
-  if (len <= STR_RANGE_SIZE) return domain;
+  let pivotIndex = 0;
+  let targetIndex = 1;
 
-  // TODO: right now we convert to actual values and concat with "direct" string access. would it be faster to use slices? and would it be faster to do string comparisons with the slices and no decoding?
+  let pivot = buf[offset + pivotIndex];
+  while (targetIndex < len) {
+    let value = buf[offset + targetIndex];
+    if (value < pivot) { // else dont rotate
+      // rotate pivot, pivot-right-neighbor, target
+      // we already know pivot so that's our tmp var
+      // (if targetIndex = pivotIndex+1 this will do an extra redundant op. c'est ca)
+      buf[pivotIndex] = buf[pivotIndex + 1];
+      buf[pivotIndex + 1] = value; // redundant for first step.
+      buf[targetIndex] = pivot;
 
-  let pivotIndex = 0; // TODO: i think we'd be better off with a different pivot? middle probably performs better
-  let pivotLo = domain_str_decodeValue(domain, pivotIndex);
-  let pivotHi = domain_str_decodeValue(domain, pivotIndex + STR_VALUE_SIZE);
-
-  let left = EMPTY_STR;
-  let right = EMPTY_STR;
-
-  for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_str_decodeValue(domain, i);
-
-    // TODO: if we change assumptions elsewhere we could drop the `hi` stuff from this function altogether
-    if (lo < pivotLo || (lo === pivotLo && domain_str_decodeValue(domain, i + STR_VALUE_SIZE) < pivotHi)) {
-      left += domain[i] + domain[i + 1] + domain[i + 2] + domain[i + 3];
-    } else {
-      right += domain[i] + domain[i + 1] + domain[i + 2] + domain[i + 3];
+      ++pivotIndex;
     }
+    ++targetIndex;
   }
 
-  return ('' +
-    _domain_str_quickSortRanges(left) + // sort left part, without pivot
-    domain[pivotIndex] +               // include pivot (4 chars)
-    domain[pivotIndex + 1] +
-    domain[pivotIndex + STR_VALUE_SIZE] +
-    domain[pivotIndex + STR_VALUE_SIZE + 1] +
-    _domain_str_quickSortRanges(right)  // sort right part, without pivot
-  );
+  // sort left of pivot
+  _$domain_dmt_quickSortRanges(buf, pivotIndex - offset, offset);
+  // sort right of pivot
+  _$domain_dmt_quickSortRanges(buf, len - (pivotIndex + 1), pivotIndex + 1);
 }
 /**
  * @param {$domain_str|string} domain May already be csis but at least all ranges should be ordered and are lo<=hi
  * @returns {$domain_str}
  */
-function _domain_str_mergeOverlappingRanges(domain) {
-  ASSERT_STRDOM(domain);
-  if (!domain) return EMPTY_STR; // prefer strings for return type consistency
+function _$domain_dmt_mergeOverlappingRanges(buf, domainLen, domainOffset) {
+  if (len < 0) return;
 
-  // assumes domain is sorted
+  // assumes domain is sorted by lo, then hi. (so [3,10, 3,5] -> [3,5, 3,10])
   // assumes all ranges are "sound" (lo<=hi)
+  // two cases to identify:
+  // - two ranges may melt if they overlap or touch
+  //   - [1,2, 3,4] -> [1,4]
+  //   - [1,2, 2,9] -> [1,9]
+  // - one range consumes the other if it overlaps completely
+  //   - [3,5, 3,9] -> [3,9]
+  //   - [2,9, 4,7] -> [2,9]
+  // (these are actually the same cases... so there are only two to take into account)
 
-  let len = domain.length;
-  if (len === STR_RANGE_SIZE) return domain;
+  //let lastLo = domainOffset[0];
+  let lastHi = domainOffset[1];
 
-  let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1]; // just copy the first two characters...
-  let lasthi = domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
-  let lasthindex = STR_FIRST_RANGE_HI;
+  // start 1:1. as loop goes on, dst may lag behind src as ranges are merged
+  let srcIndex = domainOffset + 2;
+  let dstIndex = domainOffset + 2;
 
-  for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
-    let lo = domain_str_decodeValue(domain, i);
-    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
-    ASSERT(lo <= hi, 'ranges should be ascending');
+  while (srcIndex < domainLen) {
+    let lo = buf[srcIndex];
+    let hi = buf[srcIndex + 1];
 
-    // either:
-    // - lo <= lasthi, hi <= lasthi: last range consumes current range (drop it)
-    // - lo <= lasthi+1: replace lasthi, last range is extended by current range
-    // - lo >= lasthi+2: flush lasthi, replace lastlo and lasthi, current range becomes last range
-
-    //if (lo <= lasthi && hi <= lasthi) {}
-    //else
-    if (lo <= lasthi + 1) {
-      if (hi > lasthi) {
-        lasthi = hi;
-        lasthindex = i + STR_VALUE_SIZE;
-      }
+    if (lastHi >= lo - 1) {
+      // there is at least some overlap because lastLo must be <= lo at this point
+      // new range will be <lastLo,max(hi,lastHi)>. note that lastLo<=lo because sorted.
+      // this means we only have to update previous hi (and only if it changes, but i
+      // think we may want to opt for simplicity here and just always update it...)
+      buf[dstIndex - 1] = Math.max(lastHi, hi);
+      // dont update dstIndex. we just removed it.
     } else {
-      ASSERT(lo >= lasthi + 2, 'should be this now');
-      newDomain += domain[lasthindex] + domain[lasthindex + 1] + domain[i] + domain[i + 1];
-      lasthi = hi;
-      lasthindex = i + STR_VALUE_SIZE;
+      // we need to move this pair if we dropped any pair so far
+      if (srcIndex !== dstIndex) {
+        buf[dstIndex] = lo;
+        buf[dstIndex + 1] = hi;
+      }
+      dstIndex += 2;
     }
+    srcIndex += 2;
+    lastHi = hi;
   }
 
-  return newDomain + domain[lasthindex] + domain[lasthindex + 1];
+  // domain should be csis now. we may have a new length too so update that now
+  if (dstIndex !== srcIndex) {
+    ASSERT(dstIndex + 2 < domainLen, 'domain should now end after dst');
+    // compute back to domain header from domain body (-> domainOffset)
+    buf[(domainOffset - DOMT_DOMAIN_BODY_OFFSET) + DOMT_DOMAIN_LENGTH_OFFSET] = dstIndex + 2;
+  }
 }
 
 /**
- * Check if given domain is in simplified, CSIS form
- *
- * @param {$domain_str} domain
- * @returns {boolean}
- */
-function domain_str_isSimplified(domain) {
-  ASSERT_STRDOM(domain);
-
-  if (domain.length === STR_RANGE_SIZE) {
-    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
-    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_HI) <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
-    ASSERT(domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) <= domain_str_decodeValue(domain, STR_FIRST_RANGE_HI), 'A_RANGES_SHOULD_ASCEND');
-    return true;
-  }
-
-  if (domain === EMPTY_STR) {
-    return true;
-  }
-
-  let phi = SUB;
-  for (let index = 0, len = domain.length; index < len; index += STR_RANGE_SIZE) {
-    let lo = domain_str_decodeValue(domain, index);
-    let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
-    ASSERT(lo >= SUB, 'A_RANGES_SHOULD_BE_GTE_SUB');
-    ASSERT(hi <= SUP, 'A_RANGES_SHOULD_BE_LTE_SUP');
-    ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
-    // we need to simplify if the lo of the next range <= hi of the previous range
-    // TODO: i think it used or intended to optimize this by continueing to process this from the current domain, rather than the start.
-    //       this function could return the offset to continue at... or -1 to signal "true"
-    if (lo <= phi + 1) {
-      return false;
-    }
-    phi = hi;
-  }
-  return true;
-}
-
-/**
- * Intersect two $domains.
+ * Intersect two $domains in the same domt.
  * Intersection means the result only contains the values
  * that are contained in BOTH domains.
  *
@@ -755,7 +759,8 @@ function domain_str_isSimplified(domain) {
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_any_intersection(domain1, domain2) {
+function xdomain_dmt_intersection(domt, nodeIndex1, varIndex1, nodeIndex2, varIndex2) {
+  // TOFIX: use scratchpad or some other, better, solution?
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
 
@@ -777,7 +782,7 @@ function domain_any_intersection(domain1, domain2) {
  * @param {$domain_str} domain_str
  * @returns {$domain_num} Always a numdom because we already know numbers higher than max_small cant occur in _both_ domains
  */
-function domain_numstr_intersection(domain_num, domain_str) {
+function xdomain_numstr_intersection(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
 
@@ -804,7 +809,7 @@ function domain_numstr_intersection(domain_num, domain_str) {
  * @param {$domain_str} domain2
  * @returns {$domain} can return a numdom
  */
-function domain_strstr_intersection(domain1, domain2) {
+function xdomain_strstr_intersection(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
@@ -818,7 +823,7 @@ function domain_strstr_intersection(domain1, domain2) {
  * @param {$domain_str} domain2
  * @returns {$domain_str} always a strdom
  */
-function _domain_strstr_intersection(domain1, domain2) {
+function x_domain_strstr_intersection(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
@@ -876,26 +881,59 @@ function _domain_strstr_intersection(domain1, domain2) {
   return newDomain;
 }
 
-function domain_any__debug(domain) {
-  if (typeof domain === 'number') return 'numdom([' + domain_numToArr(domain) + '])';
-  if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';
-  if (domain instanceof Array) return 'arrdom([' + domain + '])';
-  return '???dom(' + domain + ')';
+function __domain_dmt_debug(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  let s = $__domain_dmt_debug($jmp);
+  if (s) return s;
+
+  return 'arr: ' + buf[nodeIndex + $jmp] + ' [' + [].slice.call(buf, nodeIndex + $jmp + 1, nodeIndex + $jmp + 1 + buf[nodeIndex + $jmp]) + ']\n';
+}
+function $__domain_dmt_debug($jmp) {
+  if (ddom_$isNumDom($jmp)) return $jmp + ' (numdom: [' + domain_toArr(ddom_$getNumdom($jmp)) + '])\n';
+  if ($jmp === DOMT_IS_NUMDOM) return $jmp + ' (rejected)\n'; // $jmp is a numdom but no numdom flags are set so rejected. different from $jmp === is_solved
+  if ($jmp & DOMT_IS_SOLVED) return $jmp + ' (solved: ' + ddom_$getSolved($jmp) + ')\n';
 }
 
 /**
  * deep comparison of two $domains
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$domt} domt
+ * @param {number} nodeIndex1
+ * @param {number} varIndex1
+ * @param {number} nodeIndex2
+ * @param {number} varIndex2
  * @returns {boolean}
  */
-function domain_any_isEqual(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+function domain_dmt_isEqual(domt, nodeIndex1, varIndex1, nodeIndex2, varIndex2) {
+  if (nodeIndex1 === nodeIndex2) {
+    if (varIndex1 === varIndex2) return true;
+  }
 
-  // whether domain is a string or a number, we can === it
-  return domain1 === domain2;
+  let $jmp1 = domt.buffer[nodeIndex + DOMT_JUMP_TABLE + varIndex1];
+  let $jmp2 = domt.buffer[nodeIndex + DOMT_JUMP_TABLE + varIndex2];
+
+  return $domain_dmt_isEqual(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2);
+}
+function $domain_dmt_isEqual(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2) {
+  // numdom or solved $jmps can be compared as is.
+  if (($jmp1 | $jmp2) & (DOMT_IS_NUMDOM || DOMT_IS_SOLVED)) return $jmp1 === $jmp2;
+
+  let buf = domt.buffer;
+  let domainLen1 = ddom_$getLen(buf, nodeIndex, $jmp1);
+  let domainLen2 = ddom_$getLen(buf, nodeIndex, $jmp2);
+  let domainOffset1 = ddom_$getBodyOffset(buf, nodeIndex, $jmp1);
+  let domainOffset2 = ddom_$getBodyOffset(buf, nodeIndex, $jmp2);
+
+  return _$domain_dmt_isEqual(buf, domainLen1, domainOffset1, domainLen2, domainOffset2);
+}
+function _$domain_dmt_isEqual(buf, domainLen1, domainOffset1, domainLen2, domainOffset2) {
+  if (domainLen1 !== domainLen2) return false;
+
+  for (let i = 0; i < domainLen1; ++i) {
+    if (buf[domainOffset1 + i] !== buf[domainOffset1 + i]) return false;
+  }
+
+  return true;
 }
 
 /**
@@ -916,7 +954,8 @@ function domain_any_isEqual(domain1, domain2) {
  * @param {$domain_str} domain2
  * @returns {$domain_str[]}
  */
-function domain_str_closeGaps(domain1, domain2) {
+function xdomain_str_closeGaps(domain1, domain2) {
+  // TOFIX: temporary domains, scratchpad or something else?
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
@@ -956,7 +995,7 @@ function domain_str_closeGaps(domain1, domain2) {
  * @param {number} gap
  * @returns {$domain_str} (min/max won't be eliminated and input should be a "large" domain)
  */
-function _domain_str_closeGaps(domain, gap) {
+function x_domain_str_closeGaps(domain, gap) {
   ASSERT_STRDOM(domain);
 
   let newDomain = domain[STR_FIRST_RANGE_LO] + domain[STR_FIRST_RANGE_LO + 1];
@@ -982,7 +1021,7 @@ function _domain_str_closeGaps(domain, gap) {
  * @param {$domain_str} domain
  * @returns {number}
  */
-function domain_str_smallestRangeSize(domain) {
+function xdomain_str_smallestRangeSize(domain) {
   ASSERT_STRDOM(domain);
 
   let min_width = SUP;
@@ -1001,29 +1040,12 @@ function domain_str_smallestRangeSize(domain) {
 /**
  * Note that this one isn't domain consistent.
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {$domain}
- */
-function domain_any_mul(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
-
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
-
-  // TODO domain_mulNum
-  return domain_strstr_mul(domain1, domain2);
-}
-/**
- * Note that this one isn't domain consistent.
- *
  * @param {$domain_str} domain1
  * @param {$domain_str} domain2
  * @returns {$domain_str} a strdom can never become a numdom when multiplying (can only grow or become zero)
  */
-function domain_strstr_mul(domain1, domain2) {
+function xdomain_domt_mul(domain1, domain2) {
+  // TOFIX: scratchpad or something else?
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
@@ -1053,33 +1075,6 @@ function domain_strstr_mul(domain1, domain2) {
  *
  * Does not harm input domains
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
- *         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
- *         <2,2>, otherwise it will not include anything for that division.
- * @returns {$domain}
- */
-function domain_any_divby(domain1, domain2, floorFractions = true) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
-
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
-  if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
-
-  // TODO: domain_divByNum
-  return domain_strstr_divby(domain1, domain2, floorFractions);
-}
-/**
- * Divide one range by another
- * Result has any integer values that are equal or between
- * the real results. This means fractions are floored/ceiled.
- * This is an expensive operation.
- * Zero is a special case.
- *
- * Does not harm input domains
- *
  * @param {$domain_str} domain1
  * @param {$domain_str} domain2
  * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
@@ -1087,7 +1082,9 @@ function domain_any_divby(domain1, domain2, floorFractions = true) {
  *         <2,2>, otherwise it will not include anything for that division.
  * @returns {$domain} strdom could become numdom after a div
  */
-function domain_strstr_divby(domain1, domain2, floorFractions = true) {
+function xdomain_strstr_divby(domain1, domain2, floorFractions = true) {
+  // TOFIX: scratchpad or something else?
+
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
@@ -1139,27 +1136,46 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
  * @param {$domain} domain
  * @returns {number}
  */
-function domain_any_size(domain) {
-  ASSERT_NUMSTRDOM(domain);
+function domain_dmt_size(domain) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
 
-  if (typeof domain === 'number') return asmdomain_size(domain);
-  return domain_str_size(domain);
+  return $domain_dmt_size(domt, nodeIndex, $jmp);
 }
 /**
- * Return the number of elements this domain covers
+ * Return the number of elements this domain covers.
+ * May not function properly with negative SUB. Like many things.
  *
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} $jmp
  * @returns {number}
  */
-function domain_str_size(domain) {
-  ASSERT_STRDOM(domain);
-  ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_DOMAINS');
-
+function $domain_dmt_size(domt, nodeIndex, $jmp) {
+  if (ddom_$isNumDom($jmp)) {
+    return asmdomain_size(ddom_$getNumdom($jmp));
+  } else if (ddom_$isSolved($jmp)) {
+    return 1;
+  } else {
+    let buf = domt.buffer;
+    let len = ddom_$getLen(buf, nodeIndex, $jmp);
+    let offset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
+    return _$domain_dmt_size(buf, len, offset);
+  }
+}
+/**
+ * Return the number of elements this domain covers.
+ * May not function properly with negative SUB. Like many things.
+ *
+ * @param {$domt} domt
+ * @param {number} domainLen
+ * @param {number} domainOffset
+ * @returns {number}
+ */
+function _$domain_dmt_size(buf, domainLen, domainOffset) {
   let count = 0;
 
-  for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    // TODO: add test to confirm this still works fine if SUB is negative
-    count += 1 + domain_str_decodeValue(domain, i + STR_VALUE_SIZE) - domain_str_decodeValue(domain, i);
+  for (let i = 0; i < domainLen; i += ARR_RANGE_SIZE) {
+    count += 1 + (buf[domainOffset + i + 1] - buf[domainOffset + i]);
   }
 
   return count;
@@ -1175,14 +1191,22 @@ function domain_str_size(domain) {
  * @param {$domain} domain
  * @returns {number} can return
  */
-function domain_any_middleElement(domain) {
-  ASSERT_NUMSTRDOM(domain);
+function domain_dmt_middleElement(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_middleElement(domt, nodeIndex, $jmp);
+}
+function $domain_dmt_middleElement(domt, nodeIndex, $jmp) {
+  if (ddom_$isNumDom($jmp)) {
 
-  // for simplicity sake, convert them back to arrays
-  if (typeof domain === 'number') domain = domain_numToStr(domain);
+  } else if (ddom_$isSolved($jmp)) {
+    return ddom_$getSolved($jmp);
+  } else {
+    let buf = domt.buffer;
+    let len = ddom_$getLen(buf, nodeIndex, $jmp);
+    let offset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
 
-  // TODO: domain_middleElementNum(domain);
-  return domain_str_middleElement(domain);
+    return _$domain_dmt_middleElement(buf, len, offset);
+  }
 }
 /**
  * Get the middle element of all elements in domain.
@@ -1191,22 +1215,22 @@ function domain_any_middleElement(domain) {
  * will take the first value _above_ the middle,
  * in other words; index=ceil(count/2).
  *
- * @param {$domain_str} domain
+ * @param {TypedArray} buf
+ * @param {number} domainLen
+ * @param {number} domainOffset
  * @returns {number}
  */
-function domain_str_middleElement(domain) {
-  ASSERT_STRDOM(domain);
+function _$domain_dmt_middleElement(buf, domainLen, domainOffset) {
+  ASSERT(domainLen > 1, 'expecting undetermined domain');
 
-  if (!domain) return NO_SUCH_VALUE;
-
-  let size = domain_str_size(domain);
+  let size = _$domain_dmt_size(buf, domainLen, domainOffset)
   let targetValue = FLOOR(size / 2);
 
   let lo;
   let hi;
-  for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
-    lo = domain_str_decodeValue(domain, i);
-    hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
+  for (let i = 0; i < domainLen; i += ARR_RANGE_SIZE) {
+    lo = buf[domainOffset + i];
+    hi = buf[domainOffset + i + 1];
 
     let count = 1 + hi - lo;
     if (targetValue < count) {
@@ -1223,140 +1247,114 @@ function domain_str_middleElement(domain) {
 
 /**
  * Get lowest value in the domain
- * Only use if callsite doesn't need to cache first range (because array access)
+ * Only use if callsite doesn't need to cache stuff
  *
- * @param {$domain} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @returns {number}
  */
-function domain_any_min(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_min(domain);
-  return domain_str_min(domain);
+function domain_dmt_min(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_min(domt, nodeIndex, $jmp);
 }
-/**
- * Get lowest value in the domain
- * Only use if callsite doesn't use first range again
- *
- * @param {$domain_str} domain
- * @returns {number} can be NO_SUCH_VALUE
- */
-function domain_str_min(domain) {
-  ASSERT_STRDOM(domain);
-  if (!domain) return NO_SUCH_VALUE;
+function $domain_dmt_min(domt, nodeIndex, $jmp) {
+  if (ddom_$isNumDom($jmp)) {
+    return asmdomain_min(ddom_$getNumdom($jmp));
+  } else if (ddom_$isSolved($jmp)) {
+    return ddom_$getSolved($jmp);
+  } else {
+    let buf = domt.buffer;
+    let len = ddom_$getLen(buf, nodeIndex, $jmp);
+    let offset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
 
-  return domain_str_decodeValue(domain, STR_FIRST_RANGE_LO);
+    return _$domain_dmt_min(buf, len, offset);
+  }
+}
+function _$domain_dmt_min(buf, nodeIndex, $jmp) {
+  // first element of domain is first element at body offset
+  return buf[ddom_$getBodyOffset(buf, nodeIndex, $jmp)];
 }
 
 /**
- * Only use if callsite doesn't use last range again
+ * Get highest value in the domain
+ * Only use if callsite doesn't need to cache stuff
  *
- * @param {$domain} domain
- * @returns {number} can be NO_SUCH_VALUE
- */
-function domain_any_max(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_max(domain);
-  return domain_str_max(domain);
-}
-/**
- * Returns highest value in domain
- * Only use if callsite doesn't use last range again
- *
- * @param {$domain_str} domain
+ * @param {$domt} domt
+ * @param {number} nodeIndex
+ * @param {number} varIndex
  * @returns {number}
  */
-function domain_str_max(domain) {
-  ASSERT_STRDOM(domain);
-  if (!domain) return NO_SUCH_VALUE;
-
-  // last encoded value in the string should be the hi of the last range. so max is last value
-  return domain_str_decodeValue(domain, domain.length - STR_VALUE_SIZE);
+function domain_dmt_max(domt, nodeIndex, varIndex) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_max(domt, nodeIndex, $jmp);
 }
-/**
- * Returns highest value in domain
- * Only use if callsite doesn't use last range again
- *
- * @param {$domain_arr} domain
- * @returns {number}
- */
-function domain_arr_max(domain) {
-  ASSERT_ARRDOM(domain);
+function $domain_dmt_max(domt, nodeIndex, $jmp) {
+  if (ddom_$isNumDom($jmp)) {
+    return asmdomain_max(ddom_$getNumdom($jmp));
+  } else if (ddom_$isSolved($jmp)) {
+    return ddom_$getSolved($jmp);
+  } else {
+    let buf = domt.buffer;
+    let len = ddom_$getLen(buf, nodeIndex, $jmp);
+    let offset = ddom_$getBodyOffset(buf, nodeIndex, $jmp);
 
-  let len = domain.length;
-  if (len === 0) return NO_SUCH_VALUE;
-  return domain[len - 1];
+    return _$domain_dmt_max(buf, len, offset);
+  }
+}
+function _$domain_dmt_max(buf, nodeIndex, $jmp) {
+  // last element of domain is first element at body offset
+  // (we could optimize that at the cost of space, so let's not)
+  return buf[ddom_$getBodyOffset(buf, nodeIndex, $jmp) + ddom_$getLen(buf, nodeIndex, $jmp) - 1];
 }
 
 /**
  * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
+ * The domts track this as an optimization step. A solved domain will have a $jmp that
+ * has DOMT_IS_NUMDOM unset and DOM_IS_SOLVED set. The value will be $jmp sans flags.
  *
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_any_isSolved(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_isSolved(domain) === 1;
-  return domain_str_isSolved(domain);
+function domain_dmt_isSolved(domain) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_isSolved(domt, nodeIndex, $jmp);
 }
-/**
- * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
- *
- * @param {$domain_str} domain
- * @returns {boolean}
- */
-function domain_str_isSolved(domain) {
-  ASSERT_STRDOM(domain);
-
-  // TODO: could do this by comparing strings, no need to convert
-  return domain.length === STR_RANGE_SIZE && domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) === domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
+function $domain_dmt_isSolved(domt, nodeIndex, $jmp) {
+  return ddom_$isSolved($jmp);
 }
 
 /**
- * A domain is "determined" if it's either one value (solved) or none at all (rejected)
- * This is the most called function of the library. 3x more than the number two.
+ * A domain is "rejected" if it has no elements left. This should be a numdom.
+ * In a domt, rejected domains have a $jmp === DOMT_IS_NUMDOM (because the numdom === 0).
  *
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_any_isUndetermined(domain) {
-  ASSERT_NUMSTRDOM(domain);
-
-  if (typeof domain === 'number') return asmdomain_isUndetermined(domain) === 1;
-  return domain_str_isUndetermined(domain);
+function domain_dmt_isRejected(domain) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_isRejected(domt, nodeIndex, $jmp);
 }
-/**
- * A domain is "determined" if it's either one value (solved) or none at all (rejected)
- * This is the most called function of the library. 3x more than the number two.
- *
- * @param {$domain_str} domain
- * @returns {boolean}
- */
-function domain_str_isUndetermined(domain) {
-  ASSERT_STRDOM(domain);
-
-  // TODO: could do this by comparing strings, no need to convert
-  return domain.length > STR_RANGE_SIZE || domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) !== domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
+function $domain_dmt_isRejected(domt, nodeIndex, $jmp) {
+  return $jmp === DOMT_IS_NUMDOM;
 }
 
 /**
- * A domain is "rejected" if it covers no values. This means every given
- * value would break at least one constraint so none could be used.
- *
- * Note: this is the (shared) second most called function of the library
- * (by a third of most, but still significantly more than the rest)
+ * A domain is "determined" if it's either one value (solved) or none at all (rejected).
+ * In a domt, determined domains have a $jmp === DOMT_IS_NUMDOM (because the numdom === 0)
+ * or the DOMT_IS_SOLVED flag set while DOMT_IS_NUMDOM is unset. More likely solved.
  *
  * @param {$domain} domain
  * @returns {boolean}
  */
-function domain_any_isRejected(domain) {
-  if (typeof domain === 'string') return domain === EMPTY_STR;
-  if (typeof domain === 'number') return domain === EMPTY;
-  ASSERT(domain instanceof Array, 'SHOULD_BE_ARRAY_NOW');
-  return domain.length === 0;
+function domain_dmt_isDetermined(domain) {
+  let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
+  return $domain_dmt_isRejected(domt, nodeIndex, $jmp);
 }
+function $domain_dmt_isDetermined(domt, nodeIndex, $jmp) {
+  return ddom_$isSolved($jmp) || $domain_dmt_isRejected(domt, nodeIndex, $jmp);
+}
+
 
 /**
  * Remove all values from domain that are greater
@@ -1366,7 +1364,9 @@ function domain_any_isRejected(domain) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_any_removeGte(domain, value) {
+function xdomain_any_removeGte(domain, value) {
+  // TODO: scratchpad or something else?
+
   ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
@@ -1384,7 +1384,7 @@ function domain_any_removeGte(domain, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_str_removeGte(domain_str, value) {
+function xdomain_str_removeGte(domain_str, value) {
   ASSERT_STRDOM(domain_str);
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
@@ -1434,7 +1434,8 @@ function domain_str_removeGte(domain_str, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_any_removeLte(domain, value) {
+function xdomain_any_removeLte(domain, value) {
+  // TODO: scratchpad or something else?
   ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
@@ -1453,7 +1454,7 @@ function domain_any_removeLte(domain, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_str_removeLte(domain_str, value) {
+function xdomain_str_removeLte(domain_str, value) {
   ASSERT_STRDOM(domain_str);
 
   for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
@@ -1499,7 +1500,8 @@ function domain_str_removeLte(domain_str, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_any_removeValue(domain, value) {
+function xdomain_any_removeValue(domain, value) {
+  // TODO: scratchpad or something else?
   ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
@@ -1511,7 +1513,7 @@ function domain_any_removeValue(domain, value) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_str_removeValue(domain, value) {
+function xdomain_str_removeValue(domain, value) {
   ASSERT_STRDOM(domain);
 
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
@@ -1555,99 +1557,74 @@ function domain_str_removeValue(domain, value) {
 }
 
 /**
- * Check if every element in one domain not
- * occur in the other domain and vice versa
+ * Check if every element in one domain does not
+ * occur in the other domain and vice versa. Basically
+ * whether the intersection is empty.
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$domt} domt
+ * @param {number} nodeIndex1
+ * @param {number} varIndex1
+ * @param {number} nodeIndex2
+ * @param {number} varIndex2
  * @returns {boolean}
  */
-function domain_any_sharesNoElements(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+function domain_any_sharesNoElements(domt, nodeIndex1, varIndex1, nodeIndex2, varIndex2) {
+  let $jmp1 = ddom_getJmp(dmt, nodeIndex1, varIndex1);
+  let $jmp2 = ddom_getJmp(dmt, nodeIndex2, varIndex2);
 
-  let isNum1 = typeof domain1 === 'number';
-  let isNum2 = typeof domain2 === 'number';
-  if (isNum1 && isNum2) return asmdomain_sharesNoElements(domain1, domain2) === 1;
-  if (isNum1) return domain_numstr_sharesNoElements(domain1, domain2);
-  if (isNum2) return domain_numstr_sharesNoElements(domain2, domain1);
-  return domain_strstr_sharesNoElements(domain1, domain2);
+  return $domain_any_sharesNoElements(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2);
 }
-/**
- * Check if every element in one domain not
- * occur in the other domain and vice versa
- *
- * @param {$domain_num} domain_num
- * @param {$domain_str} domain_str
- * @returns {boolean}
- */
-function domain_numstr_sharesNoElements(domain_num, domain_str) {
-  ASSERT_NUMDOM(domain_num);
-  ASSERT_STRDOM(domain_str);
+function $domain_any_sharesNoElements(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2) {
+  if (ddom_$isNumDom($jmp1)) {
+    if (ddom_$isNumDom($jmp2)) {
+      return asmdomain_sharesNoElements(ddom_$getNumdom($jmp1), ddom_$getNumdom($jmp2)) === 1
+    }
+    return $domain_numdmt_sharesNoElements(ddom_$getNumdom($jmp1), domt, nodeIndex2, $jmp2);
+  }
+  if (ddom_$isNumDom($jmp2)) {
+    return $domain_numdmt_sharesNoElements(ddom_$getNumdom($jmp1), domt, nodeIndex2, $jmp2);
+  }
 
-  let strIndex = 0;
-  let strlen = domain_str.length;
+  let buf = domt.buffer;
+  let len1 = ddom_$getLen(buf, nodeIndex, $jmp);
+  let offset1 = ddom_$getBodyOffset(buf, nodeIndex1, $jmp1);
+  let len2 = ddom_$getLen(buf, nodeIndex2, $jmp2);
+  let offset2 = ddom_$getBodyOffset(buf, nodeIndex2, $jmp2);
+
+  return $domain_dmtdmt_sharesNoElements(domt, len1, offset1, len2, offset2);
+}
+function $domain_numdmt_sharesNoElements(numdom, domt, nodeIndex, $jmp) {
   for (let numIndex = 0; numIndex <= SMALL_MAX_NUM; ++numIndex) {
-    if (domain_num & (1 << numIndex)) {
-      // find numIndex (as value) in domain_str. return true when
-      // found. return false if number above small_max_num is found
-      while (strIndex < strlen) {
-        let lo = domain_str_decodeValue(domain_str, strIndex);
-        let hi = domain_str_decodeValue(domain_str, strIndex + STR_VALUE_SIZE);
-
-        // there is overlap if numIndex is within current range so return false
-        if (numIndex >= lo && numIndex <= hi) return false;
-        // the next value in domain_num can not be smaller and the previous
-        // domain_str range was below that value and the next range is beyond
-        // the small domain max so there can be no more matching values
-        if (lo > SMALL_MAX_NUM) return true;
-        // this range is bigger than target value so the value doesnt
-        // exist; skip to next value
-        if (lo > numIndex) break;
-
-        strIndex += STR_RANGE_SIZE;
-      }
-      if (strIndex >= strlen) return true;
+    if (numdom & (1 << numIndex)) {
+      // TOFIX: cache the min/max of domain2 and do an educated binary search
+      if ($domain_dmt_containsValue(domt, nodeIndex, $jmp, numIndex)) return false;
     }
   }
-  // checked all values in domain_num (can code reach here?
-  // i think it'll always return early in the inner loop?)
   return true;
 }
-/**
- * Check if every element in one domain not
- * occur in the other domain and vice versa
- *
- * @param {$domain_str} domain1
- * @param {$domain_str} domain2
- * @returns {boolean}
- */
-function domain_strstr_sharesNoElements(domain1, domain2) {
-  ASSERT_STRDOM(domain1);
-  ASSERT_STRDOM(domain2);
-
-  let len1 = domain1.length;
-  let len2 = domain2.length;
+function $domain_dmtdmt_sharesNoElements(domt, domainLen1, domainOffset1, domainLen2, domainOffset2) {
+  // since both domains should be csis, we can walk them simultaneously
 
   let index1 = 0;
   let index2 = 0;
 
-  let lo1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_LO);
-  let hi1 = domain_str_decodeValue(domain1, STR_FIRST_RANGE_HI);
-  let lo2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_LO);
-  let hi2 = domain_str_decodeValue(domain2, STR_FIRST_RANGE_HI);
+  let lo1 = buf[domainOffset1];
+  let hi1 = buf[domainOffset1 + 1];
+  let lo2 = buf[domainOffset2];
+  let hi2 = buf[domainOffset2 + 1];
 
   while (true) {
     if (hi1 < lo2) {
       index1 += STR_RANGE_SIZE;
-      if (index1 >= len1) break;
-      lo1 = domain_str_decodeValue(domain1, index1);
-      hi1 = domain_str_decodeValue(domain1, index1 + STR_VALUE_SIZE);
+      if (index1 >= domainLen1) break;
+
+      lo1 = buf[domainOffset1 + index1];
+      hi1 = buf[domainOffset1 + index1 + 1];
     } else if (hi2 < lo1) {
       index2 += STR_RANGE_SIZE;
-      if (index2 >= len2) break;
-      lo2 = domain_str_decodeValue(domain2, index2);
-      hi2 = domain_str_decodeValue(domain2, index2 + STR_VALUE_SIZE);
+      if (index2 >= domainLen2) break;
+      lo1 = buf[domainOffset2 + index2];
+      hi1 = buf[domainOffset2 + index2 + 1];
     } else {
       ASSERT((lo1 <= lo2 && lo2 <= hi1) || (lo2 <= lo1 && lo1 <= hi2), 'domain_strstr_sharesNoElements: both ranges must overlap at least for some element because neither ends before the other [' + lo1 + ',' + hi1 + ' - ' + lo2 + ',' + hi2 + ']');
       return false;
@@ -1661,7 +1638,7 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
  * @param {number} value
  * @returns {$domain}
  */
-function domain_createValue(value) {
+function xdomain_createValue(value) {
   ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
 
@@ -1673,7 +1650,7 @@ function domain_createValue(value) {
  * @param {number} hi
  * @returns {$domain}
  */
-function domain_createRange(lo, hi) {
+function xdomain_createRange(lo, hi) {
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
 
   if (hi <= SMALL_MAX_NUM) return asmdomain_createRange(lo, hi);
@@ -1685,7 +1662,7 @@ function domain_createRange(lo, hi) {
  * @param {number} [force] Always return in array or string form?
  * @returns {$domain}
  */
-function domain_any_clone(domain, force) {
+function xdomain_any_clone(domain, force) {
   ASSERT_ANYDOM(domain);
 
   if (force === FORCE_ARRAY) return domain_toArr(domain, true);
@@ -1700,7 +1677,7 @@ function domain_any_clone(domain, force) {
  * @param {boolean} [clone] If input is array, slice the array? (other cases will always return a fresh array)
  * @returns {$domain_arr} (small domains will also be arrays)
  */
-function domain_toArr(domain, clone) {
+function xdomain_toArr(domain, clone) {
   if (typeof domain === 'number') return domain_numToArr(domain);
   if (typeof domain === 'string') return domain_strToArr(domain);
   ASSERT(domain instanceof Array, 'can only be array now');
@@ -1713,7 +1690,7 @@ function domain_toArr(domain, clone) {
  * @param {$domain} domain
  * @returns {$domain_str} (small domains will also be strings)
  */
-function domain_toStr(domain) {
+function xdomain_toStr(domain) {
   if (typeof domain === 'number') return domain_numToStr(domain);
   if (typeof domain === 'string') return domain;
   ASSERT(domain instanceof Array, 'can only be array now');
@@ -1725,7 +1702,7 @@ function domain_toStr(domain) {
  * @param {$domain_num} domain
  * @returns {$domain_arr}
  */
-function domain_numToArr(domain) {
+function xdomain_numToArr(domain) {
   ASSERT_NUMDOM(domain);
 
   if (domain === EMPTY) return [];
@@ -1789,7 +1766,7 @@ function domain_numToArr(domain) {
  * @param {$domain_num} domain
  * @returns {$domain_str}
  */
-function domain_numToStr(domain) {
+function xdomain_numToStr(domain) {
   ASSERT_NUMDOM(domain);
 
   if (domain === EMPTY) return EMPTY_STR;
@@ -1854,7 +1831,7 @@ function domain_numToStr(domain) {
  * @param {$domain_str} domain
  * @returns {$domain_arr}
  */
-function domain_strToArr(domain) {
+function xdomain_strToArr(domain) {
   ASSERT_STRDOM(domain);
 
   if (domain === EMPTY) return [];
@@ -1874,7 +1851,7 @@ function domain_strToArr(domain) {
  * @param {$domain_arr} domain_arr
  * @returns {$domain_num}
  */
-function domain_arrToNumstr(domain_arr) {
+function xdomain_arrToNumstr(domain_arr) {
   ASSERT_ARRDOM(domain_arr);
 
   let len = domain_arr.length;
@@ -1892,7 +1869,7 @@ function domain_arrToNumstr(domain_arr) {
  * @param {$domain_arr} domain_arr
  * @returns {$domain_str}
  */
-function domain_arrToStr(domain_arr) {
+function xdomain_arrToStr(domain_arr) {
   ASSERT_ARRDOM(domain_arr);
 
   let str = EMPTY_STR;
@@ -1917,7 +1894,7 @@ function domain_arrToStr(domain_arr) {
  * @param {$domain} domain
  * @returns {$domain}
  */
-function domain_arrToNum(domain) {
+function xdomain_arrToNum(domain) {
   ASSERT_ARRDOM(domain);
 
   let len = domain.length;
@@ -1938,7 +1915,7 @@ function domain_arrToNum(domain) {
  * @param {number} len Length of the domain array (domain.length! not range count)
  * @returns {$domain_num}
  */
-function _domain_arrToNum(domain, len) {
+function x_domain_arrToNum(domain, len) {
   ASSERT_ARRDOM(domain);
   ASSERT(domain[domain.length - 1] <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain);
   let out = 0;
@@ -1956,7 +1933,7 @@ function _domain_arrToNum(domain, len) {
  * @param {$domain} domain
  * @returns {$domain}
  */
-function domain_toNumstr(domain) {
+function xdomain_toNumstr(domain) {
   // number is ideal
   if (typeof domain === 'number') return domain;
 
@@ -1980,7 +1957,7 @@ function domain_toNumstr(domain) {
  * @param {number} len Length of the domain array (domain.length! not range count)
  * @returns {$domain_num}
  */
-function domain_strToNum(domain, len) {
+function xdomain_strToNum(domain, len) {
   ASSERT_STRDOM(domain);
   ASSERT(domain.length === len, 'len should be cache of domain.length');
   ASSERT(domain_any_max(domain) <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain, domain_any_max(domain));
@@ -2000,7 +1977,7 @@ function domain_strToNum(domain, len) {
  * @param {$domain} domain
  * @returns {number[]}
  */
-function domain_validateLegacyArray(domain) {
+function xdomain_validateLegacyArray(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
 
   // support legacy domains and validate input here
@@ -2034,7 +2011,7 @@ function domain_validateLegacyArray(domain) {
  * @param {$domain_arr} domain
  * @returns {string|undefined}
  */
-function domain_confirmLegacyDomain(domain) {
+function xdomain_confirmLegacyDomain(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
 
   for (let i = 0; i < domain.length; i += ARR_RANGE_SIZE) {
@@ -2066,7 +2043,7 @@ function domain_confirmLegacyDomain(domain) {
  * @param {number} n
  * @returns {string|undefined}
  */
-function domain_confirmLegacyDomainElement(n) {
+function xdomain_confirmLegacyDomainElement(n) {
   if (typeof n !== 'number') {
     if (n instanceof Array) {
       return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
@@ -2086,7 +2063,7 @@ function domain_confirmLegacyDomainElement(n) {
  * @param {$domain_arr|number[][]} domain
  * @returns {$domain_arr|undefined}
  */
-function domain_tryToFixLegacyDomain(domain) {
+function xdomain_tryToFixLegacyDomain(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
 
   let fixed = [];
@@ -2111,113 +2088,13 @@ function domain_tryToFixLegacyDomain(domain) {
 // BODY_STOP
 
 export {
-  ARR_FIRST_RANGE_HI,
-  ARR_FIRST_RANGE_LO,
-  ARR_RANGE_SIZE,
-  FORCE_ARRAY,
-  FORCE_STRING,
-  NOT_FOUND,
-  PREV_CHANGED,
-  SMALL_MAX_FLAG,
-  STR_FIRST_RANGE_HI,
-  STR_FIRST_RANGE_LO,
-  STR_RANGE_SIZE,
-  STR_VALUE_SIZE,
-
-  ZERO,
-  ONE,
-  BOOL,
-  TWO,
-  THREE,
-  FOUR,
-  FIVE,
-  SIX,
-  SEVEN,
-  EIGHT,
-  NINE,
-  TEN,
-  ELEVEN,
-  TWELVE,
-  THIRTEEN,
-  FOURTEEN,
-  FIFTEEN,
-  SIXTEEN,
-  SEVENTEEN,
-  EIGHTEEN,
-  NINETEEN,
-  TWENTY,
-  TWENTYONE,
-  TWENTYTWO,
-  TWENTYTHREE,
-  TWENTYFOUR,
-  TWENTYFIVE,
-  TWENTYSIX,
-  TWENTYSEVEN,
-  TWENTYEIGHT,
-  TWENTYNINE,
-  THIRTY,
-  NUM_TO_FLAG,
-  FLAG_TO_NUM,
-
-  domain_any_appendRange,
-  domain_arrToNum,
-  domain_arrToNumstr,
-  domain_arrToStr,
-  domain_any_clone,
-  domain_str_closeGaps,
-  domain_any_complement,
-  domain_any_containsValue,
-  domain_str_containsValue,
-  domain_createRange,
-  domain_createValue,
-  domain_any__debug,
-  domain_any_divby,
-  domain_any_isEqual,
-  domain_fromList,
-  domain_any_getValue,
-  domain_arr_getValue,
-  domain_str_getValue,
-  domain_any_getValueOfFirstContainedValueInList,
-  domain_any_intersection,
-  domain_strstr_intersection,
-  domain_any_isRejected,
-  domain_any_isSolved,
-  domain_str_isSolved,
-  domain_any_isUndetermined,
-  domain_str_isUndetermined,
-  domain_any_isValue,
-  domain_str_isValue,
-  domain_any_max,
-  domain_any_middleElement,
-  domain_any_min,
-  domain_any_mul,
-  domain_numToArr,
-  domain_numToStr,
-  domain_strToNum,
-  domain_any_removeGte,
-  domain_str_removeGte,
-  domain_any_removeLte,
-  domain_str_removeLte,
-  domain_any_removeNextFromList,
-  domain_any_removeValue,
-  domain_str_removeValue,
-  domain_any_sharesNoElements,
-  domain_str_simplify,
-  domain_any_size,
-  domain_str_decodeValue,
-  domain_str_encodeRange,
-  domain_str_encodeValue,
-  domain_toArr,
-  domain_any_toList,
-  domain_toStr,
-  domain_toNumstr,
-  domain_validateLegacyArray,
-
-  // __REMOVE_BELOW_FOR_DIST__
-  // testing only:
-  domain_str_rangeIndexOf,
-  domain_str_isSimplified,
-  _domain_str_mergeOverlappingRanges,
-  _domain_str_quickSortRanges,
-  // __REMOVE_ABOVE_FOR_DIST__
+  ddom_getJmp,
+  ddom_$isNumDom,
+  ddom_$getNumdom,
+  ddom_isSolved,
+  _ddom_isSolved,
+  ddom_$isSolved,
+  ddom_$getSolved,
+  ddom_$getLen,
+  ddom_$getBodyOffset,
 };

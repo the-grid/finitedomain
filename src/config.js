@@ -393,7 +393,6 @@ function config_setOption(config, optionName, optionValue, optionTargetVarName) 
       break;
 
     case 'varStratOverride':
-      console.log('--', optionTargetVarName);
       // specific strategy parameters for one variable
       ASSERT(typeof optionTargetVarName === 'string', 'expecting a name');
       if (!config.var_dist_options) config.var_dist_options = {};

@@ -16,7 +16,7 @@ import {
 import {
   NUM_TO_FLAG,
 
-  domainany__debug,
+  domain_any__debug,
   domain_fromList,
   domain_toStr,
   domain_toNumstr,
@@ -163,7 +163,7 @@ describe('src/plus.spec.js', function() {
             let A = inputs[i];
             let B = inputs[j];
             let C = domain_toNumstr(outcomes[n++]);
-            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
@@ -200,7 +200,7 @@ describe('src/plus.spec.js', function() {
             let A = smalls[i];
             let B = domain_toStr(domain_fromList(large[j]));
             let C = domain_toNumstr(smallLargeOut[n++]);
-            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
@@ -220,7 +220,7 @@ describe('src/plus.spec.js', function() {
             let A = domain_toStr(domain_fromList(large[i]));
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
-            let desc = domainany__debug(A) + ' - ' + domainany__debug(B) + ' = ' + domainany__debug(C);
+            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }

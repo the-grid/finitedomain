@@ -342,11 +342,20 @@ function space_propagateByIndexes(space, config, propagators, propagatorIndexes,
 function space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex) {
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
 
-  let vardoms = space.vardoms;
-
   let index1 = propagator.index1;
   let index2 = propagator.index2;
   let index3 = propagator.index3;
+
+  let deltaCounter = config._domt.deltaCounter++;
+  let deltas = config._domt.deltas;
+
+  // if this hack turns out to be a problem we could always add a solved ZERO var by default...
+  deltas[index1 | 0] = deltaCounter;
+  deltas[index2 | 0] = deltaCounter;
+  deltas[index3 | 0] = deltaCounter;
+
+  let vardoms = space.vardoms;
+
   ASSERT(index1 !== 'undefined', 'all props at least use the first var...');
   let domain1 = vardoms[index1];
   let domain2 = index2 !== undefined && vardoms[index2];
@@ -357,6 +366,10 @@ function space_propagateStep(space, config, propagator, changedVars, changedTrie
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
   stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
+
+  ASSERT(index1 === undefined || (domain1 !== vardoms[index1]) !== deltas[index1 | 0], 'domt should have marked var as changed if it did');
+  ASSERT(index2 === undefined || (domain2 !== vardoms[index2]) !== deltas[index2 | 0], 'domt should have marked var as changed if it did');
+  ASSERT(index3 === undefined || (domain3 !== vardoms[index3]) !== deltas[index3 | 0], 'domt should have marked var as changed if it did');
 
   if (domain1 !== vardoms[index1]) {
     if (vardoms[index1] === EMPTY) return true; // fail

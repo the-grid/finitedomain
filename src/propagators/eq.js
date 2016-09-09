@@ -9,6 +9,10 @@ import {
   domain_any_sharesNoElements,
 } from '../domain';
 
+import {
+  ddom_intersect,
+} from '../ddom';
+
 // BODY_START
 
 /**
@@ -37,6 +41,8 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT_NUMSTRDOM(domain1);
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
+
+  ddom_intersect(config._domt, config._domt.lastNodeIndex, varIndex1, config._domt.lastNodeIndex, varIndex2);
 
   let result = domain_any_intersection(domain1, domain2);
 

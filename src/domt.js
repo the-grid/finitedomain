@@ -73,6 +73,8 @@ function domt_create(domainCount) {
     _class: '$domt',
     lastNodeIndex: DOMT_DEFAULT_FIRST_NODE,
     buffer: buf,
+    deltas: [], // Array.apply(null, Array(5)).map(_=>0);
+    deltaCounter: 0,
   };
 
   ASSERT(!void (domt._maxNodeIndex = DOMT_DEFAULT_FIRST_NODE));
@@ -663,13 +665,16 @@ function _domt_debug(domt, fromNodeNumber, toNodeNumber, printBuf, msg) {
 
 export {
   DOMT_DEFAULT_FIRST_NODE,
-  DOMT_NODE_CELL_COUNT,
-  DOMT_VAR_COUNT,
+  DOMT_DOMAIN_BODY_OFFSET,
+  DOMT_DOMAIN_HEADER_OFFSET,
+  DOMT_DOMAIN_LENGTH_OFFSET,
+  DOMT_HAS_CHANGED,
   DOMT_JUMP_TABLE,
+  DOMT_MAX_DOM_COUNT,
+  DOMT_NODE_CELL_COUNT,
   DOMT_IS_NUMDOM,
   DOMT_IS_SOLVED,
-  DOMT_HAS_CHANGED,
-  DOMT_MAX_DOM_COUNT,
+  DOMT_VAR_COUNT,
 
   _domt_debug,
   domt_create,

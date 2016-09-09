@@ -49,6 +49,7 @@ import {
 
 import {
   DOMT_DEFAULT_FIRST_NODE,
+<<<<<<< Updated upstream
   DOMT_NODE_CELL_COUNT,
   DOMT_VAR_COUNT,
   DOMT_JUMP_TABLE,
@@ -56,6 +57,18 @@ import {
   DOMT_IS_SOLVED,
   DOMT_HAS_CHANGED,
   DOMT_MAX_DOM_COUNT,
+=======
+  DOMT_DOMAIN_BODY_OFFSET,
+  DOMT_DOMAIN_HEADER_OFFSET,
+  DOMT_DOMAIN_LENGTH_OFFSET,
+  DOMT_HAS_CHANGED,
+  DOMT_JUMP_TABLE,
+  DOMT_MAX_DOM_COUNT,
+  DOMT_NODE_CELL_COUNT,
+  DOMT_IS_NUMDOM,
+  DOMT_IS_SOLVED,
+  DOMT_VAR_COUNT,
+>>>>>>> Stashed changes
 } from './domt';
 
 // BODY_START
@@ -881,6 +894,125 @@ function x_domain_strstr_intersection(domain1, domain2) {
   return newDomain;
 }
 
+<<<<<<< Updated upstream
+=======
+const DDOM_NEITHER = 0;
+const DDOM_ONE = 1;
+const DDOM_TWO = 2;
+const DDOM_BOTH = 3;
+
+/**
+ * Basically intersect two domains and store the result back to them. Except more efficient.
+ * There are no guarantees that there are any. It is unknown whether the storage can grow
+ * as a result ([0,10] -> [0,3,8,10]) so be careful.
+ *
+ * @param domt
+ * @param nodeIndex1
+ * @param varIndex1
+ * @param nodeIndex2
+ * @param varIndex2
+ * @returns {number} which var was updated (DDOM_NEITHER, DDOM_ONE, DDOM_TWO, DDOM_BOTH)
+ */
+function ddom_removeDifferences(domt, nodeIndex1, varIndex1, nodeIndex2, varIndex2) {
+  if (nodeIndex1 === nodeIndex2) {
+    if (varIndex1 === varIndex2) return DDOM_NEITHER;
+  }
+
+  let buf = domt.buffer;
+
+  let $jmp1 = buf[nodeIndex1 + DOMT_JUMP_TABLE + varIndex1];
+  let $jmp2 = buf[nodeIndex2 + DOMT_JUMP_TABLE + varIndex2];
+
+  //return $domain_dmt_isEqual(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2);
+
+  let isnum1 = ddom_$isNumDom($jmp1);
+  let isnum2 = ddom_$isNumDom($jmp2);
+
+  if (isnum1 && isnum2) {
+    // while i think it's safe, we shouldn't do this without checking for isnum/issolved/equal nodes
+    // (a $jmp comparison would be sound if the nodeIndex was the same and i think that's the case)
+    if ($jmp1 === $jmp2) return DDOM_NEITHER;
+
+    // store new numdoms by simply ANDing them. the isnumdom flag should survive this.
+    let intersection = $jmp1 & $jmp2;
+    ASSERT(intersection & DOMT_IS_NUMDOM, 'numdom flag should survive intersection');
+    domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex1] = intersection;
+    domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex2] = intersection;
+    return DDOM_BOTH;
+  }
+
+  // other cases are a bit trickier... :/
+
+  if (isnum1) {
+    let numdom = ddom_$getNumdom($jmp1);
+
+    ASSERT(asmdomain_size(numdom) > 1, 'numdoms should not be determined');
+
+    if ($domain_dmt_isSolved($jmp2)) {
+      let value = $domain_dmt_getValue($jmp2);
+      if (value > SMALL_MAX_NUM || (ddom_$getNumdom($jmp1) & (1 << value)) === 0) {
+        // domains dont both span any value. clear them both and return
+        domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex1] = DOMT_IS_NUMDOM | EMPTY;
+        domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex2] = DOMT_IS_NUMDOM | EMPTY;
+        return DDOM_BOTH; // although in this case knowing just about one should suffice... but let's stay consistent
+      }
+      // domain1 spans the solved value of domain2 so set it to that
+      domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex1] = $jmp2;
+      return DDOM_ONE;
+    }
+
+    // note: numdom1 arrdom2, there _ought_ to be a difference. detected inconsistencies will throw
+
+    // dom2 stuff:
+    let domainLen = buf[nodeIndex2 + $jmp2 + DOMT_DOMAIN_LENGTH_OFFSET];
+    let domainOffset = nodeIndex2 + $jmp2 + DOMT_DOMAIN_BODY_OFFSET;
+    ASSERT(domainLen > 0, 'assuming normalization so arrdom should not be empty'); // empty is a numdom
+
+    let lo = buf[domainOffset];
+    let hi = buf[domainOffset + 1];
+    for (let value = 0; value <= SMALL_MAX_NUM; ++value) {
+      while (value > hi) {
+        // get next range in domain2. this can be valid like value=10 with current range=<0,9>
+        // but if there is no range with value<hi then domain2 is actually a numdom and we will
+        // trigger an error for internal inconsistency. other parts assume to normalize this,
+        domainOffset += 2;
+        if (domainOffset >= domainLen) {
+          THROW('INTERNAL_INCONSISTENCY_ARRDOM_SHOULD_BE_NUMDOM');
+        }
+        lo = buf[domainOffset];
+        hi = buf[domainOffset + 1];
+      }
+
+      // we'll have to check the state of both domains regardless
+      let has1 = (numdom & (1 << value)) > 0;
+      let has2 = value >= lo && value <= hi;
+
+      // note: neither domain can be solved. in that case they should have the solved flag set in their $jmp.
+      if (has1 !== has2) {
+        if (value < lo) {
+          ASSERT(has1, 'domain2 doesnt have value so domain1 must');
+          numdom ^= 1 << value;
+        } else if (value === lo || value === hi) {
+          ASSERT(!has1, 'domain2 has value so domain1 cant');
+          // if lo===hi this range disappears
+          // if range spans two elements and there are no other ranges, this domain becomes solved
+          // if range spans two elements and there are other ranges, simply ++lo or --hi
+fixme
+        } else if (value < hi) {
+          ASSERT(!has1, 'domain2 has value so domain1 cant');
+          // replace <lo,hi> range with: <lo,value-1> <value+1,hi>
+fixme
+        } else {
+          THROW('?'); // hi must always be higher than the SMALL_MAX_NUM
+        }
+      }
+    }
+    return true;
+
+  }
+}
+
+>>>>>>> Stashed changes
 function __domain_dmt_debug(domt, nodeIndex, varIndex) {
   let $jmp = ddom_getJmp(domt, nodeIndex, varIndex);
   let s = $__domain_dmt_debug($jmp);
@@ -909,8 +1041,13 @@ function domain_dmt_isEqual(domt, nodeIndex1, varIndex1, nodeIndex2, varIndex2) 
     if (varIndex1 === varIndex2) return true;
   }
 
+<<<<<<< Updated upstream
   let $jmp1 = domt.buffer[nodeIndex + DOMT_JUMP_TABLE + varIndex1];
   let $jmp2 = domt.buffer[nodeIndex + DOMT_JUMP_TABLE + varIndex2];
+=======
+  let $jmp1 = domt.buffer[nodeIndex1 + DOMT_JUMP_TABLE + varIndex1];
+  let $jmp2 = domt.buffer[nodeIndex2 + DOMT_JUMP_TABLE + varIndex2];
+>>>>>>> Stashed changes
 
   return $domain_dmt_isEqual(domt, nodeIndex1, $jmp1, nodeIndex2, $jmp2);
 }

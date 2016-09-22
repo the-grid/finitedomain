@@ -4,6 +4,7 @@ const SUB = 0;
 const SUP = 100000000;
 const SMALL_MAX_FLAG = (1 << 30) - 1; // there are n flags. if they are all on, this is the number value
 const SMALL_MAX_NUM = 30;
+const SOLVED_FLAG = 1 << 31 >>> 0;
 
 function fixt_arrdom_range(lo, hi, _b) {
   if (_b !== true && lo >= 0 && hi <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
@@ -141,7 +142,8 @@ function fixt_numdom_nums(...values) {
   }
   return d;
 }
-function fixt_numdom_range(lo, hi) {
+function fixt_numdom_range(lo, hi, _b) {
+  if (_b !== undefined) throw new Error('BAD_THIRD_ARG');
   if (typeof lo !== 'number') throw new Error('LO_MUST_BE_NUMBER');
   if (typeof hi !== 'number') throw new Error('HI_MUST_BE_NUMBER');
   if (lo < 0 || hi > SMALL_MAX_NUM) throw new Error('OOB_FOR_SMALL_DOMAIN ['+lo+','+hi+']');
@@ -156,6 +158,10 @@ function fixt_numdom_ranges(...ranges) {
 }
 function fixt_numdom_empty() {
   return 0; // magic value yo. no flags means zero
+}
+function fixt_numdom_solved(num) {
+  if (num < SUB || num > SUP) throw new Error('SOLVED_NUM_MUST_BE_SUBSUP_BOUND');
+  return (num | SOLVED_FLAG) >>> 0; // num|flag could lead to negative value without the >>>
 }
 
 function fixt_strdom_empty() {
@@ -238,6 +244,7 @@ export {
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_numdom_ranges,
+  fixt_numdom_solved,
   fixt_bytes,
   fixt_strdom_empty,
   fixt_strdom_value,

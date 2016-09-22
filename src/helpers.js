@@ -40,6 +40,7 @@ const SMALL_MAX_NUM = 30;
 // there are SMALL_MAX_NUM flags. if they are all on, this is the number value
 // (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
 const SMALL_MAX_FLAG = (1 << (SMALL_MAX_NUM + 1) >>> 0) - 1;
+const SOLVED_FLAG = 1 << 31 >>> 0; // the >>> makes it unsigned, we dont really need it but it may help perf a little (unsigned vs signed)
 
 // __REMOVE_BELOW_FOR_ASSERTS__
 
@@ -87,7 +88,13 @@ function ASSERT_STRDOM(domain) {
 }
 function ASSERT_NUMDOM(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_NUMDOM');
-  ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
+  // TODO: verify that any solved domain is encoded as a solved numdom...
+  if (domain & SOLVED_FLAG) {
+    ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');
+    ASSERT((domain ^ SOLVED_FLAG) <= SUP, 'SOLVED_NUMDOM_SHOULD_BE_MAX_SUP');
+  } else {
+    ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
+  }
 }
 function ASSERT_ARRDOM(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
@@ -160,6 +167,7 @@ export {
   SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
   SOLVED,
+  SOLVED_FLAG,
   SUB,
   SUP,
   UNDETERMINED,

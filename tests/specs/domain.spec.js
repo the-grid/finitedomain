@@ -6,11 +6,13 @@
 
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_assertStrings,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_numdom_solved,
   fixt_strdom_empty,
   fixt_strdom_nums,
   fixt_strdom_range,
@@ -64,7 +66,6 @@ import {
   domain_arrToNumstr,
   domain_any_clone,
   domain_str_closeGaps,
-  domain_any_complement,
   domain_any_containsValue,
   domain_createRange,
   domain_createValue,
@@ -76,7 +77,6 @@ import {
   domain_any_getValueOfFirstContainedValueInList,
   domain_any_intersection,
   domain_any_isRejected,
-  domain_str_isSimplified,
   domain_any_isSolved,
   domain_any_isUndetermined,
   domain_any_isValue,
@@ -97,6 +97,7 @@ import {
   domain_toArr,
   domain_any_toList,
   domain_toNumstr,
+  domain_any__debug,
 } from '../../src/domain';
 
 const FLOOR_FRACTIONS = true;
@@ -298,7 +299,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_getValue', function() {
+  describe('getValue', function() {
 
     it('should exist', function() {
       expect(domain_any_getValue).to.be.a('function');
@@ -346,9 +347,18 @@ describe('src/domain.spec', function() {
         expect(domain_any_getValue(fixt_numdom_nums(0))).to.equal(0);
       });
     });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          expect(domain_any_getValue(fixt_numdom_solved(i)), 'i=' + i).to.equal(i);
+        }
+      });
+    });
   });
 
-  describe('domain_toList', function() {
+  describe('toList', function() {
 
     it('should exist', function() {
       expect(domain_any_toList).to.be.a('function');
@@ -384,6 +394,15 @@ describe('src/domain.spec', function() {
 
       it('[1,1]', function() {
         expect(domain_any_toList(fixt_numdom_nums(1))).to.eql([1]);
+      });
+    });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          expect(domain_any_toList(fixt_numdom_solved(i)), 'i=' + i).to.eql([i]);
+        }
       });
     });
   });
@@ -535,7 +554,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_getValueOfFirstContainedValueInList ', function() {
+  describe('getValueOfFirstContainedValueInList ', function() {
 
     describe('strdom', function() {
 
@@ -626,9 +645,25 @@ describe('src/domain.spec', function() {
         expect(() => domain_any_getValueOfFirstContainedValueInList(A, [99, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
     });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          // test for list with target (i) as first, middle, last, and
+          // not-existing element. also empty list and only i.
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), [i]), 'i=' + i).to.equal(i);
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), [i, 500, SUP]), 'i=' + i).to.equal(i);
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), [500, i, SUP]), 'i=' + i).to.equal(i);
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), [500, SUP, i]), 'i=' + i).to.equal(i);
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), [500, SUP]), 'i=' + i).to.equal(NO_SUCH_VALUE);
+          expect(domain_any_getValueOfFirstContainedValueInList(fixt_numdom_solved(i), []), 'i=' + i).to.equal(NO_SUCH_VALUE);
+        }
+      });
+    });
   });
 
-  describe('domain_containsValue', function() {
+  describe('containsValue', function() {
 
     it('should exist', function() {
       expect(domain_any_containsValue).to.be.a('function');
@@ -689,6 +724,19 @@ describe('src/domain.spec', function() {
           expect(domain_any_containsValue(fixt_numdom_nums(0, 1, 2, 4, 5, 8, 9, 10, 11), 6)).to.equal(false);
         });
       });
+
+    });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          // do a search that passes, fails, and is oob
+          expect(domain_any_containsValue(fixt_numdom_solved(i), 0), 'i=' + i + ',q=0').to.equal(i === 0);
+          expect(domain_any_containsValue(fixt_numdom_solved(i), 1), 'i=' + i + ',q=1').to.equal(i === 1);
+          expect(domain_any_containsValue(fixt_numdom_solved(i), SUP), 'i=' + i + ',q=SUP').to.equal(false);
+        }
+      });
     });
   });
 
@@ -728,7 +776,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_isValue', function() {
+  describe('isValue', function() {
 
     it('should exist', function() {
       expect(domain_any_isValue).to.be.a('function');
@@ -811,6 +859,19 @@ describe('src/domain.spec', function() {
       it('should handle values that are OOB for small domains', function() {
         expect(domain_any_isValue(fixt_numdom_nums(8), 16)).to.equal(false);
         expect(domain_any_isValue(fixt_numdom_nums(8), 300)).to.equal(false);
+      });
+    });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // do a search that passes, fails
+          expect(domain_any_isValue(fixt_numdom_solved(n), n), 'n=' + n + ',q=n').to.equal(true);
+          expect(domain_any_isValue(fixt_numdom_solved(n), 5), 'n=' + n + ',q=5').to.equal(false);
+        }
       });
     });
   });
@@ -906,64 +967,17 @@ describe('src/domain.spec', function() {
       test(fixt_numdom_nums(0, 1, 2), 5, fixt_numdom_nums(0, 1, 2));
       test(fixt_numdom_nums(5), 5, fixt_numdom_nums());
     });
-  });
 
-  describe('domain_isSimplified', function() {
+    describe('solved numdom', function() {
 
-    it('should exist', function() {
-      // exposed for testing only
-      expect(domain_str_isSimplified).to.be.a('function');
-    });
-
-    it('should require a domain', function() {
-      expect(() => domain_str_isSimplified()).to.throw('ONLY_STRDOM');
-    });
-
-    it('should throw for domains as numbers', function() {
-      expect(_ => domain_str_isSimplified(fixt_numdom_nums(1))).to.throw('ONLY_STRDOM');
-    });
-
-    it('should accept empty domain', function() {
-      expect(domain_str_isSimplified(fixt_strdom_empty())).to.equal(true);
-    });
-
-    describe('single ranged domain', function() {
-
-      it('should accept domain with proper range', function() {
-        expect(domain_str_isSimplified(fixt_strdom_range(80, 90))).to.equal(true);
-      });
-
-      it('should accept domain with proper range of 1', function() {
-        expect(domain_str_isSimplified(fixt_strdom_range(90, 90))).to.equal(true);
-      });
-
-      it('should reject domain with inverted range', function() {
-        expect(() => domain_str_isSimplified(fixt_strdom_range(91, 90))).to.throw('A_RANGES_SHOULD_ASCEND');
-      });
-    });
-
-    describe('multiple ranges in domain', function() {
-
-      it('should accept multiple properly ordered non-overlapping ranges', function() {
-        expect(domain_str_isSimplified(fixt_strdom_ranges([95, 910], [915, 920]))).to.equal(true);
-        //expect(domain_isSimplified specDomainCreateRanges([5, 6], [7, 8], [9, 10])).to.equal(true);
-        //expect(domain_isSimplified specDomainCreateRanges([5, 6], [7, 8], [9, 10], [100, 200])).to.equal(true);
-      });
-
-      it('should throw if two ranges overlap despite ordering', function() {
-        expect(domain_str_isSimplified(fixt_strdom_ranges([910, 915], [913, 919], [950, 960]))).to.equal(false); // start
-        expect(domain_str_isSimplified(fixt_strdom_ranges([91, 93], [910, 915], [913, 919], [970, 975]))).to.equal(false); // middle
-        expect(domain_str_isSimplified(fixt_strdom_ranges([91, 93], [910, 915], [916, 919], [918, 925]))).to.equal(false); //end
-      });
-
-      it('should reject if two ranges touch', function() {
-        expect(domain_str_isSimplified(fixt_strdom_ranges([90, 91], [91, 92]))).to.equal(false);
-      });
-
-      it('should reject if at least one range is inverted', function() {
-        expect(() => domain_str_isSimplified(fixt_strdom_ranges([915, 910], [940, 950], [955, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // start
-        expect(() => domain_str_isSimplified(fixt_strdom_ranges([910, 915], [950, 940], [955, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // middle
-        expect(() => domain_str_isSimplified(fixt_strdom_ranges([910, 915], [940, 950], [965, 960]))).to.throw('A_RANGES_SHOULD_ASCEND'); // end
+      it('should work with solved numdoms', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // do a search that passes and one that fails
+          expect(domain_any_removeValue(fixt_numdom_solved(n), n), 'n=' + n + ',q=' + n).to.equal(EMPTY);
+          expect(domain_any_removeValue(fixt_numdom_solved(n), 5), 'n=' + n + ',q=5').to.equal(fixt_numdom_solved(n));
+        }
       });
     });
   });
@@ -1109,7 +1123,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_intersection', function() {
+  describe('intersection', function() {
 
     it('should exist', function() {
       expect(domain_any_intersection).to.be.a('function');
@@ -1285,9 +1299,44 @@ describe('src/domain.spec', function() {
         expect(domain_any_intersection(fixt_numdom_range(5, 10), fixt_strdom_range(0, 95))).to.eql(fixt_numdom_range(5, 10));
       });
     });
+
+    describe('solved numdom', function() {
+
+      it('should work with two solved numdoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          // test an intersection that succeeds and one that fails
+          expect(domain_any_intersection(fixt_numdom_solved(i), fixt_numdom_solved(i)), 'i=' + i + ',yes').to.equal(fixt_numdom_solved(i));
+          expect(domain_any_intersection(fixt_numdom_solved(i), fixt_numdom_solved(SUP)), 'i=' + i + ',left, no').to.equal(EMPTY);
+          expect(domain_any_intersection(fixt_numdom_solved(SUP), fixt_numdom_solved(i)), 'i=' + i + ',right,no').to.equal(EMPTY);
+        }
+      });
+
+      it('should work with two numdoms, one solved', function() {
+        expect(domain_any_intersection(fixt_numdom_solved(SUP), fixt_numdom_nums(0, 1)), 'SUP left').to.equal(EMPTY);
+        expect(domain_any_intersection(fixt_numdom_nums(0, 1), fixt_numdom_solved(SUP)), 'SUP right').to.equal(EMPTY);
+
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          expect(domain_any_intersection(fixt_numdom_solved(i), fixt_numdom_nums(0, 1, i)), 'i=' + i + ',left').to.equal(fixt_numdom_solved(i));
+          expect(domain_any_intersection(fixt_numdom_nums(0, 1, i), fixt_numdom_solved(i)), 'i=' + i + ',right').to.equal(fixt_numdom_solved(i));
+        }
+      });
+
+      it('should work with solved numdom and strdom', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // check all values in nums left and right
+          expect(domain_any_intersection(fixt_numdom_solved(n), fixt_strdom_range(0, SUP)), 'i=' + n + ',left').to.equal(fixt_numdom_solved(n));
+          expect(domain_any_intersection(fixt_strdom_range(0, SUP), fixt_numdom_solved(n)), 'i=' + n + ',left').to.equal(fixt_numdom_solved(n));
+          // check EMPTY when strdom does not contain the needle
+          expect(domain_any_intersection(fixt_numdom_solved(n), fixt_strdom_nums(...(nums.filter(x => x !== n)))), 'i=' + n + ',left').to.equal(EMPTY);
+          expect(domain_any_intersection(fixt_strdom_nums(...(nums.filter(x => x !== n))), fixt_numdom_solved(n)), 'i=' + n + ',left').to.equal(EMPTY);
+        }
+      });
+    });
   });
 
-  describe('domain_equal', function() {
+  describe('isEqual', function() {
 
     it('should exist', function() {
       expect(domain_any_isEqual).to.be.a('function');
@@ -1347,142 +1396,38 @@ describe('src/domain.spec', function() {
         expect(domain_any_isEqual(A, B)).to.equal(false);
       });
     });
-  });
 
-  describe('domain_complement', function() {
+    describe('solved numdoms', function() {
 
-    it('should exist', function() {
-      expect(domain_any_complement).to.be.a('function');
-      expect(SUP).to.be.a('number');
-    });
-
-    it('should require a domain', function() {
-      expect(() => domain_any_complement()).to.throw('ONLY_NUMDOM_OR_STRDOM');
-    });
-
-    describe('strdom', function() {
-
-      it('should throw for an empty array', function() {
-        expect(_ => domain_any_complement(fixt_strdom_empty())).to.throw('EMPTY_DOMAIN_PROBABLY_BUG');
+      it('should work with two solved numdoms', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          expect(domain_any_isEqual(fixt_numdom_solved(n), fixt_numdom_solved(n)), 'n=' + n + ',yes').to.equal(true);
+          expect(domain_any_isEqual(fixt_numdom_solved(n), fixt_numdom_solved(n ? 0 : 1)), 'n=' + n + ',no').to.equal(false);
+        }
       });
 
-      it('should invert a domain', function() {
-        let A = fixt_strdom_ranges([5, 10], [100, 200]);
-        let E = fixt_strdom_ranges([0, 4], [11, 99], [201, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
+      // this is an important assumption that'll save a bunch of checks throughout the code
+      it('should reject with regular numdom even if it contains one value', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          if (n <= SMALL_MAX_NUM) {
+            expect(domain_any_isEqual(fixt_numdom_solved(n), fixt_numdom_nums(n)), 'n=' + n + ',left').to.equal(false);
+            expect(domain_any_isEqual(fixt_numdom_nums(n), fixt_numdom_solved(n)), 'n=' + n + ',right').to.equal(false);
+          }
+        }
       });
 
-      it('should handle domains starting at 0 properly', function() {
-        let A = fixt_strdom_range(0, 100);
-        let E = fixt_strdom_ranges([101, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should handle domains ending at SUP properly', function() {
-        let A = fixt_strdom_ranges([100, SUP]);
-        let E = fixt_strdom_range(0, 99);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should handle domains starting at 0 and ending at SUP properly', function() {
-        let A = fixt_strdom_ranges([0, 500], [600, 900], [1000, SUP]);
-        let E = fixt_strdom_ranges([501, 599], [901, 999]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should add 0 if starting at 1', function() {
-        let A = fixt_strdom_range(1, 100);
-        let E = fixt_strdom_ranges([0, 0], [101, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should add SUP if ending at SUP-1', function() {
-        let A = fixt_strdom_range(100, SUP - 1);
-        let E = fixt_strdom_ranges([0, 99], [SUP, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should return same value when applied twice', function() {
-        let A = fixt_strdom_ranges([10, 23], [29, 38], [49, 49], [54, 68], [77, 78], [84, 100]);
-        let E = A.slice(0);
-
-        expect(domain_any_complement(domain_any_complement(A)), E);
-        expect(domain_any_complement(domain_any_complement(E)), A);
-      });
-    });
-
-    describe('numdom', function() {
-
-      it('should throw for an empty array', function() {
-        let A = fixt_numdom_empty();
-
-        expect(_ => domain_any_complement(A)).to.throw('EMPTY_DOMAIN_PROBABLY_BUG');
-      });
-
-      it('should invert a domain', function() {
-        let A = fixt_numdom_range(5, 10);
-        let E = fixt_strdom_ranges([0, 4], [11, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        expect(domain_any_complement(E)).to.eql(A);
-      });
-
-      it('should handle domains starting at 0 properly', function() {
-        let A = fixt_numdom_range(0, 11);
-        let E = fixt_strdom_ranges([12, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        expect(domain_any_complement(E)).to.eql(A);
-      });
-
-      it('should handle domains ending at SMALL_MAX_NUM properly', function() {
-        let A = fixt_strdom_ranges([10, SUP]);
-        let E = fixt_numdom_range(0, 9);
-
-        expect(domain_any_complement(A)).to.eql(E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should handle domains starting at 0 and ending at SMALL_MAX_NUM properly', function() {
-        let A = fixt_strdom_ranges([0, 5], [10, SUP]);
-        let E = fixt_numdom_range(6, 9);
-
-        expect(domain_any_complement(A)).to.eql(E);
-        fixt_assertStrings(domain_any_complement(E), A);
-      });
-
-      it('should add 0 if starting at 1', function() {
-        let A = fixt_numdom_range(1, 10);
-        let E = fixt_strdom_ranges([0, 0], [11, SUP]);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        expect(domain_any_complement(E)).to.eql(A);
-      });
-
-      it('should return same value when applied twice', function() {
-        let A = fixt_numdom_range(3, 8);
-
-        expect(domain_any_complement(domain_any_complement(A))).to.eql(A); // should be a "pure function" https://en.wikipedia.org/wiki/Pure_function
-      });
-
-      it('should invert a fullly set small domain', function() {
-        let A = fixt_numdom_range(0, SMALL_MAX_NUM);
-        let E = fixt_strdom_range(SMALL_MAX_NUM + 1, SUP);
-
-        fixt_assertStrings(domain_any_complement(A), E);
-        expect(domain_any_complement(E)).to.eql(A);
+      // this is an important assumption that'll save a bunch of checks throughout the code
+      it('should reject with regular strdom even if it contains one value', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          expect(domain_any_isEqual(fixt_numdom_solved(n), fixt_strdom_nums(n)), 'n=' + n + ',left').to.equal(false);
+          expect(domain_any_isEqual(fixt_strdom_nums(n), fixt_numdom_solved(n)), 'n=' + n + ',right').to.equal(false);
+        }
       });
     });
   });
@@ -1590,7 +1535,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_size', function() {
+  describe('size', function() {
 
     it('should exist', function() {
       expect(domain_any_size).to.be.a('function');
@@ -1637,6 +1582,17 @@ describe('src/domain.spec', function() {
         expect(domain_any_size(fixt_numdom_range(0, 15))).to.equal(16);
       });
     });
+
+    describe('solved numdom', function() {
+
+      it('should always be size=1', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          expect(domain_any_size(fixt_numdom_solved(n)), 'n=' + n).to.equal(1);
+        }
+      });
+    });
   });
 
   describe('domain_mul', function() {
@@ -1666,7 +1622,7 @@ describe('src/domain.spec', function() {
     });
 
     it('should multiply two anydoms', function() {
-      let A = fixt_numdom_range(5, 10, true);
+      let A = fixt_numdom_range(5, 10);
       let B = fixt_strdom_range(50, 60);
       let E = fixt_strdom_range(250, 600);
 
@@ -1887,7 +1843,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_isRejected', function() {
+  describe('isRejected', function() {
 
     it('should exist', function() {
       expect(domain_any_isRejected).to.be.a('function');
@@ -1958,9 +1914,20 @@ describe('src/domain.spec', function() {
         expect(domain_any_isRejected(fixt_numdom_range(0, 15))).to.equal(false);
       });
     });
+
+    describe('solved numdoms', function() {
+
+      it('should return false for any solved numdom', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          expect(domain_any_isRejected(fixt_numdom_solved(n)), 'n=' + n).to.equal(false);
+        }
+      });
+    });
   });
 
-  describe('domain_isUndetermined', function() {
+  describe('isUndetermined', function() {
 
     it('should exist', function() {
       expect(domain_any_isUndetermined).to.be.a('function');
@@ -2029,6 +1996,17 @@ describe('src/domain.spec', function() {
 
       it('should return false for empty', function() {
         expect(domain_any_isUndetermined(fixt_numdom_empty())).to.equal(false);
+      });
+    });
+
+    describe('solved numdoms', function() {
+
+      it('should return false for any solved numdom because they are determined by definition', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          expect(domain_any_isUndetermined(fixt_numdom_solved(n)), 'n=' + n).to.equal(false);
+        }
       });
     });
   });
@@ -2184,6 +2162,24 @@ describe('src/domain.spec', function() {
         }
       });
     });
+
+    describe('solved numdoms', function() {
+
+      it('should work with solved domains', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // check with needle being lt, eq, gt
+          let lt = n - 1;
+          let eq = n;
+          let gt = n + 1;
+
+          if (lt >= 0) expect(domain_any_removeGte(fixt_numdom_solved(n), lt), 'n=' + n + ',lt').to.equal(EMPTY);
+          if (eq >= 0 && eq <= SUP) expect(domain_any_removeGte(fixt_numdom_solved(n), eq), 'n=' + n + ',eq').to.equal(EMPTY);
+          if (gt <= SUP) expect(domain_any_removeGte(fixt_numdom_solved(n), gt), 'n=' + n + ',gt').to.equal(fixt_numdom_solved(n));
+        }
+      });
+    });
   });
 
   describe('domain_toArr', function() {
@@ -2278,6 +2274,24 @@ describe('src/domain.spec', function() {
         }
       });
     });
+
+    describe('solved numdoms', function() {
+
+      it('should work with solved domains', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // check with needle being lt, eq, gt
+          let lt = n - 1;
+          let eq = n;
+          let gt = n + 1;
+
+          if (lt >= 0) expect(domain_any_removeLte(fixt_numdom_solved(n), lt), 'n=' + n + ',lt').to.equal(fixt_numdom_solved(n));
+          if (eq >= 0 && eq <= SUP) expect(domain_any_removeLte(fixt_numdom_solved(n), eq), 'n=' + n + ',eq').to.equal(EMPTY);
+          if (gt <= SUP) expect(domain_any_removeLte(fixt_numdom_solved(n), gt), 'n=' + n + ',gt').to.equal(EMPTY);
+        }
+      });
+    });
   });
 
   describe('domain_numToStr and domain_toList and domain_numstr and domain_fromList', function() {
@@ -2336,6 +2350,16 @@ describe('src/domain.spec', function() {
           expect(outFromList, is).to.eql(numdom);
         }
       });
+    });
+  });
+
+  describe('domain_any__debug', function() {
+
+    it('should work with all domain representations', function() {
+      domain_any__debug(fixt_numdom_nums(0, 2, 15));
+      domain_any__debug(fixt_strdom_nums(0, 2, 15, 200, SUP));
+      domain_any__debug(fixt_arrdom_nums(0, 2, 15, 200));
+      domain_any__debug(fixt_numdom_solved(100));
     });
   });
 });

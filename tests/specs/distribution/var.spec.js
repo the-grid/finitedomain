@@ -990,8 +990,8 @@ describe('distribution/var.spec', function() {
         let names = all.filter(() => Math.random() > 0.3);
         // shuffle list the ugly way
         names.sort(() => Math.random() - 0.5);
-
-        test(names);
+        // must have some names or assertions are broken
+        if (names.length) test(names);
       }
     });
   });

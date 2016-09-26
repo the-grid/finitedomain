@@ -879,15 +879,15 @@ describe('src/domain.spec', function() {
       // 5          -> empty
       // empty      -> empty
 
-      function test(domain, value, output) {
-        it(`should remove [${value}] from [${domain}] resulting in [${output}]`, function() {
+      function test(domain, value, expectation) {
+        it(`should remove [${value}] from [${domain}] resulting in [${expectation}]`, function() {
           let clone = domain_any_clone(domain);
           let result = domain_any_removeValue(domain_any_clone(domain), value);
 
           expect(domain, 'should not change').to.eql(clone);
-          if (output) fixt_assertStrings(result, output);
-          else expect(result).to.equal(output); // output is a number (EMPTY)
-          expect(result).to.eql(output);
+          if (typeof expectation === 'string') fixt_assertStrings(result, expectation);
+          else expect(result).to.equal(expectation); // output is a numdom
+          expect(result).to.eql(expectation);
         });
       }
 
@@ -905,7 +905,7 @@ describe('src/domain.spec', function() {
       test(fixt_strdom_ranges([32, 32]), 32, fixt_numdom_empty());
       test(fixt_strdom_ranges([SUP, SUP]), SUP, fixt_numdom_empty());
       test(fixt_strdom_ranges([SUP - 1, SUP - 1]), SUP - 1, fixt_numdom_empty());
-      test(fixt_strdom_ranges([SUP - 1, SUP]), SUP, fixt_strdom_ranges([SUP - 1, SUP - 1]));
+      test(fixt_strdom_ranges([SUP - 1, SUP]), SUP, fixt_numdom_solved(SUP - 1));
     });
 
     describe('numdom', function() {

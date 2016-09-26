@@ -4,6 +4,7 @@ import {
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_numdom_solved,
   fixt_strdom_range,
   fixt_strdom_ranges,
   fixt_strdom_value,
@@ -17,6 +18,7 @@ import {
   FORCE_ARRAY,
 
   domain_any_clone,
+  domain_toArr,
 } from '../../../src/domain';
 import {
   config_addVarDomain,
@@ -136,7 +138,7 @@ describe('propagators/neq.spec', function() {
   describe('with one solved domain', function() {
 
     function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter) {
-      it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
+      it(`should not change anything (right-left): [${[domain_toArr(solvedDomain), domain_toArr(unsolvedDomainBefore)].join(']|[')}]`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
@@ -151,7 +153,7 @@ describe('propagators/neq.spec', function() {
         expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
       });
 
-      it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
+      it(`should remove solved domain from unsolve domain (left-right): [${[unsolvedDomainBefore, solvedDomain].join(']|[')}]`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
         config_addVarDomain(config, 'B', domain_any_clone(solvedDomain, FORCE_ARRAY));
@@ -168,8 +170,8 @@ describe('propagators/neq.spec', function() {
     }
 
     describe('with array', function() {
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1));
-      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP));
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP - 1));
+      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP));
       test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1));
       test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1));
       test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]));
@@ -179,8 +181,8 @@ describe('propagators/neq.spec', function() {
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_range(1, 1));
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_range(0, 0));
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_nums(1));
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_nums(0));
       test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15));
       test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5));
       test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15));

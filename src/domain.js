@@ -494,57 +494,6 @@ function domain_str_removeNextFromList(domain, list) {
 
   return NO_SUCH_VALUE;
 }
-function _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, lastHi) {
-  ASSERT(domain !== EMPTY_STR, 'SHOULD_NOT_BE_EMPTY_YET');
-
-  // normalize to (solved) numdom if the result is solved:
-  // - one range and it contains two values: solved numdom
-  // - oen range and it contains one value: EMPTY
-  // - two ranges and both have one value: solved numdom
-  // - removed value is >MAX_NUMDOM_VALUE and new highest value <=MAX_NUMDOM_VALUE: numdom
-  //   - must remove highest value of dom. either
-  //     - from a range of >=2 values (check hi-1)
-  //     - from range with one value (check lastHi)
-  if (len === STR_RANGE_SIZE) {
-    if (hi - lo === 1) return ((lo === value ? hi : lo) | SOLVED_FLAG) >>> 0;
-    if (lo === hi) return EMPTY;
-    ASSERT(hi - lo > 1);
-  } else if (len === 2 * STR_RANGE_SIZE && lo === hi && lastLo === lastHi) {
-    return lastLo | SOLVED_FLAG;
-  }
-  if (value === hi) {
-    // to numdom checks
-    if (lo === hi && lastHi <= SMALL_MAX_NUM) {
-      ASSERT(len > STR_RANGE_SIZE, 'this return-EMPTY case is checked above');
-      // numdom excluding the last range
-      let newLen = len - STR_RANGE_SIZE;
-      return domain_strToNum(domain.slice(0, newLen), newLen);
-    } else if (hi - 1 <= SMALL_MAX_NUM) {
-      ASSERT(len > STR_RANGE_SIZE || hi - lo > 2, 'one-range check done above, would return solved numdom');
-      // numdom excluding last value of last range
-      // (the encodeValue step is unfortunate but let's KISS)
-      return domain_strToNum(domain.slice(0, -STR_VALUE_SIZE) + domain_str_encodeValue(hi - 1), len);
-    }
-  }
-
-  // from this point onward we'll return a strdom
-
-  let before = domain.slice(0, index);
-  let after = domain.slice(index + STR_RANGE_SIZE);
-
-  if (hi === value) {
-    if (lo === value) {
-      // lo=hi=value; drop this range completely
-      return before + after;
-    }
-    return before + domain_str_encodeRange(lo, hi - 1) + after;
-  } else if (lo === value) {
-    return before + domain_str_encodeRange(lo + 1, hi) + after;
-  } else {
-    // we get new two ranges...
-    return before + domain_str_encodeRange(lo, value - 1) + domain_str_encodeRange(value + 1, hi) + after;
-  }
-}
 
 /**
  * @param {$domain} domain
@@ -1566,7 +1515,6 @@ function domain_any_removeValue(domain, value) {
   ASSERT_NUMSTRDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
-  console.log('fixme solved numdom');
   if (typeof domain === 'number') return domain_num_removeValue(domain, value);
   return domain_str_removeValue(domain, value);
 }
@@ -1575,6 +1523,7 @@ function domain_num_removeValue(domain, value) {
     if (value === (domain ^ SOLVED_FLAG)) return EMPTY;
     return domain;
   }
+  console.log('fixme solved numdom');
   return asmdomain_removeValue(domain, value);
 }
 /**
@@ -1585,44 +1534,73 @@ function domain_num_removeValue(domain, value) {
 function domain_str_removeValue(domain, value) {
   ASSERT_STRDOM(domain);
 
+  let lastLo = -1;
+  let lastHi = -1;
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain, i);
     let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
+    if (value >= lo && value <= hi) {
+      return _domain_str_removeValue(domain, len, i, lo, hi, value, lastLo, lastHi);
+    }
+    // domain is CSIS so once a range was found beyond value, no further ranges can possibly wrap value. return now.
+    if (value < lo) break;
+    lastLo = lo;
+    lastHi = hi;
+  }
+  // "no change" because domain was not found.
+  return domain;
+}
+function _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, lastHi) {
+  ASSERT_STRDOM(domain);
+  ASSERT(domain, 'SHOULD_NOT_BE_EMPTY_YET');
 
-    if (value === lo) {
-      let newDomain = domain.slice(0, i);
-      if (value !== hi) newDomain += domain_str_encodeRange(value + 1, hi);
-      return domain_toNumstr(newDomain + domain.slice(i + STR_RANGE_SIZE));
-    }
-    if (value === hi) {
-      // note: we already checked value==lo so no need to do that again
-      let newDomain =
-        domain.slice(0, i) +
-        domain_str_encodeRange(lo, value - 1) +
-        domain.slice(i + STR_RANGE_SIZE);
-      return domain_toNumstr(newDomain);
-    }
-    if (value < lo) {
-      // value sits between prev range (if not start) and current range so domain
-      // does not have it at all. return the input domain to indicate "no change"
-      return domain;
-    }
-    if (value < hi) {
-      // split up range to remove the value. we already confirmed that range
-      // does not start or end at value, so just split it
-      let newDomain =
-        domain.slice(0, i) +
-        domain_str_encodeRange(lo, value - 1) +
-        domain_str_encodeRange(value + 1, hi) +
-        domain.slice(i + STR_RANGE_SIZE);
-      return domain_toNumstr(newDomain);
+  // normalize to (solved) numdom if the result is solved:
+  // - one range and it contains two values: solved numdom
+  // - oen range and it contains one value: EMPTY
+  // - two ranges and both have one value: solved numdom
+  // - removed value is >MAX_NUMDOM_VALUE and new highest value <=MAX_NUMDOM_VALUE: numdom
+  //   - must remove highest value of dom. either
+  //     - from a range of >=2 values (check hi-1)
+  //     - from range with one value (check lastHi)
+  if (len === STR_RANGE_SIZE) {
+    if (hi - lo === 1) return ((lo === value ? hi : lo) | SOLVED_FLAG) >>> 0;
+    if (lo === hi) return EMPTY;
+    ASSERT(hi - lo > 1);
+  } else if (index && len === 2 * STR_RANGE_SIZE && lo === hi && lastLo === lastHi) {
+    return (lastLo | SOLVED_FLAG) >>> 0;
+  }
+  if (index === len - STR_RANGE_SIZE && value === hi) {
+    // to numdom checks
+    if (lo === hi && lastHi <= SMALL_MAX_NUM) {
+      ASSERT(len > STR_RANGE_SIZE, 'this return-EMPTY case is checked above');
+      // numdom excluding the last range
+      let newLen = len - STR_RANGE_SIZE;
+      return domain_strToNum(domain.slice(0, newLen), newLen);
+    } else if (hi - 1 <= SMALL_MAX_NUM) {
+      ASSERT(len > STR_RANGE_SIZE || hi - lo > 2, 'one-range check done above, would return solved numdom');
+      // numdom excluding last value of last range
+      // (the encodeValue step is unfortunate but let's KISS)
+      return domain_strToNum(domain.slice(0, -STR_VALUE_SIZE) + domain_str_encodeValue(hi - 1), len);
     }
   }
-  // value must be higher than the max of domain because domain does not contain it
-  // return domain to indicate no change
-  ASSERT(domain_any_isRejected(domain) || domain_any_max(domain) < value, 'MAX_DOMAIN_SHOULD_BE_UNDER_VALUE');
-  // "no change"
-  return domain;
+
+  // from this point onward we'll return a strdom
+
+  let before = domain.slice(0, index);
+  let after = domain.slice(index + STR_RANGE_SIZE);
+
+  if (hi === value) {
+    if (lo === value) {
+      // lo=hi=value; drop this range completely
+      return before + after;
+    }
+    return before + domain_str_encodeRange(lo, hi - 1) + after;
+  } else if (lo === value) {
+    return before + domain_str_encodeRange(lo + 1, hi) + after;
+  } else {
+    // we get new two ranges...
+    return before + domain_str_encodeRange(lo, value - 1) + domain_str_encodeRange(value + 1, hi) + after;
+  }
 }
 
 /**

@@ -560,6 +560,7 @@ function domain_str_getValueOfFirstContainedValueInList(domain, list) {
 /**
  * All ranges will be ordered ascending and overlapping ranges are merged
  * This function first checks whether simplification is needed at all
+ * Should normalize all return values.
  *
  * @param {$domain_str|string} domain
  * @returns {$domain_str} ironically, not optimized to a number if possible
@@ -567,8 +568,8 @@ function domain_str_getValueOfFirstContainedValueInList(domain, list) {
 function domain_str_simplify(domain) {
   ASSERT_STRDOM(domain);
 
-  if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
-  if (domain.length === STR_RANGE_SIZE) return domain;
+  if (!domain) return EMPTY; // keep return type consistent, dont return EMPTY
+  if (domain.length === STR_RANGE_SIZE) return domain_numToSol(domain_toNumstr(domain));
 
   // order ranges, then merge overlapping ranges (TODO: can we squash this step together?)
   domain = _domain_str_quickSortRanges(domain);
@@ -998,7 +999,7 @@ function domain_strstr_mul(domain1, domain2) {
   }
 
   // TODO: is it worth doing this step immediately?
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_str_simplify(result);
 }
 
 /**
@@ -1089,7 +1090,7 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
     }
   }
 
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_str_simplify(result);
 }
 
 /**
@@ -2356,5 +2357,6 @@ export {
   domain_str_rangeIndexOf,
   _domain_str_mergeOverlappingRanges,
   _domain_str_quickSortRanges,
+  domain_toSol,
   // __REMOVE_ABOVE_FOR_DIST__
 };

@@ -95,6 +95,7 @@ import {
   domain_any_size,
   _domain_str_quickSortRanges,
   domain_toArr,
+  domain_toSol,
   domain_any_toList,
   domain_toNumstr,
   domain_any__debug,
@@ -1072,7 +1073,7 @@ describe('src/domain.spec', function() {
     it('should work with empty domain', function() {
       let arr = fixt_strdom_empty();
 
-      fixt_assertStrings(domain_str_simplify(arr), arr);
+      expect(domain_str_simplify(arr)).to.eql(EMPTY);
     });
 
     it('should return same domain if it has one range', function() {
@@ -1749,9 +1750,9 @@ describe('src/domain.spec', function() {
     describe('simple examples with numdom result', function() {
       function doit(a, b, c) {
         it(`should pass [${a}] / [${b}] = [${c}]`, function() {
-          a = domain_arrToNumstr(a);
-          b = domain_arrToNumstr(b);
-          c = domain_arrToNumstr(c);
+          a = domain_toSol(domain_arrToNumstr(a));
+          b = domain_toSol(domain_arrToNumstr(b));
+          c = domain_toSol(domain_arrToNumstr(c));
 
           expect(domain_any_divby(a, b)).to.eql(c);
         });

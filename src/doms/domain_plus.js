@@ -32,7 +32,6 @@ import {
   domain_str_encodeRange,
   domain_any_max,
   domain_str_simplify,
-  domain_toNumstr,
 } from '../domain';
 import {
   asmdomain_createRange,
@@ -74,7 +73,7 @@ function domain_any_plus(domain1, domain2) {
     else result = _domain_plusStrStrStr(domain1, domain2);
   }
 
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_str_simplify(result);
 }
 function _domain_plusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);

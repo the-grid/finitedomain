@@ -41,7 +41,6 @@ import {
   domain_any_max,
   domain_any_min,
   domain_str_simplify,
-  domain_toNumstr,
 } from '../domain';
 import {
   asmdomain_createRange,
@@ -86,7 +85,7 @@ function domain_any_minus(domain1, domain2) {
   if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
   else result = _domain_minusStrStrStr(domain1, domain2);
 
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_str_simplify(result);
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);
@@ -98,6 +97,8 @@ function _domain_minusStrStrStr(domain1, domain2) {
   let domains = domain_str_closeGaps(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
+  ASSERT(typeof domain1 === 'string', 'make sure closeGaps doesnt "optimize"');
+  ASSERT(typeof domain2 === 'string', 'make sure closeGaps doesnt "optimize"');
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {

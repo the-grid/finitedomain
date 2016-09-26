@@ -1366,7 +1366,7 @@ function domain_num_removeGte(domain, value) {
     return domain; // no change
   }
 
-  return asmdomain_removeGte(domain, value);
+  return domain_numToSol(asmdomain_removeGte(domain, value));
 }
 /**
  * Remove any value from domain that is bigger than or equal to given value.
@@ -1401,21 +1401,23 @@ function domain_str_removeGte(domain_str, value) {
       // 67 9    -> empty
       // 012 789 -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_toNumstr(newDomain);
+      return domain_toSol(domain_toNumstr(newDomain));
     }
     if (lo === value) {
       // 567 9   -> empty
       // 012 567 -> 012
       // 012 5   -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_toNumstr(newDomain);
+      return domain_toSol(domain_toNumstr(newDomain));
     }
     if (value <= hi) {
+      if (i === 0 && value === lo + 1) return domain_createValue(lo);
       // 012 456 -> 012 4
       // 012 45  -> 012 4
       let newDomain = domain_str.slice(0, i + STR_VALUE_SIZE) + domain_str_encodeValue(value - 1);
+      ASSERT(newDomain.length > STR_VALUE_SIZE, 'cannot be a solved value');
       if (value - 1 <= SMALL_MAX_NUM) return domain_strToNum(newDomain, i + STR_RANGE_SIZE);
-      return newDomain;
+      return domain_toSol(domain_toNumstr(newDomain));
     }
   }
   return domain_str; // 012 -> 012

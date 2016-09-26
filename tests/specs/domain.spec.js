@@ -2108,7 +2108,7 @@ describe('src/domain.spec', function() {
     describe('strdom', function() {
 
       function gteTest(domain, value, expected) {
-        it(`should gte [${domain}] >= ${value} -> [${expected}]`, function() {
+        it(`should gte ${domain_any__debug(domain)} >= ${value} -> ${domain_any__debug(expected)}`, function() {
           let clone = domain_any_clone(domain);
           let result = domain_any_removeGte(domain, value);
 
@@ -2126,8 +2126,12 @@ describe('src/domain.spec', function() {
       gteTest(fixt_strdom_ranges([105, 105]), 105, EMPTY);
       gteTest(fixt_strdom_ranges([100, 102]), 105, fixt_strdom_ranges([100, 102]));
       gteTest(fixt_strdom_ranges([106, 108]), 105, EMPTY);
-      gteTest(fixt_strdom_ranges([0, 1000]), SMALL_MAX_NUM, fixt_numdom_range(0, SMALL_MAX_NUM - 1));
-      gteTest(fixt_strdom_ranges([0, 1000]), SMALL_MAX_NUM + 1, fixt_numdom_range(0, SMALL_MAX_NUM));
+      gteTest(fixt_strdom_range(0, 1000), SMALL_MAX_NUM, fixt_numdom_range(0, SMALL_MAX_NUM - 1));
+      gteTest(fixt_strdom_range(0, 1000), SMALL_MAX_NUM + 1, fixt_numdom_range(0, SMALL_MAX_NUM));
+      gteTest(fixt_strdom_range(5, 50), 31, fixt_numdom_range(5, 30));
+      gteTest(fixt_strdom_range(500, 501), 501, fixt_strdom_nums(500)); // should be solved, later
+      gteTest(fixt_strdom_nums(500, 900), 900, fixt_numdom_solved(500));
+      gteTest(fixt_strdom_nums(500, 900, 901), 900, fixt_numdom_solved(500));
     });
 
     describe('numdom', function() {
@@ -2151,6 +2155,10 @@ describe('src/domain.spec', function() {
       gteTest(fixt_numdom_nums(5), 5, EMPTY);
       gteTest(fixt_numdom_nums(0, 1, 2), 5, fixt_numdom_nums(0, 1, 2));
       gteTest(fixt_numdom_nums(6, 7, 8), 5, EMPTY);
+      gteTest(fixt_numdom_nums(5, 6), 6, fixt_numdom_solved(5));
+      gteTest(fixt_numdom_nums(5, 6), 6, fixt_numdom_solved(5));
+      gteTest(fixt_numdom_solved(20), 21, fixt_numdom_solved(20));
+      gteTest(fixt_numdom_solved(10), 10, fixt_numdom_empty());
 
       it('should improve code coverage', function() {
         let numdom = fixt_numdom_range(0, 30);
@@ -2223,7 +2231,7 @@ describe('src/domain.spec', function() {
     describe('strdom', function() {
 
       function lteTest(domain, value, expected) {
-        it(`should lte [${domain}] <= ${value} -> [${expected}]`, function() {
+        it(`should lte ${domain_any__debug(domain)} <= ${value} -> ${domain_any__debug(expected)}`, function() {
           let clone = domain_any_clone(domain);
           let result = domain_any_removeLte(domain, value);
 

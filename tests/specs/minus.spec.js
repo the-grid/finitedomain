@@ -14,7 +14,7 @@ import {
 } from '../../src/helpers';
 import {
   domain_any__debug,
-  domain_fromList,
+  domain_fromListToArrdom,
   domain_toNumstr,
 } from '../../src/domain';
 import domain_any_minus from '../../src/doms/domain_minus';
@@ -188,7 +188,7 @@ describe('src/minus.spec.js', function() {
         for (let i = 0; i < smalls.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
-            let B = domain_toNumstr(domain_fromList(large[j]));
+            let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
             let C = smallLargeOut[n++];
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);
@@ -207,7 +207,7 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < smalls.length; ++j) {
-            let A = domain_toNumstr(domain_fromList(large[i]));
+            let A = domain_toNumstr(domain_fromListToArrdom(large[i]));
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
@@ -227,8 +227,8 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
-            let A = domain_toNumstr(domain_fromList(large[i]));
-            let B = domain_toNumstr(domain_fromList(large[j]));
+            let A = domain_toNumstr(domain_fromListToArrdom(large[i]));
+            let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
             let C = domain_toNumstr(largeLargeOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);

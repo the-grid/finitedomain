@@ -71,7 +71,7 @@ import {
   domain_createValue,
   domain_any_divby,
   domain_any_isEqual,
-  domain_fromList,
+  domain_fromListToArrdom,
   domain_numToStr,
   domain_any_getValue,
   domain_any_getValueOfFirstContainedValueInList,
@@ -176,125 +176,68 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_fromList', function() {
+  describe('fromListToArrdom', function() {
 
     it('should exist', function() {
-      expect(domain_fromList).to.be.a('function');
+      expect(domain_fromListToArrdom).to.be.a('function');
     });
 
-    it('should throw for empty lists', function() {
-      expect(domain_fromList([])).to.eql(EMPTY);
+    it('should return empty array for empty lists', function() {
+      expect(domain_fromListToArrdom([])).to.eql([]);
     });
 
     describe('numdoms', function() {
 
       it('should work with [0,0]', function() {
-        expect(domain_fromList([0])).to.eql(fixt_numdom_nums(0));
-        expect(domain_fromList([0, 0])).to.eql(fixt_numdom_nums(0));
+        expect(domain_fromListToArrdom([0])).to.eql(fixt_arrdom_nums(0));
+        expect(domain_fromListToArrdom([0, 0])).to.eql(fixt_arrdom_nums(0));
       });
 
       it('should work with [0,1]', function() {
-        expect(domain_fromList([0, 1])).to.eql(fixt_numdom_nums(0, 1));
-        expect(domain_fromList([1, 0])).to.eql(fixt_numdom_nums(0, 1));
-        expect(domain_fromList([0, 0, 1, 1])).to.eql(fixt_numdom_nums(0, 1));
-        expect(domain_fromList([1, 1, 0, 0])).to.eql(fixt_numdom_nums(0, 1));
+        expect(domain_fromListToArrdom([0, 1])).to.eql(fixt_arrdom_nums(0, 1));
+        expect(domain_fromListToArrdom([1, 0])).to.eql(fixt_arrdom_nums(0, 1));
+        expect(domain_fromListToArrdom([0, 0, 1, 1])).to.eql(fixt_arrdom_nums(0, 1));
+        expect(domain_fromListToArrdom([1, 1, 0, 0])).to.eql(fixt_arrdom_nums(0, 1));
       });
 
       it('should throw with negative elements', function() {
-        expect(() => domain_fromList([10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
-        expect(() => domain_fromList([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_fromListToArrdom([10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_fromListToArrdom([10, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
       });
 
-      it('should work with clone=true, sort=true', function() {
+      it('should not sort input array', function() {
         let list = [4, 3, 8, 2];
-        domain_fromList(list, true, true);
+        domain_fromListToArrdom(list, true, true);
 
         expect(list).to.eql([4, 3, 8, 2]);
-      });
-
-      it('should work with clone=false, sort=true', function() {
-        let list = [4, 3, 8, 2];
-        domain_fromList(list, false, true);
-
-        expect(list).to.eql([2, 3, 4, 8]);
-      });
-
-      it('should work with clone=true, sort=false, provided the list is sorted', function() {
-        let list = [2, 3, 4, 8];
-        domain_fromList(list, true, false);
-
-        expect(list).to.eql([2, 3, 4, 8]);
-      });
-
-      it('should throw with sort=false if the list is unsorted', function() {
-        let list = [2, 3, 8, 4];
-
-        expect(_ => domain_fromList(list, false, false)).to.throw('LIST_SHOULD_BE_ORDERED_BY_NOW');
-      });
-
-      it('should work with clone=false, sort=false, provided the list is sorted', function() {
-        let list = [2, 3, 4, 8];
-        domain_fromList(list, true, false);
-
-        expect(list).to.eql([2, 3, 4, 8]);
       });
     });
 
     describe('strdoms', function() {
 
       it('should work with [SUP,SUP]', function() {
-        fixt_assertStrings(domain_fromList([SUP]), fixt_strdom_nums(SUP));
-        fixt_assertStrings(domain_fromList([SUP, SUP]), fixt_strdom_nums(SUP));
+        expect(domain_fromListToArrdom([SUP])).to.eql(fixt_arrdom_nums(SUP));
+        expect(domain_fromListToArrdom([SUP, SUP])).to.eql(fixt_arrdom_nums(SUP));
       });
 
       it('should work with [SUP-1,SUP]', function() {
-        fixt_assertStrings(domain_fromList([SUP - 1, SUP]), fixt_strdom_nums(SUP - 1, SUP));
-        fixt_assertStrings(domain_fromList([SUP, SUP - 1]), fixt_strdom_nums(SUP, SUP - 1));
-        fixt_assertStrings(domain_fromList([SUP - 1, SUP - 1, SUP, SUP]), fixt_strdom_nums(SUP - 1, SUP));
-        fixt_assertStrings(domain_fromList([SUP - 1, SUP - 1, SUP, SUP]), fixt_strdom_nums(SUP - 1, SUP));
+        expect(domain_fromListToArrdom([SUP - 1, SUP])).to.eql(fixt_arrdom_nums(SUP - 1, SUP));
+        expect(domain_fromListToArrdom([SUP, SUP - 1])).to.eql(fixt_arrdom_nums(SUP, SUP - 1));
+        expect(domain_fromListToArrdom([SUP - 1, SUP - 1, SUP, SUP])).to.eql(fixt_arrdom_nums(SUP - 1, SUP));
+        expect(domain_fromListToArrdom([SUP - 1, SUP - 1, SUP, SUP])).to.eql(fixt_arrdom_nums(SUP - 1, SUP));
       });
 
       it('should throw with negative elements', function() {
-        expect(() => domain_fromList([SUP, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
-        expect(() => domain_fromList([SUP, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_fromListToArrdom([SUP, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
+        expect(() => domain_fromListToArrdom([SUP, 1, -1, 0, 10, 1, -1, 0, 10, 1, -1, 0])).to.throw('A_OOB_INDICATES_BUG');
       });
 
-      it('should work with clone=true, sort=true', function() {
+      it('should not sort input array', function() {
         let list = [4, SUP, 3, 8, 2];
-        let domain = domain_fromList(list, true, true);
+        let domain = domain_fromListToArrdom(list);
 
         expect(list).to.eql([4, SUP, 3, 8, 2]); // not changed
-        fixt_assertStrings(domain, fixt_strdom_nums(2, SUP, 3, 4, 8));
-      });
-
-      it('should work with clone=false, sort=true', function() {
-        let list = [4, SUP, 3, 8, 2];
-        let domain = domain_fromList(list, false, true);
-
-        expect(list).to.eql([2, 3, 4, 8, SUP]);
-        fixt_assertStrings(domain, fixt_strdom_nums(2, SUP, 3, 4, 8));
-      });
-
-      it('should work with clone=true, sort=false, provided the list is sorted', function() {
-        let list = [2, 3, 4, 8, SUP];
-        let domain = domain_fromList(list, true, false);
-
-        expect(list).to.eql([2, 3, 4, 8, SUP]);
-        fixt_assertStrings(domain, fixt_strdom_nums(2, 3, 4, 8, SUP));
-      });
-
-      it('should throw with sort=false if the list is unsorted', function() {
-        let list = [2, SUP, 3, 8, 4];
-
-        expect(_ => domain_fromList(list, false, false)).to.throw('LIST_SHOULD_BE_ORDERED_BY_NOW');
-      });
-
-      it('should work with clone=false, sort=false, provided the list is sorted', function() {
-        let list = [2, 3, 4, 8, SUP];
-        let domain = domain_fromList(list, true, false);
-
-        expect(list).to.eql([2, 3, 4, 8, SUP]);
-        fixt_assertStrings(domain, fixt_strdom_nums(2, 3, 4, 8, SUP));
+        expect(domain).to.eql(fixt_arrdom_nums(2, SUP, 3, 4, 8));
       });
     });
   });
@@ -2340,14 +2283,14 @@ describe('src/domain.spec', function() {
           let outFromFlags = domain_numToStr(numdom);
           let outToList = domain_any_toList(numdom);
           let outNumstr = domain_toNumstr(expStr);
-          let outFromList = domain_fromList(list);
+          let outFromList = domain_fromListToArrdom(list);
 
           let is = 'i=' + numdom;
           expect(numdom, is).to.eql(expNum); // more of a confirmation that the specs are proper
           expect(outFromFlags, is).to.eql(expStr);
           expect(outToList, is).to.eql(list);
           expect(outNumstr, is).to.eql(numdom);
-          expect(outFromList, is).to.eql(numdom);
+          expect(outFromList, is).to.eql(domain_toArr(numdom));
         }
       });
     });

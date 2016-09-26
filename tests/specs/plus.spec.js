@@ -17,7 +17,7 @@ import {
   NUM_TO_FLAG,
 
   domain_any__debug,
-  domain_fromList,
+  domain_fromListToArrdom,
   domain_toStr,
   domain_toNumstr,
 } from '../../src/domain';
@@ -198,7 +198,7 @@ describe('src/plus.spec.js', function() {
         for (let i = 0; i < smalls.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
-            let B = domain_toStr(domain_fromList(large[j]));
+            let B = domain_toStr(domain_fromListToArrdom(large[j]));
             let C = domain_toNumstr(smallLargeOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
@@ -217,7 +217,7 @@ describe('src/plus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < smalls.length; ++j) {
-            let A = domain_toStr(domain_fromList(large[i]));
+            let A = domain_toStr(domain_fromListToArrdom(large[i]));
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
@@ -237,8 +237,8 @@ describe('src/plus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
-            let A = domain_toStr(domain_fromList(large[i]));
-            let B = domain_toStr(domain_fromList(large[j]));
+            let A = domain_toStr(domain_fromListToArrdom(large[i]));
+            let B = domain_toStr(domain_fromListToArrdom(large[j]));
             let C = domain_toNumstr(largeLargeOut[n++]);
             let desc = A + ' - ' + B + ' = ' + C;
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);

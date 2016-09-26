@@ -30,7 +30,7 @@ import {
   domain_arrToStr,
   domain_any_clone,
   domain_createRange,
-  domain_fromList,
+  domain_fromListToArrdom,
   domain_any_isRejected,
   domain_any_max,
   domain_toArr,
@@ -578,7 +578,7 @@ class Solver {
    * @returns {number[]}
    */
   domain_fromList(list) {
-    return domain_toArr(domain_fromList(list));
+    return domain_toArr(domain_fromListToArrdom(list));
   }
 
   /**

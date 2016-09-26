@@ -325,38 +325,17 @@ function domain_str_encodeRange(lo, hi) {
 }
 
 /**
- * list of possible values to domain
- * returns a CSIS domain
+ * External API only. Always returns an arrdom.
  *
  * @param {number[]} list
- * @param {boolean} [clone=true]
- * @param {boolean} [sort=true]
- * @param {boolean} [_forceArray=false] Force creation of an array. Probably to convert a number for certain operations
- * @returns {$domain_str}
+ * @returns {$domain_arr}
  */
-function domain_fromList(list, clone = true, sort = true, _forceArray = false) { // FIXME: force array
-  console.log('fixme solved numdom');
-  if (!list.length) return EMPTY;
-  if (sort) { // note: the list must be sorted for the algorithm below to work...
-    if (clone) { // clone before sorting?
-      list = list.slice(0);
-    }
-    list.sort((a, b) => a - b); // note: default sort is lexicographic!
-  }
+function domain_fromListToArrdom(list) {
+  if (!list.length) return [];
+  list = list.slice(0);
+  list.sort((a, b) => a - b); // note: default sort is lexicographic!
 
-  if (!_forceArray && list[0] >= 0 && list[list.length - 1] <= SMALL_MAX_NUM) {
-    // create a number.
-    let last = 0; // do confirm whether the list is ordered
-    let d = 0;
-    for (let i = 0; i < list.length; ++i) {
-      let value = list[i];
-      ASSERT(value >= last && (last = value) >= 0, 'LIST_SHOULD_BE_ORDERED_BY_NOW');
-      d |= NUM_TO_FLAG[value];
-    }
-    return d;
-  }
-
-  let domain = EMPTY_STR;
+  let arrdom = [];
   let hi;
   let lo;
   for (let index = 0; index < list.length; index++) {
@@ -369,14 +348,16 @@ function domain_fromList(list, clone = true, sort = true, _forceArray = false) {
     } else {
       ASSERT(value >= hi, 'LIST_SHOULD_BE_ORDERED_BY_NOW'); // imo it should not even contain dupe elements... but that may happen anyways
       if (value > hi + 1) {
-        domain += domain_str_encodeRange(lo, hi);
+        arrdom.push(lo, hi);
         lo = value;
       }
       hi = value;
     }
   }
 
-  return domain + domain_str_encodeRange(lo, hi);
+  arrdom.push(lo, hi);
+
+  return arrdom;
 }
 
 /**
@@ -2290,7 +2271,7 @@ export {
   domain_any__debug,
   domain_any_divby,
   domain_any_isEqual,
-  domain_fromList,
+  domain_fromListToArrdom,
   domain_any_getValue,
   domain_arr_getValue,
   domain_str_getValue,

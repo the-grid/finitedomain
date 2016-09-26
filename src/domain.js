@@ -556,7 +556,6 @@ function domain_str_getValueOfFirstContainedValueInList(domain, list) {
  * @returns {$domain_str} ironically, not optimized to a number if possible
  */
 function domain_str_simplify(domain) {
-  console.log('fixme solved numdom');
   ASSERT_STRDOM(domain);
 
   if (!domain) return EMPTY_STR; // keep return type consistent, dont return EMPTY
@@ -566,7 +565,7 @@ function domain_str_simplify(domain) {
   domain = _domain_str_quickSortRanges(domain);
   domain = _domain_str_mergeOverlappingRanges(domain);
 
-  return domain;
+  return domain_numToSol(domain_toNumstr(domain));
 }
 /**
  * Sort all ranges in this pseudo-strdom from lo to hi. Domain

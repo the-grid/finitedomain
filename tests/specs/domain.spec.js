@@ -1669,7 +1669,7 @@ describe('src/domain.spec', function() {
     it('should divide one domain from another; floored', function() {
       let A = fixt_strdom_ranges([5, 10], [20, 35]);
       let B = fixt_strdom_ranges([50, 60], [110, 128]);
-      let E = fixt_numdom_range(0, 0);
+      let E = fixt_numdom_solved(0);
 
       expect(domain_any_divby(A, B, FLOOR_FRACTIONS)).to.eql(E); // would be [0.0390625, 0.7] which gets floored to [0, 0.7] so [0,0]
     });

@@ -6,12 +6,15 @@ import {
 } from '../helpers';
 
 import {
-  ZERO,
-  ONE,
-  BOOL,
+  domain_createRange,
+  domain_createValue,
+  domain_any_getValue,
 } from '../domain';
 
 // BODY_START
+
+let REIFIER_FAIL = 0;
+let REIFIER_PASS = 1;
 
 /**
  * A boolean variable that represents whether a comparison
@@ -39,22 +42,22 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
 
   let vardoms = space.vardoms;
   let domResult = vardoms[resultVarIndex];
-  ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
-  if (domResult === ZERO) {
+  let value = domain_any_getValue(domResult);
+  ASSERT(value === REIFIER_FAIL || value === REIFIER_PASS || domResult === domain_createRange(0, 1), 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
+
+  if (value === REIFIER_FAIL) {
     nopFunc(space, config, leftVarIndex, rightVarIndex);
-  } else if (domResult === ONE) {
+  } else if (value === REIFIER_PASS) {
     opFunc(space, config, leftVarIndex, rightVarIndex);
   } else {
-    ASSERT(domResult === BOOL, 'failsafe assertion');
-
     let domain1 = vardoms[leftVarIndex];
     let domain2 = vardoms[rightVarIndex];
 
     ASSERT_NUMSTRDOM(domain1);
     ASSERT_NUMSTRDOM(domain2);
     ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
-    ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
+    ASSERT(domResult === domain_createRange(0, 1), 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
     // we'll need to confirm both in any case so do it first now
     let opRejects = opRejectChecker(domain1, domain2);
@@ -66,11 +69,11 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
       if (opRejects) {
         vardoms[resultVarIndex] = EMPTY;
       } else {
-        vardoms[resultVarIndex] = ONE;
+        vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
         opFunc(space, config, leftVarIndex, rightVarIndex);
       }
     } else if (opRejects) {
-      vardoms[resultVarIndex] = ZERO;
+      vardoms[resultVarIndex] = domain_createValue(REIFIER_FAIL);
       nopFunc(space, config, leftVarIndex, rightVarIndex);
     }
   }

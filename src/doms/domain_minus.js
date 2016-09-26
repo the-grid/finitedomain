@@ -31,9 +31,11 @@ import {
 import {
   STR_VALUE_SIZE,
   STR_RANGE_SIZE,
-  ZERO,
-  domain_str_closeGaps,
+
   domain_createRange,
+  domain_createValue,
+  domain_str_closeGaps,
+  domain_num_containsValue,
   domain_str_decodeValue,
   domain_str_encodeRange,
   domain_any_max,
@@ -74,11 +76,10 @@ function domain_any_minus(domain1, domain2) {
 
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
-
   if (isNum1) {
     // note: if domain1 is a small domain the result is always a small domain
-    if (isNum2) return _domain_minusNumNumNum(domain1, domain2);
-    return _domain_minusNumStrNum(domain1, domain2);
+    if (isNum2) return _domain_minusNumNum(domain1, domain2);
+    return _domain_minusNumStr(domain1, domain2);
   }
 
   let result;
@@ -107,18 +108,28 @@ function _domain_minusStrStrStr(domain1, domain2) {
 
   return newDomain;
 }
+function _domain_minusNumNum(domain1, domain2) {
+  if (domain1 & SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    if (domain2 & SOLVED_FLAG) {
+      let result = solvedValue - (domain2 ^ SOLVED_FLAG);
+      if (result < 0) return EMPTY;
+      return domain_createValue(result);
+    }
+    if (solvedValue <= SMALL_MAX_NUM) return _domain_minusRangeNumNum(solvedValue, solvedValue, domain2);
+    else return _domain_minusRangeNumStr(solvedValue, solvedValue, domain2);
+  }
+
+  return _domain_minusNumNumNum(domain1, domain2);
+}
 function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
+  ASSERT((domain1 & SOLVED_FLAG) === 0, 'solved domain1 is expected to be caught elsewhere');
 
-  if (domain1 & SOLVED_FLAG) {
-    let solvedValue = domain1 ^ SOLVED_FLAG;
-    return _domain_minusRangeNumNum(solvedValue, solvedValue, domain2);
-  }
-
-  if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
+  if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return asmdomain_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -144,11 +155,19 @@ function _domain_minusNumNumNum(domain1, domain2) {
 
   return newDomain | _domain_minusRangeNumNum(lo, hi, domain2);
 }
+function _domain_minusNumStr(domain_num, domain_str) {
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    if (solvedValue <= SMALL_MAX_NUM) return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
+    else return _domain_minusRangeStrStr(solvedValue, solvedValue, domain_str);
+  }
+  return _domain_minusNumStrNum(domain_num, domain_str);
+}
 function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
 
   if (domain_num & SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
@@ -156,7 +175,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   }
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain_num & ZERO && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
+  if (domain_num_containsValue(domain_num, 0) && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty

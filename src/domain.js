@@ -190,15 +190,24 @@ function domain_str_addRange(domain, lo, hi) {
 function domain_any_containsValue(domain, value) {
   ASSERT_NUMSTRDOM(domain);
 
-  if (typeof domain === 'number') {
-    if (domain & SOLVED_FLAG) return (domain ^ SOLVED_FLAG) === value;
-    return asmdomain_containsValue(domain, value) === 1;
-  }
+  if (typeof domain === 'number') return domain_num_containsValue(domain, value);
   return domain_str_containsValue(domain, value);
 }
 /**
  * returns whether domain covers given value
- * for array domains
+ * for numdoms
+ *
+ * @param {$domain_num} domain
+ * @param {number} value
+ * @returns {boolean}
+ */
+function domain_num_containsValue(domain, value) {
+  if (domain & SOLVED_FLAG) return (domain ^ SOLVED_FLAG) === value;
+  return asmdomain_containsValue(domain, value) === 1;
+}
+/**
+ * returns whether domain covers given value
+ * for strdoms
  *
  * @param {$domain_str} domain
  * @param {number} value
@@ -232,7 +241,7 @@ function domain_str_rangeIndexOf(domain, value) {
         return index;
       }
     } else {
-      // value is between previous range and this one, aka: not found. proceed with next item in list
+      // value is between previous range and this one, aka: not found.
       break;
     }
   }
@@ -674,10 +683,10 @@ function domain_any_intersection(domain1, domain2) {
   if (domain1 === domain2) return domain1;
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
+
   if (isNum1 && isNum2) return domain_numnum_intersection(domain1, domain2);
   if (isNum1) return domain_numstr_intersection(domain1, domain2);
   if (isNum2) return domain_numstr_intersection(domain2, domain1); // swapped!
-  console.log('fixme solved numdom');
   return domain_strstr_intersection(domain1, domain2);
 }
 function domain_numnum_intersection(domain1, domain2) {
@@ -706,7 +715,7 @@ function domain_numnum_intersection(domain1, domain2) {
     return EMPTY;
   }
 
-  return asmdomain_intersection(domain1, domain2);
+  return domain_numToSol(asmdomain_intersection(domain1, domain2));
 }
 /**
  * Intersect the domain assuming domain1 is a numbered (small)
@@ -728,11 +737,12 @@ function domain_numstr_intersection(domain_num, domain_str) {
     for (let i = 0, len = domain_str.length; i < len; i += STR_RANGE_SIZE) {
       let lo = domain_str_decodeValue(domain_str, i);
       let hi = domain_str_decodeValue(domain_str, i + STR_VALUE_SIZE);
-
-      if (solvedValue >= lo && solvedValue <= hi) return domain_num;
       // once a range is found beyond the solved value we can never find solved value in domain_str
-      if (solvedValue < lo) return EMPTY;
+      if (solvedValue < lo) break;
+      // when lo<=value<=hi the intersection is non-empty. return the solved domain.
+      if (solvedValue <= hi) return domain_num;
     }
+    return EMPTY;
   }
 
   // TODO: intersect in a "zipper" O(max(n,m)) algorithm instead of O(n*m). see _domain_strstr_intersection
@@ -748,8 +758,7 @@ function domain_numstr_intersection(domain_num, domain_str) {
     }
   }
 
-  console.log('fixme solved numdom'); // if only one value was found, return a solved numdom
-  return domain;
+  return domain_numToSol(domain);
 }
 /**
  * Intersect two strdoms.
@@ -764,26 +773,12 @@ function domain_strstr_intersection(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
-  let newDomain = _domain_strstr_intersection(domain1, domain2);
-  return domain_toNumstr(newDomain);
-}
-/**
- * Recursively calls itself
- *
- * @param {$domain_str} domain1
- * @param {$domain_str} domain2
- * @returns {$domain_str} always a strdom
- */
-function _domain_strstr_intersection(domain1, domain2) {
-  ASSERT_STRDOM(domain1);
-  ASSERT_STRDOM(domain2);
-
-  let newDomain = EMPTY_STR;
-
   let len1 = domain1.length;
   let len2 = domain2.length;
 
-  if (len1 + len2 === 0) return newDomain;
+  if ((len1 | len2) === 0) return EMPTY;
+
+  let newDomain = EMPTY_STR;
 
   let index1 = 0;
   let index2 = 0;
@@ -829,7 +824,7 @@ function _domain_strstr_intersection(domain1, domain2) {
     }
   }
 
-  return newDomain;
+  return domain_toSol(domain_toNumstr(newDomain));
 }
 
 function domain_any__debug(domain) {
@@ -1616,26 +1611,24 @@ function domain_any_sharesNoElements(domain1, domain2) {
 
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
-  if (isNum1 && isNum2) return domain_numnum_sharesNoElements(domain1, domain2) === 1;
+  if (isNum1 && isNum2) return domain_numnum_sharesNoElements(domain1, domain2);
   if (isNum1) return domain_numstr_sharesNoElements(domain1, domain2);
   if (isNum2) return domain_numstr_sharesNoElements(domain2, domain1);
   return domain_strstr_sharesNoElements(domain1, domain2);
 }
 function domain_numnum_sharesNoElements(domain1, domain2) {
-  if ((domain1 | domain2) & SOLVED_FLAG) {
-    if ((domain2 & SOLVED_FLAG) === 0) {
-      let solvedValue = domain1 ^ SOLVED_FLAG;
-      if (solvedValue > SMALL_MAX_NUM) return true;
-      return (domain2 & (1 << solvedValue)) === 0;
+  if (domain1 & SOLVED_FLAG) {
+    if (domain2 & SOLVED_FLAG) {
+      return domain1 !== domain2;
     }
-    if ((domain1 & SOLVED_FLAG) === 0) {
-      let solvedValue = domain2 ^ SOLVED_FLAG;
-      if (solvedValue > SMALL_MAX_NUM) return true;
-      return (domain1 & (1 << solvedValue)) === 0;
-    }
-    // both domains are solved so we can compare them.
-    // they share nothing if solved to a different value
-    return domain1 !== domain2;
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    if (solvedValue > SMALL_MAX_NUM) return true;
+    return (domain2 & (1 << solvedValue)) === 0;
+  }
+  if (domain2 & SOLVED_FLAG) {
+    let solvedValue = domain2 ^ SOLVED_FLAG;
+    if (solvedValue > SMALL_MAX_NUM) return true;
+    return (domain1 & (1 << solvedValue)) === 0;
   }
 
   return asmdomain_sharesNoElements(domain1, domain2);
@@ -1810,7 +1803,7 @@ function domain_numToArr(domain) {
   ASSERT_NUMDOM(domain);
 
   if (domain & SOLVED_FLAG) {
-    return domain_createValue(domain ^ SOLVED_FLAG);
+    return domain_toArr(domain_createValue(domain ^ SOLVED_FLAG));
   }
 
   if (domain === EMPTY) return [];
@@ -2101,16 +2094,42 @@ function domain_strToNum(domain, len) {
   return out;
 }
 /**
+ * Check if given domain is solved and if so return a
+ * solved numdom for it. Otherwise return same domain.
+ *
+ * @param {$domain} domain
+ */
+function domain_toSol(domain) {
+  if (typeof domain === 'number') return domain_numToSol(domain);
+  return domain_strToSol(domain);
+}
+/**
  * Check if given numdom is solved and if so return a
  * solved numdom for it. Otherwise return same numdom.
  *
- * @param domain_num
+ * @param {$domain_num} domain_num
  */
 function domain_numToSol(domain_num) {
   let value = asmdomain_getValue(domain_num);
   if (value === NO_SUCH_VALUE) return domain_num;
   return (value | SOLVED_FLAG) >>> 0; // force unsigned
   //return domain_createValue(domain_num); // TODO; DRY
+}
+/**
+ * Check if given strdom is solved and if so return a
+ * solved numdom for it. Otherwise return same strdom.
+ *
+ * @param {$domain_str} domain_str
+ */
+function domain_strToSol(domain_str) {
+  if (domain_str.length === STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain_str, 0);
+    let hi = domain_str_decodeValue(domain_str, STR_VALUE_SIZE);
+    if (lo === hi) {
+      return (lo | SOLVED_FLAG) >>> 0;
+    }
+  }
+  return domain_str;
 }
 
 /**
@@ -2285,6 +2304,7 @@ export {
   domain_any_clone,
   domain_str_closeGaps,
   domain_any_containsValue,
+  domain_num_containsValue,
   domain_str_containsValue,
   domain_createRange,
   domain_createValue,

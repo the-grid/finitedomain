@@ -160,6 +160,7 @@ function fixt_numdom_empty() {
   return 0; // magic value yo. no flags means zero
 }
 function fixt_numdom_solved(num) {
+  if (arguments.length !== 1) throw new Error('INVALID_PARAM_FIX_TEST');
   if (num < SUB || num > SUP) throw new Error('SOLVED_NUM_MUST_BE_SUBSUP_BOUND');
   return (num | SOLVED_FLAG) >>> 0; // num|flag could lead to negative value without the >>>
 }

@@ -24,6 +24,7 @@ function propagator_minStep(space, config, varIndex1, varIndex2, varIndex3) {
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
 
+  // TODO: prune domain1 and domain2 like ring does, but here
   space.vardoms[varIndex3] = _propagator_minStep(domain1, domain2, domain3);
 }
 

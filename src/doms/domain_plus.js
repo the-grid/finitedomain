@@ -98,6 +98,7 @@ function _domain_plusStrStrStr(domain1, domain2) {
 function _domain_plusWillBeSmall(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
+  if ((domain1 | domain2) & SOLVED_FLAG) return false; // it's just a heuristic. don't spend too much time on it.
   // if both domains are small enough they cannot add to a domain beyond the max
   if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
   return domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
@@ -240,7 +241,7 @@ function _domain_plusRangeNumStr(loi, hii, domain_num) {
 
   if (domain_num & SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
-    return _domain_plusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+    return _domain_plusRangeRangeStr(loi, hii, solvedValue, solvedValue);
   }
 
   let flagIndex = 0;

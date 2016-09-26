@@ -1,6 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_numdom_range,
+  fixt_numdom_solved,
   fixt_strdom_nums,
   fixt_strdom_range,
 } from '../../fixtures/domain.fixt';
@@ -23,7 +23,7 @@ describe('propagators/ring.spec', function() {
 
     let S = _propagator_ringStepBare(A, B, C, domain_any_minus, 'min');
 
-    expect(S).to.eql(fixt_numdom_range(0, 0));
+    expect(S).to.eql(fixt_numdom_solved(0));
   });
 
   it('should add two numbers', function() {
@@ -33,7 +33,7 @@ describe('propagators/ring.spec', function() {
 
     let S = _propagator_ringStepBare(A, B, C, domain_any_plus, 'plus');
 
-    expect(S).to.eql(fixt_numdom_range(2, 2));
+    expect(S).to.eql(fixt_numdom_solved(2));
   });
 
   it('should reject if result is not in result domain', function() {

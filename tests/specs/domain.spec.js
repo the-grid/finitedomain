@@ -1204,6 +1204,30 @@ describe('src/domain.spec', function() {
 
         fixt_assertStrings(domain_any_intersection(a, b), fixt_strdom_ranges([9, 36], [54, 66], [74, 75]));
       });
+
+      it('should normalize a numdom if the result is low enough', function() {
+        let a = fixt_strdom_ranges([9, 30], [54, 67], [74, 77], [84, 96]);
+        let b = fixt_strdom_range(28, 35);
+
+        // only 28,29,30 intersects (crossing the numdom boundary)
+        expect(domain_any_intersection(a, b)).to.eql(fixt_numdom_range(28, 30));
+      });
+
+      it('should return a solved numdom if the result is solved to a strdom value', function() {
+        let a = fixt_strdom_ranges([9, 36], [54, 66], [74, 77], [84, 96]);
+        let b = fixt_strdom_range(66, 70);
+
+        // only 66 intersects
+        expect(domain_any_intersection(a, b), domain_toArr(domain_any_intersection(a, b))).to.eql(fixt_numdom_solved(66));
+      });
+
+      it('should return a solved numdom if the result is solved to a numdom value', function() {
+        let a = fixt_strdom_ranges([9, 30], [54, 66], [74, 77], [84, 96]);
+        let b = fixt_strdom_range(30, 35);
+
+        // only 66 intersects
+        expect(domain_any_intersection(a, b)).to.eql(fixt_numdom_solved(30));
+      });
     });
 
     describe('numdom', function() {

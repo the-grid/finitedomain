@@ -2,6 +2,7 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_numdom_solved,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -17,6 +18,6 @@ describe('propagators/min.spec', function() {
 
     let S = _propagator_minStep(A, B, C);
 
-    expect(S).to.eql(fixt_numdom_nums(0));
+    expect(S).to.eql(fixt_numdom_solved(0));
   });
 });

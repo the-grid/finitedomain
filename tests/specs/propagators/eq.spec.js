@@ -6,6 +6,7 @@ import {
   fixt_strdom_ranges,
   fixt_numdom_empty,
   fixt_numdom_nums,
+  fixt_numdom_solved,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -165,14 +166,14 @@ describe('propagators/eq.spec', function() {
       });
     }
 
-    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_nums(0, 0));
-    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_nums(1, 1));
-    test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_nums(1, 1));
-    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_nums(5, 5));
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_solved(0));
+    test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_solved(1));
+    test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_solved(1));
+    test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_solved(5));
     test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30));
     test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
     test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty());
-    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_nums(2));
+    test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_solved(2));
   });
 });
 

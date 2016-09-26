@@ -20,6 +20,7 @@ import {
   EMPTY,
   EMPTY_STR,
   SMALL_MAX_NUM,
+  SOLVED_FLAG,
   SUB,
 
   ASSERT,
@@ -112,6 +113,11 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
+  if (domain1 & SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    return _domain_minusRangeNumNum(solvedValue, solvedValue, domain2);
+  }
+
   if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
@@ -144,6 +150,11 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
 
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
+  }
+
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
   if (domain_num & ZERO && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
 
@@ -174,6 +185,11 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
 function _domain_minusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
+
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -224,6 +240,11 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
 
   if (domain_num === EMPTY) return EMPTY;
+
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeRangeStr(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty

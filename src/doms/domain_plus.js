@@ -12,6 +12,7 @@ import {
   EMPTY,
   EMPTY_STR,
   SMALL_MAX_NUM,
+  SOLVED_FLAG,
   SUP,
 
   ASSERT,
@@ -105,6 +106,11 @@ function _domain_plusNumNumStr(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
 
+  if (domain1 & SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    return _domain_plusRangeNumStr(solvedValue, solvedValue, domain2);
+  }
+
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
   while ((domain1 & (1 << flagIndex)) === 0) ++flagIndex;
@@ -113,7 +119,6 @@ function _domain_plusNumNumStr(domain1, domain2) {
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
-
   let newDomain = EMPTY_STR;
   while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain1) > 0) {
@@ -134,6 +139,11 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+
+  if (domain1 & SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    return _domain_plusRangeNumNum(solvedValue, solvedValue, domain2);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -163,6 +173,10 @@ function _domain_plusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -192,6 +206,11 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
 
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeStrStr(solvedValue, solvedValue, domain_str);
+  }
+
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
   while ((domain_num & (1 << flagIndex)) === 0) ++flagIndex;
@@ -218,6 +237,11 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
 }
 function _domain_plusRangeNumStr(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
+
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty

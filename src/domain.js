@@ -2086,7 +2086,7 @@ function domain_toNumstr(domain) {
  * is eligible to be a small domain.
  *
  * @param {$domain_str} domain
- * @param {number} len Length of the domain array (domain.length! not range count)
+ * @param {number} len Cache of domain.length (string length... not value count)
  * @returns {$domain_num}
  */
 function domain_strToNum(domain, len) {
@@ -2094,14 +2094,19 @@ function domain_strToNum(domain, len) {
   ASSERT(domain.length === len, 'len should be cache of domain.length');
   ASSERT(domain_any_max(domain) <= SMALL_MAX_NUM, 'SHOULD_BE_SMALL_DOMAIN', domain, domain_any_max(domain));
 
-  let out = EMPTY;
-  for (let i = 0; i < len; i += STR_RANGE_SIZE) {
+  if (len === 0) return EMPTY;
+
+  let lo = domain_str_decodeValue(domain, 0);
+  let hi = domain_str_decodeValue(domain, 0 + STR_VALUE_SIZE);
+
+  //if (len === STR_RANGE_SIZE && lo === hi) {
+  //  return (lo | SOLVED_FLAG) >>> 0; // >>>0 forces unsigned.
+  //}
+
+  let out = asmdomain_addRange(EMPTY, lo, hi);
+  for (let i = STR_RANGE_SIZE; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain, i);
     let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
-    // TODO:
-    //if (len === i + STR_RANGE_SIZE && lo === hi) {
-    //  return (lo | SOLVED_FLAG) >>> 0;
-    //}
     out = asmdomain_addRange(out, lo, hi);
   }
   return out;

@@ -88,6 +88,7 @@ function ASSERT_STRDOM(domain) {
 }
 function ASSERT_NUMDOM(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_NUMDOM');
+  ASSERT(domain >= 0, 'ALL_NUMDOMS_SHOULD_BE_UNSIGNED');
   // TODO: verify that any solved domain is encoded as a solved numdom...
   if (domain & SOLVED_FLAG) {
     ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');

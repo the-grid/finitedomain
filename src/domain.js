@@ -429,20 +429,26 @@ function domain_any_removeNextFromList(domain, list) {
  * Given domain is not harmed in this process.
  * If no items from list can be found, this function returns the empty domain.
  *
- * @param {$domain_num} domain
+ * @param {$domain_num} domain_num
  * @param {number[]} list
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
-function domain_num_removeNextFromList(domain, list) {
-  ASSERT_NUMDOM(domain);
+function domain_num_removeNextFromList(domain_num, list) {
+  ASSERT_NUMDOM(domain_num);
   ASSERT(list, 'A_EXPECTING_LIST');
+
+  if (domain_num & SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    if (list.indexOf(solvedValue) >= 0) return EMPTY;
+    return domain_num;
+  }
 
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
     if (value < SMALL_MAX_NUM) { // 1<<100 = 16. non-small-domain numbers are valid here. so check.
       let flag = 1 << value;
-      if (domain & flag) return domain ^ flag; // if the bit is set; unset it
+      if (domain_num & flag) return domain_numToSol(domain_num ^ flag); // if the bit is set; unset it
     }
   }
   return NO_SUCH_VALUE;
@@ -459,20 +465,6 @@ function domain_num_removeNextFromList(domain, list) {
  */
 function domain_str_removeNextFromList(domain, list) {
   ASSERT_STRDOM(domain);
-
-  let r = _domain_str_removeNextFromList(domain, list); // replace empty string
-  ASSERT(r || r === EMPTY_STR, 'if it returns falsy it should be the empty string and not some other falsy');
-  return r || EMPTY; // replace '' with 0
-}
-/**
- * See main function. This function may return the empty string as an empty domain.
- *
- * @param {$domain_str} domain
- * @param {number[]} list
- * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
- */
-function _domain_str_removeNextFromList(domain, list) {
-  ASSERT_STRDOM(domain);
   ASSERT(list, 'A_EXPECTING_LIST');
 
   let len = domain.length;
@@ -481,30 +473,18 @@ function _domain_str_removeNextFromList(domain, list) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
 
+    let lastLo = -1;
+    let lastHi = -1;
     for (let index = 0; index < len; index += STR_RANGE_SIZE) {
       let lo = domain_str_decodeValue(domain, index);
       if (lo <= value) {
         let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
         if (hi >= value) {
           // value is lo<=value<=hi
-
-          let before = domain.slice(0, index);
-          let after = domain.slice(index + STR_RANGE_SIZE);
-
-          if (hi === value) {
-            // TODO: check numbered domain edge case. its not trivial, maybe we can cheese it by checking the return value (but only here)
-            if (lo === value) {
-              // lo=hi=value; drop this range completely
-              return before + after; // TODO: i dont think this is correct yet for empty strings but maybe?
-            }
-            return before + domain_str_encodeRange(lo, hi - 1) + after;
-          } else if (lo === value) {
-            return before + domain_str_encodeRange(lo + 1, hi) + after;
-          } else {
-            // we get new two ranges...
-            return before + domain_str_encodeRange(lo, value - 1) + domain_str_encodeRange(value + 1, hi) + after;
-          }
+          return _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, lastHi);
         }
+        lastLo = lo;
+        lastHi = hi;
       } else {
         // value is between previous range and this one, aka: not found. proceed with next item in list
         break;
@@ -513,6 +493,57 @@ function _domain_str_removeNextFromList(domain, list) {
   }
 
   return NO_SUCH_VALUE;
+}
+function _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, lastHi) {
+  ASSERT(domain !== EMPTY_STR, 'SHOULD_NOT_BE_EMPTY_YET');
+
+  // normalize to (solved) numdom if the result is solved:
+  // - one range and it contains two values: solved numdom
+  // - oen range and it contains one value: EMPTY
+  // - two ranges and both have one value: solved numdom
+  // - removed value is >MAX_NUMDOM_VALUE and new highest value <=MAX_NUMDOM_VALUE: numdom
+  //   - must remove highest value of dom. either
+  //     - from a range of >=2 values (check hi-1)
+  //     - from range with one value (check lastHi)
+  if (len === STR_RANGE_SIZE) {
+    if (hi - lo === 1) return ((lo === value ? hi : lo) | SOLVED_FLAG) >>> 0;
+    if (lo === hi) return EMPTY;
+    ASSERT(hi - lo > 1);
+  } else if (len === 2 * STR_RANGE_SIZE && lo === hi && lastLo === lastHi) {
+    return lastLo | SOLVED_FLAG;
+  }
+  if (value === hi) {
+    // to numdom checks
+    if (lo === hi && lastHi <= SMALL_MAX_NUM) {
+      ASSERT(len > STR_RANGE_SIZE, 'this return-EMPTY case is checked above');
+      // numdom excluding the last range
+      let newLen = len - STR_RANGE_SIZE;
+      return domain_strToNum(domain.slice(0, newLen), newLen);
+    } else if (hi - 1 <= SMALL_MAX_NUM) {
+      ASSERT(len > STR_RANGE_SIZE || hi - lo > 2, 'one-range check done above, would return solved numdom');
+      // numdom excluding last value of last range
+      // (the encodeValue step is unfortunate but let's KISS)
+      return domain_strToNum(domain.slice(0, -STR_VALUE_SIZE) + domain_str_encodeValue(hi - 1), len);
+    }
+  }
+
+  // from this point onward we'll return a strdom
+
+  let before = domain.slice(0, index);
+  let after = domain.slice(index + STR_RANGE_SIZE);
+
+  if (hi === value) {
+    if (lo === value) {
+      // lo=hi=value; drop this range completely
+      return before + after;
+    }
+    return before + domain_str_encodeRange(lo, hi - 1) + after;
+  } else if (lo === value) {
+    return before + domain_str_encodeRange(lo + 1, hi) + after;
+  } else {
+    // we get new two ranges...
+    return before + domain_str_encodeRange(lo, value - 1) + domain_str_encodeRange(value + 1, hi) + after;
+  }
 }
 
 /**
@@ -2091,6 +2122,18 @@ function domain_strToNum(domain, len) {
     out = asmdomain_addRange(out, lo, hi);
   }
   return out;
+}
+/**
+ * Check if given numdom is solved and if so return a
+ * solved numdom for it. Otherwise return same numdom.
+ *
+ * @param domain_num
+ */
+function domain_numToSol(domain_num) {
+  let value = asmdomain_getValue(domain_num);
+  if (value === NO_SUCH_VALUE) return domain_num;
+  return (value | SOLVED_FLAG) >>> 0; // force unsigned
+  //return domain_createValue(domain_num); // TODO; DRY
 }
 
 /**

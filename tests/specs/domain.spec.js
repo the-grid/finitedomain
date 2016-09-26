@@ -350,7 +350,7 @@ describe('src/domain.spec', function() {
     });
   });
 
-  describe('domain_removeNextFromList', function() {
+  describe('removeNextFromList', function() {
 
     it('should exist', function() {
       expect(domain_any_removeNextFromList).to.be.a('function');
@@ -432,6 +432,17 @@ describe('src/domain.spec', function() {
         expect(() => domain_any_removeNextFromList(A, [299, -1, 212, 211])).to.throw('A_OOB_INDICATES_BUG');
         expect(() => domain_any_removeNextFromList(A, [299, -1])).to.throw('A_OOB_INDICATES_BUG');
       });
+
+      it('should normalize to a numdom if possible', function() {
+        expect(domain_any_removeNextFromList(fixt_strdom_ranges([2, 24], [SUP, SUP]), [SUP])).to.eql(fixt_numdom_range(2, 24));
+        expect(domain_any_removeNextFromList(fixt_strdom_ranges([2, 24], [30, 30]), [30])).to.eql(fixt_numdom_range(2, 24));
+        expect(domain_any_removeNextFromList(fixt_strdom_range(2, 31), [31])).to.eql(fixt_numdom_range(2, 30));
+      });
+
+      it('should normalize to a solved numdom if possible', function() {
+        expect(domain_any_removeNextFromList(fixt_strdom_range(SUP - 1, SUP), [SUP])).to.eql(fixt_numdom_solved(SUP - 1));
+        expect(domain_any_removeNextFromList(fixt_strdom_range(200, 201), [200])).to.eql(fixt_numdom_solved(201));
+      });
     });
 
     describe('numdom', function() {
@@ -493,6 +504,25 @@ describe('src/domain.spec', function() {
 
         expect(() => domain_any_removeNextFromList(A, [99, -1, 12, 11])).to.throw('A_OOB_INDICATES_BUG');
         expect(() => domain_any_removeNextFromList(A, [99, -1])).to.throw('A_OOB_INDICATES_BUG');
+      });
+
+      it('should normalize to a solved numdom if possible', function() {
+        expect(domain_any_removeNextFromList(fixt_numdom_range(0, 1), [1])).to.eql(fixt_numdom_solved(0));
+        expect(domain_any_removeNextFromList(fixt_numdom_range(0, 1), [0])).to.eql(fixt_numdom_solved(1));
+        expect(domain_any_removeNextFromList(fixt_numdom_range(20, 21), [20])).to.eql(fixt_numdom_solved(21));
+      });
+    });
+
+    describe('solved numdom', function() {
+
+      it('should work with solved numdoms', function() {
+        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
+        for (let i = 0; i < nums.length; ++i) {
+          let n = nums[i];
+          // do a search that passes, fails
+          expect(domain_any_removeNextFromList(fixt_numdom_solved(n), [n]), 'n=' + n + ',q=n').to.equal(EMPTY);
+          expect(domain_any_removeNextFromList(fixt_numdom_solved(n), [5]), 'n=' + n + ',q=5').to.equal(fixt_numdom_solved(n));
+        }
       });
     });
   });

@@ -156,7 +156,6 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
 
     case SECOND_CHOICE:
       let newDomain = domain_any_removeNextFromList(domain, list);
-      // note: d can be a new array-domain, a new small-domain, or NO_SUCH_VALUE (-1)
       if (newDomain === NO_SUCH_VALUE && fallbackDistName) {
         return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
       }

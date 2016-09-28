@@ -8,8 +8,6 @@ import {
 import {
   asmdomain_addRange,
   asmdomain_containsValue,
-  asmdomain_createRange,
-  asmdomain_createValue,
   asmdomain_createRangeZeroToMax,
   asmdomain_getValue,
   asmdomain_intersection,
@@ -61,7 +59,6 @@ import {
   TWENTYEIGHT,
   TWENTYNINE,
   THIRTY,
-  NUM_TO_FLAG,
 
   NOT_FOUND,
 } from '../../src/domain';
@@ -121,31 +118,6 @@ describe('src/asmdomain.spec', function() {
       it('multiple ranges in domain', function() {
         expect(asmdomain_containsValue(fixt_numdom_nums(0, 1, 2, 4, 5, 8, 9, 10, 11), 6)).to.equal(0);
       });
-    });
-  });
-
-  describe('asmdomain_createRange', function() {
-
-    it('should work for all valid ranges', function() {
-      // this brute force checks all valid small domain ranges 0~30 x 0~30
-      for (let i = 0; i <= 30; ++i) {
-        for (let j = i; j <= 30; ++j) {
-          let domain = asmdomain_createRange(i, j);
-          for (let k = 0; k <= 30; ++k) {
-            expect(domain & NUM_TO_FLAG[k], i + 'x' + j + ',' + k).to.eql((k >= i && k <= j) ? NUM_TO_FLAG[k] : 0);
-          }
-        }
-      }
-    });
-  });
-
-  describe('asmdomain_createValue', function() {
-
-    it('should work for all valid values', function() {
-      for (let i = 0; i <= 30; ++i) {
-        let domain = asmdomain_createValue(i);
-        expect(domain).to.eql(NUM_TO_FLAG[i]);
-      }
     });
   });
 

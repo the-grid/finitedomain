@@ -489,8 +489,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE),fixt_strdom_ranges([101, 101], [103, 103]));
-          fixt_domainEql(space_getDomainArr(space, A) ,fixt_arrdom_range(101, 103));
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([101, 101], [103, 103]));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -673,7 +673,7 @@ describe('distribution/value.spec', function() {
           let A = config.all_var_names.indexOf('A');
 
           fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(2));
-          fixt_domainEql(space_getDomainArr(space, A),fixt_arrdom_nums(1, 2));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {

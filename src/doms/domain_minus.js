@@ -33,6 +33,7 @@ import {
   STR_RANGE_SIZE,
 
   domain_createRange,
+  domain_num_createRange,
   domain_createValue,
   domain_str_closeGaps,
   domain_num_containsValue,
@@ -43,7 +44,6 @@ import {
   domain_str_simplify,
 } from '../domain';
 import {
-  asmdomain_createRange,
   asmdomain_createRangeZeroToMax,
 } from '../asmdomain';
 
@@ -325,7 +325,9 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
     let lo = MAX(SUB, loi - hij);
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    return asmdomain_createRange(lo, hi);
+    let domain = domain_num_createRange(lo, hi);
+    ASSERT(typeof domain === 'number' && (domain & SOLVED_FLAG) === 0, 'expecting numdom, not soldom');
+    return domain;
   }
   return EMPTY;
 }

@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_assertStrings,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,

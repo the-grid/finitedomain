@@ -31,7 +31,7 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
     // - shift those ones `from` times to the left
     // - OR that result with the domain and return it
 
-    return domain | createRange(from, to);
+    return domain | _createRange(from, to);
   }
 
   /**
@@ -49,24 +49,14 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
   }
 
   /**
-   * Create a new domain with given value as the only member
-   *
-   * @param {number} value NOT a flag
-   * @returns {$domain_num} (basically the flag)
-   */
-  function createValue(value) {
-    value = value | 0;
-    return 1 << value;
-  }
-
-  /**
    * Create a domain with all numbers lo,hi (inclusive) as member.
+   * Always returns numdom, so never a soldom.
    *
    * @param {number} lo NOT a flag
    * @param {number} hi NOT a flag
    * @returns {$domain_num}
    */
-  function createRange(lo, hi) {
+  function _createRange(lo, hi) {
     lo = lo | 0;
     hi = hi | 0;
 
@@ -597,8 +587,6 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
   return {
     addRange: addRange,
     containsValue: containsValue,
-    createRange: createRange,
-    createValue: createValue,
     createRangeZeroToMax: createRangeZeroToMax,
     getValue: getValue,
     intersection: intersection,
@@ -619,8 +607,6 @@ let obj = AsmDomainJs();
 
 let asmdomain_addRange = obj.addRange;
 let asmdomain_containsValue = obj.containsValue;
-let asmdomain_createRange = obj.createRange;
-let asmdomain_createValue = obj.createValue;
 let asmdomain_createRangeZeroToMax = obj.createRangeZeroToMax;
 let asmdomain_getValue = obj.getValue;
 let asmdomain_intersection = obj.intersection;
@@ -640,8 +626,6 @@ let asmdomain_size = obj.size;
 export {
   asmdomain_addRange,
   asmdomain_containsValue,
-  asmdomain_createRange,
-  asmdomain_createValue,
   asmdomain_createRangeZeroToMax,
   asmdomain_getValue,
   asmdomain_intersection,

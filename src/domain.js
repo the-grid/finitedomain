@@ -28,8 +28,6 @@ import {
 import {
   asmdomain_addRange,
   asmdomain_containsValue,
-  asmdomain_createRange,
-  asmdomain_createValue,
   asmdomain_getValue,
   asmdomain_intersection,
   asmdomain_isSolved,
@@ -1761,8 +1759,16 @@ function domain_createValue(value) {
 function domain_createRange(lo, hi) {
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
   if (lo === hi) return domain_createValue(lo);
-  if (hi <= SMALL_MAX_NUM) return asmdomain_createRange(lo, hi);
+  if (hi <= SMALL_MAX_NUM) return domain_num_createRange(lo, hi);
   return domain_str_encodeRange(lo, hi);
+}
+/**
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {$domain_num} never soldom
+ */
+function domain_num_createRange(lo, hi) {
+  return (((1 << (1 + hi - lo)) - 1) << lo);
 }
 
 /**
@@ -2328,6 +2334,7 @@ export {
   domain_num_containsValue,
   domain_str_containsValue,
   domain_createRange,
+  domain_num_createRange,
   domain_createValue,
   domain_any__debug,
   domain_any_divby,

@@ -28,14 +28,12 @@ import {
   STR_VALUE_SIZE,
 
   domain_str_closeGaps,
+  domain_num_createRange,
   domain_str_decodeValue,
   domain_str_encodeRange,
   domain_any_max,
   domain_str_simplify,
 } from '../domain';
-import {
-  asmdomain_createRange,
-} from '../asmdomain';
 
 let MIN = Math.min;
 
@@ -292,7 +290,9 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
   ASSERT(loi + loj <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
   ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
 
-  return asmdomain_createRange(loi + loj, hii + hij);
+  let domain = domain_num_createRange(loi + loj, hii + hij);
+  ASSERT(typeof domain === 'number' && (domain & SOLVED_FLAG) === 0, 'expecting numdom, not soldom');
+  return domain;
 }
 
 // BODY_STOP

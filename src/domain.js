@@ -258,12 +258,18 @@ function domain_any_isValue(domain, value) {
   ASSERT_NUMSTRDOM(domain);
   ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
 
-  if (typeof domain === 'number') {
-    // TODO: `return domain === (value | SOLVED_FLAG);`
-    if (domain & SOLVED_FLAG) return (domain ^ SOLVED_FLAG) === value;
-    return asmdomain_isValue(domain, value) === 1;
-  }
+  if (typeof domain === 'number') return domain_num_isValue(domain, value);
   return domain_str_isValue(domain, value);
+}
+/**
+ * @param {$domain_str} domain
+ * @param {number} value
+ * @returns {boolean}
+ */
+function domain_num_isValue(domain, value) {
+  // TODO: `return domain === (value | SOLVED_FLAG);`
+  if (domain & SOLVED_FLAG) return (domain ^ SOLVED_FLAG) === value;
+  return asmdomain_isValue(domain, value) === 1;
 }
 /**
  * @param {$domain_str} domain
@@ -1739,15 +1745,13 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
 
 /**
  * @param {number} value
- * @returns {$domain}
+ * @returns {$domain} will be a soldom
  */
 function domain_createValue(value) {
-  console.log('fixme solved numdom');
   ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
 
-  if (value <= SMALL_MAX_NUM) return asmdomain_createValue(value);
-  return domain_str_encodeRange(value, value);
+  return (value | SOLVED_FLAG) >>> 0;
 }
 /**
  * @param {number} lo
@@ -1755,9 +1759,8 @@ function domain_createValue(value) {
  * @returns {$domain}
  */
 function domain_createRange(lo, hi) {
-  console.log('fixme solved numdom');
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
-
+  if (lo === hi) return domain_createValue(lo);
   if (hi <= SMALL_MAX_NUM) return asmdomain_createRange(lo, hi);
   return domain_str_encodeRange(lo, hi);
 }
@@ -1811,7 +1814,8 @@ function domain_numToArr(domain) {
   ASSERT_NUMDOM(domain);
 
   if (domain & SOLVED_FLAG) {
-    return domain_toArr(domain_createValue(domain ^ SOLVED_FLAG));
+    let solvedValue = domain ^ SOLVED_FLAG;
+    return [solvedValue, solvedValue];
   }
 
   if (domain === EMPTY) return [];
@@ -2341,6 +2345,7 @@ export {
   domain_any_isUndetermined,
   domain_str_isUndetermined,
   domain_any_isValue,
+  domain_num_isValue,
   domain_str_isValue,
   domain_any_max,
   domain_any_middleElement,

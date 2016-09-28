@@ -115,28 +115,28 @@ describe('src/domain.spec', function() {
     describe('numdoms', function() {
 
       it('should convert small values to nums', function() {
-        expect(domain_createValue(0)).to.eql(fixt_numdom_nums(0));
-        expect(domain_createValue(1)).to.eql(fixt_numdom_nums(1));
-        expect(domain_createValue(5)).to.eql(fixt_numdom_nums(5));
-        expect(domain_createValue(8)).to.eql(fixt_numdom_nums(8));
-        expect(domain_createValue(12)).to.eql(fixt_numdom_nums(12));
-        expect(domain_createValue(18)).to.eql(fixt_numdom_nums(18));
-        expect(domain_createValue(21)).to.eql(fixt_numdom_nums(21));
-        expect(domain_createValue(29)).to.eql(fixt_numdom_nums(29));
-        expect(domain_createValue(30)).to.eql(fixt_numdom_nums(30));
+        expect(domain_createValue(0)).to.eql(fixt_numdom_solved(0));
+        expect(domain_createValue(1)).to.eql(fixt_numdom_solved(1));
+        expect(domain_createValue(5)).to.eql(fixt_numdom_solved(5));
+        expect(domain_createValue(8)).to.eql(fixt_numdom_solved(8));
+        expect(domain_createValue(12)).to.eql(fixt_numdom_solved(12));
+        expect(domain_createValue(18)).to.eql(fixt_numdom_solved(18));
+        expect(domain_createValue(21)).to.eql(fixt_numdom_solved(21));
+        expect(domain_createValue(29)).to.eql(fixt_numdom_solved(29));
+        expect(domain_createValue(30)).to.eql(fixt_numdom_solved(30));
       });
     });
 
     describe('strdoms', function() {
 
       it('should convert small values to nums', function() {
-        fixt_assertStrings(domain_createValue(31), fixt_strdom_nums(31));
-        fixt_assertStrings(domain_createValue(32), fixt_strdom_nums(32));
-        fixt_assertStrings(domain_createValue(100), fixt_strdom_nums(100));
-        fixt_assertStrings(domain_createValue(56548), fixt_strdom_nums(56548));
-        fixt_assertStrings(domain_createValue(447), fixt_strdom_nums(447));
-        fixt_assertStrings(domain_createValue(SUP), fixt_strdom_nums(SUP));
-        fixt_assertStrings(domain_createValue(SUP - 1), fixt_strdom_nums(SUP - 1));
+        expect(domain_createValue(31)).to.eql(fixt_numdom_solved(31));
+        expect(domain_createValue(32)).to.eql(fixt_numdom_solved(32));
+        expect(domain_createValue(100)).to.eql(fixt_numdom_solved(100));
+        expect(domain_createValue(56548)).to.eql(fixt_numdom_solved(56548));
+        expect(domain_createValue(447)).to.eql(fixt_numdom_solved(447));
+        expect(domain_createValue(SUP)).to.eql(fixt_numdom_solved(SUP));
+        expect(domain_createValue(SUP - 1)).to.eql(fixt_numdom_solved(SUP - 1));
       });
     });
   });
@@ -150,12 +150,12 @@ describe('src/domain.spec', function() {
     describe('numdoms', function() {
 
       it('should convert small values to nums', function() {
-        expect(domain_createRange(0, 0)).to.eql(fixt_numdom_range(0, 0));
+        expect(domain_createRange(0, 0)).to.eql(fixt_numdom_solved(0));
         expect(domain_createRange(0, 1)).to.eql(fixt_numdom_range(0, 1));
         expect(domain_createRange(0, 29)).to.eql(fixt_numdom_range(0, 29));
         expect(domain_createRange(0, 30)).to.eql(fixt_numdom_range(0, 30));
         expect(domain_createRange(29, 30)).to.eql(fixt_numdom_range(29, 30));
-        expect(domain_createRange(30, 30)).to.eql(fixt_numdom_range(30, 30));
+        expect(domain_createRange(30, 30)).to.eql(fixt_numdom_solved(30));
         expect(domain_createRange(8, 14)).to.eql(fixt_numdom_range(8, 14));
         expect(domain_createRange(5, 21)).to.eql(fixt_numdom_range(5, 21));
         expect(domain_createRange(24, 28)).to.eql(fixt_numdom_range(24, 28));
@@ -166,13 +166,13 @@ describe('src/domain.spec', function() {
 
       it('should convert small values to nums', function() {
         fixt_assertStrings(domain_createRange(0, SUP), fixt_strdom_range(0, SUP));
-        fixt_assertStrings(domain_createRange(SUP, SUP), fixt_strdom_range(SUP, SUP));
+        expect(domain_createRange(SUP, SUP)).to.eql(fixt_numdom_solved(SUP));
         fixt_assertStrings(domain_createRange(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP));
         fixt_assertStrings(domain_createRange(200, 2000), fixt_strdom_range(200, 2000));
-        fixt_assertStrings(domain_createRange(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP - 1));
+        expect(domain_createRange(SUP - 1, SUP - 1)).to.eql(fixt_numdom_solved(SUP - 1));
         fixt_assertStrings(domain_createRange(0, SUP - 1), fixt_strdom_range(0, SUP - 1));
         fixt_assertStrings(domain_createRange(5, 53243), fixt_strdom_range(5, 53243));
-        fixt_assertStrings(domain_createRange(85755487, 85755487), fixt_strdom_range(85755487, 85755487));
+        expect(domain_createRange(85755487, 85755487)).to.eql(fixt_numdom_solved(85755487));
       });
     });
   });
@@ -2123,13 +2123,13 @@ describe('src/domain.spec', function() {
       gteTest(fixt_strdom_ranges([100, 102], [105, 107]), 105, fixt_strdom_ranges([100, 102]));
       gteTest(fixt_strdom_ranges([100, 102], [105, 105]), 105, fixt_strdom_ranges([100, 102]));
       gteTest(fixt_strdom_ranges([100, 102], [106, 108]), 105, fixt_strdom_ranges([100, 102]));
-      gteTest(fixt_strdom_ranges([105, 105]), 105, EMPTY);
+      gteTest(fixt_strdom_ranges([105, 105]), 105, fixt_numdom_empty());
       gteTest(fixt_strdom_ranges([100, 102]), 105, fixt_strdom_ranges([100, 102]));
-      gteTest(fixt_strdom_ranges([106, 108]), 105, EMPTY);
+      gteTest(fixt_strdom_ranges([106, 108]), 105, fixt_numdom_empty());
       gteTest(fixt_strdom_range(0, 1000), SMALL_MAX_NUM, fixt_numdom_range(0, SMALL_MAX_NUM - 1));
       gteTest(fixt_strdom_range(0, 1000), SMALL_MAX_NUM + 1, fixt_numdom_range(0, SMALL_MAX_NUM));
       gteTest(fixt_strdom_range(5, 50), 31, fixt_numdom_range(5, 30));
-      gteTest(fixt_strdom_range(500, 501), 501, fixt_strdom_nums(500)); // should be solved, later
+      gteTest(fixt_strdom_range(500, 501), 501, fixt_numdom_solved(500));
       gteTest(fixt_strdom_nums(500, 900), 900, fixt_numdom_solved(500));
       gteTest(fixt_strdom_nums(500, 900, 901), 900, fixt_numdom_solved(500));
     });
@@ -2152,9 +2152,9 @@ describe('src/domain.spec', function() {
       gteTest(fixt_numdom_nums(0, 1, 2, 5, 6, 7), 5, fixt_numdom_nums(0, 1, 2));
       gteTest(fixt_numdom_nums(0, 1, 2, 5), 5, fixt_numdom_nums(0, 1, 2));
       gteTest(fixt_numdom_nums(0, 1, 2, 6, 7, 8), 5, fixt_numdom_nums(0, 1, 2));
-      gteTest(fixt_numdom_nums(5), 5, EMPTY);
+      gteTest(fixt_numdom_nums(5), 5, fixt_numdom_empty());
       gteTest(fixt_numdom_nums(0, 1, 2), 5, fixt_numdom_nums(0, 1, 2));
-      gteTest(fixt_numdom_nums(6, 7, 8), 5, EMPTY);
+      gteTest(fixt_numdom_nums(6, 7, 8), 5, fixt_numdom_empty());
       gteTest(fixt_numdom_nums(5, 6), 6, fixt_numdom_solved(5));
       gteTest(fixt_numdom_solved(20), 21, fixt_numdom_solved(20));
       gteTest(fixt_numdom_solved(10), 10, fixt_numdom_empty());

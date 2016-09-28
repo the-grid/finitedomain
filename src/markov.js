@@ -5,10 +5,8 @@ import {
 } from './helpers';
 import {
   domain_any_toList,
+  domain_num_isValue,
 } from './domain';
-import {
-  asmdomain_isValue,
-} from './asmdomain';
 
 // BODY_START
 
@@ -26,7 +24,7 @@ function markov_getNextRowToSolve(space, matrix) {
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
     let boolDomain = vardoms[row.booleanId];
-    if (boolDomain === undefined || asmdomain_isValue(boolDomain, 1) === 1) {
+    if (boolDomain === undefined || domain_num_isValue(boolDomain, 1)) {
       break;
     }
   }

@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_assertStrings,
+  fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
@@ -45,22 +46,22 @@ describe('src/minus.spec.js', function() {
     it('should return empty domain if one is empty', function() {
       let A = fixt_strdom_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 117]);
 
-      expect(domain_any_minus(A, fixt_strdom_empty())).to.eql(fixt_numdom_empty());
-      expect(domain_any_minus(fixt_strdom_empty(), A)).to.eql(fixt_numdom_empty());
+      fixt_domainEql(domain_any_minus(A, fixt_strdom_empty()), fixt_numdom_empty());
+      fixt_domainEql(domain_any_minus(fixt_strdom_empty(), A), fixt_numdom_empty());
     });
 
     it('should subtract one range by another', function() {
       let A = fixt_numdom_range(5, 10);
       let B = fixt_strdom_range(50, 60);
 
-      expect(domain_any_minus(A, B)).to.eql(fixt_numdom_empty());
+      fixt_domainEql(domain_any_minus(A, B), fixt_numdom_empty());
     });
 
     it('should subtract one domain by another', function() {
       let A = fixt_strdom_ranges([5, 10], [20, 35]);
       let B = fixt_strdom_ranges([50, 60], [110, 128]);
 
-      expect(domain_any_minus(A, B)).to.eql(fixt_numdom_empty(1));
+      fixt_domainEql(domain_any_minus(A, B), fixt_numdom_empty());
     });
 
     it('should subtract one domain by another 2', function() {
@@ -73,7 +74,7 @@ describe('src/minus.spec.js', function() {
       // [0, 1, 3, 12, 0, 8, 14, 117, 3, 113, 0, 102]
       // [0, 117]
 
-      expect(domain_any_minus(A, B)).to.eql(E);
+      fixt_domainEql(domain_any_minus(A, B), E);
     });
 
     it('should not break zero zero shortcut arr', function() {
@@ -86,7 +87,7 @@ describe('src/minus.spec.js', function() {
       // [0, 1, 3, 12, 0, 8, 14, 117, 3, 113, 0, 102]
       // [0, 117]
 
-      expect(domain_any_minus(A, B)).to.eql(E);
+      fixt_domainEql(domain_any_minus(A, B), E);
     });
 
     it('should not break zero zero shortcut arr num', function() {
@@ -94,7 +95,7 @@ describe('src/minus.spec.js', function() {
       let B = fixt_numdom_nums(0, 3, 4, 5, 6, 7, 8, 15, 16, 17, 18, 19, 20, 21, 22);
       let E = fixt_strdom_range(0, 117);
 
-      expect(domain_any_minus(A, B)).to.eql(E);
+      fixt_domainEql(domain_any_minus(A, B), E);
     });
 
     it('should not break zero zero shortcut num arr', function() {
@@ -102,7 +103,7 @@ describe('src/minus.spec.js', function() {
       let B = fixt_strdom_ranges([0, 1], [4, 12], [15, 117]);
       let E = fixt_numdom_range(0, 22);
 
-      expect(domain_any_minus(A, B)).to.eql(E);
+      fixt_domainEql(domain_any_minus(A, B), E);
     });
 
     it('should not break zero zero shortcut num', function() {
@@ -110,7 +111,7 @@ describe('src/minus.spec.js', function() {
       let B = fixt_numdom_nums(0, 3, 4, 5, 6, 7, 8, 15, 22);
       let E = fixt_numdom_range(0, 26);
 
-      expect(domain_any_minus(A, B)).to.eql(E);
+      fixt_domainEql(domain_any_minus(A, B), E);
     });
 
     it('should shortcut loop', function() {
@@ -119,7 +120,7 @@ describe('src/minus.spec.js', function() {
         let B = fixt_numdom_nums(0, SMALL_MAX_NUM);
         let E = fixt_numdom_range(0, i);
 
-        expect(domain_any_minus(A, B), '0..' + i).to.eql(E);
+        fixt_domainEql(domain_any_minus(A, B), E, '0..' + i);
       }
     });
   });
@@ -155,8 +156,8 @@ describe('src/minus.spec.js', function() {
             let B = inputs[j];
             let C = domain_toNumstr(outcomes[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
-            if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);
-            else fixt_assertStrings(domain_any_minus(A, B), C, desc);
+            if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, i);
+            else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
         }
       });
@@ -191,8 +192,8 @@ describe('src/minus.spec.js', function() {
             let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
             let C = smallLargeOut[n++];
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
-            if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);
-            else fixt_assertStrings(domain_any_minus(A, B), C, desc);
+            if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
+            else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
         }
       });
@@ -211,8 +212,8 @@ describe('src/minus.spec.js', function() {
             let B = smalls[j];
             let C = domain_toNumstr(largeSmallOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
-            if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);
-            else fixt_assertStrings(domain_any_minus(A, B), C, desc);
+            if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
+            else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
         }
       });
@@ -231,8 +232,8 @@ describe('src/minus.spec.js', function() {
             let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
             let C = domain_toNumstr(largeLargeOut[n++]);
             let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
-            if (typeof C === 'number') expect(domain_any_minus(A, B), desc).to.eql(C);
-            else fixt_assertStrings(domain_any_minus(A, B), C, desc);
+            if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
+            else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
         }
       });

@@ -2156,7 +2156,6 @@ describe('src/domain.spec', function() {
       gteTest(fixt_numdom_nums(0, 1, 2), 5, fixt_numdom_nums(0, 1, 2));
       gteTest(fixt_numdom_nums(6, 7, 8), 5, EMPTY);
       gteTest(fixt_numdom_nums(5, 6), 6, fixt_numdom_solved(5));
-      gteTest(fixt_numdom_nums(5, 6), 6, fixt_numdom_solved(5));
       gteTest(fixt_numdom_solved(20), 21, fixt_numdom_solved(20));
       gteTest(fixt_numdom_solved(10), 10, fixt_numdom_empty());
 
@@ -2249,6 +2248,9 @@ describe('src/domain.spec', function() {
       lteTest(fixt_strdom_ranges([106, 108]), 105, fixt_strdom_ranges([106, 108]));
       lteTest(fixt_strdom_ranges([100, 104]), 105, EMPTY);
       lteTest(fixt_strdom_ranges([0, SMALL_MAX_NUM]), 10, fixt_numdom_range(11, SMALL_MAX_NUM));
+      lteTest(fixt_strdom_range(500, 501), 500, fixt_numdom_solved(501)); // should be solved, later
+      lteTest(fixt_strdom_nums(500, 900), 500, fixt_numdom_solved(900));
+      lteTest(fixt_strdom_nums(500, 900, 901), 900, fixt_numdom_solved(901));
     });
 
     describe('numdom', function() {
@@ -2268,9 +2270,12 @@ describe('src/domain.spec', function() {
       lteTest(fixt_numdom_nums(4, 5, 8, 9), 5, fixt_numdom_nums(8, 9));
       lteTest(fixt_numdom_nums(5, 6, 7, 9), 5, fixt_numdom_nums(6, 7, 9));
       lteTest(fixt_numdom_nums(5, 8, 9), 5, fixt_numdom_nums(8, 9));
-      lteTest(fixt_numdom_nums(5), 5, EMPTY);
+      lteTest(fixt_numdom_nums(5), 5, fixt_numdom_empty());
       lteTest(fixt_numdom_nums(6, 7, 8), 5, fixt_numdom_nums(6, 7, 8));
-      lteTest(fixt_numdom_nums(0, 1, 2, 3, 4), 5, EMPTY);
+      lteTest(fixt_numdom_nums(0, 1, 2, 3, 4), 5, fixt_numdom_empty());
+      lteTest(fixt_numdom_nums(5, 6), 5, fixt_numdom_solved(6));
+      lteTest(fixt_numdom_solved(20), 19, fixt_numdom_solved(20));
+      lteTest(fixt_numdom_solved(10), 10, fixt_numdom_empty());
 
       it('should improve code coverage', function() {
         let numdom = fixt_numdom_range(0, 30);

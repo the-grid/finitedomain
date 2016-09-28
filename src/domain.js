@@ -1436,7 +1436,7 @@ function domain_any_removeLte(domain, value) {
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeLte(domain, value);
-  return domain_str_removeLte(domain, value);
+  return domain_toSol(domain_str_removeLte(domain, value));
 }
 function domain_num_removeLte(domain, value) {
   ASSERT_NUMDOM(domain);
@@ -1448,7 +1448,7 @@ function domain_num_removeLte(domain, value) {
     return domain; // no change
   }
 
-  return asmdomain_removeLte(domain, value);
+  return domain_toSol(asmdomain_removeLte(domain, value));
 }
 /**
  * Remove any value from domain that is lesser than or equal to given value.

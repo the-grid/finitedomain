@@ -1,7 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  domain_any__debug,
-  domain_toSolnumstr,
+  domain__debug,
+  domain_toSmallest,
+  domain_toStr,
 } from '../../src/domain';
 
 const SUB = 0;
@@ -250,8 +251,8 @@ function fixt_assertStrings(a, b, desc) {
  * @param {string} [desc]
  */
 function fixt_domainEql(result, expectation, desc) {
-  desc = `${desc || ''} comparing but ignoring representation; result: ${domain_any__debug(result)} expected: ${domain_any__debug(expectation)}`;
-  expect(domain_toSolnumstr(result), desc).to.eql(domain_toSolnumstr(expectation));
+  desc = `${desc || ''} comparing but ignoring representation; result: ${domain__debug(result)} expected: ${domain__debug(expectation)}`;
+  expect(domain_toSmallest(domain_toStr(result)), desc).to.eql(domain_toSmallest(domain_toStr(expectation)));
 }
 
 export {

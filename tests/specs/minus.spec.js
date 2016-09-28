@@ -13,9 +13,9 @@ import {
   SMALL_MAX_NUM,
 } from '../../src/helpers';
 import {
-  domain_any__debug,
+  domain__debug,
   domain_fromListToArrdom,
-  domain_toNumstr,
+  domain_anyToSmallest,
 } from '../../src/domain';
 import domain_any_minus from '../../src/doms/domain_minus';
 
@@ -153,8 +153,8 @@ describe('src/minus.spec.js', function() {
             //console.log(y[i].toString(2).padLeft(32, '0'), '-', y[j].toString(2).padLeft(32, '0'), '=', domain_minus(y[i], y[j]).toString(2).padLeft(32, '0'), '          ', y[i], '-', y[j], '=', domain_minus(y[i], y[j]), '          ', domain_toList(y[i]), '-', domain_toList(y[j]), '=', domain_toList(domain_minus(y[i], y[j])));
             let A = inputs[i];
             let B = inputs[j];
-            let C = domain_toNumstr(outcomes[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let C = domain_anyToSmallest(outcomes[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, i);
             else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
@@ -188,9 +188,9 @@ describe('src/minus.spec.js', function() {
         for (let i = 0; i < smalls.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
-            let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
+            let B = domain_anyToSmallest(domain_fromListToArrdom(large[j]));
             let C = smallLargeOut[n++];
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
             else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
@@ -207,10 +207,10 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < smalls.length; ++j) {
-            let A = domain_toNumstr(domain_fromListToArrdom(large[i]));
+            let A = domain_anyToSmallest(domain_fromListToArrdom(large[i]));
             let B = smalls[j];
-            let C = domain_toNumstr(largeSmallOut[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let C = domain_anyToSmallest(largeSmallOut[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
             else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }
@@ -227,10 +227,10 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
-            let A = domain_toNumstr(domain_fromListToArrdom(large[i]));
-            let B = domain_toNumstr(domain_fromListToArrdom(large[j]));
-            let C = domain_toNumstr(largeLargeOut[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let A = domain_anyToSmallest(domain_fromListToArrdom(large[i]));
+            let B = domain_anyToSmallest(domain_fromListToArrdom(large[j]));
+            let C = domain_anyToSmallest(largeLargeOut[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') fixt_domainEql(domain_any_minus(A, B), C, desc);
             else fixt_domainEql(domain_any_minus(A, B), C, desc);
           }

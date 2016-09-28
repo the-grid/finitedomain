@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
+  fixt_domainEql,
   fixt_numdom_nums,
   fixt_strdom_nums,
   fixt_strdom_range,
@@ -73,7 +74,7 @@ describe('src/config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vardoms[name]).to.eql(fixt_numdom_nums(10));
+      fixt_domainEql(space.vardoms[name], fixt_numdom_nums(10));
     });
 
     it('should create a full width var', function() {

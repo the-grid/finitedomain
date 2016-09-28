@@ -6,10 +6,10 @@ import {
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
-  domain_any_getValue,
-  domain_any_isSolved,
-  domain_any_removeValue,
-  domain_any_sharesNoElements,
+  domain_getValue,
+  domain_isSolved,
+  domain_removeValue,
+  domain_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -34,19 +34,19 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   // remove solved value from the other domain. confirm neither rejects over it.
-  let value = domain_any_getValue(domain1);
+  let value = domain_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
     if (domain1 === domain2) {
       space.vardoms[varIndex1] = EMPTY;
       space.vardoms[varIndex2] = EMPTY;
     } else {
-      space.vardoms[varIndex2] = domain_any_removeValue(domain2, value);
+      space.vardoms[varIndex2] = domain_removeValue(domain2, value);
     }
   } else {
     // domain1 is not solved, remove domain2 from domain1 if domain2 is solved
-    value = domain_any_getValue(domain2);
+    value = domain_getValue(domain2);
     if (value !== NO_SUCH_VALUE) {
-      space.vardoms[varIndex1] = domain_any_removeValue(domain1, value);
+      space.vardoms[varIndex1] = domain_removeValue(domain1, value);
     }
   }
 }
@@ -60,11 +60,11 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_neqStepWouldReject(domain1, domain2) {
-  if (!domain_any_isSolved(domain1) || !domain_any_isSolved(domain2)) {
+  if (!domain_isSolved(domain1) || !domain_isSolved(domain2)) {
     return false; // can not reject if either domain isnt solved
   }
 
-  return domain_any_getValue(domain1) === domain_any_getValue(domain2);
+  return domain_getValue(domain1) === domain_getValue(domain2);
 }
 
 /**
@@ -75,7 +75,7 @@ function propagator_neqStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_neqSolved(domain1, domain2) {
-  return domain_any_sharesNoElements(domain1, domain2);
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 // BODY_STOP

@@ -1,9 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_assertStrings,
+  fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_range,
   fixt_numdom_ranges,
-  fixt_assertStrings,
   fixt_strdom_empty,
   fixt_strdom_range,
   fixt_strdom_ranges,
@@ -16,10 +17,10 @@ import {
 import {
   NUM_TO_FLAG,
 
-  domain_any__debug,
+  domain__debug,
   domain_fromListToArrdom,
   domain_toStr,
-  domain_toNumstr,
+  domain_anyToSmallest,
 } from '../../src/domain';
 import domain_any_plus from '../../src/doms/domain_plus';
 
@@ -162,9 +163,9 @@ describe('src/plus.spec.js', function() {
             //console.log(inputs[i].toString(2).padLeft(32, '0'), '-', inputs[j].toString(2).padLeft(32, '0'), '=', domain_plus(inputs[i], inputs[j]).toString(2).padLeft(32, '0'), '          ', inputs[i], '-', inputs[j], '=', domain_plus(inputs[i], inputs[j]), '          ', domain_toList(inputs[i]), '-', domain_toList(inputs[j]), '=', domain_toList(domain_plus(inputs[i], inputs[j])));
             let A = inputs[i];
             let B = inputs[j];
-            let C = domain_toNumstr(outcomes[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
-            if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
+            let C = domain_anyToSmallest(outcomes[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
+            if (typeof C === 'number') fixt_domainEql(domain_any_plus(A, B, desc), C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
         }
@@ -199,8 +200,8 @@ describe('src/plus.spec.js', function() {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
             let B = domain_toStr(domain_fromListToArrdom(large[j]));
-            let C = domain_toNumstr(smallLargeOut[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let C = domain_anyToSmallest(smallLargeOut[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
@@ -219,8 +220,8 @@ describe('src/plus.spec.js', function() {
           for (let j = 0; j < smalls.length; ++j) {
             let A = domain_toStr(domain_fromListToArrdom(large[i]));
             let B = smalls[j];
-            let C = domain_toNumstr(largeSmallOut[n++]);
-            let desc = domain_any__debug(A) + ' - ' + domain_any__debug(B) + ' = ' + domain_any__debug(C);
+            let C = domain_anyToSmallest(largeSmallOut[n++]);
+            let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);
           }
@@ -239,7 +240,7 @@ describe('src/plus.spec.js', function() {
           for (let j = 0; j < large.length; ++j) {
             let A = domain_toStr(domain_fromListToArrdom(large[i]));
             let B = domain_toStr(domain_fromListToArrdom(large[j]));
-            let C = domain_toNumstr(largeLargeOut[n++]);
+            let C = domain_anyToSmallest(largeLargeOut[n++]);
             let desc = A + ' - ' + B + ' = ' + C;
             if (typeof C === 'number') expect(domain_any_plus(A, B, desc)).to.eql(C);
             else fixt_assertStrings(domain_any_plus(A, B), C, desc);

@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_numdom_empty,
@@ -105,8 +106,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 100));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(101, 101));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 100));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(101, 101));
     });
 
     it('should not affect overlapping ranges when max(v1) < max(v2)', function() {
@@ -120,8 +121,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 150));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(100, 200));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 150));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(100, 200));
     });
 
     it('should reject if min(v1) > max(v2)', function() {
@@ -135,8 +136,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
-      expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
+      fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
+      fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
     });
 
     it('should reduce v2 if v1 is solved and > min(v2)', function() {
@@ -150,8 +151,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(200, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(200, 300));
     });
 
     it('should not change if v1 is solved and == min(v2)', function() {
@@ -165,8 +166,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(200, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(200, 300));
     });
 
     it('should be able to drop last range in v1', function() {
@@ -178,8 +179,8 @@ describe('propagators/lte.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(10, 100));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
 
       config = config_create();
       config_addVarDomain(config, 'A', fixt_arrdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 150]));
@@ -189,8 +190,8 @@ describe('propagators/lte.spec', function() {
       A = config.all_var_names.indexOf('A');
       B = config.all_var_names.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(10, 100));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
 
       config = config_create();
       config_addVarDomain(config, 'A', fixt_arrdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
@@ -200,8 +201,8 @@ describe('propagators/lte.spec', function() {
       A = config.all_var_names.indexOf('A');
       B = config.all_var_names.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(10, 100));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
     });
 
     it('should be able to drop first range in v1', function() {
@@ -213,8 +214,8 @@ describe('propagators/lte.spec', function() {
       let A = config.all_var_names.indexOf('A');
       let B = config.all_var_names.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([10, 10], [20, 100]));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([10, 10], [20, 100]));
 
       config = config_create();
       config_addVarDomain(config, 'A', fixt_arrdom_ranges([10, 20], [30, 40], [50, 60]));
@@ -224,8 +225,8 @@ describe('propagators/lte.spec', function() {
       A = config.all_var_names.indexOf('A');
       B = config.all_var_names.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([20, 100]));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([20, 100]));
 
       config = config_create();
       config_addVarDomain(config, 'A', fixt_arrdom_ranges([10, 20], [30, 40], [50, 60]));
@@ -235,8 +236,8 @@ describe('propagators/lte.spec', function() {
       B = config.all_var_names.indexOf('B');
       space_initFromConfig(space, config);
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([10, 10], [20, 100]));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([10, 10], [20, 100]));
     });
   });
 
@@ -350,8 +351,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(8, 8));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(8, 10));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(8, 8));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(8, 10));
     });
 
     it('should not change if v1 is solved and == min(v2)', function() {
@@ -365,8 +366,8 @@ describe('propagators/lte.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(7, 7));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(7, 13));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(7, 7));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(7, 13));
     });
   });
 });

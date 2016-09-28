@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_strdom_range,
@@ -100,8 +101,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 100));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(101, 101));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 100));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(101, 101));
     });
 
     it('should not affect overlapping ranges when max(v1) < max(v2)', function() {
@@ -145,8 +146,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(201, 300));
     });
 
     it('should not change if v1 is solved and == min(v2)', function() {
@@ -160,8 +161,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(201, 300));
     });
 
     it('should be able to drop last range in v1', function() {
@@ -341,8 +342,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(8, 8));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(9, 10));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(8, 8));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(9, 10));
     });
 
     it('should reduce if v1 is solved and == min(v2)', function() {
@@ -356,8 +357,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(7, 7));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(8, 13));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(7, 7));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(8, 13));
     });
   });
 });

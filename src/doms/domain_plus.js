@@ -31,7 +31,7 @@ import {
   domain_num_createRange,
   domain_str_decodeValue,
   domain_str_encodeRange,
-  domain_any_max,
+  domain_max,
   domain_str_simplify,
 } from '../domain';
 
@@ -98,7 +98,7 @@ function _domain_plusWillBeSmall(domain1, domain2) {
   if ((domain1 | domain2) & SOLVED_FLAG) return false; // it's just a heuristic. don't spend too much time on it.
   // if both domains are small enough they cannot add to a domain beyond the max
   if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
-  return domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
+  return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNumStr(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
@@ -136,7 +136,7 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
   if (domain1 & SOLVED_FLAG) {
     let solvedValue = domain1 ^ SOLVED_FLAG;

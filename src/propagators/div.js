@@ -4,8 +4,8 @@ import {
 } from '../helpers';
 
 import {
-  domain_any_divby,
-  domain_any_intersection,
+  domain_divby,
+  domain_intersection,
 } from '../domain';
 
 // BODY_START
@@ -39,8 +39,8 @@ function _propagator_divStep(domain1, domain2, domResult) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let domain = domain_any_divby(domain1, domain2);
-  return domain_any_intersection(domResult, domain);
+  let domain = domain_divby(domain1, domain2);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

@@ -8,7 +8,7 @@ import {
 import {
   domain_createRange,
   domain_createValue,
-  domain_any_getValue,
+  domain_getValue,
 } from '../domain';
 
 // BODY_START
@@ -43,7 +43,7 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
   let vardoms = space.vardoms;
   let domResult = vardoms[resultVarIndex];
 
-  let value = domain_any_getValue(domResult);
+  let value = domain_getValue(domResult);
   ASSERT(value === REIFIER_FAIL || value === REIFIER_PASS || domResult === domain_createRange(0, 1), 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
   if (value === REIFIER_FAIL) {

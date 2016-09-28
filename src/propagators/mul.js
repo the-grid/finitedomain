@@ -3,8 +3,8 @@ import {
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
-  domain_any_mul,
-  domain_any_intersection,
+  domain_mul,
+  domain_intersection,
 } from '../domain';
 
 // BODY_START
@@ -36,9 +36,9 @@ function _propagator_mulStep(domain1, domain2, domResult) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let domain = domain_any_mul(domain1, domain2);
+  let domain = domain_mul(domain1, domain2);
 
-  return domain_any_intersection(domResult, domain);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

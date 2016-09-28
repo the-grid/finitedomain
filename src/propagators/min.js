@@ -3,7 +3,7 @@ import {
   ASSERT_NUMSTRDOM,
 } from '../helpers';
 import {
-  domain_any_intersection,
+  domain_intersection,
 } from '../domain';
 import domain_any_minus from '../doms/domain_minus';
 
@@ -41,7 +41,7 @@ function _propagator_minStep(domain1, domain2, domResult) {
 
   let domain = domain_any_minus(domain1, domain2);
 
-  return domain_any_intersection(domResult, domain);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

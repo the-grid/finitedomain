@@ -4,10 +4,10 @@ import {
 } from '../helpers';
 
 import {
-  domain_any_max,
-  domain_any_min,
-  domain_any_removeGte,
-  domain_any_removeLte,
+  domain_max,
+  domain_min,
+  domain_removeGte,
+  domain_removeLte,
 } from '../domain';
 
 // BODY_START
@@ -31,21 +31,21 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let lo1 = domain_any_min(domain1);
-  let hi1 = domain_any_max(domain1);
-  let lo2 = domain_any_min(domain2);
-  let hi2 = domain_any_max(domain2);
+  let lo1 = domain_min(domain1);
+  let hi1 = domain_max(domain1);
+  let lo2 = domain_min(domain2);
+  let hi2 = domain_max(domain2);
 
   // every number in v1 can only be smaller than or equal to the biggest
   // value in v2. bigger values will never satisfy lt so prune them.
   if (hi1 > hi2) {
-    space.vardoms[varIndex1] = domain_any_removeGte(domain1, hi2 + 1);
+    space.vardoms[varIndex1] = domain_removeGte(domain1, hi2 + 1);
   }
 
   // likewise; numbers in v2 that are smaller than or equal to the
   // smallest value of v1 can never satisfy lt so prune them as well
   if (lo1 > lo2) {
-    space.vardoms[varIndex2] = domain_any_removeLte(domain2, lo1 - 1);
+    space.vardoms[varIndex2] = domain_removeLte(domain2, lo1 - 1);
   }
 }
 
@@ -67,7 +67,7 @@ function propagator_lteStepWouldReject(domain1, domain2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_any_min(domain1) > domain_any_max(domain2);
+  return domain_min(domain1) > domain_max(domain2);
 }
 
 /**
@@ -96,7 +96,7 @@ function propagator_lteSolved(domain1, domain2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_any_max(domain1) <= domain_any_min(domain2);
+  return domain_max(domain1) <= domain_min(domain2);
 }
 
 // BODY_STOP

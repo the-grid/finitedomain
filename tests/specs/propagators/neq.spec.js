@@ -16,7 +16,7 @@ import {
   SUP,
 } from '../../../src/helpers';
 import {
-  domain_any__debug,
+  domain__debug,
   domain_toArr,
 } from '../../../src/domain';
 import {
@@ -198,7 +198,7 @@ describe('propagators/neq.spec', function() {
   describe('two neq solved domains', function() {
 
     function test(domain1, domain2) {
-      it(`should be "solved" (left-right): ${[domain_any__debug(domain1), domain_any__debug(domain2)].join('|')}`, function() {
+      it(`should be "solved" (left-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_toArr(domain1));
         config_addVarDomain(config, 'B', domain_toArr(domain2));
@@ -214,7 +214,7 @@ describe('propagators/neq.spec', function() {
         fixt_domainEql(space.vardoms[B], domain2);
       });
 
-      it(`should be "solved" (right-left): ${[domain_any__debug(domain1), domain_any__debug(domain2)].join('|')}`, function() {
+      it(`should be "solved" (right-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_toArr(domain2));
         config_addVarDomain(config, 'B', domain_toArr(domain1));
@@ -230,7 +230,7 @@ describe('propagators/neq.spec', function() {
         fixt_domainEql(space.vardoms[B], domain1);
       });
 
-      it(`should reject if same (left-left): ${[domain_any__debug(domain1), domain_any__debug(domain2)].join('|')}`, function() {
+      it(`should reject if same (left-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_toArr(domain1));
         config_addVarDomain(config, 'B', domain_toArr(domain1));
@@ -246,7 +246,7 @@ describe('propagators/neq.spec', function() {
         fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
       });
 
-      it(`should reject if same (right-right): ${[domain_any__debug(domain1), domain_any__debug(domain2)].join('|')}`, function() {
+      it(`should reject if same (right-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
         config_addVarDomain(config, 'A', domain_toArr(domain2));
         config_addVarDomain(config, 'B', domain_toArr(domain2));

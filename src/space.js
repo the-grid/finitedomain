@@ -31,9 +31,9 @@ import {
 import {
   FORCE_STRING,
 
-  domain_any_clone,
-  domain_any_getValue,
-  domain_any_isSolved,
+  domain_clone,
+  domain_getValue,
+  domain_isSolved,
   domain_toArr,
 } from './domain';
 
@@ -108,7 +108,7 @@ function space_toConfig(space, config) {
   let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
-    newDomains[i] = domain_any_clone(domain, FORCE_STRING);
+    newDomains[i] = domain_clone(domain, FORCE_STRING);
   }
 
   return config_clone(config, newDomains);
@@ -216,7 +216,7 @@ function initializeUnsolvedVars(space, config) {
 
   if (targetVarNames === 'all') {
     for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!domain_isSolved(vardoms[varIndex])) {
         if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
           front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
         }
@@ -228,7 +228,7 @@ function initializeUnsolvedVars(space, config) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
       if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!domain_isSolved(vardoms[varIndex])) {
         front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
       }
     }
@@ -436,7 +436,7 @@ function space_updateUnsolvedVarList(space, config) {
     let varIndex = _front_getCell(unsolvedFront.buffer, lastNodeIndex, i);
     let domain = vardoms[varIndex];
 
-    if (!domain_any_isSolved(domain)) {
+    if (!domain_isSolved(domain)) {
       front_addCell(unsolvedFront, nodeIndex, cellIndex++, varIndex);
     }
   }
@@ -483,7 +483,7 @@ function space_getVarSolveState(space, varIndex) {
     return false;
   }
 
-  let value = domain_any_getValue(domain);
+  let value = domain_getValue(domain);
   if (value !== NO_SUCH_VALUE) return value;
 
   return domain_toArr(domain);

@@ -40,8 +40,8 @@ import {
   domain_num_containsValue,
   domain_str_decodeValue,
   domain_str_encodeRange,
-  domain_any_max,
-  domain_any_min,
+  domain_max,
+  domain_min,
   domain_str_simplify,
 } from '../domain';
 
@@ -67,8 +67,8 @@ function domain_any_minus(domain1, domain2) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_any_min(domain1) === 0 && domain_any_min(domain2) === 0) {
-    return domain_createRange(0, domain_any_max(domain1));
+  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
+    return domain_createRange(0, domain_max(domain1));
   }
 
   let isNum1 = typeof domain1 === 'number';
@@ -125,7 +125,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
+  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
   ASSERT((domain1 & SOLVED_FLAG) === 0, 'solved domain1 is expected to be caught elsewhere');
 
   if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return domain_numnum_createRangeZeroToMax(domain1);
@@ -166,7 +166,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
+  ASSERT(domain_max(domain_num) - domain_min(domain_str) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
 
   if (domain_num & SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
@@ -174,7 +174,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   }
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain_num_containsValue(domain_num, 0) && domain_any_min(domain_str) === 0) return domain_numnum_createRangeZeroToMax(domain_num);
+  if (domain_num_containsValue(domain_num, 0) && domain_min(domain_str) === 0) return domain_numnum_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -241,8 +241,8 @@ function _domain_minusStrNumStr(domain_str, domain_num) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_any_min(domain_str) === 0 && domain_any_min(domain_num) === 0) {
-    return domain_createRange(0, domain_any_max(domain_str));
+  if (domain_min(domain_str) === 0 && domain_min(domain_num) === 0) {
+    return domain_createRange(0, domain_max(domain_str));
   }
 
   let newDomain = EMPTY_STR;

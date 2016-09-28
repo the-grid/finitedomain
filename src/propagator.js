@@ -8,14 +8,6 @@ import {
   config_addVarAnonNothing,
 } from './config';
 
-import {
-  ONE,
-  ZERO,
-  BOOL,
-
-  domain_toNumstr,
-} from './domain';
-
 import propagator_markovStepBare from './propagators/markov';
 import propagator_reifiedStepBare from './propagators/reified';
 import propagator_ringStepBare from './propagators/ring';
@@ -43,8 +35,8 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
-  domain_any_divby,
-  domain_any_mul,
+  domain_divby,
+  domain_mul,
 } from './domain';
 import domain_any_plus from './doms/domain_plus';
 import domain_any_minus from './doms/domain_minus';
@@ -126,9 +118,11 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
+      console.log('FIXME');
+      /*
+      let A = domain_toBitstr(config.initial_domains[leftVarIndex]);
+      let B = domain_toBitstr(config.initial_domains[rightVarIndex]);
+      let C = domain_toBitstr(config.initial_domains[resultVarIndex]);
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
       if (C === BOOL) {
@@ -149,6 +143,7 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
           }
         }
       }
+      */
 
       break;
     }
@@ -160,9 +155,11 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
+      console.log('FIXME');
+      /*
+      let A = domain_toBitstr(config.initial_domains[leftVarIndex]);
+      let B = domain_toBitstr(config.initial_domains[rightVarIndex]);
+      let C = domain_toBitstr(config.initial_domains[resultVarIndex]);
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
       if (C === BOOL) {
@@ -183,7 +180,7 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
           }
         }
       }
-
+*/
       break;
     }
     case 'lt':
@@ -438,7 +435,7 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_any_mul, domain_any_divby, leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_divby, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**

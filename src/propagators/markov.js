@@ -6,8 +6,8 @@ import {
 } from '../helpers';
 
 import {
-  domain_any_isSolved,
-  domain_any_min,
+  domain_isSolved,
+  domain_min,
 } from '../domain';
 
 import {
@@ -41,9 +41,9 @@ function propagator_markovStepBare(space, config, varIndex) {
   ASSERT_NUMSTRDOM(domain);
   ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
-  if (!domain_any_isSolved(domain)) return;
+  if (!domain_isSolved(domain)) return;
 
-  let value = domain_any_min(domain); // note: solved so lo=hi=value
+  let value = domain_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = config.var_dist_options;
   let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];

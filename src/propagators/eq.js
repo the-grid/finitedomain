@@ -4,9 +4,9 @@ import {
 } from '../helpers';
 
 import {
-  domain_any_intersection,
-  domain_any_isSolved,
-  domain_any_sharesNoElements,
+  domain_intersection,
+  domain_isSolved,
+  domain_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -38,7 +38,7 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let result = domain_any_intersection(domain1, domain2);
+  let result = domain_intersection(domain1, domain2);
 
   space.vardoms[varIndex1] = result;
   space.vardoms[varIndex2] = result;
@@ -60,7 +60,7 @@ function propagator_eqStepWouldReject(domain1, domain2) {
   ASSERT_NUMSTRDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_any_sharesNoElements(domain1, domain2);
+  return domain_sharesNoElements(domain1, domain2);
 }
 
 /**
@@ -72,7 +72,7 @@ function propagator_eqStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_eqSolved(domain1, domain2) {
-  return domain_any_isSolved(domain1) && domain_any_isSolved(domain2);
+  return domain_isSolved(domain1) && domain_isSolved(domain2);
 }
 
 // BODY_STOP

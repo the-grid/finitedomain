@@ -4,9 +4,9 @@ import {
 } from '../helpers';
 
 import {
-  domain_any_divby,
-  domain_any_intersection,
-  domain_any_mul,
+  domain_divby,
+  domain_intersection,
+  domain_mul,
 } from '../domain';
 import domain_any_plus from '../doms/domain_plus';
 import domain_any_minus from '../doms/domain_minus';
@@ -29,7 +29,7 @@ function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3,
   let domain2 = space.vardoms[varIndex2];
   let domain3 = space.vardoms[varIndex3];
 
-  ASSERT(opName === 'plus' ? opFunc === domain_any_plus : opName === 'min' ? opFunc === domain_any_minus : opName === 'mul' ? opFunc === domain_any_mul : opName === 'div' ? opFunc === domain_any_divby : false, 'should get proper opfunc');
+  ASSERT(opName === 'plus' ? opFunc === domain_any_plus : opName === 'min' ? opFunc === domain_any_minus : opName === 'mul' ? opFunc === domain_mul : opName === 'div' ? opFunc === domain_divby : false, 'should get proper opfunc');
 
   space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
 }
@@ -50,7 +50,7 @@ function _propagator_ringStepBare(domain1, domain2, domainResult, opFunc, opName
 
   let domain = opFunc(domain1, domain2);
 
-  return domain_any_intersection(domainResult, domain);
+  return domain_intersection(domainResult, domain);
 }
 
 // BODY_STOP

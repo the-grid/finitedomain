@@ -53,17 +53,17 @@ import {
   domain_arrToStr,
   domain_createRange,
   domain_createValue,
-  domain_any_getValue,
+  domain_getValue,
   domain_str_getValue,
-  domain_any_max,
-  domain_any_min,
+  domain_max,
+  domain_min,
   domain_str_isSolved,
-  domain_any_intersection,
+  domain_intersection,
   domain_strstr_intersection,
   domain_str_removeGte,
   domain_str_removeLte,
   domain_str_removeValue,
-  domain_toNumstr,
+  domain_toSmallest,
   domain_toStr,
 } from './domain';
 import domain_any_plus from './doms/domain_plus';
@@ -270,8 +270,8 @@ function _config_addVar(config, varName, domain) {
   ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
   ASSERT_STRDOM(domain);
   ASSERT(domain, 'NON_EMPTY_DOMAIN');
-  ASSERT(domain === EMPTY_STR || domain_any_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(domain === EMPTY_STR || domain_any_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(domain === EMPTY_STR || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain === EMPTY_STR || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
@@ -471,7 +471,7 @@ function config_generateVars(config, space) {
   for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
     let domain = initialDomains[varIndex];
     ASSERT_STRDOM(domain);
-    vardoms[varIndex] = domain_toNumstr(domain);
+    vardoms[varIndex] = domain_toSmallest(domain);
   }
 }
 
@@ -623,7 +623,7 @@ function config_addConstraint(config, name, varNames, param) {
       let varIndex = varIndexes[i];
       maxDomain = domain_any_plus(maxDomain, initialDomains[varIndex]);
     }
-    initialDomains[param] = domain_toStr(domain_any_intersection(maxDomain, initialDomains[param]));
+    initialDomains[param] = domain_toStr(domain_intersection(maxDomain, initialDomains[param]));
 
     // eliminate multiple constants
     if (varIndexes.length > 1) {
@@ -639,12 +639,12 @@ function config_addConstraint(config, name, varNames, param) {
           constants = domain_any_plus(constants, domain);
         }
       }
-      let cValue = domain_any_getValue(constants);
+      let cValue = domain_getValue(constants);
       if (cValue !== 0) {
         let varIndex = config_addVarAnonConstant(config, cValue);
         newVarIndexes.push(varIndex);
       }
-      if (!newVarIndexes.length) initialDomains[param] = domain_toStr(domain_any_intersection(ZERO, initialDomains[param]));
+      if (!newVarIndexes.length) initialDomains[param] = domain_toStr(domain_intersection(ZERO, initialDomains[param]));
       varIndexes = newVarIndexes;
     }
   }
@@ -716,8 +716,8 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
     return true;
   }
 
-  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, domain_any_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, domain_any_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
+  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
 
   return false;
 }
@@ -750,8 +750,8 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   }
 
   // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
-  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, domain_any_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, domain_any_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
+  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
+  initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
 
   return false;
 }
@@ -828,48 +828,48 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_any_max(domain1) < domain_any_min(domain2)) {
+      if (domain_max(domain1) < domain_min(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
+      if (domain_min(domain1) >= domain_max(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
+      if (domain_max(domain1) <= domain_min(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_any_min(domain1) > domain_any_max(domain2)) {
+      if (domain_min(domain1) > domain_max(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_any_min(domain1) > domain_any_max(domain2)) {
+      if (domain_min(domain1) > domain_max(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
+      if (domain_max(domain1) <= domain_min(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
+      if (domain_min(domain1) >= domain_max(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;
       }
-      if (domain_any_max(domain1) < domain_any_min(domain2)) {
+      if (domain_max(domain1) < domain_min(domain2)) {
         initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
         config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
         return true;

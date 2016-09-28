@@ -825,7 +825,7 @@ function domain_strstr_intersection(domain1, domain2) {
     }
   }
 
-  return domain_toSol(domain_toNumstr(newDomain));
+  return domain_toSolnumstr(newDomain);
 }
 
 function domain_any__debug(domain) {
@@ -1401,14 +1401,14 @@ function domain_str_removeGte(domain_str, value) {
       // 67 9    -> empty
       // 012 789 -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_toSol(domain_toNumstr(newDomain));
+      return domain_toSolnumstr(newDomain);
     }
     if (lo === value) {
       // 567 9   -> empty
       // 012 567 -> 012
       // 012 5   -> 012
       let newDomain = domain_str.slice(0, i);
-      return domain_toSol(domain_toNumstr(newDomain));
+      return domain_toSolnumstr(newDomain);
     }
     if (value <= hi) {
       if (i === 0 && value === lo + 1) return domain_createValue(lo);
@@ -1417,7 +1417,7 @@ function domain_str_removeGte(domain_str, value) {
       let newDomain = domain_str.slice(0, i + STR_VALUE_SIZE) + domain_str_encodeValue(value - 1);
       ASSERT(newDomain.length > STR_VALUE_SIZE, 'cannot be a solved value');
       if (value - 1 <= SMALL_MAX_NUM) return domain_strToNum(newDomain, i + STR_RANGE_SIZE);
-      return domain_toSol(domain_toNumstr(newDomain));
+      return domain_toSolnumstr(newDomain);
     }
   }
   return domain_str; // 012 -> 012
@@ -1513,15 +1513,19 @@ function domain_any_removeValue(domain, value) {
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeValue(domain, value);
-  return domain_str_removeValue(domain, value);
+  return domain_toSolnumstr(domain_str_removeValue(domain, value));
 }
+/**
+ * @param {$domain_num|$domain_sol} domain
+ * @param {number} value
+ * @returns {$domain}
+ */
 function domain_num_removeValue(domain, value) {
   if (domain & SOLVED_FLAG) {
     if (value === (domain ^ SOLVED_FLAG)) return EMPTY;
     return domain;
   }
-  console.log('fixme solved numdom');
-  return asmdomain_removeValue(domain, value);
+  return domain_toSol(asmdomain_removeValue(domain, value));
 }
 /**
  * @param {$domain_str} domain
@@ -1535,12 +1539,13 @@ function domain_str_removeValue(domain, value) {
   let lastHi = -1;
   for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(domain, i);
-    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
-    if (value >= lo && value <= hi) {
-      return _domain_str_removeValue(domain, len, i, lo, hi, value, lastLo, lastHi);
-    }
     // domain is CSIS so once a range was found beyond value, no further ranges can possibly wrap value. return now.
     if (value < lo) break;
+
+    let hi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
+    if (value <= hi) {
+      return _domain_str_removeValue(domain, len, i, lo, hi, value, lastLo, lastHi);
+    }
     lastLo = lo;
     lastHi = hi;
   }
@@ -1934,6 +1939,15 @@ function domain_numToStr(domain) {
   str += domain_str_encodeRange(lo, hi);
 
   return str;
+}
+/**
+ * Inefficient lazy version of normalizing a domain to its
+ * simplest possible representation. TBD: improvements
+ *
+ * @param {$domain} domain
+ */
+function domain_toSolnumstr(domain) {
+  return domain_toSol(domain_toNumstr(domain));
 }
 /**
  * Create an array domain from a string domain
@@ -2360,5 +2374,6 @@ export {
   _domain_str_mergeOverlappingRanges,
   _domain_str_quickSortRanges,
   domain_toSol,
+  domain_toSolnumstr,
   // __REMOVE_ABOVE_FOR_DIST__
 };

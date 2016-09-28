@@ -1,6 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
+  fixt_domainEql,
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_strdom_range,
@@ -72,9 +73,9 @@ describe('propagators/reified.spec', function() {
           let bool = config.all_var_names.indexOf('bool');
           propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
-          expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);
-          expect(space.vardoms[B], 'B should be unchanged').to.eql(B_in);
-          expect(space.vardoms[bool], 'bool should reflect expected outcome').to.eql(bool_after);
+          fixt_domainEql(space.vardoms[A], A_in, 'A should be unchanged');
+          fixt_domainEql(space.vardoms[B], B_in, 'B should be unchanged');
+          fixt_domainEql(space.vardoms[bool], bool_after, 'bool should reflect expected outcome');
         });
       }
 

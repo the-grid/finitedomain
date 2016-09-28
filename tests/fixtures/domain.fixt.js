@@ -1,4 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
+import {
+  domain_any__debug,
+  domain_toSolnumstr,
+} from '../../src/domain';
 
 const SUB = 0;
 const SUP = 100000000;
@@ -233,6 +237,23 @@ function fixt_assertStrings(a, b, desc) {
   expect(fixt_bytes(a, desc), desc).to.eql(fixt_bytes(b, desc));
 }
 
+/**
+ * Assert two domains to be equal, regardless of their individual
+ * representation (numdom, soldom, strdom, arrdom). This helps to
+ * keep integration tests clean from unit tests that check for
+ * normalization of function return values. For example the
+ * propagators should just check the result value, not whether it
+ * returns a soldom in certain edge cases but not others.
+ *
+ * @param {$domain} result
+ * @param {$domain} expectation
+ * @param {string} [desc]
+ */
+function fixt_domainEql(result, expectation, desc) {
+  desc = `${desc || ''} comparing but ignoring representation; result: ${domain_any__debug(result)} expected: ${domain_any__debug(expectation)}`;
+  expect(domain_toSolnumstr(result), desc).to.eql(domain_toSolnumstr(expectation));
+}
+
 export {
   fixt_arrdom_empty,
   fixt_arrdom_list,
@@ -241,12 +262,13 @@ export {
   fixt_arrdom_value,
   fixt_arrdom_nums,
   fixt_assertStrings,
+  fixt_bytes,
+  fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_numdom_ranges,
   fixt_numdom_solved,
-  fixt_bytes,
   fixt_strdom_empty,
   fixt_strdom_value,
   fixt_strdom_range,

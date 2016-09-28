@@ -8,7 +8,6 @@ import {
 import {
   asmdomain_addRange,
   asmdomain_containsValue,
-  asmdomain_createRangeZeroToMax,
   asmdomain_getValue,
   asmdomain_intersection,
   asmdomain_isSolved,
@@ -28,38 +27,8 @@ import {
   NO_SUCH_VALUE,
 } from '../../src/helpers';
 import {
-  ZERO,
-  ONE,
-  TWO,
-  THREE,
-  FOUR,
   FIVE,
-  SIX,
-  SEVEN,
-  EIGHT,
   NINE,
-  TEN,
-  ELEVEN,
-  TWELVE,
-  THIRTEEN,
-  FOURTEEN,
-  FIFTEEN,
-  SIXTEEN,
-  SEVENTEEN,
-  EIGHTEEN,
-  NINETEEN,
-  TWENTY,
-  TWENTYONE,
-  TWENTYTWO,
-  TWENTYTHREE,
-  TWENTYFOUR,
-  TWENTYFIVE,
-  TWENTYSIX,
-  TWENTYSEVEN,
-  TWENTYEIGHT,
-  TWENTYNINE,
-  THIRTY,
-
   NOT_FOUND,
 } from '../../src/domain';
 
@@ -118,42 +87,6 @@ describe('src/asmdomain.spec', function() {
       it('multiple ranges in domain', function() {
         expect(asmdomain_containsValue(fixt_numdom_nums(0, 1, 2, 4, 5, 8, 9, 10, 11), 6)).to.equal(0);
       });
-    });
-  });
-
-  describe('asmdomain_createRangeZeroToMax', function() {
-
-    it('should work', function() {
-      expect(asmdomain_createRangeZeroToMax(ZERO)).to.eql(ZERO);
-      expect(asmdomain_createRangeZeroToMax(ONE)).to.eql(ZERO | ONE);
-      expect(asmdomain_createRangeZeroToMax(TWO)).to.eql(ZERO | ONE | TWO);
-      expect(asmdomain_createRangeZeroToMax(THREE)).to.eql(ZERO | ONE | TWO | THREE);
-      expect(asmdomain_createRangeZeroToMax(FOUR)).to.eql(ZERO | ONE | TWO | THREE | FOUR);
-      expect(asmdomain_createRangeZeroToMax(SIX)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX);
-      expect(asmdomain_createRangeZeroToMax(SEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN);
-      expect(asmdomain_createRangeZeroToMax(EIGHT)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT);
-      expect(asmdomain_createRangeZeroToMax(NINE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE);
-      expect(asmdomain_createRangeZeroToMax(TEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN);
-      expect(asmdomain_createRangeZeroToMax(ELEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN);
-      expect(asmdomain_createRangeZeroToMax(TWELVE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE);
-      expect(asmdomain_createRangeZeroToMax(THIRTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN);
-      expect(asmdomain_createRangeZeroToMax(FOURTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN);
-      expect(asmdomain_createRangeZeroToMax(FIFTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN);
-      expect(asmdomain_createRangeZeroToMax(SIXTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN);
-      expect(asmdomain_createRangeZeroToMax(SEVENTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN);
-      expect(asmdomain_createRangeZeroToMax(EIGHTEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN);
-      expect(asmdomain_createRangeZeroToMax(NINETEEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN);
-      expect(asmdomain_createRangeZeroToMax(TWENTY)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY);
-      expect(asmdomain_createRangeZeroToMax(TWENTYONE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE);
-      expect(asmdomain_createRangeZeroToMax(TWENTYTWO)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO);
-      expect(asmdomain_createRangeZeroToMax(TWENTYTHREE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE);
-      expect(asmdomain_createRangeZeroToMax(TWENTYFOUR)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR);
-      expect(asmdomain_createRangeZeroToMax(TWENTYFIVE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE);
-      expect(asmdomain_createRangeZeroToMax(TWENTYSIX)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX);
-      expect(asmdomain_createRangeZeroToMax(TWENTYSEVEN)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN);
-      expect(asmdomain_createRangeZeroToMax(TWENTYEIGHT)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT);
-      expect(asmdomain_createRangeZeroToMax(TWENTYNINE)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE);
-      expect(asmdomain_createRangeZeroToMax(THIRTY)).to.eql(ZERO | ONE | TWO | THREE | FOUR | FIVE | SIX | SEVEN | EIGHT | NINE | TEN | ELEVEN | TWELVE | THIRTEEN | FOURTEEN | FIFTEEN | SIXTEEN | SEVENTEEN | EIGHTEEN | NINETEEN | TWENTY | TWENTYONE | TWENTYTWO | TWENTYTHREE | TWENTYFOUR | TWENTYFIVE | TWENTYSIX | TWENTYSEVEN | TWENTYEIGHT | TWENTYNINE | THIRTY);
     });
   });
 

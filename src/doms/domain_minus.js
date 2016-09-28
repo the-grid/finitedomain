@@ -34,6 +34,7 @@ import {
 
   domain_createRange,
   domain_num_createRange,
+  domain_numnum_createRangeZeroToMax,
   domain_createValue,
   domain_str_closeGaps,
   domain_num_containsValue,
@@ -43,9 +44,6 @@ import {
   domain_any_min,
   domain_str_simplify,
 } from '../domain';
-import {
-  asmdomain_createRangeZeroToMax,
-} from '../asmdomain';
 
 let MAX = Math.max;
 
@@ -130,7 +128,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
   ASSERT((domain1 & SOLVED_FLAG) === 0, 'solved domain1 is expected to be caught elsewhere');
 
-  if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return asmdomain_createRangeZeroToMax(domain1);
+  if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return domain_numnum_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -176,7 +174,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   }
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain_num_containsValue(domain_num, 0) && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
+  if (domain_num_containsValue(domain_num, 0) && domain_any_min(domain_str) === 0) return domain_numnum_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty

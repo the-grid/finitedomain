@@ -1772,6 +1772,29 @@ function domain_num_createRange(lo, hi) {
 }
 
 /**
+ * Return a domain containing all numbers from zero to the highest
+ * number in given domain. In binary this means we'll set all the
+ * bits of lower value than the most-significant set bit.
+ *
+ * @param {$domain_num} domain_num Must be > ZERO
+ * @returns {$domain} never solved since that requires ZERO to be a valid input, which it isnt
+ */
+function domain_numnum_createRangeZeroToMax(domain_num) {
+  ASSERT_NUMDOM(domain_num);
+  ASSERT((domain_num & SOLVED_FLAG) === 0, 'should not be solved num');
+  ASSERT(domain_num !== ZERO, 'INVALID INPUT, ZERO would be a solved domain which is caught elsewhere');
+
+  //if (domain_num === ZERO) return SOLVED_FLAG; // note: SOLVED_FLAG|0 === SOLVED_FLAG.
+
+  domain_num = domain_num | (domain_num >> 1);
+  domain_num = domain_num | (domain_num >> 2);
+  domain_num = domain_num | (domain_num >> 4);
+  domain_num = domain_num | (domain_num >> 8);
+  domain_num = domain_num | (domain_num >> 16);
+  return domain_num;
+}
+
+/**
  * @param {$domain} domain
  * @param {number} [force] Always return in array or string form?
  * @returns {$domain}
@@ -2334,6 +2357,7 @@ export {
   domain_num_containsValue,
   domain_str_containsValue,
   domain_createRange,
+  domain_numnum_createRangeZeroToMax,
   domain_num_createRange,
   domain_createValue,
   domain_any__debug,

@@ -71,25 +71,6 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
   }
 
   /**
-   * Return a domain containing all numbers from zero to the highest
-   * number in given domain. In binary this means we'll set all the
-   * bits of lower value than the most-significant set bit.
-   *
-   * @param {$domain_num} domain
-   * @returns {$domain_num}
-   */
-  function createRangeZeroToMax(domain) {
-    domain = domain | 0;
-
-    domain = domain | (domain >> 1);
-    domain = domain | (domain >> 2);
-    domain = domain | (domain >> 4);
-    domain = domain | (domain >> 8);
-    domain = domain | (domain >> 16);
-    return domain | 0;
-  }
-
-  /**
    * Return -1 if domain is not solved and otherwise return
    * the value to which the domain is solved. A domain is
    * solved when it contains exactly one value.
@@ -587,7 +568,6 @@ function AsmDomainJs(/*stdlib, foreign, heap*/) {
   return {
     addRange: addRange,
     containsValue: containsValue,
-    createRangeZeroToMax: createRangeZeroToMax,
     getValue: getValue,
     intersection: intersection,
     isSolved: isSolved,
@@ -607,7 +587,6 @@ let obj = AsmDomainJs();
 
 let asmdomain_addRange = obj.addRange;
 let asmdomain_containsValue = obj.containsValue;
-let asmdomain_createRangeZeroToMax = obj.createRangeZeroToMax;
 let asmdomain_getValue = obj.getValue;
 let asmdomain_intersection = obj.intersection;
 let asmdomain_isSolved = obj.isSolved;
@@ -626,7 +605,6 @@ let asmdomain_size = obj.size;
 export {
   asmdomain_addRange,
   asmdomain_containsValue,
-  asmdomain_createRangeZeroToMax,
   asmdomain_getValue,
   asmdomain_intersection,
   asmdomain_isSolved,

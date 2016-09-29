@@ -82,27 +82,51 @@ function _stringify(o) {
 // Simple function to completely validate a domain
 // Should be removed in production. Obviously.
 
-function ASSERT_STRDOM(domain) {
+function ASSERT_STRDOM(domain, min, max, desc) {
   ASSERT(typeof domain === 'string', 'ONLY_STRDOM');
   ASSERT((domain.length % 4) === 0, 'SHOULD_CONTAIN_RANGES');
+  let lo = (domain.charCodeAt(0) << 16) | domain.charCodeAt(1);
+  let hi = (domain.charCodeAt(domain.length - 2) << 16) | domain.charCodeAt(domain.length - 1);
+  ASSERT(lo >= (typeof min === 'number' ? min : SUB), 'SHOULD_BE_GTE ' + (min || SUB));
+  ASSERT(hi <= (typeof max === 'number' ? max : SUP), 'SHOULD_BE_LTE ' + (max === undefined ? SUP : max));
+}
+function ASSERT_SOLDOM(domain, value) {
+  ASSERT(typeof domain === 'number', 'ONLY_SOLDOM');
+  ASSERT(domain >= 0, 'ALL_SOLDOMS_SHOULD_BE_UNSIGNED');
+  ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');
+  ASSERT((domain ^ SOLVED_FLAG) <= SUP, 'SOLVED_NUMDOM_SHOULD_BE_MAX_SUP');
+  if (value !== undefined) ASSERT((domain ^ SOLVED_FLAG) === value, 'SHOULD_BE_SOLVED_TO:' + value);
+}
+function ASSERT_BITDOM(domain) {
+  ASSERT(typeof domain === 'number', 'ONLY_BITDOM');
+  ASSERT(domain >= 0, 'ALL_BITDOMS_SHOULD_BE_UNSIGNED');
+  ASSERT((domain & SOLVED_FLAG) === 0, 'SOLVED_FLAG_NOT_SET');
+  ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
+}
+function ASSERT_ARRDOM(domain, min, max) {
+  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
+  if (domain.length === 0) return;
+  ASSERT(domain.length % 2 === 0, 'SHOULD_CONTAIN_RANGES');
+  ASSERT(domain[0] >= (min || SUB), 'SHOULD_BE_GTE ' + (min || SUB));
+  ASSERT(domain[domain.length - 1] <= (max === undefined ? SUP : max), 'SHOULD_BE_LTE ' + (max === undefined ? SUP : max));
+}
+function ASSERT_NORDOM(domain, expectSmallest, domain__debug) {
+  let s = domain__debug && domain__debug(domain);
+  ASSERT(typeof domain === 'string' || typeof domain === 'number', 'ONLY_NORDOM', s);
+  if (typeof domain === 'string') {
+    if (expectSmallest) {
+      ASSERT(((domain.charCodeAt(domain.length - 2) << 16) | domain.charCodeAt(domain.length - 1)) > SMALL_MAX_NUM, 'EXPECTING_STRDOM_TO_HAVE_NUMS_GT_BITDOM', s);
+      ASSERT(domain !== EMPTY_STR, 'EXPECTING_EMPTY_DOMAIN_TO_BE_NUMDOM', s);
+    }
+    return ASSERT_STRDOM(domain, undefined, undefined, s);
+  }
+  if (expectSmallest) ASSERT(!domain || (domain & SOLVED_FLAG) || (domain & (domain - 1)) !== 0, 'EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM', s);
+  return ASSERT_NUMDOM(domain, s);
 }
 function ASSERT_NUMDOM(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_NUMDOM');
-  ASSERT(domain >= 0, 'ALL_NUMDOMS_SHOULD_BE_UNSIGNED');
-  // TODO: verify that any solved domain is encoded as a solved numdom...
-  if (domain & SOLVED_FLAG) {
-    ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');
-    ASSERT((domain ^ SOLVED_FLAG) <= SUP, 'SOLVED_NUMDOM_SHOULD_BE_MAX_SUP');
-  } else {
-    ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
-  }
-}
-function ASSERT_ARRDOM(domain) {
-  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
-  ASSERT(domain.length % 2 === 0, 'SHOULD_CONTAIN_RANGES');
-}
-function ASSERT_NUMSTRDOM(domain) {
-  ASSERT(typeof domain === 'string' || typeof domain === 'number', 'ONLY_NUMDOM_OR_STRDOM');
+  if (domain & SOLVED_FLAG) ASSERT_SOLDOM(domain);
+  else ASSERT_BITDOM(domain);
 }
 function ASSERT_ANYDOM(domain) {
   ASSERT(typeof domain === 'string' || typeof domain === 'number' || domain instanceof Array, 'ONLY_VALID_DOM_TYPE');
@@ -176,8 +200,10 @@ export {
   ASSERT,
   ASSERT_ANYDOM,
   ASSERT_ARRDOM,
+  ASSERT_BITDOM,
+  ASSERT_NORDOM,
   ASSERT_NUMDOM,
-  ASSERT_NUMSTRDOM,
+  ASSERT_SOLDOM,
   ASSERT_STRDOM,
   GET_NAME,
   GET_NAMES,

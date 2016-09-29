@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 import {
   domain_mul,
@@ -32,8 +32,8 @@ function propagator_mulStep(space, config, varIndex1, varIndex2, varIndex3) {
  * @returns {$domain}
  */
 function _propagator_mulStep(domain1, domain2, domResult) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let domain = domain_mul(domain1, domain2);

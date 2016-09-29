@@ -2,7 +2,7 @@ import {
   EMPTY,
 
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
@@ -54,8 +54,8 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
     let domain1 = vardoms[leftVarIndex];
     let domain2 = vardoms[rightVarIndex];
 
-    ASSERT_NUMSTRDOM(domain1);
-    ASSERT_NUMSTRDOM(domain2);
+    ASSERT_NORDOM(domain1);
+    ASSERT_NORDOM(domain2);
     ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
     ASSERT(domResult === domain_createRange(0, 1), 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 

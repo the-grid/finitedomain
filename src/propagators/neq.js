@@ -3,7 +3,7 @@ import {
   NO_SUCH_VALUE,
 
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 import {
   domain_getValue,
@@ -29,8 +29,8 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   // remove solved value from the other domain. confirm neither rejects over it.

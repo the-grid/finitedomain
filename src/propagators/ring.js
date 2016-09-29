@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
@@ -44,8 +44,8 @@ function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3,
  */
 function _propagator_ringStepBare(domain1, domain2, domainResult, opFunc, opName) {
   ASSERT(typeof opFunc === 'function', 'EXPECTING_FUNC_TO_BE:', opName);
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let domain = opFunc(domain1, domain2);

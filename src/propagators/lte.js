@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
@@ -27,8 +27,8 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let lo1 = domain_min(domain1);
@@ -63,8 +63,8 @@ function propagator_gteStepBare(space, config, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_lteStepWouldReject(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_min(domain1) > domain_max(domain2);
@@ -92,8 +92,8 @@ function propagator_gteStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_lteSolved(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
   return domain_max(domain1) <= domain_min(domain2);

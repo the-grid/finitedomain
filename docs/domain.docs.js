@@ -1,17 +1,19 @@
 /**
- * @typedef {$strdom|$arrdom|$numdom|$bitdom|$soldom} $domain
+ * @typedef {$arrdom|$nordom|$strdom|$numdom|$bitdom|$soldom} $domain
  *
  * The internal representation of possible values for a certain variable.
  *
- * There are four representations and five names to distinct them internally:
+ * There are four representations and six names to distinct them internally:
  *
- * - strdom
- * - numdom
- *   - soldom
- *   - bitdom
- * - arrdom
+ * - domain
+ *   - arrdom
+ *   - nordom
+ *     - strdom
+ *     - numdom
+ *       - soldom
+ *       - bitdom
  *
- * For the first two we assume they are CSIS (that means "Canonical Sorted
+ * We assume strdom/arrdom are always CSIS (that means "Canonical Sorted
  * Interval Sequeunce") which means each pair <lo,hi> in the representation is
  * properly ordered `lo <= hi`, each range [A,B,...] is ordered such that
  * `max(A) <= min(B)-1` (there must always be some gap between two ranges).
@@ -43,9 +45,27 @@
  * 27bits of the value since that's the number of bits used by the highest value
  * that finitedomain supports in its domains.
  *
+ * A nordom represents a "normalized" domain, meaning the smallest representation
+ * (with soldom<bitdom<strdom) and basically never an arrdom.
+ *
  * A numdom is either a soldom or a bitdom and signifies a domain that'll do
  * `typeof domain === 'number'`. It used to mean bitdom before soldoms were
  * introduced but we needed to disambiguate them so numdom became a "super".
+ */
+
+/**
+ * @typedef {number[]} $arrdom
+ *
+ * An "array domain" is an array of ranges. Should be CSIS form.
+ */
+
+/**
+ * @typedef {$soldom|$bitdom|$strdom} $nordom
+ *
+ * A normalized domain in its most optimal form (with soldom<$bitdom<strdom).
+ * Basically means any representation except arrdom. We currently don't
+ * strictly enforce that the smallest representation is used, but that
+ * may change if it could simplify the code...
  */
 
 /**
@@ -53,12 +73,6 @@
  *
  * A "string domain" is an array of ranges encoded as strings. Two characters
  * per number in an arrdom. Should be CSIS form.
- */
-
-/**
- * @typedef {number[]} $arrdom
- *
- * An "array domain" is an array of ranges. Should be CSIS form.
  */
 
 /**

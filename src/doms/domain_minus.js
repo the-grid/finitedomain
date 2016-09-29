@@ -26,7 +26,7 @@ import {
   ASSERT,
   ASSERT_NUMDOM,
   ASSERT_STRDOM,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 import {
   STR_VALUE_SIZE,
@@ -57,8 +57,8 @@ let MAX = Math.max;
  * @returns {$domain}
  */
 function domain_any_minus(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // note: this is not x-0=x. this is nothing-something=nothing because the domains contain no value
   if (!domain1) return EMPTY;

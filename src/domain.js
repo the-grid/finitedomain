@@ -21,7 +21,7 @@ import {
   ASSERT_ANYDOM,
   ASSERT_ARRDOM,
   ASSERT_NUMDOM,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
   ASSERT_STRDOM,
   THROW,
 } from './helpers';
@@ -136,7 +136,7 @@ const STR_RANGE_SIZE = 4;
  * @returns {$domain}
  */
 function domain_appendRange(domain, lo, hi) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') {
     // note: this function should not receive numdoms with a SOLVED_FLAG set
@@ -189,7 +189,7 @@ function domain_str_addRange(domain, lo, hi) {
  * @returns {boolean}
  */
 function domain_containsValue(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_containsValue(domain, value);
   return domain_str_containsValue(domain, value);
@@ -276,7 +276,7 @@ function domain_str_rangeIndexOf(domain, value) {
  * @returns {boolean}
  */
 function domain_isValue(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
   // TODO: in a sound system this can shortcut anything that's not a soldom
 
@@ -320,7 +320,7 @@ function domain_str_isValue(domain, value) {
  * @returns {number}
  */
 function domain_getValue(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_getValue(domain);
   return domain_str_getValue(domain);
@@ -451,7 +451,7 @@ function domain_fromListToArrdom(list) {
  * @returns {number[]}
  */
 function domain_toList(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_toList(domain);
   return domain_str_toList(domain);
@@ -502,7 +502,7 @@ function domain_str_toList(domain) {
  * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_removeNextFromList(domain, list) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
   return domain_str_removeNextFromList(domain, list);
@@ -588,7 +588,7 @@ function domain_str_removeNextFromList(domain, list) {
  * @returns {number} Can return NO_SUCH_VALUE
  */
 function domain_getValueOfFirstContainedValueInList(domain, list) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
   return domain_str_getValueOfFirstContainedValueInList(domain, list);
@@ -756,8 +756,8 @@ function _domain_str_mergeOverlappingRanges(domain) {
  * @returns {$domain}
  */
 function domain_intersection(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   if (domain1 === domain2) return domain1;
   let isNum1 = typeof domain1 === 'number';
@@ -925,8 +925,8 @@ function domain__debug(domain) {
  * @returns {boolean}
  */
 function domain_isEqual(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // whether domain is a string or a number, we can === it
   return domain1 === domain2;
@@ -1041,8 +1041,8 @@ function domain_str_smallestRangeSize(domain) {
  * @returns {$domain}
  */
 function domain_mul(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // TOFIX: quick shortcut for solved domains
 
@@ -1098,8 +1098,8 @@ function domain_strstr_mul(domain1, domain2) {
  * @returns {$domain}
  */
 function domain_divby(domain1, domain2, floorFractions = true) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // TOFIX: add quick shortcut for solved domains
 
@@ -1179,7 +1179,7 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
  * @returns {number}
  */
 function domain_size(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_size(domain);
   return domain_str_size(domain);
@@ -1276,7 +1276,7 @@ function domain_str_size(domain) {
  * @returns {number} can return
  */
 function domain_middleElement(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') {
     if (domain & SOLVED_FLAG) return domain ^ SOLVED_FLAG;
@@ -1332,7 +1332,7 @@ function domain_str_middleElement(domain) {
  * @returns {number}
  */
 function domain_min(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_min(domain);
   return domain_str_min(domain);
@@ -1476,7 +1476,7 @@ function domain_str_min(domain) {
  * @returns {number} can be NO_SUCH_VALUE
  */
 function domain_max(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_max(domain);
   return domain_str_max(domain);
@@ -1555,7 +1555,7 @@ function domain_arr_max(domain) {
  * @returns {boolean}
  */
 function domain_isSolved(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_isSolved(domain);
   return domain_str_isSolved(domain);
@@ -1602,7 +1602,7 @@ function domain_str_isSolved(domain) {
  * @returns {boolean}
  */
 function domain_isUndetermined(domain) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_isUndetermined(domain);
   // return false; // TOFIX by design, strdoms should never be determined here
@@ -1669,7 +1669,7 @@ function domain_isRejected(domain) {
  * @returns {$domain}
  */
 function domain_removeGte(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeGte(domain, value);
@@ -1827,7 +1827,7 @@ function domain_str_removeGte(strdom, value) {
  * @returns {$domain}
  */
 function domain_removeLte(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeLte(domain, value);
@@ -1977,7 +1977,7 @@ function domain_str_removeLte(strdom, value) {
  * @returns {$domain}
  */
 function domain_removeValue(domain, value) {
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeValue(domain, value);
@@ -2093,8 +2093,8 @@ function _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, last
  * @returns {boolean}
  */
 function domain_sharesNoElements(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';

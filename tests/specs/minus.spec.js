@@ -30,9 +30,9 @@ describe('src/minus.spec.js', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_any_minus()).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_any_minus(fixt_numdom_empty())).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_any_minus(null, fixt_strdom_empty())).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_minus()).to.throw('ONLY_NORDOM');
+      expect(() => domain_any_minus(fixt_numdom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_any_minus(null, fixt_strdom_empty())).to.throw('ONLY_NORDOM');
     });
 
     it('should accept empty domains', function() {

@@ -2,7 +2,7 @@ import {
   EMPTY,
 
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
@@ -38,7 +38,7 @@ function propagator_markovStepBare(space, config, varIndex) {
 
   let domain = space.vardoms[varIndex];
 
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
   if (!domain_isSolved(domain)) return;

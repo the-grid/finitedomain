@@ -35,9 +35,9 @@ describe('src/plus.spec.js', function() {
     });
 
     it('should require domains', function() {
-      expect(() => domain_any_plus()).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_any_plus(fixt_numdom_empty())).to.throw('NUMDOM_OR_STRDOM');
-      expect(() => domain_any_plus(null, fixt_strdom_empty())).to.throw('NUMDOM_OR_STRDOM');
+      expect(() => domain_any_plus()).to.throw('ONLY_NORDOM');
+      expect(() => domain_any_plus(fixt_numdom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_any_plus(null, fixt_strdom_empty())).to.throw('ONLY_NORDOM');
     });
 
     it('should accept empty domains', function() {

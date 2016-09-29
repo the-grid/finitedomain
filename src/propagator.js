@@ -36,6 +36,8 @@ import {
 } from './propagators/neq';
 import {
   domain_divby,
+  domain_max,
+  domain_min,
   domain_mul,
 } from './domain';
 import domain_any_plus from './doms/domain_plus';
@@ -118,32 +120,31 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      console.log('FIXME');
-      /*
-      let A = domain_toBitstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toBitstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toBitstr(config.initial_domains[resultVarIndex]);
+      console.log('FIXME'); // force C bool bound, properly check domains (this is just a hack)
+
+      let A = config.initial_domains[leftVarIndex];
+      let B = config.initial_domains[rightVarIndex];
+      let C = config.initial_domains[resultVarIndex];
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (C === BOOL) {
-        if (B === BOOL) {
-          if (A === ONE) {
+      if (domain_min(C) === 0 && domain_max(C) === 1) {
+        if (domain_min(B) === 0 && domain_max(B) === 1) {
+          if (domain_min(A) === 1) {
             return propagator_addEq(config, rightVarIndex, resultVarIndex);
           }
-          if (A === ZERO) {
+          if (domain_max(A) === 0) {
             return propagator_addNeq(config, rightVarIndex, resultVarIndex);
           }
         }
-        if (A === BOOL) {
-          if (B === ONE) {
+        if (domain_min(A) === 0 && domain_max(A) === 1) {
+          if (domain_min(B) === 1) {
             return propagator_addEq(config, leftVarIndex, resultVarIndex);
           }
-          if (B === ZERO) {
+          if (domain_min(A) === 1) {
             return propagator_addNeq(config, leftVarIndex, resultVarIndex);
           }
         }
       }
-      */
 
       break;
     }
@@ -155,32 +156,32 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      console.log('FIXME');
-      /*
-      let A = domain_toBitstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toBitstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toBitstr(config.initial_domains[resultVarIndex]);
+      console.log('FIXME'); // force C bool bound, properly check domains (this is just a hack)
+
+      let A = config.initial_domains[leftVarIndex];
+      let B = config.initial_domains[rightVarIndex];
+      let C = config.initial_domains[resultVarIndex];
 
       // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (C === BOOL) {
-        if (B === BOOL) {
-          if (A === ONE) {
+      if (domain_min(C) === 0 && domain_max(C) === 1) {
+        if (domain_min(B) === 0 && domain_max(B) === 1) {
+          if (domain_min(A) === 1) {
             return propagator_addNeq(config, rightVarIndex, resultVarIndex);
           }
-          if (A === ZERO) {
+          if (domain_max(A) === 0) {
             return propagator_addEq(config, rightVarIndex, resultVarIndex);
           }
         }
-        if (A === BOOL) {
-          if (B === ONE) {
+        if (domain_min(A) === 0 && domain_max(A) === 1) {
+          if (domain_min(B) === 1) {
             return propagator_addNeq(config, leftVarIndex, resultVarIndex);
           }
-          if (B === ZERO) {
+          if (domain_max(B) === 0) {
             return propagator_addEq(config, leftVarIndex, resultVarIndex);
           }
         }
       }
-*/
+
       break;
     }
     case 'lt':

@@ -31,7 +31,7 @@ import {
   domain_clone,
   domain_createRange,
   domain_fromListToArrdom,
-  domain_isRejected,
+  domain_arr_isRejected,
   domain_max,
   domain_toArr,
   domain_toList,
@@ -161,8 +161,8 @@ class Solver {
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
-    if (domain_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = domain_validateLegacyArray(domain);
+    if (domain_arr_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -589,7 +589,7 @@ class Solver {
    * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
    */
   domain_max(domain) {
-    if (domain_isRejected(domain)) return NO_SUCH_VALUE;
+    if (domain_arr_isRejected(domain)) return NO_SUCH_VALUE;
     return domain_max(domain);
   }
 

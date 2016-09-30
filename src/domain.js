@@ -20,8 +20,10 @@ import {
   ASSERT,
   ASSERT_ANYDOM,
   ASSERT_ARRDOM,
+  ASSERT_BITDOM,
   ASSERT_NUMDOM,
   ASSERT_NORDOM,
+  ASSERT_SOLDOM,
   ASSERT_STRDOM,
   THROW,
 } from './helpers';
@@ -130,7 +132,7 @@ const STR_RANGE_SIZE = 4;
  * Append given range to the end of given domain. Does not
  * check if the range belongs there! Dumbly appends.
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @param {number} lo
  * @param {number} hi
  * @returns {$domain}
@@ -147,15 +149,8 @@ function domain_appendRange(domain, lo, hi) {
   }
   return domain_str_addRange(domain, lo, hi);
 }
-/**
- * Add numbers between `from` and `to`, inclusive, to the domain.
- *
- * @param {$bitdom} domain
- * @param {number} lo Regular decimal number, not flag!
- * @param {number} hi Regular decimal number, not flag!
- * @returns {$bitdom}
- */
 function domain_bit_addRange(domain, lo, hi) {
+  ASSERT_BITDOM(domain);
   // what we do is:
   // - create a 1
   // - move the 1 to the left, `1+to-from` times
@@ -166,17 +161,11 @@ function domain_bit_addRange(domain, lo, hi) {
   let range = (((1 << (1 + (hi | 0) - (lo | 0))) - 1) << lo);
   return domain | range;
 }
-/**
- * Append given range to the end of given domain. Does not
- * check if the range belongs there! Dumbly appends.
- *
- * @param {$domain_str} domain
- * @param {number} lo
- * @param {number} hi
- * @returns {$domain_str}
- */
 function domain_str_addRange(domain, lo, hi) {
   ASSERT_STRDOM(domain);
+  ASSERT(lo >= 0);
+  ASSERT(hi <= SUP);
+  ASSERT(lo <= hi);
 
   return domain + domain_str_encodeRange(lo, hi);
 }
@@ -184,7 +173,7 @@ function domain_str_addRange(domain, lo, hi) {
 /**
  * returns whether domain covers given value
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @param {number} value
  * @returns {boolean}
  */
@@ -194,49 +183,34 @@ function domain_containsValue(domain, value) {
   if (typeof domain === 'number') return domain_num_containsValue(domain, value);
   return domain_str_containsValue(domain, value);
 }
-/**
- * returns whether domain covers given value
- * for numdoms
- *
- * @param {$domain_num} domain
- * @param {number} value
- * @returns {boolean}
- */
 function domain_num_containsValue(domain, value) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return domain_sol_containsValue(domain, value);
   return domain_bit_containsValue(domain, value);
 }
-/**
- * Returns true if the domain contains given number and 0 otherwise.
- *
- * @param {$soldom} domain
- * @param {number} value NOT a flag
- * @returns {boolean}
- */
 function domain_sol_containsValue(domain, value) {
+  ASSERT_SOLDOM(domain);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
+  ASSERT(value >= SUB);
+  ASSERT(value <= SUP);
+
   return (domain ^ SOLVED_FLAG) === value;
 }
-/**
- * Returns true if the domain contains given number and false otherwise.
- *
- * @param {$bitdom} domain
- * @param {number} value NOT a flag
- * @returns {boolean}
- */
 function domain_bit_containsValue(domain, value) {
+  ASSERT_BITDOM(domain);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
+  ASSERT(value >= SUB);
+  ASSERT(value <= SUP);
+
   return (domain & (1 << value)) !== 0;
 }
-/**
- * returns whether domain covers given value
- * for strdoms
- *
- * @param {$domain_str} domain
- * @param {number} value
- * @returns {boolean}
- */
 function domain_str_containsValue(domain, value) {
-  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
   ASSERT_STRDOM(domain);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
+  ASSERT(value >= SUB);
+  ASSERT(value <= SUP);
+
   return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
 
@@ -244,12 +218,15 @@ function domain_str_containsValue(domain, value) {
  * return the range index in given domain that covers given
  * value, or if the domain does not cover it at all
  *
- * @param {$domain_str} domain
+ * @param {$strdom} domain
  * @param {number} value
  * @returns {number} >=0 actual index on strdom or NOT_FOUND
  */
 function domain_str_rangeIndexOf(domain, value) {
   ASSERT_STRDOM(domain);
+  ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
+  ASSERT(value >= SUB);
+  ASSERT(value <= SUP);
 
   let len = domain.length;
 
@@ -271,99 +248,77 @@ function domain_str_rangeIndexOf(domain, value) {
 }
 
 /**
- * @param {$domain} domain
+ * Is given domain solved to given value?
+ * A domain is solved if it contains exactly one value.
+ *
+ * @param {$nordom} domain
  * @param {number} value
  * @returns {boolean}
  */
 function domain_isValue(domain, value) {
   ASSERT_NORDOM(domain);
-  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
   // TODO: in a sound system this can shortcut anything that's not a soldom
 
   if (typeof domain === 'number') return domain_num_isValue(domain, value);
   return domain_str_isValue(domain, value);
 }
-/**
- * @param {$numdom} domain
- * @param {number} value
- * @returns {boolean}
- */
 function domain_num_isValue(domain, value) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return domain_sol_isValue(domain, value);
   return domain_bit_isValue(domain, value);
 }
 function domain_sol_isValue(domain, value) {
+  ASSERT_SOLDOM(domain);
+  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
+
   return (domain ^ SOLVED_FLAG) === value;
 }
-/**
- * @param {$bitdom} domain
- * @param {number} value
- * @returns {boolean}
- */
 function domain_bit_isValue(domain, value) {
+  ASSERT_BITDOM(domain);
+  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
+
   if (value > SMALL_MAX_NUM) return false;
   return domain === (1 << value);
 }
-/**
- * @param {$strdom} domain
- * @param {number} value
- * @returns {boolean}
- */
 function domain_str_isValue(domain, value) {
   ASSERT_STRDOM(domain);
+  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
 
   return domain.length === STR_RANGE_SIZE && (domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) | domain_str_decodeValue(domain, STR_FIRST_RANGE_HI)) === value;
 }
 
 /**
- * @param {$domain} domain
+ * Check if given domain is solved. If so, return the value
+ * to which it was solved. Otherwise return NO_SUCH_VALUE.
+ *
+ * @param {$nordom} domain
  * @returns {number}
  */
 function domain_getValue(domain) {
   ASSERT_NORDOM(domain);
+  // TODO: in a sound system we'd only have to check for soldoms...
 
   if (typeof domain === 'number') return domain_num_getValue(domain);
   return domain_str_getValue(domain);
 }
-/**
- * Get the value of given domain, or NO_SUCH_VALUE
- *
- * @param {$numdom} domain
- * @returns {number}
- */
 function domain_num_getValue(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return domain_sol_getValue(domain);
   return domain_bit_getValue(domain);
 }
-/**
- * Return the value to which given domain was solved.
- * Since this function already assumes the domain is
- * indeed solved, all we need to do here is remove the
- * SOLVED_FLAG from the domain to get the value. Even
- * if that value is 0.
- *
- * @param {$soldom} domain
- * @returns {number} should never be NO_SUCH_VALUE
- */
 function domain_sol_getValue(domain) {
+  ASSERT_SOLDOM(domain);
+
   return domain ^ SOLVED_FLAG;
 }
-/**
- * Return NO_SUCH_VALUE if domain is not solved and otherwise
- * return the value to which the domain is solved. A domain is
- * solved when it contains exactly one value.
- *
- * @param {$bitdom} domain
- * @returns {number} -1 means NO_SUCH_VALUE
- */
 function domain_bit_getValue(domain) {
+  ASSERT_BITDOM(domain);
+
   var lo = domain_bit_min(domain);
   return (domain === (1 << lo)) ? lo : NO_SUCH_VALUE;
 }
-/**
- * @param {$strdom} domain
- * @returns {number} can be NO_SUCH_VALUE
- */
 function domain_str_getValue(domain) {
   ASSERT_STRDOM(domain);
 
@@ -373,10 +328,6 @@ function domain_str_getValue(domain) {
   if (lo === hi) return lo;
   return NO_SUCH_VALUE;
 }
-/**
- * @param {$arrdom} domain
- * @returns {number} can be NO_SUCH_VALUE
- */
 function domain_arr_getValue(domain) {
   ASSERT_ARRDOM(domain);
   if (domain.length === ARR_RANGE_SIZE && domain[0] === domain[1]) return domain[0];
@@ -447,7 +398,7 @@ function domain_fromListToArrdom(list) {
 /**
  * domain to list of possible values
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {number[]}
  */
 function domain_toList(domain) {
@@ -456,16 +407,19 @@ function domain_toList(domain) {
   if (typeof domain === 'number') return domain_num_toList(domain);
   return domain_str_toList(domain);
 }
-/**
- * domain to list of possible values
- *
- * @param {$domain_num} domain
- * @returns {number[]}
- */
 function domain_num_toList(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return [domain ^ SOLVED_FLAG];
+  if (domain & SOLVED_FLAG) return domain_sol_toList(domain);
+  return domain_bit_toList(domain);
+}
+function domain_sol_toList(domain) {
+  ASSERT_SOLDOM(domain);
+
+  return [domain ^ SOLVED_FLAG];
+}
+function domain_bit_toList(domain) {
+  ASSERT_BITDOM(domain);
 
   let list = [];
   for (let i = 0; i < 16; ++i) {
@@ -473,12 +427,6 @@ function domain_num_toList(domain) {
   }
   return list;
 }
-/**
- * domain to list of possible values
- *
- * @param {$domain_str} domain
- * @returns {number[]}
- */
 function domain_str_toList(domain) {
   ASSERT_STRDOM(domain);
 
@@ -492,14 +440,13 @@ function domain_str_toList(domain) {
 }
 
 /**
- * Given a list and domain, search items in the list in the domain and remove
- * the first element found this way, then return a deep clone of that result
- * Given domain is not harmed in this process.
- * If no items from list can be found, this function returns the empty domain.
+ * Given a list and domain, search items in the list in the domain and return
+ * a domain with the first element found this way removed.
+ * If no items from list can be found this function returns NO_SUCH_VALUE (-1)
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @param {number[]} list
- * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
+ * @returns {$nordom|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
  */
 function domain_removeNextFromList(domain, list) {
   ASSERT_NORDOM(domain);
@@ -507,29 +454,25 @@ function domain_removeNextFromList(domain, list) {
   if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
   return domain_str_removeNextFromList(domain, list);
 }
-/**
- * Given a list and domain, search items in the list in the domain and remove
- * the first element found this way, then return a deep clone of that result
- * Given domain is not harmed in this process.
- * If no items from list can be found, this function returns the empty domain.
- *
- * @param {$domain_num} numdom
- * @param {number[]} list
- * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
- */
 function domain_num_removeNextFromList(numdom, list) {
   ASSERT_NUMDOM(numdom);
-  ASSERT(list, 'A_EXPECTING_LIST');
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
   if (numdom & SOLVED_FLAG) return domain_sol_removeNextFromList(numdom, list);
   return domain_bit_removeNextFromList(numdom, list);
 }
 function domain_sol_removeNextFromList(soldom, list) {
+  ASSERT_SOLDOM(soldom);
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
+
   let solvedValue = soldom ^ SOLVED_FLAG;
   if (list.indexOf(solvedValue) >= 0) return EMPTY;
   return soldom;
 }
 function domain_bit_removeNextFromList(bitdom, list) {
+  ASSERT_BITDOM(bitdom);
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
+
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
     ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
@@ -540,19 +483,9 @@ function domain_bit_removeNextFromList(bitdom, list) {
   }
   return NO_SUCH_VALUE;
 }
-/**
- * Given a list and domain, search items in the list in the domain and remove
- * the first element found this way, then return a deep clone of that result
- * Given domain is not harmed in this process.
- * If no items from list can be found, this function returns the empty domain.
- *
- * @param {$domain_str} domain
- * @param {number[]} list
- * @returns {$domain|number} NO_SUCH_VALUE (-1) means the result is empty
- */
 function domain_str_removeNextFromList(domain, list) {
   ASSERT_STRDOM(domain);
-  ASSERT(list, 'A_EXPECTING_LIST');
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
   let len = domain.length;
 
@@ -583,7 +516,7 @@ function domain_str_removeNextFromList(domain, list) {
 }
 
 /**
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
@@ -593,20 +526,23 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
   if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
   return domain_str_getValueOfFirstContainedValueInList(domain, list);
 }
-/**
- * @param {$domain_num} domain
- * @param {number[]} list
- * @returns {number} Can return NO_SUCH_VALUE
- */
 function domain_num_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT_NUMDOM(domain);
-  ASSERT(list, 'EXPECTING_LIST');
 
-  if (domain & SOLVED_FLAG) {
-    let solvedValue = domain ^ SOLVED_FLAG;
-    if (list.indexOf(solvedValue) >= 0) return solvedValue;
-    return NO_SUCH_VALUE;
-  }
+  if (domain & SOLVED_FLAG) return domain_sol_getValueOfFirstContainedValueInList(domain, list);
+  return domain_bit_getValueOfFirstContainedValueInList(domain, list);
+}
+function domain_sol_getValueOfFirstContainedValueInList(domain, list) {
+  ASSERT_SOLDOM(domain);
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
+
+  let solvedValue = domain ^ SOLVED_FLAG;
+  if (list.indexOf(solvedValue) >= 0) return solvedValue;
+  return NO_SUCH_VALUE;
+}
+function domain_bit_getValueOfFirstContainedValueInList(domain, list) {
+  ASSERT_BITDOM(domain);
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
   for (let i = 0; i < list.length; ++i) {
     let value = list[i];
@@ -616,14 +552,9 @@ function domain_num_getValueOfFirstContainedValueInList(domain, list) {
   }
   return NO_SUCH_VALUE;
 }
-/**
- * @param {$domain_str} domain
- * @param {number[]} list
- * @returns {number} Can return NO_SUCH_VALUE
- */
 function domain_str_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT_STRDOM(domain);
-  ASSERT(list, 'EXPECTING_LIST');
+  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
   for (let i = 0; i < list.length; i++) {
     let value = list[i];
@@ -640,8 +571,8 @@ function domain_str_getValueOfFirstContainedValueInList(domain, list) {
  * This function first checks whether simplification is needed at all
  * Should normalize all return values.
  *
- * @param {$domain_str|string} domain
- * @returns {$domain_str} ironically, not optimized to a number if possible
+ * @param {$strdom|string} domain
+ * @returns {$strdom} ironically, not optimized to a number if possible
  */
 function domain_str_simplify(domain) {
   ASSERT_STRDOM(domain);
@@ -751,9 +682,9 @@ function _domain_str_mergeOverlappingRanges(domain) {
  * Intersection means the result only contains the values
  * that are contained in BOTH domains.
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {$domain}
+ * @param {$nordom} domain1
+ * @param {$nordom} domain2
+ * @returns {$nordom}
  */
 function domain_intersection(domain1, domain2) {
   ASSERT_NORDOM(domain1);
@@ -783,27 +714,26 @@ function domain_numnum_intersection(domain1, domain2) {
   return domain_bitbit_intersect(domain1, domain2);
 }
 function domain_solbit_intersect(soldom, bitdom) {
+  ASSERT_SOLDOM(soldom);
+  ASSERT_BITDOM(bitdom);
+
   let solvedValue = soldom ^ SOLVED_FLAG;
   if (solvedValue <= SMALL_MAX_NUM && (bitdom & (1 << solvedValue))) return soldom;
   return EMPTY;
 }
 function domain_solsol_intersect(domain1, domain2) {
+  ASSERT_SOLDOM(domain1);
+  ASSERT_SOLDOM(domain2);
+
   if (domain1 === domain2) return domain1;
   return EMPTY;
 }
 function domain_bitbit_intersect(domain1, domain2) {
+  ASSERT_BITDOM(domain1);
+  ASSERT_BITDOM(domain2);
+
   return domain_bitToSmallest(domain1 & domain2);
 }
-/**
- * Intersect the domain assuming domain1 is a numbered (small)
- * domain and domain2 is an array domain. The result will always
- * be a small domain and that's what this function intends to
- * optimize.
- *
- * @param {$numdom} numdom
- * @param {$strdom} strdom
- * @returns {$numdom} Always a numdom because we already know numbers higher than max_small cant occur in _both_ domains
- */
 function domain_numstr_intersection(numdom, strdom) {
   ASSERT_NUMDOM(numdom);
   ASSERT_STRDOM(strdom);
@@ -812,6 +742,9 @@ function domain_numstr_intersection(numdom, strdom) {
   return domain_bitstr_intersect(numdom, strdom);
 }
 function domain_solstr_intersect(soldom, strdom) {
+  ASSERT_SOLDOM(soldom);
+  ASSERT_STRDOM(strdom);
+
   let solvedValue = soldom ^ SOLVED_FLAG;
 
   for (let i = 0, len = strdom.length; i < len; i += STR_RANGE_SIZE) {
@@ -825,6 +758,9 @@ function domain_solstr_intersect(soldom, strdom) {
   return EMPTY;
 }
 function domain_bitstr_intersect(bitdom, strdom) {
+  ASSERT_BITDOM(bitdom);
+  ASSERT_STRDOM(strdom);
+
   // TODO: intersect in a "zipper" O(max(n,m)) algorithm instead of O(n*m). see _domain_strstr_intersection
   let domain = EMPTY;
   for (let i = 0, len = strdom.length; i < len; i += STR_RANGE_SIZE) {
@@ -840,15 +776,6 @@ function domain_bitstr_intersect(bitdom, strdom) {
 
   return domain_bitToSmallest(domain);
 }
-/**
- * Intersect two strdoms.
- * Intersection means the result only contains the values
- * that are contained in BOTH domains.
- *
- * @param {$strdom} domain1
- * @param {$strdom} domain2
- * @returns {$domain} can return a numdom
- */
 function domain_strstr_intersection(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
@@ -907,6 +834,13 @@ function domain_strstr_intersection(domain1, domain2) {
   return domain_toSmallest(newDomain);
 }
 
+/**
+ * Return a simple string showing the given domain in array
+ * form and the representation type that was passed on.
+ *
+ * @param {$domain} domain
+ * @returns {string}
+ */
 function domain__debug(domain) {
   if (typeof domain === 'number') {
     if (domain & SOLVED_FLAG) return 'soldom([' + (domain ^ SOLVED_FLAG) + ', ' + (domain ^ SOLVED_FLAG) + '])';
@@ -920,8 +854,8 @@ function domain__debug(domain) {
 /**
  * deep comparison of two $domains
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$nordom} domain1
+ * @param {$nordom} domain2
  * @returns {boolean}
  */
 function domain_isEqual(domain1, domain2) {
@@ -946,9 +880,9 @@ function domain_isEqual(domain1, domain2) {
  * number of domain segments helps reduce the N^2 complexity of
  * the subsequent domain consistent interval addition method.
  *
- * @param {$domain_str} domain1
- * @param {$domain_str} domain2
- * @returns {$domain_str[]}
+ * @param {$strdom} domain1
+ * @param {$strdom} domain2
+ * @returns {$strdom[]}
  */
 function domain_str_closeGaps(domain1, domain2) {
   ASSERT_STRDOM(domain1);
@@ -987,9 +921,9 @@ function domain_str_closeGaps(domain1, domain2) {
  * the given gap value. All gaps less than this gap are closed.
  * Domain is not harmed
  *
- * @param {$domain_str} domain
+ * @param {$strdom} domain
  * @param {number} gap
- * @returns {$domain_str} (min/max won't be eliminated and input should be a "large" domain)
+ * @returns {$strdom} (min/max won't be eliminated and input should be a "large" domain)
  */
 function _domain_str_closeGaps(domain, gap) {
   ASSERT_STRDOM(domain);
@@ -1014,7 +948,7 @@ function _domain_str_closeGaps(domain, gap) {
   return newDomain;
 }
 /**
- * @param {$domain_str} domain
+ * @param {$strdom} domain
  * @returns {number}
  */
 function domain_str_smallestRangeSize(domain) {
@@ -1036,8 +970,8 @@ function domain_str_smallestRangeSize(domain) {
 /**
  * Note that this one isn't domain consistent.
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$nordom} domain1
+ * @param {$nordom} domain2
  * @returns {$domain}
  */
 function domain_mul(domain1, domain2) {
@@ -1053,13 +987,6 @@ function domain_mul(domain1, domain2) {
   // TODO domain_mulNum
   return domain_strstr_mul(domain1, domain2);
 }
-/**
- * Note that this one isn't domain consistent.
- *
- * @param {$domain_str} domain1
- * @param {$domain_str} domain2
- * @returns {$domain_str} a strdom can never become a numdom when multiplying (can only grow or become zero)
- */
 function domain_strstr_mul(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
@@ -1090,12 +1017,12 @@ function domain_strstr_mul(domain1, domain2) {
  *
  * Does not harm input domains
  *
- * @param {$domain} domain1
- * @param {$domain} domain2
+ * @param {$nordom} domain1
+ * @param {$nordom} domain2
  * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
  *         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
  *         <2,2>, otherwise it will not include anything for that division.
- * @returns {$domain}
+ * @returns {$nordom}
  */
 function domain_divby(domain1, domain2, floorFractions = true) {
   ASSERT_NORDOM(domain1);
@@ -1110,22 +1037,6 @@ function domain_divby(domain1, domain2, floorFractions = true) {
   // TODO: domain_divByNum
   return domain_strstr_divby(domain1, domain2, floorFractions);
 }
-/**
- * Divide one range by another
- * Result has any integer values that are equal or between
- * the real results. This means fractions are floored/ceiled.
- * This is an expensive operation.
- * Zero is a special case.
- *
- * Does not harm input domains
- *
- * @param {$domain_str} domain1
- * @param {$domain_str} domain2
- * @param {boolean} [floorFractions=true] Include the floored lo of the resulting ranges?
- *         For example, <5,5>/<2,2> is <2.5,2.5>. If this flag is true, it will include
- *         <2,2>, otherwise it will not include anything for that division.
- * @returns {$domain} strdom could become numdom after a div
- */
 function domain_strstr_divby(domain1, domain2, floorFractions = true) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
@@ -1175,7 +1086,7 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
 /**
  * Return the number of elements this domain covers
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {number}
  */
 function domain_size(domain) {
@@ -1185,16 +1096,14 @@ function domain_size(domain) {
   return domain_str_size(domain);
 }
 function domain_num_size(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return 1;
   return domain_bit_size(domain);
 }
-/**
- * Return the number of elements this domain covers
- *
- * @param {$numdom} domain
- * @returns {number}
- */
 function domain_bit_size(domain) {
+  ASSERT_BITDOM(domain);
+
   // need to work on this one because it requires 64bits. should be doable, to revisit later
 //      domain = (domain - (((domain >>> 1) & 0x55555555))) | 0;
 //      domain = ((domain & 0x33333333) + ((domain >>> 2) & 0x33333333)) | 0;
@@ -1245,12 +1154,6 @@ function domain_bit_size(domain) {
       ((domain >> 31) & 1)
     ) | 0;
 }
-/**
- * Return the number of elements this domain covers
- *
- * @param {$strdom} domain
- * @returns {number}
- */
 function domain_str_size(domain) {
   ASSERT_STRDOM(domain);
   ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_DOMAINS');
@@ -1272,7 +1175,7 @@ function domain_str_size(domain) {
  * will take the first value _above_ the middle,
  * in other words; index=ceil(count/2).
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {number} can return
  */
 function domain_middleElement(domain) {
@@ -1287,16 +1190,6 @@ function domain_middleElement(domain) {
   // TODO: domain_middleElementNum(domain);
   return domain_str_middleElement(domain);
 }
-/**
- * Get the middle element of all elements in domain.
- * Not hi-lo/2 but the (size/2)th element.
- * For domains with an even number of elements it
- * will take the first value _above_ the middle,
- * in other words; index=ceil(count/2).
- *
- * @param {$domain_str} domain
- * @returns {number}
- */
 function domain_str_middleElement(domain) {
   ASSERT_STRDOM(domain);
 
@@ -1328,7 +1221,7 @@ function domain_str_middleElement(domain) {
  * Get lowest value in the domain
  * Only use if callsite doesn't need to cache first range (because array access)
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {number}
  */
 function domain_min(domain) {
@@ -1338,36 +1231,36 @@ function domain_min(domain) {
   return domain_str_min(domain);
 }
 function domain_num_min(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return domain_sol_min(domain);
   return domain_bit_min(domain);
 }
 function domain_sol_min(domain) {
+  ASSERT_SOLDOM(domain);
+
   return domain ^ SOLVED_FLAG;
 }
-/**
- * Get lowest value in the domain
- *
- * This is also called a "bitscan" or "bitscan forward" because
- * in a small domain we want to know the index of the least
- * significant bit that is set. A different way of looking at
- * this is that we'd want to know the number of leading zeroes
- * ("clz") in the number because we would just need to +1 that
- * to get our desired value. There are various solutiosn to
- * this problem but some are not feasible to implement in JS
- * because we can't rely on low level optimizations. And
- * certainly we can't use the cpu machine instruction.
- *
- * Be aware that there are about a million ways to do this,
- * even to do this efficiently. Mileage under JS varies hto.
- *
- * ES6 _does_ expose `Math.clz32()` so if we can be certain
- * it is natively supported we should go with that and hope
- * it becomes a single instruction. Don't rely on a polyfill.
- *
- * @param {$numdom} domain
- * @returns {number} NOT a flag
- */
 function domain_bit_min(domain) {
+  ASSERT_BITDOM(domain);
+
+  // This is also called a "bitscan" or "bitscan forward" because
+  // in a small domain we want to know the index of the least
+  // significant bit that is set. A different way of looking at
+  // this is that we'd want to know the number of leading zeroes
+  // ("clz") in the number because we would just need to +1 that
+  // to get our desired value. There are various solutiosn to
+  // this problem but some are not feasible to implement in JS
+  // because we can't rely on low level optimizations. And
+  // certainly we can't use the cpu machine instruction.
+  //
+  // Be aware that there are about a million ways to do this,
+  // even to do this efficiently. Mileage under JS varies hto.
+  //
+  // ES6 _does_ expose `Math.clz32()` so if we can be certain
+  // it is natively supported we should go with that and hope
+  // it becomes a single instruction. Don't rely on a polyfill.
+
   // fast paths: these are by far the most used case in our situation
   if ((domain | 0) === 1) return 0;
   if ((domain | 0) === 2) return 1;
@@ -1455,13 +1348,6 @@ function domain_bit_min(domain) {
   // case 36:
   return 18;
 }
-/**
- * Get lowest value in the domain
- * Only use if callsite doesn't use first range again
- *
- * @param {$strdom} domain
- * @returns {number} can be NO_SUCH_VALUE
- */
 function domain_str_min(domain) {
   ASSERT_STRDOM(domain);
   if (!domain) return NO_SUCH_VALUE;
@@ -1472,7 +1358,7 @@ function domain_str_min(domain) {
 /**
  * Only use if callsite doesn't use last range again
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {number} can be NO_SUCH_VALUE
  */
 function domain_max(domain) {
@@ -1482,20 +1368,21 @@ function domain_max(domain) {
   return domain_str_max(domain);
 }
 function domain_num_max(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return domain_sol_max(domain);
   return domain_bit_max(domain);
 }
 function domain_sol_max(domain) {
+  ASSERT_SOLDOM(domain);
+
   return domain ^ SOLVED_FLAG;
 }
-/**
- * Returns highest value in domain
- * Relatively expensive because there's no easy trick.
- *
- * @param {$numdom} domain
- * @returns {number} NOT a flag
- */
 function domain_bit_max(domain) {
+  ASSERT_BITDOM(domain);
+
+  // Relatively expensive because there's no easy trick.
+
   var i = 30;
 
   // fast paths: these are by far the most used case in our situation
@@ -1519,13 +1406,6 @@ function domain_bit_max(domain) {
 
   return i | 0; // note: the 31 case is unused in our system and assumed impossible here
 }
-/**
- * Returns highest value in domain
- * Only use if callsite doesn't use last range again
- *
- * @param {$strdom} domain
- * @returns {number}
- */
 function domain_str_max(domain) {
   ASSERT_STRDOM(domain);
   if (!domain) return NO_SUCH_VALUE;
@@ -1533,13 +1413,6 @@ function domain_str_max(domain) {
   // last encoded value in the string should be the hi of the last range. so max is last value
   return domain_str_decodeValue(domain, domain.length - STR_VALUE_SIZE);
 }
-/**
- * Returns highest value in domain
- * Only use if callsite doesn't use last range again
- *
- * @param {$arrdom} domain
- * @returns {number}
- */
 function domain_arr_max(domain) {
   ASSERT_ARRDOM(domain);
 
@@ -1551,7 +1424,7 @@ function domain_arr_max(domain) {
 /**
  * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {boolean}
  */
 function domain_isSolved(domain) {
@@ -1561,18 +1434,15 @@ function domain_isSolved(domain) {
   return domain_str_isSolved(domain);
 }
 function domain_num_isSolved(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return true;
   // TODO: return false; ... in a sound normalized system this should be fine...
   return domain_bit_isSolved(domain);
 }
-/**
- * A domain is "solved" if it contains exactly one
- * value. It is not solved if it is empty.
- *
- * @param {$numdom} domain
- * @returns {boolean}
- */
 function domain_bit_isSolved(domain) {
+  ASSERT_BITDOM(domain);
+
   // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
   // first check if <=1 bits were set, then make sure the domain had >=1 set.
 
@@ -1581,12 +1451,6 @@ function domain_bit_isSolved(domain) {
 
   //return (((domain & (domain - 1)) == 0) & (domain > 0))|0;
 }
-/**
- * A domain is "solved" if it covers exactly one value. It is not solved if it is empty.
- *
- * @param {$domain_str} domain
- * @returns {boolean}
- */
 function domain_str_isSolved(domain) {
   ASSERT_STRDOM(domain);
 
@@ -1598,7 +1462,7 @@ function domain_str_isSolved(domain) {
  * A domain is "determined" if it's either one value (solved) or none at all (rejected)
  * This is the most called function of the library. 3x more than the number two.
  *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {boolean}
  */
 function domain_isUndetermined(domain) {
@@ -1609,18 +1473,15 @@ function domain_isUndetermined(domain) {
   return domain_str_isUndetermined(domain);
 }
 function domain_num_isUndetermined(domain) {
+  ASSERT_NUMDOM(domain);
+
   if (domain & SOLVED_FLAG) return false;
   // return true; // TOFIX
   return domain_bit_isUndetermined(domain);
 }
-/**
- * A domain is "determined" if it's either one value
- * (solved) or none at all (rejected).
- *
- * @param {$bitdom} domain
- * @returns {boolean}
- */
 function domain_bit_isUndetermined(domain) {
+  ASSERT_BITDOM(domain);
+
   // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
   // first check if not just one bit was set, then make sure the domain had >=1 set.
 
@@ -1629,13 +1490,6 @@ function domain_bit_isUndetermined(domain) {
 
   //return (domain & (domain - 1)) !== 0 && domain !== 0;
 }
-/**
- * A domain is "determined" if it's either one value (solved) or none at all (rejected)
- * This is the most called function of the library. 3x more than the number two.
- *
- * @param {$strdom} domain
- * @returns {boolean}
- */
 function domain_str_isUndetermined(domain) {
   ASSERT_STRDOM(domain);
 
@@ -1647,16 +1501,28 @@ function domain_str_isUndetermined(domain) {
  * A domain is "rejected" if it covers no values. This means every given
  * value would break at least one constraint so none could be used.
  *
- * Note: this is the (shared) second most called function of the library
- * (by a third of most, but still significantly more than the rest)
- *
- * @param {$domain} domain
+ * @param {$nordom} domain
  * @returns {boolean}
  */
 function domain_isRejected(domain) {
-  if (typeof domain === 'string') return domain === EMPTY_STR; // TODO: eliminate this check. normalize to EMPTY
-  if (typeof domain === 'number') return domain === EMPTY;
-  ASSERT(domain instanceof Array, 'SHOULD_BE_ARRAY_NOW');
+  ASSERT_NORDOM(domain);
+
+  if (typeof domain === 'number') return domain_num_isRejected(domain);
+  return domain_str_isRejected(domain);
+}
+function domain_num_isRejected(domain) {
+  ASSERT_NUMDOM(domain);
+
+  return domain === EMPTY;
+}
+function domain_str_isRejected(domain) {
+  ASSERT_STRDOM(domain);
+
+  return domain === EMPTY_STR; // TODO: eliminate this check. normalize to EMPTY
+}
+function domain_arr_isRejected(domain) {
+  ASSERT_ARRDOM(domain);
+
   return domain.length === 0;
 }
 
@@ -2761,6 +2627,7 @@ export {
   domain_intersection,
   domain_strstr_intersection,
   domain_isRejected,
+  domain_arr_isRejected,
   domain_isSolved,
   domain_str_isSolved,
   domain_isUndetermined,

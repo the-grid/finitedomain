@@ -882,14 +882,13 @@ function domain_isEqual(domain1, domain2) {
  *
  * @param {$strdom} domain1
  * @param {$strdom} domain2
- * @returns {$strdom[]}
+ * @returns {$strdom[]} NOT smallest! call sites depend on strdom, and they will take care of normalization
  */
 function domain_str_closeGaps(domain1, domain2) {
   ASSERT_STRDOM(domain1);
   ASSERT_STRDOM(domain2);
 
   if (domain1 && domain2) {
-    console.log('fixme solved numdom');
     let change;
     do {
       change = 0;

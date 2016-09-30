@@ -43,6 +43,7 @@ import {
   domain_max,
   domain_min,
   domain_str_simplify,
+  domain_toSmallest,
 } from '../domain';
 
 let MAX = Math.max;
@@ -83,7 +84,7 @@ function domain_any_minus(domain1, domain2) {
   if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
   else result = _domain_minusStrStrStr(domain1, domain2);
 
-  return domain_str_simplify(result);
+  return domain_toSmallest(domain_str_simplify(result));
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);

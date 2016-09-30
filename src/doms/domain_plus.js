@@ -33,6 +33,7 @@ import {
   domain_str_encodeRange,
   domain_max,
   domain_str_simplify,
+  domain_toSmallest,
 } from '../domain';
 
 let MIN = Math.min;
@@ -71,7 +72,7 @@ function domain_any_plus(domain1, domain2) {
     else result = _domain_plusStrStrStr(domain1, domain2);
   }
 
-  return domain_str_simplify(result);
+  return domain_toSmallest(domain_str_simplify(result));
 }
 function _domain_plusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);

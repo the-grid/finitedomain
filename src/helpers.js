@@ -82,17 +82,21 @@ function _stringify(o) {
 // Simple function to completely validate a domain
 // Should be removed in production. Obviously.
 
-function ASSERT_STRDOM(domain, min, max, desc) {
+function ASSERT_STRDOM(domain, min, max) {
+  const strdomValueLen = 2;
+  const strdomRangeLen = 2 * strdomValueLen;
   ASSERT(typeof domain === 'string', 'ONLY_STRDOM');
-  ASSERT((domain.length % 4) === 0, 'SHOULD_CONTAIN_RANGES');
+  ASSERT((domain.length % strdomRangeLen) === 0, 'SHOULD_CONTAIN_RANGES');
   let lo = (domain.charCodeAt(0) << 16) | domain.charCodeAt(1);
-  let hi = (domain.charCodeAt(domain.length - 2) << 16) | domain.charCodeAt(domain.length - 1);
+  let hi = (domain.charCodeAt(domain.length - strdomValueLen) << 16) | domain.charCodeAt(domain.length - strdomValueLen + 1);
   ASSERT(lo >= (typeof min === 'number' ? min : SUB), 'SHOULD_BE_GTE ' + (min || SUB));
   ASSERT(hi <= (typeof max === 'number' ? max : SUP), 'SHOULD_BE_LTE ' + (max === undefined ? SUP : max));
+  //ASSERT(lo !== hi || domain.length > strdomRangeLen, 'SHOULD_NOT_BE_SOLVED');
 }
 function ASSERT_SOLDOM(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_SOLDOM');
   ASSERT(domain >= 0, 'ALL_SOLDOMS_SHOULD_BE_UNSIGNED');
+  ASSERT(domain & SOLVED_FLAG, 'SOLDOMS_MUST_HAVE_FLAG_SET');
   ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');
   ASSERT((domain ^ SOLVED_FLAG) <= SUP, 'SOLVED_NUMDOM_SHOULD_BE_MAX_SUP');
   if (value !== undefined) ASSERT((domain ^ SOLVED_FLAG) === value, 'SHOULD_BE_SOLVED_TO:' + value);

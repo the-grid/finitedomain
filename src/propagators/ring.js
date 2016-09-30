@@ -39,6 +39,9 @@ function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3,
   space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ringStepBare; op:', opName, 'indexes:', varIndex1, varIndex2, varIndex3, 'doms before:', domain__debug(domain1), '?=' + opName, domain__debug(domain2), '->', domain__debug(domain3), 'doms after:', domain__debug(vardoms[varIndex1]), '?=' + opName, domain__debug(vardoms[varIndex2]), '->', domain__debug(vardoms[varIndex3])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex3], true, domain__debug);
 }
 
 /**

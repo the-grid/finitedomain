@@ -71,6 +71,7 @@ function propagator_markovStepBare(space, config, varIndex) {
   }
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was:', domain__debug(domain), 'became:', domain__debug(space.vardoms[varIndex])));
+  ASSERT_NORDOM(space.vardoms[varIndex], true, domain__debug);
 }
 
 // BODY_STOP

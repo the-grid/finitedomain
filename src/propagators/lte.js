@@ -53,6 +53,8 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   }
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ltStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'lt', domain__debug(domain2), '->', domain__debug(space.vardoms[varIndex1]), domain__debug(space.vardoms[varIndex2])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
 }
 
 function propagator_gteStepBare(space, config, varIndex1, varIndex2) {

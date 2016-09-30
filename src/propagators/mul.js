@@ -30,6 +30,9 @@ function propagator_mulStep(space, config, varIndex1, varIndex2, varIndex3) {
   space.vardoms[varIndex3] = _propagator_mulStep(domain1, domain2, domain3);
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_mulStep; indexes:', varIndex1, varIndex2, varIndex3, 'doms:', domain__debug(domain1), 'mul', domain__debug(domain2), 'was', domain__debug(domain3), 'now', domain__debug(vardoms[varIndex3])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex3], true, domain__debug);
 }
 
 /**

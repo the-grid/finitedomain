@@ -87,6 +87,9 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
   }
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_reifiedStepBare; op:', opName, 'indexes:', leftVarIndex, rightVarIndex, resultVarIndex, 'doms before:', domain__debug(t1), '?=' + opName, domain__debug(t2), '->', domain__debug(t3), 'doms after:', domain__debug(vardoms[leftVarIndex]), '?=' + opName, domain__debug(vardoms[rightVarIndex]), '->', domain__debug(vardoms[resultVarIndex])));
+  ASSERT_NORDOM(space.vardoms[leftVarIndex], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[rightVarIndex], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[resultVarIndex], true, domain__debug);
 }
 
 // BODY_STOP

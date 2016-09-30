@@ -49,6 +49,8 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
   vardoms[varIndex2] = result;
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_eqStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'eq', domain__debug(domain2), '->', domain__debug(result)));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
 }
 
 /**

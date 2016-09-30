@@ -54,6 +54,8 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   }
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_neqStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'neq', domain__debug(domain2), '->', domain__debug(vardoms[varIndex1]), domain__debug(vardoms[varIndex2])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
 }
 
 /**

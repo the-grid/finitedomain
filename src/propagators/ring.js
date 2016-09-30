@@ -1,9 +1,13 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 
 import {
+  domain__debug,
   domain_divby,
   domain_intersection,
   domain_mul,
@@ -25,13 +29,16 @@ import domain_any_minus from '../doms/domain_minus';
 function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3, opName, opFunc) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
   ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
-  let domain3 = space.vardoms[varIndex3];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
+  let domain3 = vardoms[varIndex3];
 
   ASSERT(opName === 'plus' ? opFunc === domain_any_plus : opName === 'min' ? opFunc === domain_any_minus : opName === 'mul' ? opFunc === domain_mul : opName === 'div' ? opFunc === domain_divby : false, 'should get proper opfunc');
 
   space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ringStepBare; op:', opName, 'indexes:', varIndex1, varIndex2, varIndex3, 'doms before:', domain__debug(domain1), '?=' + opName, domain__debug(domain2), '->', domain__debug(domain3), 'doms after:', domain__debug(vardoms[varIndex1]), '?=' + opName, domain__debug(vardoms[varIndex2]), '->', domain__debug(vardoms[varIndex3])));
 }
 
 /**

@@ -1,8 +1,12 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 import {
+  domain__debug,
   domain_intersection,
 } from '../domain';
 import domain_any_minus from '../doms/domain_minus';
@@ -26,6 +30,8 @@ function propagator_minStep(space, config, varIndex1, varIndex2, varIndex3) {
 
   // TODO: prune domain1 and domain2 like ring does, but here
   space.vardoms[varIndex3] = _propagator_minStep(domain1, domain2, domain3);
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_minStep; indexes:', varIndex1, varIndex2, varIndex3, 'doms:', domain__debug(domain1), domain__debug(domain2), 'was', domain__debug(domain3), 'now', domain__debug(space.vardoms[varIndex3])));
 }
 
 /**

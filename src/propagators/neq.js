@@ -1,11 +1,14 @@
 import {
   EMPTY,
+  LOG_FLAG_PROPSTEPS,
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 import {
+  domain__debug,
   domain_getValue,
   domain_isSolved,
   domain_removeValue,
@@ -19,15 +22,15 @@ import {
  * @param {$config} config
  * @param {number} varIndex1
  * @param {number} varIndex2
- * @returns {$fd_changeState}
  */
 function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(space && space._class === '$space', 'SHOULD_GET_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
 
   ASSERT_NORDOM(domain1);
   ASSERT_NORDOM(domain2);
@@ -37,18 +40,20 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   let value = domain_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
     if (domain1 === domain2) {
-      space.vardoms[varIndex1] = EMPTY;
-      space.vardoms[varIndex2] = EMPTY;
+      vardoms[varIndex1] = EMPTY;
+      vardoms[varIndex2] = EMPTY;
     } else {
-      space.vardoms[varIndex2] = domain_removeValue(domain2, value);
+      vardoms[varIndex2] = domain_removeValue(domain2, value);
     }
   } else {
     // domain1 is not solved, remove domain2 from domain1 if domain2 is solved
     value = domain_getValue(domain2);
     if (value !== NO_SUCH_VALUE) {
-      space.vardoms[varIndex1] = domain_removeValue(domain1, value);
+      vardoms[varIndex1] = domain_removeValue(domain1, value);
     }
   }
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_neqStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'neq', domain__debug(domain2), '->', domain__debug(vardoms[varIndex1]), domain__debug(vardoms[varIndex2])));
 }
 
 /**

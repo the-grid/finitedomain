@@ -1,8 +1,12 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 import {
+  domain__debug,
   domain_mul,
   domain_intersection,
 } from '../domain';
@@ -18,11 +22,14 @@ import {
  */
 function propagator_mulStep(space, config, varIndex1, varIndex2, varIndex3) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
-  let domain3 = space.vardoms[varIndex3];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
+  let domain3 = vardoms[varIndex3];
 
   space.vardoms[varIndex3] = _propagator_mulStep(domain1, domain2, domain3);
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_mulStep; indexes:', varIndex1, varIndex2, varIndex3, 'doms:', domain__debug(domain1), 'mul', domain__debug(domain2), 'was', domain__debug(domain3), 'now', domain__debug(vardoms[varIndex3])));
 }
 
 /**

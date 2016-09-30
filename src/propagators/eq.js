@@ -1,9 +1,13 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 
 import {
+  domain__debug,
   domain_intersection,
   domain_isSolved,
   domain_sharesNoElements,
@@ -31,8 +35,9 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
 
   ASSERT_NORDOM(domain1);
   ASSERT_NORDOM(domain2);
@@ -40,8 +45,10 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
 
   let result = domain_intersection(domain1, domain2);
 
-  space.vardoms[varIndex1] = result;
-  space.vardoms[varIndex2] = result;
+  vardoms[varIndex1] = result;
+  vardoms[varIndex2] = result;
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_eqStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'eq', domain__debug(domain2), '->', domain__debug(result)));
 }
 
 /**

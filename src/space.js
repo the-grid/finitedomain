@@ -1,8 +1,11 @@
 import {
   EMPTY,
+  LOG_FLAG_PROPSTEPS,
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
   THROW,
 } from './helpers';
 
@@ -31,6 +34,7 @@ import {
 import {
   FORCE_STRING,
 
+  domain__debug,
   domain_clone,
   domain_getValue,
   domain_isSolved,
@@ -246,6 +250,8 @@ function initializeUnsolvedVars(space, config) {
  * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
 function space_propagate(space, config) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagate()'));
+
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(!void (config._propagates = (config._propagates | 0) + 1), 'number of calls to space_propagate');
@@ -301,6 +307,7 @@ function space_propagate(space, config) {
 }
 
 function space_propagateAll(space, config, propagators, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateAll(' + propagators.length + 'x)'));
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
     let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
@@ -309,6 +316,7 @@ function space_propagateAll(space, config, propagators, changedVars, changedTrie
   return false;
 }
 function space_propagateByIndexes(space, config, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateByIndexes(' + propagators.length + 'x)'));
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
@@ -330,21 +338,31 @@ function space_propagateStep(space, config, propagator, changedVars, changedTrie
   let domain2 = index2 !== undefined && vardoms[index2];
   let domain3 = index3 !== undefined && vardoms[index3];
 
+  ASSERT_NORDOM(domain1, true, domain__debug);
+  ASSERT(domain2 === undefined || ASSERT_NORDOM(domain2, true, domain__debug));
+  ASSERT(domain3 === undefined || ASSERT_NORDOM(domain3, true, domain__debug));
+
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
   stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
-    if (vardoms[index1] === EMPTY) return true; // fail
+    if (vardoms[index1] === EMPTY) {
+      return true; // fail
+    }
     space_recordChange(index1, changedTrie, changedVars, cycleIndex);
   }
   if (index2 !== undefined && domain2 !== vardoms[index2]) {
-    if (vardoms[index2] === EMPTY) return true; // fail
+    if (vardoms[index2] === EMPTY) {
+      return true; // fail
+    }
     space_recordChange(index2, changedTrie, changedVars, cycleIndex);
   }
   if (index3 !== undefined && domain3 !== vardoms[index3]) {
-    if (vardoms[index3] === EMPTY) return true; // fail
+    if (vardoms[index3] === EMPTY) {
+      return true; // fail
+    }
     space_recordChange(index3, changedTrie, changedVars, cycleIndex);
   }
 
@@ -365,6 +383,7 @@ function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
   }
 }
 function space_propagateChanges(space, config, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateChanges(' + changedVars.length + 'x)'));
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 

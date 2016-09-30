@@ -1,11 +1,14 @@
 import {
   EMPTY,
+  LOG_FLAG_PROPSTEPS,
 
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 
 import {
+  domain__debug,
   domain_isSolved,
   domain_min,
 } from '../domain';
@@ -41,7 +44,10 @@ function propagator_markovStepBare(space, config, varIndex) {
   ASSERT_NORDOM(domain);
   ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
-  if (!domain_isSolved(domain)) return;
+  if (!domain_isSolved(domain)) {
+    ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was solved:', domain__debug(domain)));
+    return;
+  }
 
   let value = domain_min(domain); // note: solved so lo=hi=value
 
@@ -63,6 +69,8 @@ function propagator_markovStepBare(space, config, varIndex) {
   if (pos < 0 || pos >= probabilities.length || probabilities[pos] === 0) {
     space.vardoms[varIndex] = EMPTY;
   }
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was:', domain__debug(domain), 'became:', domain__debug(space.vardoms[varIndex])));
 }
 
 // BODY_STOP

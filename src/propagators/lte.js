@@ -1,9 +1,13 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
 } from '../helpers';
 
 import {
+  domain__debug,
   domain_max,
   domain_min,
   domain_removeGte,
@@ -47,6 +51,8 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   if (lo1 > lo2) {
     space.vardoms[varIndex2] = domain_removeLte(domain2, lo1 - 1);
   }
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ltStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'lt', domain__debug(domain2), '->', domain__debug(space.vardoms[varIndex1]), domain__debug(space.vardoms[varIndex2])));
 }
 
 function propagator_gteStepBare(space, config, varIndex1, varIndex2) {

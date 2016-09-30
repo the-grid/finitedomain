@@ -524,7 +524,6 @@ class Solver {
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
-      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
     }
 
     let alreadyRejected = false;
@@ -532,6 +531,9 @@ class Solver {
     for (let i = 0, n = vardoms.length; i < n; ++i) {
       if (vardoms[i] === EMPTY) {
         alreadyRejected = true;
+        if (log >= LOG_STATS) {
+          console.log('      - FD: rejected without propagation');
+        }
         break;
       }
     }
@@ -545,6 +547,7 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solving Time');
+      ASSERT(!void console.log(`      - FD debug stats: called propagate(): ${this.config._propagates > 0 ? this.config._propagates + 'x' : 'never! Finished by only using precomputations.'}`));
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 

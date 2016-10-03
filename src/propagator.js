@@ -35,10 +35,13 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
+  domain_createRange,
   domain_divby,
+  domain_intersection,
   domain_max,
   domain_min,
   domain_mul,
+  domain_toStr,
 } from './domain';
 import domain_any_plus from './doms/domain_plus';
 import domain_any_minus from './doms/domain_minus';
@@ -120,29 +123,43 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      console.log('FIXME'); // force C bool bound, properly check domains (this is just a hack)
+      console.log('FIXME'); // properly check domains (this is just a hack)
 
       let A = config.initial_domains[leftVarIndex];
       let B = config.initial_domains[rightVarIndex];
       let C = config.initial_domains[resultVarIndex];
 
-      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (domain_min(C) === 0 && domain_max(C) === 1) {
-        if (domain_min(B) === 0 && domain_max(B) === 1) {
-          if (domain_min(A) === 1) {
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
-          if (domain_max(A) === 0) {
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
+      // force result to bool. we already know that's the only two valid outcomes, anyways
+      C = config.initial_domains[resultVarIndex] = domain_toStr(domain_intersection(C, domain_createRange(0, 1)));
+
+      //if (domain_isValue(C, 0)) {
+      //  if (domain_isSolved(A)) {
+      //    config.initial_domains[rightVarIndex] = domain_removeValue(B, domain_getValue(A));
+      //  } else if (domain_isSolved(B)) {
+      //    config.initial_domains[leftVarIndex] = domain_removeValue(A, domain_getValue(B));
+      //  }
+      //} else if (domain_isValue(C, 1)) {
+      //  let r = domain_intersection(A, B);
+      //  config.initial_domains[leftVarIndex] = r;
+      //  config.initial_domains[rightVarIndex] = r;
+      //  return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      //}
+
+      // bool logic only; if A or B is 0, the other should be NEQ C. if A or B is 1, the other should be EQ C.
+      if (domain_min(B) === 0 && domain_max(B) === 1) {
+        if (domain_min(A) === 1) {
+          return propagator_addEq(config, rightVarIndex, resultVarIndex);
         }
-        if (domain_min(A) === 0 && domain_max(A) === 1) {
-          if (domain_min(B) === 1) {
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          }
-          if (domain_min(A) === 1) {
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          }
+        if (domain_max(A) === 0) {
+          return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+        }
+      }
+      if (domain_min(A) === 0 && domain_max(A) === 1) {
+        if (domain_min(B) === 1) {
+          return propagator_addEq(config, leftVarIndex, resultVarIndex);
+        }
+        if (domain_min(A) === 1) {
+          return propagator_addNeq(config, leftVarIndex, resultVarIndex);
         }
       }
 
@@ -156,29 +173,29 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      console.log('FIXME'); // force C bool bound, properly check domains (this is just a hack)
+      console.log('FIXME'); // properly check domains (this is just a hack)
 
       let A = config.initial_domains[leftVarIndex];
       let B = config.initial_domains[rightVarIndex];
       let C = config.initial_domains[resultVarIndex];
 
-      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (domain_min(C) === 0 && domain_max(C) === 1) {
-        if (domain_min(B) === 0 && domain_max(B) === 1) {
-          if (domain_min(A) === 1) {
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
-          if (domain_max(A) === 0) {
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
+      // force result to bool. we already know that's the only two valid outcomes, anyways
+      C = config.initial_domains[resultVarIndex] = domain_toStr(domain_intersection(C, domain_createRange(0, 1)));
+
+      if (domain_min(B) === 0 && domain_max(B) === 1) {
+        if (domain_min(A) === 1) {
+          return propagator_addNeq(config, rightVarIndex, resultVarIndex);
         }
-        if (domain_min(A) === 0 && domain_max(A) === 1) {
-          if (domain_min(B) === 1) {
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          }
-          if (domain_max(B) === 0) {
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          }
+        if (domain_max(A) === 0) {
+          return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        }
+      }
+      if (domain_min(A) === 0 && domain_max(A) === 1) {
+        if (domain_min(B) === 1) {
+          return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+        }
+        if (domain_max(B) === 0) {
+          return propagator_addEq(config, leftVarIndex, resultVarIndex);
         }
       }
 

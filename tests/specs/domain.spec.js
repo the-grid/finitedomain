@@ -1856,14 +1856,14 @@ describe('src/domain.spec', function() {
 
     describe('strdom', function() {
 
-      it('should return true if a domain covers exactly one value', function() {
-        expect(domain_isSolved(fixt_strdom_value(SUP))).to.equal(true);
-        expect(domain_isSolved(fixt_strdom_value(SUP - 1))).to.equal(true);
-        expect(domain_isSolved(fixt_strdom_value(SUP - 18))).to.equal(true);
+      it('should throw for solved strdoms', function() {
+        expect(_ => domain_isSolved(fixt_strdom_value(SUP))).to.throw('EXPECTING_STRDOM_NOT_TO_BE_SOLVED');
+        expect(_ => domain_isSolved(fixt_strdom_value(SUP - 1))).to.throw('EXPECTING_STRDOM_NOT_TO_BE_SOLVED');
+        expect(_ => domain_isSolved(fixt_strdom_value(SUP - 18))).to.throw('EXPECTING_STRDOM_NOT_TO_BE_SOLVED');
       });
 
       it('should return false if a domain is empty', function() {
-        expect(domain_isSolved(fixt_strdom_empty())).to.equal(false);
+        expect(domain_isSolved(fixt_numdom_empty())).to.equal(false);
       });
 
       it('should return false if a domain covers more than one value', function() {
@@ -1879,23 +1879,10 @@ describe('src/domain.spec', function() {
 
     describe('numdom', function() {
 
-      it('should accept single values for each valid value', function() {
-        expect(domain_isSolved(fixt_numdom_nums(0))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(1))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(2))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(3))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(4))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(5))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(6))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(7))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(8))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(9))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(10))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(11))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(12))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(13))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(14))).to.equal(true);
-        expect(domain_isSolved(fixt_numdom_nums(15))).to.equal(true);
+      it('should reject numdoms that are actually soldoms', function() {
+        for (let i = 0; i <= SMALL_MAX_NUM; ++i) {
+          expect(_ => domain_isSolved(fixt_numdom_nums(i))).to.throw('EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM');
+        }
       });
 
       it('should see double values', function() {

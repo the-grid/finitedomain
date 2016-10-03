@@ -1427,28 +1427,10 @@ function domain_arr_max(domain) {
  * @returns {boolean}
  */
 function domain_isSolved(domain) {
-  ASSERT_NORDOM(domain);
+  ASSERT_NORDOM(domain, true, domain__debug);
+  ASSERT(((domain & SOLVED_FLAG) !== 0) === (domain >= SOLVED_FLAG), 'if flag is set the num should be gte to flag');
 
-  if (typeof domain === 'number') return domain_num_isSolved(domain);
-  return domain_str_isSolved(domain);
-}
-function domain_num_isSolved(domain) {
-  ASSERT_NUMDOM(domain);
-
-  if (domain & SOLVED_FLAG) return true;
-  // TODO: return false; ... in a sound normalized system this should be fine...
-  return domain_bit_isSolved(domain);
-}
-function domain_bit_isSolved(domain) {
-  ASSERT_BITDOM(domain);
-
-  // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
-  // first check if <=1 bits were set, then make sure the domain had >=1 set.
-
-  if (domain === 0) return false;
-  return (domain & (domain - 1)) === 0;
-
-  //return (((domain & (domain - 1)) == 0) & (domain > 0))|0;
+  return typeof domain === 'number' && domain >= SOLVED_FLAG;
 }
 function domain_str_isSolved(domain) {
   ASSERT_STRDOM(domain);

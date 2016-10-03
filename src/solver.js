@@ -27,6 +27,7 @@ import {
 import {
   FORCE_ARRAY,
 
+  domain__debug,
   domain_arrToStr,
   domain_clone,
   domain_createRange,
@@ -666,35 +667,35 @@ class Solver {
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: [${domain_toArr(domains[index])}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${index}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }
     console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
     console.log(constraints.map((c, index) => {
       if (c.param === undefined) {
-        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')}`;
+        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
       } else if (c.name === 'reifier') {
-        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${JSON.stringify(domains[c.varIndexes[0]])} ${c.param} ${JSON.stringify(domains[c.varIndexes[1]])} = ${JSON.stringify(domains[c.varIndexes[2]])}`;
+        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
       } else {
-        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')} -> ${JSON.stringify(domains[c.param])}`;
+        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
       }
     }).join('\n'));
     console.log('##/\n');
   }
   _debugSolver() {
     console.log('## _debugSolver:\n');
-    let inspect = getInspector();
+    //let inspect = getInspector();
 
     let config = this.config;
-    console.log('# Config:');
-    console.log(inspect(_clone(config)));
+    //console.log('# Config:');
+    //console.log(inspect(_clone(config)));
 
     let names = config.all_var_names;
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_domains[varIndex], '(= [' + domain_toArr(config.initial_domains[varIndex]) + '])');
+      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initial_domains[varIndex]));
     }
 
     let constraints = config.all_constraints;
@@ -708,7 +709,15 @@ class Solver {
     console.log('# Propagators (' + propagators.length + 'x):');
     console.log('  index name vars args');
     for (let i = 0; i < propagators.length; ++i) {
-      console.log('  ', i, ':', propagators[i].name, ':', propagators[i].index1, propagators[i].index2, propagators[i].index3, ':', propagators[i].arg1, propagators[i].arg2);
+      console.log(
+        '  ', i, ':', propagators[i].name + (propagators[i].name === 'reified' ? '(' + propagators[i].arg3 + ')' : ''),
+        ':',
+        propagators[i].index1, propagators[i].index2, propagators[i].index3,
+        '->',
+        domain__debug(config.initial_domains[propagators[i].index1]),
+        domain__debug(config.initial_domains[propagators[i].index2]),
+        domain__debug(config.initial_domains[propagators[i].index3])
+    );
     }
 
     console.log('##');
@@ -716,7 +725,7 @@ class Solver {
 
   _debugConfig() {
     let config = _clone(this.config);
-    config.initial_domains = config.initial_domains.map(domain_toArr);
+    config.initial_domains = config.initial_domains.map(domain__debug);
 
     console.log('## _debugConfig:\n', getInspector()(config));
   }

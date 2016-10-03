@@ -649,14 +649,18 @@ class Solver {
     let domains = clone.initial_domains;
     let propagators = clone._propagators;
 
+    for (let key in clone) {
+      // underscored prefixed objects are generally auto-generated structs
+      // we don't want to debug a 5mb buffer, one byte per line.
+      if (key[0] === '_' && typeof clone[key] === 'object') {
+        clone[key] = '<removed>';
+      }
+    }
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
-    clone.initial_domains = '<removed>';
+    clone.var_dist_options = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
-    clone._propagators = '<removed>';
-    clone._varToPropagators = '<removed>';
-    clone._var_names_trie = '<removed>';
 
     console.log('\n## _debug:\n');
     console.log('- config:');

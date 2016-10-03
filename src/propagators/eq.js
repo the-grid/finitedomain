@@ -69,7 +69,9 @@ function propagator_eqStepWouldReject(domain1, domain2) {
   ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_sharesNoElements(domain1, domain2);
+  let result = domain_sharesNoElements(domain1, domain2);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_eqStepWouldReject;', domain__debug(domain1), '!==', domain__debug(domain2), '->', result));
+  return result;
 }
 
 /**

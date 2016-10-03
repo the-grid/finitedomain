@@ -67,11 +67,14 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_neqStepWouldReject(domain1, domain2) {
+  let result;
   if (!domain_isSolved(domain1) || !domain_isSolved(domain2)) {
-    return false; // can not reject if either domain isnt solved
+    result = false; // can not reject if either domain isnt solved
+  } else {
+    result = domain_getValue(domain1) === domain_getValue(domain2);
   }
-
-  return domain_getValue(domain1) === domain_getValue(domain2);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_neqStepWouldReject;', domain__debug(domain1), '===', domain__debug(domain2), '->', result));
+  return result;
 }
 
 /**

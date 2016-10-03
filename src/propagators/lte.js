@@ -75,7 +75,9 @@ function propagator_lteStepWouldReject(domain1, domain2) {
   ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_min(domain1) > domain_max(domain2);
+  let result = domain_min(domain1) > domain_max(domain2);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_lteStepWouldReject;', 'min(' + domain__debug(domain1) + ') = ' + domain_min(domain1), '>', 'max(' + domain__debug(domain2) + ')=' + domain_max(domain2), '->', result));
+  return result;
 }
 
 /**
@@ -86,7 +88,9 @@ function propagator_lteStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_gteStepWouldReject(domain1, domain2) {
-  return propagator_lteStepWouldReject(domain2, domain1);
+  let result = propagator_lteStepWouldReject(domain2, domain1);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_gteStepWouldReject;', domain__debug(domain1), '<=', domain__debug(domain2), '->', result));
+  return result;
 }
 
 /**

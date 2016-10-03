@@ -80,7 +80,6 @@ import {
   domain_intersection,
   domain_isRejected,
   domain_isSolved,
-  domain_isUndetermined,
   domain_isValue,
   domain_max,
   _domain_str_mergeOverlappingRanges,
@@ -1986,90 +1985,6 @@ describe('src/domain.spec', function() {
         for (let i = 0; i < nums.length; ++i) {
           let n = nums[i];
           expect(domain_isRejected(fixt_numdom_solved(n)), 'n=' + n).to.equal(false);
-        }
-      });
-    });
-  });
-
-  describe('isUndetermined', function() {
-
-    it('should exist', function() {
-      expect(domain_isUndetermined).to.be.a('function');
-    });
-
-    describe('strdom', function() {
-
-      it('should return false if a domain is empty', function() {
-        expect(domain_isUndetermined(fixt_strdom_empty())).to.equal(false);
-      });
-
-      it('should return false if a domain covers exactly one value', function() {
-        expect(domain_isUndetermined(fixt_strdom_value(SUP - 1))).to.equal(false);
-        expect(domain_isUndetermined(fixt_strdom_value(SUP - 18))).to.equal(false);
-        expect(domain_isUndetermined(fixt_strdom_value(SUP))).to.equal(false);
-      });
-
-      it('should return true if a domain covers more than one value', function() {
-        expect(domain_isUndetermined(fixt_strdom_range(SUP - 1, SUP))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_range(SUP - 20, SUP - 18))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_range(50, SUP))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_range(0, SUP))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_ranges([SUP - 10, SUP - 5], [SUP - 1, SUP]))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_ranges([0, 1], [5, SUP]))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_ranges([5, 8], [50, SUP]))).to.equal(true);
-        expect(domain_isUndetermined(fixt_strdom_ranges([5, 8], [23, 34], [50, SUP]))).to.equal(true);
-      });
-    });
-
-    describe('numdom', function() {
-
-      it('should accept single values for each valid value', function() {
-        expect(domain_isUndetermined(fixt_numdom_nums(0))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(1))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(2))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(3))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(4))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(5))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(6))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(7))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(8))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(9))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(10))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(11))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(12))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(13))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(14))).to.equal(false);
-        expect(domain_isUndetermined(fixt_numdom_nums(15))).to.equal(false);
-      });
-
-      it('should see double values', function() {
-        expect(domain_isUndetermined(fixt_numdom_nums(0, 1))).to.equal(true);
-        expect(domain_isUndetermined(fixt_numdom_nums(0, 10))).to.equal(true);
-        expect(domain_isUndetermined(fixt_numdom_nums(0, 15))).to.equal(true);
-        expect(domain_isUndetermined(fixt_numdom_nums(10, 15))).to.equal(true);
-        expect(domain_isUndetermined(fixt_numdom_nums(4, 6))).to.equal(true);
-      });
-
-      it('should see multiple values', function() {
-        expect(domain_isUndetermined(fixt_numdom_nums(2, 5, 7, 9, 11, 12))).to.equal(true);
-      });
-
-      it('should return true for entire range', function() {
-        expect(domain_isUndetermined(fixt_numdom_range(0, 15))).to.equal(true);
-      });
-
-      it('should return false for empty', function() {
-        expect(domain_isUndetermined(fixt_numdom_empty())).to.equal(false);
-      });
-    });
-
-    describe('solved numdoms', function() {
-
-      it('should return false for any solved numdom because they are determined by definition', function() {
-        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
-        for (let i = 0; i < nums.length; ++i) {
-          let n = nums[i];
-          expect(domain_isUndetermined(fixt_numdom_solved(n)), 'n=' + n).to.equal(false);
         }
       });
     });

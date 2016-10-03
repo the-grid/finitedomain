@@ -47,7 +47,7 @@ let MIN = Math.min;
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_any_plus(domain1, domain2) {
+function domain_plus(domain1, domain2) {
   ASSERT_NORDOM(domain1);
   ASSERT_NORDOM(domain2);
 
@@ -297,4 +297,4 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
 
 // BODY_STOP
 
-export default domain_any_plus;
+export default domain_plus;

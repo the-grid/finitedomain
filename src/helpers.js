@@ -148,6 +148,13 @@ function ASSERT_ANYDOM(domain) {
   ASSERT(typeof domain === 'string' || typeof domain === 'number' || domain instanceof Array, 'ONLY_VALID_DOM_TYPE');
 }
 
+function ASSERT_VARDOMS_SLOW(vardoms, domain__debug) {
+  for (let varIndex = 0, len = vardoms.length; varIndex < len; varIndex++) {
+    let domain = vardoms[varIndex];
+    ASSERT_NORDOM(domain, true, domain__debug);
+  }
+}
+
 const LOG_FLAG_NONE = 0;
 const LOG_FLAG_PROPSTEPS = 1;
 const LOG_FLAGS = LOG_FLAG_NONE;
@@ -235,6 +242,7 @@ export {
   ASSERT_NUMDOM,
   ASSERT_SOLDOM,
   ASSERT_STRDOM,
+  ASSERT_VARDOMS_SLOW,
   GET_NAME,
   GET_NAMES,
   THROW,

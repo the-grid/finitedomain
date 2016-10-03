@@ -55,14 +55,6 @@ function fixt_arrdom_value(value, _b) {
   }
   return fixt_arrdom_range(value, value, _b);
 }
-function fixt_arrdom_list(list) {
-  let arr = [];
-  list.forEach(value => {
-    if (value >= 0 && value <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
-    arr.push(value, value)
-  });
-  return arr;
-}
 function fixt_arrdom_empty(no) {
   let A = [];
   if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
@@ -255,13 +247,48 @@ function fixt_domainEql(result, expectation, desc) {
   expect(domain_toSmallest(domain_toStr(result)), desc).to.eql(domain_toSmallest(domain_toStr(expectation)));
 }
 
+function fixt_dom_empty() {
+  return 0;
+}
+function fixt_dom_range(lo, hi) {
+  if (arguments.length !== 2) throw new Error('Bad arg count');
+  if (typeof lo !== 'number') throw new Error('lo must be number');
+  if (typeof hi !== 'number') throw new Error('hi must be number');
+  if (!(lo <= hi)) throw new Error('should be lo <= hi');
+  if (lo === hi) return fixt_numdom_solved(lo);
+  if (hi <= SMALL_MAX_NUM) return fixt_numdom_range(lo, hi);
+  return fixt_strdom_range(lo, hi);
+}
+function fixt_dom_ranges(...ranges) {
+  if (ranges.length === 0) throw new Error('No ranges? Probably test bug');
+  if (ranges.length === 1 && ranges[0][0] === ranges[0][1]) return fixt_numdom_solved(ranges[0][0]);
+  if (ranges[ranges.length-1][1] <= SMALL_MAX_NUM) return fixt_numdom_ranges(...ranges);
+  return fixt_strdom_ranges(...ranges);
+}
+function fixt_dom_nums(...nums) {
+  nums.sort((a, b) => a - b);
+  if (nums.length === 0) throw new Error('No nums? Probably test bug');
+  if (nums.length === 1) return fixt_numdom_solved(nums[0]);
+  if (nums[nums.length - 1] <= SMALL_MAX) return fixt_numdom_nums(...nums);
+  return fixt_strdom_nums(...nums);
+}
+function fixt_dom_solved(value) {
+  if (typeof value !== 'number') throw new Error('Bad arg');
+  if (arguments.length !== 1) throw new Error('Bad arg');
+  return fixt_numdom_solved(value);
+}
+
 export {
   fixt_arrdom_empty,
-  fixt_arrdom_list,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_arrdom_nums,
+  fixt_dom_empty,
+  fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_ranges,
+  fixt_dom_solved,
   fixt_assertStrings,
   fixt_bytes,
   fixt_domainEql,

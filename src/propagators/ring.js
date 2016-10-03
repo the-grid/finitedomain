@@ -12,8 +12,8 @@ import {
   domain_intersection,
   domain_mul,
 } from '../domain';
-import domain_any_plus from '../doms/domain_plus';
-import domain_any_minus from '../doms/domain_minus';
+import domain_plus from '../doms/domain_plus';
+import domain_minus from '../doms/domain_minus';
 
 // BODY_START
 
@@ -34,7 +34,7 @@ function propagator_ringStepBare(space, config, varIndex1, varIndex2, varIndex3,
   let domain2 = vardoms[varIndex2];
   let domain3 = vardoms[varIndex3];
 
-  ASSERT(opName === 'plus' ? opFunc === domain_any_plus : opName === 'min' ? opFunc === domain_any_minus : opName === 'mul' ? opFunc === domain_mul : opName === 'div' ? opFunc === domain_divby : false, 'should get proper opfunc');
+  ASSERT(opName === 'plus' ? opFunc === domain_plus : opName === 'min' ? opFunc === domain_minus : opName === 'mul' ? opFunc === domain_mul : opName === 'div' ? opFunc === domain_divby : false, 'should get proper opfunc');
 
   space.vardoms[varIndex3] = _propagator_ringStepBare(domain1, domain2, domain3, opFunc, opName);
 

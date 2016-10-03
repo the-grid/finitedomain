@@ -41,10 +41,9 @@ import {
   domain_max,
   domain_min,
   domain_mul,
-  domain_toStr,
 } from './domain';
-import domain_any_plus from './doms/domain_plus';
-import domain_any_minus from './doms/domain_minus';
+import domain_plus from './doms/domain_plus';
+import domain_minus from './doms/domain_minus';
 
 // BODY_START
 
@@ -130,7 +129,7 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       let C = config.initial_domains[resultVarIndex];
 
       // force result to bool. we already know that's the only two valid outcomes, anyways
-      C = config.initial_domains[resultVarIndex] = domain_toStr(domain_intersection(C, domain_createRange(0, 1)));
+      C = config.initial_domains[resultVarIndex] = domain_intersection(C, domain_createRange(0, 1));
 
       //if (domain_isValue(C, 0)) {
       //  if (domain_isSolved(A)) {
@@ -180,7 +179,7 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       let C = config.initial_domains[resultVarIndex];
 
       // force result to bool. we already know that's the only two valid outcomes, anyways
-      C = config.initial_domains[resultVarIndex] = domain_toStr(domain_intersection(C, domain_createRange(0, 1)));
+      C = config.initial_domains[resultVarIndex] = domain_intersection(C, domain_createRange(0, 1));
 
       if (domain_min(B) === 0 && domain_max(B) === 1) {
         if (domain_min(A) === 1) {
@@ -426,7 +425,7 @@ function propagator_addRing(config, A, B, C, opName, opFunc) {
  * @param {number} resultVarIndex
  */
 function propagator_addPlus(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'plus', 'min', domain_any_plus, domain_any_minus, leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'plus', 'min', domain_plus, domain_minus, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**

@@ -11,8 +11,8 @@ import {
 import {
   _propagator_ringStepBare,
 } from '../../../src/propagators/ring';
-import domain_any_minus from '../../../src/doms/domain_minus';
-import domain_any_plus from '../../../src/doms/domain_plus';
+import domain_minus from '../../../src/doms/domain_minus';
+import domain_plus from '../../../src/doms/domain_plus';
 
 describe('propagators/ring.spec', function() {
 
@@ -21,7 +21,7 @@ describe('propagators/ring.spec', function() {
     let B = fixt_strdom_nums(1);
     let C = fixt_strdom_range(0, 1);
 
-    let S = _propagator_ringStepBare(A, B, C, domain_any_minus, 'min');
+    let S = _propagator_ringStepBare(A, B, C, domain_minus, 'min');
 
     expect(S).to.eql(fixt_numdom_solved(0));
   });
@@ -31,7 +31,7 @@ describe('propagators/ring.spec', function() {
     let B = fixt_strdom_nums(1);
     let C = fixt_strdom_range(0, 10);
 
-    let S = _propagator_ringStepBare(A, B, C, domain_any_plus, 'plus');
+    let S = _propagator_ringStepBare(A, B, C, domain_plus, 'plus');
 
     expect(S).to.eql(fixt_numdom_solved(2));
   });
@@ -41,7 +41,7 @@ describe('propagators/ring.spec', function() {
     let B = fixt_strdom_nums(1);
     let C = fixt_strdom_range(0, 1);
 
-    let S = _propagator_ringStepBare(A, B, C, domain_any_plus, 'plus');
+    let S = _propagator_ringStepBare(A, B, C, domain_plus, 'plus');
 
     expect(S).to.eql(EMPTY);
   });

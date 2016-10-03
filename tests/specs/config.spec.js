@@ -2,9 +2,8 @@ import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
   fixt_domainEql,
-  fixt_numdom_nums,
-  fixt_strdom_nums,
-  fixt_strdom_range,
+  fixt_dom_nums,
+  fixt_dom_range,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -44,6 +43,53 @@ describe('src/config.spec', function() {
       let config = config_create();
       expect(_ => config_addConstraint(config, 'crap', [])).to.throw('UNKNOWN_PROPAGATOR');
     });
+
+    describe('config_solvedAtCompileTime', function() {
+
+      it('should properly solve edge cases A<B', function() {
+        let config = config_create();
+        let A = config_addVarRange(config, 'A', 0, 10);
+        let B = config_addVarRange(config, 'B', 0, 10);
+
+        config_addConstraint(config, 'lt', ['A', 'B']);
+
+        fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 9));
+        fixt_domainEql(config.initial_domains[B], fixt_dom_range(1, 10));
+      });
+
+      it('should properly solve edge cases A<=B', function() {
+        let config = config_create();
+        let A = config_addVarRange(config, 'A', 0, 10);
+        let B = config_addVarRange(config, 'B', 0, 10);
+
+        config_addConstraint(config, 'lte', ['A', 'B']);
+
+        fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 10));
+        fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 10));
+      });
+
+      it('should properly solve edge cases A>B', function() {
+        let config = config_create();
+        let A = config_addVarRange(config, 'A', 0, 10);
+        let B = config_addVarRange(config, 'B', 0, 10);
+
+        config_addConstraint(config, 'gt', ['A', 'B']);
+
+        fixt_domainEql(config.initial_domains[A], fixt_dom_range(1, 10));
+        fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 9));
+      });
+
+      it('should properly solve edge cases A>=B', function() {
+        let config = config_create();
+        let A = config_addVarRange(config, 'A', 0, 10);
+        let B = config_addVarRange(config, 'B', 0, 10);
+
+        config_addConstraint(config, 'gte', ['A', 'B']);
+
+        fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 10));
+        fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 10));
+      });
+    });
   });
 
   describe('config_create', function() {
@@ -74,7 +120,7 @@ describe('src/config.spec', function() {
 
       config_generateVars(config, space);
 
-      fixt_domainEql(space.vardoms[name], fixt_numdom_nums(10));
+      fixt_domainEql(space.vardoms[name], fixt_dom_nums(10));
     });
 
     it('should create a full width var', function() {
@@ -84,7 +130,7 @@ describe('src/config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vardoms[name]).to.eql(fixt_strdom_range(SUB, SUP));
+      expect(space.vardoms[name]).to.eql(fixt_dom_range(SUB, SUP));
     });
 
     it('should clone a domained var', function() {
@@ -94,7 +140,7 @@ describe('src/config.spec', function() {
 
       config_generateVars(config, space);
 
-      expect(space.vardoms[name]).to.eql(fixt_strdom_range(32, 55));
+      expect(space.vardoms[name]).to.eql(fixt_dom_range(32, 55));
     });
   });
 
@@ -105,7 +151,7 @@ describe('src/config.spec', function() {
       let varIndex = config_addVarAnonConstant(config, 15);
 
       expect(config.all_var_names[varIndex]).to.be.above(-1);
-      expect(config.initial_domains[varIndex]).to.eql(fixt_strdom_nums(15));
+      expect(config.initial_domains[varIndex]).to.eql(fixt_dom_nums(15));
     });
 
     it('should populate the constant cache', function() {
@@ -138,7 +184,7 @@ describe('src/config.spec', function() {
       config_addVarAnonNothing(config);
 
       expect(config.all_var_names.length).to.equal(1);
-      expect(config.initial_domains[0]).to.eql(fixt_strdom_range(SUB, SUP));
+      expect(config.initial_domains[0]).to.eql(fixt_dom_range(SUB, SUP));
     });
   });
 
@@ -177,7 +223,7 @@ describe('src/config.spec', function() {
         config_addVarAnonRange(config, lo, hi);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
       });
 
       it('should make a constant if lo=hi', function() {
@@ -189,7 +235,7 @@ describe('src/config.spec', function() {
         let varIndex = config_addVarAnonRange(config, lo, hi);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
         expect(config.constant_cache[lo]).to.eql(varIndex);
       });
     });
@@ -205,7 +251,7 @@ describe('src/config.spec', function() {
         config_addVarAnonRange(config, lo, hi);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi, true));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
       });
 
       it('should make a constant if lo=hi', function() {
@@ -217,7 +263,7 @@ describe('src/config.spec', function() {
         let varIndex = config_addVarAnonRange(config, lo, hi);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(lo, hi));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
         expect(config.constant_cache[lo]).to.eql(varIndex);
       });
     });
@@ -257,7 +303,7 @@ describe('src/config.spec', function() {
         config_addVarConstant(config, 'A', value);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(value, value));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(value, value));
       });
     });
 
@@ -271,7 +317,7 @@ describe('src/config.spec', function() {
         config_addVarConstant(config, 'A', value);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(value, value, true));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(value, value));
       });
     });
   });
@@ -302,7 +348,7 @@ describe('src/config.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_range(50, 55));
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(50, 55));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(50, 55));
       });
     });
 
@@ -314,7 +360,7 @@ describe('src/config.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12, true));
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.equal(fixt_strdom_range(5, 12, true));
+        expect(config.initial_domains[0]).to.equal(fixt_dom_range(5, 12));
       });
     });
   });
@@ -337,7 +383,7 @@ describe('src/config.spec', function() {
       config_addVarNothing(config, 'A');
 
       expect(config.all_var_names).to.eql(['A']);
-      expect(config.initial_domains[0]).to.eql(fixt_strdom_range(SUB, SUP));
+      expect(config.initial_domains[0]).to.eql(fixt_dom_range(SUB, SUP));
     });
   });
 
@@ -397,7 +443,7 @@ describe('src/config.spec', function() {
         config_addVarRange(config, 'A', 50, 55);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(50, 55));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(50, 55));
       });
     });
 
@@ -409,7 +455,7 @@ describe('src/config.spec', function() {
         config_addVarRange(config, 'A', 5, 12);
 
         expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_strdom_range(5, 12, true));
+        expect(config.initial_domains[0]).to.eql(fixt_dom_range(5, 12));
       });
     });
   });

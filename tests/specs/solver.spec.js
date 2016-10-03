@@ -2,7 +2,7 @@ import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_strdom_ranges,
+  fixt_dom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -149,14 +149,14 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]); // dont use fixtures because small domain
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_strdom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       it('should accept a legacy nested array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [[0, 10], [20, 30]]);
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_strdom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       describe('legacy', function() {

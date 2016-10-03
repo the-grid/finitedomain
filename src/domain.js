@@ -1440,47 +1440,6 @@ function domain_str_isSolved(domain) {
 }
 
 /**
- * A domain is "determined" if it's either one value (solved) or none at all (rejected)
- * This is the most called function of the library. 3x more than the number two.
- *
- * @param {$nordom} domain
- * @returns {boolean}
- */
-function domain_isUndetermined(domain) {
-  console.log('TOFIX'); // remove; used in testing only
-  ASSERT_NORDOM(domain);
-
-  if (typeof domain === 'number') return domain_num_isUndetermined(domain);
-  // return false; // TOFIX by design, strdoms should never be determined here
-  return domain_str_isUndetermined(domain);
-}
-function domain_num_isUndetermined(domain) {
-  ASSERT_NUMDOM(domain);
-
-  if (domain >= SOLVED_FLAG) return false;
-  console.log('TOFIX');
-  // return true; // TOFIX
-  return domain_bit_isUndetermined(domain);
-}
-function domain_bit_isUndetermined(domain) {
-  ASSERT_BITDOM(domain);
-
-  // http://stackoverflow.com/questions/12483843/test-if-a-bitboard-have-only-one-bit-set-to-1
-  // first check if not just one bit was set, then make sure the domain had >=1 set.
-
-  if (domain === EMPTY) return false;
-  return (domain & (domain - 1)) > 0;
-
-  //return (domain & (domain - 1)) !== 0 && domain !== 0;
-}
-function domain_str_isUndetermined(domain) {
-  ASSERT_STRDOM(domain);
-
-  // TODO: could do this by comparing strings, no need to convert
-  return domain.length > STR_RANGE_SIZE || domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) !== domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
-}
-
-/**
  * A domain is "rejected" if it covers no values. This means every given
  * value would break at least one constraint so none could be used.
  *
@@ -1531,6 +1490,7 @@ function domain_num_removeGte(domain, value) {
   return domain_bitToSmallest(domain_bit_removeGte(domain, value));
 }
 function domain_sol_removeGte(domain, value) {
+  ASSERT_SOLDOM(domain);
   // (could we just do `return (domain >= (value|SOLVED_FLAG)) ? EMPTY : domain` ?)
   let solvedValue = domain ^ SOLVED_FLAG;
   if (solvedValue >= value) return EMPTY;
@@ -1677,7 +1637,7 @@ function domain_str_removeGte(strdom, value) {
  */
 function domain_removeLte(domain, value) {
   ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeLte(domain, value);
   return domain_toSmallest(domain_str_removeLte(domain, value));
@@ -2346,8 +2306,8 @@ function domain_toSmallest(domain) {
   return domain_strToSmallest(domain);
 }
 function domain_anyToSmallest(domain) {
-  // for tests
-  if (domain instanceof Array) domain = domain = domain_arrToStr(domain);
+  // for tests and config import
+  if (domain instanceof Array) domain = domain_arrToStr(domain);
   return domain_toSmallest(domain);
 }
 function domain_numToSmallest(domain) {
@@ -2614,8 +2574,6 @@ export {
   domain_arr_isRejected,
   domain_isSolved,
   domain_str_isSolved,
-  domain_isUndetermined,
-  domain_str_isUndetermined,
   domain_isValue,
   domain_num_isValue,
   domain_str_isValue,

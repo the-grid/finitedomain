@@ -8,6 +8,7 @@ import {
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_VARDOMS_SLOW,
   GET_NAME,
   GET_NAMES,
   THROW,
@@ -28,7 +29,6 @@ import {
   FORCE_ARRAY,
 
   domain__debug,
-  domain_arrToStr,
   domain_clone,
   domain_createRange,
   domain_fromListToArrdom,
@@ -36,6 +36,7 @@ import {
   domain_max,
   domain_toArr,
   domain_toList,
+  domain_anyToSmallest,
   domain_validateLegacyArray,
 } from './domain';
 
@@ -70,17 +71,19 @@ class Solver {
     this._class = 'solver';
     this.distribute = options.distribute || 'naive';
 
-    let config = options.config || config_create();
-    this.config = config;
-
-    if (config.initial_domains) {
-      let initialDomains = config.initial_domains;
-      for (let i = 0, len = initialDomains.length; i < len; ++i) {
-        if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
+    if (options.config) {
+      let config = this.config = options.config;
+      if (config.initial_domains) {
+        let initialDomains = config.initial_domains;
+        for (let i = 0, len = initialDomains.length; i < len; ++i) {
+          initialDomains[i] = domain_anyToSmallest(initialDomains[i]);
+        }
       }
+      if (config._propagators) config._propagators = undefined; // will be regenerated
+      if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
+    } else {
+      this.config = config_create();
     }
-    if (config._propagators) config._propagators = undefined; // will be regenerated
-    if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
 
     this.defaultDomain = options.defaultDomain || domain_createRange(0, 1);
 
@@ -472,6 +475,7 @@ class Solver {
     }
 
     let config = this.config;
+    ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
 
     // TODO: cant move this to addVar yet because mv can alter these settings after the addVar call
     let allVars = config.all_var_names;

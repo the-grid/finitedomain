@@ -92,7 +92,7 @@ import {
   domain_removeLte,
   domain_removeNextFromList,
   domain_removeValue,
-  //domain_sharesNoElements,
+  domain_sharesNoElements,
   domain_str_simplify,
   domain_size,
   _domain_str_quickSortRanges,
@@ -989,6 +989,48 @@ describe('src/domain.spec', function() {
           expect(domain_removeValue(fixt_numdom_solved(n), n), 'n=' + n + ',q=' + n).to.equal(EMPTY);
           expect(domain_removeValue(fixt_numdom_solved(n), 5), 'n=' + n + ',q=5').to.equal(fixt_numdom_solved(n));
         }
+      });
+    });
+  });
+
+  describe('domain_sharesNoElements', function() {
+
+    it('should exist', function() {
+      expect(domain_sharesNoElements).to.be.a('function');
+    });
+
+    describe('strdom', function() {
+
+      it('unit tests', function() {
+        expect(domain_sharesNoElements(fixt_strdom_range(1, SUP), fixt_strdom_range(500, 600))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_strdom_range(1, SUP - 10), fixt_strdom_range(SUP - 5, SUP))).to.eql(true);
+        expect(domain_sharesNoElements(fixt_strdom_range(500, 600), fixt_strdom_range(1, SUP))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_strdom_range(SUP - 5, SUP), fixt_strdom_range(1, SUP - 10))).to.eql(true);
+      });
+    });
+
+    describe('numdom', function() {
+
+      it('unit tests', function() {
+        expect(domain_sharesNoElements(fixt_numdom_range(1, 20), fixt_numdom_range(15, 25))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_numdom_range(1, 20), fixt_numdom_range(25, 27))).to.eql(true);
+        expect(domain_sharesNoElements(fixt_numdom_range(15, 25), fixt_numdom_range(1, 20))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_numdom_range(25, 27), fixt_numdom_range(1, 20))).to.eql(true);
+      });
+    });
+
+    describe('soldom', function() {
+
+      it('unit tests', function() {
+        //expect(domain_sharesNoElements(fixt_numdom_range(1, 20), fixt_numdom_solved(15))).to.eql(false);
+        //expect(domain_sharesNoElements(fixt_numdom_range(1, 20), fixt_numdom_solved(25))).to.eql(true);
+        //expect(domain_sharesNoElements(fixt_numdom_solved(15), fixt_numdom_range(1, 20))).to.eql(false);
+        //expect(domain_sharesNoElements(fixt_numdom_solved(25), fixt_numdom_range(1, 20))).to.eql(true);
+        expect(domain_sharesNoElements(fixt_numdom_solved(500), fixt_strdom_range(1, SUP))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_numdom_solved(SUP), fixt_strdom_range(1, SUP - 10))).to.eql(true);
+        expect(domain_sharesNoElements(fixt_numdom_solved(20), fixt_numdom_solved(20))).to.eql(false);
+        expect(domain_sharesNoElements(fixt_numdom_solved(20), fixt_numdom_solved(0))).to.eql(true);
+        expect(domain_sharesNoElements(fixt_numdom_solved(0), fixt_numdom_solved(20))).to.eql(true);
       });
     });
   });

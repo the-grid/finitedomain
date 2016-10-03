@@ -843,7 +843,7 @@ function domain_strstr_intersection(domain1, domain2) {
  */
 function domain__debug(domain) {
   if (typeof domain === 'number') {
-    if (domain & SOLVED_FLAG) return 'soldom([' + (domain ^ SOLVED_FLAG) + ', ' + (domain ^ SOLVED_FLAG) + '])';
+    if (domain & SOLVED_FLAG) return 'numdom([' + (domain ^ SOLVED_FLAG) + ',' + (domain ^ SOLVED_FLAG) + '])';
     return 'numdom([' + domain_numToArr(domain) + '])';
   }
   if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';
@@ -2016,9 +2016,10 @@ function domain_solstr_sharesNoElements(soldom, strdom) {
   for (let strIndex = 0, strlen = strdom.length; strIndex < strlen; strIndex += STR_RANGE_SIZE) {
     let lo = domain_str_decodeValue(strdom, strIndex);
     let hi = domain_str_decodeValue(strdom, strIndex + STR_VALUE_SIZE);
-    if (lo >= solvedValue && hi <= solvedValue) return false;
-    if (lo > solvedValue) return true;
+    if (solvedValue < lo) return true; // solved value not found so element not shared
+    if (solvedValue <= hi) return false; // solved value is in current range so element shared
   }
+  // did not find a range that contained value so no element shared
   return true;
 }
 function domain_bitstr_sharesNoElements(bitdom, strdom) {

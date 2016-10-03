@@ -109,9 +109,9 @@ function _domain_minusStrStrStr(domain1, domain2) {
   return newDomain;
 }
 function _domain_minusNumNum(domain1, domain2) {
-  if (domain1 & SOLVED_FLAG) {
+  if (domain1 >= SOLVED_FLAG) {
     let solvedValue = domain1 ^ SOLVED_FLAG;
-    if (domain2 & SOLVED_FLAG) {
+    if (domain2 >= SOLVED_FLAG) {
       let result = solvedValue - (domain2 ^ SOLVED_FLAG);
       if (result < 0) return EMPTY;
       return domain_createValue(result);
@@ -127,7 +127,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
-  ASSERT((domain1 & SOLVED_FLAG) === 0, 'solved domain1 is expected to be caught elsewhere');
+  ASSERT(domain1 < SOLVED_FLAG, 'solved domain1 is expected to be caught elsewhere');
 
   if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return domain_numnum_createRangeZeroToMax(domain1);
 
@@ -156,7 +156,7 @@ function _domain_minusNumNumNum(domain1, domain2) {
   return newDomain | _domain_minusRangeNumNum(lo, hi, domain2);
 }
 function _domain_minusNumStr(domain_num, domain_str) {
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     if (solvedValue <= SMALL_MAX_NUM) return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
     else return _domain_minusRangeStrStr(solvedValue, solvedValue, domain_str);
@@ -169,7 +169,7 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain_num) - domain_min(domain_str) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
   }
@@ -205,7 +205,7 @@ function _domain_minusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_minusRangeRangeNum(loi, hii, solvedValue, solvedValue);
   }
@@ -260,7 +260,7 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
 
   if (domain_num === EMPTY) return EMPTY;
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_minusRangeRangeStr(loi, hii, solvedValue, solvedValue);
   }
@@ -325,7 +325,7 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     let domain = domain_num_createRange(lo, hi);
-    ASSERT(typeof domain === 'number' && (domain & SOLVED_FLAG) === 0, 'expecting numdom, not soldom');
+    ASSERT(typeof domain === 'number' && domain < SOLVED_FLAG, 'expecting numdom, not soldom');
     return domain;
   }
   return EMPTY;

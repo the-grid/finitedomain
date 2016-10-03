@@ -98,7 +98,7 @@ function ASSERT_STRDOM(domain, expectSmallest, domain__debug) {
 function ASSERT_SOLDOM(domain, value) {
   ASSERT(typeof domain === 'number', 'ONLY_SOLDOM');
   ASSERT(domain >= 0, 'ALL_SOLDOMS_SHOULD_BE_UNSIGNED');
-  ASSERT(domain & SOLVED_FLAG, 'SOLDOMS_MUST_HAVE_FLAG_SET');
+  ASSERT(domain >= SOLVED_FLAG, 'SOLDOMS_MUST_HAVE_FLAG_SET');
   ASSERT((domain ^ SOLVED_FLAG) >= SUB, 'SOLVED_NUMDOM_SHOULD_BE_MIN_SUB');
   ASSERT((domain ^ SOLVED_FLAG) <= SUP, 'SOLVED_NUMDOM_SHOULD_BE_MAX_SUP');
   if (value !== undefined) ASSERT((domain ^ SOLVED_FLAG) === value, 'SHOULD_BE_SOLVED_TO:' + value);
@@ -107,7 +107,7 @@ function ASSERT_SOLDOM(domain, value) {
 function ASSERT_BITDOM(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_BITDOM');
   ASSERT(domain >= 0, 'ALL_BITDOMS_SHOULD_BE_UNSIGNED');
-  ASSERT((domain & SOLVED_FLAG) === 0, 'SOLVED_FLAG_NOT_SET');
+  ASSERT(domain < SOLVED_FLAG, 'SOLVED_FLAG_NOT_SET');
   ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
   return true;
 }
@@ -132,15 +132,15 @@ function ASSERT_NORDOM(domain, expectSmallest, domain__debug) {
     }
     return ASSERT_STRDOM(domain, undefined, undefined, s);
   }
-  if (expectSmallest) ASSERT(!domain || (domain & SOLVED_FLAG) || (domain & (domain - 1)) !== 0, 'EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM', s);
+  if (expectSmallest) ASSERT(!domain || domain >= SOLVED_FLAG || (domain & (domain - 1)) !== 0, 'EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM', s);
   ASSERT_NUMDOM(domain, s);
   return true;
 }
 function ASSERT_NUMDOM(domain, expectSmallest, domain__debug) {
   let s = domain__debug && domain__debug(domain);
   ASSERT(typeof domain === 'number', 'ONLY_NUMDOM', s);
-  if (expectSmallest) ASSERT(!domain || (domain & SOLVED_FLAG) || (domain & (domain - 1)) !== 0, 'EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM', s);
-  if (domain & SOLVED_FLAG) ASSERT_SOLDOM(domain);
+  if (expectSmallest) ASSERT(!domain || domain >= SOLVED_FLAG || (domain & (domain - 1)) !== 0, 'EXPECTING_SOLVED_NUMDOM_TO_BE_SOLDOM', s);
+  if (domain >= SOLVED_FLAG) ASSERT_SOLDOM(domain);
   else ASSERT_BITDOM(domain);
   return true;
 }

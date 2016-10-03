@@ -96,7 +96,6 @@ function _domain_plusStrStrStr(domain1, domain2) {
 function _domain_plusWillBeSmall(domain1, domain2) {
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
-  if ((domain1 | domain2) & SOLVED_FLAG) return false; // it's just a heuristic. don't spend too much time on it.
   // if both domains are small enough they cannot add to a domain beyond the max
   if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
   return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
@@ -105,7 +104,7 @@ function _domain_plusNumNumStr(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
 
-  if (domain1 & SOLVED_FLAG) {
+  if (domain1 >= SOLVED_FLAG) {
     let solvedValue = domain1 ^ SOLVED_FLAG;
     return _domain_plusRangeNumStr(solvedValue, solvedValue, domain2);
   }
@@ -139,7 +138,7 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
   ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
 
-  if (domain1 & SOLVED_FLAG) {
+  if (domain1 >= SOLVED_FLAG) {
     let solvedValue = domain1 ^ SOLVED_FLAG;
     return _domain_plusRangeNumNum(solvedValue, solvedValue, domain2);
   }
@@ -172,7 +171,7 @@ function _domain_plusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_plusRangeRangeNum(loi, hii, solvedValue, solvedValue);
   }
@@ -205,7 +204,7 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_plusRangeStrStr(solvedValue, solvedValue, domain_str);
   }
@@ -237,7 +236,7 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
 function _domain_plusRangeNumStr(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
 
-  if (domain_num & SOLVED_FLAG) {
+  if (domain_num >= SOLVED_FLAG) {
     let solvedValue = domain_num ^ SOLVED_FLAG;
     return _domain_plusRangeRangeStr(loi, hii, solvedValue, solvedValue);
   }
@@ -292,7 +291,7 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
   ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
 
   let domain = domain_num_createRange(loi + loj, hii + hij);
-  ASSERT(typeof domain === 'number' && (domain & SOLVED_FLAG) === 0, 'expecting numdom, not soldom');
+  ASSERT(typeof domain === 'number' && domain < SOLVED_FLAG, 'expecting numdom, not soldom');
   return domain;
 }
 

@@ -143,7 +143,7 @@ function domain_appendRange(domain, lo, hi) {
   if (typeof domain === 'number') {
     // note: this function should not receive numdoms with a SOLVED_FLAG set
     // it is only used in temporary array cases, the flag must be set afterwards
-    ASSERT((domain & SOLVED_FLAG) === 0, 'not expecting solved numdoms');
+    ASSERT(domain < SOLVED_FLAG, 'not expecting solved numdoms');
     if (hi <= SMALL_MAX_NUM) return domain_bit_addRange(domain, lo, hi);
     domain = domain_numToStr(domain);
   }
@@ -186,7 +186,7 @@ function domain_containsValue(domain, value) {
 function domain_num_containsValue(domain, value) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_containsValue(domain, value);
+  if (domain >= SOLVED_FLAG) return domain_sol_containsValue(domain, value);
   return domain_bit_containsValue(domain, value);
 }
 function domain_sol_containsValue(domain, value) {
@@ -265,7 +265,7 @@ function domain_isValue(domain, value) {
 function domain_num_isValue(domain, value) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_isValue(domain, value);
+  if (domain >= SOLVED_FLAG) return domain_sol_isValue(domain, value);
   return domain_bit_isValue(domain, value);
 }
 function domain_sol_isValue(domain, value) {
@@ -305,7 +305,7 @@ function domain_getValue(domain) {
 function domain_num_getValue(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_getValue(domain);
+  if (domain >= SOLVED_FLAG) return domain_sol_getValue(domain);
   return domain_bit_getValue(domain);
 }
 function domain_sol_getValue(domain) {
@@ -410,7 +410,7 @@ function domain_toList(domain) {
 function domain_num_toList(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_toList(domain);
+  if (domain >= SOLVED_FLAG) return domain_sol_toList(domain);
   return domain_bit_toList(domain);
 }
 function domain_sol_toList(domain) {
@@ -458,7 +458,7 @@ function domain_num_removeNextFromList(numdom, list) {
   ASSERT_NUMDOM(numdom);
   ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
-  if (numdom & SOLVED_FLAG) return domain_sol_removeNextFromList(numdom, list);
+  if (numdom >= SOLVED_FLAG) return domain_sol_removeNextFromList(numdom, list);
   return domain_bit_removeNextFromList(numdom, list);
 }
 function domain_sol_removeNextFromList(soldom, list) {
@@ -529,7 +529,7 @@ function domain_getValueOfFirstContainedValueInList(domain, list) {
 function domain_num_getValueOfFirstContainedValueInList(domain, list) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_getValueOfFirstContainedValueInList(domain, list);
+  if (domain >= SOLVED_FLAG) return domain_sol_getValueOfFirstContainedValueInList(domain, list);
   return domain_bit_getValueOfFirstContainedValueInList(domain, list);
 }
 function domain_sol_getValueOfFirstContainedValueInList(domain, list) {
@@ -703,8 +703,8 @@ function domain_numnum_intersection(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
 
-  let sol1 = domain1 & SOLVED_FLAG;
-  let sol2 = domain2 & SOLVED_FLAG;
+  let sol1 = domain1 >= SOLVED_FLAG;
+  let sol2 = domain2 >= SOLVED_FLAG;
   if (sol1) {
     if (sol2) return domain_solsol_intersect(domain1, domain2);
     return domain_solbit_intersect(domain1, domain2);
@@ -738,7 +738,7 @@ function domain_numstr_intersection(numdom, strdom) {
   ASSERT_NUMDOM(numdom);
   ASSERT_STRDOM(strdom);
 
-  if (numdom & SOLVED_FLAG) return domain_solstr_intersect(numdom, strdom);
+  if (numdom >= SOLVED_FLAG) return domain_solstr_intersect(numdom, strdom);
   return domain_bitstr_intersect(numdom, strdom);
 }
 function domain_solstr_intersect(soldom, strdom) {
@@ -843,7 +843,7 @@ function domain_strstr_intersection(domain1, domain2) {
  */
 function domain__debug(domain) {
   if (typeof domain === 'number') {
-    if (domain & SOLVED_FLAG) return 'numdom([' + (domain ^ SOLVED_FLAG) + ',' + (domain ^ SOLVED_FLAG) + '])';
+    if (domain >= SOLVED_FLAG) return 'numdom([' + (domain ^ SOLVED_FLAG) + ',' + (domain ^ SOLVED_FLAG) + '])';
     return 'numdom([' + domain_numToArr(domain) + '])';
   }
   if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';
@@ -1097,7 +1097,7 @@ function domain_size(domain) {
 function domain_num_size(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return 1;
+  if (domain >= SOLVED_FLAG) return 1;
   return domain_bit_size(domain);
 }
 function domain_bit_size(domain) {
@@ -1181,7 +1181,7 @@ function domain_middleElement(domain) {
   ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') {
-    if (domain & SOLVED_FLAG) return domain ^ SOLVED_FLAG;
+    if (domain >= SOLVED_FLAG) return domain ^ SOLVED_FLAG;
     // for simplicity sake, convert them back to arrays
     domain = domain_numToStr(domain);
   }
@@ -1232,7 +1232,7 @@ function domain_min(domain) {
 function domain_num_min(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_min(domain);
+  if (domain >= SOLVED_FLAG) return domain_sol_min(domain);
   return domain_bit_min(domain);
 }
 function domain_sol_min(domain) {
@@ -1369,7 +1369,7 @@ function domain_max(domain) {
 function domain_num_max(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_max(domain);
+  if (domain >= SOLVED_FLAG) return domain_sol_max(domain);
   return domain_bit_max(domain);
 }
 function domain_sol_max(domain) {
@@ -1447,6 +1447,7 @@ function domain_str_isSolved(domain) {
  * @returns {boolean}
  */
 function domain_isUndetermined(domain) {
+  console.log('TOFIX'); // remove; used in testing only
   ASSERT_NORDOM(domain);
 
   if (typeof domain === 'number') return domain_num_isUndetermined(domain);
@@ -1456,7 +1457,8 @@ function domain_isUndetermined(domain) {
 function domain_num_isUndetermined(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return false;
+  if (domain >= SOLVED_FLAG) return false;
+  console.log('TOFIX');
   // return true; // TOFIX
   return domain_bit_isUndetermined(domain);
 }
@@ -1525,7 +1527,7 @@ function domain_removeGte(domain, value) {
 function domain_num_removeGte(domain, value) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_removeGte(domain, value);
+  if (domain >= SOLVED_FLAG) return domain_sol_removeGte(domain, value);
   return domain_bitToSmallest(domain_bit_removeGte(domain, value));
 }
 function domain_sol_removeGte(domain, value) {
@@ -1683,7 +1685,7 @@ function domain_removeLte(domain, value) {
 function domain_num_removeLte(domain, value) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_sol_removeLte(domain, value);
+  if (domain >= SOLVED_FLAG) return domain_sol_removeLte(domain, value);
   return domain_toSmallest(domain_bit_removeLte(domain, value));
 }
 function domain_sol_removeLte(domain, value) {
@@ -1836,7 +1838,7 @@ function domain_removeValue(domain, value) {
  * @returns {$domain}
  */
 function domain_num_removeValue(domain, value) {
-  if (domain & SOLVED_FLAG) return domain_sol_removeValue(domain, value);
+  if (domain >= SOLVED_FLAG) return domain_sol_removeValue(domain, value);
   return domain_bit_removeValue(domain, value);
 }
 function domain_sol_removeValue(domain, value) {
@@ -1951,11 +1953,11 @@ function domain_sharesNoElements(domain1, domain2) {
   return domain_strstr_sharesNoElements(domain1, domain2);
 }
 function domain_numnum_sharesNoElements(domain1, domain2) {
-  if (domain1 & SOLVED_FLAG) {
-    if (domain2 & SOLVED_FLAG) return domain_solsol_sharesNoElements(domain1, domain2);
+  if (domain1 >= SOLVED_FLAG) {
+    if (domain2 >= SOLVED_FLAG) return domain_solsol_sharesNoElements(domain1, domain2);
     return domain_solbit_sharesNoElements(domain1, domain2);
   }
-  if (domain2 & SOLVED_FLAG) return domain_solbit_sharesNoElements(domain2, domain1);
+  if (domain2 >= SOLVED_FLAG) return domain_solbit_sharesNoElements(domain2, domain1);
   return domain_bitbit_sharesNoElements(domain1, domain2);
 }
 function domain_solsol_sharesNoElements(domain1, domain2) {
@@ -1990,7 +1992,7 @@ function domain_numstr_sharesNoElements(numdom, strdom) {
   ASSERT_NUMDOM(numdom);
   ASSERT_STRDOM(strdom);
 
-  if (numdom & SOLVED_FLAG) return domain_solstr_sharesNoElements(numdom, strdom);
+  if (numdom >= SOLVED_FLAG) return domain_solstr_sharesNoElements(numdom, strdom);
   return domain_bitstr_sharesNoElements(numdom, strdom);
 }
 function domain_solstr_sharesNoElements(soldom, strdom) {
@@ -2115,7 +2117,7 @@ function domain_num_createRange(lo, hi) {
  */
 function domain_numnum_createRangeZeroToMax(domain_num) {
   ASSERT_NUMDOM(domain_num);
-  ASSERT((domain_num & SOLVED_FLAG) === 0, 'should not be solved num');
+  ASSERT(domain_num < SOLVED_FLAG, 'should not be solved num');
   ASSERT(domain_num !== ZERO, 'INVALID INPUT, ZERO would be a solved domain which is caught elsewhere');
 
   //if (domain_num === ZERO) return SOLVED_FLAG; // note: SOLVED_FLAG|0 === SOLVED_FLAG.
@@ -2159,7 +2161,7 @@ function domain_toArr(domain, clone) {
 function domain_numToArr(domain) {
   ASSERT_NUMDOM(domain);
 
-  if (domain & SOLVED_FLAG) return domain_solToArr(domain);
+  if (domain >= SOLVED_FLAG) return domain_solToArr(domain);
   return domain_bitToArr(domain);
 }
 function domain_solToArr(domain) {
@@ -2249,7 +2251,7 @@ function domain_toStr(domain) {
   return domain_arrToStr(domain);
 }
 function domain_numToStr(domain) {
-  if (domain & SOLVED_FLAG) return domain_solToStr(domain);
+  if (domain >= SOLVED_FLAG) return domain_solToStr(domain);
   return domain_bitToStr(domain);
 }
 function domain_solToStr(domain) {
@@ -2349,7 +2351,7 @@ function domain_anyToSmallest(domain) {
   return domain_toSmallest(domain);
 }
 function domain_numToSmallest(domain) {
-  if (domain & SOLVED_FLAG) return domain;
+  if (domain >= SOLVED_FLAG) return domain;
   return domain_bitToSmallest(domain);
 }
 function domain_bitToSmallest(domain) {

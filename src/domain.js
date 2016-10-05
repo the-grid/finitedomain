@@ -378,8 +378,8 @@ function domain_bit_toList(domain) {
   ASSERT_BITDOM(domain);
 
   let list = [];
-  for (let i = 0; i < 16; ++i) {
-    if ((domain & NUM_TO_FLAG[i]) > 0) list.push(i);
+  for (let i = 0; i < SMALL_MAX_NUM; ++i) {
+    if ((domain & ((1 << i) >>> 0)) > 0) list.push(i);
   }
   return list;
 }

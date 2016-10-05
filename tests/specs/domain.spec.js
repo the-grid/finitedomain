@@ -120,7 +120,13 @@ describe('src/domain.spec', function() {
 
     describe('numdoms', function() {
 
-      it('should convert small values to nums', function() {
+      it('should convert small solved values to nums', function() {
+        fixt_domainEql(domain_createRange(0, 10), domain_createRange(0, 10));
+        fixt_domainEql(domain_createRange(20, SMALL_MAX_NUM), domain_createRange(20, SMALL_MAX_NUM));
+        fixt_domainEql(domain_createRange(0, SMALL_MAX_NUM), domain_createRange(0, SMALL_MAX_NUM));
+      });
+
+      it('should convert small solved values to nums', function() {
         expect(domain_createValue(0)).to.eql(fixt_numdom_solved(0));
         expect(domain_createValue(1)).to.eql(fixt_numdom_solved(1));
         expect(domain_createValue(5)).to.eql(fixt_numdom_solved(5));

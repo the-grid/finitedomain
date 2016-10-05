@@ -11,6 +11,8 @@ if [ -z "$FORCE_BROKEN_COMMIT" ]; then # exit unless force committing because co
 
   COVERAGE=$(npm run coverage 2>&1)
   SUMMARY=$(echo "$COVERAGE" | grep -B0 -A5 'Coverage summary')
+  UGLIFY=$(grunt uglify:dist)
+  SIZE=$(echo "$UGLIFY" | grep -B0 -A0 'created:')
 fi
 
 if [ "$SUMMARY" ]; then
@@ -23,6 +25,10 @@ if [ "$SUMMARY" ]; then
 
 $SUMMARY
 "
+  SIZE="
+$SIZE
+"
+
 # otherwise the empty summary (most likely) means tests failed, but maybe not
 else
   echo "- Coverage summary NOT found"
@@ -43,6 +49,6 @@ else
   fi
 fi
 
-echo "$PREFIX$CMESSAGE$SUMMARY" > $1
+echo "$PREFIX$CMESSAGE$SUMMARY$SIZE" > $1
 
-echo "$SUMMARY"
+echo "$SUMMARY$SIZE"

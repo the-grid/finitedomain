@@ -11,8 +11,8 @@ if [ -z "$FORCE_BROKEN_COMMIT" ]; then # exit unless force committing because co
 
   COVERAGE=$(npm run coverage 2>&1)
   SUMMARY=$(echo "$COVERAGE" | grep -B0 -A5 'Coverage summary')
-  UGLIFY=$(grunt uglify:dist)
-  SIZE=$(echo "$UGLIFY" | grep -B0 -A0 'created:')
+  UGLIFY=$(grunt distq)
+  SIZE=$(echo "$UGLIFY" | grep -B0 -A0 'gzip')
 fi
 
 if [ "$SUMMARY" ]; then

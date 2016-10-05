@@ -834,7 +834,8 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
   }
 
-  let v3 = domain_getValue(initialDomains[varIndexResult]);
+  let domain3 = initialDomains[varIndexResult];
+  let v3 = domain_getValue(domain3);
   let hasResult = v3 !== NO_SUCH_VALUE;
   if (hasResult) {
     if (hasLeft) {
@@ -852,58 +853,31 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_max(domain1) < domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 0);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_min(domain1) >= domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 1);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_max(domain1) <= domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 0);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_min(domain1) > domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 1);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_min(domain1) > domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 0);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_max(domain1) <= domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 1);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_min(domain1) >= domain_max(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 0);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_max(domain1) < domain_min(domain2)) {
-        initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], 1);
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
     } else {
       THROW('UNKNOWN_OP');
     }
   }
 
   return false;
+}
+function _config_eliminate(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, value) {
+  config.initial_domains[resultVarIndex] = domain_removeValue(resultDomain, value);
+  config._constrainedAway.push(leftVarIndex, rightVarIndex, resultVarIndex);
+  return true;
 }
 function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2) {
   let initialDomains = config.initial_domains;

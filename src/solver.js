@@ -8,6 +8,7 @@ import {
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_ARRDOM,
   ASSERT_VARDOMS_SLOW,
   GET_NAME,
   GET_NAMES,
@@ -32,7 +33,6 @@ import {
   domain_clone,
   domain_createRange,
   domain_fromListToArrdom,
-  domain_arr_isRejected,
   domain_max,
   domain_toArr,
   domain_toList,
@@ -166,7 +166,7 @@ class Solver {
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
     domain = domain_validateLegacyArray(domain);
-    if (domain_arr_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -593,11 +593,12 @@ class Solver {
    * Used by PathSolver in another (private) project
    * Exposes domain_max
    *
-   * @param {$domain} domain
+   * @param {$arrdom} domain
    * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
    */
   domain_max(domain) {
-    if (domain_arr_isRejected(domain)) return NO_SUCH_VALUE;
+    ASSERT_ARRDOM(domain);
+    if (domain.length === 0) return NO_SUCH_VALUE;
     return domain_max(domain);
   }
 

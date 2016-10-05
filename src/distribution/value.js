@@ -19,14 +19,14 @@ import {
   domain_containsValue,
   domain_createValue,
   domain_createRange,
-  domain_getValueOfFirstContainedValueInList,
+  domain_getFirstIntersectingValue,
   domain_intersection,
-  domain_isRejected,
   domain_isSolved,
   domain_max,
   domain_middleElement,
   domain_min,
   domain_removeNextFromList,
+  domain_removeValue,
 } from '../domain';
 
 import distribution_markovSampleNextFromDomain from './markov';
@@ -49,7 +49,7 @@ function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-  ASSERT(!domain_isRejected(space.vardoms[varIndex]) && !domain_isSolved(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
+  ASSERT(space.vardoms[varIndex] && !domain_isSolved(space.vardoms[varIndex]), 'CALLSITE_SHOULD_PREVENT_DETERMINED'); // TODO: test
 
   let valueStrategy = config.valueStratName;
 
@@ -125,7 +125,7 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
   let domain = space.vardoms[varIndex];
   let varName = config.all_var_names[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let configVarDistOptions = config.var_dist_options;
   ASSERT(configVarDistOptions, 'space should have config.var_dist_options');
@@ -145,7 +145,7 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
-      let nextValue = domain_getValueOfFirstContainedValueInList(domain, list);
+      let nextValue = domain_getFirstIntersectingValue(domain, list);
       if (nextValue === NO_SUCH_VALUE) {
         if (fallbackDistName) {
           return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
@@ -183,7 +183,7 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
@@ -218,7 +218,7 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE:
@@ -257,7 +257,7 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let middle = domain_middleElement(domain);
 
@@ -303,7 +303,7 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let min = domain_min(domain);
   let max = domain_max(domain);
@@ -345,7 +345,7 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   let min = domain_min(domain);
   let max = domain_max(domain);
@@ -411,7 +411,7 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
 
   let domain = space.vardoms[varIndex];
   ASSERT_NORDOM(domain);
-  ASSERT(!domain_isRejected(domain) && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
+  ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
   switch (choiceIndex) {
     case FIRST_CHOICE: {
@@ -450,24 +450,12 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
     }
 
     case SECOND_CHOICE: {
-      ASSERT((space._markov_last_value != null), 'should have cached previous value');
       let lastValue = space._markov_last_value;
-      let lo = domain_min(domain);
-      let hi = domain_max(domain);
+      ASSERT(typeof lastValue === 'number', 'should have cached previous value');
 
-      let domainMask = EMPTY;
-      if (lastValue > lo) {
-        domainMask = domain_appendRange(domainMask, lo, lastValue - 1);
-      }
-      if (lastValue < hi) {
-        domainMask = domain_appendRange(domainMask, lastValue + 1, hi);
-      }
-
-      // Note: domain is not determined so the operation cannot fail
-      // note: must use some kind of intersect here (there's a test if you mess this up :)
-      // TOFIX: improve performance, needs domain_remove but _not_ the inline version because that's sub-optimal
-      let newDomain = domain_intersection(domain, domainMask);
-      if (domain_isRejected(newDomain)) return NO_CHOICE;
+      let newDomain = domain_removeValue(domain, space._markov_last_value);
+      ASSERT(newDomain || newDomain === EMPTY, 'should normalize rejected domains');
+      if (newDomain === EMPTY) return NO_CHOICE;
       return newDomain;
     }
   }

@@ -287,11 +287,6 @@ function domain_str_getValue(domain) {
   if (lo === hi) return lo;
   return NO_SUCH_VALUE;
 }
-function domain_arr_getValue(domain) {
-  ASSERT_ARRDOM(domain);
-  if (domain.length === ARR_RANGE_SIZE && domain[0] === domain[1]) return domain[0];
-  return NO_SUCH_VALUE;
-}
 /**
  * @param {$strdom} domain
  * @param {number} index
@@ -479,19 +474,19 @@ function domain_str_removeNextFromList(domain, list) {
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
  */
-function domain_getValueOfFirstContainedValueInList(domain, list) {
+function domain_getFirstIntersectingValue(domain, list) {
   ASSERT_NORDOM(domain);
 
-  if (typeof domain === 'number') return domain_num_getValueOfFirstContainedValueInList(domain, list);
-  return domain_str_getValueOfFirstContainedValueInList(domain, list);
+  if (typeof domain === 'number') return domain_num_getFirstIntersectingValue(domain, list);
+  return domain_str_getFirstIntersectingValue(domain, list);
 }
-function domain_num_getValueOfFirstContainedValueInList(domain, list) {
+function domain_num_getFirstIntersectingValue(domain, list) {
   ASSERT_NUMDOM(domain);
 
-  if (domain >= SOLVED_FLAG) return domain_sol_getValueOfFirstContainedValueInList(domain, list);
-  return domain_bit_getValueOfFirstContainedValueInList(domain, list);
+  if (domain >= SOLVED_FLAG) return domain_sol_getFirstIntersectingValue(domain, list);
+  return domain_bit_getFirstIntersectingValue(domain, list);
 }
-function domain_sol_getValueOfFirstContainedValueInList(domain, list) {
+function domain_sol_getFirstIntersectingValue(domain, list) {
   ASSERT_SOLDOM(domain);
   ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
@@ -499,7 +494,7 @@ function domain_sol_getValueOfFirstContainedValueInList(domain, list) {
   if (list.indexOf(solvedValue) >= 0) return solvedValue;
   return NO_SUCH_VALUE;
 }
-function domain_bit_getValueOfFirstContainedValueInList(domain, list) {
+function domain_bit_getFirstIntersectingValue(domain, list) {
   ASSERT_BITDOM(domain);
   ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
@@ -511,7 +506,7 @@ function domain_bit_getValueOfFirstContainedValueInList(domain, list) {
   }
   return NO_SUCH_VALUE;
 }
-function domain_str_getValueOfFirstContainedValueInList(domain, list) {
+function domain_str_getFirstIntersectingValue(domain, list) {
   ASSERT_STRDOM(domain);
   ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
 
@@ -1396,35 +1391,6 @@ function domain_str_isSolved(domain) {
 
   // TODO: could do this by comparing strings, no need to convert
   return domain.length === STR_RANGE_SIZE && domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) === domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
-}
-
-/**
- * A domain is "rejected" if it covers no values. This means every given
- * value would break at least one constraint so none could be used.
- *
- * @param {$nordom} domain
- * @returns {boolean}
- */
-function domain_isRejected(domain) {
-  ASSERT_NORDOM(domain);
-
-  if (typeof domain === 'number') return domain_num_isRejected(domain);
-  return domain_str_isRejected(domain);
-}
-function domain_num_isRejected(domain) {
-  ASSERT_NUMDOM(domain);
-
-  return domain === EMPTY;
-}
-function domain_str_isRejected(domain) {
-  ASSERT_STRDOM(domain);
-
-  return domain === EMPTY_STR; // TODO: eliminate this check. normalize to EMPTY
-}
-function domain_arr_isRejected(domain) {
-  ASSERT_ARRDOM(domain);
-
-  return domain.length === 0;
 }
 
 /**
@@ -2514,7 +2480,6 @@ export {
   domain_str_closeGaps,
   domain_containsValue,
   domain_num_containsValue,
-  domain_str_containsValue,
   domain_createRange,
   domain_numnum_createRangeZeroToMax,
   domain_num_createRange,
@@ -2523,15 +2488,10 @@ export {
   domain_divby,
   domain_isEqual,
   domain_fromListToArrdom,
+  domain_getFirstIntersectingValue,
   domain_getValue,
-  domain_num_getValue,
-  domain_arr_getValue,
   domain_str_getValue,
-  domain_getValueOfFirstContainedValueInList,
   domain_intersection,
-  domain_strstr_intersection,
-  domain_isRejected,
-  domain_arr_isRejected,
   domain_isSolved,
   domain_str_isSolved,
   domain_max,

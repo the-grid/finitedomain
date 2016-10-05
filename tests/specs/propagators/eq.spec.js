@@ -3,6 +3,7 @@ import {
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
+  fixt_domainEql,
   fixt_strdom_range,
   fixt_strdom_ranges,
   fixt_numdom_empty,
@@ -18,7 +19,6 @@ import {
   FORCE_ARRAY,
 
   domain_clone,
-  domain_anyToSmallest,
 } from '../../../src/domain';
 import {
   config_addVarDomain,
@@ -116,8 +116,8 @@ describe('propagators/eq.spec', function() {
           let B = config.all_var_names.indexOf('B');
 
           propagator_eqStepBare(space, config, A, B);
-          expect(space.vardoms[A]).to.eql(domain_anyToSmallest(domain));
-          expect(space.vardoms[B]).to.eql(domain_anyToSmallest(domain));
+          fixt_domainEql(space.vardoms[A], domain);
+          fixt_domainEql(space.vardoms[B], domain);
         });
       }
 

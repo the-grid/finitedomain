@@ -1,5 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_nums,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -14,8 +15,6 @@ import {
 } from '../../src/helpers';
 import {
   domain__debug,
-  domain_fromListToArrdom,
-  domain_anyToSmallest,
 } from '../../src/domain';
 import domain_minus from '../../src/doms/domain_minus';
 
@@ -153,10 +152,9 @@ describe('src/minus.spec.js', function() {
             //console.log(y[i].toString(2).padLeft(32, '0'), '-', y[j].toString(2).padLeft(32, '0'), '=', domain_minus(y[i], y[j]).toString(2).padLeft(32, '0'), '          ', y[i], '-', y[j], '=', domain_minus(y[i], y[j]), '          ', domain_toList(y[i]), '-', domain_toList(y[j]), '=', domain_toList(domain_minus(y[i], y[j])));
             let A = inputs[i];
             let B = inputs[j];
-            let C = domain_anyToSmallest(outcomes[n++]);
+            let C = outcomes[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
-            if (typeof C === 'number') fixt_domainEql(domain_minus(A, B), C, i);
-            else fixt_domainEql(domain_minus(A, B), C, desc);
+            fixt_domainEql(domain_minus(A, B), C, desc);
           }
         }
       });
@@ -165,16 +163,16 @@ describe('src/minus.spec.js', function() {
     describe('large+small/large domains', function() {
       let smalls = [1262692, 67113474, 1276118016, 8491264, 1845494032, 20983812, 539230720, 1611141259, 1073875264, 287574272];
       let large = [
-        [1, 51, 86, 48, 17, 32, 11, 23, 95, 51, 8, 82, 38, 32, 59, 85, 83, 14, 52, 24, 59, 69, 25, 24, 69, 29, 49, 53, 39, 62, 38],
-        [42, 28, 7, 42, 70, 51, 36, 15, 38, 25, 76, 69, 9, 41, 32, 98, 57, 89, 6, 15, 24, 38, 82, 66, 70, 3, 54, 95, 50, 56, 95],
-        [75, 54, 59, 47, 4, 81, 84, 36, 5, 49, 39, 45, 99, 18, 32, 95, 20, 33, 68, 66, 12, 65, 36, 4, 38, 65, 75, 91, 22, 26, 87],
-        [52, 12, 24, 35, 21, 35, 2, 42, 46, 67, 0, 72, 25, 90, 66, 11, 62, 0, 3, 10, 4, 27, 71, 52, 93, 18, 65, 53, 80, 55, 50],
-        [18, 78, 74, 72, 13, 64, 97, 85, 13, 53, 86, 69, 42, 28, 0, 85, 79, 19, 13, 46, 51, 86, 64, 39, 99, 40, 60, 83, 49, 27, 86],
-        [19, 42, 34, 87, 22, 49, 16, 85, 64, 71, 17, 87, 84, 41, 82, 3, 92, 91, 25, 3, 85, 42, 42, 96, 84, 40, 11, 85, 99, 12, 68],
-        [54, 69, 55, 89, 48, 4, 58, 64, 27, 27, 44, 85, 43, 4, 69, 98, 71, 57, 19, 29, 29, 99, 89, 97, 25, 78, 88, 55, 1, 46, 9],
-        [88, 6, 1, 44, 98, 87, 56, 41, 29, 58, 89, 61, 82, 17, 77, 45, 66, 75, 13, 74, 16, 13, 10, 23, 55, 49, 74, 89, 34, 99, 82],
-        [40, 56, 28, 2, 2, 4, 8, 0, 43, 72, 78, 60, 79, 21, 39, 6, 37, 59, 54, 36, 90, 71, 67, 29, 60, 87, 62, 10, 56, 75, 12],
-        [11, 15, 30, 29, 72, 97, 59, 69, 44, 88, 67, 90, 33, 95, 10, 34, 72, 88, 38, 45, 59, 59, 18, 44, 7, 38, 11, 10, 41, 60, 58],
+        [1, 8, 11, 14, 17, 23, 24, 25, 29, 32, 38, 39, 48, 49, 51, 52, 53, 59, 62, 69, 82, 83, 85, 86, 95],
+        [3, 6, 7, 9, 15, 24, 25, 28, 32, 36, 38, 41, 42, 50, 51, 54, 56, 57, 66, 69, 70, 76, 82, 89, 95, 98],
+        [4, 5, 12, 18, 20, 22, 26, 32, 33, 36, 38, 39, 45, 47, 49, 54, 59, 65, 66, 68, 75, 81, 84, 87, 91, 95, 99],
+        [0, 2, 3, 4, 10, 11, 12, 18, 21, 24, 25, 27, 35, 42, 46, 50, 52, 53, 55, 62, 65, 66, 67, 71, 72, 80, 90, 93],
+        [0, 13, 18, 19, 27, 28, 39, 40, 42, 46, 49, 51, 53, 60, 64, 69, 72, 74, 78, 79, 83, 85, 86, 97, 99],
+        [3, 11, 12, 16, 17, 19, 22, 25, 34, 40, 41, 42, 49, 64, 68, 71, 82, 84, 85, 87, 91, 92, 96, 99],
+        [1, 4, 9, 19, 25, 27, 29, 43, 44, 46, 48, 54, 55, 57, 58, 64, 69, 71, 78, 85, 88, 89, 97, 98, 99],
+        [1, 6, 10, 13, 16, 17, 23, 29, 34, 41, 44, 45, 49, 55, 56, 58, 61, 66, 74, 75, 77, 82, 87, 88, 89, 98, 99],
+        [0, 2, 4, 6, 8, 10, 12, 21, 28, 29, 36, 37, 39, 40, 43, 54, 56, 59, 60, 62, 67, 71, 72, 75, 78, 79, 87, 90],
+        [7, 10, 11, 15, 18, 29, 30, 33, 34, 38, 41, 44, 45, 58, 59, 60, 67, 69, 72, 88, 90, 95, 97],
       ];
 
       it('should not kill small+large canaries', function() {
@@ -188,11 +186,10 @@ describe('src/minus.spec.js', function() {
         for (let i = 0; i < smalls.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
             let A = smalls[i];
-            let B = domain_anyToSmallest(domain_fromListToArrdom(large[j]));
+            let B = fixt_dom_nums(...large[j]);
             let C = smallLargeOut[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
-            if (typeof C === 'number') fixt_domainEql(domain_minus(A, B), C, desc);
-            else fixt_domainEql(domain_minus(A, B), C, desc);
+            fixt_domainEql(domain_minus(A, B), C, desc);
           }
         }
       });
@@ -207,12 +204,11 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < smalls.length; ++j) {
-            let A = domain_anyToSmallest(domain_fromListToArrdom(large[i]));
+            let A = fixt_dom_nums(...large[i]);
             let B = smalls[j];
-            let C = domain_anyToSmallest(largeSmallOut[n++]);
+            let C = largeSmallOut[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
-            if (typeof C === 'number') fixt_domainEql(domain_minus(A, B), C, desc);
-            else fixt_domainEql(domain_minus(A, B), C, desc);
+            fixt_domainEql(domain_minus(A, B), C, desc);
           }
         }
       });
@@ -227,12 +223,11 @@ describe('src/minus.spec.js', function() {
         let n = 0;
         for (let i = 0; i < large.length; ++i) {
           for (let j = 0; j < large.length; ++j) {
-            let A = domain_anyToSmallest(domain_fromListToArrdom(large[i]));
-            let B = domain_anyToSmallest(domain_fromListToArrdom(large[j]));
-            let C = domain_anyToSmallest(largeLargeOut[n++]);
+            let A = fixt_dom_nums(...large[i]);
+            let B = fixt_dom_nums(...large[j]);
+            let C = largeLargeOut[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
-            if (typeof C === 'number') fixt_domainEql(domain_minus(A, B), C, desc);
-            else fixt_domainEql(domain_minus(A, B), C, desc);
+            fixt_domainEql(domain_minus(A, B), C, desc);
           }
         }
       });

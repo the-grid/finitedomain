@@ -1386,12 +1386,6 @@ function domain_isSolved(domain) {
 
   return typeof domain === 'number' && domain >= SOLVED_FLAG;
 }
-function domain_str_isSolved(domain) {
-  ASSERT_STRDOM(domain);
-
-  // TODO: could do this by comparing strings, no need to convert
-  return domain.length === STR_RANGE_SIZE && domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) === domain_str_decodeValue(domain, STR_FIRST_RANGE_HI);
-}
 
 /**
  * Remove all values from domain that are greater
@@ -2493,27 +2487,20 @@ export {
   domain_str_getValue,
   domain_intersection,
   domain_isSolved,
-  domain_str_isSolved,
   domain_max,
   domain_middleElement,
   domain_min,
   domain_mul,
-  domain_numToArr,
   domain_numToStr,
-  domain_strToBit,
   domain_removeGte,
-  domain_str_removeGte,
   domain_removeLte,
-  domain_str_removeLte,
   domain_removeNextFromList,
   domain_removeValue,
-  domain_str_removeValue,
   domain_sharesNoElements,
   domain_str_simplify,
   domain_size,
   domain_str_decodeValue,
   domain_str_encodeRange,
-  domain_str_encodeValue,
   domain_toArr,
   domain_toSmallest,
   domain_anyToSmallest,

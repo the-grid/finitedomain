@@ -2,6 +2,7 @@ import expect from '../fixtures/mocha_proxy.fixt';
 import {
   domain__debug,
   domain_toSmallest,
+  domain_arrToSmallest,
   domain_toStr,
 } from '../../src/domain';
 
@@ -266,6 +267,7 @@ function fixt_dom_ranges(...ranges) {
   return fixt_strdom_ranges(...ranges);
 }
 function fixt_dom_nums(...nums) {
+  if (nums[0] instanceof Array) throw new Error('you forgot to splat the argument');
   nums.sort((a, b) => a - b);
   if (nums.length === 0) throw new Error('No nums? Probably test bug');
   if (nums.length === 1) return fixt_numdom_solved(nums[0]);

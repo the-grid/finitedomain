@@ -2147,7 +2147,7 @@ describe('src/domain.spec', function() {
           let outFromFlags = domain_numToStr(bitdom);
           let outToList = domain_toList(bitdom);
           let outSmallest = domain_toSmallest(expStr);
-          let outFromList = domain_fromListToArrdom(list);
+          let outFromList = fixt_arrdom_nums(...list);
 
           let is = 'i=' + bitdom;
           expect(bitdom, is).to.eql(expNum); // more of a confirmation that the specs are proper

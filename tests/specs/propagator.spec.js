@@ -1,4 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
+import {
+  fixt_arrdom_nums,
+} from '../fixtures/domain.fixt';
 
 import {
   propagator_addDistinct,
@@ -48,21 +51,33 @@ describe('src/propagator.spec', function() {
 
     it('should throw for unknown ops', function() {
       let config = config_create();
-      expect(_ => propagator_addReified(config, 'fail', 1, 2, 3)).to.throw('UNKNOWN_REIFIED_OP');
-      expect(_ => propagator_addReified(config, 15, 1, 2, 3)).to.throw('OP_SHOULD_BE_STRING');
+      config_addVarDomain(config, 'A', fixt_arrdom_nums(0, 100));
+      config_addVarDomain(config, 'B', fixt_arrdom_nums(0, 100));
+      config_addVarDomain(config, 'C', fixt_arrdom_nums(0, 1));
+      expect(_ => propagator_addReified(config, 'fail', 0, 1, 2)).to.throw('UNKNOWN_REIFIED_OP');
+      expect(_ => propagator_addReified(config, 15, 0, 1, 2)).to.throw('OP_SHOULD_BE_STRING');
     });
 
     // test reified with all variations of binary bound domains and also a [0,100] domain
     ['eq', 'neq', 'lt', 'gt', 'lte', 'gte'].forEach(op => {
       [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(A => {
         [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(B => {
-          [[0, 0], [0, 1], [1, 1], [0, 100]].forEach(C => {
+          [[0, 0], [0, 1], [1, 1]].forEach(C => {
+
             it('should work with ' + op + ' with A=' + A + ' B=' + B + ' C=' + C, function() {
               let config = config_create();
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
-              config_addVarDomain(config, 'C', B);
+              config_addVarDomain(config, 'C', C);
               expect(propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.equal(undefined);
+            });
+
+            it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
+              let config = config_create();
+              config_addVarDomain(config, 'A', A);
+              config_addVarDomain(config, 'B', B);
+              config_addVarDomain(config, 'C', [0, 100]);
+              expect(_ => propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.throw('should be bool bound');
             });
           });
         });

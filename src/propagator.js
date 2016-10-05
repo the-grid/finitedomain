@@ -35,9 +35,9 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
-  domain_createRange,
   domain_divby,
-  domain_intersection,
+  domain_getValue,
+  domain_isValue,
   domain_max,
   domain_min,
   domain_mul,
@@ -108,6 +108,8 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
+  ASSERT(domain_min(config.initial_domains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
+  ASSERT(domain_max(config.initial_domains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
   let nopName;
   let opFunc;
@@ -122,43 +124,42 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      console.log('FIXME'); // properly check domains (this is just a hack)
-
       let A = config.initial_domains[leftVarIndex];
       let B = config.initial_domains[rightVarIndex];
       let C = config.initial_domains[resultVarIndex];
 
-      // force result to bool. we already know that's the only two valid outcomes, anyways
-      C = config.initial_domains[resultVarIndex] = domain_intersection(C, domain_createRange(0, 1));
+      // while at most one var should be solved at this point, it's possible
+      // (and fine) if multiple vars are solved here. it's just less efficient.
+      // (inefficient) config imports could cause this.
 
-      //if (domain_isValue(C, 0)) {
-      //  if (domain_isSolved(A)) {
-      //    config.initial_domains[rightVarIndex] = domain_removeValue(B, domain_getValue(A));
-      //  } else if (domain_isSolved(B)) {
-      //    config.initial_domains[leftVarIndex] = domain_removeValue(A, domain_getValue(B));
-      //  }
-      //} else if (domain_isValue(C, 1)) {
-      //  let r = domain_intersection(A, B);
-      //  config.initial_domains[leftVarIndex] = r;
-      //  config.initial_domains[rightVarIndex] = r;
-      //  return propagator_addEq(config, rightVarIndex, resultVarIndex);
-      //}
+      let valueC = domain_getValue(C);
 
-      // bool logic only; if A or B is 0, the other should be NEQ C. if A or B is 1, the other should be EQ C.
-      if (domain_min(B) === 0 && domain_max(B) === 1) {
-        if (domain_min(A) === 1) {
-          return propagator_addEq(config, rightVarIndex, resultVarIndex);
-        }
-        if (domain_max(A) === 0) {
-          return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-        }
-      }
-      if (domain_min(A) === 0 && domain_max(A) === 1) {
-        if (domain_min(B) === 1) {
-          return propagator_addEq(config, leftVarIndex, resultVarIndex);
-        }
-        if (domain_min(A) === 1) {
-          return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+      if (valueC === 0) {
+        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
+      } else if (valueC === 1) {
+        return propagator_addEq(config, leftVarIndex, rightVarIndex);
+      } else {
+        let minA = domain_min(A);
+        let maxA = domain_max(A);
+        let minB = domain_min(B);
+        let maxB = domain_max(B);
+
+        if (minA === 0 && maxA === 1) { // A=bool
+          if (maxB === 0) { // B solved to 0?
+            ASSERT(domain_isValue(B, 0), 'because csis');
+            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          } else if (minB === 1) { // B solved to 1?
+            ASSERT(domain_isValue(B, 1), 'because csis');
+            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          }
+        } else if (minB === 0 && maxB === 1) {
+          if (maxA === 0) {
+            ASSERT(domain_isValue(A, 0), 'because csis');
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          } else if (minA === 1) {
+            ASSERT(domain_isValue(A, 1), 'because csis');
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          }
         }
       }
 
@@ -172,29 +173,38 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      console.log('FIXME'); // properly check domains (this is just a hack)
-
       let A = config.initial_domains[leftVarIndex];
       let B = config.initial_domains[rightVarIndex];
       let C = config.initial_domains[resultVarIndex];
 
-      // force result to bool. we already know that's the only two valid outcomes, anyways
-      C = config.initial_domains[resultVarIndex] = domain_intersection(C, domain_createRange(0, 1));
+      let valueC = domain_getValue(C);
 
-      if (domain_min(B) === 0 && domain_max(B) === 1) {
-        if (domain_min(A) === 1) {
-          return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-        }
-        if (domain_max(A) === 0) {
-          return propagator_addEq(config, rightVarIndex, resultVarIndex);
-        }
-      }
-      if (domain_min(A) === 0 && domain_max(A) === 1) {
-        if (domain_min(B) === 1) {
-          return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-        }
-        if (domain_max(B) === 0) {
-          return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      if (valueC === 0) {
+        return propagator_addEq(config, leftVarIndex, rightVarIndex);
+      } else if (valueC === 1) {
+        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
+      } else {
+        let minA = domain_min(A);
+        let maxA = domain_max(A);
+        let minB = domain_min(B);
+        let maxB = domain_max(B);
+
+        if (minA === 0 && maxA === 1) { // A=bool
+          if (maxB === 0) { // B solved to 0?
+            ASSERT(domain_isValue(B, 0), 'because csis');
+            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          } else if (minB === 1) { // B solved to 1?
+            ASSERT(domain_isValue(B, 1), 'because csis');
+            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          }
+        } else if (minB === 0 && maxB === 1) {
+          if (maxA === 0) {
+            ASSERT(domain_isValue(A, 0), 'because csis');
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          } else if (minA === 1) {
+            ASSERT(domain_isValue(A, 1), 'because csis');
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          }
         }
       }
 

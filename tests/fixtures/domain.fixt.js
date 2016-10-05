@@ -269,7 +269,7 @@ function fixt_dom_nums(...nums) {
   nums.sort((a, b) => a - b);
   if (nums.length === 0) throw new Error('No nums? Probably test bug');
   if (nums.length === 1) return fixt_numdom_solved(nums[0]);
-  if (nums[nums.length - 1] <= SMALL_MAX) return fixt_numdom_nums(...nums);
+  if (nums[nums.length - 1] <= SMALL_MAX_NUM) return fixt_numdom_nums(...nums);
   return fixt_strdom_nums(...nums);
 }
 function fixt_dom_solved(value) {

@@ -8,6 +8,9 @@ import {
   SUB,
   SUP,
 } from '../../src/helpers';
+import {
+  domain__debug,
+} from '../../src/domain';
 import Solver from '../../src/solver';
 
 describe('src/constraint.spec', function() {
@@ -534,6 +537,101 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]);
+      });
+
+      describe('optimizations in propagator_addReified', function() {
+
+        describe('eq', function() {
+
+          function test(domain1, domain2, domain3, out, desc) {
+            it('should solve despite optimizations. ' + [domain__debug(domain1), '==', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+              let solver = new Solver();
+              let A = solver.addVar('A', domain1);
+              let B = solver.addVar('B', domain2);
+              let C = solver.addVar('C', domain3);
+              solver.isEq(A, B, C);
+
+              solver.solve({vars: ['A', 'B', 'C']});
+              expect(solver.solutions).to.eql(out);
+            });
+          }
+
+          [
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 0], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [1, 1], C: [1, 1], out: []},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 0, B: 0, C: 1}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 0}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 1], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [1, 1], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 1], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+          ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
+        });
+
+        describe('neq', function() {
+
+          function test(domain1, domain2, domain3, out, desc) {
+            it('should solve despite optimizations. ' + [domain__debug(domain1), '!=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+              let solver = new Solver();
+              let A = solver.addVar('A', domain1);
+              let B = solver.addVar('B', domain2);
+              let C = solver.addVar('C', domain3);
+              solver.isNeq(A, B, C);
+
+              solver.solve({vars: ['A', 'B', 'C']});
+              expect(solver.solutions).to.eql(out);
+            });
+          }
+
+          [
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 1}]},
+            {A: [0, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: []},
+            {A: [1, 1], B: [0, 0], C: [0, 1], out: [{A: 1, B: 0, C: 1}]},
+            {A: [1, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 1], out: [{A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+          ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
+        });
       });
     });
 

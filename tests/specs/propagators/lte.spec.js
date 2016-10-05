@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_empty,
   fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
@@ -13,6 +14,9 @@ import {
 import {
   SUP,
 } from '../../../src/helpers';
+import {
+  domain__debug,
+} from '../../../src/domain';
 import {
   config_addVarDomain,
   config_addVarRange,
@@ -238,6 +242,36 @@ describe('propagators/lte.spec', function() {
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([10, 10], [20, 100]));
+    });
+
+    describe('edge of space', function() {
+
+      function test(domainA, domainB, domainC, domainD) {
+        let desc = 'should not crash with edge cases: ' + domain__debug(domainA) + ' < ' + domain__debug(domainB) + ' <= ' + domain__debug(domainB) + ' -> ' + domain__debug(domainC) + ' <= ' + domain__debug(domainD);
+
+        it(desc, function() {
+          let config = config_create();
+          config_addVarDomain(config, 'A', domainA);
+          config_addVarDomain(config, 'B', domainB);
+          let space = space_createRoot();
+          space_initFromConfig(space, config);
+
+          let A = config.all_var_names.indexOf('A');
+          let B = config.all_var_names.indexOf('B');
+
+          propagator_lteStepBare(space, config, A, B);
+          fixt_domainEql(space.vardoms[A], domainC, 'C');
+          fixt_domainEql(space.vardoms[B], domainD, 'D');
+        });
+      }
+
+      test(fixt_arrdom_nums(0), fixt_arrdom_nums(0), fixt_arrdom_nums(0), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(0), fixt_arrdom_nums(SUP), fixt_arrdom_nums(0), fixt_arrdom_nums(SUP));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(0), fixt_dom_empty(), fixt_dom_empty());
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP));
+
+      test(fixt_arrdom_range(0, SUP), fixt_arrdom_nums(0), fixt_arrdom_nums(0), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_range(0, SUP), fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP));
     });
   });
 

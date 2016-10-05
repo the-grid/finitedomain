@@ -1412,7 +1412,7 @@ function domain_isEmpty(domain) {
  */
 function domain_removeGte(domain, value) {
   ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+  ASSERT(typeof value === 'number' && value >= SUB - 1 && value <= SUP + 1, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // or +-1...
 
   if (typeof domain === 'number') return domain_num_removeGte(domain, value);
   return domain_strToSmallest(domain_str_removeGte(domain, value));
@@ -1571,7 +1571,7 @@ function domain_str_removeGte(strdom, value) {
  */
 function domain_removeLte(domain, value) {
   ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // so cannot be negative
+  ASSERT(typeof value === 'number' && value >= SUB - 1 && value <= SUP + 1, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // or +-1...
 
   if (typeof domain === 'number') return domain_num_removeLte(domain, value);
   return domain_toSmallest(domain_str_removeLte(domain, value));
@@ -1662,7 +1662,9 @@ function domain_bit_removeLte(domain, value) {
       return 0; // assuming domain is "valid" this should remove all elements
   }
 
-  return 0; // when value > 30
+  if (value < 0) return domain;
+  ASSERT(value > SMALL_MAX_NUM, 'if not below zero than above max');
+  return 0;
 }
 /**
  * Remove any value from domain that is lesser than or equal to given value.

@@ -708,9 +708,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   let v = domain_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
     let targetValue = v - (constraintName === 'lt' ? 0 : 1);
-    if (targetValue >= SUB) {
-      initialDomains[varIndexRight] = domain_removeLte(domainRight, targetValue);
-    }
+    initialDomains[varIndexRight] = domain_removeLte(domainRight, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
@@ -719,9 +717,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   v = domain_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
     let targetValue = v + (constraintName === 'lt' ? 0 : 1);
-    if (targetValue <= SUP) {
-      initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetValue);
-    }
+    initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
@@ -731,13 +727,9 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   ASSERT(domainRight, 'right should not be empty');
 
   let targetGte = domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1);
-  if (targetGte <= SUP) {
-    initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetGte);
-  }
+  initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetGte);
   let targetLte = domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1);
-  if (targetLte >= SUB) {
-    initialDomains[varIndexRight] = domain_removeLte(domainRight, targetLte);
-  }
+  initialDomains[varIndexRight] = domain_removeLte(domainRight, targetLte);
 
   return false;
 }
@@ -756,7 +748,7 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   let v = domain_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
     let targetValue = v + (constraintName === 'gt' ? 0 : 1);
-    if (targetValue <= SUP) initialDomains[varIndexRight] = domain_removeGte(domainRight, targetValue);
+    initialDomains[varIndexRight] = domain_removeGte(domainRight, targetValue, true);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
@@ -765,7 +757,7 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   v = domain_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
     let targetValue = v - (constraintName === 'gt' ? 0 : 1);
-    if (targetValue >= SUB) initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetValue);
+    initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
@@ -773,9 +765,9 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
 
   // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
   let targetLte = domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1);
-  if (targetLte >= SUB) initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetLte);
+  initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetLte);
   let targetGte = domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1);
-  if (targetGte <= SUP) initialDomains[varIndexRight] = domain_removeGte(domainRight, targetGte);
+  initialDomains[varIndexRight] = domain_removeGte(domainRight, targetGte);
 
   return false;
 }

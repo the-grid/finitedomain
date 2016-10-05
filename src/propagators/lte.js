@@ -36,21 +36,10 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
   let lo1 = domain_min(domain1);
-  let hi1 = domain_max(domain1);
-  let lo2 = domain_min(domain2);
   let hi2 = domain_max(domain2);
 
-  // every number in v1 can only be smaller than or equal to the biggest
-  // value in v2. bigger values will never satisfy lt so prune them.
-  if (hi1 > hi2) {
-    space.vardoms[varIndex1] = domain_removeGte(domain1, hi2 + 1);
-  }
-
-  // likewise; numbers in v2 that are smaller than or equal to the
-  // smallest value of v1 can never satisfy lt so prune them as well
-  if (lo1 > lo2) {
-    space.vardoms[varIndex2] = domain_removeLte(domain2, lo1 - 1);
-  }
+  space.vardoms[varIndex1] = domain_removeGte(domain1, hi2 + 1);
+  space.vardoms[varIndex2] = domain_removeLte(domain2, lo1 - 1);
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ltStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'lt', domain__debug(domain2), '->', domain__debug(space.vardoms[varIndex1]), domain__debug(space.vardoms[varIndex2])));
   ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);

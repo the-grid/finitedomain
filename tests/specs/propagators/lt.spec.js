@@ -1,5 +1,6 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_empty,
   fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
@@ -13,6 +14,9 @@ import {
 import {
   SUP,
 } from '../../../src/helpers';
+import {
+  domain__debug,
+} from '../../../src/domain';
 import {
   propagator_ltStepBare,
 } from '../../../src/propagators/lt';
@@ -229,6 +233,35 @@ describe('propagators/lt.spec', function() {
       //propagator_ltStepBare(space, config, A, B);
       //expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
       //expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([20, 100]));
+    });
+
+    describe('edge of space', function() {
+
+      function test(domainA, domainB) {
+        let desc = 'should not crash with edge cases: ' + domain__debug(domainA) + ', ' + domain__debug(domainB);
+
+        it(desc, function() {
+          let config = config_create();
+          config_addVarDomain(config, 'A', domainA);
+          config_addVarDomain(config, 'B', domainB);
+          let space = space_createRoot();
+          space_initFromConfig(space, config);
+
+          let A = config.all_var_names.indexOf('A');
+          let B = config.all_var_names.indexOf('B');
+
+          propagator_ltStepBare(space, config, A, B);
+          expect(space.vardoms[A]).to.eql(fixt_dom_empty());
+          expect(space.vardoms[B]).to.eql(fixt_dom_empty());
+        });
+      }
+
+      test(fixt_arrdom_nums(0), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP));
+
+      test(fixt_arrdom_range(0, SUP), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_range(0, SUP));
     });
   });
 

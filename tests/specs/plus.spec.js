@@ -16,8 +16,6 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
-  NUM_TO_FLAG,
-
   domain__debug,
 } from '../../src/domain';
 import domain_plus from '../../src/doms/domain_plus';
@@ -128,7 +126,7 @@ describe('src/plus.spec.js', function() {
         for (let i = 0; i < 7; ++i) {
           for (let j = 0; j < 8; ++j) {
             if (i !== 8 || j !== 8) { // 16
-              expect(domain_plus(NUM_TO_FLAG[i], NUM_TO_FLAG[j]), i + ' + ' + j).to.eql(NUM_TO_FLAG[i + j]);
+              expect(domain_plus(1 << i, 1 << j), i + ' + ' + j).to.eql(1 << (i + j));
             }
           }
         }

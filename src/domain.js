@@ -9,7 +9,6 @@ import {
   NO_SUCH_VALUE,
   NOT_FOUND,
   ARR_RANGE_SIZE,
-  SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
   SOLVED_FLAG,
   SUB,
@@ -47,80 +46,6 @@ let MIN = Math.min;
 let MAX = Math.max;
 let FLOOR = Math.floor;
 let CEIL = Math.ceil;
-
-const ZERO = 1 << 0;
-const ONE = 1 << 1;
-const BOOL = ZERO | ONE;
-const TWO = 1 << 2;
-const THREE = 1 << 3;
-const FOUR = 1 << 4;
-const FIVE = 1 << 5;
-const SIX = 1 << 6;
-const SEVEN = 1 << 7;
-const EIGHT = 1 << 8;
-const NINE = 1 << 9;
-const TEN = 1 << 10;
-const ELEVEN = 1 << 11;
-const TWELVE = 1 << 12;
-const THIRTEEN = 1 << 13;
-const FOURTEEN = 1 << 14;
-const FIFTEEN = 1 << 15;
-const SIXTEEN = 1 << 16;
-const SEVENTEEN = 1 << 17;
-const EIGHTEEN = 1 << 18;
-const NINETEEN = 1 << 19;
-const TWENTY = 1 << 20;
-const TWENTYONE = 1 << 21;
-const TWENTYTWO = 1 << 22;
-const TWENTYTHREE = 1 << 23;
-const TWENTYFOUR = 1 << 24;
-const TWENTYFIVE = 1 << 25;
-const TWENTYSIX = 1 << 26;
-const TWENTYSEVEN = 1 << 27;
-const TWENTYEIGHT = 1 << 28;
-const TWENTYNINE = 1 << 29;
-const THIRTY = 1 << 30;
-const NUM_TO_FLAG = [
-  ZERO, ONE, TWO, THREE, FOUR,
-  FIVE, SIX, SEVEN, EIGHT, NINE,
-  TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN,
-  FIFTEEN, SIXTEEN, SEVENTEEN, EIGHTEEN, NINETEEN,
-  TWENTY, TWENTYONE, TWENTYTWO, TWENTYTHREE, TWENTYFOUR,
-  TWENTYFIVE, TWENTYSIX, TWENTYSEVEN, TWENTYEIGHT,
-  TWENTYNINE, THIRTY,
-];
-let FLAG_TO_NUM = {};
-FLAG_TO_NUM[ZERO] = 0;
-FLAG_TO_NUM[ONE] = 1;
-FLAG_TO_NUM[TWO] = 2;
-FLAG_TO_NUM[THREE] = 3;
-FLAG_TO_NUM[FOUR] = 4;
-FLAG_TO_NUM[FIVE] = 5;
-FLAG_TO_NUM[SIX] = 6;
-FLAG_TO_NUM[SEVEN] = 7;
-FLAG_TO_NUM[EIGHT] = 8;
-FLAG_TO_NUM[NINE] = 9;
-FLAG_TO_NUM[TEN] = 10;
-FLAG_TO_NUM[ELEVEN] = 11;
-FLAG_TO_NUM[TWELVE] = 12;
-FLAG_TO_NUM[THIRTEEN] = 13;
-FLAG_TO_NUM[FOURTEEN] = 14;
-FLAG_TO_NUM[FIFTEEN] = 15;
-FLAG_TO_NUM[SIXTEEN] = 16;
-FLAG_TO_NUM[SEVENTEEN] = 17;
-FLAG_TO_NUM[EIGHTEEN] = 18;
-FLAG_TO_NUM[NINETEEN] = 19;
-FLAG_TO_NUM[TWENTY] = 20;
-FLAG_TO_NUM[TWENTYONE] = 21;
-FLAG_TO_NUM[TWENTYTWO] = 22;
-FLAG_TO_NUM[TWENTYTHREE] = 23;
-FLAG_TO_NUM[TWENTYFOUR] = 24;
-FLAG_TO_NUM[TWENTYFIVE] = 25;
-FLAG_TO_NUM[TWENTYSIX] = 26;
-FLAG_TO_NUM[TWENTYSEVEN] = 27;
-FLAG_TO_NUM[TWENTYEIGHT] = 28;
-FLAG_TO_NUM[TWENTYNINE] = 29;
-FLAG_TO_NUM[THIRTY] = 30;
 
 // size of values and ranges in a string domain
 const STR_VALUE_SIZE = 2;
@@ -725,7 +650,7 @@ function domain_bitstr_intersect(bitdom, strdom) {
     let hi = domain_str_decodeValue(strdom, i + STR_VALUE_SIZE);
 
     for (let j = lo, m = MIN(SMALL_MAX_NUM, hi); j <= m; ++j) {
-      let flag = NUM_TO_FLAG[j];
+      let flag = 1 << j;
       if (bitdom & flag) domain |= flag; // could be: domain |= domain1 & NUMBER[j]; but this reads better?
     }
   }
@@ -2031,9 +1956,9 @@ function domain_createEmpty() {
 function domain_numnum_createRangeZeroToMax(domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num < SOLVED_FLAG, 'should not be solved num');
-  ASSERT(domain_num !== ZERO, 'INVALID INPUT, ZERO would be a solved domain which is caught elsewhere');
+  ASSERT(domain_num !== (1 << 0), 'INVALID INPUT, ZERO would be a solved domain which is caught elsewhere');
 
-  //if (domain_num === ZERO) return SOLVED_FLAG; // note: SOLVED_FLAG|0 === SOLVED_FLAG.
+  //if (domain_num === (1 << 0)) return SOLVED_FLAG; // note: SOLVED_FLAG|0 === SOLVED_FLAG.
 
   domain_num = domain_num | (domain_num >> 1);
   domain_num = domain_num | (domain_num >> 2);
@@ -2087,17 +2012,17 @@ function domain_bitToArr(domain) {
   let lo = -1;
   let hi = -1;
 
-  if (ZERO & domain) {
+  if ((1 << 0) & domain) {
     lo = 0;
     hi = 0;
   }
-  if (ONE & domain) {
+  if ((1 << 1) & domain) {
     if (lo !== 0) { // lo is either 0 or nothing
       lo = 1;
     }
     hi = 1; // there cannot be a gap yet
   }
-  if (TWO & domain) {
+  if ((1 << 2) & domain) {
     if (hi === 0) {
       arr.push(0, 0);
       lo = 2;
@@ -2107,7 +2032,7 @@ function domain_bitToArr(domain) {
     }
     hi = 2;
   }
-  if (THREE & domain) {
+  if ((1 << 3) & domain) {
     if (hi < 0) { // this is the LSB that is set
       lo = 3;
     } else if (hi !== 2) { // there's a gap so push prev range now
@@ -2117,9 +2042,9 @@ function domain_bitToArr(domain) {
     hi = 3;
   }
   // is the fifth bit or higher even set at all? for ~85% that is not the case at this point
-  if (domain >= FOUR) {
+  if (domain >= (1 << 4)) {
     for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain) {
+      if (domain & (1 << i)) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -2180,17 +2105,17 @@ function domain_bitToStr(domain) {
   let lo = -1;
   let hi = -1;
 
-  if (ZERO & domain) {
+  if ((1 << 0) & domain) {
     lo = 0;
     hi = 0;
   }
-  if (ONE & domain) {
+  if ((1 << 1) & domain) {
     if (lo !== 0) { // lo is either 0 or nothing
       lo = 1;
     }
     hi = 1; // there cannot be a gap yet
   }
-  if (TWO & domain) {
+  if ((1 << 2) & domain) {
     if (hi === 0) {
       str = domain_str_encodeRange(0, 0);
       lo = 2;
@@ -2200,7 +2125,7 @@ function domain_bitToStr(domain) {
     }
     hi = 2;
   }
-  if (THREE & domain) {
+  if ((1 << 3) & domain) {
     if (hi < 0) { // this is the LSB that is set
       lo = 3;
     } else if (hi !== 2) { // there's a gap so push prev range now
@@ -2210,9 +2135,9 @@ function domain_bitToStr(domain) {
     hi = 3;
   }
   // is the fifth bit or higher even set at all? for ~85% that is not the case at this point
-  if (domain >= FOUR) {
+  if (domain >= (1 << 4)) {
     for (let i = 4; i <= SMALL_MAX_NUM; ++i) {
-      if (NUM_TO_FLAG[i] & domain) {
+      if (domain & (1 << i)) {
         if (hi < 0) { // this is the LSB that is set
           lo = i;
         } else if (hi !== i - 1) { // there's a gap so push prev range now
@@ -2462,46 +2387,10 @@ export {
   FORCE_STRING,
   NOT_FOUND,
   PREV_CHANGED,
-  SMALL_MAX_FLAG,
   STR_FIRST_RANGE_HI,
   STR_FIRST_RANGE_LO,
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
-
-  ZERO,
-  ONE,
-  BOOL,
-  TWO,
-  THREE,
-  FOUR,
-  FIVE,
-  SIX,
-  SEVEN,
-  EIGHT,
-  NINE,
-  TEN,
-  ELEVEN,
-  TWELVE,
-  THIRTEEN,
-  FOURTEEN,
-  FIFTEEN,
-  SIXTEEN,
-  SEVENTEEN,
-  EIGHTEEN,
-  NINETEEN,
-  TWENTY,
-  TWENTYONE,
-  TWENTYTWO,
-  TWENTYTHREE,
-  TWENTYFOUR,
-  TWENTYFIVE,
-  TWENTYSIX,
-  TWENTYSEVEN,
-  TWENTYEIGHT,
-  TWENTYNINE,
-  THIRTY,
-  NUM_TO_FLAG,
-  FLAG_TO_NUM,
 
   domain_appendRange,
   domain_arrToSmallest,

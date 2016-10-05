@@ -37,7 +37,6 @@ let ARR_RANGE_SIZE = 2;
 const SMALL_MAX_NUM = 30;
 // there are SMALL_MAX_NUM flags. if they are all on, this is the number value
 // (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
-const SMALL_MAX_FLAG = (1 << (SMALL_MAX_NUM + 1) >>> 0) - 1;
 const SOLVED_FLAG = 1 << 31 >>> 0; // the >>> makes it unsigned, we dont really need it but it may help perf a little (unsigned vs signed)
 
 // __REMOVE_BELOW_FOR_ASSERTS__
@@ -106,7 +105,8 @@ function ASSERT_BITDOM(domain) {
   ASSERT(typeof domain === 'number', 'ONLY_BITDOM');
   ASSERT(domain >= 0, 'ALL_BITDOMS_SHOULD_BE_UNSIGNED');
   ASSERT(domain < SOLVED_FLAG, 'SOLVED_FLAG_NOT_SET');
-  ASSERT(domain >= 0 && domain <= SMALL_MAX_FLAG, 'NUMDOM_SHOULD_BE_VALID_RANGE');
+  ASSERT(SMALL_MAX_NUM < 31, 'next assertion relies on this');
+  ASSERT(domain >= 0 && domain < ((1 << (SMALL_MAX_NUM + 1)) >>> 0), 'NUMDOM_SHOULD_BE_VALID_RANGE');
   return true;
 }
 function ASSERT_ARRDOM(domain, min, max) {
@@ -221,7 +221,6 @@ export {
   NOT_FOUND,
   NO_SUCH_VALUE,
   ARR_RANGE_SIZE,
-  SMALL_MAX_FLAG,
   SMALL_MAX_NUM,
   SOLVED,
   SOLVED_FLAG,

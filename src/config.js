@@ -48,7 +48,6 @@ import {
 } from './propagator';
 import {
   NOT_FOUND,
-  ZERO,
 
   domain__debug,
   domain_createRange,
@@ -645,7 +644,7 @@ function config_addConstraint(config, name, varNames, param) {
         let varIndex = config_addVarAnonConstant(config, cValue);
         newVarIndexes.push(varIndex);
       }
-      if (!newVarIndexes.length) initialDomains[param] = domain_intersection(ZERO, initialDomains[param]);
+      if (!newVarIndexes.length) initialDomains[param] = domain_intersection(domain_createValue(0), initialDomains[param]);
       varIndexes = newVarIndexes;
     }
   }

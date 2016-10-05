@@ -29,38 +29,6 @@ import {
   SUP,
 } from '../../src/helpers';
 import {
-  ZERO,
-  ONE,
-  TWO,
-  THREE,
-  FOUR,
-  FIVE,
-  SIX,
-  SEVEN,
-  EIGHT,
-  NINE,
-  TEN,
-  ELEVEN,
-  TWELVE,
-  THIRTEEN,
-  FOURTEEN,
-  FIFTEEN,
-  SIXTEEN,
-  SEVENTEEN,
-  EIGHTEEN,
-  NINETEEN,
-  TWENTY,
-  TWENTYONE,
-  TWENTYTWO,
-  TWENTYTHREE,
-  TWENTYFOUR,
-  TWENTYFIVE,
-  TWENTYSIX,
-  TWENTYSEVEN,
-  TWENTYEIGHT,
-  TWENTYNINE,
-  THIRTY,
-
   EMPTY,
   NOT_FOUND,
   STR_RANGE_SIZE,
@@ -190,6 +158,38 @@ describe('src/domain.spec', function() {
   });
 
   describe('domain_createRangeZeroToMax', function() {
+
+    const ZERO = 1 << 0;
+    const ONE = 1 << 1;
+    const TWO = 1 << 2;
+    const THREE = 1 << 3;
+    const FOUR = 1 << 4;
+    const FIVE = 1 << 5;
+    const SIX = 1 << 6;
+    const SEVEN = 1 << 7;
+    const EIGHT = 1 << 8;
+    const NINE = 1 << 9;
+    const TEN = 1 << 10;
+    const ELEVEN = 1 << 11;
+    const TWELVE = 1 << 12;
+    const THIRTEEN = 1 << 13;
+    const FOURTEEN = 1 << 14;
+    const FIFTEEN = 1 << 15;
+    const SIXTEEN = 1 << 16;
+    const SEVENTEEN = 1 << 17;
+    const EIGHTEEN = 1 << 18;
+    const NINETEEN = 1 << 19;
+    const TWENTY = 1 << 20;
+    const TWENTYONE = 1 << 21;
+    const TWENTYTWO = 1 << 22;
+    const TWENTYTHREE = 1 << 23;
+    const TWENTYFOUR = 1 << 24;
+    const TWENTYFIVE = 1 << 25;
+    const TWENTYSIX = 1 << 26;
+    const TWENTYSEVEN = 1 << 27;
+    const TWENTYEIGHT = 1 << 28;
+    const TWENTYNINE = 1 << 29;
+    const THIRTY = 1 << 30;
 
     it('should work', function() {
       expect(_ => domain_numnum_createRangeZeroToMax(ZERO)).to.throw('INVALID INPUT');
@@ -2132,37 +2132,37 @@ describe('src/domain.spec', function() {
         // 27 is an arbitrary number (ok, prime) to not waste toooo much time on this
         for (let bitdom = 0; bitdom <= 0xffff; bitdom += 27) {
           let list = [];
-          if (bitdom & ZERO) list.push(0);
-          if (bitdom & ONE) list.push(1);
-          if (bitdom & TWO) list.push(2);
-          if (bitdom & THREE) list.push(3);
-          if (bitdom & FOUR) list.push(4);
-          if (bitdom & FIVE) list.push(5);
-          if (bitdom & SIX) list.push(6);
-          if (bitdom & SEVEN) list.push(7);
-          if (bitdom & EIGHT) list.push(8);
-          if (bitdom & NINE) list.push(9);
-          if (bitdom & TEN) list.push(10);
-          if (bitdom & ELEVEN) list.push(11);
-          if (bitdom & TWELVE) list.push(12);
-          if (bitdom & THIRTEEN) list.push(13);
-          if (bitdom & FOURTEEN) list.push(14);
-          if (bitdom & FIFTEEN) list.push(15);
-          if (bitdom & SIXTEEN) list.push(16);
-          if (bitdom & SEVENTEEN) list.push(17);
-          if (bitdom & EIGHTEEN) list.push(18);
-          if (bitdom & NINETEEN) list.push(19);
-          if (bitdom & TWENTY) list.push(20);
-          if (bitdom & TWENTYONE) list.push(21);
-          if (bitdom & TWENTYTWO) list.push(22);
-          if (bitdom & TWENTYTHREE) list.push(23);
-          if (bitdom & TWENTYFOUR) list.push(24);
-          if (bitdom & TWENTYFIVE) list.push(25);
-          if (bitdom & TWENTYSIX) list.push(26);
-          if (bitdom & TWENTYSEVEN) list.push(27);
-          if (bitdom & TWENTYEIGHT) list.push(28);
-          if (bitdom & TWENTYNINE) list.push(29);
-          if (bitdom & THIRTY) list.push(30);
+          if (bitdom & 1 << 0) list.push(0);
+          if (bitdom & 1 << 1) list.push(1);
+          if (bitdom & 1 << 2) list.push(2);
+          if (bitdom & 1 << 3) list.push(3);
+          if (bitdom & 1 << 4) list.push(4);
+          if (bitdom & 1 << 5) list.push(5);
+          if (bitdom & 1 << 6) list.push(6);
+          if (bitdom & 1 << 7) list.push(7);
+          if (bitdom & 1 << 8) list.push(8);
+          if (bitdom & 1 << 9) list.push(9);
+          if (bitdom & 1 << 10) list.push(10);
+          if (bitdom & 1 << 11) list.push(11);
+          if (bitdom & 1 << 12) list.push(12);
+          if (bitdom & 1 << 13) list.push(13);
+          if (bitdom & 1 << 14) list.push(14);
+          if (bitdom & 1 << 15) list.push(15);
+          if (bitdom & 1 << 16) list.push(16);
+          if (bitdom & 1 << 17) list.push(17);
+          if (bitdom & 1 << 18) list.push(18);
+          if (bitdom & 1 << 19) list.push(19);
+          if (bitdom & 1 << 20) list.push(20);
+          if (bitdom & 1 << 21) list.push(21);
+          if (bitdom & 1 << 22) list.push(22);
+          if (bitdom & 1 << 23) list.push(23);
+          if (bitdom & 1 << 24) list.push(24);
+          if (bitdom & 1 << 25) list.push(25);
+          if (bitdom & 1 << 26) list.push(26);
+          if (bitdom & 1 << 27) list.push(27);
+          if (bitdom & 1 << 28) list.push(28);
+          if (bitdom & 1 << 29) list.push(29);
+          if (bitdom & 1 << 30) list.push(30);
 
           let expNum = fixt_numdom_nums(...list);
           let expStr = fixt_strdom_nums(...list) || EMPTY;

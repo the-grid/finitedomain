@@ -9,7 +9,6 @@ import {
 
 const SUB = 0;
 const SUP = 100000000;
-const SMALL_MAX_FLAG = (1 << 30) - 1; // there are n flags. if they are all on, this is the number value
 const SMALL_MAX_NUM = 30;
 const SOLVED_FLAG = 1 << 31 >>> 0;
 
@@ -91,53 +90,13 @@ function fixt_arrdom_nums(...list) {
   return domain;
 }
 
-const ZERO = 1 << 0;
-const ONE = 1 << 1;
-const TWO = 1 << 2;
-const THREE = 1 << 3;
-const FOUR = 1 << 4;
-const FIVE = 1 << 5;
-const SIX = 1 << 6;
-const SEVEN = 1 << 7;
-const EIGHT = 1 << 8;
-const NINE = 1 << 9;
-const TEN = 1 << 10;
-const ELEVEN = 1 << 11;
-const TWELVE = 1 << 12;
-const THIRTEEN = 1 << 13;
-const FOURTEEN = 1 << 14;
-const FIFTEEN = 1 << 15;
-const SIXTEEN = 1 << 16;
-const SEVENTEEN = 1 << 17;
-const EIGHTEEN = 1 << 18;
-const NINETEEN = 1 << 19;
-const TWENTY = 1 << 20;
-const TWENTYONE = 1 << 21;
-const TWENTYTWO = 1 << 22;
-const TWENTYTHREE = 1 << 23;
-const TWENTYFOUR = 1 << 24;
-const TWENTYFIVE = 1 << 25;
-const TWENTYSIX = 1 << 26;
-const TWENTYSEVEN = 1 << 27;
-const TWENTYEIGHT = 1 << 28;
-const TWENTYNINE = 1 << 29;
-const THIRTY = 1 << 30;
-const NUM_TO_FLAG = [
-  ZERO, ONE, TWO, THREE, FOUR,
-  FIVE, SIX, SEVEN, EIGHT, NINE,
-  TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN,
-  FIFTEEN, SIXTEEN, SEVENTEEN, EIGHTEEN, NINETEEN,
-  TWENTY, TWENTYONE, TWENTYTWO, TWENTYTHREE, TWENTYFOUR,
-  TWENTYFIVE, TWENTYSIX, TWENTYSEVEN, TWENTYEIGHT,
-  TWENTYNINE, THIRTY
-];
 
 function fixt_numdom_nums(...values) {
   let d = 0;
   for (let i = 0; i < values.length; ++i) {
     if (typeof values[i] !== 'number') throw new Error('EXPECTING_NUMBERS_ONLY ['+values[i]+']');
     if (values[i] < 0 || values[i] > SMALL_MAX_NUM) throw new Error('EXPECTING_SMALL_DOMAIN_VALUES ['+values[i]+']');
-    d |= NUM_TO_FLAG[values[i]];
+    d |= 1 << values[i];
   }
   return d;
 }
@@ -148,7 +107,7 @@ function fixt_numdom_range(lo, hi, _b) {
   if (lo < 0 || hi > SMALL_MAX_NUM) throw new Error('OOB_FOR_SMALL_DOMAIN ['+lo+','+hi+']');
   let d = 0;
   for (; lo <= hi; ++lo) {
-    d |= NUM_TO_FLAG[lo];
+    d |= 1 << lo;
   }
   return d;
 }

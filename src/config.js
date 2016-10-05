@@ -5,14 +5,12 @@
 // This prevents leaking the small domain artifact outside of the library.
 
 import {
-  EMPTY_STR,
   NO_SUCH_VALUE,
   SUB,
   SUP,
 
   ASSERT,
   ASSERT_NORDOM,
-  ASSERT_STRDOM,
   ASSERT_VARDOMS_SLOW,
   GET_NAMES,
   THROW,
@@ -53,11 +51,9 @@ import {
   ZERO,
 
   domain__debug,
-  domain_arrToStr,
   domain_createRange,
   domain_createValue,
   domain_getValue,
-  domain_str_getValue,
   domain_max,
   domain_min,
   domain_isSolved,
@@ -66,7 +62,7 @@ import {
   domain_removeLte,
   domain_removeValue,
   domain_toSmallest,
-  domain_toStr,
+  domain_anyToSmallest,
 } from './domain';
 import domain_plus from './doms/domain_plus';
 import {
@@ -77,7 +73,7 @@ import distribution_getDefaults from './distribution/defaults';
 // BODY_START
 
 /**
- * @returns {$finitedomain_config}
+ * @returns {$config}
  */
 function config_create() {
   let config = {
@@ -182,7 +178,7 @@ function config_addVarAnonNothing(config) {
  * @returns {number} varIndex
  */
 function config_addVarNothing(config, varName) {
-  return _config_addVar(config, varName, domain_toStr(domain_createRange(SUB, SUP)));
+  return _config_addVar(config, varName, domain_createRange(SUB, SUP));
 }
 /**
  * @param {$config} config
@@ -213,19 +209,19 @@ function config_addVarRange(config, varName, lo, hi) {
   ASSERT(typeof hi === 'number', 'A_HI_MUST_BE_NUMBER');
   ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
 
-  let domain = domain_toStr(domain_createRange(lo, hi));
+  let domain = domain_createRange(lo, hi);
   return _config_addVar(config, varName, domain);
 }
 /**
  * @param {$config} config
  * @param {string|boolean} varName (If true, anon)
- * @param {$domain_arr} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
+ * @param {$arrdom} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
  * @returns {number} varIndex
  */
 function config_addVarDomain(config, varName, domain) {
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
-  return _config_addVar(config, varName, domain_arrToStr(domain));
+  return _config_addVar(config, varName, domain_anyToSmallest(domain));
 }
 /**
  * @param {$config} config
@@ -253,7 +249,7 @@ function config_addVarConstant(config, varName, value) {
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  let domain = domain_toStr(domain_createRange(value, value));
+  let domain = domain_createRange(value, value);
 
   return _config_addVar(config, varName, domain);
 }
@@ -261,7 +257,7 @@ function config_addVarConstant(config, varName, value) {
 /**
  * @param {$config} config
  * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
- * @param {$strdom} domain strdom ONLY! other methods that call this should make sure their $domain is converted to a strdom
+ * @param {$nordom} domain
  * @returns {number} varIndex
  */
 function _config_addVar(config, varName, domain) {
@@ -270,10 +266,9 @@ function _config_addVar(config, varName, domain) {
   ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
-  ASSERT_STRDOM(domain);
   ASSERT(domain, 'NON_EMPTY_DOMAIN');
-  ASSERT(domain === EMPTY_STR || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(domain === EMPTY_STR || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
@@ -288,10 +283,11 @@ function _config_addVar(config, varName, domain) {
     THROW('Var varName already part of this config. Probably a bug?');
   }
 
-  let solvedTo = domain_str_getValue(domain);
+  let solvedTo = domain_getValue(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
 
-  config.initial_domains[varIndex] = domain_toSmallest(domain);
+  ASSERT_NORDOM(domain, true, domain__debug);
+  config.initial_domains[varIndex] = domain;
   config.all_var_names.push(varName);
   trie_add(config._var_names_trie, varName, varIndex);
 

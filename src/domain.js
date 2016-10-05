@@ -2495,7 +2495,6 @@ export {
   FLAG_TO_NUM,
 
   domain_appendRange,
-  domain_arrToStr,
   domain_arrToSmallest,
   domain_clone,
   domain_str_closeGaps,
@@ -2512,7 +2511,6 @@ export {
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
-  domain_str_getValue,
   domain_intersection,
   domain_isEmpty,
   domain_isSolved,

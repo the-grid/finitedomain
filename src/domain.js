@@ -6,7 +6,6 @@
 // - strdom: each value of an arrdom encoded as a double 16bit character. fixed range size (4 characters).
 
 import {
-  EMPTY_STR,
   NO_SUCH_VALUE,
   NOT_FOUND,
   ARR_RANGE_SIZE,
@@ -128,6 +127,7 @@ const STR_VALUE_SIZE = 2;
 const STR_RANGE_SIZE = 4;
 
 const EMPTY = 0;
+const EMPTY_STR = '';
 
 /**
  * Append given range to the end of given domain. Does not
@@ -225,6 +225,7 @@ function domain_str_containsValue(domain, value) {
  */
 function domain_str_rangeIndexOf(domain, value) {
   ASSERT_STRDOM(domain);
+  ASSERT(domain !== '', 'NOT_EMPTY_STR');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
   ASSERT(value >= SUB);
   ASSERT(value <= SUP);
@@ -786,6 +787,7 @@ function domain_strstr_intersection(domain1, domain2) {
     }
   }
 
+  if (newDomain === EMPTY_STR) return EMPTY;
   return domain_toSmallest(newDomain);
 }
 
@@ -1110,7 +1112,7 @@ function domain_bit_size(domain) {
 }
 function domain_str_size(domain) {
   ASSERT_STRDOM(domain);
-  ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_DOMAINS');
+  ASSERT(domain && domain.length, 'A_EXPECTING_NON_EMPTY_STRDOM');
 
   let count = 0;
 
@@ -1415,7 +1417,7 @@ function domain_removeGte(domain, value) {
   ASSERT(typeof value === 'number' && value >= SUB - 1 && value <= SUP + 1, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // or +-1...
 
   if (typeof domain === 'number') return domain_num_removeGte(domain, value);
-  return domain_strToSmallest(domain_str_removeGte(domain, value));
+  return domain_str_removeGte(domain, value);
 }
 function domain_num_removeGte(domain, value) {
   ASSERT_NUMDOM(domain);
@@ -1533,29 +1535,30 @@ function domain_str_removeGte(strdom, value) {
 
     // TODO: if we know the returned domain is a small domain we should prevent the slice at all.
 
-    if (lo > value) {
+    if (lo >= value) {
+      // >
       // 67 9    -> empty
       // 012 789 -> 012
-      return strdom.slice(0, i);
-    }
-    if (lo === value) {
+      // ==
       // 567 9   -> empty
       // 012 567 -> 012
       // 012 5   -> 012
-      return strdom.slice(0, i);
+      // 5       ->
+      if (!i) return EMPTY;
+      return domain_toSmallest(strdom.slice(0, i));
     }
     if (value <= hi) {
       if (i === 0 && value === lo + 1) {
         // domain_createValue(lo);
         let slo = strdom.slice(0, STR_VALUE_SIZE);
-        return slo + slo;
+        return domain_toSmallest(slo + slo);
       }
       // 012 456 -> 012 4
       // 012 45  -> 012 4
       let newDomain = strdom.slice(0, i + STR_VALUE_SIZE) + domain_str_encodeValue(value - 1);
       ASSERT(newDomain.length > STR_VALUE_SIZE, 'cannot be a solved value');
       //if (value - 1 <= SMALL_MAX_NUM) return newDomain;
-      return newDomain;
+      return domain_toSmallest(newDomain);
     }
   }
   return strdom; // 012 -> 012
@@ -1574,7 +1577,7 @@ function domain_removeLte(domain, value) {
   ASSERT(typeof value === 'number' && value >= SUB - 1 && value <= SUP + 1, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', domain__debug(domain), value); // or +-1...
 
   if (typeof domain === 'number') return domain_num_removeLte(domain, value);
-  return domain_toSmallest(domain_str_removeLte(domain, value));
+  return domain_str_removeLte(domain, value);
 }
 function domain_num_removeLte(domain, value) {
   ASSERT_NUMDOM(domain);
@@ -1676,7 +1679,7 @@ function domain_bit_removeLte(domain, value) {
  *
  * @param {$strdom} strdom
  * @param {number} value
- * @returns {$strdom} normalize at callsite...
+ * @returns {$nordom}
  */
 function domain_str_removeLte(strdom, value) {
   ASSERT_STRDOM(strdom);
@@ -1695,19 +1698,24 @@ function domain_str_removeLte(strdom, value) {
     // 012    => empty
 
     if (lo > value) {
-      if (!i) return strdom; // 678 -> 678
+      // 678 -> 678
+      if (!i) return domain_toSmallest(strdom);
 
       // 234 678 -> 678
-      return strdom.slice(i);
+      return domain_toSmallest(strdom.slice(i));
     }
     if (hi === value) {
-      // 45 89  => 89, 5  89  => 5 89
-      return strdom.slice(i + STR_RANGE_SIZE);
+      // 45 89  => 89
+      // 5  89  => 5 89
+      // 15     =>
+      if (i >= len - STR_RANGE_SIZE) return EMPTY;
+      return domain_toSmallest(strdom.slice(i + STR_RANGE_SIZE));
     }
     if (value <= hi) {
-      // 456 89 => 6 89, 56 89 => 6 89
+      // 456 89 => 6 89
+      // 56 89  => 6 89
 
-      return domain_str_encodeValue(value + 1) + strdom.slice(i + STR_VALUE_SIZE);
+      return domain_toSmallest(domain_str_encodeValue(value + 1) + strdom.slice(i + STR_VALUE_SIZE));
     }
   }
   return EMPTY; // 012 -> empty
@@ -2449,6 +2457,7 @@ export {
   ARR_FIRST_RANGE_LO,
   ARR_RANGE_SIZE,
   EMPTY,
+  EMPTY_STR,
   FORCE_ARRAY,
   FORCE_STRING,
   NOT_FOUND,

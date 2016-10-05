@@ -20,7 +20,6 @@ let SUP = 100000000;
 let SOLVED = 1;
 let UNDETERMINED = 0;
 let NOT_FOUND = -1;
-let EMPTY_STR = '';
 
 let LOG_NONE = 0;
 let LOG_STATS = 1;
@@ -122,11 +121,11 @@ function ASSERT_NORDOM(domain, expectSmallest, domain__debug) {
   let s = domain__debug && domain__debug(domain);
   ASSERT(typeof domain === 'string' || typeof domain === 'number', 'ONLY_NORDOM', s);
   if (typeof domain === 'string') {
+    ASSERT(domain.length > 0, 'empty domains are always numdoms');
     if (expectSmallest) {
       let lo = (domain.charCodeAt(0) << 16) | domain.charCodeAt(1);
       let hi = ((domain.charCodeAt(domain.length - 2) << 16) | domain.charCodeAt(domain.length - 1));
       ASSERT(hi > SMALL_MAX_NUM, 'EXPECTING_STRDOM_TO_HAVE_NUMS_GT_BITDOM', s);
-      ASSERT(domain !== EMPTY_STR, 'EXPECTING_EMPTY_DOMAIN_TO_BE_NUMDOM', s);
       ASSERT(domain.length > 4 || lo !== hi, 'EXPECTING_STRDOM_NOT_TO_BE_SOLVED');
     }
     return ASSERT_STRDOM(domain, undefined, undefined, s);
@@ -213,7 +212,6 @@ export {
   ENABLE_EMPTY_CHECK,
   // __REMOVE_ABOVE_FOR_DIST__
 
-  EMPTY_STR,
   LOG_FLAG_PROPSTEPS,
   LOG_NONE,
   LOG_STATS,

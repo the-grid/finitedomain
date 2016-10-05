@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   domain__debug,
+  domain_anyToSmallest,
   domain_toSmallest,
   domain_arrToSmallest,
   domain_toStr,
@@ -245,7 +246,7 @@ function fixt_assertStrings(a, b, desc) {
  */
 function fixt_domainEql(result, expectation, desc) {
   desc = `${desc || ''} comparing but ignoring representation; result: ${domain__debug(result)} expected: ${domain__debug(expectation)}`;
-  expect(domain_toSmallest(domain_toStr(result)), desc).to.eql(domain_toSmallest(domain_toStr(expectation)));
+  expect(domain_anyToSmallest(result), desc).to.eql(domain_anyToSmallest(expectation));
 }
 
 function fixt_dom_empty() {

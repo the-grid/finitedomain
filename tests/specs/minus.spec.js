@@ -31,21 +31,24 @@ describe('src/minus.spec.js', function() {
     it('should require domains', function() {
       expect(() => domain_minus()).to.throw('ONLY_NORDOM');
       expect(() => domain_minus(fixt_numdom_empty())).to.throw('ONLY_NORDOM');
-      expect(() => domain_minus(null, fixt_strdom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_minus(null, fixt_numdom_empty())).to.throw('ONLY_NORDOM');
     });
 
     it('should accept empty domains', function() {
-      expect(domain_minus(fixt_strdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
       expect(domain_minus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_minus(fixt_strdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_minus(fixt_numdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
+    });
+
+    it('should throw for EMPTY_STR', function() {
+      expect(_ => domain_minus(fixt_strdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
+      expect(_ => domain_minus(fixt_strdom_empty(), fixt_numdom_empty())).to.throw('empty domains are always numdoms');
+      expect(_ => domain_minus(fixt_numdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
     });
 
     it('should return empty domain if one is empty', function() {
       let A = fixt_strdom_ranges([0, 1], [4, 5], [7, 8], [10, 12], [15, 117]);
 
-      fixt_domainEql(domain_minus(A, fixt_strdom_empty()), fixt_numdom_empty());
-      fixt_domainEql(domain_minus(fixt_strdom_empty(), A), fixt_numdom_empty());
+      fixt_domainEql(domain_minus(A, fixt_numdom_empty()), fixt_numdom_empty());
+      fixt_domainEql(domain_minus(fixt_numdom_empty(), A), fixt_numdom_empty());
     });
 
     it('should subtract one range by another', function() {

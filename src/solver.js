@@ -30,6 +30,7 @@ import {
 
   domain__debug,
   domain_clone,
+  domain_createEmpty,
   domain_createRange,
   domain_fromListToArrdom,
   domain_isEmpty,
@@ -76,7 +77,9 @@ class Solver {
       if (config.initial_domains) {
         let initialDomains = config.initial_domains;
         for (let i = 0, len = initialDomains.length; i < len; ++i) {
-          initialDomains[i] = domain_anyToSmallest(initialDomains[i]);
+          let domain = initialDomains[i];
+          if (domain.length === 0) domain = domain_createEmpty();
+          initialDomains[i] = domain_anyToSmallest(domain);
         }
       }
       if (config._propagators) config._propagators = undefined; // will be regenerated

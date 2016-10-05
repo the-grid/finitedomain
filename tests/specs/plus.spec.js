@@ -35,14 +35,17 @@ describe('src/plus.spec.js', function() {
     it('should require domains', function() {
       expect(() => domain_plus()).to.throw('ONLY_NORDOM');
       expect(() => domain_plus(fixt_numdom_empty())).to.throw('ONLY_NORDOM');
-      expect(() => domain_plus(null, fixt_strdom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_plus(null, fixt_numdom_empty())).to.throw('ONLY_NORDOM');
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty(1));
-      expect(domain_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.eql(fixt_numdom_empty(1));
+      expect(domain_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty());
+    });
+
+    it('should throw for empty strdoms', function() {
+      expect(_ => domain_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
+      expect(_ => domain_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.throw('empty domains are always numdoms');
+      expect(_ => domain_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
     });
 
     describe('with array', function() {

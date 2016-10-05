@@ -74,16 +74,20 @@ function distribution_getFunc(distName) {
 function _distribution_varFindBest(space, config, fitnessFunc, varStratConfig) {
   let bestVarIndex = NO_SUCH_VALUE;
 
+  let i = 0;
   let buf = config._front.buffer;
   let nodeIndex = space.frontNodeIndex;
+  if (bestVarIndex === NO_SUCH_VALUE) bestVarIndex = _front_getCell(buf, nodeIndex, i++);
 
-  for (let i = 0, len = _front_getSizeOf(buf, nodeIndex); i < len; i++) {
-    let varIndex = _front_getCell(buf, nodeIndex, i);
-    ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-    ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
+  if (fitnessFunc) {
+    for (let len = _front_getSizeOf(buf, nodeIndex); i < len; i++) {
+      let varIndex = _front_getCell(buf, nodeIndex, i);
+      ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+      ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 
-    if (bestVarIndex === NO_SUCH_VALUE || (fitnessFunc && BETTER === fitnessFunc(space, config, varIndex, bestVarIndex, varStratConfig))) {
-      bestVarIndex = varIndex;
+      if (BETTER === fitnessFunc(space, config, varIndex, bestVarIndex, varStratConfig)) {
+        bestVarIndex = varIndex;
+      }
     }
   }
   return bestVarIndex;

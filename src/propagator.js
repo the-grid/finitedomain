@@ -37,7 +37,6 @@ import {
 import {
   domain_divby,
   domain_getValue,
-  domain_isValue,
   domain_max,
   domain_min,
   domain_mul,
@@ -146,18 +145,18 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
         if (minA === 0 && maxA === 1) { // A=bool
           if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_isValue(B, 0), 'because csis');
+            ASSERT(domain_getValue(B) === 0, 'because csis');
             return propagator_addNeq(config, leftVarIndex, resultVarIndex);
           } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_isValue(B, 1), 'because csis');
+            ASSERT(domain_getValue(B) === 1, 'because csis');
             return propagator_addEq(config, leftVarIndex, resultVarIndex);
           }
         } else if (minB === 0 && maxB === 1) {
           if (maxA === 0) {
-            ASSERT(domain_isValue(A, 0), 'because csis');
+            ASSERT(domain_getValue(A) === 0, 'because csis');
             return propagator_addNeq(config, rightVarIndex, resultVarIndex);
           } else if (minA === 1) {
-            ASSERT(domain_isValue(A, 1), 'because csis');
+            ASSERT(domain_getValue(A) === 1, 'because csis');
             return propagator_addEq(config, rightVarIndex, resultVarIndex);
           }
         }
@@ -191,18 +190,18 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
         if (minA === 0 && maxA === 1) { // A=bool
           if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_isValue(B, 0), 'because csis');
+            ASSERT(domain_getValue(B) === 0, 'because csis');
             return propagator_addEq(config, leftVarIndex, resultVarIndex);
           } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_isValue(B, 1), 'because csis');
+            ASSERT(domain_getValue(B) === 1, 'because csis');
             return propagator_addNeq(config, leftVarIndex, resultVarIndex);
           }
         } else if (minB === 0 && maxB === 1) {
           if (maxA === 0) {
-            ASSERT(domain_isValue(A, 0), 'because csis');
+            ASSERT(domain_getValue(A) === 0, 'because csis');
             return propagator_addEq(config, rightVarIndex, resultVarIndex);
           } else if (minA === 1) {
-            ASSERT(domain_isValue(A, 1), 'because csis');
+            ASSERT(domain_getValue(A) === 1, 'because csis');
             return propagator_addNeq(config, rightVarIndex, resultVarIndex);
           }
         }

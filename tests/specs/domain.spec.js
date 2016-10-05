@@ -80,7 +80,6 @@ import {
   domain_intersection,
   domain_isRejected,
   domain_isSolved,
-  domain_isValue,
   domain_max,
   _domain_str_mergeOverlappingRanges,
   //domain_middleElement,
@@ -782,106 +781,6 @@ describe('src/domain.spec', function() {
 
       it('multiple ranges in domain', function() {
         expect(domain_str_rangeIndexOf(fixt_strdom_ranges([SUP - 60, SUP - 50], [SUP - 30, SUP - 20], [SUP - 10, SUP]), SUP - 15)).to.eql(NOT_FOUND);
-      });
-    });
-  });
-
-  describe('isValue', function() {
-
-    it('should exist', function() {
-      expect(domain_isValue).to.be.a('function');
-    });
-
-    it('should require a domain', function() {
-      expect(() => domain_isValue()).to.throw('ONLY_NORDOM');
-    });
-
-    describe('strdom', function() {
-
-      it('should throw missing value even if empty domain', function() {
-        expect(_ => domain_isValue(fixt_strdom_empty())).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
-        expect(_ => domain_isValue(fixt_strdom_empty(), undefined)).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
-      });
-
-      it('should throw for missing value', function() {
-        expect(_ => domain_isValue(fixt_strdom_empty())).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
-      });
-
-      it('should return false if only range is not one value', function() {
-        expect(domain_isValue(fixt_strdom_range(110, 120), 110)).to.equal(false);
-      });
-
-      it('should return true if the only range is given value', function() {
-        expect(domain_isValue(fixt_strdom_range(SUP, SUP), SUP)).to.equal(true);
-        expect(domain_isValue(fixt_strdom_range(SUP - 1, SUP - 1), SUP - 1)).to.equal(true);
-        expect(domain_isValue(fixt_strdom_range(SUP - 10, SUP - 10), SUP - 10)).to.equal(true);
-        expect(domain_isValue(fixt_strdom_range(SUP - 527, SUP - 527), SUP - 527)).to.equal(true);
-      });
-
-      it('should return false if value does not match', function() {
-        expect(domain_isValue(fixt_strdom_ranges([SUP, SUP]), SUP - 1), 'value 0').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 1, SUP]), SUP), 'bool domain 0').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 1, SUP]), SUP), 'bool domain 1').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 1, SUP - 1]), SUP), 'value 1').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 50, SUP - 50]), SUP - 25), 'value 50').to.equal(false);
-      });
-
-      it('should not even consider domains when range count isnt 1', function() {
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 3, SUP - 3], [SUP - 1, SUP - 1]), SUP - 1), 'first range 1 with second range').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 3, SUP - 3], [SUP - 1, SUP - 1]), SUP - 3), 'first range 1 with second range 3').to.equal(false);
-        expect(domain_isValue(fixt_strdom_ranges([SUP - 50, SUP - 50], [SUP - 20, SUP - 10]), SUP - 50), 'two ranges').to.equal(false);
-      });
-    });
-
-    describe('numdom', function() {
-
-      it('should return false if domain is empty', function() {
-        expect(domain_isValue(fixt_numdom_empty(), 12)).to.equal(false);
-      });
-
-      it('should throw for without arg', function() {
-        expect(_ => domain_isValue(fixt_numdom_nums(1, 2))).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
-      });
-
-      it('should throw for negative numbers', function() {
-        expect(_ => domain_isValue(fixt_numdom_nums(1, 2), -1)).to.throw('DOMAINS_ONLY_CONTAIN_UINTS');
-      });
-
-      it('should return false if domain has multiple values and one matches', function() {
-        expect(domain_isValue(fixt_numdom_nums(5, 8, 10), 10)).to.equal(false);
-      });
-
-      it('should return true if domain has one value and it is the given value', function() {
-        expect(domain_isValue(fixt_numdom_nums(0), 0)).to.equal(true);
-        expect(domain_isValue(fixt_numdom_nums(1), 1)).to.equal(true);
-        expect(domain_isValue(fixt_numdom_nums(10), 10)).to.equal(true);
-        expect(domain_isValue(fixt_numdom_nums(15), 15)).to.equal(true);
-      });
-
-      it('should return false if domain does not match', function() {
-        expect(domain_isValue(fixt_numdom_nums(0), 1), 'value 0').to.equal(false);
-        expect(domain_isValue(fixt_numdom_nums(0, 1), 0), 'bool domain 0').to.equal(false);
-        expect(domain_isValue(fixt_numdom_nums(0, 1), 1), 'bool domain 1').to.equal(false);
-        expect(domain_isValue(fixt_numdom_nums(1), 0), 'value 1').to.equal(false);
-        expect(domain_isValue(fixt_numdom_nums(15), 13), 'value 15').to.equal(false);
-      });
-
-      it('should handle values that are OOB for small domains', function() {
-        expect(domain_isValue(fixt_numdom_nums(8), 16)).to.equal(false);
-        expect(domain_isValue(fixt_numdom_nums(8), 300)).to.equal(false);
-      });
-    });
-
-    describe('solved numdom', function() {
-
-      it('should work with solved numdoms', function() {
-        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
-        for (let i = 0; i < nums.length; ++i) {
-          let n = nums[i];
-          // do a search that passes, fails
-          expect(domain_isValue(fixt_numdom_solved(n), n), 'n=' + n + ',q=n').to.equal(true);
-          expect(domain_isValue(fixt_numdom_solved(n), 5), 'n=' + n + ',q=5').to.equal(false);
-        }
       });
     });
   });

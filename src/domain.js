@@ -248,47 +248,6 @@ function domain_str_rangeIndexOf(domain, value) {
 }
 
 /**
- * Is given domain solved to given value?
- * A domain is solved if it contains exactly one value.
- *
- * @param {$nordom} domain
- * @param {number} value
- * @returns {boolean}
- */
-function domain_isValue(domain, value) {
-  ASSERT_NORDOM(domain);
-  // TODO: in a sound system this can shortcut anything that's not a soldom
-
-  if (typeof domain === 'number') return domain_num_isValue(domain, value);
-  return domain_str_isValue(domain, value);
-}
-function domain_num_isValue(domain, value) {
-  ASSERT_NUMDOM(domain);
-
-  if (domain >= SOLVED_FLAG) return domain_sol_isValue(domain, value);
-  return domain_bit_isValue(domain, value);
-}
-function domain_sol_isValue(domain, value) {
-  ASSERT_SOLDOM(domain);
-  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
-
-  return (domain ^ SOLVED_FLAG) === value;
-}
-function domain_bit_isValue(domain, value) {
-  ASSERT_BITDOM(domain);
-  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
-
-  if (value > SMALL_MAX_NUM) return false;
-  return domain === (1 << value);
-}
-function domain_str_isValue(domain, value) {
-  ASSERT_STRDOM(domain);
-  ASSERT(value >= 0, 'DOMAINS_ONLY_CONTAIN_UINTS');
-
-  return domain.length === STR_RANGE_SIZE && (domain_str_decodeValue(domain, STR_FIRST_RANGE_LO) | domain_str_decodeValue(domain, STR_FIRST_RANGE_HI)) === value;
-}
-
-/**
  * Check if given domain is solved. If so, return the value
  * to which it was solved. Otherwise return NO_SUCH_VALUE.
  *
@@ -2565,6 +2524,7 @@ export {
   domain_isEqual,
   domain_fromListToArrdom,
   domain_getValue,
+  domain_num_getValue,
   domain_arr_getValue,
   domain_str_getValue,
   domain_getValueOfFirstContainedValueInList,
@@ -2574,9 +2534,6 @@ export {
   domain_arr_isRejected,
   domain_isSolved,
   domain_str_isSolved,
-  domain_isValue,
-  domain_num_isValue,
-  domain_str_isValue,
   domain_max,
   domain_middleElement,
   domain_min,

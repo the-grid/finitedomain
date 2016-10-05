@@ -6,7 +6,6 @@
 // - strdom: each value of an arrdom encoded as a double 16bit character. fixed range size (4 characters).
 
 import {
-  EMPTY,
   EMPTY_STR,
   NO_SUCH_VALUE,
   NOT_FOUND,
@@ -127,6 +126,8 @@ FLAG_TO_NUM[THIRTY] = 30;
 // size of values and ranges in a string domain
 const STR_VALUE_SIZE = 2;
 const STR_RANGE_SIZE = 4;
+
+const EMPTY = 0;
 
 /**
  * Append given range to the end of given domain. Does not
@@ -1388,6 +1389,20 @@ function domain_isSolved(domain) {
 }
 
 /**
+ * Is given domain empty?
+ * Assuming a nordom, the only value that returns true is EMPTY.
+ * Minifier or browser should eliminate this function.
+ *
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_isEmpty(domain) {
+  ASSERT(domain !== '', 'never use empty string as rejected domain');
+  ASSERT_NORDOM(domain);
+  return domain === EMPTY;
+}
+
+/**
  * Remove all values from domain that are greater
  * than or equal to given value
  *
@@ -1985,6 +2000,15 @@ function domain_createRange(lo, hi) {
 function domain_num_createRange(lo, hi) {
   return (((1 << (1 + hi - lo)) - 1) << lo);
 }
+/**
+ * This function mainly prevents leaking EMPTY outside of domain.js
+ * Browsers should optimize this away, if the minifier didn't already.
+ *
+ * @returns {$numdom}
+ */
+function domain_createEmpty() {
+  return EMPTY;
+}
 
 /**
  * Return a domain containing all numbers from zero to the highest
@@ -2422,6 +2446,7 @@ export {
   ARR_FIRST_RANGE_HI,
   ARR_FIRST_RANGE_LO,
   ARR_RANGE_SIZE,
+  EMPTY,
   FORCE_ARRAY,
   FORCE_STRING,
   NOT_FOUND,
@@ -2474,6 +2499,7 @@ export {
   domain_str_closeGaps,
   domain_containsValue,
   domain_num_containsValue,
+  domain_createEmpty,
   domain_createRange,
   domain_numnum_createRangeZeroToMax,
   domain_num_createRange,
@@ -2486,6 +2512,7 @@ export {
   domain_getValue,
   domain_str_getValue,
   domain_intersection,
+  domain_isEmpty,
   domain_isSolved,
   domain_max,
   domain_middleElement,

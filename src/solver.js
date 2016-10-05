@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -33,6 +32,7 @@ import {
   domain_clone,
   domain_createRange,
   domain_fromListToArrdom,
+  domain_isEmpty,
   domain_max,
   domain_toArr,
   domain_toList,
@@ -534,7 +534,7 @@ class Solver {
     let alreadyRejected = false;
     let vardoms = state.space.vardoms;
     for (let i = 0, n = vardoms.length; i < n; ++i) {
-      if (vardoms[i] === EMPTY) {
+      if (domain_isEmpty(vardoms[i])) {
         alreadyRejected = true;
         if (log >= LOG_STATS) {
           console.log('      - FD: rejected without propagation');

@@ -1,12 +1,13 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 
 import {
-  EMPTY,
   SMALL_MAX_FLAG,
 
   ASSERT,
 } from '../../src/helpers';
 import {
+  EMPTY,
+
   ZERO,
   ONE,
   TWO,

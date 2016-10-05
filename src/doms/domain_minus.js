@@ -17,7 +17,6 @@
 // with text editor that doesn't wrap). Spoiler: it doesn't help :)
 
 import {
-  EMPTY,
   EMPTY_STR,
   SMALL_MAX_NUM,
   SOLVED_FLAG,
@@ -29,6 +28,7 @@ import {
   ASSERT_NORDOM,
 } from '../helpers';
 import {
+  EMPTY,
   STR_VALUE_SIZE,
   STR_RANGE_SIZE,
 

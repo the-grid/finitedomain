@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_FLAG_PROPSTEPS,
   NO_SUCH_VALUE,
 
@@ -37,6 +36,7 @@ import {
   domain__debug,
   domain_clone,
   domain_getValue,
+  domain_isEmpty,
   domain_isSolved,
   domain_toArr,
 } from './domain';
@@ -348,19 +348,19 @@ function space_propagateStep(space, config, propagator, changedVars, changedTrie
   stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
-    if (vardoms[index1] === EMPTY) {
+    if (domain_isEmpty(vardoms[index1])) {
       return true; // fail
     }
     space_recordChange(index1, changedTrie, changedVars, cycleIndex);
   }
   if (index2 !== undefined && domain2 !== vardoms[index2]) {
-    if (vardoms[index2] === EMPTY) {
+    if (domain_isEmpty(vardoms[index2])) {
       return true; // fail
     }
     space_recordChange(index2, changedTrie, changedVars, cycleIndex);
   }
   if (index3 !== undefined && domain3 !== vardoms[index3]) {
-    if (vardoms[index3] === EMPTY) {
+    if (domain_isEmpty(vardoms[index3])) {
       return true; // fail
     }
     space_recordChange(index3, changedTrie, changedVars, cycleIndex);
@@ -498,7 +498,7 @@ function space_getVarSolveState(space, varIndex) {
   ASSERT(typeof varIndex === 'number', 'VAR_SHOULD_BE_INDEX');
   let domain = space.vardoms[varIndex];
 
-  if (domain === EMPTY) {
+  if (domain_isEmpty(domain)) {
     return false;
   }
 

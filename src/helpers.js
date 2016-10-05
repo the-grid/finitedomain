@@ -20,7 +20,6 @@ let SUP = 100000000;
 let SOLVED = 1;
 let UNDETERMINED = 0;
 let NOT_FOUND = -1;
-let EMPTY = 0;
 let EMPTY_STR = '';
 
 let LOG_NONE = 0;
@@ -214,7 +213,6 @@ export {
   ENABLE_EMPTY_CHECK,
   // __REMOVE_ABOVE_FOR_DIST__
 
-  EMPTY,
   EMPTY_STR,
   LOG_FLAG_PROPSTEPS,
   LOG_NONE,

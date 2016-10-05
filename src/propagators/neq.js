@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_FLAG_PROPSTEPS,
   NO_SUCH_VALUE,
 
@@ -9,6 +8,7 @@ import {
 } from '../helpers';
 import {
   domain__debug,
+  domain_createEmpty,
   domain_getValue,
   domain_isSolved,
   domain_removeValue,
@@ -40,8 +40,8 @@ function propagator_neqStepBare(space, config, varIndex1, varIndex2) {
   let value = domain_getValue(domain1);
   if (value !== NO_SUCH_VALUE) {
     if (domain1 === domain2) {
-      vardoms[varIndex1] = EMPTY;
-      vardoms[varIndex2] = EMPTY;
+      vardoms[varIndex1] = domain_createEmpty();
+      vardoms[varIndex2] = domain_createEmpty();
     } else {
       vardoms[varIndex2] = domain_removeValue(domain2, value);
     }

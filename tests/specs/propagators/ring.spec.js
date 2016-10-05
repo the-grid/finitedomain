@@ -1,13 +1,11 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_empty,
   fixt_numdom_solved,
   fixt_strdom_nums,
   fixt_strdom_range,
 } from '../../fixtures/domain.fixt';
 
-import {
-  EMPTY,
-} from '../../../src/helpers';
 import {
   _propagator_ringStepBare,
 } from '../../../src/propagators/ring';
@@ -43,6 +41,6 @@ describe('propagators/ring.spec', function() {
 
     let S = _propagator_ringStepBare(A, B, C, domain_plus, 'plus');
 
-    expect(S).to.eql(EMPTY);
+    expect(S).to.eql(fixt_dom_empty());
   });
 });

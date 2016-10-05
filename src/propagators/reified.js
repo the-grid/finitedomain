@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_FLAG_PROPSTEPS,
 
   ASSERT,
@@ -9,6 +8,7 @@ import {
 
 import {
   domain__debug,
+  domain_createEmpty,
   domain_createRange,
   domain_createValue,
   domain_getValue,
@@ -72,7 +72,7 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
     // otherwise the reifier must solve to the other op
     if (nopRejects) {
       if (opRejects) {
-        vardoms[resultVarIndex] = EMPTY;
+        vardoms[resultVarIndex] = domain_createEmpty();
       } else {
         vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
         opFunc(space, config, leftVarIndex, rightVarIndex);

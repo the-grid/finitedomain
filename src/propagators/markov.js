@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_FLAG_PROPSTEPS,
 
   ASSERT,
@@ -9,6 +8,7 @@ import {
 
 import {
   domain__debug,
+  domain_createEmpty,
   domain_isSolved,
   domain_min,
 } from '../domain';
@@ -67,7 +67,7 @@ function propagator_markovStepBare(space, config, varIndex) {
 
   let pos = values.indexOf(value);
   if (pos < 0 || pos >= probabilities.length || probabilities[pos] === 0) {
-    space.vardoms[varIndex] = EMPTY;
+    space.vardoms[varIndex] = domain_createEmpty();
   }
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was:', domain__debug(domain), 'became:', domain__debug(space.vardoms[varIndex])));

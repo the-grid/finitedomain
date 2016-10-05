@@ -9,7 +9,6 @@
 // [5+20, 10+30] -> [25, 40]
 
 import {
-  EMPTY,
   EMPTY_STR,
   SMALL_MAX_NUM,
   SOLVED_FLAG,
@@ -24,6 +23,7 @@ import {
   EIGHT,
   NINE,
 
+  EMPTY,
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 

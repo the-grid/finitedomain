@@ -6,7 +6,6 @@ new choice left it should return undefined to signify the end.
 */
 
 import {
-  EMPTY,
   NO_SUCH_VALUE,
 
   ASSERT,
@@ -15,12 +14,13 @@ import {
 } from '../helpers';
 
 import {
-  domain_appendRange,
   domain_containsValue,
+  domain_createEmpty,
   domain_createValue,
   domain_createRange,
   domain_getFirstIntersectingValue,
   domain_intersection,
+  domain_isEmpty,
   domain_isSolved,
   domain_max,
   domain_middleElement,
@@ -266,21 +266,7 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
       return domain_createValue(middle);
 
     case SECOND_CHOICE:
-      let lo = domain_min(domain);
-      let hi = domain_max(domain);
-
-      let domainMask = EMPTY;
-      if (middle > lo) {
-        domainMask = domain_appendRange(domainMask, lo, middle - 1);
-      }
-      if (middle < hi) {
-        domainMask = domain_appendRange(domainMask, middle + 1, hi);
-      }
-
-      // Note: domain is not determined so the operation cannot fail
-      // note: must use some kind of intersect here (there's a test if you mess this up :)
-      // TOFIX: improve performance, this cant fail so constrain is not needed (but you must intersect!)
-      return domain_intersection(domain, domainMask);
+      return domain_removeValue(domain, middle);
   }
 
   ASSERT(choiceIndex === THIRD_CHOICE, 'SHOULD_NOT_CALL_MORE_THAN_TRHICE');
@@ -454,8 +440,8 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
       ASSERT(typeof lastValue === 'number', 'should have cached previous value');
 
       let newDomain = domain_removeValue(domain, space._markov_last_value);
-      ASSERT(newDomain || newDomain === EMPTY, 'should normalize rejected domains');
-      if (newDomain === EMPTY) return NO_CHOICE;
+      ASSERT(newDomain || newDomain === domain_createEmpty(), 'should normalize rejected domains');
+      if (domain_isEmpty(newDomain)) return NO_CHOICE;
       return newDomain;
     }
   }

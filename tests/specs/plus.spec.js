@@ -2,6 +2,7 @@ import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_assertStrings,
   fixt_dom_nums,
+  fixt_dom_range,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_range,
@@ -242,6 +243,33 @@ describe('src/plus.spec.js', function() {
           }
         }
       });
+    });
+  });
+
+  describe('regressions', function() {
+
+    it('should optimize if left is below 9 and right is below 8', function() {
+      let A = fixt_dom_range(1, 5);
+      let B = fixt_dom_range(1, 5);
+      let E = fixt_dom_range(2, 10);
+
+      fixt_domainEql(domain_plus(A, B), E);
+    });
+
+    it('should optimize if left is below 16 and right is below 16', function() {
+      let A = fixt_dom_range(1, 15);
+      let B = fixt_dom_range(1, 15);
+      let E = fixt_dom_range(2, 30);
+
+      fixt_domainEql(domain_plus(A, B), E);
+    });
+
+    it('should still work if left is below 16 and right is not', function() {
+      let A = fixt_dom_range(1, 15);
+      let B = fixt_dom_range(1, 21);
+      let E = fixt_dom_range(2, 36);
+
+      fixt_domainEql(domain_plus(A, B), E);
     });
   });
 });

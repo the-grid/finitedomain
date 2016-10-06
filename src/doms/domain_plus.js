@@ -19,9 +19,6 @@ import {
   ASSERT_STRDOM,
 } from '../helpers';
 import {
-  EIGHT,
-  NINE,
-
   EMPTY,
   EMPTY_STR,
   STR_RANGE_SIZE,
@@ -94,10 +91,13 @@ function _domain_plusStrStrStr(domain1, domain2) {
   return newDomain;
 }
 function _domain_plusWillBeSmall(domain1, domain2) {
+  // if both domains are small enough they cannot add to a domain beyond the max
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
-  // if both domains are small enough they cannot add to a domain beyond the max
-  if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
+
+  //if (((domain1 | domain2) >>> 0) < (1 << 15)) return true; // could catch some cases
+  //if (domain1 < (1<<15) && domain2 < (1<<15)) return true;  // alternative of above
+
   return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNumStr(domain1, domain2) {

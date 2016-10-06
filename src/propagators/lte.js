@@ -82,24 +82,6 @@ function propagator_gteStepWouldReject(domain1, domain2) {
   return result;
 }
 
-/**
- * lte is solved if dom1 contains no values that are
- * higher than any numbers in dom2. Since domains only
- * shrink we can assume that the lte constraint will not
- * be broken by searching further once this state is seen.
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {boolean}
- */
-function propagator_lteSolved(domain1, domain2) {
-  ASSERT_NORDOM(domain1);
-  ASSERT_NORDOM(domain2);
-  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
-
-  return domain_max(domain1) <= domain_min(domain2);
-}
-
 // BODY_STOP
 
 export {
@@ -107,5 +89,4 @@ export {
   propagator_gteStepWouldReject,
   propagator_lteStepBare,
   propagator_lteStepWouldReject,
-  propagator_lteSolved,
 };

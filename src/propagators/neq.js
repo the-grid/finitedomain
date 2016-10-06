@@ -12,7 +12,6 @@ import {
   domain_getValue,
   domain_isSolved,
   domain_removeValue,
-  domain_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -77,21 +76,9 @@ function propagator_neqStepWouldReject(domain1, domain2) {
   return result;
 }
 
-/**
- * neq is solved if all values in both vars only occur in one var each
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {boolean}
- */
-function propagator_neqSolved(domain1, domain2) {
-  return domain_sharesNoElements(domain1, domain2);
-}
-
 // BODY_STOP
 
 export {
   propagator_neqStepBare,
   propagator_neqStepWouldReject,
-  propagator_neqSolved,
 };

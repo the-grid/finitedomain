@@ -9,7 +9,6 @@ import {
 import {
   domain__debug,
   domain_intersection,
-  domain_isSolved,
   domain_sharesNoElements,
 } from '../domain';
 
@@ -74,22 +73,9 @@ function propagator_eqStepWouldReject(domain1, domain2) {
   return result;
 }
 
-/**
- * An eq propagator is solved when both its vars are
- * solved. Any other state may still lead to failure.
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {boolean}
- */
-function propagator_eqSolved(domain1, domain2) {
-  return domain_isSolved(domain1) && domain_isSolved(domain2);
-}
-
 // BODY_STOP
 
 export {
   propagator_eqStepBare,
   propagator_eqStepWouldReject,
-  propagator_eqSolved,
 };

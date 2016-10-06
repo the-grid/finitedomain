@@ -725,7 +725,7 @@ function domain_strstr_intersection(domain1, domain2) {
  */
 function domain__debug(domain) {
   if (typeof domain === 'number') {
-    if (domain >= SOLVED_FLAG) return 'numdom([' + (domain ^ SOLVED_FLAG) + ',' + (domain ^ SOLVED_FLAG) + '])';
+    if (domain >= SOLVED_FLAG) return 'soldom([' + (domain ^ SOLVED_FLAG) + ',' + (domain ^ SOLVED_FLAG) + '])';
     return 'numdom([' + domain_numToArr(domain) + '])';
   }
   if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';

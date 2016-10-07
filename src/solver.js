@@ -229,7 +229,7 @@ class Solver {
         if (varOptions.distributeOptions.expandVectorsWith) {
           matrix = varOptions.distributeOptions.matrix = [{vector: []}];
         } else {
-          THROW(`Solver#addVar: markov distribution requires SolverVar ${JSON.stringify(varOptions)} w/ distributeOptions:{matrix:[]}`);
+          THROW('Solver#addVar: markov var missing distribution (needs matrix or expandVectorsWith)');
         }
       }
 

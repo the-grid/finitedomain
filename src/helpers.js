@@ -155,6 +155,7 @@ function ASSERT_VARDOMS_SLOW(vardoms, domain__debug) {
 
 const LOG_FLAG_NONE = 0;
 const LOG_FLAG_PROPSTEPS = 1;
+const LOG_FLAG_CHOICE = 2;
 const LOG_FLAGS = LOG_FLAG_NONE;
 
 let helper_logger = (console => function() { console.log('LOG', ...arguments); })(console);
@@ -212,6 +213,7 @@ export {
   ENABLE_EMPTY_CHECK,
   // __REMOVE_ABOVE_FOR_DIST__
 
+  LOG_FLAG_CHOICE,
   LOG_FLAG_PROPSTEPS,
   LOG_NONE,
   LOG_STATS,

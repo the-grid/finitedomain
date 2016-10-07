@@ -6,9 +6,11 @@ new choice left it should return undefined to signify the end.
 */
 
 import {
+  LOG_FLAG_CHOICE,
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_LOG,
   ASSERT_NORDOM,
   THROW,
 } from '../helpers';
@@ -117,6 +119,7 @@ function _distribute_getNextDomainForVar(stratName, space, config, varIndex, cho
  * @returns {$domain|undefined} The new domain for this var index in the next space TOFIX: support small domains
  */
 function distribution_valueByList(space, config, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByList', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
@@ -177,6 +180,7 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMin(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByMin', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -212,6 +216,7 @@ function distribution_valueByMin(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMax(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByMax', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -251,6 +256,7 @@ function distribution_valueByMax(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMid(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByMid', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -283,6 +289,7 @@ function distribution_valueByMid(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueBySplitMin', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -325,6 +332,7 @@ function distribution_valueBySplitMin(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueBySplitMax', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
@@ -367,6 +375,7 @@ function distribution_valueBySplitMax(space, varIndex, choiceIndex) {
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMinMaxCycle(space, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByMinMaxCycle', varIndex, choiceIndex));
   if (_isEven(varIndex)) {
     return distribution_valueByMin(space, varIndex, choiceIndex);
   } else {
@@ -391,6 +400,7 @@ function _isEven(n) { return n % 2 === 0; }
  * @returns {$domain|undefined} The new domain this var index should get in the next space
  */
 function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
+  ASSERT_LOG(LOG_FLAG_CHOICE, log => log('distribution_valueByMarkov', varIndex, choiceIndex));
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');

@@ -2605,4 +2605,40 @@ describe('solver.spec', function() {
       expect(solver2.solutions).to.eql([{A: 2, B: 4, C: 1}]);
     });
   });
+
+
+  describe('debugging options', function() {
+
+    it('should support _debug', function() {
+      let solver = new Solver();
+
+      solver.solve({_debug: true});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debugConfig', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugConfig: true});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debugSpace', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugSpace: true});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debugSolver', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugSolver: true});
+
+      expect(true).to.eql(true);
+    });
+  });
 });

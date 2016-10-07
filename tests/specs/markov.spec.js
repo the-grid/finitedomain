@@ -14,7 +14,7 @@ import Solver from '../../src/solver';
 
 describe('src/markov.spec', function() {
 
-  it.only('should throw if there is no matrix and no expandVectorsWith', function() {
+  it('should throw if there is no matrix and no expandVectorsWith', function() {
     let solver = new Solver();
     let varOptions = {
       id: 'A',

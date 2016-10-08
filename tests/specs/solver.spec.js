@@ -2641,10 +2641,17 @@ describe('solver.spec', function() {
     });
   });
 
-
   describe('debugging options', function() {
 
-    it('should support _debug', function() {
+    it('should support _debugConfig', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugConfig: true});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debug bare', function() {
       let solver = new Solver();
 
       solver.solve({_debug: true});
@@ -2652,10 +2659,18 @@ describe('solver.spec', function() {
       expect(true).to.eql(true);
     });
 
-    it('should support _debugConfig', function() {
+    it('should support _debug edge cases', function() {
+      // note: this is only trying to improve test coverage in debugging
+      // code. the actual test is not testing anything in particular.
       let solver = new Solver();
+      solver.decl('a', fixt_arrdom_range(0, 100));
+      solver.decl('b', fixt_arrdom_range(0, 100));
+      solver.num(0);
+      solver.setOption('targeted_var_names', ['a', 'b']);
+      solver.eq('a', 'b');
+      solver.isEq('a', 'b');
 
-      solver.solve({_debugConfig: true});
+      solver.solve({_debug: true});
 
       expect(true).to.eql(true);
     });

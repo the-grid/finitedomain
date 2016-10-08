@@ -37,6 +37,7 @@ import {
   domain_max,
   domain_toArr,
   domain_toList,
+  domain_arrToSmallest,
   domain_anyToSmallest,
   domain_validateLegacyArray,
 } from './domain';
@@ -585,7 +586,7 @@ class Solver {
    * kept an internal finitedomain artifact.
    *
    * @param {number[]} list
-   * @returns {number[]}
+   * @returns {$arrdom[]}
    */
   domain_fromList(list) {
     return domain_toArr(domain_fromListToArrdom(list));
@@ -601,7 +602,7 @@ class Solver {
   domain_max(domain) {
     ASSERT_ARRDOM(domain);
     if (domain.length === 0) return NO_SUCH_VALUE;
-    return domain_max(domain);
+    return domain_max(domain_arrToSmallest(domain));
   }
 
   /**

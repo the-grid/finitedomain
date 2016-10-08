@@ -1,7 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_arrdom_empty,
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
+  fixt_dom_nums,
   fixt_dom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
@@ -16,6 +19,7 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  NO_SUCH_VALUE,
   SUB,
   SUP,
 } from '../../src/helpers';
@@ -1075,6 +1079,45 @@ describe('solver.spec', function() {
         let solver = new Solver();
 
         expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql([1, 2, 4, 5, 7, 7, 9, 13, 15, 15]);
+      });
+    });
+
+    describe('solver.domain_max', function() {
+
+      it('should work on a domain', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_max(fixt_arrdom_nums(0, 1, 4, 6))).to.eql(6);
+      });
+
+      it('should return NO_SUCH_VALUE if the domain is empty', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_max(fixt_arrdom_empty())).to.eql(NO_SUCH_VALUE);
+      });
+    });
+
+    describe('solver.domain_toList', function() {
+
+      it('should return an array of values for given domain', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_toList(fixt_dom_nums(0, 1, 2, 3, 8, 10))).to.eql([0, 1, 2, 3, 8, 10]);
+      });
+    });
+
+    describe('solver.setOption', function() {
+
+      it('should exist', function() {
+        let solver = new Solver();
+
+        expect(solver.setOption).to.be.a('function');
+      });
+
+      it('should not fail', function() {
+        let solver = new Solver();
+
+        expect(solver.setOption('valueStrategy', 'max')).to.eql(undefined);
       });
     });
   });
@@ -2538,14 +2581,6 @@ describe('solver.spec', function() {
       }]);
 
       expect(countSolutions(solver)).to.equal(1);
-    });
-  });
-
-  describe('solver.setOption', function() {
-
-    it('should exist', function() {
-      let solver = new Solver();
-      expect(solver.setOption).to.be.a('function');
     });
   });
 

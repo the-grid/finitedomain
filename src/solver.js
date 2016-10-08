@@ -514,9 +514,8 @@ class Solver {
    *
    * @param {number} max Hard stop the solver when this many solutions have been found
    * @param {number} log One of the LOG_* constants
-   * @param {boolean} [squash] If squashed, dont get the actual solutions. They are irrelevant for perf tests.
    */
-  _run(max, log, squash) {
+  _run(max, log) {
     ASSERT(typeof max === 'number', 'max should be a number');
     ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
@@ -559,7 +558,7 @@ class Solver {
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 
-    if (!squash) solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
+    solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
   /**

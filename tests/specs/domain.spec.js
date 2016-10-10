@@ -44,7 +44,6 @@ import {
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
-  domain_isEqual,
   domain_intersection,
   domain_isSolved,
   domain_max,
@@ -1144,102 +1143,6 @@ describe('src/domain.spec', function() {
           // check fixt_dom_empty() when strdom does not contain the needle
           expect(domain_intersection(fixt_numdom_solved(n), fixt_strdom_nums(...(nums.filter(x => x !== n)))), 'i=' + n + ',left').to.equal(fixt_dom_empty());
           expect(domain_intersection(fixt_strdom_nums(...(nums.filter(x => x !== n))), fixt_numdom_solved(n)), 'i=' + n + ',left').to.equal(fixt_dom_empty());
-        }
-      });
-    });
-  });
-
-  describe('isEqual', function() {
-
-    it('should exist', function() {
-      expect(domain_isEqual).to.be.a('function');
-    });
-
-    describe('strdoms', function() {
-
-      it('should return false unconditionally if domain lengths are unequal', function() {
-        expect(domain_isEqual(fixt_numdom_empty(), fixt_strdom_range(91, 910))).to.equal(false);
-        expect(domain_isEqual(fixt_strdom_range(91, 100), fixt_numdom_empty())).to.equal(false);
-        expect(domain_isEqual(fixt_strdom_ranges([91, 91], [100, 100]), fixt_strdom_range(91, 91))).to.equal(false);
-      });
-
-      it('should be able to compare single element domains', function() {
-        expect(domain_isEqual(fixt_strdom_range(32, 84), fixt_strdom_range(32, 84))).to.equal(true);
-      });
-
-      it('should return true for same reference', function() {
-        let domain = fixt_strdom_range(32, 84);
-
-        expect(domain_isEqual(domain, domain)).to.equal(true);
-      });
-
-      it('should reject if any bound is different', function() {
-        expect(domain_isEqual(fixt_strdom_range(1, 84), fixt_strdom_range(32, 84))).to.equal(false);
-        expect(domain_isEqual(fixt_strdom_range(1, 84), fixt_strdom_range(1, 34))).to.equal(false);
-        expect(domain_isEqual(fixt_strdom_range(32, 100), fixt_strdom_range(132, 184))).to.equal(false);
-      });
-
-      it('should be able to deep comparison accept', function() {
-        let A = fixt_strdom_ranges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
-        let B = fixt_strdom_ranges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
-        expect(domain_isEqual(A, B)).to.equal(true);
-      });
-
-      it('should be able to deep comparison reject', function() {
-        let A = fixt_strdom_ranges([1, 1], [3, 21], [26, 39], [54, 67], [70, 84], [88, 107]);
-        let B = fixt_strdom_ranges([1, 1], [3, 21], [25, 38], [54, 67], [70, 84], [88, 107]);
-
-        expect(domain_isEqual(A, B)).to.equal(false);
-      });
-    });
-
-    describe('numdoms', function() {
-
-      it('should do a direct comparison if both args are numbers', function() {
-        let A = fixt_numdom_nums(2, 3, 6, 7, 8);
-        let B = fixt_numdom_nums(2, 3, 6, 7, 8);
-
-        expect(domain_isEqual(A, B)).to.equal(true);
-      });
-
-      it('should do a direct comparison if both args are numbers', function() {
-        let A = fixt_numdom_nums(2, 3, 6, 7, 8);
-        let B = fixt_numdom_nums(1, 3, 6, 7, 8);
-
-        expect(domain_isEqual(A, B)).to.equal(false);
-      });
-    });
-
-    describe('solved numdoms', function() {
-
-      it('should work with two solved numdoms', function() {
-        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
-        for (let i = 0; i < nums.length; ++i) {
-          let n = nums[i];
-          expect(domain_isEqual(fixt_numdom_solved(n), fixt_numdom_solved(n)), 'n=' + n + ',yes').to.equal(true);
-          expect(domain_isEqual(fixt_numdom_solved(n), fixt_numdom_solved(n ? 0 : 1)), 'n=' + n + ',no').to.equal(false);
-        }
-      });
-
-      // this is an important assumption that'll save a bunch of checks throughout the code
-      it('should reject with regular numdom even if it contains one value', function() {
-        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
-        for (let i = 0; i < nums.length; ++i) {
-          let n = nums[i];
-          if (n <= SMALL_MAX_NUM) {
-            expect(domain_isEqual(fixt_numdom_solved(n), fixt_numdom_nums(n)), 'n=' + n + ',left').to.equal(false);
-            expect(domain_isEqual(fixt_numdom_nums(n), fixt_numdom_solved(n)), 'n=' + n + ',right').to.equal(false);
-          }
-        }
-      });
-
-      // this is an important assumption that'll save a bunch of checks throughout the code
-      it('should reject with regular strdom even if it contains one value', function() {
-        let nums = [0, 1, 10, 100, 1000, SUP - 1, SUP];
-        for (let i = 0; i < nums.length; ++i) {
-          let n = nums[i];
-          expect(domain_isEqual(fixt_numdom_solved(n), fixt_strdom_nums(n)), 'n=' + n + ',left').to.equal(false);
-          expect(domain_isEqual(fixt_strdom_nums(n), fixt_numdom_solved(n)), 'n=' + n + ',right').to.equal(false);
         }
       });
     });

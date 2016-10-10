@@ -58,18 +58,18 @@ const EMPTY_STR = '';
  * @param {number} hi
  * @returns {$domain}
  */
-function domain_appendRange(domain, lo, hi) {
-  ASSERT_NORDOM(domain);
-
-  if (typeof domain === 'number') {
-    // note: this function should not receive numdoms with a SOLVED_FLAG set
-    // it is only used in temporary array cases, the flag must be set afterwards
-    ASSERT(domain < SOLVED_FLAG, 'not expecting solved numdoms');
-    if (hi <= SMALL_MAX_NUM) return domain_bit_addRange(domain, lo, hi);
-    domain = domain_numToStr(domain);
-  }
-  return domain_str_addRange(domain, lo, hi);
-}
+//function domain_appendRange(domain, lo, hi) {
+//  ASSERT_NORDOM(domain);
+//
+//  if (typeof domain === 'number') {
+//    // note: this function should not receive numdoms with a SOLVED_FLAG set
+//    // it is only used in temporary array cases, the flag must be set afterwards
+//    ASSERT(domain < SOLVED_FLAG, 'not expecting solved numdoms');
+//    if (hi <= SMALL_MAX_NUM) return domain_bit_addRange(domain, lo, hi);
+//    domain = domain_numToStr(domain);
+//  }
+//  return domain_str_addRange(domain, lo, hi);
+//}
 function domain_bit_addRange(domain, lo, hi) {
   ASSERT_BITDOM(domain);
   // what we do is:
@@ -82,14 +82,14 @@ function domain_bit_addRange(domain, lo, hi) {
   let range = (((1 << (1 + (hi | 0) - (lo | 0))) - 1) << lo);
   return domain | range;
 }
-function domain_str_addRange(domain, lo, hi) {
-  ASSERT_STRDOM(domain);
-  ASSERT(lo >= 0);
-  ASSERT(hi <= SUP);
-  ASSERT(lo <= hi);
-
-  return domain + domain_str_encodeRange(lo, hi);
-}
+//function domain_str_addRange(domain, lo, hi) {
+//  ASSERT_STRDOM(domain);
+//  ASSERT(lo >= 0);
+//  ASSERT(hi <= SUP);
+//  ASSERT(lo <= hi);
+//
+//  return domain + domain_str_encodeRange(lo, hi);
+//}
 
 /**
  * returns whether domain covers given value
@@ -651,21 +651,6 @@ function domain__debug(domain) {
   if (typeof domain === 'string') return 'strdom([' + domain_strToArr(domain) + '])';
   if (domain instanceof Array) return 'arrdom([' + domain + '])';
   return '???dom(' + domain + ')';
-}
-
-/**
- * deep comparison of two $domains
- *
- * @param {$nordom} domain1
- * @param {$nordom} domain2
- * @returns {boolean}
- */
-function domain_isEqual(domain1, domain2) {
-  ASSERT_NORDOM(domain1);
-  ASSERT_NORDOM(domain2);
-
-  // whether domain is a string or a number, we can === it
-  return domain1 === domain2;
 }
 
 /**
@@ -2086,7 +2071,7 @@ function domain_arrToStr(arrdom) {
  */
 function domain_toSmallest(domain) {
   if (typeof domain === 'number') return domain_numToSmallest(domain);
-  ASSERT(typeof domain === 'string', 'there is no arrtosmallest');
+  ASSERT(typeof domain === 'string', 'there is no arrtosmallest', domain);
   return domain_strToSmallest(domain);
 }
 function domain_anyToSmallest(domain) {
@@ -2295,7 +2280,7 @@ export {
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 
-  domain_appendRange,
+  //domain_appendRange,
   domain_arrToSmallest,
   domain_str_closeGaps,
   domain_containsValue,
@@ -2307,7 +2292,6 @@ export {
   domain_createValue,
   domain__debug,
   domain_divby,
-  domain_isEqual,
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,

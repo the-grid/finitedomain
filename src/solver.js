@@ -591,7 +591,7 @@ class Solver {
    * @returns {$arrdom[]}
    */
   domain_fromList(list) {
-    return domain_toArr(domain_fromListToArrdom(list));
+    return domain_fromListToArrdom(list);
   }
 
   /**

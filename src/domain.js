@@ -268,6 +268,7 @@ function domain_fromListToArrdom(list) {
 
   arrdom.push(lo, hi);
 
+  ASSERT_ARRDOM(arrdom);
   return arrdom;
 }
 

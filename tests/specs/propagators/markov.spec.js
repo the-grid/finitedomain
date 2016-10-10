@@ -5,6 +5,12 @@ import {
   fixt_arrdom_range,
 } from '../../fixtures/domain.fixt';
 
+import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
+
+  ASSERT_SET_LOG,
+} from '../../../src/helpers';
 import Solver from '../../../src/solver';
 import propagator_markovStepBare from '../../../src/propagators/markov';
 
@@ -161,6 +167,63 @@ describe('propagators/markov.spec', function() {
         propagator_markovStepBare(solver._space, solver.config, Aindex);
         expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
       });
+    });
+  });
+
+  describe('with LOG to improve test coverage', function() {
+
+    before(function() {
+      ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+    });
+
+    it('solved domain', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        domain: fixt_arrdom_range(0, 0, true),
+        distributeOptions: {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [
+            {vector: [1]},
+          ],
+        },
+      });
+      solver._prepare({});
+
+      let Aindex = solver.config.all_var_names.indexOf('A');
+
+      // A=0, which is in legend and has prob=1
+      propagator_markovStepBare(solver._space, solver.config, Aindex);
+
+      expect(true).to.eql(true);
+    });
+
+    it('unsolved domain', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        domain: fixt_arrdom_range(0, 10, true),
+        distributeOptions: {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [
+            {vector: [1]},
+          ],
+        },
+      });
+      solver._prepare({});
+
+      let Aindex = solver.config.all_var_names.indexOf('A');
+
+      // A=0, which is in legend and has prob=1
+      propagator_markovStepBare(solver._space, solver.config, Aindex);
+
+      expect(true).to.eql(true);
+    });
+
+    after(function() {
+      ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
 });

@@ -5,6 +5,7 @@ import {
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_dom_nums,
+  fixt_dom_solved,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -15,6 +16,15 @@ import {
   fixt_strdom_value,
 } from '../../fixtures/domain.fixt';
 
+import {
+  LOG_FLAG_CHOICE,
+  LOG_FLAG_NONE,
+
+  ASSERT_SET_LOG,
+} from '../../../src/helpers';
+import {
+  domain__debug,
+} from '../../../src/domain';
 import distribute_getNextDomainForVar, {
   FIRST_CHOICE,
   SECOND_CHOICE,
@@ -22,12 +32,12 @@ import distribute_getNextDomainForVar, {
   NO_CHOICE,
 
   _distribute_getNextDomainForVar,
-  //distribution_valueByList,
+  distribution_valueByList,
   distribution_valueByMarkov,
   distribution_valueByMax,
   distribution_valueByMid,
   distribution_valueByMin,
-  //distribution_valueByMinMaxCycle,
+  distribution_valueByMinMaxCycle,
   distribution_valueBySplitMax,
   distribution_valueBySplitMin,
 } from '../../../src/distribution/value';
@@ -265,6 +275,109 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMin(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
+  });
+
+  describe('distribution_valueByList', function() {
+
+    it('should exist', function() {
+      expect(distribution_valueByList).to.be.a('function');
+    });
+
+    function test(choice, inDomain, list, outDomain) {
+      let desc = 'choice: ' + choice + ', input: ' + domain__debug(inDomain) + ', list: [' + list + '], output: ' + domain__debug(outDomain);
+      it(desc, function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          domain: inDomain,
+          distributeOptions: {
+            valtype: 'list',
+            list: list,
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+        let A = config.all_var_names.indexOf('A');
+
+        if (choice !== FIRST_CHOICE) distribution_valueByList(space, config, A, FIRST_CHOICE);
+        if (choice !== SECOND_CHOICE) distribution_valueByList(space, config, A, SECOND_CHOICE);
+
+        let domain = distribution_valueByList(space, config, A, choice);
+
+        if (outDomain === NO_CHOICE) expect(domain).to.eql(NO_CHOICE);
+        else fixt_domainEql(domain, outDomain);
+      });
+    }
+
+    test(FIRST_CHOICE, fixt_arrdom_range(0, 500), [5, 10, 6], fixt_dom_solved(5));
+    test(FIRST_CHOICE, fixt_arrdom_range(10, 500), [5, 10, 6], fixt_dom_solved(10));
+    test(FIRST_CHOICE, fixt_arrdom_range(10, 500), [5, 4, 6, 2], NO_CHOICE);
+    test(SECOND_CHOICE, fixt_arrdom_range(0, 500), [5, 10, 6], fixt_arrdom_ranges([0, 4], [6, 500]));
+    test(SECOND_CHOICE, fixt_arrdom_range(10, 500), [5, 10, 6], fixt_arrdom_range(11, 500));
+    test(SECOND_CHOICE, fixt_arrdom_range(10, 500), [5, 4, 6, 2], NO_CHOICE);
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          distributeOptions: {
+            valtype: 'list',
+            list: [5, 10, 6],
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+        let varIndex = 0;
+        let choiceIndex = FIRST_CHOICE;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+
+        distribution_valueByList(space, config, varIndex, choiceIndex);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueByMarkov', function() {
@@ -322,6 +435,44 @@ describe('distribution/value.spec', function() {
 
       space._lastChosenValue = 100;
       expect(_ => distribution_valueByMarkov(space, config, varIndex, choiceIndex)).to.throw('DOMAIN_SHOULD_BE_UNDETERM');
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          distributeOptions: {
+            valtype: 'markov',
+            matrix: [{
+              vector: [],
+            }],
+            legend: [],
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+        let varIndex = 0;
+        let choiceIndex = FIRST_CHOICE;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+
+        distribution_valueByMarkov(space, config, varIndex, choiceIndex);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
     });
   });
 
@@ -508,6 +659,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueByMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueByMax(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });
@@ -1066,6 +1240,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMid(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueBySplitMin', function() {
@@ -1344,6 +1541,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueBySplitMax', function() {
@@ -1619,6 +1839,59 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
+  });
+
+  describe('distribution_valueByMinMaxCycle', function() {
+
+    it('should exist', function() {
+      expect(distribution_valueByMinMaxCycle).to.be.a('function');
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMinMaxCycle(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });

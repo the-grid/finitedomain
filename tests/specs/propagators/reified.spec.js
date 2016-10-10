@@ -13,6 +13,12 @@ import {
 } from '../../fixtures/lib';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
+
+  ASSERT_SET_LOG,
+} from '../../../src/helpers';
+import {
   config_addVarDomain,
   config_create,
 } from '../../../src/config';
@@ -101,6 +107,34 @@ describe('propagators/reified.spec', function() {
         riftest(fixt_numdom_range(0, 5), fixt_numdom_range(3, 8), bool, 'eq', 'neq', bool, 'undetermined but with overlap so cannot proof eq/neq yet');
         riftest(fixt_numdom_range(0, 5), one, bool, 'eq', 'neq', bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
         riftest(fixt_strdom_range(110, 120), one, bool, 'eq', 'neq', zero, 'A is undetermined but B is NOT in A range must be neq');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1, true));
+        config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1, true));
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
+        let C = config.all_var_names.indexOf('C');
+
+        propagator_reifiedStepBare(space, config, A, B, C, propagator_eqStepBare, propagator_neqStepBare, 'eq', 'neq', propagator_eqStepWouldReject, propagator_neqStepWouldReject);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });

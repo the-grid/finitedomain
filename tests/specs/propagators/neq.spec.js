@@ -3,6 +3,8 @@ import {
   fixt_arrdom_nums,
   fixt_numdom_empty,
   fixt_numdom_nums,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
   fixt_numdom_range,
   fixt_numdom_solved,
   fixt_strdom_range,
@@ -12,8 +14,12 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
   SUB,
   SUP,
+
+  ASSERT_SET_LOG,
 } from '../../../src/helpers';
 import {
   domain__debug,
@@ -285,6 +291,32 @@ describe('propagators/neq.spec', function() {
       test(fixt_numdom_solved(1), fixt_numdom_solved(15));
       test(fixt_numdom_solved(0), fixt_numdom_solved(5));
       test(fixt_numdom_solved(8), fixt_numdom_solved(1));
+    });
+  });
+
+  describe('with LOG', function() {
+
+    before(function() {
+      ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+    });
+
+    it('should improve test coverage by enabling logging', function() {
+      let config = config_create();
+      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let space = space_createRoot();
+      space_initFromConfig(space, config);
+
+      let A = config.all_var_names.indexOf('A');
+      let B = config.all_var_names.indexOf('B');
+
+      propagator_neqStepBare(space, config, A, B);
+
+      expect(true).to.eql(true);
+    });
+
+    after(function() {
+      ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
 });

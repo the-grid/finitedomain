@@ -1,6 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_dom_empty,
+  fixt_dom_solved,
   fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
@@ -12,7 +13,12 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
+  SUB,
   SUP,
+
+  ASSERT_SET_LOG,
 } from '../../../src/helpers';
 import {
   domain__debug,
@@ -27,7 +33,9 @@ import {
   space_initFromConfig,
 } from '../../../src/space';
 import {
+  propagator_gteStepWouldReject,
   propagator_lteStepBare,
+  propagator_lteStepWouldReject,
 } from '../../../src/propagators/lte';
 
 describe('propagators/lte.spec', function() {
@@ -402,6 +410,44 @@ describe('propagators/lte.spec', function() {
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_numdom_range(7, 7));
       fixt_domainEql(space.vardoms[B], fixt_numdom_range(7, 13));
+    });
+  });
+
+  describe('with LOG', function() {
+
+    before(function() {
+      ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+    });
+
+    it('should improve test coverage by enabling logging', function() {
+      let config = config_create();
+      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let space = space_createRoot();
+      space_initFromConfig(space, config);
+
+      let A = config.all_var_names.indexOf('A');
+      let B = config.all_var_names.indexOf('B');
+
+      propagator_lteStepBare(space, config, A, B);
+
+      expect(true).to.eql(true);
+    });
+
+    it('propagator_ltStepWouldReject', function() {
+      propagator_lteStepWouldReject(fixt_dom_solved(0), fixt_dom_solved(1));
+
+      expect(true).to.eql(true);
+    });
+
+    it('propagator_gtStepWouldReject', function() {
+      propagator_gteStepWouldReject(fixt_dom_solved(0), fixt_dom_solved(1));
+
+      expect(true).to.eql(true);
+    });
+
+    after(function() {
+      ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
 });

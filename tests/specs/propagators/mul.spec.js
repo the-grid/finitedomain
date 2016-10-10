@@ -2,11 +2,7 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_numdom_nums,
-  fixt_numdom_range,
-  fixt_numdom_solved,
 } from '../../fixtures/domain.fixt';
-
 import {
   LOG_FLAG_PROPSTEPS,
   LOG_FLAG_NONE,
@@ -23,22 +19,11 @@ import {
   space_createRoot,
   space_initFromConfig,
 } from '../../../src/space';
-import propagator_minStep from '../../../src/propagators/min';
-import {
-  _propagator_minStep,
-} from '../../../src/propagators/min';
 
-describe('propagators/min.spec', function() {
+import propagator_mulStep from '../../../src/propagators/mul';
 
-  it('should prevent this regression', function() {
-    let A = fixt_numdom_nums(1);
-    let B = fixt_numdom_nums(1);
-    let C = fixt_numdom_range(0, 1);
-
-    let S = _propagator_minStep(A, B, C);
-
-    expect(S).to.eql(fixt_numdom_solved(0));
-  });
+describe('propagators/mul.spec', function() {
+  // in general after call v3 = v1 * v2
 
   describe('with LOG', function() {
 
@@ -58,7 +43,7 @@ describe('propagators/min.spec', function() {
       let B = config.all_var_names.indexOf('B');
       let C = config.all_var_names.indexOf('C');
 
-      propagator_minStep(space, config, A, B, C);
+      propagator_mulStep(space, config, A, B, C);
 
       expect(true).to.eql(true);
     });
@@ -67,4 +52,13 @@ describe('propagators/min.spec', function() {
       ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
+
+  describe('propagator_mulStep', function() {
+
+    it('should exist', function() {
+      expect(propagator_mulStep).to.be.a('function');
+    });
+  });
+
+  // TODO...
 });

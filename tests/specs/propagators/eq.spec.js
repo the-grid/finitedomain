@@ -13,8 +13,12 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
   SUB,
   SUP,
+
+  ASSERT_SET_LOG,
 } from '../../../src/helpers';
 import {
   config_addVarDomain,
@@ -174,6 +178,32 @@ describe('propagators/eq.spec', function() {
       test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
       test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty());
       test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_solved(2));
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+        config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
+
+        propagator_eqStepBare(space, config, A, B);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
     });
   });
 

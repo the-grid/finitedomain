@@ -45,7 +45,7 @@ describe('solver.markov.spec', function() {
     expect(solutions).to.eql([{V: 0}]);
   });
 
-  describe('random functions', function() {
+  describe.skip('random functions', function() {
 
     const FUNCS = {
       default: undefined,

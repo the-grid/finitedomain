@@ -1,5 +1,4 @@
 import {
-  NO_SUCH_VALUE,
   ASSERT,
   ASSERT_NORDOM,
   THROW,
@@ -72,12 +71,10 @@ function distribution_getFunc(distName) {
  * @returns {number} The varIndex of the next var or NO_SUCH_VALUE
  */
 function _distribution_varFindBest(space, config, fitnessFunc, varStratConfig) {
-  let bestVarIndex = NO_SUCH_VALUE;
-
   let i = 0;
   let buf = config._front.buffer;
   let nodeIndex = space.frontNodeIndex;
-  if (bestVarIndex === NO_SUCH_VALUE) bestVarIndex = _front_getCell(buf, nodeIndex, i++);
+  let bestVarIndex = _front_getCell(buf, nodeIndex, i++);
 
   if (fitnessFunc) {
     for (let len = _front_getSizeOf(buf, nodeIndex); i < len; i++) {
@@ -237,10 +234,6 @@ function distribution_varFallback(space, config, varIndex1, varIndex2, fallbackC
   return THROW(`Unknown var dist fallback name: ${distName}`);
 }
 
-function distribution_varThrow(s) {
-  return THROW(s);
-}
-
 // BODY_STOP
 
 export default distribution_getNextVarIndex;
@@ -256,7 +249,6 @@ export {
   distribution_varByMarkov,
   distribution_varByMin,
   distribution_varByMinSize,
-  distribution_varThrow,
   distribution_varFallback,
   // __REMOVE_ABOVE_FOR_DIST__
 };

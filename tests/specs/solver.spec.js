@@ -246,7 +246,7 @@ describe('solver.spec', function() {
         let opts2 = {id: 'foo'}; // to ensure opts isnt adjusted
 
         expect(solver.addVar(opts)).to.equal(opts);
-        expect(_ => solver.addVar(opts2)).to.throw('Do not declare the same varName twice');
+        expect(_ => solver.addVar(opts2)).to.throw('Var name already part of this config. Probably a bug?');
       });
 
       it('should update byId', function() {

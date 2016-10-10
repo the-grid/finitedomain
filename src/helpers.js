@@ -200,8 +200,8 @@ function GET_NAMES(es) {
 // All explicit throws should use this function. Also helps with tooling
 // later, catching and reporting explicits throws and what not.
 
-function THROW(msg) {
-  throw new Error(msg);
+function THROW(...msg) {
+  throw new Error(msg.join(': '));
 }
 
 // BODY_STOP

@@ -620,7 +620,7 @@ describe('src/config.spec', function() {
   it('should reject a known var', function() {
     let config = config_create();
     config_addVarRange(config, 'again', 0, 10);
-    expect(_ => config_addVarRange(config, 'again', 0, 10)).to.throw('Do not declare the same varName twice');
+    expect(_ => config_addVarRange(config, 'again', 0, 10)).to.throw('Var name already part of this config. Probably a bug?');
   });
 
   it('should reject number as var', function() {
@@ -634,6 +634,11 @@ describe('src/config.spec', function() {
   });
 
   it('should reject stringified zero as var', function() {
+    let config = config_create();
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+  });
+
+  it('should reject adding a number as a var', function() {
     let config = config_create();
     expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
   });

@@ -262,24 +262,28 @@ function config_addVarConstant(config, varName, value) {
 function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
-  ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
-  ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
   ASSERT(domain, 'NON_EMPTY_DOMAIN');
   ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
+
+  // note: 100 is an arbitrary number but since large sets are probably
+  // automated it's very unlikely we'll need this check in those cases
+  if (varIndex < 100) {
+    if (String(parseInt(varName, 10)) === varName) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES', varName);
+  }
+
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
     varName = String(varIndex); // this var will be assigned to this index
   }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100 && trie_has(config._var_names_trie, varName)) {
-    if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
-    THROW('Var varName already part of this config. Probably a bug?');
+  if (varIndex < 100) {
+    if (trie_has(config._var_names_trie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
   }
 
   let solvedTo = domain_getValue(domain);

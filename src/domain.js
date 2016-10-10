@@ -467,8 +467,8 @@ function domain_str_simplify(domain) {
  * may already be csis but we're not sure. This function call
  * is part of the process of ensuring that.
  *
- * @param {$domain_str|string} domain MAY not be CSIS yet (that's probably why this function is called in the first place)
- * @returns {$domain_str|string} ranges in this string will be ordered but may still overlap
+ * @param {$strdom|string} domain MAY not be CSIS yet (that's probably why this function is called in the first place)
+ * @returns {$strdom|string} ranges in this string will be ordered but may still overlap
  */
 function _domain_str_quickSortRanges(domain) {
   ASSERT_STRDOM(domain);
@@ -508,8 +508,8 @@ function _domain_str_quickSortRanges(domain) {
   );
 }
 /**
- * @param {$domain_str|string} domain May already be csis but at least all ranges should be ordered and are lo<=hi
- * @returns {$domain_str}
+ * @param {$strdom|string} domain May already be csis but at least all ranges should be ordered and are lo<=hi
+ * @returns {$strdom}
  */
 function _domain_str_mergeOverlappingRanges(domain) {
   ASSERT_STRDOM(domain);
@@ -1925,7 +1925,7 @@ function domain_createRange(lo, hi) {
 /**
  * @param {number} lo
  * @param {number} hi
- * @returns {$domain_num} never soldom
+ * @returns {$bitdom}
  */
 function domain_num_createRange(lo, hi) {
   return (((1 << (1 + hi - lo)) - 1) << lo);
@@ -1945,7 +1945,7 @@ function domain_createEmpty() {
  * number in given domain. In binary this means we'll set all the
  * bits of lower value than the most-significant set bit.
  *
- * @param {$domain_num} domain_num Must be > ZERO
+ * @param {$numdom} domain_num Must be > ZERO
  * @returns {$domain} never solved since that requires ZERO to be a valid input, which it isnt
  */
 function domain_numnum_createRangeZeroToMax(domain_num) {
@@ -1968,7 +1968,7 @@ function domain_numnum_createRangeZeroToMax(domain_num) {
  *
  * @param {$domain} domain
  * @param {boolean} [clone] If input is array, slice the array? (other cases will always return a fresh array)
- * @returns {$domain_arr} (small domains will also be arrays)
+ * @returns {$arrdom} (small domains will also be arrays)
  */
 function domain_toArr(domain, clone) {
   if (typeof domain === 'number') return domain_numToArr(domain);
@@ -2281,7 +2281,7 @@ function domain_validateLegacyArray(domain) {
  * Have to support and transform legacy domain formats of domains of domains
  * and transform them to flat domains with lo/hi pairs
  *
- * @param {$domain_arr} domain
+ * @param {$arrdom} domain
  * @returns {string|undefined}
  */
 function domain_confirmLegacyDomain(domain) {
@@ -2331,8 +2331,8 @@ function domain_confirmLegacyDomainElement(n) {
  * flat array of number pairs domain. If any validation
  * step fails, return nothing.
  *
- * @param {$domain_arr|number[][]} domain
- * @returns {$domain_arr|undefined}
+ * @param {$arrdom|number[][]} domain
+ * @returns {$arrdom|undefined}
  */
 function domain_tryToFixLegacyDomain(domain) {
   ASSERT(domain instanceof Array, 'ONLY_ARRDOM');

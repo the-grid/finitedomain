@@ -610,7 +610,7 @@ class Solver {
   /**
    * Used by PathSolver in another (private) project
    * Exposes domain_toList
-   * TODO: can we lock this down to a $domain_arr ?
+   * TODO: can we lock this down to an $arrdom ?
    *
    * @param {$domain} domain
    * @returns {number[]}
@@ -625,7 +625,7 @@ class Solver {
    *
    * @param {$space} space
    * @param {number} varIndex
-   * @returns {$domain_arr}
+   * @returns {$arrdom}
    */
   getDomain(space, varIndex) {
     return domain_toArr(space.vardoms[varIndex]);

@@ -1,6 +1,6 @@
 /**
  * @private Do not read any property from this object outside of `finitedomain`. Expose required data on Solver instead.
- * @typedef {Object} $finitedomain_config
+ * @typedef {Object} $config
  * @property {$var_strat_config} varStratConfig Defaults to a naive strategy
  * @property {string} valueStratName
  * @property {string[]|string} targetedVars='all' Search stops when these are solved.
@@ -18,10 +18,4 @@
  * (search node) will is based on and initialized from
  * a $config.
  * Note that the state of a config may not be "sound".
- */
-
-/**
- * @typedef {$finitedomain_config} $config
- *
- * Unnamespaced alias for finitedomain repo
  */

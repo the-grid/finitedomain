@@ -26,12 +26,8 @@ import {
 } from './config';
 
 import {
-  FORCE_ARRAY,
-
   domain__debug,
-  domain_clone,
   domain_createEmpty,
-  domain_createRange,
   domain_fromListToArrdom,
   domain_isEmpty,
   domain_max,
@@ -65,7 +61,7 @@ class Solver {
   /**
    * @param {Object} options = {}
    * @property {string} [options.distribute='naive']
-   * @property {number[]} [options.defaultDomain=[0,1]]
+   * @property {$arrdom} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    */
@@ -89,7 +85,8 @@ class Solver {
       this.config = config_create();
     }
 
-    this.defaultDomain = options.defaultDomain || domain_createRange(0, 1);
+    this.defaultDomain = options.defaultDomain || [0, 1];
+    ASSERT_ARRDOM(this.defaultDomain);
 
     this.vars = {
       byId: {},
@@ -154,7 +151,7 @@ class Solver {
 
   /**
    * @param {string} id
-   * @param {$domain_arr|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $domain_num!
+   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
    * @returns {string}
    */
   decl(id, domainOrValue) {
@@ -163,8 +160,9 @@ class Solver {
     if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
     else domain = domainOrValue;
 
-    if (!domain) {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+    if (domain === undefined) { // domain could be 0
+      ASSERT_ARRDOM(this.defaultDomain);
+      domain = this.defaultDomain.slice(0);
     }
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
@@ -198,7 +196,10 @@ class Solver {
   addVar(varOptions, domain) {
     if (typeof varOptions === 'string') {
       ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
-      if (domain === undefined) domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      if (domain === undefined) {
+        ASSERT_ARRDOM(this.defaultDomain);
+        domain = this.defaultDomain;
+      }
       ASSERT(domain, 'NO_EMPTY_DOMAIN', domain);
       domain = domain_validateLegacyArray(domain);
       config_addVarDomain(this.config, varOptions, domain);
@@ -216,7 +217,8 @@ class Solver {
       domain = domain_validateLegacyArray(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     } else {
-      domain = domain_clone(this.defaultDomain, FORCE_ARRAY);
+      ASSERT_ARRDOM(this.defaultDomain);
+      domain = this.defaultDomain.slice(0);
     }
 
     let id = varOptions.id;

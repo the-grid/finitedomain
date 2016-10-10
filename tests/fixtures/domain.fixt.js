@@ -4,6 +4,7 @@ import {
   domain_anyToSmallest,
   domain_toSmallest,
   domain_arrToSmallest,
+  domain_toArr,
   domain_toStr,
 } from '../../src/domain';
 
@@ -240,12 +241,24 @@ function fixt_dom_solved(value) {
   return fixt_numdom_solved(value);
 }
 
+/**
+ * @param {$domain} domain
+ * @param {string} [force] Always return in array or string form?
+ * @returns {$domain}
+ */
+function fixt_dom_clone(domain, force) {
+  if (force === 'array') return domain_toArr(domain, true);
+  if (force === 'string') return domain_toStr(domain);
+  return domain;
+}
+
 export {
   fixt_arrdom_empty,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_arrdom_nums,
+  fixt_dom_clone,
   fixt_dom_empty,
   fixt_dom_nums,
   fixt_dom_range,

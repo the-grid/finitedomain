@@ -31,14 +31,12 @@ import {
 } from './config';
 
 import {
-  FORCE_STRING,
-
   domain__debug,
-  domain_clone,
   domain_getValue,
   domain_isEmpty,
   domain_isSolved,
   domain_toArr,
+  domain_toStr,
 } from './domain';
 
 // BODY_START
@@ -112,7 +110,7 @@ function space_toConfig(space, config) {
   let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
-    newDomains[i] = domain_clone(domain, FORCE_STRING);
+    newDomains[i] = domain_toStr(domain);
   }
 
   return config_clone(config, newDomains);

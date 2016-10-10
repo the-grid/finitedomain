@@ -9,6 +9,7 @@ import {
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_assertStrings,
+  fixt_dom_clone,
   fixt_dom_empty,
   fixt_dom_nums,
   fixt_domainEql,
@@ -34,7 +35,6 @@ import {
   STR_RANGE_SIZE,
 
   domain_arrToSmallest,
-  domain_clone,
   domain_str_closeGaps,
   domain_containsValue,
   domain_createRange,
@@ -830,8 +830,8 @@ describe('src/domain.spec', function() {
 
       function test(domain, value, expectation) {
         it(`should remove [${value}] from [${domain__debug(domain)}] resulting in [${domain__debug(expectation)}]`, function() {
-          let clone = domain_clone(domain);
-          let result = domain_removeValue(domain_clone(domain), value);
+          let clone = fixt_dom_clone(domain);
+          let result = domain_removeValue(fixt_dom_clone(domain), value);
 
           expect(domain, 'should not change').to.eql(clone);
           if (typeof expectation === 'string') fixt_assertStrings(result, expectation);
@@ -1928,7 +1928,7 @@ describe('src/domain.spec', function() {
 
       function gteTest(domain, value, expected) {
         it(`should gte ${domain__debug(domain)} >= ${value} -> ${domain__debug(expected)}`, function() {
-          let clone = domain_clone(domain);
+          let clone = fixt_dom_clone(domain);
           let result = domain_removeGte(domain, value);
 
           expect(result).to.eql(expected);
@@ -1957,7 +1957,7 @@ describe('src/domain.spec', function() {
 
       function gteTest(domain, value, expected) {
         it(`should gte [${domain}] >= ${value} -> [${expected}]`, function() {
-          let clone = domain_clone(domain);
+          let clone = fixt_dom_clone(domain);
           let result = domain_removeGte(domain, value);
 
           expect(result).to.eql(expected);
@@ -2050,7 +2050,7 @@ describe('src/domain.spec', function() {
 
       function lteTest(domain, value, expected) {
         it(`should lte ${domain__debug(domain)} <= ${value} -> ${domain__debug(expected)}`, function() {
-          let clone = domain_clone(domain);
+          let clone = fixt_dom_clone(domain);
           let result = domain_removeLte(domain, value);
 
           expect(result).to.eql(expected);
@@ -2076,7 +2076,7 @@ describe('src/domain.spec', function() {
 
       function lteTest(domain, value, expected) {
         it(`should lte [${domain}] <= ${value} -> [${expected}]`, function() {
-          let clone = domain_clone(domain);
+          let clone = fixt_dom_clone(domain);
           let result = domain_removeLte(domain, value);
 
           expect(result, domain_toArr(result) + ' -> ' + domain_toArr(expected)).to.eql(expected);

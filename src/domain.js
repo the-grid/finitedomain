@@ -15,7 +15,6 @@ import {
   SUP,
 
   ASSERT,
-  ASSERT_ANYDOM,
   ASSERT_ARRDOM,
   ASSERT_BITDOM,
   ASSERT_NUMDOM,
@@ -26,10 +25,6 @@ import {
 } from './helpers';
 
 // BODY_START
-
-let PREV_CHANGED = true;
-let FORCE_ARRAY = 1;
-let FORCE_STRING = 2;
 
 // CSIS form = Canonical Sorted Interval Sequeunce form.
 // Basically means the ranges in the domain are ordered
@@ -1969,20 +1964,6 @@ function domain_numnum_createRangeZeroToMax(domain_num) {
 }
 
 /**
- * @param {$domain} domain
- * @param {number} [force] Always return in array or string form?
- * @returns {$domain}
- */
-function domain_clone(domain, force) {
-  ASSERT_ANYDOM(domain);
-
-  if (force === FORCE_ARRAY) return domain_toArr(domain, true);
-  if (force === FORCE_STRING) return domain_toStr(domain);
-  return domain; // TODO: eliminate this function. domains are strings and numbers now. array cases should be consolidated to config explicitly.
-}
-
-
-/**
  * Get a domain representation in array form
  *
  * @param {$domain} domain
@@ -2383,10 +2364,7 @@ export {
   ARR_RANGE_SIZE,
   EMPTY,
   EMPTY_STR,
-  FORCE_ARRAY,
-  FORCE_STRING,
   NOT_FOUND,
-  PREV_CHANGED,
   STR_FIRST_RANGE_HI,
   STR_FIRST_RANGE_LO,
   STR_RANGE_SIZE,
@@ -2394,7 +2372,6 @@ export {
 
   domain_appendRange,
   domain_arrToSmallest,
-  domain_clone,
   domain_str_closeGaps,
   domain_containsValue,
   domain_num_containsValue,

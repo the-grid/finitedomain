@@ -1,6 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
+  fixt_dom_clone,
   fixt_domainEql,
   fixt_numdom_nums,
   fixt_numdom_range,
@@ -11,11 +12,6 @@ import {
   countSolutions,
 } from '../../fixtures/lib';
 
-import {
-  FORCE_ARRAY,
-
-  domain_clone,
-} from '../../../src/domain';
 import {
   config_addVarDomain,
   config_create,
@@ -56,9 +52,9 @@ describe('propagators/reified.spec', function() {
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `result=[${bool_after}]`]}`, function() {
 
           let config = config_create();
-          config_addVarDomain(config, 'A', domain_clone(A_in, FORCE_ARRAY));
-          config_addVarDomain(config, 'B', domain_clone(B_in, FORCE_ARRAY));
-          config_addVarDomain(config, 'bool', domain_clone(bool_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'A', fixt_dom_clone(A_in, 'array'));
+          config_addVarDomain(config, 'B', fixt_dom_clone(B_in, 'array'));
+          config_addVarDomain(config, 'bool', fixt_dom_clone(bool_in, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
 

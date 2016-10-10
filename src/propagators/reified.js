@@ -8,7 +8,6 @@ import {
 
 import {
   domain__debug,
-  domain_createEmpty,
   domain_createRange,
   domain_createValue,
   domain_getValue,
@@ -64,20 +63,11 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
     ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
     ASSERT(domResult === domain_createRange(0, 1), 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
-    // we'll need to confirm both in any case so do it first now
-    let opRejects = opRejectChecker(domain1, domain2);
-    let nopRejects = nopRejectChecker(domain1, domain2);
-
-    // if op and nop both reject then we cant fulfill the constraints
-    // otherwise the reifier must solve to the other op
-    if (nopRejects) {
-      if (opRejects) {
-        vardoms[resultVarIndex] = domain_createEmpty();
-      } else {
-        vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
-        opFunc(space, config, leftVarIndex, rightVarIndex);
-      }
-    } else if (opRejects) {
+    if (nopRejectChecker(domain1, domain2)) {
+      ASSERT(!opRejectChecker(domain1, domain2), 'with non-empty domains op and nop cant BOTH reject');
+      vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
+      opFunc(space, config, leftVarIndex, rightVarIndex);
+    } else if (opRejectChecker(domain1, domain2)) {
       vardoms[resultVarIndex] = domain_createValue(REIFIER_FAIL);
       nopFunc(space, config, leftVarIndex, rightVarIndex);
     }

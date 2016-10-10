@@ -1105,21 +1105,6 @@ describe('solver.spec', function() {
         expect(solver.domain_toList(fixt_dom_nums(0, 1, 2, 3, 8, 10))).to.eql([0, 1, 2, 3, 8, 10]);
       });
     });
-
-    describe('solver.setOption', function() {
-
-      it('should exist', function() {
-        let solver = new Solver();
-
-        expect(solver.setOption).to.be.a('function');
-      });
-
-      it('should not fail', function() {
-        let solver = new Solver();
-
-        expect(solver.setOption('valueStrategy', 'max')).to.eql(undefined);
-      });
-    });
   });
 
   describe('API integration tests', function() {
@@ -1537,6 +1522,7 @@ describe('solver.spec', function() {
   });
 
   describe('targeting vars', function() {
+
     it('should want to solve all vars if targets are not set at all', function() {
       let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
@@ -1632,6 +1618,26 @@ describe('solver.spec', function() {
       // that var, there ought to be two solutions (0 and 1) for
       // it and any for the others, 2x2x2=8
       expect(countSolutions(solver)).to.equal(8);
+    });
+  });
+
+  describe('targeting values', function() {
+
+    it('should support a function comparator', function() {
+      let solver = new Solver();
+      solver.decl('a', fixt_arrdom_range(0, 100));
+      solver.decl('b', fixt_arrdom_range(0, 100));
+      solver.neq('a', 'b');
+
+      let called = false;
+      solver.solve({max: 1, distribute: {valueStrategy: function(space, varIndex, choiceIndex) {
+        called = true;
+        expect(space._class).to.eql('$space');
+        expect(varIndex).to.be.a('number');
+        expect(choiceIndex).to.be.a('number');
+      }}});
+
+      expect(called, 'the callback should be called at least once').to.eql(true);
     });
   });
 
@@ -2666,11 +2672,10 @@ describe('solver.spec', function() {
       solver.decl('a', fixt_arrdom_range(0, 100));
       solver.decl('b', fixt_arrdom_range(0, 100));
       solver.num(0);
-      solver.setOption('targeted_var_names', ['a', 'b']);
       solver.eq('a', 'b');
       solver.isEq('a', 'b');
 
-      solver.solve({_debug: true});
+      solver.solve({_debug: true, vars: ['a', 'b']});
 
       expect(true).to.eql(true);
     });

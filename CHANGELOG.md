@@ -18,6 +18,7 @@
 - Dropped support for `next_choice`. I don't think it was really exposed, but either way internally it doesn't exist anymore. Everything uses the same space factory now, until we need this functionality back.
 - Removed the asmjs stuff introduced in v2.3.4 because the introduction of the (internal) soldom representation was causing too much confusion/trouble. It also has minification issues. You never really saw it, anyways. 
 - Fixed domain_toList, which was skipping the upper half of bitdoms (`16` was hardcoded rather than using `SMALL_MAX_NUM` so this was an old bug...)
+- Dropped api `Solver#setOption` because it was leading to confusing situations. You can set the options through the object for the `solve` call
 
 ## v2.3.4:
 

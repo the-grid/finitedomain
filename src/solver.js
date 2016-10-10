@@ -639,17 +639,6 @@ class Solver {
     return new Solver({config: solvedConfig});
   }
 
-  /**
-   * Set a search option for this solver
-   *
-   * @param {string} optionName
-   * @param {*} value
-   * @param {string} [target] Certain options target specific var names
-   */
-  setOption(optionName, value, target) {
-    config_setOption(this.config, optionName, value, target);
-  }
-
   _debugLegible() {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.all_var_names;

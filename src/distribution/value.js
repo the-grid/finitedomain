@@ -62,7 +62,7 @@ function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
   let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].valtype;
   if (valueDistributorName) valueStrategy = valueDistributorName;
 
-  if (typeof valueStrategy === 'function') return valueStrategy;
+  if (typeof valueStrategy === 'function') return valueStrategy(space, varIndex, choiceIndex);
   return _distribute_getNextDomainForVar(valueStrategy, space, config, varIndex, choiceIndex);
 }
 

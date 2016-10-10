@@ -841,20 +841,20 @@ describe('src/domain.spec', function() {
       }
 
       test(fixt_strdom_ranges([100, 102], [104, 106], [108, 109]), 105, fixt_strdom_ranges([100, 102], [104, 104], [106, 106], [108, 109]));
-      //test(fixt_strdom_ranges([100, 102], [104, 106]), 105, fixt_strdom_ranges([100, 102], [104, 104], [106, 106]));
-      //test(fixt_strdom_ranges([100, 101], [103, 105]), 105, fixt_strdom_ranges([100, 101], [103, 104]));
-      //test(fixt_strdom_ranges([100, 101], [103, 105], [108, 109]), 105, fixt_strdom_ranges([100, 101], [103, 104], [108, 109]));
-      //test(fixt_strdom_ranges([100, 102], [105, 105], [107, 109]), 105, fixt_strdom_ranges([100, 102], [107, 109]));
-      //test(fixt_strdom_ranges([105, 105], [107, 109]), 105, fixt_strdom_ranges([107, 109]));
-      //test(fixt_strdom_ranges([100, 102], [105, 105]), 105, fixt_strdom_ranges([100, 102]));
-      //test(fixt_strdom_ranges([107, 109]), 105, fixt_strdom_ranges([107, 109]));
-      //test(fixt_strdom_ranges([100, 102]), 105, fixt_strdom_ranges([100, 102]));
-      //test(fixt_strdom_ranges([105, 105]), 105, fixt_numdom_empty());
-      //
-      //test(fixt_strdom_ranges([32, 32]), 32, fixt_numdom_empty());
-      //test(fixt_strdom_ranges([SUP, SUP]), SUP, fixt_numdom_empty());
-      //test(fixt_strdom_ranges([SUP - 1, SUP - 1]), SUP - 1, fixt_numdom_empty());
-      //test(fixt_strdom_ranges([SUP - 1, SUP]), SUP, fixt_numdom_solved(SUP - 1));
+      test(fixt_strdom_ranges([100, 102], [104, 106]), 105, fixt_strdom_ranges([100, 102], [104, 104], [106, 106]));
+      test(fixt_strdom_ranges([100, 101], [103, 105]), 105, fixt_strdom_ranges([100, 101], [103, 104]));
+      test(fixt_strdom_ranges([100, 101], [103, 105], [108, 109]), 105, fixt_strdom_ranges([100, 101], [103, 104], [108, 109]));
+      test(fixt_strdom_ranges([100, 102], [105, 105], [107, 109]), 105, fixt_strdom_ranges([100, 102], [107, 109]));
+      test(fixt_strdom_ranges([105, 105], [107, 109]), 105, fixt_strdom_ranges([107, 109]));
+      test(fixt_strdom_ranges([100, 102], [105, 105]), 105, fixt_strdom_ranges([100, 102]));
+      test(fixt_strdom_ranges([107, 109]), 105, fixt_strdom_ranges([107, 109]));
+      test(fixt_strdom_ranges([100, 102]), 105, fixt_strdom_ranges([100, 102]));
+      test(fixt_strdom_ranges([105, 105]), 105, fixt_numdom_empty());
+
+      test(fixt_strdom_ranges([32, 32]), 32, fixt_numdom_empty());
+      test(fixt_strdom_ranges([SUP, SUP]), SUP, fixt_numdom_empty());
+      test(fixt_strdom_ranges([SUP - 1, SUP - 1]), SUP - 1, fixt_numdom_empty());
+      test(fixt_strdom_ranges([SUP - 1, SUP]), SUP, fixt_numdom_solved(SUP - 1));
     });
 
     describe('numdom', function() {

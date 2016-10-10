@@ -5,6 +5,7 @@
  * @property {number[]} unsolvedVarIndexes Maps to stato.allVarNames
  * @property {number} next_distribution_choice Current decision in search node
  * @property {number} [updatedVarIndex=-1] varIndex that was updated when creating this space (-1 for root)
+ * @property {number} _lastChosenValue The value selected in the previous choice in the value distributor
  *
  * A Space is basically a search node in the search graph that finitedomain excavates.
  * It has a central config which contains all the variables and some initialization

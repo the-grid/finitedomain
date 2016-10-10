@@ -99,12 +99,14 @@ describe('distribution/value.spec', function() {
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
-      it('should pick hi for SECOND_CHOICE', function() {
+      it('should pick domain^lo for SECOND_CHOICE', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_solved(102));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
@@ -116,6 +118,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+        distribution_valueByMin(space, A, SECOND_CHOICE);
 
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
@@ -136,8 +141,10 @@ describe('distribution/value.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 111], [113, 120]));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_strdom_ranges([111, 111], [113, 120]));
       });
 
@@ -189,6 +196,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_solved(2));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
       });
@@ -199,6 +208,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+        distribution_valueByMin(space, A, SECOND_CHOICE);
 
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
@@ -220,6 +232,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_nums(11, 13, 14, 15));
       });
@@ -306,7 +320,7 @@ describe('distribution/value.spec', function() {
       expect(config._class).to.eql('$config');
       fixt_domainEql(space.vardoms[varIndex], fixt_dom_nums(100));
 
-      space._markov_last_value = 100;
+      space._lastChosenValue = 100;
       expect(_ => distribution_valueByMarkov(space, config, varIndex, choiceIndex)).to.throw('DOMAIN_SHOULD_BE_UNDETERM');
     });
   });
@@ -337,6 +351,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_solved(101));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
@@ -347,6 +363,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+        distribution_valueByMax(space, A, SECOND_CHOICE);
 
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
@@ -368,6 +387,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_strdom_ranges([110, 117], [119, 119]));
       });
@@ -420,6 +441,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_range(6, 9));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
@@ -430,6 +453,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+        distribution_valueByMax(space, A, SECOND_CHOICE);
 
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
@@ -451,6 +477,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_nums(2, 3, 4, 6, 7, 8, 10));
       });
@@ -514,6 +542,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(101));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
         });
@@ -550,6 +580,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([101, 101], [103, 103]));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
         });
@@ -560,6 +592,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
@@ -586,6 +621,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([101, 102], [104, 104]));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 104));
         });
@@ -596,6 +633,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 104));
@@ -622,6 +662,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 109], [111, 120]));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 120));
         });
@@ -632,6 +674,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 120));
@@ -658,6 +703,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 110], [112, 121]));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 121));
         });
@@ -668,6 +715,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 121));
@@ -690,6 +740,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMid(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([110, 112], [119, 120]));
       });
@@ -744,6 +796,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(1));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
         });
@@ -780,6 +834,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 3));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3));
         });
@@ -790,6 +846,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3));
@@ -816,6 +875,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 2, 4));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3, 4));
         });
@@ -826,6 +887,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3, 4));
@@ -852,6 +916,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 10, true));
         });
@@ -862,6 +928,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 10, true));
@@ -888,6 +957,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
           fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 11, true));
         });
@@ -898,6 +969,9 @@ describe('distribution/value.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
+
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
           fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 11, true));
@@ -922,6 +996,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(0));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 1, true));
       });
@@ -932,6 +1008,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+        distribution_valueByMid(space, A, SECOND_CHOICE);
 
         expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 1, true));
@@ -953,6 +1032,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMid(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 9, 10));
       });
@@ -1023,6 +1104,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_strdom_range(116, 120));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
@@ -1033,6 +1116,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
 
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
@@ -1045,6 +1130,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_strdom_ranges([100, 101], [108, 110]));
       });
 
@@ -1054,6 +1141,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_strdom_ranges([111, 112], [118, 120]));
       });
@@ -1146,6 +1235,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_nums(9, 10));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
@@ -1156,6 +1247,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMin(space, A, SECOND_CHOICE);
 
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
@@ -1177,6 +1271,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_nums(8, 11, 12, 14));
       });
@@ -1286,6 +1382,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_range(110, 115));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
@@ -1296,6 +1394,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMax(space, A, SECOND_CHOICE);
 
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
@@ -1317,6 +1418,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 101], [108, 110]));
       });
@@ -1409,6 +1512,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
         fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(6, 7, 8));
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
@@ -1419,6 +1524,9 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMax(space, A, SECOND_CHOICE);
 
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
@@ -1440,6 +1548,8 @@ describe('distribution/value.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
 
         fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 5, 6, 7));
       });

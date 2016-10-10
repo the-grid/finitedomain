@@ -317,82 +317,6 @@ function domain_str_toList(domain) {
 }
 
 /**
- * Given a list and domain, search items in the list in the domain and return
- * a domain with the first element found this way removed.
- * If no items from list can be found this function returns NO_SUCH_VALUE (-1)
- *
- * @param {$nordom} domain
- * @param {number[]} list
- * @returns {$nordom|number} NO_SUCH_VALUE (-1) means the result is empty, non-zero means new small domain
- */
-function domain_removeNextFromList(domain, list) {
-  ASSERT_NORDOM(domain);
-
-  if (typeof domain === 'number') return domain_num_removeNextFromList(domain, list);
-  return domain_str_removeNextFromList(domain, list);
-}
-function domain_num_removeNextFromList(numdom, list) {
-  ASSERT_NUMDOM(numdom);
-  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
-
-  if (numdom >= SOLVED_FLAG) return domain_sol_removeNextFromList(numdom, list);
-  return domain_bit_removeNextFromList(numdom, list);
-}
-function domain_sol_removeNextFromList(soldom, list) {
-  ASSERT_SOLDOM(soldom);
-  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
-
-  let solvedValue = soldom ^ SOLVED_FLAG;
-  if (list.indexOf(solvedValue) >= 0) return EMPTY;
-  return soldom;
-}
-function domain_bit_removeNextFromList(bitdom, list) {
-  ASSERT_BITDOM(bitdom);
-  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
-
-  for (let i = 0; i < list.length; ++i) {
-    let value = list[i];
-    ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
-    if (value < SMALL_MAX_NUM) { // 1<<100 = 16. non-small-domain numbers are valid here. so check.
-      let flag = 1 << value;
-      if (bitdom & flag) return domain_bitToSmallest(bitdom ^ flag); // if the bit is set; unset it
-    }
-  }
-  return NO_SUCH_VALUE;
-}
-function domain_str_removeNextFromList(domain, list) {
-  ASSERT_STRDOM(domain);
-  ASSERT(list && list instanceof Array, 'A_EXPECTING_LIST');
-
-  let len = domain.length;
-
-  for (let i = 0; i < list.length; i++) {
-    let value = list[i];
-    ASSERT(value >= SUB && value <= SUP, 'A_OOB_INDICATES_BUG');
-
-    let lastLo = -1;
-    let lastHi = -1;
-    for (let index = 0; index < len; index += STR_RANGE_SIZE) {
-      let lo = domain_str_decodeValue(domain, index);
-      if (lo <= value) {
-        let hi = domain_str_decodeValue(domain, index + STR_VALUE_SIZE);
-        if (hi >= value) {
-          // value is lo<=value<=hi
-          return _domain_str_removeValue(domain, len, index, lo, hi, value, lastLo, lastHi);
-        }
-        lastLo = lo;
-        lastHi = hi;
-      } else {
-        // value is between previous range and this one, aka: not found. proceed with next item in list
-        break;
-      }
-    }
-  }
-
-  return NO_SUCH_VALUE;
-}
-
-/**
  * @param {$nordom} domain
  * @param {number[]} list
  * @returns {number} Can return NO_SUCH_VALUE
@@ -2397,7 +2321,6 @@ export {
   domain_numToStr,
   domain_removeGte,
   domain_removeLte,
-  domain_removeNextFromList,
   domain_removeValue,
   domain_sharesNoElements,
   domain_str_simplify,

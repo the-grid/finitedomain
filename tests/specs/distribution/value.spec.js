@@ -4,6 +4,7 @@ import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
+  fixt_dom_nums,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -22,7 +23,7 @@ import distribute_getNextDomainForVar, {
 
   _distribute_getNextDomainForVar,
   //distribution_valueByList,
-  //distribution_valueByMarkov,
+  distribution_valueByMarkov,
   distribution_valueByMax,
   distribution_valueByMid,
   distribution_valueByMin,
@@ -40,6 +41,8 @@ import {
   space_getDomainArr,
   space_initFromConfig,
 } from '../../../src/space';
+import Solver from '../../../src/solver';
+
 
 describe('distribution/value.spec', function() {
 
@@ -247,6 +250,64 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueByMin(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
+    });
+  });
+
+  describe('distribution_valueByMarkov', function() {
+
+    it('should return NO_CHOICE if it receives no values', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        distributeOptions: {
+          valtype: 'markov',
+          matrix: [{
+            vector: [],
+          }],
+          legend: [],
+        },
+      });
+      solver._prepare({});
+
+      let space = solver.state.space;
+      let config = solver.config;
+      let varIndex = 0;
+      let choiceIndex = FIRST_CHOICE;
+
+      expect(space._class).to.eql('$space');
+      expect(config._class).to.eql('$config');
+
+      let value = distribution_valueByMarkov(space, config, varIndex, choiceIndex);
+
+      expect(value).to.eql(NO_CHOICE);
+    });
+
+    it('should throw if given domain is solved', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        domain: fixt_arrdom_range(100, 100),
+        distributeOptions: {
+          valtype: 'markov',
+          matrix: [{
+            vector: [100],
+          }],
+          legend: [1],
+        },
+      });
+      solver._prepare({});
+
+      let space = solver.state.space;
+      let config = solver.config;
+      let varIndex = 0;
+      let choiceIndex = SECOND_CHOICE; // !
+
+      expect(space._class).to.eql('$space');
+      expect(config._class).to.eql('$config');
+      fixt_domainEql(space.vardoms[varIndex], fixt_dom_nums(100));
+
+      space._markov_last_value = 100;
+      expect(_ => distribution_valueByMarkov(space, config, varIndex, choiceIndex)).to.throw('DOMAIN_SHOULD_BE_UNDETERM');
     });
   });
 

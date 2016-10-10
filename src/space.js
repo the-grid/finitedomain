@@ -140,6 +140,7 @@ function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
 
     next_distribution_choice: 0,
     updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
+    _markov_last_value: -1, // cache to prevent duplicate heavy markov operations
   };
 
   // search graph metrics

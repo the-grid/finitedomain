@@ -16,13 +16,12 @@ import {
 } from '../helpers';
 
 import {
+  domain__debug,
   domain_containsValue,
-  domain_createEmpty,
   domain_createValue,
   domain_createRange,
   domain_getFirstIntersectingValue,
   domain_intersection,
-  domain_isEmpty,
   domain_isSolved,
   domain_max,
   domain_middleElement,
@@ -421,13 +420,13 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
       ASSERT(distOptions, 'markov vars should have  distribution options');
       let expandVectorsWith = distOptions.expandVectorsWith;
       ASSERT(distOptions.matrix, 'there should be a matrix available for every var');
-      ASSERT(distOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set');
+      ASSERT(distOptions.legend || (typeof expandVectorsWith === 'number' && expandVectorsWith >= 0), 'every var should have a legend or expandVectorsWith set');
 
       let random = distOptions.random || MATH_RANDOM;
       ASSERT(typeof random === 'function', 'RNG_SHOULD_BE_FUNCTION');
 
       // note: expandVectorsWith can be 0, so check with null
-      let values = markov_createLegend(expandVectorsWith != null, distOptions.legend, domain);
+      let values = markov_createLegend(typeof expandVectorsWith === 'number', distOptions.legend, domain);
       let valueCount = values.length;
       if (!valueCount) {
         return NO_CHOICE;
@@ -450,8 +449,8 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
       ASSERT(typeof lastValue === 'number', 'should have cached previous value');
 
       let newDomain = domain_removeValue(domain, space._markov_last_value);
-      ASSERT(newDomain || newDomain === domain_createEmpty(), 'should normalize rejected domains');
-      if (domain_isEmpty(newDomain)) return NO_CHOICE;
+      ASSERT(domain, 'domain cannot be empty because only one value was removed and the domain is asserted to be not solved above');
+      ASSERT_NORDOM(newDomain, true, domain__debug);
       return newDomain;
     }
   }

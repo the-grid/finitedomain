@@ -54,7 +54,7 @@ function propagator_markovStepBare(space, config, varIndex) {
   let configVarDistOptions = config.var_dist_options;
   let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
 
-  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions || JSON.stringify(configVarDistOptions));
+  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions && JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);
 
   let expandVectorsWith = distributionOptions.expandVectorsWith;

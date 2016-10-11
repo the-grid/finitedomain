@@ -612,7 +612,6 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    //console.log('testing', varNames[i], 'in', config._var_names_trie)
     let varIndex = trie_get(config._var_names_trie, varNames[i]);
     ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
@@ -814,6 +813,7 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
+
   ASSERT_NORDOM(domain1, true, domain__debug);
   ASSERT_NORDOM(domain2, true, domain__debug);
   if (!domain1 || !domain2) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
@@ -843,22 +843,25 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     // must be lt lte gt gte. these are solved completely when either param is solved
     ASSERT(opName === 'lt' || opName === 'lte' || opName === 'gt' || opName === 'gte', 'should be lt lte gt gte now because there are no other reifiers atm');
 
+    const REMOVE_FAIL = 0;
+    const REMOVE_PASS = 1;
+
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
-      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
-      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
-      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 0);
-      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, 1);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else {
       THROW('UNKNOWN_OP');
     }
@@ -947,20 +950,20 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value
   let domain = initialDomains[varIndex];
   switch (opName) {
     case 'lt':
+      if (result) domain = domain_removeGte(domain, value);
+      else domain = domain_removeLte(domain, value - 1);
+      break;
+    case 'lte':
       if (result) domain = domain_removeGte(domain, value + 1);
       else domain = domain_removeLte(domain, value);
       break;
-    case 'lte':
-      if (result) domain = domain_removeGte(domain, value);
-      else domain = domain_removeLte(domain, value);
-      break;
     case 'gt':
-      if (result) domain = domain_removeLte(domain, value - 1);
-      else domain = domain_removeGte(domain, value);
-      break;
-    case 'gte':
       if (result) domain = domain_removeLte(domain, value);
       else domain = domain_removeGte(domain, value + 1);
+      break;
+    case 'gte':
+      if (result) domain = domain_removeLte(domain, value - 1);
+      else domain = domain_removeGte(domain, value);
       break;
     case 'eq':
       if (result) domain = domain_intersection(domain1, domain2);

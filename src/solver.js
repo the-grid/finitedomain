@@ -802,7 +802,7 @@ function solver_varDistOptions(name, bvar, config) {
   if (options) {
     // TOFIX: change usages of .distribute as a string with valtype
     if (bvar.distribute) options.valtype = bvar.distribute;
-    config_setOption(config, 'varStratOverride', options, name);
+    config_setOption(config, 'varValueStrat', options, name);
     if (options.valtype === 'markov') {
       config_addConstraint(config, 'markov', [name]);
     }

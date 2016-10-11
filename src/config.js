@@ -347,11 +347,15 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
   ASSERT(optionValue !== undefined, 'should get a value');
   ASSERT(optionTarget === undefined || typeof optionTarget === 'string', 'the optional name is a string');
 
+  if (optionName === 'varStratOverride') {
+    THROW('deprecated, should be wiped internally');
+  }
+
   switch (optionName) {
     case 'varStrategy':
-      if (typeof optionValue === 'function') THROW('functions no longer supported');
-      if (typeof optionValue === 'string') THROW('strings should be type property');
-      if (typeof optionValue !== 'object') THROW('varStrategy should be object');
+      if (typeof optionValue === 'function') THROW('functions no longer supported', optionValue);
+      if (typeof optionValue === 'string') THROW('strings should be passed on as {type:value}', optionValue);
+      if (typeof optionValue !== 'object') THROW('varStrategy should be object', optionValue);
       if (optionValue.name) THROW('name should be type');
       if (optionValue.dist_name) THROW('dist_name should be type');
 
@@ -383,21 +387,15 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
       // See Bvar#distributionOptions (in multiverse)
 
       for (let key in optionValue) {
-        config_setOption(config, 'varStratOverride', optionValue[key], key);
+        config_setOption(config, 'varValueStrat', optionValue[key], key);
       }
       break;
 
-    case 'varStratOverride':
-      // specific strategy parameters for one variable
+    case 'varValueStrat':
+      // override all the specific strategy parameters for one variable
       ASSERT(typeof optionTarget === 'string', 'expecting a name');
       if (!config.var_dist_options) config.var_dist_options = {};
-      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet'); // there is one test in mv that breaks this....?
-      config.var_dist_options[optionTarget] = optionValue;
-      break;
-
-    case 'varValueStrat':
-      ASSERT(typeof optionTarget === 'string', 'expecting a name');
-      if (!config.var_dist_options[optionTarget]) config.var_dist_options[optionTarget] = {};
+      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet');
       config.var_dist_options[optionTarget] = optionValue;
       break;
 
@@ -437,7 +435,10 @@ function config_setOptions(config, options) {
   if (options.valueStrategy) config_setOption(config, 'valueStrategy', options.valueStrategy);
   if (options.targeted_var_names) config_setOption(config, 'targeted_var_names', options.targeted_var_names);
   if (options.varStratOverrides) config_setOption(config, 'varStratOverrides', options.varStratOverrides);
-  if (options.varStratOverride) config_setOption(config, 'varStratOverride', options.varStratOverride, options.varStratOverrideName);
+  if (options.varStratOverride) {
+    console.warn('deprecated "varStratOverride" in favor of "varValueStrat"');
+    config_setOption(config, 'varValueStrat', options.varStratOverride, options.varStratOverrideName);
+  }
   if (options.varValueStrat) config_setOption(config, 'varValueStrat', options.varValueStrat, options.varStratOverrideName);
   if (options.timeout_callback) config_setOption(config, 'timeout_callback', options.timeout_callback);
 }

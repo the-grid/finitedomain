@@ -20,6 +20,7 @@
 - Fixed domain_toList, which was skipping the upper half of bitdoms (`16` was hardcoded rather than using `SMALL_MAX_NUM` so this was an old bug...)
 - Dropped api `Solver#setOption` because it was leading to confusing situations. You can set the options through the object for the `solve` call
 - Remove `domain_removeNextFromList`, no longer used after value distributors were optimized
+- Deprecated the config setting `varStratOverride` in favor of `varValueStrat` (as used with `solver.solve({...})`)
 
 ## v2.3.4:
 

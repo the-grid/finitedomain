@@ -298,7 +298,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -311,7 +311,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -323,9 +323,9 @@ describe('distribution/var.spec', function() {
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');

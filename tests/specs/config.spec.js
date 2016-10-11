@@ -25,6 +25,7 @@ import {
   config_createVarStratConfig,
   config_generateVars,
   //config_setDefaults,
+  config_setOptions,
   config_setOption,
 } from '../../src/config';
 import {
@@ -540,7 +541,7 @@ describe('src/config.spec', function() {
 
       expect(_ => config_setOption(config, 'var', {})).to.throw('REMOVED. Replace `var` with `varStrategy`');
       expect(_ => config_setOption(config, 'varStrategy', _ => 0)).to.throw('functions no longer supported');
-      expect(_ => config_setOption(config, 'varStrategy', 'foo')).to.throw('strings should be type property');
+      expect(_ => config_setOption(config, 'varStrategy', 'foo')).to.throw('strings should be passed on as');
       expect(_ => config_setOption(config, 'varStrategy', 15)).to.throw('varStrategy should be object');
       expect(_ => config_setOption(config, 'varStrategy', {name: 'foo'})).to.throw('name should be type');
       expect(_ => config_setOption(config, 'varStrategy', {dist_name: 'foo'})).to.throw('dist_name should be type');
@@ -556,9 +557,15 @@ describe('src/config.spec', function() {
 
     it('should copy the var distribution config', function() {
       let config = config_create();
-      config_setOption(config, 'varStratOverride', {valtype: 'B'}, 'A');
+      config_setOption(config, 'varValueStrat', {valtype: 'B'}, 'A');
 
       expect(config.var_dist_options).to.eql({A: {valtype: 'B'}});
+    });
+
+    it('DEPRECATED; remove once actually obsolete', function() {
+      let config = config_create();
+
+      expect(_ => config_setOption(config, 'varStratOverride', {valtype: 'B'}, 'A')).to.throw('deprecated');
     });
 
     it('should copy the timeout callback', function() {
@@ -566,6 +573,128 @@ describe('src/config.spec', function() {
       config_setOption(config, 'timeout_callback', 'A');
 
       expect(config.timeout_callback).to.equal('A');
+    });
+
+    it('should override value strats per var', function() {
+      let config = config_create();
+      config_setOption(config, 'varStratOverrides', {
+        'A': 'foobar',
+      });
+
+      expect(config.var_dist_options).to.be.an('object');
+      expect(config.var_dist_options.A).to.equal('foobar');
+    });
+
+    it('should override value strats per var', function() {
+      let config = config_create();
+      config_setOption(config, 'varValueStrat', {
+        'strat': 'foobar',
+      }, 'A');
+
+      expect(config.var_dist_options).to.be.an('object');
+      expect(config.var_dist_options.A).to.be.an('object');
+      expect(config.var_dist_options.A.strat).to.equal('foobar');
+    });
+
+    it('should throw for setting it twice', function() {
+      let config = config_create();
+      config_setOption(config, 'varValueStrat', {
+        'strat': 'foobar',
+      }, 'A');
+
+      expect(_ => config_setOption(config, 'varValueStrat', {'another': 'thing'}, 'A')).to.throw('should not be known yet');
+    });
+
+    it('should throw for unknown config values', function() {
+      let config = config_create();
+      expect(_ => config_setOption(config, 'unknown value test', {'strat': 'foobar'}, 'A')).to.throw('unknown option');
+    });
+  });
+
+  describe('config_setOptions', function() {
+
+    it('should exist', function() {
+      expect(config_setOptions).to.be.a('function');
+    });
+
+    it('should not require an options object', function() {
+      let config = config_create();
+      config_setOptions(config);
+
+      expect(true).to.eql(true);
+    });
+
+    it('should override the global var strategy', function() {
+      let config = config_create();
+      config_setOptions(config, {
+        varStrategy: {
+          type: 'midmax',
+        },
+      });
+
+      expect(config.varStratConfig.type).to.eql('midmax');
+    });
+
+    it('should override the global value strategy', function() {
+      let config = config_create();
+      expect(config.valueStratName).to.not.eql('mid');
+
+      config_setOptions(config, {valueStrategy: 'mid'});
+
+      expect(config.valueStratName).to.eql('mid');
+    });
+
+    it('should override the list of targeted var names', function() {
+      let config = config_create();
+      expect(config.targetedVars).to.eql('all');
+
+      config_setOptions(config, {targeted_var_names: ['A', 'B']});
+
+      expect(config.targetedVars).to.eql(['A', 'B']);
+    });
+
+    it('should override the var-specific strategies for multiple vars', function() {
+      let config = config_create();
+      expect(config.var_dist_options).to.eql({});
+
+      config_setOptions(config, {varStratOverrides: {
+        'A': 'something for a',
+        'B': 'something for b',
+      }});
+
+      expect(config.var_dist_options).to.eql({
+        'A': 'something for a',
+        'B': 'something for b',
+      });
+    });
+
+    it('should override the var-specific strategy for one var', function() {
+      let config = config_create();
+      expect(config.var_dist_options).to.eql({});
+
+      config_setOptions(config, {varValueStrat: 'max', varStratOverrideName: 'A'});
+
+      expect(config.var_dist_options).to.eql({
+        'A': 'max',
+      });
+    });
+
+    it('DEPRECATED; remove once obsoleted', function() {
+      let config = config_create();
+      expect(config.var_dist_options).to.eql({});
+
+      config_setOptions(config, {varStratOverride: 'max', varStratOverrideName: 'A'});
+
+      expect(config.var_dist_options).to.eql({
+        'A': 'max',
+      });
+    });
+
+    it('should set the timeout callback', function() {
+      let config = config_create();
+      config_setOptions(config, {timeout_callback: function() {}});
+
+      expect(true).to.eql(true);
     });
   });
 

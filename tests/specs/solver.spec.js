@@ -2649,21 +2649,20 @@ describe('solver.spec', function() {
 
   describe('debugging options', function() {
 
-    it('should support _debugConfig', function() {
-      let solver = new Solver();
+    //it('should support _debugConfig', function() {
+    //  let solver = new Solver();
+    //
+    //  solver.solve({_debugConfig: true});
+    //
+    //  expect(true).to.eql(true);
+    //});
 
-      solver.solve({_debugConfig: true});
-
-      expect(true).to.eql(true);
-    });
-
-    it('should support _debug bare', function() {
-      let solver = new Solver();
-
-      solver.solve({_debug: true});
-
-      expect(true).to.eql(true);
-    });
+    //it('should support _debug bare', function() {
+    //  let solver = new Solver();
+    //  solver.solve({_debug: true});
+    //
+    //  expect(true).to.eql(true);
+    //});
 
     it('should support _debug edge cases', function() {
       // note: this is only trying to improve test coverage in debugging

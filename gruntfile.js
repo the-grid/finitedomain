@@ -128,6 +128,21 @@ module.exports = function () {
       all: {
         src: ['tests/specs/**/*.spec.js'],
         options: {
+          bail: true,
+          require: [
+            'babel-core/register',  // translate es6 syntax to es5
+            'babel-polyfill',       // babel only translates, doesnt add new libs
+          ],
+          // it appears that babel supports an option to redirect the rc but no idea here
+          // for now it uses a default config inlined into package.json
+          //babelrc: 'config/babelrc',
+          timeout: 6000,
+          reporter: 'spec',
+        },
+      },
+      nobail: {
+        src: ['tests/specs/**/*.spec.js'],
+        options: {
           require: [
             'babel-core/register',  // translate es6 syntax to es5
             'babel-polyfill',       // babel only translates, doesnt add new libs
@@ -281,14 +296,14 @@ module.exports = function () {
 
   grunt.registerTask('clean', ['remove']);
   grunt.registerTask('build', 'alias for dist', ['dist']);
-  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'run:coverage', 'distq']);
+  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq']);
   grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
   grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
   grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', 'lint then test', ['clean', 'run:lintdev', 'mochaTest:all']);
-  grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:all']);
+  grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:nobail']);
   // it works in the browser, the phantom test build just needs some love (TODO)
   //grunt.registerTask('testp', 'lint then test in phantomjs', ['clean', 'run:lintdev', 'browserify:phantom', 'mocha_phantomjs']);
 

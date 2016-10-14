@@ -17,33 +17,34 @@
 // with text editor that doesn't wrap). Spoiler: it doesn't help :)
 
 import {
-  EMPTY,
-  EMPTY_STR,
   SMALL_MAX_NUM,
+  SOLVED_FLAG,
   SUB,
 
   ASSERT,
   ASSERT_NUMDOM,
   ASSERT_STRDOM,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
 } from '../helpers';
 import {
+  EMPTY,
+  EMPTY_STR,
   STR_VALUE_SIZE,
   STR_RANGE_SIZE,
-  ZERO,
-  domain_str_closeGaps,
+
   domain_createRange,
+  domain_num_createRange,
+  domain_numnum_createRangeZeroToMax,
+  domain_createValue,
+  domain_str_closeGaps,
+  domain_num_containsValue,
   domain_str_decodeValue,
   domain_str_encodeRange,
-  domain_any_max,
-  domain_any_min,
+  domain_max,
+  domain_min,
   domain_str_simplify,
-  domain_toNumstr,
+  domain_toSmallest,
 } from '../domain';
-import {
-  asmdomain_createRange,
-  asmdomain_createRangeZeroToMax,
-} from '../asmdomain';
 
 let MAX = Math.max;
 
@@ -56,9 +57,9 @@ let MAX = Math.max;
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_any_minus(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+function domain_minus(domain1, domain2) {
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // note: this is not x-0=x. this is nothing-something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -67,24 +68,23 @@ function domain_any_minus(domain1, domain2) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_any_min(domain1) === 0 && domain_any_min(domain2) === 0) {
-    return domain_createRange(0, domain_any_max(domain1));
+  if (domain_min(domain1) === 0 && domain_min(domain2) === 0) {
+    return domain_createRange(0, domain_max(domain1));
   }
 
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
-
   if (isNum1) {
     // note: if domain1 is a small domain the result is always a small domain
-    if (isNum2) return _domain_minusNumNumNum(domain1, domain2);
-    return _domain_minusNumStrNum(domain1, domain2);
+    if (isNum2) return _domain_minusNumNum(domain1, domain2);
+    return _domain_minusNumStr(domain1, domain2);
   }
 
   let result;
   if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
   else result = _domain_minusStrStrStr(domain1, domain2);
 
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_toSmallest(domain_str_simplify(result));
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);
@@ -96,6 +96,8 @@ function _domain_minusStrStrStr(domain1, domain2) {
   let domains = domain_str_closeGaps(domain1, domain2);
   domain1 = domains[0];
   domain2 = domains[1];
+  ASSERT(typeof domain1 === 'string', 'make sure closeGaps doesnt "optimize"');
+  ASSERT(typeof domain2 === 'string', 'make sure closeGaps doesnt "optimize"');
 
   let newDomain = EMPTY_STR;
   for (let index = 0, len = domain1.length; index < len; index += STR_RANGE_SIZE) {
@@ -106,13 +108,28 @@ function _domain_minusStrStrStr(domain1, domain2) {
 
   return newDomain;
 }
+function _domain_minusNumNum(domain1, domain2) {
+  if (domain1 >= SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    if (domain2 >= SOLVED_FLAG) {
+      let result = solvedValue - (domain2 ^ SOLVED_FLAG);
+      if (result < 0) return EMPTY;
+      return domain_createValue(result);
+    }
+    if (solvedValue <= SMALL_MAX_NUM) return _domain_minusRangeNumNum(solvedValue, solvedValue, domain2);
+    else return _domain_minusRangeNumStr(solvedValue, solvedValue, domain2);
+  }
+
+  return _domain_minusNumNumNum(domain1, domain2);
+}
 function _domain_minusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain1) - domain_any_min(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_max(domain1) - domain_min(domain2) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
+  ASSERT(domain1 < SOLVED_FLAG, 'solved domain1 is expected to be caught elsewhere');
 
-  if (domain1 & ZERO && domain2 & ZERO) return asmdomain_createRangeZeroToMax(domain1);
+  if (domain_num_containsValue(domain1, 0) && domain_num_containsValue(domain2, 0)) return domain_numnum_createRangeZeroToMax(domain1);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -138,14 +155,27 @@ function _domain_minusNumNumNum(domain1, domain2) {
 
   return newDomain | _domain_minusRangeNumNum(lo, hi, domain2);
 }
+function _domain_minusNumStr(domain_num, domain_str) {
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    if (solvedValue <= SMALL_MAX_NUM) return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
+    else return _domain_minusRangeStrStr(solvedValue, solvedValue, domain_str);
+  }
+  return _domain_minusNumStrNum(domain_num, domain_str);
+}
 function _domain_minusNumStrNum(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
   ASSERT(domain_num !== EMPTY && domain_str !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain_num) - domain_any_min(domain_str) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_max(domain_num) - domain_min(domain_str) <= SMALL_MAX_NUM, 'MAX-MIN_MUST_NOT_EXCEED_NUMDOM_RANGE');
+
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeStrNum(solvedValue, solvedValue, domain_str);
+  }
 
   // since any number above the small domain max ends up with negative, which is truncated, use the max of domain1
-  if (domain_num & ZERO && domain_any_min(domain_str) === 0) return asmdomain_createRangeZeroToMax(domain_num);
+  if (domain_num_containsValue(domain_num, 0) && domain_min(domain_str) === 0) return domain_numnum_createRangeZeroToMax(domain_num);
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -174,6 +204,11 @@ function _domain_minusNumStrNum(domain_num, domain_str) {
 function _domain_minusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
+
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -207,8 +242,8 @@ function _domain_minusStrNumStr(domain_str, domain_num) {
   // optimize an easy path: if both domains contain zero the
   // result will always be [0, max(domain1)], because:
   // d1-d2 = [lo1-hi2, hi1-lo2] -> [0-hi2, hi1-0] -> [0, hi1]
-  if (domain_any_min(domain_str) === 0 && domain_any_min(domain_num) === 0) {
-    return domain_createRange(0, domain_any_max(domain_str));
+  if (domain_min(domain_str) === 0 && domain_min(domain_num) === 0) {
+    return domain_createRange(0, domain_max(domain_str));
   }
 
   let newDomain = EMPTY_STR;
@@ -224,6 +259,11 @@ function _domain_minusRangeNumStr(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
 
   if (domain_num === EMPTY) return EMPTY;
+
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_minusRangeRangeStr(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -284,11 +324,13 @@ function _domain_minusRangeRangeNum(loi, hii, loj, hij) {
     let lo = MAX(SUB, loi - hij);
     ASSERT(lo <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
     ASSERT(hi <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
-    return asmdomain_createRange(lo, hi);
+    let domain = domain_num_createRange(lo, hi);
+    ASSERT(typeof domain === 'number' && domain < SOLVED_FLAG, 'expecting numdom, not soldom');
+    return domain;
   }
   return EMPTY;
 }
 
 // BODY_STOP
 
-export default domain_any_minus;
+export default domain_minus;

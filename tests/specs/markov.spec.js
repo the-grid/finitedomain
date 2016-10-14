@@ -1,9 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-//import {
-//  specDomainCreateRange,
-//  specDomainCreateRanges,
-//  specDomainCreateValue,
-//} from '../fixtures/domain.fixt';
+import {
+  fixt_arrdom_range,
+} from '../fixtures/domain.fixt';
 
 import {
   //markov_createLegend,
@@ -12,8 +10,23 @@ import {
 import {
   space_createRoot,
 } from '../../src/space';
+import Solver from '../../src/solver';
 
 describe('src/markov.spec', function() {
+
+  it('should throw if there is no matrix and no expandVectorsWith', function() {
+    let solver = new Solver();
+    let varOptions = {
+      id: 'A',
+      domain: fixt_arrdom_range(0, 0, true),
+      distributeOptions: {
+        valtype: 'markov',
+        legend: [1],
+      },
+    };
+
+    expect(_ => solver.addVar(varOptions)).to.throw('markov var missing distribution');
+  });
 
   describe('markov_createProbVector', function() {
 
@@ -61,12 +74,14 @@ describe('src/markov.spec', function() {
 
     it('should throw without a vector nor expandVectorsWith', function() {
       let space = space_createRoot();
+
       expect(_ => markov_createProbVector(space, [{}], undefined, 5)).to.throw('E_EACH_MARKOV_VAR_MUST_HAVE_PROB_VECTOR_OR_ENABLE_EXPAND_VECTORS');
     });
 
     it('should throw if vector is of different length than count and expand is not set', function() {
       let vector = [32, 4, 22];
       let space = space_createRoot();
+
       expect(_ => markov_createProbVector(space, [{vector}], undefined, 6)).to.throw('E_EACH_MARKOV_VAR_MUST_HAVE_PROB_VECTOR_OR_ENABLE_EXPAND_VECTORS');
     });
   });

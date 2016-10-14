@@ -10,7 +10,6 @@ import {
 } from '../../../src/space';
 
 import case20160611 from './2016-06-11';
-import case20160613 from './2016-06-13';
 import case20160618 from './2016-06-18';
 import case20160618_slim from './2016-06-18.slim';
 import case20160618_slim2 from './2016-06-18.slim2';
@@ -31,7 +30,51 @@ describe('exports/export.cases.spec', function() {
   });
 
   it('should proceed past prepare for 2016-06-13', function() {
-    var solver = new Solver({config: config_clone(case20160613)});
+    // from path_solver spec; "solver w/ rules: vars ~= var"
+    // regression; breaks while prepare()ing
+    let config = {
+      _class: '$config',
+      varStratConfig: {
+        type: 'naive',
+      },
+      valueStratName: 'min',
+      targetedVars: 'all',
+      var_dist_options: {},
+      timeout_callback: undefined,
+      all_var_names: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
+      all_constraints: [
+        {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
+        {_class: '$constraint', name: 'gte', varIndexes: [3, 0], param: undefined},
+        {_class: '$constraint', name: 'gte', varIndexes: [5, 0], param: undefined},
+        {_class: '$constraint', name: 'gte', varIndexes: [6, 0], param: undefined},
+        {_class: '$constraint', name: 'gte', varIndexes: [7, 0], param: undefined},
+        {_class: '$constraint', name: 'reifier', varIndexes: [3, 0, 8], param: 'eq'},
+        {_class: '$constraint', name: 'reifier', varIndexes: [1, 0, 9], param: 'eq'},
+        {_class: '$constraint', name: 'gte', varIndexes: [8, 9], param: undefined},
+        {_class: '$constraint', name: 'reifier', varIndexes: [7, 0, 10], param: 'eq'},
+        {_class: '$constraint', name: 'reifier', varIndexes: [1, 0, 11], param: 'eq'},
+        {_class: '$constraint', name: 'gte', varIndexes: [10, 11], param: undefined},
+        {_class: '$constraint', name: 'neq', varIndexes: [5, 6], param: undefined},
+        {_class: '$constraint', name: 'neq', varIndexes: [6, 6], param: undefined},
+      ],
+      constant_cache: {'1': '0', '2': '2', '3': '4'},
+      initial_domains: [
+        [1, 1],
+        [0, 1],
+        [2, 2],
+        [1, 2],
+        [3, 3],
+        [1, 3],
+        [1, 3],
+        [1, 2],
+        [0, 1],
+        [0, 1],
+        [0, 1],
+        [0, 1],
+      ],
+    };
+
+    var solver = new Solver({config: config_clone(config)});
 
     solver.solve({log: 1, max: 1});
   });

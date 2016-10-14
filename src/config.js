@@ -5,13 +5,13 @@
 // This prevents leaking the small domain artifact outside of the library.
 
 import {
-  EMPTY_STR,
   NO_SUCH_VALUE,
   SUB,
   SUP,
 
   ASSERT,
-  ASSERT_STRDOM,
+  ASSERT_NORDOM,
+  ASSERT_VARDOMS_SLOW,
   GET_NAMES,
   THROW,
 } from './helpers';
@@ -48,25 +48,22 @@ import {
 } from './propagator';
 import {
   NOT_FOUND,
-  ZERO,
 
-  domain_arrToStr,
+  domain__debug,
   domain_createRange,
   domain_createValue,
-  domain_any_getValue,
-  domain_str_getValue,
-  domain_any_max,
-  domain_any_min,
-  domain_str_isSolved,
-  domain_any_intersection,
-  domain_strstr_intersection,
-  domain_str_removeGte,
-  domain_str_removeLte,
-  domain_str_removeValue,
-  domain_toNumstr,
-  domain_toStr,
+  domain_getValue,
+  domain_max,
+  domain_min,
+  domain_isSolved,
+  domain_intersection,
+  domain_removeGte,
+  domain_removeLte,
+  domain_removeValue,
+  domain_toSmallest,
+  domain_anyToSmallest,
 } from './domain';
-import domain_any_plus from './doms/domain_plus';
+import domain_plus from './doms/domain_plus';
 import {
   constraint_create,
 } from './constraint';
@@ -75,7 +72,7 @@ import distribution_getDefaults from './distribution/defaults';
 // BODY_START
 
 /**
- * @returns {$finitedomain_config}
+ * @returns {$config}
  */
 function config_create() {
   let config = {
@@ -102,7 +99,7 @@ function config_create() {
     all_constraints: [],
 
     constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
-    initial_domains: [], // $domain_str[] : initial domains for each var, maps 1:1 to all_var_names
+    initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to all_var_names
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
@@ -153,7 +150,7 @@ function config_clone(config, newDomains) {
 
     all_var_names: all_var_names.slice(0),
     all_constraints: all_constraints.slice(0),
-    initial_domains: newDomains || initial_domains, // <varName:domain>
+    initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
 
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
@@ -180,7 +177,7 @@ function config_addVarAnonNothing(config) {
  * @returns {number} varIndex
  */
 function config_addVarNothing(config, varName) {
-  return _config_addVar(config, varName, domain_toStr(domain_createRange(SUB, SUP)));
+  return _config_addVar(config, varName, domain_createRange(SUB, SUP));
 }
 /**
  * @param {$config} config
@@ -211,19 +208,19 @@ function config_addVarRange(config, varName, lo, hi) {
   ASSERT(typeof hi === 'number', 'A_HI_MUST_BE_NUMBER');
   ASSERT(lo <= hi, 'A_RANGES_SHOULD_ASCEND');
 
-  let domain = domain_toStr(domain_createRange(lo, hi));
+  let domain = domain_createRange(lo, hi);
   return _config_addVar(config, varName, domain);
 }
 /**
  * @param {$config} config
  * @param {string|boolean} varName (If true, anon)
- * @param {$domain_arr} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
+ * @param {$arrdom} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
  * @returns {number} varIndex
  */
 function config_addVarDomain(config, varName, domain) {
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
-  return _config_addVar(config, varName, domain_arrToStr(domain));
+  return _config_addVar(config, varName, domain_anyToSmallest(domain));
 }
 /**
  * @param {$config} config
@@ -251,7 +248,7 @@ function config_addVarConstant(config, varName, value) {
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  let domain = domain_toStr(domain_createRange(value, value));
+  let domain = domain_createRange(value, value);
 
   return _config_addVar(config, varName, domain);
 }
@@ -259,36 +256,40 @@ function config_addVarConstant(config, varName, value) {
 /**
  * @param {$config} config
  * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
- * @param {$domain_str} domain strdom ONLY! other methods that call this should make sure their $domain is converted to a strdom
+ * @param {$nordom} domain
  * @returns {number} varIndex
  */
 function _config_addVar(config, varName, domain) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
-  ASSERT(String(parseInt(varName, 10)) !== varName, 'DONT_USE_NUMBERS_AS_VAR_NAMES[' + varName + ']');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
-  ASSERT(varName === true || !trie_has(config._var_names_trie, varName), 'Do not declare the same varName twice');
-  ASSERT_STRDOM(domain);
   ASSERT(domain, 'NON_EMPTY_DOMAIN');
-  ASSERT(domain === EMPTY_STR || domain_any_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(domain === EMPTY_STR || domain_any_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
+
+  // note: 100 is an arbitrary number but since large sets are probably
+  // automated it's very unlikely we'll need this check in those cases
+  if (varIndex < 100) {
+    if (String(parseInt(varName, 10)) === varName) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES', varName);
+  }
+
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
     varName = String(varIndex); // this var will be assigned to this index
   }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100 && trie_has(config._var_names_trie, varName)) {
-    if (wasAnonymous) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES'); // there is an assertion for this above but wont be at runtime
-    THROW('Var varName already part of this config. Probably a bug?');
+  if (varIndex < 100) {
+    if (trie_has(config._var_names_trie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
   }
 
-  let solvedTo = domain_str_getValue(domain);
+  let solvedTo = domain_getValue(domain);
   if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
 
+  ASSERT_NORDOM(domain, true, domain__debug);
   config.initial_domains[varIndex] = domain;
   config.all_var_names.push(varName);
   trie_add(config._var_names_trie, varName, varIndex);
@@ -346,11 +347,15 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
   ASSERT(optionValue !== undefined, 'should get a value');
   ASSERT(optionTarget === undefined || typeof optionTarget === 'string', 'the optional name is a string');
 
+  if (optionName === 'varStratOverride') {
+    THROW('deprecated, should be wiped internally');
+  }
+
   switch (optionName) {
     case 'varStrategy':
-      if (typeof optionValue === 'function') THROW('functions no longer supported');
-      if (typeof optionValue === 'string') THROW('strings should be type property');
-      if (typeof optionValue !== 'object') THROW('varStrategy should be object');
+      if (typeof optionValue === 'function') THROW('functions no longer supported', optionValue);
+      if (typeof optionValue === 'string') THROW('strings should be passed on as {type:value}', optionValue);
+      if (typeof optionValue !== 'object') THROW('varStrategy should be object', optionValue);
       if (optionValue.name) THROW('name should be type');
       if (optionValue.dist_name) THROW('dist_name should be type');
 
@@ -382,21 +387,15 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
       // See Bvar#distributionOptions (in multiverse)
 
       for (let key in optionValue) {
-        config_setOption(config, 'varStratOverride', optionValue[key], key);
+        config_setOption(config, 'varValueStrat', optionValue[key], key);
       }
       break;
 
-    case 'varStratOverride':
-      // specific strategy parameters for one variable
+    case 'varValueStrat':
+      // override all the specific strategy parameters for one variable
       ASSERT(typeof optionTarget === 'string', 'expecting a name');
       if (!config.var_dist_options) config.var_dist_options = {};
-      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet'); // there is one test in mv that breaks this....?
-      config.var_dist_options[optionTarget] = optionValue;
-      break;
-
-    case 'varValueStrat':
-      ASSERT(typeof optionTarget === 'string', 'expecting a name');
-      if (!config.var_dist_options[optionTarget]) config.var_dist_options[optionTarget] = {};
+      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet');
       config.var_dist_options[optionTarget] = optionValue;
       break;
 
@@ -436,7 +435,10 @@ function config_setOptions(config, options) {
   if (options.valueStrategy) config_setOption(config, 'valueStrategy', options.valueStrategy);
   if (options.targeted_var_names) config_setOption(config, 'targeted_var_names', options.targeted_var_names);
   if (options.varStratOverrides) config_setOption(config, 'varStratOverrides', options.varStratOverrides);
-  if (options.varStratOverride) config_setOption(config, 'varStratOverride', options.varStratOverride, options.varStratOverrideName);
+  if (options.varStratOverride) {
+    console.warn('deprecated "varStratOverride" in favor of "varValueStrat"');
+    config_setOption(config, 'varValueStrat', options.varStratOverride, options.varStratOverrideName);
+  }
   if (options.varValueStrat) config_setOption(config, 'varValueStrat', options.varValueStrat, options.varStratOverrideName);
   if (options.timeout_callback) config_setOption(config, 'timeout_callback', options.timeout_callback);
 }
@@ -470,8 +472,8 @@ function config_generateVars(config, space) {
 
   for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
     let domain = initialDomains[varIndex];
-    ASSERT_STRDOM(domain);
-    vardoms[varIndex] = domain_toNumstr(domain);
+    ASSERT_NORDOM(domain, true, domain__debug);
+    vardoms[varIndex] = domain_toSmallest(domain);
   }
 }
 
@@ -500,7 +502,9 @@ function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorI
   ASSERT(typeof varIndex === 'number', 'must be number');
   // dont bother adding props on unsolved vars because they can't affect
   // anything anymore. seems to prevent about 10% in our case so worth it.
-  if (!domain_str_isSolved(initialDomains[varIndex])) {
+  let domain = initialDomains[varIndex];
+  ASSERT_NORDOM(domain, true, domain__debug);
+  if (!domain_isSolved(domain)) {
     if (!hash[varIndex]) hash[varIndex] = [propagatorIndex];
     else if (hash[varIndex].indexOf(propagatorIndex) < 0) hash[varIndex].push(propagatorIndex);
   }
@@ -608,7 +612,6 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    //console.log('testing', varNames[i], 'in', config._var_names_trie)
     let varIndex = trie_get(config._var_names_trie, varNames[i]);
     ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
@@ -621,9 +624,10 @@ function config_addConstraint(config, name, varNames, param) {
     let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
     for (let i = 1, n = varIndexes.length; i < n; ++i) {
       let varIndex = varIndexes[i];
-      maxDomain = domain_any_plus(maxDomain, initialDomains[varIndex]);
+      let domain = initialDomains[varIndex];
+      maxDomain = domain_plus(maxDomain, domain);
     }
-    initialDomains[param] = domain_toStr(domain_any_intersection(maxDomain, initialDomains[param]));
+    initialDomains[param] = domain_intersection(maxDomain, initialDomains[param]);
 
     // eliminate multiple constants
     if (varIndexes.length > 1) {
@@ -632,19 +636,19 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varIndexes.length; i < n; ++i) {
         let varIndex = varIndexes[i];
         let domain = initialDomains[varIndex];
-        let value = domain_str_getValue(domain);
+        let value = domain_getValue(domain);
         if (value === NO_SUCH_VALUE) {
           newVarIndexes.push(varIndex);
         } else if (value !== 0) {
-          constants = domain_any_plus(constants, domain);
+          constants = domain_plus(constants, domain);
         }
       }
-      let cValue = domain_any_getValue(constants);
+      let cValue = domain_getValue(constants);
       if (cValue !== 0) {
         let varIndex = config_addVarAnonConstant(config, cValue);
         newVarIndexes.push(varIndex);
       }
-      if (!newVarIndexes.length) initialDomains[param] = domain_toStr(domain_any_intersection(ZERO, initialDomains[param]));
+      if (!newVarIndexes.length) initialDomains[param] = domain_intersection(domain_createValue(0), initialDomains[param]);
       varIndexes = newVarIndexes;
     }
   }
@@ -696,28 +700,35 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
 
-  ASSERT_STRDOM(domainLeft);
-  ASSERT_STRDOM(domainRight);
+  ASSERT_NORDOM(domainLeft, true, domain__debug);
+  ASSERT_NORDOM(domainRight, true, domain__debug);
   ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
-  let v = domain_str_getValue(domainLeft);
+  let v = domain_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, v - (constraintName === 'lt' ? 0 : 1)));
+    let targetValue = v - (constraintName === 'lt' ? 0 : 1);
+    initialDomains[varIndexRight] = domain_removeLte(domainRight, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  v = domain_str_getValue(domainRight);
+  v = domain_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, v + (constraintName === 'lt' ? 0 : 1)));
+    let targetValue = v + (constraintName === 'lt' ? 0 : 1);
+    initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeGte(domainLeft, domain_any_max(domainRight) + (constraintName === 'lt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_str_removeLte(domainRight, domain_any_min(domainLeft) - (constraintName === 'lt' ? 0 : 1)));
+  ASSERT(domainLeft, 'left should not be empty');
+  ASSERT(domainRight, 'right should not be empty');
+
+  let targetGte = domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1);
+  initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetGte);
+  let targetLte = domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1);
+  initialDomains[varIndexRight] = domain_removeLte(domainRight, targetLte);
 
   return false;
 }
@@ -729,29 +740,33 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   let domainLeft = initialDomains[varIndexLeft];
   let domainRight = initialDomains[varIndexRight];
 
-  ASSERT_STRDOM(domainLeft);
-  ASSERT_STRDOM(domainRight);
+  ASSERT_NORDOM(domainLeft, true, domain__debug);
+  ASSERT_NORDOM(domainRight, true, domain__debug);
   ASSERT(domainLeft && domainRight, 'NON_EMPTY_DOMAINS_EXPECTED'); // empty domains should be caught by addvar/decl
 
-  let v = domain_str_getValue(domainLeft);
+  let v = domain_getValue(domainLeft);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, v + (constraintName === 'gt' ? 0 : 1)));
+    let targetValue = v + (constraintName === 'gt' ? 0 : 1);
+    initialDomains[varIndexRight] = domain_removeGte(domainRight, targetValue, true);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
-  v = domain_str_getValue(domainRight);
+  v = domain_getValue(domainRight);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, v - (constraintName === 'gt' ? 0 : 1)));
+    let targetValue = v - (constraintName === 'gt' ? 0 : 1);
+    initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetValue);
     // do not add constraint; this constraint is already solved
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
 
   // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
-  initialDomains[varIndexLeft] = domain_toStr(domain_str_removeLte(domainLeft, domain_any_min(domainRight) - (constraintName === 'gt' ? 0 : 1)));
-  initialDomains[varIndexRight] = domain_toStr(domain_str_removeGte(domainRight, domain_any_max(domainLeft) + (constraintName === 'gt' ? 0 : 1)));
+  let targetLte = domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1);
+  initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetLte);
+  let targetGte = domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1);
+  initialDomains[varIndexRight] = domain_removeGte(domainRight, targetGte);
 
   return false;
 }
@@ -761,10 +776,10 @@ function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
   let varIndexRight = varIndexes[1];
   let a = initialDomains[varIndexLeft];
   let b = initialDomains[varIndexRight];
-  let v = domain_str_getValue(a);
-  if (v === NO_SUCH_VALUE) v = domain_str_getValue(b);
+  let v = domain_getValue(a);
+  if (v === NO_SUCH_VALUE) v = domain_getValue(b);
   if (v !== NO_SUCH_VALUE) {
-    let r = domain_toStr(domain_strstr_intersection(a, b));
+    let r = domain_intersection(a, b);
     initialDomains[varIndexLeft] = r;
     initialDomains[varIndexRight] = r;
     config._constrainedAway.push(varIndexLeft, varIndexRight);
@@ -776,15 +791,15 @@ function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
   let initialDomains = config.initial_domains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
-  let v = domain_str_getValue(initialDomains[varIndexLeft]);
+  let v = domain_getValue(initialDomains[varIndexLeft]);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexRight] = domain_toStr(domain_str_removeValue(initialDomains[varIndexRight], v));
+    initialDomains[varIndexRight] = domain_removeValue(initialDomains[varIndexRight], v);
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
-  v = domain_str_getValue(initialDomains[varIndexRight]);
+  v = domain_getValue(initialDomains[varIndexRight]);
   if (v !== NO_SUCH_VALUE) {
-    initialDomains[varIndexLeft] = domain_toStr(domain_str_removeValue(initialDomains[varIndexLeft], v));
+    initialDomains[varIndexLeft] = domain_removeValue(initialDomains[varIndexLeft], v);
     config._constrainedAway.push(varIndexLeft, varIndexRight);
     return true;
   }
@@ -798,19 +813,21 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
-  ASSERT_STRDOM(domain1);
-  ASSERT_STRDOM(domain2);
+
+  ASSERT_NORDOM(domain1, true, domain__debug);
+  ASSERT_NORDOM(domain2, true, domain__debug);
   if (!domain1 || !domain2) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
 
-  let v1 = domain_str_getValue(initialDomains[varIndexLeft]);
-  let v2 = domain_str_getValue(initialDomains[varIndexRight]);
+  let v1 = domain_getValue(initialDomains[varIndexLeft]);
+  let v2 = domain_getValue(initialDomains[varIndexRight]);
   let hasLeft = v1 !== NO_SUCH_VALUE;
   let hasRight = v2 !== NO_SUCH_VALUE;
   if (hasLeft && hasRight) { // just left or right would not force anything. but both does.
     return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
   }
 
-  let v3 = domain_str_getValue(initialDomains[varIndexResult]);
+  let domain3 = initialDomains[varIndexResult];
+  let v3 = domain_getValue(domain3);
   let hasResult = v3 !== NO_SUCH_VALUE;
   if (hasResult) {
     if (hasLeft) {
@@ -826,60 +843,36 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     // must be lt lte gt gte. these are solved completely when either param is solved
     ASSERT(opName === 'lt' || opName === 'lte' || opName === 'gt' || opName === 'gte', 'should be lt lte gt gte now because there are no other reifiers atm');
 
+    const REMOVE_FAIL = 0;
+    const REMOVE_PASS = 1;
+
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_any_max(domain1) < domain_any_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_any_min(domain1) > domain_any_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_any_min(domain1) > domain_any_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_any_max(domain1) <= domain_any_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_any_min(domain1) >= domain_any_max(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 0));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
-      if (domain_any_max(domain1) < domain_any_min(domain2)) {
-        initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], 1));
-        config._constrainedAway.push(varIndexLeft, varIndexRight, varIndexResult);
-        return true;
-      }
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
     } else {
       THROW('UNKNOWN_OP');
     }
   }
 
   return false;
+}
+function _config_eliminate(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, value) {
+  config.initial_domains[resultVarIndex] = domain_removeValue(resultDomain, value);
+  config._constrainedAway.push(leftVarIndex, rightVarIndex, resultVarIndex);
+  return true;
 }
 function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2) {
   let initialDomains = config.initial_domains;
@@ -909,92 +902,94 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
       return false;
   }
 
-  initialDomains[varIndexResult] = domain_toStr(domain_str_removeValue(initialDomains[varIndexResult], bool ? 0 : 1));
+  initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], bool ? 0 : 1);
   config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
   return true;
 }
-function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, value, result, domain1, domain2) {
+function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndex, value, result, domain1, domain2) {
   let initialDomains = config.initial_domains;
 
-  let domainRight = initialDomains[varIndexRight];
+  let domain = initialDomains[varIndex];
   switch (opName) {
     case 'lt':
-      if (result) domainRight = domain_str_removeLte(domainRight, value);
-      else domainRight = domain_str_removeGte(domainRight, value + 1);
+      if (result) domain = domain_removeLte(domain, value);
+      else domain = domain_removeGte(domain, value + 1);
       break;
     case 'lte':
-      if (result) domainRight = domain_str_removeLte(domainRight, value - 1);
-      else domainRight = domain_str_removeGte(domainRight, value);
+      if (result) domain = domain_removeLte(domain, value - 1);
+      else domain = domain_removeGte(domain, value);
       break;
     case 'gt':
-      if (result) domainRight = domain_str_removeGte(domainRight, value);
-      else domainRight = domain_str_removeLte(domainRight, value - 1);
+      if (result) domain = domain_removeGte(domain, value);
+      else domain = domain_removeLte(domain, value - 1);
       break;
     case 'gte':
-      if (result) domainRight = domain_str_removeGte(domainRight, value + 1);
-      else domainRight = domain_str_removeLte(domainRight, value);
+      if (result) domain = domain_removeGte(domain, value + 1);
+      else domain = domain_removeLte(domain, value);
       break;
     case 'eq':
-      if (result) domainRight = domain_strstr_intersection(domain1, domain2);
-      else domainRight = domain_str_removeValue(domainRight, value);
+      if (result) domain = domain_intersection(domain1, domain2);
+      else domain = domain_removeValue(domain, value);
       break;
     case 'neq':
-      if (result) domainRight = domain_str_removeValue(domainRight, value);
-      else domainRight = domain_strstr_intersection(domain1, domain2);
+      if (result) domain = domain_removeValue(domain, value);
+      else domain = domain_intersection(domain1, domain2);
       break;
     default:
       return false;
   }
 
-  initialDomains[varIndexRight] = domain_toStr(domainRight);
-  config._constrainedAway.push(varIndexRight); // note: left and result have been solved already so no need to push those here
+  ASSERT_NORDOM(domain, true, domain__debug);
+  initialDomains[varIndex] = domain;
+  config._constrainedAway.push(varIndex); // note: left and result have been solved already so no need to push those here
   return true;
 }
-function _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, value, result, domain1, domain2) {
+function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value, result, domain1, domain2) {
   let initialDomains = config.initial_domains;
 
-  let domainLeft = initialDomains[varIndexLeft];
+  let domain = initialDomains[varIndex];
   switch (opName) {
     case 'lt':
-      if (result) domainLeft = domain_str_removeGte(domainLeft, value + 1);
-      else domainLeft = domain_str_removeLte(domainLeft, value);
+      if (result) domain = domain_removeGte(domain, value);
+      else domain = domain_removeLte(domain, value - 1);
       break;
     case 'lte':
-      if (result) domainLeft = domain_str_removeGte(domainLeft, value);
-      else domainLeft = domain_str_removeLte(domainLeft, value);
+      if (result) domain = domain_removeGte(domain, value + 1);
+      else domain = domain_removeLte(domain, value);
       break;
     case 'gt':
-      if (result) domainLeft = domain_str_removeLte(domainLeft, value - 1);
-      else domainLeft = domain_str_removeGte(domainLeft, value);
+      if (result) domain = domain_removeLte(domain, value);
+      else domain = domain_removeGte(domain, value + 1);
       break;
     case 'gte':
-      if (result) domainLeft = domain_str_removeLte(domainLeft, value);
-      else domainLeft = domain_str_removeGte(domainLeft, value + 1);
+      if (result) domain = domain_removeLte(domain, value - 1);
+      else domain = domain_removeGte(domain, value);
       break;
     case 'eq':
-      if (result) domainLeft = domain_strstr_intersection(domain1, domain2);
-      else domainLeft = domain_str_removeValue(domainLeft, value);
+      if (result) domain = domain_intersection(domain1, domain2);
+      else domain = domain_removeValue(domain, value);
       break;
     case 'neq':
-      if (result) domainLeft = domain_str_removeValue(domainLeft, value);
-      else domainLeft = domain_strstr_intersection(domain1, domain2);
+      if (result) domain = domain_removeValue(domain, value);
+      else domain = domain_intersection(domain1, domain2);
       break;
     default:
       return false;
   }
 
-  initialDomains[varIndexLeft] = domain_toStr(domainLeft);
-  config._constrainedAway.push(varIndexLeft); // note: right and result have been solved already so no need to push those here
+  ASSERT_NORDOM(domain, true, domain__debug);
+  initialDomains[varIndex] = domain;
+  config._constrainedAway.push(varIndex); // note: right and result have been solved already so no need to push those here
   return true;
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways
-    let domain = domain_toStr(domain_strstr_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]));
+    let domain = domain_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]);
     config.initial_domains[resultIndex] = domain;
     config.initial_domains[varIndexes[0]] = domain;
-    if (domain_str_isSolved(domain)) {
+    if (domain_isSolved(domain)) {
       config._constrainedAway.push(varIndexes[0], resultIndex);
       return true;
     }
@@ -1131,10 +1126,12 @@ function config_initForSpace(config, space) {
   config._propagationBatch = 0;
   config._propagationCycles = 0;
 
+  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
+  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
 
   ASSERT(config._varToPropagators, 'should have generated hash');
 }

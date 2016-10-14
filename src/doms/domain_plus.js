@@ -9,33 +9,29 @@
 // [5+20, 10+30] -> [25, 40]
 
 import {
-  EMPTY,
-  EMPTY_STR,
   SMALL_MAX_NUM,
+  SOLVED_FLAG,
   SUP,
 
   ASSERT,
   ASSERT_NUMDOM,
-  ASSERT_NUMSTRDOM,
+  ASSERT_NORDOM,
   ASSERT_STRDOM,
 } from '../helpers';
 import {
-  EIGHT,
-  NINE,
-
+  EMPTY,
+  EMPTY_STR,
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 
   domain_str_closeGaps,
+  domain_num_createRange,
   domain_str_decodeValue,
   domain_str_encodeRange,
-  domain_any_max,
+  domain_max,
   domain_str_simplify,
-  domain_toNumstr,
+  domain_toSmallest,
 } from '../domain';
-import {
-  asmdomain_createRange,
-} from '../asmdomain';
 
 let MIN = Math.min;
 
@@ -48,9 +44,9 @@ let MIN = Math.min;
  * @param {$domain} domain2
  * @returns {$domain}
  */
-function domain_any_plus(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+function domain_plus(domain1, domain2) {
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
 
   // note: this is not 0+x=x. this is nothing+something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -73,7 +69,7 @@ function domain_any_plus(domain1, domain2) {
     else result = _domain_plusStrStrStr(domain1, domain2);
   }
 
-  return domain_toNumstr(domain_str_simplify(result));
+  return domain_toSmallest(domain_str_simplify(result));
 }
 function _domain_plusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);
@@ -95,15 +91,23 @@ function _domain_plusStrStrStr(domain1, domain2) {
   return newDomain;
 }
 function _domain_plusWillBeSmall(domain1, domain2) {
+  // if both domains are small enough they cannot add to a domain beyond the max
   ASSERT(typeof domain1 === 'number', 'ONLY_WITH_NUMBERS');
   ASSERT(typeof domain2 === 'number', 'ONLY_WITH_NUMBERS');
-  // if both domains are small enough they cannot add to a domain beyond the max
-  if (domain1 < NINE && domain2 < EIGHT) return true; // this shortcut catches most cases
-  return domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
+
+  //if (((domain1 | domain2) >>> 0) < (1 << 15)) return true; // could catch some cases
+  //if (domain1 < (1<<15) && domain2 < (1<<15)) return true;  // alternative of above
+
+  return domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM; // if max changes, update above too!
 }
 function _domain_plusNumNumStr(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
+
+  if (domain1 >= SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    return _domain_plusRangeNumStr(solvedValue, solvedValue, domain2);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -113,7 +117,6 @@ function _domain_plusNumNumStr(domain1, domain2) {
   let hi = flagIndex;
 
   let flagValue = 1 << ++flagIndex;
-
   let newDomain = EMPTY_STR;
   while (flagValue <= domain1 && flagIndex <= SMALL_MAX_NUM) {
     if ((flagValue & domain1) > 0) {
@@ -133,7 +136,12 @@ function _domain_plusNumNumNum(domain1, domain2) {
   ASSERT_NUMDOM(domain1);
   ASSERT_NUMDOM(domain2);
   ASSERT(domain1 !== EMPTY && domain2 !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
-  ASSERT(domain_any_max(domain1) + domain_any_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+  ASSERT(domain_max(domain1) + domain_max(domain2) <= SMALL_MAX_NUM, 'THE_POINTE');
+
+  if (domain1 >= SOLVED_FLAG) {
+    let solvedValue = domain1 ^ SOLVED_FLAG;
+    return _domain_plusRangeNumNum(solvedValue, solvedValue, domain2);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -163,6 +171,10 @@ function _domain_plusRangeNumNum(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
   ASSERT(domain_num !== EMPTY, 'SHOULD_BE_CHECKED_ELSEWHERE');
 
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeRangeNum(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -192,6 +204,11 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
   ASSERT_NUMDOM(domain_num);
   ASSERT_STRDOM(domain_str);
 
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeStrStr(solvedValue, solvedValue, domain_str);
+  }
+
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
   while ((domain_num & (1 << flagIndex)) === 0) ++flagIndex;
@@ -218,6 +235,11 @@ function _domain_plusNumStrStr(domain_num, domain_str) {
 }
 function _domain_plusRangeNumStr(loi, hii, domain_num) {
   ASSERT_NUMDOM(domain_num);
+
+  if (domain_num >= SOLVED_FLAG) {
+    let solvedValue = domain_num ^ SOLVED_FLAG;
+    return _domain_plusRangeRangeStr(loi, hii, solvedValue, solvedValue);
+  }
 
   let flagIndex = 0;
   // find the first set bit. must find something because small domain and not empty
@@ -268,9 +290,11 @@ function _domain_plusRangeRangeNum(loi, hii, loj, hij) {
   ASSERT(loi + loj <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
   ASSERT(hii + hij <= SMALL_MAX_NUM, 'RESULT_SHOULD_NOT_EXCEED_SMALL_DOMAIN');
 
-  return asmdomain_createRange(loi + loj, hii + hij);
+  let domain = domain_num_createRange(loi + loj, hii + hij);
+  ASSERT(typeof domain === 'number' && domain < SOLVED_FLAG, 'expecting numdom, not soldom');
+  return domain;
 }
 
 // BODY_STOP
 
-export default domain_any_plus;
+export default domain_plus;

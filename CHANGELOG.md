@@ -16,6 +16,11 @@
 - Dropped support for custom `search` function option. May return later.
 - Dropped support for `initial_vars` in the `Solver` constructor options
 - Dropped support for `next_choice`. I don't think it was really exposed, but either way internally it doesn't exist anymore. Everything uses the same space factory now, until we need this functionality back.
+- Removed the asmjs stuff introduced in v2.3.4 because the introduction of the (internal) soldom representation was causing too much confusion/trouble. It also has minification issues. You never really saw it, anyways. 
+- Fixed domain_toList, which was skipping the upper half of bitdoms (`16` was hardcoded rather than using `SMALL_MAX_NUM` so this was an old bug...)
+- Dropped api `Solver#setOption` because it was leading to confusing situations. You can set the options through the object for the `solve` call
+- Remove `domain_removeNextFromList`, no longer used after value distributors were optimized
+- Deprecated the config setting `varStratOverride` in favor of `varValueStrat` (as used with `solver.solve({...})`)
 
 ## v2.3.4:
 

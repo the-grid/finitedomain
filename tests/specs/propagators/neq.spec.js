@@ -3,20 +3,27 @@ import {
   fixt_arrdom_nums,
   fixt_numdom_empty,
   fixt_numdom_nums,
+  fixt_arrdom_range,
+  fixt_arrdom_ranges,
   fixt_numdom_range,
+  fixt_numdom_solved,
   fixt_strdom_range,
   fixt_strdom_ranges,
   fixt_strdom_value,
+  fixt_domainEql,
 } from '../../fixtures/domain.fixt';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
   SUB,
   SUP,
+
+  ASSERT_SET_LOG,
 } from '../../../src/helpers';
 import {
-  FORCE_ARRAY,
-
-  domain_any_clone,
+  domain__debug,
+  domain_toArr,
 } from '../../../src/domain';
 import {
   config_addVarDomain,
@@ -81,8 +88,8 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain1));
+        config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -90,14 +97,15 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(domain1);
-        expect(space.vardoms[B]).to.eql(domain2);
+
+        fixt_domainEql(space.vardoms[A], domain1);
+        fixt_domainEql(space.vardoms[B], domain2);
       });
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain2));
+        config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -105,8 +113,9 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(domain2);
-        expect(space.vardoms[B]).to.eql(domain1);
+
+        fixt_domainEql(space.vardoms[A], domain2);
+        fixt_domainEql(space.vardoms[B], domain1);
       });
     }
 
@@ -136,10 +145,10 @@ describe('propagators/neq.spec', function() {
   describe('with one solved domain', function() {
 
     function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter) {
-      it(`should not change anything (right-left): ${[solvedDomain, unsolvedDomainBefore].join('|')}`, function() {
+      it(`should not change anything (right-left): [${[domain_toArr(solvedDomain), domain_toArr(unsolvedDomainBefore)].join(']|[')}]`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(solvedDomain, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(solvedDomain));
+        config_addVarDomain(config, 'B', domain_toArr(unsolvedDomainBefore));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -147,14 +156,15 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(solvedDomain);
-        expect(space.vardoms[B]).to.eql(unsolvedDomainAfter);
+
+        fixt_domainEql(space.vardoms[A], solvedDomain);
+        fixt_domainEql(space.vardoms[B], unsolvedDomainAfter);
       });
 
-      it(`should remove solved domain from unsolve domain (left-right): ${[unsolvedDomainBefore, solvedDomain].join('|')}`, function() {
+      it(`should remove solved domain from unsolve domain (left-right): [${[unsolvedDomainBefore, solvedDomain].join(']|[')}]`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(unsolvedDomainBefore, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(solvedDomain, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(unsolvedDomainBefore));
+        config_addVarDomain(config, 'B', domain_toArr(solvedDomain));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -162,14 +172,15 @@ describe('propagators/neq.spec', function() {
         let A = config.all_var_names.indexOf('A');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(unsolvedDomainAfter);
-        expect(space.vardoms[B]).to.eql(solvedDomain);
+
+        fixt_domainEql(space.vardoms[A], unsolvedDomainAfter);
+        fixt_domainEql(space.vardoms[B], solvedDomain);
       });
     }
 
     describe('with array', function() {
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP - 1));
-      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP, SUP));
+      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP - 1));
+      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP));
       test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1));
       test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1));
       test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]));
@@ -179,8 +190,8 @@ describe('propagators/neq.spec', function() {
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_range(1, 1));
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_range(0, 0));
+      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_solved(1));
+      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_solved(0));
       test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15));
       test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5));
       test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15));
@@ -193,10 +204,10 @@ describe('propagators/neq.spec', function() {
   describe('two neq solved domains', function() {
 
     function test(domain1, domain2) {
-      it(`should be "solved" (left-right): ${[domain1, domain2].join('|')}`, function() {
+      it(`should be "solved" (left-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain1));
+        config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -204,14 +215,15 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(domain1);
-        expect(space.vardoms[B]).to.eql(domain2);
+
+        fixt_domainEql(space.vardoms[A], domain1);
+        fixt_domainEql(space.vardoms[B], domain2);
       });
 
-      it(`should be "solved" (right-left): ${[domain2, domain1].join('|')}`, function() {
+      it(`should be "solved" (right-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain2));
+        config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -219,14 +231,15 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(domain2);
-        expect(space.vardoms[B]).to.eql(domain1);
+
+        fixt_domainEql(space.vardoms[A], domain2);
+        fixt_domainEql(space.vardoms[B], domain1);
       });
 
-      it(`should reject if same (left-left): ${[domain1, domain1].join('|')}`, function() {
+      it(`should reject if same (left-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain1, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain1, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain1));
+        config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -234,14 +247,15 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
-        expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
+
+        fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
+        fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
       });
 
-      it(`should reject if same (right-right): ${[domain2, domain2].join('|')}`, function() {
+      it(`should reject if same (right-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_any_clone(domain2, FORCE_ARRAY));
-        config_addVarDomain(config, 'B', domain_any_clone(domain2, FORCE_ARRAY));
+        config_addVarDomain(config, 'A', domain_toArr(domain2));
+        config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
@@ -249,8 +263,9 @@ describe('propagators/neq.spec', function() {
         let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
-        expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
-        expect(space.vardoms[B]).to.eql(fixt_numdom_empty());
+
+        fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
+        fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
       });
     }
 
@@ -268,6 +283,40 @@ describe('propagators/neq.spec', function() {
       test(fixt_numdom_nums(1), fixt_numdom_nums(15));
       test(fixt_numdom_nums(0), fixt_numdom_nums(5));
       test(fixt_numdom_nums(8), fixt_numdom_nums(1));
+    });
+
+    describe('with solved numbers', function() {
+      test(fixt_numdom_solved(0), fixt_numdom_solved(1));
+      test(fixt_numdom_solved(1), fixt_numdom_solved(2));
+      test(fixt_numdom_solved(1), fixt_numdom_solved(15));
+      test(fixt_numdom_solved(0), fixt_numdom_solved(5));
+      test(fixt_numdom_solved(8), fixt_numdom_solved(1));
+    });
+  });
+
+  describe('with LOG', function() {
+
+    before(function() {
+      ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+    });
+
+    it('should improve test coverage by enabling logging', function() {
+      let config = config_create();
+      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let space = space_createRoot();
+      space_initFromConfig(space, config);
+
+      let A = config.all_var_names.indexOf('A');
+      let B = config.all_var_names.indexOf('B');
+
+      propagator_neqStepBare(space, config, A, B);
+
+      expect(true).to.eql(true);
+    });
+
+    after(function() {
+      ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
 });

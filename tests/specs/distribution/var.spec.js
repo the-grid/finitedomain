@@ -32,8 +32,13 @@ import {
 describe('distribution/var.spec', function() {
 
   describe('distribution_var_by_throw', function() {
+
     it('should throw', function() {
-      expect(_ => distribution_getNextVarIndex({config: {varStratConfig: {type: 'throw'}}}, {varStratConfig: {type: 'throw'}})).to.throw('not expecting to pick this distributor');
+      expect(_ => distribution_getNextVarIndex({}, {varStratConfig: {type: 'throw'}})).to.throw('not expecting to pick this distributor');
+    });
+
+    it('should throw', function() {
+      expect(_ => distribution_getNextVarIndex({}, {varStratConfig: {type: 'unknown'}})).to.throw('unknown next var func');
     });
   });
 
@@ -293,7 +298,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -306,7 +311,7 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -318,9 +323,9 @@ describe('distribution/var.spec', function() {
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varStratOverride', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -990,8 +995,8 @@ describe('distribution/var.spec', function() {
         let names = all.filter(() => Math.random() > 0.3);
         // shuffle list the ugly way
         names.sort(() => Math.random() - 0.5);
-
-        test(names);
+        // must have some names or assertions are broken
+        if (names.length) test(names);
       }
     });
   });

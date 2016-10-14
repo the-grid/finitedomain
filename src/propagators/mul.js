@@ -1,10 +1,14 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
 } from '../helpers';
 import {
-  domain_any_mul,
-  domain_any_intersection,
+  domain__debug,
+  domain_mul,
+  domain_intersection,
 } from '../domain';
 
 // BODY_START
@@ -18,11 +22,17 @@ import {
  */
 function propagator_mulStep(space, config, varIndex1, varIndex2, varIndex3) {
   ASSERT(varIndex1 >= 0 && varIndex2 >= 0 && varIndex3 >= 0, 'expecting three vars', varIndex1, varIndex2, varIndex3);
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
-  let domain3 = space.vardoms[varIndex3];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
+  let domain3 = vardoms[varIndex3];
 
   space.vardoms[varIndex3] = _propagator_mulStep(domain1, domain2, domain3);
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_mulStep; indexes:', varIndex1, varIndex2, varIndex3, 'doms:', domain__debug(domain1), 'mul', domain__debug(domain2), 'was', domain__debug(domain3), 'now', domain__debug(vardoms[varIndex3])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex3], true, domain__debug);
 }
 
 /**
@@ -32,13 +42,13 @@ function propagator_mulStep(space, config, varIndex1, varIndex2, varIndex3) {
  * @returns {$domain}
  */
 function _propagator_mulStep(domain1, domain2, domResult) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let domain = domain_any_mul(domain1, domain2);
+  let domain = domain_mul(domain1, domain2);
 
-  return domain_any_intersection(domResult, domain);
+  return domain_intersection(domResult, domain);
 }
 
 // BODY_STOP

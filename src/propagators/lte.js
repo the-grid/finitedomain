@@ -1,13 +1,17 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
-  domain_any_max,
-  domain_any_min,
-  domain_any_removeGte,
-  domain_any_removeLte,
+  domain__debug,
+  domain_max,
+  domain_min,
+  domain_removeGte,
+  domain_removeLte,
 } from '../domain';
 
 // BODY_START
@@ -27,26 +31,19 @@ function propagator_lteStepBare(space, config, varIndex1, varIndex2) {
   let domain1 = space.vardoms[varIndex1];
   let domain2 = space.vardoms[varIndex2];
 
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let lo1 = domain_any_min(domain1);
-  let hi1 = domain_any_max(domain1);
-  let lo2 = domain_any_min(domain2);
-  let hi2 = domain_any_max(domain2);
+  let lo1 = domain_min(domain1);
+  let hi2 = domain_max(domain2);
 
-  // every number in v1 can only be smaller than or equal to the biggest
-  // value in v2. bigger values will never satisfy lt so prune them.
-  if (hi1 > hi2) {
-    space.vardoms[varIndex1] = domain_any_removeGte(domain1, hi2 + 1);
-  }
+  space.vardoms[varIndex1] = domain_removeGte(domain1, hi2 + 1);
+  space.vardoms[varIndex2] = domain_removeLte(domain2, lo1 - 1);
 
-  // likewise; numbers in v2 that are smaller than or equal to the
-  // smallest value of v1 can never satisfy lt so prune them as well
-  if (lo1 > lo2) {
-    space.vardoms[varIndex2] = domain_any_removeLte(domain2, lo1 - 1);
-  }
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_ltStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'lt', domain__debug(domain2), '->', domain__debug(space.vardoms[varIndex1]), domain__debug(space.vardoms[varIndex2])));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
 }
 
 function propagator_gteStepBare(space, config, varIndex1, varIndex2) {
@@ -63,11 +60,13 @@ function propagator_gteStepBare(space, config, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_lteStepWouldReject(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_any_min(domain1) > domain_any_max(domain2);
+  let result = domain_min(domain1) > domain_max(domain2);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_lteStepWouldReject;', 'min(' + domain__debug(domain1) + ') = ' + domain_min(domain1), '>', 'max(' + domain__debug(domain2) + ')=' + domain_max(domain2), '->', result));
+  return result;
 }
 
 /**
@@ -78,25 +77,9 @@ function propagator_lteStepWouldReject(domain1, domain2) {
  * @returns {boolean}
  */
 function propagator_gteStepWouldReject(domain1, domain2) {
-  return propagator_lteStepWouldReject(domain2, domain1);
-}
-
-/**
- * lte is solved if dom1 contains no values that are
- * higher than any numbers in dom2. Since domains only
- * shrink we can assume that the lte constraint will not
- * be broken by searching further once this state is seen.
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {boolean}
- */
-function propagator_lteSolved(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
-  ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
-
-  return domain_any_max(domain1) <= domain_any_min(domain2);
+  let result = propagator_lteStepWouldReject(domain2, domain1);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_gteStepWouldReject;', domain__debug(domain1), '<=', domain__debug(domain2), '->', result));
+  return result;
 }
 
 // BODY_STOP
@@ -106,5 +89,4 @@ export {
   propagator_gteStepWouldReject,
   propagator_lteStepBare,
   propagator_lteStepWouldReject,
-  propagator_lteSolved,
 };

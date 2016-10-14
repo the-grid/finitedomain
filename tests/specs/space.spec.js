@@ -1,5 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_domainEql,
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
@@ -398,8 +399,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space, config);
 
-          expect(space.vardoms[config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(0)); // we set it
-          expect(space.vardoms[config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(1)); // by neq
+          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('A')], fixt_numdom_nums(0)); // we set it
+          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('B')], fixt_numdom_nums(1)); // by neq
         });
 
         it('step 1; second bool updated', function() {
@@ -419,8 +420,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space, config);
 
-          expect(space.vardoms[config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(1)); // by neq
-          expect(space.vardoms[config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(0)); // we set it
+          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('A')], fixt_numdom_nums(1)); // by neq
+          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('B')], fixt_numdom_nums(0)); // we set it
         });
       });
 

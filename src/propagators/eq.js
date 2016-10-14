@@ -1,12 +1,15 @@
 import {
+  LOG_FLAG_PROPSTEPS,
+
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
-  domain_any_intersection,
-  domain_any_isSolved,
-  domain_any_sharesNoElements,
+  domain__debug,
+  domain_intersection,
+  domain_sharesNoElements,
 } from '../domain';
 
 // BODY_START
@@ -31,17 +34,22 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
   ASSERT(typeof varIndex1 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
 
-  let domain1 = space.vardoms[varIndex1];
-  let domain2 = space.vardoms[varIndex2];
+  let vardoms = space.vardoms;
+  let domain1 = vardoms[varIndex1];
+  let domain2 = vardoms[varIndex2];
 
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
 
-  let result = domain_any_intersection(domain1, domain2);
+  let result = domain_intersection(domain1, domain2);
 
-  space.vardoms[varIndex1] = result;
-  space.vardoms[varIndex2] = result;
+  vardoms[varIndex1] = result;
+  vardoms[varIndex2] = result;
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_eqStepBare; indexes:', varIndex1, varIndex2, 'doms:', domain__debug(domain1), 'eq', domain__debug(domain2), '->', domain__debug(result)));
+  ASSERT_NORDOM(space.vardoms[varIndex1], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[varIndex2], true, domain__debug);
 }
 
 /**
@@ -56,23 +64,13 @@ function propagator_eqStepBare(space, config, varIndex1, varIndex2) {
  * @returns {boolean}
  */
 function propagator_eqStepWouldReject(domain1, domain2) {
-  ASSERT_NUMSTRDOM(domain1);
-  ASSERT_NUMSTRDOM(domain2);
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
   ASSERT(domain1 && domain2, 'NON_EMPTY_DOMAIN_EXPECTED');
 
-  return domain_any_sharesNoElements(domain1, domain2);
-}
-
-/**
- * An eq propagator is solved when both its vars are
- * solved. Any other state may still lead to failure.
- *
- * @param {$domain} domain1
- * @param {$domain} domain2
- * @returns {boolean}
- */
-function propagator_eqSolved(domain1, domain2) {
-  return domain_any_isSolved(domain1) && domain_any_isSolved(domain2);
+  let result = domain_sharesNoElements(domain1, domain2);
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_eqStepWouldReject;', domain__debug(domain1), '!==', domain__debug(domain2), '->', result));
+  return result;
 }
 
 // BODY_STOP
@@ -80,5 +78,4 @@ function propagator_eqSolved(domain1, domain2) {
 export {
   propagator_eqStepBare,
   propagator_eqStepWouldReject,
-  propagator_eqSolved,
 };

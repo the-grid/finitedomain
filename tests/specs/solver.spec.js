@@ -1,8 +1,11 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_arrdom_empty,
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_strdom_ranges,
+  fixt_dom_nums,
+  fixt_dom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -16,6 +19,7 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  NO_SUCH_VALUE,
   SUB,
   SUP,
 } from '../../src/helpers';
@@ -149,14 +153,14 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]); // dont use fixtures because small domain
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_strdom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       it('should accept a legacy nested array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [[0, 10], [20, 30]]);
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_strdom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       describe('legacy', function() {
@@ -242,7 +246,7 @@ describe('solver.spec', function() {
         let opts2 = {id: 'foo'}; // to ensure opts isnt adjusted
 
         expect(solver.addVar(opts)).to.equal(opts);
-        expect(_ => solver.addVar(opts2)).to.throw('Do not declare the same varName twice');
+        expect(_ => solver.addVar(opts2)).to.throw('Var name already part of this config. Probably a bug?');
       });
 
       it('should update byId', function() {
@@ -1077,6 +1081,30 @@ describe('solver.spec', function() {
         expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql([1, 2, 4, 5, 7, 7, 9, 13, 15, 15]);
       });
     });
+
+    describe('solver.domain_max', function() {
+
+      it('should work on a domain', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_max(fixt_arrdom_nums(0, 1, 4, 6))).to.eql(6);
+      });
+
+      it('should return NO_SUCH_VALUE if the domain is empty', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_max(fixt_arrdom_empty())).to.eql(NO_SUCH_VALUE);
+      });
+    });
+
+    describe('solver.domain_toList', function() {
+
+      it('should return an array of values for given domain', function() {
+        let solver = new Solver();
+
+        expect(solver.domain_toList(fixt_dom_nums(0, 1, 2, 3, 8, 10))).to.eql([0, 1, 2, 3, 8, 10]);
+      });
+    });
   });
 
   describe('API integration tests', function() {
@@ -1494,6 +1522,7 @@ describe('solver.spec', function() {
   });
 
   describe('targeting vars', function() {
+
     it('should want to solve all vars if targets are not set at all', function() {
       let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
 
@@ -1589,6 +1618,26 @@ describe('solver.spec', function() {
       // that var, there ought to be two solutions (0 and 1) for
       // it and any for the others, 2x2x2=8
       expect(countSolutions(solver)).to.equal(8);
+    });
+  });
+
+  describe('targeting values', function() {
+
+    it('should support a function comparator', function() {
+      let solver = new Solver();
+      solver.decl('a', fixt_arrdom_range(0, 100));
+      solver.decl('b', fixt_arrdom_range(0, 100));
+      solver.neq('a', 'b');
+
+      let called = false;
+      solver.solve({max: 1, distribute: {valueStrategy: function(space, varIndex, choiceIndex) {
+        called = true;
+        expect(space._class).to.eql('$space');
+        expect(varIndex).to.be.a('number');
+        expect(choiceIndex).to.be.a('number');
+      }}});
+
+      expect(called, 'the callback should be called at least once').to.eql(true);
     });
   });
 
@@ -2541,14 +2590,6 @@ describe('solver.spec', function() {
     });
   });
 
-  describe('solver.setOption', function() {
-
-    it('should exist', function() {
-      let solver = new Solver();
-      expect(solver.setOption).to.be.a('function');
-    });
-  });
-
   describe('continue solved space', function() {
 
     it('should solve this in one go', function() {
@@ -2603,6 +2644,55 @@ describe('solver.spec', function() {
       expect(countSolutions(solver2), 'solve count 2').to.eql(1);
       expect(solver2.solutions[0].C < solver2.solutions[0].B).to.equal(true);
       expect(solver2.solutions).to.eql([{A: 2, B: 4, C: 1}]);
+    });
+  });
+
+  describe('debugging options', function() {
+
+    //it('should support _debugConfig', function() {
+    //  let solver = new Solver();
+    //
+    //  solver.solve({_debugConfig: true});
+    //
+    //  expect(true).to.eql(true);
+    //});
+
+    //it('should support _debug bare', function() {
+    //  let solver = new Solver();
+    //  solver.solve({_debug: true});
+    //
+    //  expect(true).to.eql(true);
+    //});
+
+    it('should support _debug edge cases', function() {
+      // note: this is only trying to improve test coverage in debugging
+      // code. the actual test is not testing anything in particular.
+      let solver = new Solver();
+      solver.decl('a', fixt_arrdom_range(0, 100));
+      solver.decl('b', fixt_arrdom_range(0, 100));
+      solver.num(0);
+      solver.eq('a', 'b');
+      solver.isEq('a', 'b');
+
+      solver.solve({_debug: true, vars: ['a', 'b']});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debugSpace', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugSpace: true});
+
+      expect(true).to.eql(true);
+    });
+
+    it('should support _debugSolver', function() {
+      let solver = new Solver();
+
+      solver.solve({_debugSolver: true});
+
+      expect(true).to.eql(true);
     });
   });
 });

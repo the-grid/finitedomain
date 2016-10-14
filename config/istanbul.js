@@ -9,7 +9,7 @@ module.exports = {
     reporters: [
       { type: 'html', dir: 'build/coverage/' },
       { type: 'text-summary', dir: 'build/coverage/' },
-      { type: 'text'}, // TODO: add this to commits, too?
+      { type: 'text'},
     ],
   },
   'es-modules': true,

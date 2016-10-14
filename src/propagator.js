@@ -8,14 +8,6 @@ import {
   config_addVarAnonNothing,
 } from './config';
 
-import {
-  ONE,
-  ZERO,
-  BOOL,
-
-  domain_toNumstr,
-} from './domain';
-
 import propagator_markovStepBare from './propagators/markov';
 import propagator_reifiedStepBare from './propagators/reified';
 import propagator_ringStepBare from './propagators/ring';
@@ -43,11 +35,14 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
-  domain_any_divby,
-  domain_any_mul,
+  domain_divby,
+  domain_getValue,
+  domain_max,
+  domain_min,
+  domain_mul,
 } from './domain';
-import domain_any_plus from './doms/domain_plus';
-import domain_any_minus from './doms/domain_minus';
+import domain_plus from './doms/domain_plus';
+import domain_minus from './doms/domain_minus';
 
 // BODY_START
 
@@ -112,6 +107,8 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
+  ASSERT(domain_min(config.initial_domains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
+  ASSERT(domain_max(config.initial_domains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
   let nopName;
   let opFunc;
@@ -126,26 +123,41 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
+      let A = config.initial_domains[leftVarIndex];
+      let B = config.initial_domains[rightVarIndex];
+      let C = config.initial_domains[resultVarIndex];
 
-      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (C === BOOL) {
-        if (B === BOOL) {
-          if (A === ONE) {
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
-          if (A === ZERO) {
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
-        }
-        if (A === BOOL) {
-          if (B === ONE) {
+      // while at most one var should be solved at this point, it's possible
+      // (and fine) if multiple vars are solved here. it's just less efficient.
+      // (inefficient) config imports could cause this.
+
+      let valueC = domain_getValue(C);
+
+      if (valueC === 0) {
+        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
+      } else if (valueC === 1) {
+        return propagator_addEq(config, leftVarIndex, rightVarIndex);
+      } else {
+        let minA = domain_min(A);
+        let maxA = domain_max(A);
+        let minB = domain_min(B);
+        let maxB = domain_max(B);
+
+        if (minA === 0 && maxA === 1) { // A=bool
+          if (maxB === 0) { // B solved to 0?
+            ASSERT(domain_getValue(B) === 0, 'because csis');
+            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          } else if (minB === 1) { // B solved to 1?
+            ASSERT(domain_getValue(B) === 1, 'because csis');
             return propagator_addEq(config, leftVarIndex, resultVarIndex);
           }
-          if (B === ZERO) {
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+        } else if (minB === 0 && maxB === 1) {
+          if (maxA === 0) {
+            ASSERT(domain_getValue(A) === 0, 'because csis');
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          } else if (minA === 1) {
+            ASSERT(domain_getValue(A) === 1, 'because csis');
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
           }
         }
       }
@@ -160,26 +172,37 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      let A = domain_toNumstr(config.initial_domains[leftVarIndex]);
-      let B = domain_toNumstr(config.initial_domains[rightVarIndex]);
-      let C = domain_toNumstr(config.initial_domains[resultVarIndex]);
+      let A = config.initial_domains[leftVarIndex];
+      let B = config.initial_domains[rightVarIndex];
+      let C = config.initial_domains[resultVarIndex];
 
-      // optimization; if only with bools and A or B is solved, we can do eq(A,C) or neq(A,C)
-      if (C === BOOL) {
-        if (B === BOOL) {
-          if (A === ONE) {
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
-          if (A === ZERO) {
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
-        }
-        if (A === BOOL) {
-          if (B === ONE) {
+      let valueC = domain_getValue(C);
+
+      if (valueC === 0) {
+        return propagator_addEq(config, leftVarIndex, rightVarIndex);
+      } else if (valueC === 1) {
+        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
+      } else {
+        let minA = domain_min(A);
+        let maxA = domain_max(A);
+        let minB = domain_min(B);
+        let maxB = domain_max(B);
+
+        if (minA === 0 && maxA === 1) { // A=bool
+          if (maxB === 0) { // B solved to 0?
+            ASSERT(domain_getValue(B) === 0, 'because csis');
+            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          } else if (minB === 1) { // B solved to 1?
+            ASSERT(domain_getValue(B) === 1, 'because csis');
             return propagator_addNeq(config, leftVarIndex, resultVarIndex);
           }
-          if (B === ZERO) {
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
+        } else if (minB === 0 && maxB === 1) {
+          if (maxA === 0) {
+            ASSERT(domain_getValue(A) === 0, 'because csis');
+            return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          } else if (minA === 1) {
+            ASSERT(domain_getValue(A) === 1, 'because csis');
+            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
           }
         }
       }
@@ -411,7 +434,7 @@ function propagator_addRing(config, A, B, C, opName, opFunc) {
  * @param {number} resultVarIndex
  */
 function propagator_addPlus(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'plus', 'min', domain_any_plus, domain_any_minus, leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'plus', 'min', domain_plus, domain_minus, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**
@@ -438,7 +461,7 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_any_mul, domain_any_divby, leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_divby, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**

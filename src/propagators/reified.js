@@ -1,17 +1,22 @@
 import {
-  EMPTY,
+  LOG_FLAG_PROPSTEPS,
 
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
-  ZERO,
-  ONE,
-  BOOL,
+  domain__debug,
+  domain_createRange,
+  domain_createValue,
+  domain_getValue,
 } from '../domain';
 
 // BODY_START
+
+let REIFIER_FAIL = 0;
+let REIFIER_PASS = 1;
 
 /**
  * A boolean variable that represents whether a comparison
@@ -34,46 +39,44 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
   ASSERT(typeof leftVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof rightVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof resultVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-  ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_NUMBER');
-  ASSERT(typeof invOpName === 'string', 'NOP_SHOULD_BE_NUMBER');
+  ASSERT(typeof opName === 'string', 'OP_SHOULD_BE_STRING');
+  ASSERT(typeof invOpName === 'string', 'NOP_SHOULD_BE_STRING');
 
   let vardoms = space.vardoms;
   let domResult = vardoms[resultVarIndex];
-  ASSERT(domResult === ZERO || domResult === ONE || domResult === BOOL, 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
 
-  if (domResult === ZERO) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_reifiedStepBare; op:', opName, 'indexes:', leftVarIndex, rightVarIndex, resultVarIndex, 'doms before:', domain__debug(vardoms[leftVarIndex]), '?=' + opName, domain__debug(vardoms[rightVarIndex]), '->', domain__debug(vardoms[resultVarIndex])));
+
+  let value = domain_getValue(domResult);
+  ASSERT(value === REIFIER_FAIL || value === REIFIER_PASS || domResult === domain_createRange(0, 1), 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
+
+  if (value === REIFIER_FAIL) {
     nopFunc(space, config, leftVarIndex, rightVarIndex);
-  } else if (domResult === ONE) {
+  } else if (value === REIFIER_PASS) {
     opFunc(space, config, leftVarIndex, rightVarIndex);
   } else {
-    ASSERT(domResult === BOOL, 'failsafe assertion');
-
     let domain1 = vardoms[leftVarIndex];
     let domain2 = vardoms[rightVarIndex];
 
-    ASSERT_NUMSTRDOM(domain1);
-    ASSERT_NUMSTRDOM(domain2);
+    ASSERT_NORDOM(domain1);
+    ASSERT_NORDOM(domain2);
     ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
-    ASSERT(domResult === BOOL, 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
+    ASSERT(domResult === domain_createRange(0, 1), 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
 
-    // we'll need to confirm both in any case so do it first now
-    let opRejects = opRejectChecker(domain1, domain2);
-    let nopRejects = nopRejectChecker(domain1, domain2);
-
-    // if op and nop both reject then we cant fulfill the constraints
-    // otherwise the reifier must solve to the other op
-    if (nopRejects) {
-      if (opRejects) {
-        vardoms[resultVarIndex] = EMPTY;
-      } else {
-        vardoms[resultVarIndex] = ONE;
-        opFunc(space, config, leftVarIndex, rightVarIndex);
-      }
-    } else if (opRejects) {
-      vardoms[resultVarIndex] = ZERO;
+    if (nopRejectChecker(domain1, domain2)) {
+      ASSERT(!opRejectChecker(domain1, domain2), 'with non-empty domains op and nop cant BOTH reject');
+      vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
+      opFunc(space, config, leftVarIndex, rightVarIndex);
+    } else if (opRejectChecker(domain1, domain2)) {
+      vardoms[resultVarIndex] = domain_createValue(REIFIER_FAIL);
       nopFunc(space, config, leftVarIndex, rightVarIndex);
     }
   }
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_reifiedStepBare; doms after:', domain__debug(vardoms[leftVarIndex]), '?=' + opName, domain__debug(vardoms[rightVarIndex]), '->', domain__debug(vardoms[resultVarIndex])));
+  ASSERT_NORDOM(space.vardoms[leftVarIndex], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[rightVarIndex], true, domain__debug);
+  ASSERT_NORDOM(space.vardoms[resultVarIndex], true, domain__debug);
 }
 
 // BODY_STOP

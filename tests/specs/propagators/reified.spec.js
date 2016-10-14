@@ -1,6 +1,8 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
+  fixt_dom_clone,
+  fixt_domainEql,
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_strdom_range,
@@ -11,10 +13,11 @@ import {
 } from '../../fixtures/lib';
 
 import {
-  FORCE_ARRAY,
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
 
-  domain_any_clone,
-} from '../../../src/domain';
+  ASSERT_SET_LOG,
+} from '../../../src/helpers';
 import {
   config_addVarDomain,
   config_create,
@@ -55,9 +58,9 @@ describe('propagators/reified.spec', function() {
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `result=[${bool_after}]`]}`, function() {
 
           let config = config_create();
-          config_addVarDomain(config, 'A', domain_any_clone(A_in, FORCE_ARRAY));
-          config_addVarDomain(config, 'B', domain_any_clone(B_in, FORCE_ARRAY));
-          config_addVarDomain(config, 'bool', domain_any_clone(bool_in, FORCE_ARRAY));
+          config_addVarDomain(config, 'A', fixt_dom_clone(A_in, 'array'));
+          config_addVarDomain(config, 'B', fixt_dom_clone(B_in, 'array'));
+          config_addVarDomain(config, 'bool', fixt_dom_clone(bool_in, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
 
@@ -72,9 +75,9 @@ describe('propagators/reified.spec', function() {
           let bool = config.all_var_names.indexOf('bool');
           propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
-          expect(space.vardoms[A], 'A should be unchanged').to.eql(A_in);
-          expect(space.vardoms[B], 'B should be unchanged').to.eql(B_in);
-          expect(space.vardoms[bool], 'bool should reflect expected outcome').to.eql(bool_after);
+          fixt_domainEql(space.vardoms[A], A_in, 'A should be unchanged');
+          fixt_domainEql(space.vardoms[B], B_in, 'B should be unchanged');
+          fixt_domainEql(space.vardoms[bool], bool_after, 'bool should reflect expected outcome');
         });
       }
 
@@ -104,6 +107,34 @@ describe('propagators/reified.spec', function() {
         riftest(fixt_numdom_range(0, 5), fixt_numdom_range(3, 8), bool, 'eq', 'neq', bool, 'undetermined but with overlap so cannot proof eq/neq yet');
         riftest(fixt_numdom_range(0, 5), one, bool, 'eq', 'neq', bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
         riftest(fixt_strdom_range(110, 120), one, bool, 'eq', 'neq', zero, 'A is undetermined but B is NOT in A range must be neq');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1, true));
+        config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1, true));
+        config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1, true));
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+
+        let A = config.all_var_names.indexOf('A');
+        let B = config.all_var_names.indexOf('B');
+        let C = config.all_var_names.indexOf('C');
+
+        propagator_reifiedStepBare(space, config, A, B, C, propagator_eqStepBare, propagator_neqStepBare, 'eq', 'neq', propagator_eqStepWouldReject, propagator_neqStepWouldReject);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });

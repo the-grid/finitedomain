@@ -1,8 +1,10 @@
 import {
-  EMPTY,
+  LOG_FLAG_PROPSTEPS,
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
   THROW,
 } from './helpers';
 
@@ -29,12 +31,12 @@ import {
 } from './config';
 
 import {
-  FORCE_STRING,
-
-  domain_any_clone,
-  domain_any_getValue,
-  domain_any_isSolved,
+  domain__debug,
+  domain_getValue,
+  domain_isEmpty,
+  domain_isSolved,
   domain_toArr,
+  domain_toStr,
 } from './domain';
 
 // BODY_START
@@ -108,7 +110,7 @@ function space_toConfig(space, config) {
   let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
-    newDomains[i] = domain_any_clone(domain, FORCE_STRING);
+    newDomains[i] = domain_toStr(domain);
   }
 
   return config_clone(config, newDomains);
@@ -136,6 +138,7 @@ function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
 
     next_distribution_choice: 0,
     updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
+    _lastChosenValue: -1, // cache to prevent duplicate operations
   };
 
   // search graph metrics
@@ -216,7 +219,7 @@ function initializeUnsolvedVars(space, config) {
 
   if (targetVarNames === 'all') {
     for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!domain_isSolved(vardoms[varIndex])) {
         if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
           front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
         }
@@ -228,7 +231,7 @@ function initializeUnsolvedVars(space, config) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
       if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
-      if (!domain_any_isSolved(vardoms[varIndex])) {
+      if (!domain_isSolved(vardoms[varIndex])) {
         front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
       }
     }
@@ -246,6 +249,8 @@ function initializeUnsolvedVars(space, config) {
  * @returns {boolean} when true, a propagator rejects and the (current path to a) solution is invalid
  */
 function space_propagate(space, config) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagate()'));
+
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(!void (config._propagates = (config._propagates | 0) + 1), 'number of calls to space_propagate');
@@ -301,6 +306,7 @@ function space_propagate(space, config) {
 }
 
 function space_propagateAll(space, config, propagators, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateAll(' + propagators.length + 'x)'));
   for (let i = 0, n = propagators.length; i < n; i++) {
     let propagator = propagators[i];
     let rejected = space_propagateStep(space, config, propagator, changedVars, changedTrie, cycleIndex);
@@ -309,6 +315,7 @@ function space_propagateAll(space, config, propagators, changedVars, changedTrie
   return false;
 }
 function space_propagateByIndexes(space, config, propagators, propagatorIndexes, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateByIndexes(' + propagators.length + 'x)'));
   for (let i = 0, n = propagatorIndexes.length; i < n; i++) {
     let propagatorIndex = propagatorIndexes[i];
     let propagator = propagators[propagatorIndex];
@@ -330,21 +337,31 @@ function space_propagateStep(space, config, propagator, changedVars, changedTrie
   let domain2 = index2 !== undefined && vardoms[index2];
   let domain3 = index3 !== undefined && vardoms[index3];
 
+  ASSERT_NORDOM(domain1, true, domain__debug);
+  ASSERT(domain2 === undefined || ASSERT_NORDOM(domain2, true, domain__debug));
+  ASSERT(domain3 === undefined || ASSERT_NORDOM(domain3, true, domain__debug));
+
   let stepper = propagator.stepper;
   ASSERT(typeof stepper === 'function', 'stepper should be a func');
   // TODO: if we can get a "solved" state here we can prevent an isSolved check later...
   stepper(space, config, index1, index2, index3, propagator.arg1, propagator.arg2, propagator.arg3, propagator.arg4, propagator.arg5, propagator.arg6);
 
   if (domain1 !== vardoms[index1]) {
-    if (vardoms[index1] === EMPTY) return true; // fail
+    if (domain_isEmpty(vardoms[index1])) {
+      return true; // fail
+    }
     space_recordChange(index1, changedTrie, changedVars, cycleIndex);
   }
   if (index2 !== undefined && domain2 !== vardoms[index2]) {
-    if (vardoms[index2] === EMPTY) return true; // fail
+    if (domain_isEmpty(vardoms[index2])) {
+      return true; // fail
+    }
     space_recordChange(index2, changedTrie, changedVars, cycleIndex);
   }
   if (index3 !== undefined && domain3 !== vardoms[index3]) {
-    if (vardoms[index3] === EMPTY) return true; // fail
+    if (domain_isEmpty(vardoms[index3])) {
+      return true; // fail
+    }
     space_recordChange(index3, changedTrie, changedVars, cycleIndex);
   }
 
@@ -365,6 +382,7 @@ function space_recordChange(varIndex, changedTrie, changedVars, cycleIndex) {
   }
 }
 function space_propagateChanges(space, config, allPropagators, minimal, targetVars, changedVars, changedTrie, cycleIndex) {
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('space_propagateChanges(' + changedVars.length + 'x)'));
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
@@ -436,7 +454,7 @@ function space_updateUnsolvedVarList(space, config) {
     let varIndex = _front_getCell(unsolvedFront.buffer, lastNodeIndex, i);
     let domain = vardoms[varIndex];
 
-    if (!domain_any_isSolved(domain)) {
+    if (!domain_isSolved(domain)) {
       front_addCell(unsolvedFront, nodeIndex, cellIndex++, varIndex);
     }
   }
@@ -479,11 +497,11 @@ function space_getVarSolveState(space, varIndex) {
   ASSERT(typeof varIndex === 'number', 'VAR_SHOULD_BE_INDEX');
   let domain = space.vardoms[varIndex];
 
-  if (domain === EMPTY) {
+  if (domain_isEmpty(domain)) {
     return false;
   }
 
-  let value = domain_any_getValue(domain);
+  let value = domain_getValue(domain);
   if (value !== NO_SUCH_VALUE) return value;
 
   return domain_toArr(domain);

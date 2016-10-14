@@ -47,6 +47,7 @@
     "grunt-replace": "*",
     "grunt-run": "^0.5.2",
     "ink-docstrap": "^1.1.4",
+    "istanbul": "0.4.4",
     "isparta": "^4.0.0",
     "js-beautify": "^1.6.2",
     "mocha": "^2.4.5"

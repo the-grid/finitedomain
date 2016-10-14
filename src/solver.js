@@ -1,5 +1,4 @@
 import {
-  EMPTY,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -8,6 +7,8 @@ import {
   NO_SUCH_VALUE,
 
   ASSERT,
+  ASSERT_ARRDOM,
+  ASSERT_VARDOMS_SLOW,
   GET_NAME,
   GET_NAMES,
   THROW,
@@ -25,16 +26,15 @@ import {
 } from './config';
 
 import {
-  FORCE_ARRAY,
-
-  domain_arrToStr,
-  domain_any_clone,
-  domain_createRange,
-  domain_fromList,
-  domain_any_isRejected,
-  domain_any_max,
+  domain__debug,
+  domain_createEmpty,
+  domain_fromListToArrdom,
+  domain_isEmpty,
+  domain_max,
   domain_toArr,
-  domain_any_toList,
+  domain_toList,
+  domain_arrToSmallest,
+  domain_anyToSmallest,
   domain_validateLegacyArray,
 } from './domain';
 
@@ -61,7 +61,7 @@ class Solver {
   /**
    * @param {Object} options = {}
    * @property {string} [options.distribute='naive']
-   * @property {number[]} [options.defaultDomain=[0,1]]
+   * @property {$arrdom} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    */
@@ -69,19 +69,24 @@ class Solver {
     this._class = 'solver';
     this.distribute = options.distribute || 'naive';
 
-    let config = options.config || config_create();
-    this.config = config;
-
-    if (config.initial_domains) {
-      let initialDomains = config.initial_domains;
-      for (let i = 0, len = initialDomains.length; i < len; ++i) {
-        if (initialDomains[i] instanceof Array) initialDomains[i] = domain_arrToStr(initialDomains[i]);
+    if (options.config) {
+      let config = this.config = options.config;
+      if (config.initial_domains) {
+        let initialDomains = config.initial_domains;
+        for (let i = 0, len = initialDomains.length; i < len; ++i) {
+          let domain = initialDomains[i];
+          if (domain.length === 0) domain = domain_createEmpty();
+          initialDomains[i] = domain_anyToSmallest(domain);
+        }
       }
+      if (config._propagators) config._propagators = undefined; // will be regenerated
+      if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
+    } else {
+      this.config = config_create();
     }
-    if (config._propagators) config._propagators = undefined; // will be regenerated
-    if (config._varToPropagators) config._varToPropagators = undefined; // will be regenerated
 
-    this.defaultDomain = options.defaultDomain || domain_createRange(0, 1);
+    this.defaultDomain = options.defaultDomain || [0, 1];
+    ASSERT_ARRDOM(this.defaultDomain);
 
     this.vars = {
       byId: {},
@@ -146,7 +151,7 @@ class Solver {
 
   /**
    * @param {string} id
-   * @param {$domain_arr|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $domain_num!
+   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
    * @returns {string}
    */
   decl(id, domainOrValue) {
@@ -155,14 +160,15 @@ class Solver {
     if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
     else domain = domainOrValue;
 
-    if (!domain) {
-      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
+    if (domain === undefined) { // domain could be 0
+      ASSERT_ARRDOM(this.defaultDomain);
+      domain = this.defaultDomain.slice(0);
     }
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
 
-    if (domain_any_isRejected(domain)) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     domain = domain_validateLegacyArray(domain);
+    if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     let varIndex = config_addVarDomain(this.config, id, domain);
     ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
 
@@ -190,7 +196,10 @@ class Solver {
   addVar(varOptions, domain) {
     if (typeof varOptions === 'string') {
       ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
-      if (domain === undefined) domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
+      if (domain === undefined) {
+        ASSERT_ARRDOM(this.defaultDomain);
+        domain = this.defaultDomain;
+      }
       ASSERT(domain, 'NO_EMPTY_DOMAIN', domain);
       domain = domain_validateLegacyArray(domain);
       config_addVarDomain(this.config, varOptions, domain);
@@ -208,7 +217,8 @@ class Solver {
       domain = domain_validateLegacyArray(domain);
       ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
     } else {
-      domain = domain_any_clone(this.defaultDomain, FORCE_ARRAY);
+      ASSERT_ARRDOM(this.defaultDomain);
+      domain = this.defaultDomain.slice(0);
     }
 
     let id = varOptions.id;
@@ -222,7 +232,7 @@ class Solver {
         if (varOptions.distributeOptions.expandVectorsWith) {
           matrix = varOptions.distributeOptions.matrix = [{vector: []}];
         } else {
-          THROW(`Solver#addVar: markov distribution requires SolverVar ${JSON.stringify(varOptions)} w/ distributeOptions:{matrix:[]}`);
+          THROW('Solver#addVar: markov var missing distribution (needs matrix or expandVectorsWith)');
         }
       }
 
@@ -471,6 +481,7 @@ class Solver {
     }
 
     let config = this.config;
+    ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
 
     // TODO: cant move this to addVar yet because mv can alter these settings after the addVar call
     let allVars = config.all_var_names;
@@ -506,9 +517,8 @@ class Solver {
    *
    * @param {number} max Hard stop the solver when this many solutions have been found
    * @param {number} log One of the LOG_* constants
-   * @param {boolean} [squash] If squashed, dont get the actual solutions. They are irrelevant for perf tests.
    */
-  _run(max, log, squash) {
+  _run(max, log) {
     ASSERT(typeof max === 'number', 'max should be a number');
     ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
@@ -524,14 +534,16 @@ class Solver {
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
-      ASSERT(!void console.log(`      - FD stats: called propagate(): ${this.config._propagates}x`));
     }
 
     let alreadyRejected = false;
     let vardoms = state.space.vardoms;
     for (let i = 0, n = vardoms.length; i < n; ++i) {
-      if (vardoms[i] === EMPTY) {
+      if (domain_isEmpty(vardoms[i])) {
         alreadyRejected = true;
+        if (log >= LOG_STATS) {
+          console.log('      - FD: rejected without propagation');
+        }
         break;
       }
     }
@@ -545,10 +557,11 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.timeEnd('      - FD Solving Time');
+      ASSERT(!void console.log(`      - FD debug stats: called propagate(): ${this.config._propagates > 0 ? this.config._propagates + 'x' : 'never! Finished by only using precomputations.'}`));
       console.log(`      - FD Solutions: ${solvedSpaces.length}`);
     }
 
-    if (!squash) solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
+    solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
   /**
@@ -575,34 +588,35 @@ class Solver {
    * kept an internal finitedomain artifact.
    *
    * @param {number[]} list
-   * @returns {number[]}
+   * @returns {$arrdom[]}
    */
   domain_fromList(list) {
-    return domain_toArr(domain_fromList(list));
+    return domain_fromListToArrdom(list);
   }
 
   /**
    * Used by PathSolver in another (private) project
    * Exposes domain_max
    *
-   * @param {$domain} domain
+   * @param {$arrdom} domain
    * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
    */
   domain_max(domain) {
-    if (domain_any_isRejected(domain)) return NO_SUCH_VALUE;
-    return domain_any_max(domain);
+    ASSERT_ARRDOM(domain);
+    if (domain.length === 0) return NO_SUCH_VALUE;
+    return domain_max(domain_arrToSmallest(domain));
   }
 
   /**
    * Used by PathSolver in another (private) project
    * Exposes domain_toList
-   * TODO: can we lock this down to a $domain_arr ?
+   * TODO: can we lock this down to an $arrdom ?
    *
    * @param {$domain} domain
    * @returns {number[]}
    */
   domain_toList(domain) {
-    return domain_any_toList(domain);
+    return domain_toList(domain);
   }
 
   /**
@@ -611,7 +625,7 @@ class Solver {
    *
    * @param {$space} space
    * @param {number} varIndex
-   * @returns {$domain_arr}
+   * @returns {$arrdom}
    */
   getDomain(space, varIndex) {
     return domain_toArr(space.vardoms[varIndex]);
@@ -627,17 +641,6 @@ class Solver {
     return new Solver({config: solvedConfig});
   }
 
-  /**
-   * Set a search option for this solver
-   *
-   * @param {string} optionName
-   * @param {*} value
-   * @param {string} [target] Certain options target specific var names
-   */
-  setOption(optionName, value, target) {
-    config_setOption(this.config, optionName, value, target);
-  }
-
   _debugLegible() {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.all_var_names;
@@ -646,48 +649,52 @@ class Solver {
     let domains = clone.initial_domains;
     let propagators = clone._propagators;
 
+    for (let key in clone) {
+      // underscored prefixed objects are generally auto-generated structs
+      // we don't want to debug a 5mb buffer, one byte per line.
+      if (key[0] === '_' && typeof clone[key] === 'object') {
+        clone[key] = '<removed>';
+      }
+    }
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
-    clone.initial_domains = '<removed>';
+    clone.var_dist_options = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
-    clone._propagators = '<removed>';
-    clone._varToPropagators = '<removed>';
-    clone._var_names_trie = '<removed>';
 
     console.log('\n## _debug:\n');
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: [${domain_toArr(domains[index])}] ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${index}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }
     console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
     console.log(constraints.map((c, index) => {
       if (c.param === undefined) {
-        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')}`;
+        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
       } else if (c.name === 'reifier') {
-        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${JSON.stringify(domains[c.varIndexes[0]])} ${c.param} ${JSON.stringify(domains[c.varIndexes[1]])} = ${JSON.stringify(domains[c.varIndexes[2]])}`;
+        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
       } else {
-        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => JSON.stringify(domains[index])).join(',  ')} -> ${JSON.stringify(domains[c.param])}`;
+        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
       }
     }).join('\n'));
     console.log('##/\n');
   }
   _debugSolver() {
     console.log('## _debugSolver:\n');
-    let inspect = getInspector();
+    //let inspect = getInspector();
 
     let config = this.config;
-    console.log('# Config:');
-    console.log(inspect(_clone(config)));
+    //console.log('# Config:');
+    //console.log(inspect(_clone(config)));
 
     let names = config.all_var_names;
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', config.initial_domains[varIndex], '(= [' + domain_toArr(config.initial_domains[varIndex]) + '])');
+      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initial_domains[varIndex]));
     }
 
     let constraints = config.all_constraints;
@@ -701,7 +708,15 @@ class Solver {
     console.log('# Propagators (' + propagators.length + 'x):');
     console.log('  index name vars args');
     for (let i = 0; i < propagators.length; ++i) {
-      console.log('  ', i, ':', propagators[i].name, ':', propagators[i].index1, propagators[i].index2, propagators[i].index3, ':', propagators[i].arg1, propagators[i].arg2);
+      console.log(
+        '  ', i, ':', propagators[i].name + (propagators[i].name === 'reified' ? '(' + propagators[i].arg3 + ')' : ''),
+        ':',
+        propagators[i].index1, propagators[i].index2, propagators[i].index3,
+        '->',
+        domain__debug(config.initial_domains[propagators[i].index1]),
+        domain__debug(config.initial_domains[propagators[i].index2]),
+        domain__debug(config.initial_domains[propagators[i].index3])
+    );
     }
 
     console.log('##');
@@ -709,7 +724,7 @@ class Solver {
 
   _debugConfig() {
     let config = _clone(this.config);
-    config.initial_domains = config.initial_domains.map(domain_toArr);
+    config.initial_domains = config.initial_domains.map(domain__debug);
 
     console.log('## _debugConfig:\n', getInspector()(config));
   }
@@ -787,7 +802,7 @@ function solver_varDistOptions(name, bvar, config) {
   if (options) {
     // TOFIX: change usages of .distribute as a string with valtype
     if (bvar.distribute) options.valtype = bvar.distribute;
-    config_setOption(config, 'varStratOverride', options, name);
+    config_setOption(config, 'varValueStrat', options, name);
     if (options.valtype === 'markov') {
       config_addConstraint(config, 'markov', [name]);
     }

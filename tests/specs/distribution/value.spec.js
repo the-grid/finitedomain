@@ -4,14 +4,27 @@ import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
+  fixt_dom_nums,
+  fixt_dom_solved,
+  fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
+  fixt_numdom_solved,
   fixt_strdom_range,
   fixt_strdom_ranges,
   fixt_strdom_value,
 } from '../../fixtures/domain.fixt';
 
+import {
+  LOG_FLAG_CHOICE,
+  LOG_FLAG_NONE,
+
+  ASSERT_SET_LOG,
+} from '../../../src/helpers';
+import {
+  domain__debug,
+} from '../../../src/domain';
 import distribute_getNextDomainForVar, {
   FIRST_CHOICE,
   SECOND_CHOICE,
@@ -19,12 +32,12 @@ import distribute_getNextDomainForVar, {
   NO_CHOICE,
 
   _distribute_getNextDomainForVar,
-  //distribution_valueByList,
-  //distribution_valueByMarkov,
+  distribution_valueByList,
+  distribution_valueByMarkov,
   distribution_valueByMax,
   distribution_valueByMid,
   distribution_valueByMin,
-  //distribution_valueByMinMaxCycle,
+  distribution_valueByMinMaxCycle,
   distribution_valueBySplitMax,
   distribution_valueBySplitMin,
 } from '../../../src/distribution/value';
@@ -38,6 +51,8 @@ import {
   space_getDomainArr,
   space_initFromConfig,
 } from '../../../src/space';
+import Solver from '../../../src/solver';
+
 
 describe('distribution/value.spec', function() {
 
@@ -71,7 +86,7 @@ describe('distribution/value.spec', function() {
 
       let dom = _distribute_getNextDomainForVar('naive', space, config, A);
 
-      expect(dom).to.eql(fixt_numdom_nums(0));
+      fixt_domainEql(dom, fixt_numdom_nums(0));
     });
   });
 
@@ -90,19 +105,21 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(101));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        fixt_domainEql(distribution_valueByMin(space, A, FIRST_CHOICE), fixt_strdom_value(101));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
-      it('should pick hi for SECOND_CHOICE', function() {
+      it('should pick domain^lo for SECOND_CHOICE', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 101, 102);
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_value(102));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_solved(102));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -112,8 +129,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+        distribution_valueByMin(space, A, SECOND_CHOICE);
+
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -123,7 +143,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(110));
+        fixt_domainEql(distribution_valueByMin(space, A, FIRST_CHOICE), fixt_strdom_value(110));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -131,9 +151,11 @@ describe('distribution/value.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_ranges([110, 111], [113, 120]));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
         let A = config.all_var_names.indexOf('A');
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([111, 111], [113, 120]));
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_strdom_ranges([111, 111], [113, 120]));
       });
 
       it('should reject a "solved" var', function() {
@@ -173,8 +195,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+        fixt_domainEql(distribution_valueByMin(space, A, FIRST_CHOICE), fixt_numdom_nums(1));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -184,8 +206,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_solved(2));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -195,8 +219,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+        distribution_valueByMin(space, A, SECOND_CHOICE);
+
         expect(distribution_valueByMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -206,7 +233,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(10));
+        fixt_domainEql(distribution_valueByMin(space, A, FIRST_CHOICE), fixt_numdom_nums(10));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -216,7 +243,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(11, 13, 14, 15));
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMin(space, A, SECOND_CHOICE), fixt_numdom_nums(11, 13, 14, 15));
       });
 
       it('should reject a "solved" var', function() {
@@ -246,6 +275,205 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMin(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMin(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
+  });
+
+  describe('distribution_valueByList', function() {
+
+    it('should exist', function() {
+      expect(distribution_valueByList).to.be.a('function');
+    });
+
+    function test(choice, inDomain, list, outDomain) {
+      let desc = 'choice: ' + choice + ', input: ' + domain__debug(inDomain) + ', list: [' + list + '], output: ' + domain__debug(outDomain);
+      it(desc, function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          domain: inDomain,
+          distributeOptions: {
+            valtype: 'list',
+            list: list,
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+        let A = config.all_var_names.indexOf('A');
+
+        if (choice !== FIRST_CHOICE) distribution_valueByList(space, config, A, FIRST_CHOICE);
+        if (choice !== SECOND_CHOICE) distribution_valueByList(space, config, A, SECOND_CHOICE);
+
+        let domain = distribution_valueByList(space, config, A, choice);
+
+        if (outDomain === NO_CHOICE) expect(domain).to.eql(NO_CHOICE);
+        else fixt_domainEql(domain, outDomain);
+      });
+    }
+
+    test(FIRST_CHOICE, fixt_arrdom_range(0, 500), [5, 10, 6], fixt_dom_solved(5));
+    test(FIRST_CHOICE, fixt_arrdom_range(10, 500), [5, 10, 6], fixt_dom_solved(10));
+    test(FIRST_CHOICE, fixt_arrdom_range(10, 500), [5, 4, 6, 2], NO_CHOICE);
+    test(SECOND_CHOICE, fixt_arrdom_range(0, 500), [5, 10, 6], fixt_arrdom_ranges([0, 4], [6, 500]));
+    test(SECOND_CHOICE, fixt_arrdom_range(10, 500), [5, 10, 6], fixt_arrdom_range(11, 500));
+    test(SECOND_CHOICE, fixt_arrdom_range(10, 500), [5, 4, 6, 2], NO_CHOICE);
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          distributeOptions: {
+            valtype: 'list',
+            list: [5, 10, 6],
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+        let varIndex = 0;
+        let choiceIndex = FIRST_CHOICE;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+
+        distribution_valueByList(space, config, varIndex, choiceIndex);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
+  });
+
+  describe('distribution_valueByMarkov', function() {
+
+    it('should return NO_CHOICE if it receives no values', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        distributeOptions: {
+          valtype: 'markov',
+          matrix: [{
+            vector: [],
+          }],
+          legend: [],
+        },
+      });
+      solver._prepare({});
+
+      let space = solver.state.space;
+      let config = solver.config;
+      let varIndex = 0;
+      let choiceIndex = FIRST_CHOICE;
+
+      expect(space._class).to.eql('$space');
+      expect(config._class).to.eql('$config');
+
+      let value = distribution_valueByMarkov(space, config, varIndex, choiceIndex);
+
+      expect(value).to.eql(NO_CHOICE);
+    });
+
+    it('should throw if given domain is solved', function() {
+      let solver = new Solver();
+      solver.addVar({
+        id: 'A',
+        domain: fixt_arrdom_range(100, 100),
+        distributeOptions: {
+          valtype: 'markov',
+          matrix: [{
+            vector: [100],
+          }],
+          legend: [1],
+        },
+      });
+      solver._prepare({});
+
+      let space = solver.state.space;
+      let config = solver.config;
+      let varIndex = 0;
+      let choiceIndex = SECOND_CHOICE; // !
+
+      expect(space._class).to.eql('$space');
+      expect(config._class).to.eql('$config');
+      fixt_domainEql(space.vardoms[varIndex], fixt_dom_nums(100));
+
+      space._lastChosenValue = 100;
+      expect(_ => distribution_valueByMarkov(space, config, varIndex, choiceIndex)).to.throw('DOMAIN_SHOULD_BE_UNDETERM');
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let solver = new Solver();
+        solver.addVar({
+          id: 'A',
+          distributeOptions: {
+            valtype: 'markov',
+            matrix: [{
+              vector: [],
+            }],
+            legend: [],
+          },
+        });
+        solver._prepare({});
+
+        let space = solver.state.space;
+        let config = solver.config;
+        let varIndex = 0;
+        let choiceIndex = FIRST_CHOICE;
+
+        expect(space._class).to.eql('$space');
+        expect(config._class).to.eql('$config');
+
+        distribution_valueByMarkov(space, config, varIndex, choiceIndex);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueByMax', function() {
@@ -263,8 +491,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        fixt_domainEql(distribution_valueByMax(space, A, FIRST_CHOICE), fixt_strdom_range(102, 102));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -274,8 +502,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_solved(101));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -285,8 +515,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+        distribution_valueByMax(space, A, SECOND_CHOICE);
+
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -296,7 +529,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(120));
+        fixt_domainEql(distribution_valueByMax(space, A, FIRST_CHOICE), fixt_strdom_value(120));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -306,7 +539,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([110, 117], [119, 119]));
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_strdom_ranges([110, 117], [119, 119]));
       });
 
       it('should reject a "solved" var', function() {
@@ -346,8 +581,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(10));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(distribution_valueByMax(space, A, FIRST_CHOICE), fixt_numdom_nums(10));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -357,8 +592,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_range(6, 9));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_range(6, 9));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for third choice', function() {
@@ -368,8 +605,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+        distribution_valueByMax(space, A, SECOND_CHOICE);
+
         expect(distribution_valueByMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -379,7 +619,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(11));
+        fixt_domainEql(distribution_valueByMax(space, A, FIRST_CHOICE), fixt_numdom_nums(11));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -389,7 +629,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2, 3, 4, 6, 7, 8, 10));
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMax(space, A, SECOND_CHOICE), fixt_numdom_nums(2, 3, 4, 6, 7, 8, 10));
       });
 
       it('should reject a "solved" var', function() {
@@ -419,6 +661,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMax(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMax(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueByMid', function() {
@@ -440,8 +705,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_range(102, 102));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
@@ -451,8 +716,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(101));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -463,7 +730,7 @@ describe('distribution/value.spec', function() {
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 102));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 102));
         });
       });
 
@@ -476,8 +743,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_range(102, 102));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -487,8 +754,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([101, 101], [103, 103]));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([101, 101], [103, 103]));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -498,8 +767,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 103));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 103));
         });
       });
 
@@ -512,8 +784,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 103));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_range(103, 103));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 104));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -523,8 +795,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([101, 102], [104, 104]));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([101, 102], [104, 104]));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 104));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -534,8 +808,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(101, 104));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(101, 104));
         });
       });
 
@@ -548,8 +825,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(110, 110));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_range(110, 110));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 120));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -559,8 +836,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 109], [111, 120]));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 109], [111, 120]));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 120));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -570,8 +849,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 120));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 120));
         });
       });
 
@@ -584,8 +866,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(111, 111));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_range(111, 111));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 121));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -595,8 +877,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 110], [112, 121]));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 110], [112, 121]));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 121));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -606,8 +890,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(100, 121));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(100, 121));
         });
       });
 
@@ -618,7 +905,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_value(118));
+        fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_strdom_value(118));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -628,7 +915,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([110, 112], [119, 120]));
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_strdom_ranges([110, 112], [119, 120]));
       });
 
       it('should reject a "solved" var', function() {
@@ -670,8 +959,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(2));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
         });
 
         it('should pick hi for SECOND_CHOICE', function() {
@@ -681,8 +970,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(1));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -693,7 +984,7 @@ describe('distribution/value.spec', function() {
           let A = config.all_var_names.indexOf('A');
 
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2));
         });
       });
 
@@ -706,8 +997,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(2));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -717,8 +1008,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 3));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 3));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -728,8 +1021,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3));
         });
       });
 
@@ -742,8 +1038,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(3));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3, 4));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -753,8 +1049,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2, 4));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 2, 4));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3, 4));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -764,8 +1062,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_nums(1, 2, 3, 4));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_nums(1, 2, 3, 4));
         });
       });
 
@@ -778,8 +1079,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(5));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(5));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 10, true));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -789,8 +1090,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 3, 4, 6, 7, 8, 9, 10));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 10, true));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -800,8 +1103,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 10, true));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 10, true));
         });
       });
 
@@ -814,8 +1120,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(6));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
+          fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(6));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 11, true));
         });
 
         it('should remove mid for SECOND_CHOICE', function() {
@@ -825,8 +1131,10 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+
+          fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 11, true));
         });
 
         it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -836,8 +1144,11 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
+          distribution_valueByMid(space, A, FIRST_CHOICE);
+          distribution_valueByMid(space, A, SECOND_CHOICE);
+
           expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-          expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 11, true));
+          fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 11, true));
         });
       });
 
@@ -848,8 +1159,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
+        fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(1));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 1, true));
       });
 
       it('should pick hi for SECOND_CHOICE', function() {
@@ -859,8 +1170,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_solved(0));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 1, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -870,8 +1183,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+        distribution_valueByMid(space, A, SECOND_CHOICE);
+
         expect(distribution_valueByMid(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(0, 1, true));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(0, 1, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -881,7 +1197,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(8));
+        fixt_domainEql(distribution_valueByMid(space, A, FIRST_CHOICE), fixt_numdom_nums(8));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -891,7 +1207,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueByMid(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 2, 9, 10));
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueByMid(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 2, 9, 10));
       });
 
       it('should reject a "solved" var', function() {
@@ -922,6 +1240,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueByMid(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
       });
     });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMid(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
   });
 
   describe('distribution_valueBySplitMin', function() {
@@ -949,8 +1290,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(110, 115));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_strdom_range(110, 115));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -960,8 +1301,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(116, 120));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_strdom_range(116, 120));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -971,8 +1314,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -982,7 +1327,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_ranges([100, 101], [108, 110]));
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_strdom_ranges([100, 101], [108, 110]));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -992,7 +1339,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([111, 112], [118, 120]));
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_strdom_ranges([111, 112], [118, 120]));
       });
 
       describe('range splitting unit tests', function() {
@@ -1004,8 +1353,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 101));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(102, 102));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_solved(101));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_solved(102));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1016,8 +1365,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 102));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(103, 103));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_strdom_range(101, 102));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_solved(103));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1028,8 +1377,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(101, 102));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(103, 104));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_strdom_range(101, 102));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_strdom_range(103, 104));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1072,8 +1421,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(6, 7, 8));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_nums(6, 7, 8));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1083,8 +1432,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(9, 10));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_nums(9, 10));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1094,8 +1445,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMin(space, A, SECOND_CHOICE);
+
         expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -1105,7 +1459,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 5, 6, 7));
+        fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_nums(0, 1, 5, 6, 7));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -1115,7 +1469,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(8, 11, 12, 14));
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_nums(8, 11, 12, 14));
       });
 
       describe('range splitting unit tests', function() {
@@ -1127,8 +1483,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(2));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_solved(1));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_solved(2));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1139,8 +1495,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(3));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_nums(1, 2));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_solved(3));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1151,8 +1507,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
-          expect(distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(3, 4));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, FIRST_CHOICE), fixt_numdom_nums(1, 2));
+          fixt_domainEql(distribution_valueBySplitMin(space, A, SECOND_CHOICE), fixt_numdom_nums(3, 4));
           expect(distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1183,6 +1539,29 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueBySplitMin(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMin(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMin(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });
@@ -1212,8 +1591,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(116, 120));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_strdom_range(116, 120));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1223,8 +1602,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(110, 115));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_range(110, 115));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1234,8 +1615,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMax(space, A, SECOND_CHOICE);
+
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(110, 120));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(110, 120));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -1245,7 +1629,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_ranges([111, 112], [118, 120]));
+        fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_strdom_ranges([111, 112], [118, 120]));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -1255,7 +1639,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_ranges([100, 101], [108, 110]));
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_ranges([100, 101], [108, 110]));
       });
 
       describe('range splitting unit tests', function() {
@@ -1267,8 +1653,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(102, 102));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 101));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_solved(102));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_solved(101));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1279,8 +1665,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 103));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 102));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_solved(103));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_range(101, 102));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1291,8 +1677,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_strdom_range(103, 104));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_strdom_range(101, 102));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_strdom_range(103, 104));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_strdom_range(101, 102));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1335,8 +1721,8 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(9, 10));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_nums(9, 10));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should pick upper half for SECOND_CHOICE', function() {
@@ -1346,8 +1732,10 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(6, 7, 8));
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(6, 7, 8));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should return NO_CHOICE for THIRD_CHOICE', function() {
@@ -1357,8 +1745,11 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+        distribution_valueBySplitMax(space, A, SECOND_CHOICE);
+
         expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
-        expect(space_getDomainArr(space, A)).to.eql(fixt_arrdom_range(6, 10, true));
+        fixt_domainEql(space_getDomainArr(space, A), fixt_arrdom_range(6, 10, true));
       });
 
       it('should intersect and not use lower range blindly for FIRST_CHOICE', function() {
@@ -1368,7 +1759,7 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(8, 11, 12, 14));
+        fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_nums(8, 11, 12, 14));
       });
 
       it('should intersect and not use lower range blindly for SECOND_CHOICE', function() {
@@ -1378,7 +1769,9 @@ describe('distribution/value.spec', function() {
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
 
-        expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(0, 1, 5, 6, 7));
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(0, 1, 5, 6, 7));
       });
 
       describe('range splitting unit tests', function() {
@@ -1390,8 +1783,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(2));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_solved(2));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_solved(1));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1402,8 +1795,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_solved(3));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 2));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
 
@@ -1414,8 +1807,8 @@ describe('distribution/value.spec', function() {
           space_initFromConfig(space, config);
           let A = config.all_var_names.indexOf('A');
 
-          expect(distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.eql(fixt_numdom_nums(3, 4));
-          expect(distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.eql(fixt_numdom_nums(1, 2));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, FIRST_CHOICE), fixt_numdom_nums(3, 4));
+          fixt_domainEql(distribution_valueBySplitMax(space, A, SECOND_CHOICE), fixt_numdom_nums(1, 2));
           expect(distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.eql(NO_CHOICE);
         });
       });
@@ -1446,6 +1839,59 @@ describe('distribution/value.spec', function() {
         expect(() => distribution_valueBySplitMax(space, A, FIRST_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, SECOND_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
         expect(() => distribution_valueBySplitMax(space, A, THIRD_CHOICE)).to.throw('DOMAIN_SHOULD_BE_UNDETERMINED');
+      });
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueBySplitMax(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
+      });
+    });
+  });
+
+  describe('distribution_valueByMinMaxCycle', function() {
+
+    it('should exist', function() {
+      expect(distribution_valueByMinMaxCycle).to.be.a('function');
+    });
+
+    describe('with LOG', function() {
+
+      before(function() {
+        ASSERT_SET_LOG(LOG_FLAG_CHOICE);
+      });
+
+      it('should improve test coverage by enabling logging', function() {
+        let config = config_create();
+        config_addVarRange(config, 'A', 1, 2);
+        let space = space_createRoot();
+        space_initFromConfig(space, config);
+        let A = config.all_var_names.indexOf('A');
+
+        distribution_valueByMinMaxCycle(space, A, FIRST_CHOICE);
+
+        expect(true).to.eql(true);
+      });
+
+      after(function() {
+        ASSERT_SET_LOG(LOG_FLAG_NONE);
       });
     });
   });

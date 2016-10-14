@@ -1,5 +1,8 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_empty,
+  fixt_dom_solved,
+  fixt_domainEql,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_strdom_range,
@@ -10,10 +13,20 @@ import {
 } from '../../fixtures/domain.fixt';
 
 import {
+  LOG_FLAG_PROPSTEPS,
+  LOG_FLAG_NONE,
+  SUB,
   SUP,
+
+  ASSERT_SET_LOG,
 } from '../../../src/helpers';
 import {
+  domain__debug,
+} from '../../../src/domain';
+import {
+  propagator_gtStepWouldReject,
   propagator_ltStepBare,
+  propagator_ltStepWouldReject,
 } from '../../../src/propagators/lt';
 import {
   space_createRoot,
@@ -100,8 +113,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 100));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(101, 101));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 100));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(101, 101));
     });
 
     it('should not affect overlapping ranges when max(v1) < max(v2)', function() {
@@ -145,8 +158,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(201, 300));
     });
 
     it('should not change if v1 is solved and == min(v2)', function() {
@@ -160,8 +173,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_range(200, 200));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_range(201, 300));
+      fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
+      fixt_domainEql(space.vardoms[B], fixt_strdom_range(201, 300));
     });
 
     it('should be able to drop last range in v1', function() {
@@ -228,6 +241,35 @@ describe('propagators/lt.spec', function() {
       //propagator_ltStepBare(space, config, A, B);
       //expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
       //expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([20, 100]));
+    });
+
+    describe('edge of space', function() {
+
+      function test(domainA, domainB) {
+        let desc = 'should not crash with edge cases: ' + domain__debug(domainA) + ', ' + domain__debug(domainB);
+
+        it(desc, function() {
+          let config = config_create();
+          config_addVarDomain(config, 'A', domainA);
+          config_addVarDomain(config, 'B', domainB);
+          let space = space_createRoot();
+          space_initFromConfig(space, config);
+
+          let A = config.all_var_names.indexOf('A');
+          let B = config.all_var_names.indexOf('B');
+
+          propagator_ltStepBare(space, config, A, B);
+          expect(space.vardoms[A]).to.eql(fixt_dom_empty());
+          expect(space.vardoms[B]).to.eql(fixt_dom_empty());
+        });
+      }
+
+      test(fixt_arrdom_nums(0), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_nums(SUP));
+
+      test(fixt_arrdom_range(0, SUP), fixt_arrdom_nums(0));
+      test(fixt_arrdom_nums(SUP), fixt_arrdom_range(0, SUP));
     });
   });
 
@@ -341,8 +383,8 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(8, 8));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(9, 10));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(8, 8));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(9, 10));
     });
 
     it('should reduce if v1 is solved and == min(v2)', function() {
@@ -356,8 +398,46 @@ describe('propagators/lt.spec', function() {
       let B = config.all_var_names.indexOf('B');
 
       propagator_ltStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_numdom_range(7, 7));
-      expect(space.vardoms[B]).to.eql(fixt_numdom_range(8, 13));
+      fixt_domainEql(space.vardoms[A], fixt_numdom_range(7, 7));
+      fixt_domainEql(space.vardoms[B], fixt_numdom_range(8, 13));
+    });
+  });
+
+  describe('with LOG for test coverage', function() {
+
+    before(function() {
+      ASSERT_SET_LOG(LOG_FLAG_PROPSTEPS);
+    });
+
+    it('propagator_ltStepBare', function() {
+      let config = config_create();
+      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let space = space_createRoot();
+      space_initFromConfig(space, config);
+
+      let A = config.all_var_names.indexOf('A');
+      let B = config.all_var_names.indexOf('B');
+
+      propagator_ltStepBare(space, config, A, B);
+
+      expect(true).to.eql(true);
+    });
+
+    it('propagator_ltStepWouldReject', function() {
+      propagator_ltStepWouldReject(fixt_dom_solved(0), fixt_dom_solved(1));
+
+      expect(true).to.eql(true);
+    });
+
+    it('propagator_gtStepWouldReject', function() {
+      propagator_gtStepWouldReject(fixt_dom_solved(0), fixt_dom_solved(1));
+
+      expect(true).to.eql(true);
+    });
+
+    after(function() {
+      ASSERT_SET_LOG(LOG_FLAG_NONE);
     });
   });
 });

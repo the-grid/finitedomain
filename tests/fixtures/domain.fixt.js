@@ -1,9 +1,17 @@
 import expect from '../fixtures/mocha_proxy.fixt';
+import {
+  domain__debug,
+  domain_anyToSmallest,
+  domain_toSmallest,
+  domain_arrToSmallest,
+  domain_toArr,
+  domain_toStr,
+} from '../../src/domain';
 
 const SUB = 0;
 const SUP = 100000000;
-const SMALL_MAX_FLAG = (1 << 30) - 1; // there are n flags. if they are all on, this is the number value
 const SMALL_MAX_NUM = 30;
+const SOLVED_FLAG = 1 << 31 >>> 0;
 
 function fixt_arrdom_range(lo, hi, _b) {
   if (_b !== true && lo >= 0 && hi <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
@@ -49,14 +57,6 @@ function fixt_arrdom_value(value, _b) {
   }
   return fixt_arrdom_range(value, value, _b);
 }
-function fixt_arrdom_list(list) {
-  let arr = [];
-  list.forEach(value => {
-    if (value >= 0 && value <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
-    arr.push(value, value)
-  });
-  return arr;
-}
 function fixt_arrdom_empty(no) {
   let A = [];
   if (!no) A.__skipEmptyCheck = true; // circumvents certain protections
@@ -91,63 +91,24 @@ function fixt_arrdom_nums(...list) {
   return domain;
 }
 
-const ZERO = 1 << 0;
-const ONE = 1 << 1;
-const TWO = 1 << 2;
-const THREE = 1 << 3;
-const FOUR = 1 << 4;
-const FIVE = 1 << 5;
-const SIX = 1 << 6;
-const SEVEN = 1 << 7;
-const EIGHT = 1 << 8;
-const NINE = 1 << 9;
-const TEN = 1 << 10;
-const ELEVEN = 1 << 11;
-const TWELVE = 1 << 12;
-const THIRTEEN = 1 << 13;
-const FOURTEEN = 1 << 14;
-const FIFTEEN = 1 << 15;
-const SIXTEEN = 1 << 16;
-const SEVENTEEN = 1 << 17;
-const EIGHTEEN = 1 << 18;
-const NINETEEN = 1 << 19;
-const TWENTY = 1 << 20;
-const TWENTYONE = 1 << 21;
-const TWENTYTWO = 1 << 22;
-const TWENTYTHREE = 1 << 23;
-const TWENTYFOUR = 1 << 24;
-const TWENTYFIVE = 1 << 25;
-const TWENTYSIX = 1 << 26;
-const TWENTYSEVEN = 1 << 27;
-const TWENTYEIGHT = 1 << 28;
-const TWENTYNINE = 1 << 29;
-const THIRTY = 1 << 30;
-const NUM_TO_FLAG = [
-  ZERO, ONE, TWO, THREE, FOUR,
-  FIVE, SIX, SEVEN, EIGHT, NINE,
-  TEN, ELEVEN, TWELVE, THIRTEEN, FOURTEEN,
-  FIFTEEN, SIXTEEN, SEVENTEEN, EIGHTEEN, NINETEEN,
-  TWENTY, TWENTYONE, TWENTYTWO, TWENTYTHREE, TWENTYFOUR,
-  TWENTYFIVE, TWENTYSIX, TWENTYSEVEN, TWENTYEIGHT,
-  TWENTYNINE, THIRTY
-];
 
 function fixt_numdom_nums(...values) {
   let d = 0;
   for (let i = 0; i < values.length; ++i) {
     if (typeof values[i] !== 'number') throw new Error('EXPECTING_NUMBERS_ONLY ['+values[i]+']');
     if (values[i] < 0 || values[i] > SMALL_MAX_NUM) throw new Error('EXPECTING_SMALL_DOMAIN_VALUES ['+values[i]+']');
-    d |= NUM_TO_FLAG[values[i]];
+    d |= 1 << values[i];
   }
   return d;
 }
-function fixt_numdom_range(lo, hi) {
+function fixt_numdom_range(lo, hi, _b) {
+  if (_b !== undefined) throw new Error('BAD_THIRD_ARG');
   if (typeof lo !== 'number') throw new Error('LO_MUST_BE_NUMBER');
   if (typeof hi !== 'number') throw new Error('HI_MUST_BE_NUMBER');
   if (lo < 0 || hi > SMALL_MAX_NUM) throw new Error('OOB_FOR_SMALL_DOMAIN ['+lo+','+hi+']');
   let d = 0;
   for (; lo <= hi; ++lo) {
-    d |= NUM_TO_FLAG[lo];
+    d |= 1 << lo;
   }
   return d;
 }
@@ -156,6 +117,11 @@ function fixt_numdom_ranges(...ranges) {
 }
 function fixt_numdom_empty() {
   return 0; // magic value yo. no flags means zero
+}
+function fixt_numdom_solved(num) {
+  if (arguments.length !== 1) throw new Error('INVALID_PARAM_FIX_TEST');
+  if (num < SUB || num > SUP) throw new Error('SOLVED_NUM_MUST_BE_SUBSUP_BOUND');
+  return (num | SOLVED_FLAG) >>> 0; // num|flag could lead to negative value without the >>>
 }
 
 function fixt_strdom_empty() {
@@ -226,19 +192,86 @@ function fixt_assertStrings(a, b, desc) {
   expect(fixt_bytes(a, desc), desc).to.eql(fixt_bytes(b, desc));
 }
 
+/**
+ * Assert two domains to be equal, regardless of their individual
+ * representation (numdom, soldom, strdom, arrdom). This helps to
+ * keep integration tests clean from unit tests that check for
+ * normalization of function return values. For example the
+ * propagators should just check the result value, not whether it
+ * returns a soldom in certain edge cases but not others.
+ *
+ * @param {$domain} result
+ * @param {$domain} expectation
+ * @param {string} [desc]
+ */
+function fixt_domainEql(result, expectation, desc) {
+  desc = `${desc || ''} comparing but ignoring representation; result: ${domain__debug(result)} expected: ${domain__debug(expectation)}`;
+  expect(domain_anyToSmallest(result), desc).to.eql(domain_anyToSmallest(expectation));
+}
+
+function fixt_dom_empty() {
+  return 0;
+}
+function fixt_dom_range(lo, hi) {
+  if (arguments.length !== 2) throw new Error('Bad arg count');
+  if (typeof lo !== 'number') throw new Error('lo must be number');
+  if (typeof hi !== 'number') throw new Error('hi must be number');
+  if (!(lo <= hi)) throw new Error('should be lo <= hi');
+  if (lo === hi) return fixt_numdom_solved(lo);
+  if (hi <= SMALL_MAX_NUM) return fixt_numdom_range(lo, hi);
+  return fixt_strdom_range(lo, hi);
+}
+function fixt_dom_ranges(...ranges) {
+  if (ranges.length === 0) throw new Error('No ranges? Probably test bug');
+  if (ranges.length === 1 && ranges[0][0] === ranges[0][1]) return fixt_numdom_solved(ranges[0][0]);
+  if (ranges[ranges.length-1][1] <= SMALL_MAX_NUM) return fixt_numdom_ranges(...ranges);
+  return fixt_strdom_ranges(...ranges);
+}
+function fixt_dom_nums(...nums) {
+  if (nums[0] instanceof Array) throw new Error('you forgot to splat the argument');
+  nums.sort((a, b) => a - b);
+  if (nums.length === 0) throw new Error('No nums? Probably test bug');
+  if (nums.length === 1) return fixt_numdom_solved(nums[0]);
+  if (nums[nums.length - 1] <= SMALL_MAX_NUM) return fixt_numdom_nums(...nums);
+  return fixt_strdom_nums(...nums);
+}
+function fixt_dom_solved(value) {
+  if (typeof value !== 'number') throw new Error('Bad arg');
+  if (arguments.length !== 1) throw new Error('Bad arg');
+  return fixt_numdom_solved(value);
+}
+
+/**
+ * @param {$domain} domain
+ * @param {string} [force] Always return in array or string form?
+ * @returns {$domain}
+ */
+function fixt_dom_clone(domain, force) {
+  if (force === 'array') return domain_toArr(domain, true);
+  if (force === 'string') return domain_toStr(domain);
+  return domain;
+}
+
 export {
   fixt_arrdom_empty,
-  fixt_arrdom_list,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_arrdom_nums,
+  fixt_dom_clone,
+  fixt_dom_empty,
+  fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_ranges,
+  fixt_dom_solved,
   fixt_assertStrings,
+  fixt_bytes,
+  fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
   fixt_numdom_range,
   fixt_numdom_ranges,
-  fixt_bytes,
+  fixt_numdom_solved,
   fixt_strdom_empty,
   fixt_strdom_value,
   fixt_strdom_range,

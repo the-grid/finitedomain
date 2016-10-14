@@ -4,11 +4,9 @@ import {
   THROW,
 } from './helpers';
 import {
-  domain_any_toList,
+  domain_toList,
+  domain_getValue,
 } from './domain';
-import {
-  asmdomain_isValue,
-} from './asmdomain';
 
 // BODY_START
 
@@ -26,7 +24,7 @@ function markov_getNextRowToSolve(space, matrix) {
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
     let boolDomain = vardoms[row.booleanId];
-    if (boolDomain === undefined || asmdomain_isValue(boolDomain, 1) === 1) {
+    if (boolDomain === undefined || domain_getValue(boolDomain) === 1) {
       break;
     }
   }
@@ -48,7 +46,7 @@ function markov_mergeDomainAndLegend(inputLegend, domain) {
     legend = [];
   }
 
-  let listed = domain_any_toList(domain);
+  let listed = domain_toList(domain);
   for (let i = 0; i < listed.length; ++i) {
     let val = listed[i];
     if (legend.indexOf(val) < 0) {

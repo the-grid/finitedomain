@@ -1,13 +1,16 @@
 import {
-  EMPTY,
+  LOG_FLAG_PROPSTEPS,
 
   ASSERT,
-  ASSERT_NUMSTRDOM,
+  ASSERT_LOG,
+  ASSERT_NORDOM,
 } from '../helpers';
 
 import {
-  domain_any_isSolved,
-  domain_any_min,
+  domain__debug,
+  domain_createEmpty,
+  domain_isSolved,
+  domain_min,
 } from '../domain';
 
 import {
@@ -38,17 +41,20 @@ function propagator_markovStepBare(space, config, varIndex) {
 
   let domain = space.vardoms[varIndex];
 
-  ASSERT_NUMSTRDOM(domain);
+  ASSERT_NORDOM(domain);
   ASSERT(domain, 'SHOULD_NOT_BE_REJECTED');
 
-  if (!domain_any_isSolved(domain)) return;
+  if (!domain_isSolved(domain)) {
+    ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was solved:', domain__debug(domain)));
+    return;
+  }
 
-  let value = domain_any_min(domain); // note: solved so lo=hi=value
+  let value = domain_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = config.var_dist_options;
   let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
 
-  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions || JSON.stringify(configVarDistOptions));
+  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions && JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);
 
   let expandVectorsWith = distributionOptions.expandVectorsWith;
@@ -61,8 +67,11 @@ function propagator_markovStepBare(space, config, varIndex) {
 
   let pos = values.indexOf(value);
   if (pos < 0 || pos >= probabilities.length || probabilities[pos] === 0) {
-    space.vardoms[varIndex] = EMPTY;
+    space.vardoms[varIndex] = domain_createEmpty();
   }
+
+  ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_markovStepBare; indexes:', varIndex, 'was:', domain__debug(domain), 'became:', domain__debug(space.vardoms[varIndex])));
+  ASSERT_NORDOM(space.vardoms[varIndex], true, domain__debug);
 }
 
 // BODY_STOP

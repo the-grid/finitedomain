@@ -20,6 +20,7 @@ import {
   config_addVarDomain,
   config_addVarRange,
   config_create,
+  config_getVarIndexByVarName,
   config_setDefaults,
   config_setOption,
   config_setOptions,
@@ -169,8 +170,9 @@ class Solver {
 
     domain = domain_validateLegacyArray(domain);
     if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, id, domain);
-    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
+
+    config_addVarDomain(this.config, id, domain);
+    // TODO: determine whether we want to return given id or actual id in the case of constants. (ultimately; actual)
 
     return id;
   }
@@ -224,13 +226,14 @@ class Solver {
     let id = varOptions.id;
     if (!id) THROW('Solver#addVar: requires id');
 
-    config_addVarDomain(this.config, id, domain);
+    let distributionOptions = varOptions.distributeOptions;
 
-    if (varOptions.distributeOptions && varOptions.distributeOptions.valtype === 'markov') {
-      let matrix = varOptions.distributeOptions.matrix;
+    let isMarkov = distributionOptions && distributionOptions.valtype === 'markov';
+    if (isMarkov) {
+      let matrix = distributionOptions.matrix;
       if (!matrix) {
-        if (varOptions.distributeOptions.expandVectorsWith) {
-          matrix = varOptions.distributeOptions.matrix = [{vector: []}];
+        if (distributionOptions.expandVectorsWith) {
+          matrix = distributionOptions.matrix = [{vector: []}];
         } else {
           THROW('Solver#addVar: markov var missing distribution (needs matrix or expandVectorsWith)');
         }
@@ -241,13 +244,22 @@ class Solver {
         let boolFunc = row.boolean;
         if (typeof boolFunc === 'function') {
           row.booleanId = boolFunc(this, varOptions);
+          if (typeof row.booleanId !== 'string') THROW('Expecting boolean callback to return var name of the boolean var');
+          row.booleanId = config_getVarIndexByVarName(this.config, row.booleanId);
+          if (row.booleanId < 0) THROW('Received invalid var name for boolean id');
         } else if (typeof boolFunc === 'string') {
-          row.booleanId = boolFunc;
+          // now force the id to be a varIndex
+          // TODO: rename this for clarification. confirm it's not used externally.
+          row.booleanId = config_getVarIndexByVarName(this.config, boolFunc);
+          if (row.booleanId < 0) THROW('Received invalid var name for boolean id');
         } else {
           ASSERT(!boolFunc, 'row.boolean should be a function returning a var name or just a var name');
         }
+        ASSERT(row.booleanId === undefined || typeof row.booleanId === 'number', 'the defined boolean id is a var index, now');
       }
     }
+
+    config_addVarDomain(this.config, id, domain, isMarkov);
 
     // the rest is this.vars stuff for multiverse...
 
@@ -576,8 +588,7 @@ class Solver {
    */
   space_add_var_range(id, lo, hi) {
     let varIndex = config_addVarRange(this.config, id, lo, hi);
-    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
-    return id;
+    return this.config.all_var_names[varIndex];
   }
 
   /**

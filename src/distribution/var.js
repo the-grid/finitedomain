@@ -82,8 +82,10 @@ function _distribution_varFindBest(space, config, fitnessFunc, varStratConfig) {
       ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
       ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 
-      if (BETTER === fitnessFunc(space, config, varIndex, bestVarIndex, varStratConfig)) {
-        bestVarIndex = varIndex;
+      if (varIndex !== bestVarIndex) { // this could happen as fallback when two constants were merged to one...
+        if (BETTER === fitnessFunc(space, config, varIndex, bestVarIndex, varStratConfig)) {
+          bestVarIndex = varIndex;
+        }
       }
     }
   }
@@ -158,6 +160,7 @@ function distribution_varByList(space, config, varIndex1, varIndex2, varStratCon
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
+  ASSERT(varIndex1 !== varIndex2, 'indexes should be different'); // catch at callsite
 
   // note: config._priorityByIndex is compiled by Solver#prepare from given priorityByName
   // if in the list, lowest prio can be 1. if not in the list, prio will be undefined

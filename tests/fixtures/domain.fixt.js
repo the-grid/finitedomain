@@ -229,7 +229,7 @@ function fixt_dom_ranges(...ranges) {
 }
 function fixt_dom_nums(...nums) {
   if (nums[0] instanceof Array) throw new Error('you forgot to splat the argument');
-  nums.sort((a, b) => a - b);
+  nums = nums.sort((a, b) => a - b).filter((n, i) => nums.lastIndexOf(n) === i);
   if (nums.length === 0) throw new Error('No nums? Probably test bug');
   if (nums.length === 1) return fixt_numdom_solved(nums[0]);
   if (nums[nums.length - 1] <= SMALL_MAX_NUM) return fixt_numdom_nums(...nums);

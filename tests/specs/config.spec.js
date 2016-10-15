@@ -979,7 +979,7 @@ describe('src/config.spec', function() {
       let config = config_create();
       let varIndex = config_addVarAnonConstant(config, 15);
 
-      expect(config.all_var_names[varIndex]).to.be.above(-1);
+      expect(config.all_var_names[varIndex]).to.be.a('string');
       expect(config.initial_domains[varIndex]).to.eql(fixt_dom_nums(15));
     });
 
@@ -1143,10 +1143,10 @@ describe('src/config.spec', function() {
 
         let value = 5;
 
-        config_addVarConstant(config, 'A', value);
+        let varIndex = config_addVarConstant(config, 'A', value);
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(value, value));
+        expect(config.initial_domains[varIndex]).to.eql(fixt_dom_range(value, value));
       });
     });
   });
@@ -1186,10 +1186,10 @@ describe('src/config.spec', function() {
       it('should create a new var with given range', function() {
         let config = config_create();
 
-        config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12, true));
+        let varIndex = config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12, true));
 
         expect(config.all_var_names.length).to.equal(1);
-        expect(config.initial_domains[0]).to.equal(fixt_dom_range(5, 12));
+        expect(config.initial_domains[varIndex]).to.equal(fixt_dom_range(5, 12));
       });
     });
   });
@@ -1209,10 +1209,10 @@ describe('src/config.spec', function() {
     it('should create a new var with max range', function() {
       let config = config_create();
 
-      config_addVarNothing(config, 'A');
+      let varIndex = config_addVarNothing(config, 'A');
 
-      expect(config.all_var_names).to.eql(['A']);
-      expect(config.initial_domains[0]).to.eql(fixt_dom_range(SUB, SUP));
+      expect(config.all_var_names.length).to.eql(1);
+      fixt_domainEql(config.initial_domains[varIndex], fixt_dom_range(SUB, SUP));
     });
   });
 
@@ -1269,10 +1269,10 @@ describe('src/config.spec', function() {
       it('should create a new var with given range', function() {
         let config = config_create();
 
-        config_addVarRange(config, 'A', 50, 55);
+        let varIndex = config_addVarRange(config, 'A', 50, 55);
 
-        expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(50, 55));
+        expect(config.all_var_names.length).to.eql(1);
+        expect(config.initial_domains[varIndex]).to.eql(fixt_dom_range(50, 55));
       });
     });
 
@@ -1281,10 +1281,10 @@ describe('src/config.spec', function() {
       it('should create a new var with given range', function() {
         let config = config_create();
 
-        config_addVarRange(config, 'A', 5, 12);
+        let varIndex = config_addVarRange(config, 'A', 5, 12);
 
-        expect(config.all_var_names).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(5, 12));
+        expect(config.all_var_names.length).to.eql(1);
+        expect(config.initial_domains[varIndex]).to.eql(fixt_dom_range(5, 12));
       });
     });
   });
@@ -1572,12 +1572,6 @@ describe('src/config.spec', function() {
 
       expect(clone.initial_domains).to.eql(newVars);
     });
-  });
-
-  it('should reject a known var', function() {
-    let config = config_create();
-    config_addVarRange(config, 'again', 0, 10);
-    expect(_ => config_addVarRange(config, 'again', 0, 10)).to.throw('Var name already part of this config. Probably a bug?');
   });
 
   it('should reject number as var', function() {

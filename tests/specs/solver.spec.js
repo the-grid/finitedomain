@@ -12,6 +12,11 @@ import {
   countSolutions,
 } from '../fixtures/lib';
 
+import {
+  CONST_PREFIX,
+
+  config_getVarIndexByVarName,
+} from '../../src/config';
 import Solver from '../../src/solver';
 import {
   LOG_NONE,
@@ -152,15 +157,17 @@ describe('solver.spec', function() {
       it('should accept a flat array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]); // dont use fixtures because small domain
+        let foo = config_getVarIndexByVarName(solver.config, 'foo');
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[foo]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       it('should accept a legacy nested array for domain', function() {
         let solver = new Solver();
         solver.decl('foo', [[0, 10], [20, 30]]);
+        let foo = config_getVarIndexByVarName(solver.config, 'foo');
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initial_domains[foo]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       describe('legacy', function() {
@@ -246,7 +253,7 @@ describe('solver.spec', function() {
         let opts2 = {id: 'foo'}; // to ensure opts isnt adjusted
 
         expect(solver.addVar(opts)).to.equal(opts);
-        expect(_ => solver.addVar(opts2)).to.throw('Var name already part of this config. Probably a bug?');
+        expect(_ => solver.addVar(opts2)).to.throw('Solver#addVar: var.id already added: foo');
       });
 
       it('should update byId', function() {
@@ -350,7 +357,8 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('Expecting varname to be a string');
         });
 
         it('should have at leat one string var name', function() {
@@ -419,7 +427,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('Expecting varname to be a string');
         });
 
         it('should have at leat one string var name', function() {
@@ -489,7 +497,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('Expecting varname to be a string');
         });
 
         it('should have at leat one string var name', function() {
@@ -559,7 +567,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('Expecting varname to be a string');
         });
 
         it('should have at leat one string var name', function() {
@@ -864,44 +872,33 @@ describe('solver.spec', function() {
       function alias(method) {
         describe('method [' + method + ']', function() {
 
-          it('should work', function() {
+          it('should return first name if neither is constant', function() {
             let solver = new Solver();
             solver.decl('A', 100);
             solver.decl('B', 100);
+
             expect(solver[method]('A', 'B')).to.equal('A');
           });
 
-          it('should work with a number left', function() {
+          it('should work with a number left and return the constant name', function() {
             let solver = new Solver();
             solver.decl('B', 100);
-            expect(solver[method](1, 'B')).to.equal('1'); // if we change anonymous var naming, this'll break
+
+            expect(solver[method](1, 'B')).to.equal(CONST_PREFIX + 1); // if we change anonymous var naming, this'll break
           });
 
-          it('should work with a number right', function() {
+          it('should work with a number right and return the constant name', function() {
             let solver = new Solver();
             solver.decl('A', 100);
-            expect(solver[method]('A', 2)).to.equal('1'); // if we change anonymous var naming, this'll break
-          });
-          it('should not work with an empty array', function() {
-            let solver = new Solver();
-            solver.decl('B', 100);
-            expect(_ => solver[method]([], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
+
+            expect(solver[method]('A', 2)).to.equal(CONST_PREFIX + 2); // if we change anonymous var naming, this'll break
           });
 
-          it('should work with an array of one element', function() {
+          it('should not work with arrdoms', function() {
             let solver = new Solver();
-            solver.decl('A', 100);
             solver.decl('B', 100);
-            expect(_ => solver[method](['A'], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
-          });
 
-          it('should work with an array of multiple elements', function() {
-            let solver = new Solver();
-            solver.decl('A', 100);
-            solver.decl('B', 100);
-            solver.decl('C', 100);
-            solver.decl('D', 100);
-            expect(_ => solver[method](['A', 'C', 'D'], 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
+            expect(_ => solver[method](fixt_arrdom_range(0, 1, true), 'B')).to.throw('NOT_ACCEPTING_ARRAYS');
           });
         });
       }
@@ -959,7 +956,7 @@ describe('solver.spec', function() {
             let solver3 = new Solver();
             solver3.decl('A', 100);
             solver3.decl('B', 100);
-            expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+            expect(_ => solver3[method](['A', 'B'], {})).to.throw('Expecting varname to be a string');
           });
 
           it('should have at leat one string var name', function() {

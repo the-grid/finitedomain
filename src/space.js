@@ -5,14 +5,10 @@ import {
   ASSERT,
   ASSERT_LOG,
   ASSERT_NORDOM,
-  THROW,
 } from './helpers';
 
 import {
-  TRIE_KEY_NOT_FOUND,
-
   trie_addNum,
-  trie_get,
   trie_getNum,
 } from './trie';
 
@@ -27,6 +23,7 @@ import {
 
 import {
   config_clone,
+  config_getVarIndexByVarName,
   config_initForSpace,
 } from './config';
 
@@ -107,6 +104,7 @@ function space_toConfig(space, config) {
 
   let vardoms = space.vardoms;
   let newDomains = [];
+
   let names = config.all_var_names;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
@@ -226,11 +224,9 @@ function initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let varNamesTrie = config._var_names_trie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
-      let varIndex = trie_get(varNamesTrie, varName);
-      if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
+      let varIndex = config_getVarIndexByVarName(config, varName);
       if (!domain_isSolved(vardoms[varIndex])) {
         front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
       }
@@ -477,10 +473,23 @@ function space_solution(space, config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let allVarNames = config.all_var_names;
+  let shadowConstants = config._shadowConstants || {}; // older exports may not have the shadow constants
+
   let result = {};
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
-    result[varName] = space_getVarSolveState(space, varIndex);
+    let c = space_getVarSolveState(space, varIndex);
+    let mapper = shadowConstants[varIndex];
+    if (mapper) {
+      ASSERT(varName.slice(0, '$const_'.length) === '$const_', 'all shadow constants are represented with a name $const_', varName.slice(0, '$const_'.length));
+      // this var is represented by multiple var names
+      for (let i = 0, len = mapper.length; i < len; ++i) {
+        result[mapper[i]] = c;
+      }
+    } else {
+      // dont put constants in here. if they were originally anonymus vars they will be part of the shadow
+      result[varName] = c;
+    }
   }
   return result;
 }

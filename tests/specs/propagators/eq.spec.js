@@ -45,42 +45,40 @@ describe('propagators/eq.spec', function() {
 
     it('should expect args', function() {
       let config = config_create();
-      config_addVarRange(config, 'A', 11, 15);
-      config_addVarRange(config, 'B', 5, 8);
+      let A = config_addVarRange(config, 'A', 11, 15);
+      let B = config_addVarRange(config, 'B', 5, 8);
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
+      expect(_ => propagator_eqStepBare(space, config, A, B)).not.to.throw();
       expect(_ => propagator_eqStepBare(space, config)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
-      expect(_ => propagator_eqStepBare(space, config, undefined, config.all_var_names.indexOf('B'))).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+      expect(_ => propagator_eqStepBare(space, config, A)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
+      expect(_ => propagator_eqStepBare(space, config, undefined, B)).to.throw('VAR_INDEX_SHOULD_BE_NUMBER');
     });
 
     it('should throw for empty domains', function() {
       let config = config_create();
-      config_addVarRange(config, 'A', 9, 10);
-      config_addVarRange(config, 'B', 11, 15);
-      config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
-      config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
+      let A = config_addVarRange(config, 'A', 9, 10);
+      let B = config_addVarRange(config, 'B', 11, 15);
+      let C = config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+      let D = config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
-      space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
+      space.vardoms[C] = fixt_numdom_empty();
+      space.vardoms[D] = fixt_numdom_empty();
 
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'))).not.to.throw();
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('B'))).to.throw('SHOULD_NOT_BE_REJECTED');
-      expect(_ => propagator_eqStepBare(space, config, config.all_var_names.indexOf('C'), config.all_var_names.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
+      expect(_ => propagator_eqStepBare(space, config, A, B)).not.to.throw();
+      expect(_ => propagator_eqStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
+      expect(_ => propagator_eqStepBare(space, config, C, B)).to.throw('SHOULD_NOT_BE_REJECTED');
+      expect(_ => propagator_eqStepBare(space, config, C, D)).to.throw('SHOULD_NOT_BE_REJECTED');
     });
 
     it('with array should split a domain if it covers multiple ranges of other domain', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
-      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let A = config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      let B = config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
 
       propagator_eqStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
@@ -89,12 +87,10 @@ describe('propagators/eq.spec', function() {
 
     it('with number should split a domain if it covers multiple ranges of other domain', function() {
       let config = config_create();
-      config_addVarRange(config, 'A', SUB, 15);
-      config_addVarDomain(config, 'B', fixt_arrdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
+      let A = config_addVarRange(config, 'A', SUB, 15);
+      let B = config_addVarDomain(config, 'B', fixt_arrdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
 
       let C = fixt_numdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
 
@@ -107,13 +103,10 @@ describe('propagators/eq.spec', function() {
       function test(domain) {
         it(`should not change anything: ${domain}`, function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', fixt_dom_clone(domain, 'array'));
-          config_addVarDomain(config, 'B', fixt_dom_clone(domain, 'array'));
+          let A = config_addVarDomain(config, 'A', fixt_dom_clone(domain, 'array'));
+          let B = config_addVarDomain(config, 'B', fixt_dom_clone(domain, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
-
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
 
           propagator_eqStepBare(space, config, A, B);
           fixt_domainEql(space.vardoms[A], domain);
@@ -143,12 +136,10 @@ describe('propagators/eq.spec', function() {
       function test(left, right, result) {
         it(`should not change anything (left-right): ${[left, right, result].join('|')}`, function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', fixt_dom_clone(left, 'array'));
-          config_addVarDomain(config, 'B', fixt_dom_clone(right, 'array'));
+          let A = config_addVarDomain(config, 'A', fixt_dom_clone(left, 'array'));
+          let B = config_addVarDomain(config, 'B', fixt_dom_clone(right, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
 
           propagator_eqStepBare(space, config, A, B);
           expect(space.vardoms[A]).to.eql(result);
@@ -157,12 +148,10 @@ describe('propagators/eq.spec', function() {
 
         it(`should not change anything (right-left): ${[right, left, result].join('|')}`, function() {
           let config = config_create();
-          config_addVarDomain(config, 'A', fixt_dom_clone(right, 'array'));
-          config_addVarDomain(config, 'B', fixt_dom_clone(left, 'array'));
+          let A = config_addVarDomain(config, 'A', fixt_dom_clone(right, 'array'));
+          let B = config_addVarDomain(config, 'B', fixt_dom_clone(left, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
 
           propagator_eqStepBare(space, config, A, B);
           expect(space.vardoms[A]).to.eql(result);
@@ -188,13 +177,10 @@ describe('propagators/eq.spec', function() {
 
       it('should improve test coverage by enabling logging', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
-        config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_eqStepBare(space, config, A, B);
 

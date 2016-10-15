@@ -7,6 +7,7 @@ import {
   fixt_numdom_empty,
   fixt_numdom_range,
   fixt_numdom_ranges,
+  fixt_numdom_solved,
   fixt_strdom_empty,
   fixt_strdom_range,
   fixt_strdom_ranges,
@@ -14,10 +15,12 @@ import {
 } from '../fixtures/domain.fixt';
 
 import {
+  SMALL_MAX_NUM,
   SUP,
 } from '../../src/helpers';
 import {
   domain__debug,
+  domain_toSmallest,
 } from '../../src/domain';
 import domain_plus from '../../src/doms/domain_plus';
 
@@ -121,14 +124,19 @@ describe('src/plus.spec.js', function() {
         fixt_assertStrings(domain_plus(A, B), E);
       });
 
-      it('should add small numbers to a small domain', function() {
-        // regression. numbers 0 ~ 3 are hardcoded explicitly, 4+ is loop
-        // make sure total does not exceed the small domain cap
-        for (let i = 0; i < 7; ++i) {
-          for (let j = 0; j < 8; ++j) {
-            if (i !== 8 || j !== 8) { // 16
-              expect(domain_plus(1 << i, 1 << j), i + ' + ' + j).to.eql(1 << (i + j));
-            }
+      it('should add soldoms to a soldom', function() {
+        for (let i = 0; i < SMALL_MAX_NUM; ++i) {
+          for (let j = 0; j < SMALL_MAX_NUM; ++j) {
+            expect(domain_plus(fixt_numdom_solved(i), fixt_numdom_solved(j))).to.eql(fixt_numdom_solved(i + j));
+          }
+        }
+      });
+
+      it('should add numdoms to a normalized domain', function() {
+        // note: using all normalized doms here. expecting the output to be normalized as well. that's the test.
+        for (let i = 0; i < SMALL_MAX_NUM; ++i) {
+          for (let j = 0; j < SMALL_MAX_NUM; ++j) {
+            expect(domain_plus(fixt_dom_range(0, i), fixt_dom_range(0, j))).to.eql(fixt_dom_range(0, i + j));
           }
         }
       });
@@ -165,7 +173,7 @@ describe('src/plus.spec.js', function() {
             let B = inputs[j];
             let C = outcomes[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
-            fixt_domainEql(domain_plus(A, B), C, desc);
+            fixt_domainEql(domain_plus(domain_toSmallest(A), domain_toSmallest(B)), C, desc);
           }
         }
       });

@@ -1816,6 +1816,7 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
  * @returns {$domain} will be a soldom
  */
 function domain_createValue(value) {
+  ASSERT(arguments.length === 1, 'param count; expecting only the value');
   ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
   ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
 
@@ -1827,6 +1828,7 @@ function domain_createValue(value) {
  * @returns {$domain}
  */
 function domain_createRange(lo, hi) {
+  ASSERT(arguments.length === 2, 'param count; expecting only the lo and hi');
   ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
   if (lo === hi) return domain_createValue(lo);
   if (hi <= SMALL_MAX_NUM) return domain_num_createRange(lo, hi);
@@ -2076,7 +2078,7 @@ function domain_toSmallest(domain) {
 }
 function domain_anyToSmallest(domain) {
   // for tests and config import
-  if (domain instanceof Array) domain = domain_arrToStr(domain);
+  if (domain instanceof Array) domain = domain_arrToSmallest(domain);
   return domain_toSmallest(domain);
 }
 function domain_numToSmallest(domain) {

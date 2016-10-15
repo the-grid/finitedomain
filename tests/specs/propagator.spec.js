@@ -66,18 +66,18 @@ describe('src/propagator.spec', function() {
 
             it('should work with ' + op + ' with A=' + A + ' B=' + B + ' C=' + C, function() {
               let config = config_create();
-              config_addVarDomain(config, 'A', A);
-              config_addVarDomain(config, 'B', B);
-              config_addVarDomain(config, 'C', C);
-              expect(propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.equal(undefined);
+              let a = config_addVarDomain(config, 'A', A);
+              let b = config_addVarDomain(config, 'B', B);
+              let c = config_addVarDomain(config, 'C', C);
+              expect(propagator_addReified(config, op, a, b, c)).to.equal(undefined);
             });
 
             it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
               let config = config_create();
-              config_addVarDomain(config, 'A', A);
-              config_addVarDomain(config, 'B', B);
-              config_addVarDomain(config, 'C', [0, 100]);
-              expect(_ => propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.throw('should be bool bound');
+              let a = config_addVarDomain(config, 'A', A);
+              let b = config_addVarDomain(config, 'B', B);
+              let c = config_addVarDomain(config, 'C', [0, 100]);
+              expect(_ => propagator_addReified(config, op, a, b, c)).to.throw('should be bool bound');
             });
           });
         });

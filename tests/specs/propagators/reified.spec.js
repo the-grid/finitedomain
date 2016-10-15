@@ -58,9 +58,9 @@ describe('propagators/reified.spec', function() {
         it(`reified_step call [${msg}] with: ${[`A=[${A_in}]`, `B=[${B_in}]`, `bool=[${bool_in}]`, `op=${op}`, `inv=${invop}`, `result=[${bool_after}]`]}`, function() {
 
           let config = config_create();
-          config_addVarDomain(config, 'A', fixt_dom_clone(A_in, 'array'));
-          config_addVarDomain(config, 'B', fixt_dom_clone(B_in, 'array'));
-          config_addVarDomain(config, 'bool', fixt_dom_clone(bool_in, 'array'));
+          let A = config_addVarDomain(config, 'A', fixt_dom_clone(A_in, 'array'));
+          let B = config_addVarDomain(config, 'B', fixt_dom_clone(B_in, 'array'));
+          let bool = config_addVarDomain(config, 'bool', fixt_dom_clone(bool_in, 'array'));
           let space = space_createRoot();
           space_initFromConfig(space, config);
 
@@ -70,9 +70,6 @@ describe('propagators/reified.spec', function() {
           let rejectsOp = op === 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
           let rejectsNop = op !== 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
 
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
-          let bool = config.all_var_names.indexOf('bool');
           propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
           fixt_domainEql(space.vardoms[A], A_in, 'A should be unchanged');
@@ -118,15 +115,11 @@ describe('propagators/reified.spec', function() {
 
       it('should improve test coverage by enabling logging', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1, true));
-        config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1, true));
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1, true));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1, true));
+        let C = config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
-        let C = config.all_var_names.indexOf('C');
 
         propagator_reifiedStepBare(space, config, A, B, C, propagator_eqStepBare, propagator_neqStepBare, 'eq', 'neq', propagator_eqStepWouldReject, propagator_neqStepWouldReject);
 

@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_dom_nums,
+  fixt_dom_range,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -15,6 +16,7 @@ import {
 } from '../../src/helpers';
 import {
   domain__debug,
+  domain_toSmallest,
 } from '../../src/domain';
 import domain_minus from '../../src/doms/domain_minus';
 
@@ -117,9 +119,9 @@ describe('src/minus.spec.js', function() {
 
     it('should shortcut loop', function() {
       for (let i = 0; i < SMALL_MAX_NUM; ++i) {
-        let A = fixt_numdom_nums(0, i);
-        let B = fixt_numdom_nums(0, SMALL_MAX_NUM);
-        let E = fixt_numdom_range(0, i);
+        let A = fixt_dom_nums(0, i);
+        let B = fixt_dom_nums(0, SMALL_MAX_NUM);
+        let E = fixt_dom_range(0, i);
 
         fixt_domainEql(domain_minus(A, B), E, '0..' + i);
       }
@@ -153,8 +155,8 @@ describe('src/minus.spec.js', function() {
         for (let i = 0; i < inputs.length; ++i) {
           for (let j = 0; j < inputs.length; ++j) {
             //console.log(y[i].toString(2).padLeft(32, '0'), '-', y[j].toString(2).padLeft(32, '0'), '=', domain_minus(y[i], y[j]).toString(2).padLeft(32, '0'), '          ', y[i], '-', y[j], '=', domain_minus(y[i], y[j]), '          ', domain_toList(y[i]), '-', domain_toList(y[j]), '=', domain_toList(domain_minus(y[i], y[j])));
-            let A = inputs[i];
-            let B = inputs[j];
+            let A = domain_toSmallest(inputs[i]);
+            let B = domain_toSmallest(inputs[j]);
             let C = outcomes[n++];
             let desc = domain__debug(A) + ' - ' + domain__debug(B) + ' = ' + domain__debug(C);
             fixt_domainEql(domain_minus(A, B), C, desc);

@@ -1,5 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_nums,
+  fixt_domainEql,
   fixt_arrdom_empty,
   fixt_arrdom_nums,
   fixt_arrdom_range,
@@ -11,6 +13,9 @@ import {
 
   ASSERT_SET_LOG,
 } from '../../../src/helpers';
+import {
+  config_getVarIndexByVarName,
+} from '../../../src/config';
 import Solver from '../../../src/solver';
 import propagator_markovStepBare from '../../../src/propagators/markov';
 
@@ -22,7 +27,7 @@ describe('propagators/markov.spec', function() {
 
   describe('simple unit tests', function() {
 
-    it('should pass if solved value is in legend with prob>0', function() {
+    it('should pass if solved value is in legend with prob>0 (constant)', function() {
       let solver = new Solver();
       solver.addVar({
         id: 'A',
@@ -37,7 +42,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -59,7 +64,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
       // A=0, which is not in legend
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -83,7 +88,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
         // A=0, which is in legend but has prob=0
         propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -105,7 +110,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
         // A=0, which is in legend and has prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -133,12 +138,12 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_nums(0));
+        fixt_domainEql(solver.getDomain(solver._space, Aindex), fixt_dom_nums(0));
       });
 
       it('should reject if second row gives value prob=0', function() {
@@ -160,12 +165,12 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
         // A=0, which is in legend and has prob=1 in first row,
         // but only second row is considered which gives prob=0
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
+        fixt_domainEql(solver.getDomain(solver._space, Aindex), fixt_arrdom_empty());
       });
     });
   });
@@ -191,7 +196,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -214,7 +219,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = config_getVarIndexByVarName(solver.config, 'A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);

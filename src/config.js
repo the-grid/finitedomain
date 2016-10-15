@@ -23,7 +23,6 @@ import {
   trie_add,
   trie_create,
   trie_get,
-  trie_has,
 } from './trie';
 import {
   front_create,
@@ -71,6 +70,8 @@ import distribution_getDefaults from './distribution/defaults';
 
 // BODY_START
 
+const CONST_PREFIX = '$const_';
+
 /**
  * @returns {$config}
  */
@@ -78,7 +79,7 @@ function config_create() {
   let config = {
     _class: '$config',
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
-    _var_names_trie: trie_create(),
+    _var_names_trie: trie_create(), // all var names AND all (anon) constant
     _changedVarsTrie: undefined,
     _propagationBatch: 0,
     _propagationCycles: 0,
@@ -100,6 +101,7 @@ function config_create() {
 
     constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
     initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to all_var_names
+    _shadowConstants: {}, // Object.<number:string[]> maps var index to their original var names (only for those that were optimized away)
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
@@ -124,6 +126,7 @@ function config_clone(config, newDomains) {
     all_var_names,
     all_constraints,
     initial_domains,
+    _shadowConstants,
     _propagators,
     _varToPropagators,
     _constrainedAway,
@@ -151,6 +154,7 @@ function config_clone(config, newDomains) {
     all_var_names: all_var_names.slice(0),
     all_constraints: all_constraints.slice(0),
     initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
+    _shadowConstants,
 
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
@@ -190,8 +194,6 @@ function config_addVarAnonRange(config, lo, hi) {
   ASSERT(typeof lo === 'number', 'A_LO_MUST_BE_NUMBER');
   ASSERT(typeof hi === 'number', 'A_HI_MUST_BE_NUMBER');
 
-  if (lo === hi) return config_addVarAnonConstant(config, lo);
-
   return config_addVarRange(config, true, lo, hi);
 }
 /**
@@ -215,12 +217,13 @@ function config_addVarRange(config, varName, lo, hi) {
  * @param {$config} config
  * @param {string|boolean} varName (If true, anon)
  * @param {$arrdom} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
+ * @param {boolean} [isMarkov=false] when true, this var wont ever get constant optimization ("temp" workaround)
  * @returns {number} varIndex
  */
-function config_addVarDomain(config, varName, domain) {
+function config_addVarDomain(config, varName, domain, isMarkov) {
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
-  return _config_addVar(config, varName, domain_anyToSmallest(domain));
+  return _config_addVar(config, varName, domain_anyToSmallest(domain), isMarkov);
 }
 /**
  * @param {$config} config
@@ -230,10 +233,6 @@ function config_addVarDomain(config, varName, domain) {
 function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-
-  if (config.constant_cache[value] !== undefined) {
-    return config.constant_cache[value];
-  }
 
   return config_addVarConstant(config, true, value);
 }
@@ -248,7 +247,7 @@ function config_addVarConstant(config, varName, value) {
   ASSERT(typeof varName === 'string' || varName === true, 'varName must be a string or true for anon');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  let domain = domain_createRange(value, value);
+  let domain = domain_createValue(value);
 
   return _config_addVar(config, varName, domain);
 }
@@ -257,12 +256,14 @@ function config_addVarConstant(config, varName, value) {
  * @param {$config} config
  * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
  * @param {$nordom} domain
+ * @param {boolean} [isMarkov=false] When true, dont optimize constants away for this var. Temp work around.
  * @returns {number} varIndex
  */
-function _config_addVar(config, varName, domain) {
+function _config_addVar(config, varName, domain, isMarkov) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
+  ASSERT(varName !== String(parseInt(varName, 10)), 'DONT_USE_NUMBERS_AS_VAR_NAMES');
   ASSERT(domain, 'NON_EMPTY_DOMAIN');
   ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
@@ -270,29 +271,46 @@ function _config_addVar(config, varName, domain) {
   let allVarNames = config.all_var_names;
   let varIndex = allVarNames.length;
 
-  // note: 100 is an arbitrary number but since large sets are probably
-  // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100) {
-    if (String(parseInt(varName, 10)) === varName) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES', varName);
-  }
+  let realVarName = varName;
 
-  let wasAnonymous = varName === true;
-  if (wasAnonymous) {
+  if (varName === true) { // anonymous var?
     varName = String(varIndex); // this var will be assigned to this index
-  }
-  // note: 100 is an arbitrary number but since large sets are probably
-  // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100) {
-    if (trie_has(config._var_names_trie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
   }
 
   let solvedTo = domain_getValue(domain);
-  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
+  if (!isMarkov && solvedTo !== NOT_FOUND) {
+    // var is a constant. let all constants map to the same var index since the
+    // solved domain is almost immutable; it can only become rejected which immediately
+    // ends a search. so it should be completely safe to map multiple solved vars that
+    // solve to the same value, to the same var index.
+
+    // if the constant was known use the existing constant. otherwise use the new index.
+    let constantCache = config.constant_cache;
+    if (constantCache[solvedTo] >= 0) varIndex = constantCache[solvedTo];
+    else constantCache[solvedTo] = varIndex;
+
+    // if a name was given store it with the value it was solved to
+    ASSERT(typeof varName === 'string', 'the var name should be string');
+    if (!config._shadowConstants[varIndex]) config._shadowConstants[varIndex] = [];
+    let list = config._shadowConstants[varIndex];
+    if (list.indexOf(varName) < 0) list.push(varName); // TODO: confirm indexOf isnt tanking performance in large sets
+
+    varName = CONST_PREFIX + solvedTo; // look, if you use this as a name then ...
+  }
 
   ASSERT_NORDOM(domain, true, domain__debug);
   config.initial_domains[varIndex] = domain;
-  config.all_var_names.push(varName);
+  config.all_var_names[varIndex] = varName;
+  // TODO: ensure re-adding an existing constant here doesnt cause problems...
   trie_add(config._var_names_trie, varName, varIndex);
+
+  // if a constant was remapped log down the mapping to the original name as
+  // well. this should not clash as the replacement name should be an anonymous
+  // variable, whose names are considered reserved anyways. this way we only
+  // have to take care of the index->name lookup and get name->index "for free"
+  if (varName !== realVarName && realVarName !== true) {
+    trie_add(config._var_names_trie, realVarName, varIndex);
+  }
 
   return varIndex;
 }
@@ -307,6 +325,25 @@ function config_setDefaults(config, varName) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   let defs = distribution_getDefaults(varName);
   for (let key in defs) config_setOption(config, key, defs[key]);
+}
+
+/**
+ * This function mainly exists to bridge the named constants that
+ * won't exist in the all_var_names array, but a shadow list instead.
+ * Note that all names _are_ available in the trie, just not in the
+ * array.
+ *
+ * @param {$config} config
+ * @param {string} varName
+ * @returns {number}
+ */
+function config_getVarIndexByVarName(config, varName) {
+  ASSERT(config._class === '$config', 'Expecting config');
+  ASSERT(typeof varName === 'string', 'Expecting varname to be a string', varName);
+
+  let varIndex = trie_get(config._var_names_trie, varName);
+  ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'REQUESTED_VAR_SHOULD_EXIST', varName);
+  return varIndex;
 }
 
 /**
@@ -558,7 +595,7 @@ function config_addConstraint(config, name, varNames, param) {
       } else if (typeof sumName !== 'string') {
         THROW(`expecting result var name to be absent or a number or string: \`${sumName}\``);
       } else {
-        sumVarIndex = config.all_var_names.indexOf(sumName);
+        sumVarIndex = config_getVarIndexByVarName(config, sumName);
       }
 
       if (resultIsParam) param = sumVarIndex;
@@ -612,9 +649,7 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._var_names_trie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
-    varIndexes[i] = varIndex;
+    varIndexes[i] = config_getVarIndexByVarName(config, varNames[i]);
   }
 
   if (name === 'sum') {
@@ -1012,7 +1047,7 @@ function config_generatePropagators(config) {
     let constraint = constraints[i];
     if (constraint.varNames) {
       console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
-      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._var_names_trie, name));
+      constraint.varIndexes = constraint.varNames.map(name => config_getVarIndexByVarName(config, name));
       let p = constraint.param;
       delete constraint.param;
       delete constraint.varNames;
@@ -1093,8 +1128,7 @@ function config_populateVarStrategyListHash(config) {
       let obj = {};
       let list = vsc.priorityByName;
       for (let i = 0, len = list.length; i < len; ++i) {
-        let varIndex = trie_get(config._var_names_trie, list[i]);
-        ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'VARS_IN_PRIO_LIST_SHOULD_BE_KNOWN_NOW');
+        let varIndex = config_getVarIndexByVarName(config, list[i]);
         obj[varIndex] = len - i; // never 0, offset at 1. higher value is higher prio
       }
       vsc._priorityByIndex = obj;
@@ -1139,6 +1173,8 @@ function config_initForSpace(config, space) {
 // BODY_STOP
 
 export {
+  CONST_PREFIX,
+
   config_addConstraint,
   config_addPropagator,
   config_addVarAnonConstant,
@@ -1153,6 +1189,7 @@ export {
   config_createVarStratConfig,
   config_generateVars,
   config_generatePropagators,
+  config_getVarIndexByVarName,
   config_initForSpace,
   config_populateVarPropHash,
   config_setDefaults,

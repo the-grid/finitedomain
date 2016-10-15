@@ -32,6 +32,7 @@ import {
   STR_VALUE_SIZE,
   STR_RANGE_SIZE,
 
+  domain__debug,
   domain_createRange,
   domain_num_createRange,
   domain_numnum_createRangeZeroToMax,
@@ -58,8 +59,8 @@ let MAX = Math.max;
  * @returns {$domain}
  */
 function domain_minus(domain1, domain2) {
-  ASSERT_NORDOM(domain1);
-  ASSERT_NORDOM(domain2);
+  ASSERT_NORDOM(domain1, undefined, domain__debug);
+  ASSERT_NORDOM(domain2, undefined, domain__debug);
 
   // note: this is not x-0=x. this is nothing-something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -72,19 +73,23 @@ function domain_minus(domain1, domain2) {
     return domain_createRange(0, domain_max(domain1));
   }
 
+  let result;
+
   let isNum1 = typeof domain1 === 'number';
   let isNum2 = typeof domain2 === 'number';
   if (isNum1) {
     // note: if domain1 is a small domain the result is always a small domain
-    if (isNum2) return _domain_minusNumNum(domain1, domain2);
-    return _domain_minusNumStr(domain1, domain2);
+    if (isNum2) result = _domain_minusNumNum(domain1, domain2);
+    else result = _domain_minusNumStr(domain1, domain2);
+  } else if (isNum2) { // cannot swap minus args!
+    result = _domain_minusStrNumStr(domain1, domain2);
+    result = domain_str_simplify(result);
+  } else {
+    result = _domain_minusStrStrStr(domain1, domain2);
+    result = domain_str_simplify(result);
   }
 
-  let result;
-  if (isNum2) result = _domain_minusStrNumStr(domain1, domain2); // cannot swap minus args!
-  else result = _domain_minusStrStrStr(domain1, domain2);
-
-  return domain_toSmallest(domain_str_simplify(result));
+  return domain_toSmallest(result);
 }
 function _domain_minusStrStrStr(domain1, domain2) {
   ASSERT_STRDOM(domain1);

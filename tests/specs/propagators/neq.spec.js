@@ -45,13 +45,10 @@ describe('propagators/neq.spec', function() {
 
   it('should expect args', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15));
-    config_addVarDomain(config, 'B', fixt_arrdom_nums(5, 8));
+    let A = config_addVarDomain(config, 'A', fixt_arrdom_nums(11, 15));
+    let B = config_addVarDomain(config, 'B', fixt_arrdom_nums(5, 8));
     let space = space_createRoot();
     space_initFromConfig(space, config);
-
-    let A = config.all_var_names.indexOf('A');
-    let B = config.all_var_names.indexOf('B');
 
     expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
@@ -63,19 +60,14 @@ describe('propagators/neq.spec', function() {
 
   it('should throw for empty domains', function() {
     let config = config_create();
-    config_addVarDomain(config, 'A', fixt_arrdom_nums(9, 10));
-    config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
-    config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
-    config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
+    let A = config_addVarDomain(config, 'A', fixt_arrdom_nums(9, 10));
+    let B = config_addVarDomain(config, 'B', fixt_arrdom_nums(11, 15));
+    let C = config_addVarDomain(config, 'C', fixt_arrdom_nums(100));
+    let D = config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot();
     space_initFromConfig(space, config);
-    space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
-    space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
-
-    let A = config.all_var_names.indexOf('A');
-    let B = config.all_var_names.indexOf('B');
-    let C = config.all_var_names.indexOf('C');
-    let D = config.all_var_names.indexOf('D');
+    space.vardoms[C] = fixt_numdom_empty();
+    space.vardoms[D] = fixt_numdom_empty();
 
     expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
@@ -88,13 +80,10 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should not change anything (left-right): ${[domain1, domain2].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain1));
-        config_addVarDomain(config, 'B', domain_toArr(domain2));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain1));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -104,13 +93,10 @@ describe('propagators/neq.spec', function() {
 
       it(`should not change anything (right-left): ${[domain2, domain1].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain2));
-        config_addVarDomain(config, 'B', domain_toArr(domain1));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain2));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -147,13 +133,10 @@ describe('propagators/neq.spec', function() {
     function test(solvedDomain, unsolvedDomainBefore, unsolvedDomainAfter) {
       it(`should not change anything (right-left): [${[domain_toArr(solvedDomain), domain_toArr(unsolvedDomainBefore)].join(']|[')}]`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(solvedDomain));
-        config_addVarDomain(config, 'B', domain_toArr(unsolvedDomainBefore));
+        let A = config_addVarDomain(config, 'A', domain_toArr(solvedDomain));
+        let B = config_addVarDomain(config, 'B', domain_toArr(unsolvedDomainBefore));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -163,13 +146,10 @@ describe('propagators/neq.spec', function() {
 
       it(`should remove solved domain from unsolve domain (left-right): [${[unsolvedDomainBefore, solvedDomain].join(']|[')}]`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(unsolvedDomainBefore));
-        config_addVarDomain(config, 'B', domain_toArr(solvedDomain));
+        let A = config_addVarDomain(config, 'A', domain_toArr(unsolvedDomainBefore));
+        let B = config_addVarDomain(config, 'B', domain_toArr(solvedDomain));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let B = config.all_var_names.indexOf('B');
-        let A = config.all_var_names.indexOf('A');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -206,13 +186,10 @@ describe('propagators/neq.spec', function() {
     function test(domain1, domain2) {
       it(`should be "solved" (left-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain1));
-        config_addVarDomain(config, 'B', domain_toArr(domain2));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain1));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -222,13 +199,10 @@ describe('propagators/neq.spec', function() {
 
       it(`should be "solved" (right-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain2));
-        config_addVarDomain(config, 'B', domain_toArr(domain1));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain2));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -238,13 +212,10 @@ describe('propagators/neq.spec', function() {
 
       it(`should reject if same (left-left): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain1));
-        config_addVarDomain(config, 'B', domain_toArr(domain1));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain1));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -254,13 +225,10 @@ describe('propagators/neq.spec', function() {
 
       it(`should reject if same (right-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', domain_toArr(domain2));
-        config_addVarDomain(config, 'B', domain_toArr(domain2));
+        let A = config_addVarDomain(config, 'A', domain_toArr(domain2));
+        let B = config_addVarDomain(config, 'B', domain_toArr(domain2));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -302,13 +270,10 @@ describe('propagators/neq.spec', function() {
 
     it('should improve test coverage by enabling logging', function() {
       let config = config_create();
-      config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
-      config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
+      let A = config_addVarDomain(config, 'A', fixt_arrdom_range(SUB, SUP));
+      let B = config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 300]));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
 
       propagator_neqStepBare(space, config, A, B);
 

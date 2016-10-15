@@ -24,6 +24,7 @@ import {
   STR_RANGE_SIZE,
   STR_VALUE_SIZE,
 
+  domain__debug,
   domain_str_closeGaps,
   domain_num_createRange,
   domain_str_decodeValue,
@@ -45,8 +46,8 @@ let MIN = Math.min;
  * @returns {$domain}
  */
 function domain_plus(domain1, domain2) {
-  ASSERT_NORDOM(domain1);
-  ASSERT_NORDOM(domain2);
+  ASSERT_NORDOM(domain1, undefined, domain__debug);
+  ASSERT_NORDOM(domain2, undefined, domain__debug);
 
   // note: this is not 0+x=x. this is nothing+something=nothing because the domains contain no value
   if (!domain1) return EMPTY;
@@ -60,7 +61,7 @@ function domain_plus(domain1, domain2) {
     // if the highest number in the result is below the max of a small
     // domain we can take a fast path for it. this case happens often.
     if (_domain_plusWillBeSmall(domain1, domain2)) {
-      return _domain_plusNumNumNum(domain1, domain2);
+      return domain_toSmallest(_domain_plusNumNumNum(domain1, domain2));
     }
     result = _domain_plusNumNumStr(domain1, domain2);
   } else {

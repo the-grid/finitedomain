@@ -53,6 +53,7 @@ function propagator_markovStepBare(space, config, varIndex) {
 
   let configVarDistOptions = config.var_dist_options;
   let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
+  // TODO: write an edge case with two constants, one of them markov, where the solved value is not part of the legend. and one where the prob is 0
 
   ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions && JSON.stringify(configVarDistOptions));
   ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);

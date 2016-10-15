@@ -498,6 +498,7 @@ class Solver {
     // TODO: cant move this to addVar yet because mv can alter these settings after the addVar call
     let allVars = config.all_var_names;
     for (var i = 0; i < allVars.length; ++i) {
+      // this will probably screw up for constants now :(
       var name = allVars[i];
       var bvar = this.vars.byId[name];
       if (bvar) solver_varDistOptions(name, bvar, config);

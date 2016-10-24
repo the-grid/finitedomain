@@ -21,6 +21,17 @@
 - Dropped api `Solver#setOption` because it was leading to confusing situations. You can set the options through the object for the `solve` call
 - Remove `domain_removeNextFromList`, no longer used after value distributors were optimized
 - Deprecated the config setting `varStratOverride` in favor of `varValueStrat` (as used with `solver.solve({...})`)
+- Removed `addVar`, which was an internal artifact. Use `decl` (or `declRange`) instead and pass on those options as last param
+- Added optional `options` param to `decl` to pass on distribution options
+- Added `decls` to declare multiple vars with the same domain / options
+- Added `declRange` as a minor optimization for preventing temporary arrays; `solver.decl('A', [1, 2], opts)` should be equivalent to `solver.declRange('A', 1, 2, opts)`
+- Removed `constant`, deprecated in favor of `num`
+- Dropped support for "legacy domains" for `decl` (those were the initial `[[lo, hi], [lo, hi], ...]` domains, arrays of arrays)
+- Reverted the api where certain constraints would return a var name, preferring the anonymous var names if constants were passed on. Only constraints with a result var will return this constraint var. The others will return undefined.
+- Drop support for `distribute` as a string for configuring value strategies, from now on the distribution strategy must be passed on as a `valtype` property on the `distributeOptions` object. The `distribute` property will throw to prevent legacy bugs.
+- Markov matrix row boolean-getter property has been changed from `boolean` to `boolVarName`. It must still be undefined, a string, or a function returning a string. The `boolean` property now throws when set to anything.
+- Markov matrix row boolean-getter method (`boolVarName` as a function, used to be `boolean` as a function) now receives no parameters when called. The renaming is partially to catch this change.
+- The internal `boolId` property for a markov matrix row is renamed to something more obviously internal. The old property now throws if set to anything.
 
 ## v2.3.4:
 

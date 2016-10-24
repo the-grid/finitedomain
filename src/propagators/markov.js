@@ -52,18 +52,18 @@ function propagator_markovStepBare(space, config, varIndex) {
   let value = domain_min(domain); // note: solved so lo=hi=value
 
   let configVarDistOptions = config.var_dist_options;
-  let distributionOptions = configVarDistOptions[config.all_var_names[varIndex]];
+  let distributeOptions = configVarDistOptions[config.all_var_names[varIndex]];
 
-  ASSERT(distributionOptions, 'var should have a config', varIndex, distributionOptions && JSON.stringify(configVarDistOptions));
-  ASSERT(distributionOptions.valtype === 'markov', 'var should be a markov var', distributionOptions.valtype);
+  ASSERT(distributeOptions, 'var should have a config', varIndex, distributeOptions && JSON.stringify(configVarDistOptions));
+  ASSERT(distributeOptions.valtype === 'markov', 'var should be a markov var', distributeOptions.valtype);
 
-  let expandVectorsWith = distributionOptions.expandVectorsWith;
-  ASSERT(distributionOptions.matrix, 'there should be a matrix available for every var');
-  ASSERT(distributionOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set');
+  let expandVectorsWith = distributeOptions.expandVectorsWith;
+  ASSERT(distributeOptions.matrix, 'there should be a matrix available for every var');
+  ASSERT(distributeOptions.legend || (expandVectorsWith != null), 'every var should have a legend or expandVectorsWith set');
 
   // note: expandVectorsWith can be 0, so check with null
-  let values = markov_createLegend(expandVectorsWith != null, distributionOptions.legend, domain); // TODO: domain is a value, can this be optimized? is that worth the effort? (profile this)
-  let probabilities = markov_createProbVector(space, distributionOptions.matrix, expandVectorsWith, values.length);
+  let values = markov_createLegend(expandVectorsWith != null, distributeOptions.legend, domain); // TODO: domain is a value, can this be optimized? is that worth the effort? (profile this)
+  let probabilities = markov_createProbVector(space, distributeOptions.matrix, expandVectorsWith, values.length);
 
   let pos = values.indexOf(value);
   if (pos < 0 || pos >= probabilities.length || probabilities[pos] === 0) {

@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_range,
   stripAnonVars,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
@@ -27,16 +26,12 @@ describe('solver.markov.spec', function() {
     // See solver_collectDistributionOverrides for the markov propagator.
 
     let solver = new Solver({});
-    solver.addVar({
-      id: 'V',
-      domain: fixt_arrdom_range(0, 1, true),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
-        matrix: [
-          {vector: [1, 1]},
-        ],
-      },
+    solver.declRange('V', 0, 1, {
+      valtype: 'markov',
+      legend: [0, 0], // this means only 0 can be picked, regardless. bust otherwise.
+      matrix: [
+        {vector: [1, 1]},
+      ],
     });
 
     let solutions = solver.solve();
@@ -72,50 +67,39 @@ describe('solver.markov.spec', function() {
     function setupSolverForRandomTest(random_func) {
       let solver = new Solver({});
 
-      solver.addVar({
-        id: 'STATE',
-        domain: fixt_arrdom_range(0, 10, true),
-      });
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 1, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [0, 1],
-          random: random_func,
-          matrix: [
-            {
-              vector: [0.1, 1],
-              boolean(S) {
-                return S['==?']('STATE', S.constant(5));
-              },
-            }, {
-              vector: [1, 1],
+      solver.declRange('STATE', 0, 10);
+      solver.declRange('V1', 0, 1, {
+        valtype: 'markov',
+        legend: [0, 1],
+        random: random_func,
+        matrix: [
+          {
+            vector: [0.1, 1],
+            boolVarName() {
+              return solver['==?']('STATE', 5);
             },
-          ],
-        },
+          }, {
+            vector: [1, 1],
+          },
+        ],
       });
-      solver.addVar({
-        id: 'V2',
-        domain: fixt_arrdom_range(0, 1, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [0, 1],
-          random: random_func,
-          matrix: [
-            {
-              vector: [0.1, 1],
-              boolean(Solver) {
-                return Solver['==?']('STATE', solver.constant(100));
-              },
-            }, {
-              vector: [1, 1],
+      solver.declRange('V2', 0, 1, {
+        valtype: 'markov',
+        legend: [0, 1],
+        random: random_func,
+        matrix: [
+          {
+            vector: [0.1, 1],
+            boolVarName() {
+              return solver['==?']('STATE', 100);
             },
-          ],
-        },
+          }, {
+            vector: [1, 1],
+          },
+        ],
       });
 
-      solver['==']('STATE', solver.constant(5));
+      solver['==']('STATE', 5);
 
       return solver;
     }
@@ -205,48 +189,37 @@ describe('solver.markov.spec', function() {
   it('should interpret large domain w/ sparse legend & 0 probability as a constraint', function() {
     let solver = new Solver({});
 
-    solver.addVar({
-      id: 'STATE',
-      domain: fixt_arrdom_range(0, 10, true),
-    });
-    solver.addVar({
-      id: 'V1',
-      domain: fixt_arrdom_range(0, 100),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [10, 100],
-        matrix: [
-          {
-            vector: [1, 0],
-            boolean(S) {
-              return S['==?']('STATE', S.constant(5));
-            },
-          }, {
-            vector: [0, 1],
+    solver.declRange('STATE', 0, 10);
+    solver.declRange('V1', 0, 100, {
+      valtype: 'markov',
+      legend: [10, 100],
+      matrix: [
+        {
+          vector: [1, 0],
+          boolVarName() {
+            return solver['==?']('STATE', 5);
           },
-        ],
-      },
+        }, {
+          vector: [0, 1],
+        },
+      ],
     });
-    solver.addVar({
-      id: 'V2',
-      domain: fixt_arrdom_range(0, 100),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [10, 100],
-        matrix: [
-          {
-            vector: [1, 0],
-            boolean(S) {
-              return S['==?']('STATE', solver.constant(100));
-            },
-          }, {
-            vector: [0, 1],
+    solver.declRange('V2', 0, 100, {
+      valtype: 'markov',
+      legend: [10, 100],
+      matrix: [
+        {
+          vector: [1, 0],
+          boolVarName() {
+            return solver['==?']('STATE', 100);
           },
-        ],
-      },
+        }, {
+          vector: [0, 1],
+        },
+      ],
     });
 
-    solver['==']('STATE', solver.constant(5));
+    solver['==']('STATE', 5);
 
     let solutions = solver.solve();
 
@@ -266,35 +239,27 @@ describe('solver.markov.spec', function() {
     // same as previous markov test, but with incomplete, to-be-padded, vectors
 
     let solver = new Solver({});
-    solver.addVar({
-      id: 'V1',
-      domain: fixt_arrdom_range(1, 4, true),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [1, 2], // 3,4]
-        expandVectorsWith: 1,
-        random() { return 0; }, // always pick first element
-        matrix: [
-          {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
-        ],
-      },
+    solver.declRange('V1', 1, 4, {
+      valtype: 'markov',
+      legend: [1, 2], // 3,4]
+      expandVectorsWith: 1,
+      random() { return 0; }, // always pick first element
+      matrix: [
+        {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
+      ],
     });
 
-    solver.addVar({
-      id: 'V2',
-      domain: fixt_arrdom_range(1, 4, true),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [1, 2], // 3,4]
-        expandVectorsWith: 1,
-        random() { return 1 - 1e-5; }, // always pick last element
-        matrix: [
-          {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
-        ],
-      },
+    solver.declRange('V2', 1, 4, {
+      valtype: 'markov',
+      legend: [1, 2], // 3,4]
+      expandVectorsWith: 1,
+      random() { return 1 - 1e-5; }, // always pick last element
+      matrix: [
+        {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
+      ],
     });
-    solver['>']('V1', solver.constant(0));
-    solver['>']('V2', solver.constant(0));
+    solver['>']('V1', 0);
+    solver['>']('V2', 0);
 
     let solutions = solver.solve();
     expect(countSolutions(solver)).to.equal(16);
@@ -320,30 +285,22 @@ describe('solver.markov.spec', function() {
 
   it('Markov expandVectorsWith w/o any legend or vector', function() {
     let solver = new Solver({});
-    solver.addVar({
-      id: 'V1',
-      domain: fixt_arrdom_range(1, 4, true),
-      distributeOptions: {
-        valtype: 'markov',
-        // legend: [1,2,3,4]
-        expandVectorsWith: 1,
-        random() { return 0; }, // pick first eligible legend value
-      },
+    solver.declRange('V1', 1, 4, {
+      valtype: 'markov',
+      // legend: [1,2,3,4]
+      expandVectorsWith: 1,
+      random() { return 0; }, // pick first eligible legend value
     });
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
-    solver.addVar({
-      id: 'V2',
-      domain: fixt_arrdom_range(1, 4, true),
-      distributeOptions: {
-        valtype: 'markov',
-        // legend: [1,2,3,4]
-        expandVectorsWith: 1,
-        random() { return 1 - 1e-5; }, // pick last eligible legend value
-      },
+    solver.declRange('V2', 1, 4, {
+      valtype: 'markov',
+      // legend: [1,2,3,4]
+      expandVectorsWith: 1,
+      random() { return 1 - 1e-5; }, // pick last eligible legend value
     });
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
-    solver['>']('V1', solver.constant(0));
-    solver['>']('V2', solver.constant(0));
+    solver['>']('V1', 0);
+    solver['>']('V2', 0);
 
     let solutions = solver.solve();
     expect(countSolutions(solver)).to.equal(16);
@@ -374,20 +331,13 @@ describe('solver.markov.spec', function() {
       // var before the markov distributor gets a chance to do anything
 
       let solver = new Solver();
-      solver.addVar({
-        id: 'A_NORM',
-        domain: fixt_arrdom_range(0, 1, true),
-      });
-      solver.addVar({
-        id: 'B_MARK',
-        domain: fixt_arrdom_range(0, 1, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [2],
-          matrix: [
-            {vector: [1]},
-          ],
-        },
+      solver.declRange('A_NORM', 0, 1);
+      solver.declRange('B_MARK', 0, 1, {
+        valtype: 'markov',
+        legend: [2],
+        matrix: [
+          {vector: [1]},
+        ],
       });
       solver['>']('B_MARK', 'A_NORM');
 

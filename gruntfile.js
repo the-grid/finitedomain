@@ -113,13 +113,22 @@ module.exports = function () {
           'distq',
         ],
       },
-      b: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
+      b: { // quick dist WITH asserts, no linting, testing, or minifying. mostly for debugging quickly.
         files: [
           'src/**/*.js',
           'tests/**/*',
         ],
         tasks: [
           'distbug',
+        ],
+      },
+      h: { // quick dist WITHOUT asserts, no linting, testing, or minifying. mostly for debugging quickly.
+        files: [
+          'src/**/*.js',
+          'tests/**/*',
+        ],
+        tasks: [
+          'distheat',
         ],
       },
     },

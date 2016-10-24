@@ -546,9 +546,9 @@ describe('src/constraint.spec', function() {
           function test(domain1, domain2, domain3, out, desc) {
             it('should solve despite optimizations. ' + [domain__debug(domain1), '==', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
-              let A = solver.addVar('A', domain1);
-              let B = solver.addVar('B', domain2);
-              let C = solver.addVar('C', domain3);
+              let A = solver.decl('A', domain1);
+              let B = solver.decl('B', domain2);
+              let C = solver.decl('C', domain3);
               solver.isEq(A, B, C);
 
               solver.solve({vars: ['A', 'B', 'C']});
@@ -592,9 +592,9 @@ describe('src/constraint.spec', function() {
           function test(domain1, domain2, domain3, out, desc) {
             it('should solve despite optimizations. ' + [domain__debug(domain1), '!=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
-              let A = solver.addVar('A', domain1);
-              let B = solver.addVar('B', domain2);
-              let C = solver.addVar('C', domain3);
+              let A = solver.decl('A', domain1);
+              let B = solver.decl('B', domain2);
+              let C = solver.decl('C', domain3);
               solver.isNeq(A, B, C);
 
               solver.solve({vars: ['A', 'B', 'C']});
@@ -992,11 +992,11 @@ describe('src/constraint.spec', function() {
       it('should solve this old test case', function() {
         let solver = new Solver({});
 
-        solver.addVar('A', [0, 10]);
-        solver.addVar('B', [0, 10]);
-        solver.addVar('MIN', [19, 19]);
-        solver.addVar('MAX', [21, 21]);
-        solver.addVar('S', [0, 100]);
+        solver.decl('A', [0, 10]);
+        solver.decl('B', [0, 10]);
+        solver.decl('MIN', [19, 19]);
+        solver.decl('MAX', [21, 21]);
+        solver.decl('S', [0, 100]);
 
         solver.mul('A', 'B', 'S');
         solver.lte('S', 'MAX');
@@ -1287,16 +1287,12 @@ describe('src/constraint.spec', function() {
 
       it('should pass if solved value is in legend with prob>0', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [0],
-            matrix: [
-              {vector: [1]},
-            ],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [
+            {vector: [1]},
+          ],
         });
 
         let solution = solver.solve({});
@@ -1305,16 +1301,12 @@ describe('src/constraint.spec', function() {
 
       it('should reject if solved value is not in legend', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [1],
-            matrix: [
-              {vector: [1]},
-            ],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [1],
+          matrix: [
+            {vector: [1]},
+          ],
         });
 
         let solution = solver.solve({});
@@ -1325,16 +1317,12 @@ describe('src/constraint.spec', function() {
 
         it('should reject if solved value does not have prob>0', function() {
           let solver = new Solver();
-          solver.addVar({
-            id: 'A',
-            domain: fixt_arrdom_range(0, 0, true),
-            distributeOptions: {
-              valtype: 'markov',
-              legend: [0],
-              matrix: [
-                {vector: [0]},
-              ],
-            },
+          solver.declRange('A', 0, 0, {
+            valtype: 'markov',
+            legend: [0],
+            matrix: [
+            {vector: [0]},
+            ],
           });
 
           let solution = solver.solve({});
@@ -1343,16 +1331,12 @@ describe('src/constraint.spec', function() {
 
         it('should pass if solved value does has prob>0', function() {
           let solver = new Solver();
-          solver.addVar({
-            id: 'A',
-            domain: fixt_arrdom_range(0, 0, true),
-            distributeOptions: {
-              valtype: 'markov',
-              legend: [0],
-              matrix: [
-                {vector: [1]},
-              ],
-            },
+          solver.declRange('A', 0, 0, {
+            valtype: 'markov',
+            legend: [0],
+            matrix: [
+              {vector: [1]},
+            ],
           });
 
           let solution = solver.solve({});
@@ -1364,19 +1348,15 @@ describe('src/constraint.spec', function() {
 
         it('should pass if second row gives value prob>0', function() {
           let solver = new Solver();
-          solver.addVar({
-            id: 'A',
-            domain: fixt_arrdom_range(0, 0, true),
-            distributeOptions: {
-              valtype: 'markov',
-              legend: [0],
-              matrix: [{
-                vector: [0],
-                boolean: solver.num(0),
-              }, {
-                vector: [1],
-              }],
-            },
+          solver.declRange('A', 0, 0, {
+            valtype: 'markov',
+            legend: [0],
+            matrix: [{
+              vector: [0],
+              boolVarName: solver.num(0),
+            }, {
+              vector: [1],
+            }],
           });
 
           let solution = solver.solve({});
@@ -1386,19 +1366,15 @@ describe('src/constraint.spec', function() {
         it('should reject if second row gives value prob=0', function() {
 
           let solver = new Solver();
-          solver.addVar({
-            id: 'A',
-            domain: fixt_arrdom_range(0, 0, true),
-            distributeOptions: {
-              valtype: 'markov',
-              legend: [0],
-              matrix: [{
-                vector: [1],
-                boolean: solver.num(0),
-              }, {
-                vector: [0],
-              }],
-            },
+          solver.declRange('A', 0, 0, {
+            valtype: 'markov',
+            legend: [0],
+            matrix: [{
+              vector: [1],
+              boolVarName: solver.num(0),
+            }, {
+              vector: [0],
+            }],
           });
 
           let solution = solver.solve({});

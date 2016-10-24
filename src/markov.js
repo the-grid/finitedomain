@@ -23,7 +23,7 @@ function markov_getNextRowToSolve(space, matrix) {
   let vardoms = space.vardoms;
   for (let i = 0; i < matrix.length; i++) {
     var row = matrix[i];
-    let boolDomain = vardoms[row.booleanId];
+    let boolDomain = vardoms[row._boolVarIndex];
     if (boolDomain === undefined || domain_getValue(boolDomain) === 1) {
       break;
     }

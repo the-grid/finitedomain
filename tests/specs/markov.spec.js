@@ -16,16 +16,9 @@ describe('src/markov.spec', function() {
 
   it('should throw if there is no matrix and no expandVectorsWith', function() {
     let solver = new Solver();
-    let varOptions = {
-      id: 'A',
-      domain: fixt_arrdom_range(0, 0, true),
-      distributeOptions: {
-        valtype: 'markov',
-        legend: [1],
-      },
-    };
 
-    expect(_ => solver.addVar(varOptions)).to.throw('markov var missing distribution');
+    expect(_ => solver.decl('A', fixt_arrdom_range(0, 0), {valtype: 'markov', legend: [1]})).to.throw('markov var missing distribution');
+    expect(_ => solver.declRange('B', 0, 0, {valtype: 'markov', legend: [1]})).to.throw('markov var missing distribution');
   });
 
   describe('markov_createProbVector', function() {

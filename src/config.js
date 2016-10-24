@@ -384,7 +384,7 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
     case 'varStratOverrides':
       // An object which defines a value distributor per variable
       // which overrides the globally set value distributor.
-      // See Bvar#distributionOptions (in multiverse)
+      // See Bvar#distributeOptions (in multiverse)
 
       for (let key in optionValue) {
         config_setOption(config, 'varValueStrat', optionValue[key], key);
@@ -397,6 +397,35 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
       if (!config.var_dist_options) config.var_dist_options = {};
       ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet');
       config.var_dist_options[optionTarget] = optionValue;
+
+      if (optionValue.valtype === 'markov') {
+        let matrix = optionValue.matrix;
+        if (!matrix) {
+          if (optionValue.expandVectorsWith) {
+            matrix = optionValue.matrix = [{vector: []}];
+          } else {
+            THROW('Solver: markov var missing distribution (needs matrix or expandVectorsWith)');
+          }
+        }
+
+        for (let i = 0, n = matrix.length; i < n; ++i) {
+          let row = matrix[i];
+          if (row.boolean) THROW('row.boolean was deprecated in favor of row.boolVarName');
+          if (row.booleanId !== undefined) THROW('row.booleanId is no longer used, please use row.boolVarName');
+          let boolFuncOrName = row.boolVarName;
+          if (typeof boolFuncOrName === 'function') {
+            boolFuncOrName = boolFuncOrName(optionValue);
+          }
+          if (boolFuncOrName) {
+            if (typeof boolFuncOrName !== 'string') {
+              THROW('row.boolVarName, if it exists, should be the name of a var or a func that returns that name, was/got: ' + boolFuncOrName + ' (' + typeof boolFuncOrName + ')');
+            }
+            // store the var index
+            row._boolVarIndex = trie_get(config._var_names_trie, boolFuncOrName);
+          }
+        }
+      }
+
       break;
 
     case 'timeout_callback':

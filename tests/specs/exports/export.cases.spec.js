@@ -15,6 +15,7 @@ import case20160618_slim from './2016-06-18.slim';
 import case20160618_slim2 from './2016-06-18.slim2';
 import case20160803 from './2016-08-03';
 import case201608032 from './2016-08-03-2';
+import case20161017 from './2016-10-17';
 
 describe('exports/export.cases.spec', function() {
 
@@ -100,43 +101,31 @@ describe('exports/export.cases.spec', function() {
 
     it('trimmed down version', function() {
       var solver = new Solver();
-      solver.addVar({
-        id: 'x12',
-        domain: [ 1, 8 ],
-        distributionOptions: {
-          distributionName: 'list',
-          list: [4, 3, 2, 1, 5, 6, 7, 8],
-        },
+      solver.declRange('x12', 1, 8, {
+        distributionName: 'list',
+        list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
-      solver.addVar({
-        id: 'x19',
-        domain: [ 1, 8 ],
-        distributionOptions: {
-          distributionName: 'list',
-          list: [4, 3, 2, 1, 5, 6, 7, 8],
-        },
+      solver.declRange('x19', 1, 8, {
+        distributionName: 'list',
+        list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
-      solver.addVar({
-        id: 'x26',
-        domain: [ 1, 8 ],
-        distributionOptions: {
-          distributionName: 'list',
-          list: [4, 3, 2, 1, 5, 6, 7, 8],
-        },
+      solver.declRange('x26', 1, 8, {
+        distributionName: 'list',
+        list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
-      solver.decl('x152', [ 0, 1 ]);
-      solver.decl('x164', [ 0, 1 ]);
-      solver.decl('x165', [ 0, 1 ]);
-      solver.decl('x166', [ 0, 1 ]);
-      solver.decl('x171', [ 0, 100000000 ]);
-      solver.decl('x172', [ 0, 1 ]);
-      solver.decl('x207', [ 0, 100000000 ]);
-      solver.decl('x208', [ 0, 1 ]);
-      solver.decl('x209', [ 0, 100000000 ]);
-      solver.decl('x210', [ 0, 100000000 ]);
-      solver.decl('x211', [ 0, 1 ]);
-      solver.decl('x214', [ 0, 100000000 ]);
-      solver.decl('x215', [ 0, 1 ]);
+      solver.declRange('x152', 0, 1);
+      solver.declRange('x164', 0, 1);
+      solver.declRange('x165', 0, 1);
+      solver.declRange('x166', 0, 1);
+      solver.declRange('x171', 0, 100000000);
+      solver.declRange('x172', 0, 1);
+      solver.declRange('x207', 0, 100000000);
+      solver.declRange('x208', 0, 1);
+      solver.declRange('x209', 0, 100000000);
+      solver.declRange('x210', 0, 100000000);
+      solver.declRange('x211', 0, 1);
+      solver.declRange('x214', 0, 100000000);
+      solver.declRange('x215', 0, 1);
 
       solver.isEq('x12', 4, 'x164');
       solver.isEq('x19', 4, 'x165');
@@ -882,6 +871,17 @@ describe('exports/export.cases.spec', function() {
 
     it('should solve quickly', function() {
       var solver = new Solver({config: config_clone(case201608032)});
+
+      solver.solve({log: 1, max: 1});
+
+      expect(solver.solutions.length).to.eql(1);
+    });
+  });
+
+  describe('2016-10-17', function() {
+
+    it('should solve at all (regression)', function() {
+      var solver = new Solver({config: config_clone(case20161017)});
 
       solver.solve({log: 1, max: 1});
 

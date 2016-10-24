@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -22,23 +21,15 @@ describe('src/solver.list.spec', function() {
 
     it('should try values in order of the list', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(1, 4, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [2, 4, 3, 1],
-        },
+      solver.declRange('V1', 1, 4, {
+        valtype: 'list',
+        list: [2, 4, 3, 1],
       });
-      solver.addVar({
-        id: 'V2',
-        domain: fixt_arrdom_range(1, 4, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [3, 1, 4, 2],
-        },
+      solver.declRange('V2', 1, 4, {
+        valtype: 'list',
+        list: [3, 1, 4, 2],
       });
-      solver['>']('V1', solver.constant(0));
+      solver['>']('V1', 0);
       solver['>']('V2', 0);
 
       let solutions = solver.solve();
@@ -68,28 +59,20 @@ describe('src/solver.list.spec', function() {
 
     it('should solve markov according to the list in order when random=0', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: [1, 4],
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [2, 4, 3, 1],
-          expandVectorsWith: 1,
-          random() { return 0; }, // causes first element in legend to be picked
-        },
+      solver.declRange('V1', 1, 4, {
+        valtype: 'markov',
+        legend: [2, 4, 3, 1],
+        expandVectorsWith: 1,
+        random() { return 0; }, // causes first element in legend to be picked
       });
-      solver.addVar({
-        id: 'V2',
-        domain: [1, 4],
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [3, 1, 4, 2],
-          expandVectorsWith: 1,
-          random() { return 0; }, // causes first element in legend to be picked
-        },
+      solver.declRange('V2', 1, 4, {
+        valtype: 'markov',
+        legend: [3, 1, 4, 2],
+        expandVectorsWith: 1,
+        random() { return 0; }, // causes first element in legend to be picked
       });
-      solver['>']('V1', solver.constant(0));
-      solver['>']('V2', solver.constant(0));
+      solver['>']('V1', 0);
+      solver['>']('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver), 'all solutions').to.equal(16);
@@ -142,29 +125,18 @@ describe('src/solver.list.spec', function() {
       }
 
       let solver = new Solver({});
-      solver.addVar({
-        id: 'STATE',
-        domain: fixt_arrdom_range(0, 10, true),
+      solver.declRange('STATE', 0, 10);
+      solver.declRange('V1', 1, 4, {
+        valtype: 'list',
+        list: listCallback,
       });
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(1, 4, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: listCallback,
-        },
+      solver.declRange('V2', 1, 4, {
+        valtype: 'list',
+        list: listCallback,
       });
-      solver.addVar({
-        id: 'V2',
-        domain: fixt_arrdom_range(1, 4, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: listCallback,
-        },
-      });
-      solver['==']('STATE', solver.constant(5));
-      solver['>']('V1', solver.constant(0));
-      solver['>']('V2', solver.constant(0));
+      solver['==']('STATE', 5);
+      solver['>']('V1', 0);
+      solver['>']('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(16);
@@ -196,13 +168,9 @@ describe('src/solver.list.spec', function() {
 
     it('should ignore values in the domain that are not in the list', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 5, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [0, 3, 4],
-        },
+      solver.declRange('V1', 0, 5, {
+        valtype: 'list',
+        list: [0, 3, 4],
       });
       solver['>']('V1', 0);
 
@@ -216,13 +184,9 @@ describe('src/solver.list.spec', function() {
 
     it('should not solve when the list contains no values in the domain', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 10, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [0, 15],
-        },
+      solver.declRange('V1', 0, 10, {
+        valtype: 'list',
+        list: [0, 15],
       });
       solver['>']('V1', 0);
 
@@ -232,14 +196,10 @@ describe('src/solver.list.spec', function() {
 
     it('should use the fallback when the list contains no values in the domain', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 5, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [0, 15],
-          fallback_dist_name: 'max',
-        },
+      solver.declRange('V1', 0, 5, {
+        valtype: 'list',
+        list: [0, 15],
+        fallback_dist_name: 'max',
       });
       solver['>']('V1', 0);
       let solutions = solver.solve();
@@ -272,14 +232,10 @@ describe('src/solver.list.spec', function() {
 
     it('should prioritize the list before applying the fallback', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 5, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [3, 0, 1, 5],
-          fallback_dist_name: 'max',
-        },
+      solver.declRange('V1', 0, 5, {
+        valtype: 'list',
+        list: [3, 0, 1, 5],
+        fallback_dist_name: 'max',
       });
       solver['>']('V1', 0);
 
@@ -296,14 +252,10 @@ describe('src/solver.list.spec', function() {
 
     it('should still be able to reject if fallback fails too', function() {
       let solver = new Solver({});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(0, 5, true),
-        distributeOptions: {
-          valtype: 'list',
-          list: [3, 0, 1, 15, 5],
-          fallback_dist_name: 'max',
-        },
+      solver.declRange('V1', 0, 5, {
+        valtype: 'list',
+        list: [3, 0, 1, 15, 5],
+        fallback_dist_name: 'max',
       });
       solver['>']('V1', 6);
 

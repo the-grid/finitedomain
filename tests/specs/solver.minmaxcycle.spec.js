@@ -1,6 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
 import {
@@ -19,16 +18,10 @@ describe('solver.minmaxcycle.spec', function() {
 
     it('should cycle', function() {
       let solver = new Solver({distribute: {valueStrategy: 'minMaxCycle'}});
-      solver.addVar({
-        id: 'V1',
-        domain: fixt_arrdom_range(1, 4, true),
-      });
-      solver.addVar({
-        id: 'V2',
-        domain: fixt_arrdom_range(1, 4, true),
-      });
-      solver['>']('V1', solver.constant(0));
-      solver['>']('V2', solver.constant(0));
+      solver.declRange('V1', 1, 4);
+      solver.declRange('V2', 1, 4);
+      solver['>']('V1', 0);
+      solver['>']('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(16);

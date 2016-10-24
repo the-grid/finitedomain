@@ -1,6 +1,5 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_arrdom_value,
   fixt_arrdom_nums,
@@ -48,14 +47,8 @@ describe('distribution/var.spec', function() {
 
     it(`itAvsB: ${desc}; type: ${type}, rangeA: ${range_a}, rangeB: ${range_b}, out: ${out}`, function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(...range_a, true),
-      });
-      solver.addVar({
-        id: 'B',
-        domain: fixt_arrdom_range(...range_b, true),
-      });
+      solver.declRange('A', ...range_a);
+      solver.declRange('B', ...range_b);
       solver._prepare({
         distribute: {
           varStrategy: {
@@ -242,14 +235,8 @@ describe('distribution/var.spec', function() {
 
         // note: further tests should be unit tests on domain_size instead
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_ranges([30, 100]), // 71 elements
-        });
-        solver.addVar({
-          id: 'B',
-          domain: fixt_arrdom_ranges([0, 50], [60, 90]), // 82 elements
-        });
+        solver.declRange('A', 30, 100); // 71 elements
+        solver.decl('B', fixt_arrdom_ranges([0, 50], [60, 90])); // 82 elements
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -267,14 +254,8 @@ describe('distribution/var.spec', function() {
 
         // note: further tests should be unit tests on domain_size instead
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_ranges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100]), // 69 elements
-        });
-        solver.addVar({
-          id: 'B',
-          domain: fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700]), // 64 elements
-        });
+        solver.decl('A', fixt_arrdom_ranges([0, 5], [10, 15], [20, 25], [30, 35], [40, 45], [50, 55], [60, 65], [70, 75], [80, 100])); // 69 elements
+        solver.decl('B', fixt_arrdom_ranges([0, 10], [30, 40], [50, 60], [670, 700])); // 64 elements
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -298,7 +279,10 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {
+          valtype: 'markov',
+          expandVectorsWith: 1,
+        }, 'A');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -311,7 +295,10 @@ describe('distribution/var.spec', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {
+          valtype: 'markov',
+          expandVectorsWith: 1,
+        }, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -323,9 +310,15 @@ describe('distribution/var.spec', function() {
       it('should say v1 is BETTER if v1 and v2 are both markov vars', function() {
         let config = config_create();
         config_addVarRange(config, 'A', 11, 12);
-        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'A');
+        config_setOption(config, 'varValueStrat', {
+          valtype: 'markov',
+          expandVectorsWith: 1,
+        }, 'A');
         config_addVarRange(config, 'B', 11, 11);
-        config_setOption(config, 'varValueStrat', {valtype: 'markov'}, 'B');
+        config_setOption(config, 'varValueStrat', {
+          valtype: 'markov',
+          expandVectorsWith: 1,
+        }, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.all_var_names.indexOf('A');
@@ -390,26 +383,13 @@ describe('distribution/var.spec', function() {
 
       it('should prioritize markov vars', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 1, true),
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 10, 12, {
+          valtype: 'markov',
+          expandVectorsWith: 1,
         });
-        solver.addVar({
-          id: 'B',
-          domain: fixt_arrdom_range(10, 12, true),
-          distributeOptions: {
-            valtype: 'markov',
-            expandVectorsWith: 1,
-          },
-        });
-        solver.addVar({
-          id: 'C',
-          domain: fixt_arrdom_range(5, 17, true),
-        });
-        solver.addVar({
-          id: 'D',
-          domain: fixt_arrdom_range(13, 13, true),
-        });
+        solver.declRange('C', 5, 17);
+        solver.decl('D', 13);
         solver._prepare({
           distribute: {
             varStrategy: {type: 'markov'},
@@ -425,30 +405,16 @@ describe('distribution/var.spec', function() {
         // it's not really a hard requirement but that's how it works
 
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 1, true),
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 10, 12, {
+          valtype: 'markov',
+          expandVectorsWith: 1,
         });
-        solver.addVar({
-          id: 'B',
-          domain: fixt_arrdom_range(10, 12, true),
-          distributeOptions: {
-            valtype: 'markov',
-            expandVectorsWith: 1,
-          },
+        solver.declRange('C', 5, 17, {
+          valtype: 'markov',
+          expandVectorsWith: 1,
         });
-        solver.addVar({
-          id: 'C',
-          domain: fixt_arrdom_range(5, 17, true),
-          distributeOptions: {
-            valtype: 'markov',
-            expandVectorsWith: 1,
-          },
-        });
-        solver.addVar({
-          id: 'D',
-          domain: fixt_arrdom_range(13, 13, true),
-        });
+        solver.decl('D', 13);
         solver._prepare({
           distribute: {
             varStrategy: {type: 'markov'},
@@ -790,8 +756,8 @@ describe('distribution/var.spec', function() {
 
       it('should solve vars in the explicit order of the list A', function() {
         let solver = new Solver();
-        solver.addVar({id: 'A'});
-        solver.addVar({id: 'B'});
+        solver.decl('A');
+        solver.decl('B');
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -809,8 +775,8 @@ describe('distribution/var.spec', function() {
 
       it('should solve vars in the explicit order of the list B', function() {
         let solver = new Solver();
-        solver.addVar({id: 'A'});
-        solver.addVar({id: 'B'});
+        solver.decl('A');
+        solver.decl('B');
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -828,7 +794,7 @@ describe('distribution/var.spec', function() {
 
       it('should not crash if a var is not on the list or when list is empty', function() {
         let solver = new Solver();
-        solver.addVar({id: 'A'});
+        solver.decl('A');
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -846,9 +812,9 @@ describe('distribution/var.spec', function() {
 
       function unlistedTest(desc, targetNames, expectingName) {
         let solver = new Solver();
-        solver.addVar({id: 'A'});
-        solver.addVar({id: 'B'});
-        solver.addVar({id: 'C'});
+        solver.decl('A');
+        solver.decl('B');
+        solver.decl('C');
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -872,9 +838,9 @@ describe('distribution/var.spec', function() {
 
       function fallbackTest(desc, targetNames, expectedName) {
         let solver = new Solver();
-        solver.addVar({id: 'A'});
-        solver.addVar({id: 'B'});
-        solver.addVar({id: 'C'});
+        solver.decl('A');
+        solver.decl('B');
+        solver.decl('C');
         solver._prepare({
           distribute: {
             varStrategy: {
@@ -908,38 +874,18 @@ describe('distribution/var.spec', function() {
     function test(targetNames, resultName) {
       let solver;
       solver = new Solver();
-      solver.addVar({
-        id: 'A_list',
-        domain: [0, 10],
+      solver.declRange('A_list', 0, 10);
+      solver.declRange('B_list', 0, 20);
+      solver.declRange('C_markov', 0, 100, {
+        valtype: 'markov',
+        expandVectorsWith: 1,
       });
-      solver.addVar({
-        id: 'B_list',
-        domain: [0, 20],
+      solver.declRange('D_markov', 0, 50, {
+        valtype: 'markov',
+        expandVectorsWith: 1,
       });
-      solver.addVar({
-        id: 'C_markov',
-        domain: [0, 100],
-        distributeOptions: {
-          valtype: 'markov',
-          expandVectorsWith: 1,
-        },
-      });
-      solver.addVar({
-        id: 'D_markov',
-        domain: [0, 50],
-        distributeOptions: {
-          valtype: 'markov',
-          expandVectorsWith: 1,
-        },
-      });
-      solver.addVar({
-        id: 'E_pleb',
-        domain: [0, 100],
-      });
-      solver.addVar({
-        id: 'F_pleb',
-        domain: [0, 75],
-      });
+      solver.declRange('E_pleb', 0, 100);
+      solver.declRange('F_pleb', 0, 75);
 
       solver._prepare({
         distribute: {
@@ -1005,30 +951,12 @@ describe('distribution/var.spec', function() {
 
     function test(targetNames, expectName) {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: [0, 10],
-      });
-      solver.addVar({
-        id: 'B',
-        domain: [10, 20],
-      });
-      solver.addVar({
-        id: 'C',
-        domain: [0, 20],
-      });
-      solver.addVar({
-        id: 'D',
-        domain: [10, 20],
-      });
-      solver.addVar({
-        id: 'E',
-        domain: [0, 20],
-      });
-      solver.addVar({
-        id: 'F',
-        domain: [10, 20],
-      });
+      solver.declRange('A', 0, 10);
+      solver.declRange('B', 10, 20);
+      solver.declRange('C', 10, 20);
+      solver.declRange('D', 10, 20);
+      solver.declRange('E', 0, 20);
+      solver.declRange('F', 10, 20);
       solver._prepare({
         distribute: {
           varStrategy: {

@@ -21,7 +21,6 @@ import {
   ASSERT_NORDOM,
   ASSERT_SOLDOM,
   ASSERT_STRDOM,
-  THROW,
 } from './helpers';
 
 // BODY_START
@@ -2155,117 +2154,6 @@ function _domain_arrToBit(domain, len) {
   return out;
 }
 
-/**
- * validate domains, filter and fix legacy domains, throw for bad inputs
- *
- * @param {$domain} domain
- * @returns {number[]}
- */
-function domain_validateLegacyArray(domain) {
-  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
-
-  // support legacy domains and validate input here
-  let msg = domain_confirmLegacyDomain(domain);
-  if (msg) {
-    let fixedDomain = domain_tryToFixLegacyDomain(domain);
-    //console.error('Fixed domain '+domain+' to '+fixedDomain);
-    //THROW('Fixed domain '+domain+' to '+fixedDomain);
-    if (fixedDomain) {
-      //if (console && console.warn) {
-      //  console.warn(msg, domain, 'auto-converted to', fixedDomain);
-      //}
-    } else {
-      if (console && console.warn) {
-        console.warn(msg, domain, 'unable to fix');
-      }
-      THROW(`Fatal: unable to fix domain: ${JSON.stringify(domain)}`);
-    }
-    domain = fixedDomain;
-  }
-
-  ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain);
-  return domain;
-}
-/**
- * Domain input validation
- * Have to support and transform legacy domain formats of domains of domains
- * and transform them to flat domains with lo/hi pairs
- *
- * @param {$arrdom} domain
- * @returns {string|undefined}
- */
-function domain_confirmLegacyDomain(domain) {
-  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
-
-  for (let i = 0; i < domain.length; i += ARR_RANGE_SIZE) {
-    let lo = domain[i];
-    let hi = domain[i + 1];
-    let e = domain_confirmLegacyDomainElement(lo);
-    if (e) {
-      return e;
-    }
-    let f = domain_confirmLegacyDomainElement(hi);
-    if (f) {
-      return f;
-    }
-
-    if (lo < SUB) {
-      return `Domain contains a number lower than SUB (${lo} < ${SUB}), this is probably a bug`;
-    }
-    if (hi > SUP) {
-      return `Domain contains a number higher than SUP (${hi} > ${SUP}), this is probably a bug`;
-    }
-    if (lo > hi) {
-      return `Found a lo/hi pair where lo>hi, expecting all pairs lo<=hi (${lo}>${hi})`;
-    }
-  }
-  ASSERT((domain.length % ARR_RANGE_SIZE) === 0, 'other tests should have caught uneven domain lengths');
-}
-/**
- * @param {number} n
- * @returns {string|undefined}
- */
-function domain_confirmLegacyDomainElement(n) {
-  if (typeof n !== 'number') {
-    if (n instanceof Array) {
-      return 'Detected legacy domains (arrays of arrays), expecting flat array of lo-hi pairs';
-    }
-    return 'Expecting array of numbers, found something else (#{n}), this is probably a bug';
-  }
-  if (isNaN(n)) {
-    return 'Domain contains an actual NaN, this is probably a bug';
-  }
-}
-/**
- * Try to convert old array of arrays domain to new
- * flat array of number pairs domain. If any validation
- * step fails, return nothing.
- *
- * @param {$arrdom|number[][]} domain
- * @returns {$arrdom|undefined}
- */
-function domain_tryToFixLegacyDomain(domain) {
-  ASSERT(domain instanceof Array, 'ONLY_ARRDOM');
-
-  let fixed = [];
-  for (let i = 0; i < domain.length; i++) {
-    let rangeArr = domain[i];
-    if (!(rangeArr instanceof Array)) {
-      return;
-    }
-    if (rangeArr.length !== ARR_RANGE_SIZE) {
-      return;
-    }
-    let lo = rangeArr[ARR_FIRST_RANGE_LO];
-    let hi = rangeArr[ARR_FIRST_RANGE_HI];
-    if (lo > hi) {
-      return;
-    }
-    fixed.push(lo, hi);
-  }
-  return fixed;
-}
-
 // BODY_STOP
 
 export {
@@ -2316,7 +2204,6 @@ export {
   domain_anyToSmallest,
   domain_toList,
   domain_toStr,
-  domain_validateLegacyArray,
 
   // __REMOVE_BELOW_FOR_DIST__
   // testing only:

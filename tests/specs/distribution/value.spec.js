@@ -310,13 +310,9 @@ describe('distribution/value.spec', function() {
       let desc = 'choice: ' + choice + ', input: ' + domain__debug(inDomain) + ', list: [' + list + '], output: ' + domain__debug(outDomain);
       it(desc, function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: inDomain,
-          distributeOptions: {
-            valtype: 'list',
-            list: list,
-          },
+        solver.decl('A', inDomain, {
+          valtype: 'list',
+          list: list,
         });
         solver._prepare({});
 
@@ -352,12 +348,9 @@ describe('distribution/value.spec', function() {
 
       it('should improve test coverage by enabling logging', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          distributeOptions: {
-            valtype: 'list',
-            list: [5, 10, 6],
-          },
+        solver.decl('A', undefined, {
+          valtype: 'list',
+          list: [5, 10, 6],
         });
         solver._prepare({});
 
@@ -384,15 +377,12 @@ describe('distribution/value.spec', function() {
 
     it('should return NO_CHOICE if it receives no values', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        distributeOptions: {
-          valtype: 'markov',
-          matrix: [{
-            vector: [],
-          }],
-          legend: [],
-        },
+      solver.decl('A', undefined, {
+        valtype: 'markov',
+        matrix: [{
+          vector: [],
+        }],
+        legend: [],
       });
       solver._prepare({});
 
@@ -411,16 +401,12 @@ describe('distribution/value.spec', function() {
 
     it('should throw if given domain is solved', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(100, 100),
-        distributeOptions: {
-          valtype: 'markov',
-          matrix: [{
-            vector: [100],
-          }],
-          legend: [1],
-        },
+      solver.decl('A', 100, {
+        valtype: 'markov',
+        matrix: [{
+          vector: [100],
+        }],
+        legend: [1],
       });
       solver._prepare({});
 
@@ -445,15 +431,12 @@ describe('distribution/value.spec', function() {
 
       it('should improve test coverage by enabling logging', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          distributeOptions: {
-            valtype: 'markov',
-            matrix: [{
-              vector: [],
-            }],
-            legend: [],
-          },
+        solver.decl('A', undefined, {
+          valtype: 'markov',
+          matrix: [{
+            vector: [],
+          }],
+          legend: [],
         });
         solver._prepare({});
 

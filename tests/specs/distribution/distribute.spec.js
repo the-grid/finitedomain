@@ -1,6 +1,5 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_range,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 import {
@@ -18,15 +17,11 @@ describe('distribution/distribute.spec', function() {
       it('v1=min, v2=max', function() {
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(121, 124),
-          distributeOptions: {valtype: 'min'},
+        solver.declRange('V1', 121, 124, {
+          valtype: 'min',
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(121, 124),
-          distributeOptions: {valtype: 'max'},
+        solver.declRange('V2', 121, 124, {
+          valtype: 'max',
         });
         solver['>']('V1', 120);
         solver['>']('V2', 120);
@@ -60,15 +55,11 @@ describe('distribution/distribute.spec', function() {
         // regression: when domains include 0, should still lead to same result
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(120, 124),
-          distributeOptions: {valtype: 'min'},
+        solver.declRange('V1', 120, 124, {
+          valtype: 'min',
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(120, 124),
-          distributeOptions: {valtype: 'max'},
+        solver.declRange('V2', 120, 124, {
+          valtype: 'max',
         });
         solver['>']('V1', 120);
         solver['>']('V2', 120);
@@ -103,29 +94,21 @@ describe('distribution/distribute.spec', function() {
         // markov for it but it mimics min/max because we fixate the random() outcome
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(120, 124),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [121, 122, 123, 124],
-            random() { return 0; }, // always take the first element
-            matrix: [
-              {vector: [1, 1, 1, 1]},
-            ],
-          },
+        solver.declRange('V1', 120, 124, {
+          valtype: 'markov',
+          legend: [121, 122, 123, 124],
+          random() { return 0; }, // always take the first element
+          matrix: [
+            {vector: [1, 1, 1, 1]},
+          ],
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(120, 124, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [121, 122, 123, 124],
-            random() { return 1 - 1e-5; }, // always take the last element
-            matrix: [
-              {vector: [1, 1, 1, 1]},
-            ],
-          },
+        solver.declRange('V2', 120, 124, {
+          valtype: 'markov',
+          legend: [121, 122, 123, 124],
+          random() { return 1 - 1e-5; }, // always take the last element
+          matrix: [
+            {vector: [1, 1, 1, 1]},
+          ],
         });
         solver['>']('V1', 120);
         solver['>']('V2', 120);
@@ -158,15 +141,11 @@ describe('distribution/distribute.spec', function() {
       it('v1=min, v2=max', function() {
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(1, 4, true),
-          distributeOptions: {valtype: 'min'},
+        solver.declRange('V1', 1, 4, {
+          valtype: 'min',
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(1, 4, true),
-          distributeOptions: {valtype: 'max'},
+        solver.declRange('V2', 1, 4, {
+          valtype: 'max',
         });
         solver['>']('V1', 0);
         solver['>']('V2', 0);
@@ -200,15 +179,11 @@ describe('distribution/distribute.spec', function() {
         // regression: when domains include 0, should still lead to same result
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(0, 4, true),
-          distributeOptions: {valtype: 'min'},
+        solver.declRange('V1', 0, 4, {
+          valtype: 'min',
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(0, 4, true),
-          distributeOptions: {valtype: 'max'},
+        solver.declRange('V2', 0, 4, {
+          valtype: 'max',
         });
         solver['>']('V1', 0);
         solver['>']('V2', 0);
@@ -243,29 +218,21 @@ describe('distribution/distribute.spec', function() {
         // markov for it but it mimics min/max because we fixate the random() outcome
 
         let solver = new Solver({});
-        solver.addVar({
-          id: 'V1',
-          domain: fixt_arrdom_range(0, 4, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [1, 2, 3, 4],
-            random() { return 0; }, // always take the first element
-            matrix: [
-              {vector: [1, 1, 1, 1]},
-            ],
-          },
+        solver.declRange('V1', 0, 4, {
+          valtype: 'markov',
+          legend: [1, 2, 3, 4],
+          random() { return 0; }, // always take the first element
+          matrix: [
+            {vector: [1, 1, 1, 1]},
+          ],
         });
-        solver.addVar({
-          id: 'V2',
-          domain: fixt_arrdom_range(0, 4, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [1, 2, 3, 4],
-            random() { return 1 - 1e-5; }, // always take the last element
-            matrix: [
-              {vector: [1, 1, 1, 1]},
-            ],
-          },
+        solver.declRange('V2', 0, 4, {
+          valtype: 'markov',
+          legend: [1, 2, 3, 4],
+          random() { return 1 - 1e-5; }, // always take the last element
+          matrix: [
+            {vector: [1, 1, 1, 1]},
+          ],
         });
         solver['>']('V1', 0);
         solver['>']('V2', 0);

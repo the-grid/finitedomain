@@ -14,8 +14,6 @@ const SMALL_MAX_NUM = 30;
 const SOLVED_FLAG = 1 << 31 >>> 0;
 
 function fixt_arrdom_range(lo, hi, _b) {
-  if (_b !== true && lo >= 0 && hi <= SMALL_MAX_NUM) throw new Error('NEED_TO_UPDATE_TO_SMALL_DOMAIN');
-
   if (typeof lo !== 'number') {
     throw new Error('specDomainCreateValue requires a number');
   }

@@ -1,8 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import {
-  fixt_arrdom_range,
-  fixt_arrdom_value,
-} from '../fixtures/domain.fixt';
+//import {
+//} from '../fixtures/domain.fixt';
 import {
   countSolutions,
 } from '../fixtures/lib';
@@ -20,14 +18,8 @@ describe('solver.max.spec', function() {
     function itDistributes(solutionMap, options) {
       it(`itDistributes(o = ${JSON.stringify(options)})`, function() {
         let solver = new Solver(options);
-        solver.addVar({
-          id: 'Hello',
-          domain: fixt_arrdom_range(1, 99, true),
-        });
-        solver.addVar({
-          id: 'World',
-          domain: fixt_arrdom_value(0, true),
-        });
+        solver.declRange('Hello', 1, 99);
+        solver.decl('World', 0);
         solver['>']('Hello', 'World');
 
         let solutions = solver.solve();

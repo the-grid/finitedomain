@@ -2,7 +2,6 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_empty,
   fixt_arrdom_nums,
-  fixt_arrdom_range,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -24,16 +23,12 @@ describe('propagators/markov.spec', function() {
 
     it('should pass if solved value is in legend with prob>0', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(0, 0, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [0],
-          matrix: [
-            {vector: [1]},
-          ],
-        },
+      solver.declRange('A', 0, 0, {
+        valtype: 'markov',
+        legend: [0],
+        matrix: [
+          {vector: [1]},
+        ],
       });
       solver._prepare({});
 
@@ -46,16 +41,12 @@ describe('propagators/markov.spec', function() {
 
     it('should reject if solved value is not in legend', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(0, 0, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [1],
-          matrix: [
-            {vector: [1]},
-          ],
-        },
+      solver.declRange('A', 0, 0, {
+        valtype: 'markov',
+        legend: [1],
+        matrix: [
+          {vector: [1]},
+        ],
       });
       solver._prepare({});
 
@@ -70,16 +61,12 @@ describe('propagators/markov.spec', function() {
 
       it('should reject if solved value does not have prob>0', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [0],
-            matrix: [
-              {vector: [0]},
-            ],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [
+            {vector: [0]},
+          ],
         });
         solver._prepare({});
 
@@ -92,16 +79,12 @@ describe('propagators/markov.spec', function() {
 
       it('should pass if solved value does has prob>0', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [0],
-            matrix: [
-              {vector: [0]},
-            ],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [
+            {vector: [0]},
+          ],
         });
         solver._prepare({});
 
@@ -117,19 +100,15 @@ describe('propagators/markov.spec', function() {
 
       it('should pass if second row gives value prob>0', function() {
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [0],
-            matrix: [{
-              vector: [0],
-              boolean: solver.constant(0),
-            }, {
-              vector: [1],
-            }],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [{
+            vector: [0],
+            boolVarName: solver.num(0),
+          }, {
+            vector: [1],
+          }],
         });
         solver._prepare({});
 
@@ -144,19 +123,15 @@ describe('propagators/markov.spec', function() {
       it('should reject if second row gives value prob=0', function() {
 
         let solver = new Solver();
-        solver.addVar({
-          id: 'A',
-          domain: fixt_arrdom_range(0, 0, true),
-          distributeOptions: {
-            valtype: 'markov',
-            legend: [0],
-            matrix: [{
-              vector: [1],
-              boolean: solver.constant(0),
-            }, {
-              vector: [0],
-            }],
-          },
+        solver.declRange('A', 0, 0, {
+          valtype: 'markov',
+          legend: [0],
+          matrix: [{
+            vector: [1],
+            boolVarName: solver.num(0),
+          }, {
+            vector: [0],
+          }],
         });
         solver._prepare({});
 
@@ -178,16 +153,12 @@ describe('propagators/markov.spec', function() {
 
     it('solved domain', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(0, 0, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [0],
-          matrix: [
-            {vector: [1]},
-          ],
-        },
+      solver.declRange('A', 0, 0, {
+        valtype: 'markov',
+        legend: [0],
+        matrix: [
+          {vector: [1]},
+        ],
       });
       solver._prepare({});
 
@@ -201,16 +172,12 @@ describe('propagators/markov.spec', function() {
 
     it('unsolved domain', function() {
       let solver = new Solver();
-      solver.addVar({
-        id: 'A',
-        domain: fixt_arrdom_range(0, 10, true),
-        distributeOptions: {
-          valtype: 'markov',
-          legend: [0],
-          matrix: [
-            {vector: [1]},
-          ],
-        },
+      solver.declRange('A', 0, 10, {
+        valtype: 'markov',
+        legend: [0],
+        matrix: [
+          {vector: [1]},
+        ],
       });
       solver._prepare({});
 

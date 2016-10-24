@@ -35,7 +35,6 @@ import {
   domain_toList,
   domain_arrToSmallest,
   domain_anyToSmallest,
-  domain_validateLegacyArray,
 } from './domain';
 
 import search_depthFirst from './search';
@@ -88,14 +87,6 @@ class Solver {
     this.defaultDomain = options.defaultDomain || [0, 1];
     ASSERT_ARRDOM(this.defaultDomain);
 
-    this.vars = {
-      byId: {},
-      byName: {},
-      all: [],
-      byClass: {},
-      root: undefined, // see PathSolver
-    };
-
     this.solutions = [];
 
     this.state = {
@@ -107,25 +98,10 @@ class Solver {
   }
 
   /**
-   * @deprecated; use Solver#num() instead
-   * @param {number} num
-   * @returns {string}
-   */
-  constant(num) {
-    if (num === false) {
-      num = 0;
-    }
-    if (num === true) {
-      num = 1;
-    }
-    return this.num(num);
-  }
-
-  /**
    * Returns an anonymous var with given value as lo/hi for the domain
    *
    * @param {number} num
-   * @returns {number}
+   * @returns {string}
    */
   num(num) {
     if (typeof num !== 'number') {
@@ -139,23 +115,16 @@ class Solver {
   }
 
   /**
-   * @param {Array} vs
-   */
-  addVars(vs) {
-    ASSERT(vs instanceof Array, 'Expecting array', vs);
-    for (let i = 0; i < vs.length; i++) {
-      let v = vs[i];
-      this.addVar(v);
-    }
-  }
-
-  /**
-   * @param {string} id
+   * Declare a var with optional given domain or constant value and distribution options.
+   *
+   * @param {string} varName Required. You can use this.num to declare a constant.
    * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
    * @returns {string}
    */
-  decl(id, domainOrValue) {
-    ASSERT(id && typeof id === 'string', 'EXPECTING_ID_STRING');
+  decl(varName, domainOrValue, distributionOptions) {
+    ASSERT(varName && typeof varName === 'string', 'EXPECTING_ID_STRING');
+    ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
     let domain;
     if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
     else domain = domainOrValue;
@@ -166,106 +135,52 @@ class Solver {
     }
 
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
+    ASSERT(!domain.some(e => typeof e !== 'number'), 'ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS', domain, domainOrValue);
 
-    domain = domain_validateLegacyArray(domain);
     if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, id, domain);
-    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
+    let varIndex = config_addVarDomain(this.config, varName, domain);
+    ASSERT(this.config.all_var_names[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
 
-    return id;
+    if (distributionOptions) {
+      if (distributionOptions.distribute) THROW('Use `valtype` to set the value distribution strategy');
+      config_setOption(this.config, 'varValueStrat', distributionOptions, varName);
+      if (distributionOptions.valtype === 'markov') {
+        config_addConstraint(this.config, 'markov', [varName]);
+      }
+    }
+
+    return varName;
   }
 
   /**
-   * Uses @defaultDomain if no domain was given
-   * If domain is a number it becomes [dom, dom]
-   * Distribution is optional
-   * Name is used to create a `byName` hash
+   * Declare multiple variables with the same domain/options
    *
-   * @example
-   *
-   * S.addVar 'foo'
-   * S.addVar 'foo', [1, 2]
-   * S.addVar {id: '12', name: 'foo', domain: [1, 2]}
-   * S.addVar {id: 'foo', domain: [1, 2]}
-   * S.addVar {id: 'foo', domain: [1, 2], distribution: 'markov'}
-   *
-   * @param varOptions
-   * @param [domain=v.domain] Note: this cannot be a "small domain"! Numbers are interpreted to be constants in Solver
-   * @returns {*}
+   * @param {string[]} varNames
+   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {Object} [options] Var distribution options. A number here will throw an error to prevent doing declRange
    */
-  addVar(varOptions, domain) {
-    if (typeof varOptions === 'string') {
-      ASSERT(typeof domain !== 'number', 'FOR_SANITY_REASON_NUMBERS_NOT_ALLOWED_HERE'); // because is it a small domain or a constant? exactly. always an array in this function.
-      if (domain === undefined) {
-        ASSERT_ARRDOM(this.defaultDomain);
-        domain = this.defaultDomain;
-      }
-      ASSERT(domain, 'NO_EMPTY_DOMAIN', domain);
-      domain = domain_validateLegacyArray(domain);
-      config_addVarDomain(this.config, varOptions, domain);
-
-      return varOptions;
+  decls(varNames, domainOrValue, options) {
+    for (let i = 0, n = varNames.length; i < n; ++i) {
+      this.decl(varNames[i], domainOrValue, options);
     }
+  }
 
-    // the rest is mostly legacy stuff that should move to multiverse's pathsolver subclass
-    ASSERT(!(varOptions instanceof Array), 'Not expecting to receive an array', varOptions);
-    ASSERT(typeof varOptions === 'object', 'v should be an id or an object containing meta');
+  /**
+   * Declare a var with given range
+   *
+   * @param {string} varName
+   * @param {number} lo Ensure SUB<=lo<=hi<=SUP
+   * @param {number} hi Ensure SUB<=lo<=hi<=SUP
+   * @param {Object} [options] Var distribution options
+   */
+  declRange(varName, lo, hi, options) {
+    ASSERT(typeof varName === 'string', 'NAME_SHOULD_BE_STRING');
+    ASSERT(typeof lo === 'number', 'LO_SHOULD_BE_NUMBER');
+    ASSERT(typeof hi === 'number', 'HI_SHOULD_BE_NUMBER');
+    ASSERT(typeof options !== 'number', 'USE_declRange_INSTEAD');
+    ASSERT(typeof options === 'object' || options === undefined, 'EXPECTING_OPTIONS_OR_NOTHING');
 
-    domain = varOptions.domain;
-    ASSERT(domain === undefined || domain instanceof Array, 'ARRAY_DOMAIN_OR_DEFAULT');
-    if (domain) {
-      domain = domain_validateLegacyArray(domain);
-      ASSERT(domain instanceof Array, 'SHOULD_NOT_TURN_THIS_INTO_NUMBER');
-    } else {
-      ASSERT_ARRDOM(this.defaultDomain);
-      domain = this.defaultDomain.slice(0);
-    }
-
-    let id = varOptions.id;
-    if (!id) THROW('Solver#addVar: requires id');
-
-    config_addVarDomain(this.config, id, domain);
-
-    if (varOptions.distributeOptions && varOptions.distributeOptions.valtype === 'markov') {
-      let matrix = varOptions.distributeOptions.matrix;
-      if (!matrix) {
-        if (varOptions.distributeOptions.expandVectorsWith) {
-          matrix = varOptions.distributeOptions.matrix = [{vector: []}];
-        } else {
-          THROW('Solver#addVar: markov var missing distribution (needs matrix or expandVectorsWith)');
-        }
-      }
-
-      for (let i = 0; i < matrix.length; ++i) {
-        let row = matrix[i];
-        let boolFunc = row.boolean;
-        if (typeof boolFunc === 'function') {
-          row.booleanId = boolFunc(this, varOptions);
-        } else if (typeof boolFunc === 'string') {
-          row.booleanId = boolFunc;
-        } else {
-          ASSERT(!boolFunc, 'row.boolean should be a function returning a var name or just a var name');
-        }
-      }
-    }
-
-    // the rest is this.vars stuff for multiverse...
-
-    let vars = this.vars;
-    if (vars.byId[id]) THROW(`Solver#addVar: var.id already added: ${id}`);
-
-    vars.byId[id] = varOptions;
-    vars.all.push(varOptions);
-
-    let name = varOptions.name;
-    if (name != null) {
-      if (vars.byName[name] == null) {
-        vars.byName[name] = [];
-      }
-      vars.byName[name].push(varOptions);
-    }
-
-    return varOptions;
+    return this.decl(varName, [lo, hi], options);
   }
 
   // Arithmetic Propagators
@@ -342,14 +257,34 @@ class Solver {
     return this.eq(e1, e2);
   }
   eq(e1, e2) {
-    return config_addConstraint(this.config, 'eq', [GET_NAME(e1), GET_NAME(e2)]);
+    if (e1 instanceof Array) {
+      for (let i = 0, n = e1.length; i < n; ++i) {
+        this.eq(e1[i], e2);
+      }
+    } else if (e2 instanceof Array) {
+      for (let i = 0, n = e2.length; i < n; ++i) {
+        this.eq(e1, e2[i]);
+      }
+    } else {
+      config_addConstraint(this.config, 'eq', [GET_NAME(e1), GET_NAME(e2)]);
+    }
   }
 
   ['!='](e1, e2) {
     return this.neq(e1, e2);
   }
   neq(e1, e2) {
-    return config_addConstraint(this.config, 'neq', [GET_NAME(e1), GET_NAME(e2)]);
+    if (e1 instanceof Array) {
+      for (let i = 0, n = e1.length; i < n; ++i) {
+        this.neq(e1[i], e2);
+      }
+    } else if (e2 instanceof Array) {
+      for (let i = 0, n = e2.length; i < n; ++i) {
+        this.neq(e1, e2[i]);
+      }
+    } else {
+      config_addConstraint(this.config, 'neq', [GET_NAME(e1), GET_NAME(e2)]);
+    }
   }
 
   ['>='](e1, e2) {
@@ -483,17 +418,13 @@ class Solver {
     let config = this.config;
     ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
 
-    // TODO: cant move this to addVar yet because mv can alter these settings after the addVar call
-    let allVars = config.all_var_names;
-    for (var i = 0; i < allVars.length; ++i) {
-      var name = allVars[i];
-      var bvar = this.vars.byId[name];
-      if (bvar) solver_varDistOptions(name, bvar, config);
+    // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
+    if (options.vars && options.vars !== 'all') {
+      let ids = GET_NAMES(options.vars);
+      config_setOption(config, 'targeted_var_names', ids);
     }
 
-    // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
-    if (options.vars && options.vars !== 'all') config_setOption(config, 'targeted_var_names', GET_NAMES(options.vars));
-
+    // TODO: eliminate?
     let distributionSettings = options.distribute || this.distribute;
     if (typeof distributionSettings === 'string') config_setDefaults(config, distributionSettings);
     else config_setOptions(config, distributionSettings); // TOFIX: get rid of this in mv
@@ -629,6 +560,23 @@ class Solver {
    */
   getDomain(space, varIndex) {
     return domain_toArr(space.vardoms[varIndex]);
+  }
+
+  /**
+   * Exposed for multiverse as a legacy api.
+   * Sets the value distribution options for a var after declaring it.
+   *
+   * @param {string} varName
+   * @param {Object} options
+   */
+  setValueDistributionFor(varName, options) {
+    ASSERT(typeof varName === 'string', 'var name should be a string', varName);
+    ASSERT(typeof options === 'object', 'value strat options should be an object');
+
+    config_setOption(this.config, 'varValueStrat', options, varName);
+    if (options.valtype === 'markov') {
+      config_addConstraint(this.config, 'markov', [varName]);
+    }
   }
 
   /**
@@ -795,18 +743,6 @@ function solver_runLoop(state, config, max) {
     }
   }
   return list;
-}
-
-function solver_varDistOptions(name, bvar, config) {
-  let options = bvar.distributeOptions;
-  if (options) {
-    // TOFIX: change usages of .distribute as a string with valtype
-    if (bvar.distribute) options.valtype = bvar.distribute;
-    config_setOption(config, 'varValueStrat', options, name);
-    if (options.valtype === 'markov') {
-      config_addConstraint(config, 'markov', [name]);
-    }
-  }
 }
 
 function solver_getSolutions(solvedSpaces, config, solutions, log) {

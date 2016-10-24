@@ -239,7 +239,7 @@ describe('propagators/reified.spec', function() {
 
     it('should not adjust operands if result var is unconstrained', function() {
       let solver = new Solver();
-      solver.addVar('A', fixt_arrdom_range(0, 10, true));
+      solver.declRange('A', 0, 10);
       solver.isEq('A', 2);
       solver.solve();
 
@@ -260,7 +260,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 0', function() {
       let solver = new Solver();
-      solver.addVar('A', fixt_arrdom_range(0, 10, true));
+      solver.declRange('A', 0, 10);
       solver.isEq('A', 2, 0);
       solver.solve();
 
@@ -280,7 +280,7 @@ describe('propagators/reified.spec', function() {
 
     it('should adjust operands if result var is constrained to 1', function() {
       let solver = new Solver();
-      solver.addVar('A', fixt_arrdom_range(0, 10, true));
+      solver.declRange('A', 0, 10);
       solver.isEq(2, 'A', 1);
       solver.solve();
 

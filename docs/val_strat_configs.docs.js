@@ -18,5 +18,6 @@
 /**
  * @typedef {Object} $matrix_row
  * @property {number[]} vector
- * @property {number} [booleanId] Determines whether the row should be considered at all
+ * @property {string|function} [boolVarName] Determines the var index for determining whether the row is "on"
+ * @property {number} [_boolVarIndex] Determines whether the row should be considered at all
  */

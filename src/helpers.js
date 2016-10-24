@@ -177,6 +177,7 @@ function ASSERT_LOG(flags, func) {
 // @returns {string}
 
 function GET_NAME(e) {
+  if (e === undefined || e === null) THROW('Var cannot be undefined');
   // e can be the empty string (TOFIX: let's not allow this...)
   if (e.id !== undefined && e.id !== null) {
     return e.id;
@@ -188,6 +189,7 @@ function GET_NAME(e) {
 // @returns {string[]}
 
 function GET_NAMES(es) {
+  if (es === undefined || es === null) THROW('Var cannot be undefined');
   if (typeof es === 'string') return es;
 
   let varNames = [];

@@ -4,7 +4,6 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
-  NO_SUCH_VALUE,
 
   ASSERT,
   ASSERT_ARRDOM,
@@ -18,7 +17,6 @@ import {
   config_addConstraint,
   config_addVarAnonConstant,
   config_addVarDomain,
-  config_addVarRange,
   config_create,
   config_setDefaults,
   config_setOption,
@@ -30,10 +28,7 @@ import {
   domain_createEmpty,
   domain_fromListToArrdom,
   domain_isEmpty,
-  domain_max,
   domain_toArr,
-  domain_toList,
-  domain_arrToSmallest,
   domain_anyToSmallest,
 } from './domain';
 
@@ -496,22 +491,6 @@ class Solver {
   }
 
   /**
-   * Exposes internal method config_addVar for subclass
-   * (Used by PathSolver in a private project)
-   *
-   * @public
-   * @param {string} id
-   * @param {number} lo
-   * @param {number} hi
-   * @returns {string}
-   */
-  space_add_var_range(id, lo, hi) {
-    let varIndex = config_addVarRange(this.config, id, lo, hi);
-    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
-    return id;
-  }
-
-  /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
    * It will always create an array, never a "small domain"
@@ -523,31 +502,6 @@ class Solver {
    */
   domain_fromList(list) {
     return domain_fromListToArrdom(list);
-  }
-
-  /**
-   * Used by PathSolver in another (private) project
-   * Exposes domain_max
-   *
-   * @param {$arrdom} domain
-   * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
-   */
-  domain_max(domain) {
-    ASSERT_ARRDOM(domain);
-    if (domain.length === 0) return NO_SUCH_VALUE;
-    return domain_max(domain_arrToSmallest(domain));
-  }
-
-  /**
-   * Used by PathSolver in another (private) project
-   * Exposes domain_toList
-   * TODO: can we lock this down to an $arrdom ?
-   *
-   * @param {$domain} domain
-   * @returns {number[]}
-   */
-  domain_toList(domain) {
-    return domain_toList(domain);
   }
 
   /**

@@ -32,6 +32,7 @@
 - Markov matrix row boolean-getter property has been changed from `boolean` to `boolVarName`. It must still be undefined, a string, or a function returning a string. The `boolean` property now throws when set to anything.
 - Markov matrix row boolean-getter method (`boolVarName` as a function, used to be `boolean` as a function) now receives no parameters when called. The renaming is partially to catch this change.
 - The internal `boolId` property for a markov matrix row is renamed to something more obviously internal. The old property now throws if set to anything.
+- Dropped "internal" exposed api's to support external subclass (`Solver#space_add_var_range`, `Solver#domain_max`, and `Solver#domain_toList`)
 
 ## v2.3.4:
 

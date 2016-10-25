@@ -34,6 +34,7 @@
 - The internal `boolId` property for a markov matrix row is renamed to something more obviously internal. The old property now throws if set to anything.
 - Dropped "internal" exposed api's to support external subclass (`Solver#space_add_var_range`, `Solver#domain_max`, and `Solver#domain_toList`)
 - Removed support for distributor fallback shorthand `fallback_dist_name`. Just use `.fallback = {valtype: ...}` instead. the `fallback` property will be fleshed out a little better in the future.
+- The limitation that constraints must have at least one non-constant has been lifted. These cases are now immediately optimized away as much as possible.
 
 ## v2.3.4:
 

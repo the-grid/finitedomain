@@ -199,7 +199,9 @@ describe('src/solver.list.spec', function() {
       solver.declRange('V1', 0, 5, {
         valtype: 'list',
         list: [0, 15],
-        fallback_dist_name: 'max',
+        fallback: {
+          valtype: 'max',
+        },
       });
       solver['>']('V1', 0);
       let solutions = solver.solve();
@@ -235,7 +237,9 @@ describe('src/solver.list.spec', function() {
       solver.declRange('V1', 0, 5, {
         valtype: 'list',
         list: [3, 0, 1, 5],
-        fallback_dist_name: 'max',
+        fallback: {
+          valtype: 'max',
+        },
       });
       solver['>']('V1', 0);
 
@@ -255,7 +259,9 @@ describe('src/solver.list.spec', function() {
       solver.declRange('V1', 0, 5, {
         valtype: 'list',
         list: [3, 0, 1, 15, 5],
-        fallback_dist_name: 'max',
+        fallback: {
+          valtype: 'max',
+        },
       });
       solver['>']('V1', 6);
 

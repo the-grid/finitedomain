@@ -2,6 +2,7 @@
  * @private Do not read any property from this object outside of `finitedomain`. Expose required data on Solver instead.
  * @typedef {Object} $config
  * @property {$var_strat_config} varStratConfig Defaults to a naive strategy
+ * @property {Object} var_dist_options
  * @property {string} valueStratName
  * @property {string[]|string} targetedVars='all' Search stops when these are solved.
  * @property {$var_strat_overrides} varStratOverrides Can apply a specific $var_strat_config per var

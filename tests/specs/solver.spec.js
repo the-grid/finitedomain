@@ -784,19 +784,19 @@ describe('solver.spec', function() {
             let solver = new Solver();
             solver.decl('A', 100);
             solver.decl('B', 100);
-            expect(solver[method]('A', 'B')).to.equal('A');
+            expect(solver[method]('A', 'B')).to.equal(undefined);
           });
 
           it('should work with a number left', function() {
             let solver = new Solver();
             solver.decl('B', 100);
-            expect(solver[method](1, 'B')).to.equal('1'); // if we change anonymous var naming, this'll break
+            expect(solver[method](1, 'B')).to.equal(undefined); // if we change anonymous var naming, this'll break
           });
 
           it('should work with a number right', function() {
             let solver = new Solver();
             solver.decl('A', 100);
-            expect(solver[method]('A', 2)).to.equal('1'); // if we change anonymous var naming, this'll break
+            expect(solver[method]('A', 2)).to.equal(undefined); // if we change anonymous var naming, this'll break
           });
           it('should not work with an empty array', function() {
             let solver = new Solver();

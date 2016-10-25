@@ -283,35 +283,35 @@ class Solver {
   }
 
   ['>='](e1, e2) {
-    return this.gte(e1, e2);
+    this.gte(e1, e2);
   }
   gte(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<='](e1, e2) {
-    return this.lte(e1, e2);
+    this.lte(e1, e2);
   }
   lte(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['>'](e1, e2) {
-    return this.gt(e1, e2);
+    this.gt(e1, e2);
   }
   gt(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<'](e1, e2) {
-    return this.lt(e1, e2);
+    this.lt(e1, e2);
   }
   lt(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
 

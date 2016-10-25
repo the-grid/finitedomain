@@ -249,7 +249,7 @@ class Solver {
   }
 
   ['=='](e1, e2) {
-    return this.eq(e1, e2);
+    this.eq(e1, e2);
   }
   eq(e1, e2) {
     if (e1 instanceof Array) {
@@ -266,7 +266,7 @@ class Solver {
   }
 
   ['!='](e1, e2) {
-    return this.neq(e1, e2);
+    this.neq(e1, e2);
   }
   neq(e1, e2) {
     if (e1 instanceof Array) {

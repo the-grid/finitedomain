@@ -4,7 +4,6 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
-  NO_SUCH_VALUE,
 
   ASSERT,
   ASSERT_ARRDOM,
@@ -18,7 +17,6 @@ import {
   config_addConstraint,
   config_addVarAnonConstant,
   config_addVarDomain,
-  config_addVarRange,
   config_create,
   config_setDefaults,
   config_setOption,
@@ -30,10 +28,7 @@ import {
   domain_createEmpty,
   domain_fromListToArrdom,
   domain_isEmpty,
-  domain_max,
   domain_toArr,
-  domain_toList,
-  domain_arrToSmallest,
   domain_anyToSmallest,
 } from './domain';
 
@@ -254,7 +249,7 @@ class Solver {
   }
 
   ['=='](e1, e2) {
-    return this.eq(e1, e2);
+    this.eq(e1, e2);
   }
   eq(e1, e2) {
     if (e1 instanceof Array) {
@@ -271,7 +266,7 @@ class Solver {
   }
 
   ['!='](e1, e2) {
-    return this.neq(e1, e2);
+    this.neq(e1, e2);
   }
   neq(e1, e2) {
     if (e1 instanceof Array) {
@@ -288,35 +283,35 @@ class Solver {
   }
 
   ['>='](e1, e2) {
-    return this.gte(e1, e2);
+    this.gte(e1, e2);
   }
   gte(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<='](e1, e2) {
-    return this.lte(e1, e2);
+    this.lte(e1, e2);
   }
   lte(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['>'](e1, e2) {
-    return this.gt(e1, e2);
+    this.gt(e1, e2);
   }
   gt(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
   ['<'](e1, e2) {
-    return this.lt(e1, e2);
+    this.lt(e1, e2);
   }
   lt(e1, e2) {
     ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    return config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
+    config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
   }
 
 
@@ -496,22 +491,6 @@ class Solver {
   }
 
   /**
-   * Exposes internal method config_addVar for subclass
-   * (Used by PathSolver in a private project)
-   *
-   * @public
-   * @param {string} id
-   * @param {number} lo
-   * @param {number} hi
-   * @returns {string}
-   */
-  space_add_var_range(id, lo, hi) {
-    let varIndex = config_addVarRange(this.config, id, lo, hi);
-    ASSERT(this.config.all_var_names[varIndex] === id, 'SHOULD_USE_ID_AS_IS');
-    return id;
-  }
-
-  /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
    * It will always create an array, never a "small domain"
@@ -523,31 +502,6 @@ class Solver {
    */
   domain_fromList(list) {
     return domain_fromListToArrdom(list);
-  }
-
-  /**
-   * Used by PathSolver in another (private) project
-   * Exposes domain_max
-   *
-   * @param {$arrdom} domain
-   * @returns {number} If negative, search failed. Note: external dep also depends on that being negative.
-   */
-  domain_max(domain) {
-    ASSERT_ARRDOM(domain);
-    if (domain.length === 0) return NO_SUCH_VALUE;
-    return domain_max(domain_arrToSmallest(domain));
-  }
-
-  /**
-   * Used by PathSolver in another (private) project
-   * Exposes domain_toList
-   * TODO: can we lock this down to an $arrdom ?
-   *
-   * @param {$domain} domain
-   * @returns {number[]}
-   */
-  domain_toList(domain) {
-    return domain_toList(domain);
   }
 
   /**

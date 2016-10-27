@@ -135,8 +135,12 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
   let varDistOptions = configVarDistOptions[varName];
   let listSource = varDistOptions.list;
 
-  let fallbackDistName = varDistOptions.fallback_dist_name;
-  ASSERT(fallbackDistName !== 'list', 'prevent recursion loops');
+  let fallbackName = '';
+  if (varDistOptions.fallback) {
+    fallbackName = varDistOptions.fallback.valtype;
+    ASSERT(fallbackName, 'should have a fallback type');
+    ASSERT(fallbackName !== 'list', 'prevent recursion loops');
+  }
 
   let list = listSource;
   if (typeof listSource === 'function') {
@@ -148,8 +152,8 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
     case FIRST_CHOICE:
       let nextValue = domain_getFirstIntersectingValue(domain, list);
       if (nextValue === NO_SUCH_VALUE) {
-        if (fallbackDistName) {
-          return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
+        if (fallbackName) {
+          return _distribute_getNextDomainForVar(fallbackName, space, config, varIndex, choiceIndex);
         }
         return NO_CHOICE;
       } else {
@@ -161,8 +165,8 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
       if (space._lastChosenValue >= 0) {
         return domain_removeValue(domain, space._lastChosenValue);
       }
-      if (fallbackDistName) {
-        return _distribute_getNextDomainForVar(fallbackDistName, space, config, varIndex, choiceIndex);
+      if (fallbackName) {
+        return _distribute_getNextDomainForVar(fallbackName, space, config, varIndex, choiceIndex);
       }
       return NO_CHOICE;
   }

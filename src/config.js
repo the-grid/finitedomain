@@ -12,7 +12,6 @@ import {
   ASSERT,
   ASSERT_NORDOM,
   ASSERT_VARDOMS_SLOW,
-  GET_NAMES,
   THROW,
 } from './helpers';
 import {
@@ -539,23 +538,34 @@ function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorI
   }
 }
 
+/**
+ * Create a constraint. If the constraint has a result var it
+ * will return (only) the variable name that ends up being
+ * used (anonymous or not).
+ *
+ * In some edge cases the constraint can be resolved immediately.
+ * There are two ways a constraint can resolve: solved or reject.
+ * A solved constraint is omitted and if there is a result var it
+ * will become a constant that is set to the outcome of the
+ * constraint. If rejected the constraint will still be added and
+ * will immediately reject the search once it starts.
+ *
+ * Due to constant optimization and mapping the result var name
+ * may differ from the input var name. In that case both names
+ * should map to the same var index internally. Only constraints
+ * with a result var have a return value here.
+ *
+ * @param {$config} config
+ * @param {string} name Type of constraint (hardcoded values)
+ * @param {string[]} varNames All the argument var names for target constraint
+ * @param {string} [param] The result var name for certain. With reifiers param is the actual constraint to reflect.
+ * @returns {string|undefined} Actual result vars only, undefined otherwise. See desc above.
+ */
 function config_addConstraint(config, name, varNames, param) {
   // should return a new var name for most props
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
 
-  // if any constants were passed on, varNameToReturn should become that.
-  // if the constraint has a result var, always return that regardless
-  // if there are no constants and result vars, return the first var name
-  let varNameToReturn = varNames[0];
-  // for stuff like solver.neq(['A', 'B'], 'C')
-  if (varNameToReturn instanceof Array) {
-    let leftNames = GET_NAMES(varNameToReturn);
-    if (leftNames.length === 0) return varNames[1];
-    for (let i = 0, n = leftNames.length; i < n; ++i) {
-      config_addConstraint(config, name, [].concat(leftNames[i], varNames.slice(1)), param);
-    }
-    return undefined;
-  }
+  let resultVarName;
 
   let forceBool = false;
   switch (name) { /* eslint no-fallthrough: "off" */
@@ -571,41 +581,41 @@ function config_addConstraint(config, name, varNames, param) {
       // fall-through
     case 'sum':
     case 'product': {
-      let resultIsParam = name === 'product' || name === 'sum';
-
-      let sumName = resultIsParam ? param : varNames[2];
-      let sumVarIndex;
-
-      let freshResultVar = typeof sumName === 'undefined';
-      if (freshResultVar) {
-        if (forceBool) sumVarIndex = config_addVarAnonRange(config, 0, 1);
-        else sumVarIndex = config_addVarAnonNothing(config);
-        sumName = config.all_var_names[sumVarIndex];
-      } else if (typeof sumName === 'number') {
-        sumVarIndex = config_addVarAnonConstant(config, sumName);
-        sumName = config.all_var_names[sumVarIndex];
-      } else if (typeof sumName !== 'string') {
-        THROW(`expecting result var name to be absent or a number or string: \`${sumName}\``);
-      } else {
-        sumVarIndex = config.all_var_names.indexOf(sumName);
+      let sumOrProduct = name === 'product' || name === 'sum';
+      if (sumOrProduct && varNames.length === 0) {
+        // no variables means the sum/product is zero. not sure about the product though. nothing times nothing = 0?
+        return config.all_var_names[config_addVarAnonConstant(config, 0)];
       }
 
-      if (resultIsParam) param = sumVarIndex;
-      else varNames[2] = sumName;
+      resultVarName = sumOrProduct ? param : varNames[2];
+      let resultVarIndex;
+
+      if (resultVarName === undefined) {
+        if (forceBool) resultVarIndex = config_addVarAnonRange(config, 0, 1);
+        else resultVarIndex = config_addVarAnonNothing(config);
+        resultVarName = config.all_var_names[resultVarIndex];
+      } else if (typeof resultVarName === 'number') {
+        resultVarIndex = config_addVarAnonConstant(config, resultVarName);
+        resultVarName = config.all_var_names[resultVarIndex];
+      } else if (typeof resultVarName !== 'string') {
+        THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
+      } else {
+        // TODO: use the trie?
+        resultVarIndex = trie_get(config._var_names_trie, resultVarName);
+        if (resultVarIndex < 0) THROW('Vars must be defined before using them');
+      }
+
+      if (sumOrProduct) param = resultVarIndex;
+      else varNames[2] = resultVarName;
 
       // check all other var names, except result var, for constants
-      let hasNonConstant = false;
-      for (let i = 0, n = varNames.length - (resultIsParam ? 0 : 1); i < n; ++i) {
+      for (let i = 0, n = varNames.length - (sumOrProduct ? 0 : 1); i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
           varNames[i] = config.all_var_names[varIndex];
-        } else {
-          hasNonConstant = true;
         }
       }
-      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
 
-      varNameToReturn = sumName;
       break;
     }
 
@@ -619,19 +629,14 @@ function config_addConstraint(config, name, varNames, param) {
     case 'gte': {
       ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
 
-      // require at least one non-constant variable...
-      let hasNonConstant = false;
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
           varNames[i] = config.all_var_names[varIndex];
-          varNameToReturn = varNames[i];
-        } else {
-          hasNonConstant = true;
+          resultVarName = varNames[i];
         }
       }
 
-      if (!hasNonConstant) THROW('E_MUST_GET_AT_LEAST_ONE_VAR_NAME_ONLY_GOT_CONSTANTS');
       break;
     }
 
@@ -646,7 +651,7 @@ function config_addConstraint(config, name, varNames, param) {
     varIndexes[i] = varIndex;
   }
 
-  if (name === 'sum') {
+  if (name === 'sum') { // TODO: same for product or why not?
     let initialDomains = config.initial_domains;
 
     // limit result var to the min/max possible sum
@@ -687,7 +692,7 @@ function config_addConstraint(config, name, varNames, param) {
     config.all_constraints.push(constraint);
   }
 
-  return varNameToReturn;
+  return resultVarName;
 }
 
 /**

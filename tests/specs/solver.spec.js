@@ -1,10 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
-  fixt_arrdom_empty,
   fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_dom_nums,
   fixt_dom_ranges,
   stripAnonVarsFromArrays,
 } from '../fixtures/domain.fixt';
@@ -19,7 +17,6 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
-  NO_SUCH_VALUE,
   SUB,
   SUP,
 } from '../../src/helpers';
@@ -242,7 +239,7 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
         });
 
-        it('should have at leat one string var name', function() {
+        it('should always return the result var name', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
@@ -251,17 +248,17 @@ describe('solver.spec', function() {
           expect(solver3[method]('A', 'B')).to.be.a('string');
           expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method]('A', 'B', 'C')).to.be.a('string');
-          expect(solver3[method](1, 'B', 'C')).to.be.a('string');
-          expect(solver3[method]('A', 2, 'C')).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]('A', 'B', 'C')).to.eql('C');
+          expect(solver3[method](1, 'B', 'C')).to.eql('C');
+          expect(solver3[method]('A', 2, 'C')).to.eql('C');
+          expect(solver3[method](1, 2, 'C')).to.eql('C');
 
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
           expect(solver3[method](1, 'B', 3)).to.be.a('string');
           expect(solver3[method]('A', 2, 3)).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2, 3)).to.be.a('string');
         });
       }
 
@@ -311,7 +308,7 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
         });
 
-        it('should have at leat one string var name', function() {
+        it('should always return the result var name', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
@@ -320,17 +317,17 @@ describe('solver.spec', function() {
           expect(solver3[method]('A', 'B')).to.be.a('string');
           expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method]('A', 'B', 'C')).to.be.a('string');
-          expect(solver3[method](1, 'B', 'C')).to.be.a('string');
-          expect(solver3[method]('A', 2, 'C')).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]('A', 'B', 'C')).to.eql('C');
+          expect(solver3[method](1, 'B', 'C')).to.eql('C');
+          expect(solver3[method]('A', 2, 'C')).to.eql('C');
+          expect(solver3[method](1, 2, 'C')).to.eql('C');
 
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
           expect(solver3[method](1, 'B', 3)).to.be.a('string');
           expect(solver3[method]('A', 2, 3)).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2, 3)).to.be.a('string');
         });
       }
 
@@ -381,7 +378,7 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
         });
 
-        it('should have at leat one string var name', function() {
+        it('should always return the result var name', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
@@ -390,17 +387,17 @@ describe('solver.spec', function() {
           expect(solver3[method]('A', 'B')).to.be.a('string');
           expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method]('A', 'B', 'C')).to.be.a('string');
-          expect(solver3[method](1, 'B', 'C')).to.be.a('string');
-          expect(solver3[method]('A', 2, 'C')).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]('A', 'B', 'C')).to.eql('C');
+          expect(solver3[method](1, 'B', 'C')).to.eql('C');
+          expect(solver3[method]('A', 2, 'C')).to.eql('C');
+          expect(solver3[method](1, 2, 'C')).to.eql('C');
 
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
           expect(solver3[method](1, 'B', 3)).to.be.a('string');
           expect(solver3[method]('A', 2, 3)).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2, 3)).to.be.a('string');
         });
       }
 
@@ -451,7 +448,7 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
         });
 
-        it('should have at leat one string var name', function() {
+        it('should always return the result var name', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
@@ -460,17 +457,17 @@ describe('solver.spec', function() {
           expect(solver3[method]('A', 'B')).to.be.a('string');
           expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method]('A', 'B', 'C')).to.be.a('string');
-          expect(solver3[method](1, 'B', 'C')).to.be.a('string');
-          expect(solver3[method]('A', 2, 'C')).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]('A', 'B', 'C')).to.eql('C');
+          expect(solver3[method](1, 'B', 'C')).to.eql('C');
+          expect(solver3[method]('A', 2, 'C')).to.eql('C');
+          expect(solver3[method](1, 2, 'C')).to.eql('C');
 
           expect(solver3[method]('A', 'B', 3)).to.be.a('string');
           expect(solver3[method](1, 'B', 3)).to.be.a('string');
           expect(solver3[method]('A', 2, 3)).to.be.a('string');
-          expect(_ => solver3[method](1, 2, 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2, 3)).to.be.a('string');
         });
       }
 
@@ -520,26 +517,26 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('expecting result var name to be absent or a number or string:');
         });
 
-        it('should have at leat one string var name', function() {
+        it('should always return the result var name', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
           expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(_ => solver3[method](1, 'B')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME'); // special case
+          expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method](['A', 'B'], 'C')).to.be.a('string');
-          expect(solver3[method]([1, 'B'], 'C')).to.be.a('string');
-          expect(solver3[method](['A', 2], 'C')).to.be.a('string');
-          expect(_ => solver3[method]([1, 2], 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
+          expect(solver3[method]([1, 'B'], 'C')).to.eql('C');
+          expect(solver3[method](['A', 2], 'C')).to.eql('C');
+          expect(solver3[method]([1, 2], 'C')).to.eql('C');
 
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
           expect(solver3[method]([1, 'B'], 3)).to.be.a('string');
           expect(solver3[method](['A', 2], 3)).to.be.a('string');
-          expect(_ => solver3[method]([1, 2], 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]([1, 2], 3)).to.be.a('string');
         });
       }
 
@@ -628,26 +625,26 @@ describe('solver.spec', function() {
           expect(_ => solver3[method](['A', 'B'], {})).to.throw('expecting result var name to be absent or a number or string:');
         });
 
-        it('should have at least one string var name', function() {
+        it('should always return the result var name, regardless', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
           expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(_ => solver3[method](1, 'B')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 'B')).to.be.a('string');
           expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](1, 2)).to.be.a('string');
 
-          expect(solver3[method](['A', 'B'], 'C')).to.be.a('string');
-          expect(solver3[method]([1, 'B'], 'C')).to.be.a('string');
-          expect(solver3[method](['A', 2], 'C')).to.be.a('string');
-          expect(_ => solver3[method]([1, 2], 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
+          expect(solver3[method]([1, 'B'], 'C')).to.be.eql('C');
+          expect(solver3[method](['A', 2], 'C')).to.be.eql('C');
+          expect(solver3[method]([1, 2], 'C')).to.eql('C');
 
           expect(solver3[method](['A', 'B'], 3)).to.be.a('string');
           expect(solver3[method]([1, 'B'], 3)).to.be.a('string');
           expect(solver3[method](['A', 2], 3)).to.be.a('string');
-          expect(_ => solver3[method]([1, 2], 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(solver3[method]([1, 2], 3)).to.be.a('string');
         });
       }
 
@@ -670,7 +667,7 @@ describe('solver.spec', function() {
 
         it('accept zero vars', function() {
           let solver = new Solver();
-          expect(_ => solver[method]([])).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+          expect(_ => solver[method]([])).not.to.throw();
         });
 
         it('accept one var', function() {
@@ -787,19 +784,19 @@ describe('solver.spec', function() {
             let solver = new Solver();
             solver.decl('A', 100);
             solver.decl('B', 100);
-            expect(solver[method]('A', 'B')).to.equal('A');
+            expect(solver[method]('A', 'B')).to.equal(undefined);
           });
 
           it('should work with a number left', function() {
             let solver = new Solver();
             solver.decl('B', 100);
-            expect(solver[method](1, 'B')).to.equal('1'); // if we change anonymous var naming, this'll break
+            expect(solver[method](1, 'B')).to.equal(undefined); // if we change anonymous var naming, this'll break
           });
 
           it('should work with a number right', function() {
             let solver = new Solver();
             solver.decl('A', 100);
-            expect(solver[method]('A', 2)).to.equal('1'); // if we change anonymous var naming, this'll break
+            expect(solver[method]('A', 2)).to.equal(undefined); // if we change anonymous var naming, this'll break
           });
           it('should not work with an empty array', function() {
             let solver = new Solver();
@@ -881,7 +878,7 @@ describe('solver.spec', function() {
             expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
           });
 
-          it('should have at leat one string var name', function() {
+          it('should always return the result var name', function() {
             let solver3 = new Solver();
             solver3.decl('A', 100);
             solver3.decl('B', 100);
@@ -890,17 +887,17 @@ describe('solver.spec', function() {
             expect(solver3[method]('A', 'B')).to.be.a('string');
             expect(solver3[method](1, 'B')).to.be.a('string');
             expect(solver3[method]('A', 1)).to.be.a('string');
-            expect(_ => solver3[method](1, 2)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+            expect(solver3[method](1, 2)).to.be.a('string');
 
-            expect(solver3[method]('A', 'B', 'C')).to.be.a('string');
-            expect(solver3[method](1, 'B', 'C')).to.be.a('string');
-            expect(solver3[method]('A', 2, 'C')).to.be.a('string');
-            expect(_ => solver3[method](1, 2, 'C')).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+            expect(solver3[method]('A', 'B', 'C')).to.eql('C');
+            expect(solver3[method](1, 'B', 'C')).to.eql('C');
+            expect(solver3[method]('A', 2, 'C')).to.eql('C');
+            expect(solver3[method](1, 2, 'C')).to.eql('C');
 
             expect(solver3[method]('A', 'B', 3)).to.be.a('string');
             expect(solver3[method](1, 'B', 3)).to.be.a('string');
             expect(solver3[method]('A', 2, 3)).to.be.a('string');
-            expect(_ => solver3[method](1, 2, 3)).to.throw('E_MUST_GET_AT_LEAST_ONE_VAR_NAME');
+            expect(solver3[method](1, 2, 3)).to.be.a('string');
           });
         });
       }
@@ -977,15 +974,6 @@ describe('solver.spec', function() {
       });
     });
 
-    describe('solver.space_add_var_range', function() {
-
-      it('should just map to config_addVarRange', function() {
-        let solver = new Solver();
-
-        expect(solver.space_add_var_range('foo', 1, 2)).to.equal('foo');
-      });
-    });
-
     describe('solver.domain_fromList', function() {
 
       it('should map to domain_fromList', function() {
@@ -998,30 +986,6 @@ describe('solver.spec', function() {
         let solver = new Solver();
 
         expect(solver.domain_fromList([1, 2, 4, 5, 7, 9, 10, 11, 12, 13, 15])).to.eql([1, 2, 4, 5, 7, 7, 9, 13, 15, 15]);
-      });
-    });
-
-    describe('solver.domain_max', function() {
-
-      it('should work on a domain', function() {
-        let solver = new Solver();
-
-        expect(solver.domain_max(fixt_arrdom_nums(0, 1, 4, 6))).to.eql(6);
-      });
-
-      it('should return NO_SUCH_VALUE if the domain is empty', function() {
-        let solver = new Solver();
-
-        expect(solver.domain_max(fixt_arrdom_empty())).to.eql(NO_SUCH_VALUE);
-      });
-    });
-
-    describe('solver.domain_toList', function() {
-
-      it('should return an array of values for given domain', function() {
-        let solver = new Solver();
-
-        expect(solver.domain_toList(fixt_dom_nums(0, 1, 2, 3, 8, 10))).to.eql([0, 1, 2, 3, 8, 10]);
       });
     });
   });

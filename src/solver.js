@@ -23,6 +23,7 @@ import {
   config_setOption,
   config_setOptions,
 } from './config';
+import exporter from './exporter';
 
 import {
   domain__debug,
@@ -387,6 +388,7 @@ class Solver {
    * @property {boolean} [_debugConfig] Log out solver.config after prepare() but before run()
    * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run(). Only works in dev code (stripped from dist)
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
+   * @property {boolean} [_tostring] Serialize the config into a DSL
    * @return {Object[]}
    */
   solve(options = {}) {
@@ -395,6 +397,7 @@ class Solver {
 
     this._prepare(options, log);
 
+    if (options._tostring || 1) console.log(exporter(this.config));
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__

@@ -102,15 +102,15 @@ describe('exports/export.cases.spec', function() {
     it('trimmed down version', function() {
       var solver = new Solver();
       solver.declRange('x12', 1, 8, {
-        distributionName: 'list',
+        valtype: 'list',
         list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
       solver.declRange('x19', 1, 8, {
-        distributionName: 'list',
+        valtype: 'list',
         list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
       solver.declRange('x26', 1, 8, {
-        distributionName: 'list',
+        valtype: 'list',
         list: [4, 3, 2, 1, 5, 6, 7, 8],
       });
       solver.declRange('x152', 0, 1);

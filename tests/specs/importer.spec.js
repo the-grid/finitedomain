@@ -51,3 +51,101 @@ markov(v4)                     # initial: markov([0 100])
 `];
 
 
+let units = [
+  '- vars',
+  ['basic test', s -> s.decl(A, [0, 1]), [': A [0 1]']],
+
+  '  - var names',
+  [
+    'simple var decl with range one pair',
+    s -> s.declRange('A', 1, 2),
+    `
+: A [0 1]
+|--
+: foobar [0 1]
+|--
+: anything@goes [0 1]
+|--
+: even_weird!@##$%&^&chars [0 1]
+|--
+: andnum63r50987654321aswell [0 1]
+|--
+    `,
+  ],
+
+  '  - domain',
+  [
+    'simple var decl with range one pair',
+    s -> s.declRange('A', 1, 2),
+    `
+: A [1 2]
+|--
+: A [ 1 2]
+|--
+: A [1 2 ]
+|--
+ : A [1  2]
+|--
+ : A [ 1 2 ]
+|--
+ : A [1 2]
+|--
+:  A [1 2]
+|--
+:   A   [ 1 2 ]
+|--
+: A [0 0]
+|--
+: A [100 100]
+    `,
+  ],
+  [
+    'simple var decl with range multiple pairs',
+    s -> s.decl('A', [0, 1, 10, 20, 100, 3000]),
+    `
+: A [[0 1] [10 20] [100 3000]]
+|--
+: A [[0 1] [10 20] [100 3000]]
+|--
+: A [ [0 1] [10 20] [100 3000]]
+|--
+: A [[ 0 1] [10 20 ] [ 100 3000]]
+|--
+: A [[ 0 1 ] [ 10 20 ] [ 100 3000]]
+|--
+: A [[ 0 1] [10 20 ] [100 3000]]
+|--
+: A [[ 0 1] [10 20 ] [ 100 3000]]
+    `,
+  ],
+  [
+    'wide domain',
+    s -> s.declRange('A', SUB, SUP),
+        `
+: A [*]
+|--
+: A [ *]
+|--
+: A [* ]
+|--
+: A [ * ]
+    `,
+  ],
+
+  '  - alias',
+  [
+    'single alias',
+    s -> true, // TODO: unable to test this as finitedomain currently doesn't really support this
+    `
+: A [0 1] alias(foo)
+|--
+: A [0 1] alias(hello#world)
+|--
+: A [0 1] alias(foo=bar)
+|--
+: A [0 1] alias(@markov)
+|--
+: A [0 1]    alias(foo)
+    `
+  ],
+];

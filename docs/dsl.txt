@@ -47,6 +47,7 @@ alias:
 domain:
   pair
   `[` pairs `]`
+  `[` `*` `]`
 pair:
   `[` number [`,`] number `]`
 pairs:

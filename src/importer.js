@@ -2,6 +2,11 @@
 // it converts a DSL string to a $config
 // see /docs/dsl.txt for syntax
 // see exporter.js to convert a config to this DSL
+import {
+  SUB,
+  SUP,
+} from './helpers';
+import Solver from './solver';
 
 // BODY_START
 
@@ -11,24 +16,45 @@ function importer_main(str) {
   let pointer = 0;
   let len = str.length;
 
-  while (pointer < len) parseStatement();
+  while (!isEof()) parseStatement();
 
-  function skipWhitespace() {
-    while (pointer < len && isWhitespace(str[pointer])) {
-       ++pointer;
-    }
+
+  function read() {
+    return str[pointer];
   }
-  function skipAnyWhitespace() {
-    while (pointer < len && (isWhitespace(str[pointer]) || isAnyWhitespace(str[pointer]))) {
-       ++pointer;
-    }
+  function skip() {
+    ++pointer;
+  }
+  function consume() {
+    return str[pointer++];
+  }
+  function is(c, desc) {
+    if (read() !== c) throw new Error('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
+    skip();
   }
 
+  function skipWhitespaces() {
+    while (pointer < len && isWhitespace(read())) skip();
+  }
+  function skipWhites() {
+    while (pointer < len && isWhite(read())) skip();
+  }
   function isWhitespace(s) {
     return s === ' ' || s === '\t';
   }
-  function isAnyWhitespace(s) {
+  function isNewline(s) {
     return s === ' ' || s === '\t' || s === '\n' || s === '\r';
+  }
+  function isWhite(s) {
+    return isWhitespace(s) || isNewline(s);
+  }
+  function expectEol() {
+    if (pointer >= len) return true;
+    skipWhitespaces();
+    if (!isNewline()) throw new Error('Expected EOL but got `' + read() + '`');
+  }
+  function isEof() {
+    return pointer >= len;
   }
 
   function parseStatement() {
@@ -38,45 +64,184 @@ function importer_main(str) {
     // - empty: empty
     // - otherwise: constraint
 
-    skipAnyWhitespace();
+    skipWhites();
     switch (str[pointer]) {
       case ':': return parseVar();
       case '#': return skipComment();
-      default: return parseConstraint();
+      default:
+        if (!isEof()) throw 'fixme'; // return parseConstraint();
     }
   }
 
   function parseVar() {
-    ++pointer;
-    skipWhitespace();
+    skip(); // is(':')
+    skipWhitespaces();
     let name = parseIdentifier();
-    skipWhitespace();
-    if (str[pointer] !== '=') throw new Error('expecting var initializer');
-    ++pointer;
-    skipWhitespace();
+    skipWhitespaces();
     let domain = parseDomain();
-    skipWhitespace();
-    let alts = [];
-    while (str.slice(pointer, 5) === 'alias') {
-      alts.push(parseAlias(pointer += 5));
-      skipWhitespace();
+    skipWhitespaces();
+    let alts = undefined;
+    while (str.slice(pointer, pointer + 6) === 'alias(') {
+      if (!alts) alts = [];
+      alts.push(parseAlias(pointer += 6));
+      skipWhitespaces();
     }
     let mod = parseModifier();
+    expectEol();
 
     solver.decl(name, domain, mod);
     // TODO: declare the alts somehow and map them to the same var
   }
 
+  function parseIdentifier() {
+    // anything terminated by whitespace
+    let start = pointer;
+    while (!isWhite(read())) skip();
+    if (start === pointer) throw new Error('Expected to parse identifier, found none');
+    return str.slice(start, pointer);
+  }
+
+  function parseDomain() {
+    // [lo hi]
+    // [[lo hi] [lo hi] ..]
+
+    is('[', 'domain start')
+    skipWhitespaces();
+
+    let domain = [];
+
+    if (read() === '[') {
+      do {
+        skip();
+        skipWhitespaces();
+        let lo = parseNumber();
+        skipWhitespaces();
+        let hi = parseNumber();
+        skipWhitespaces();
+        is(']', 'range-end');
+        skipWhitespaces();
+
+        domain.push(lo, hi);
+      } while (read() === '[');
+    } else {
+      skipWhitespaces();
+      let lo;
+      let hi;
+      if (read() === '*') {
+        lo = SUB;
+        hi = SUP;
+        skip();
+      } else {
+        lo = parseNumber();
+        skipWhitespaces();
+        hi = parseNumber();
+      }
+      skipWhitespaces();
+
+      domain.push(lo, hi);
+    }
+
+    is(']', 'domain-end');
+
+    if (domain.length === 0) throw new Error('Not expecting empty domain');
+
+    return domain;
+  }
+
+  function parseAlias() {
+    skipWhitespaces();
+
+    let start = pointer;
+    while (read() !== ')' && !isWhite(read())) skip();
+    let alias = str.slice(start, pointer);
+    if (!alias) throw new Error('The alias() can not be empty but was');
+
+    skipWhitespaces();
+    is(')', '`alias` to be closed by `)`');
+
+    return alias;
+  }
+
+  function parseModifier() {
+    if (read() !== '@') return;
+    skip();
+
+    let mod = {};
+
+    let start = pointer;
+    while (read() >= 'a' && read() <= 'z') skip();
+    let stratName = str.slice(start, pointer);
+
+    switch (stratName) {
+      case 'list':
+        parseList(mod);
+        break;
+
+      case 'markov':
+        parseMarkov(mod);
+        break;
+
+        case 'max':
+        case 'mid':
+        case 'min':
+        case 'minMaxCycle':
+        case 'naive':
+        case 'splitMax':
+        case 'splitMin':
+          break;
+
+      default:
+        throw new Error('Expecting a strategy name after the `@` modifier (`' + stratName + '`)');
+    }
+
+    mod.valtype = stratName;
+
+    return mod;
+  }
+
+  function parseList(mod) {
+    skipWhitespaces();
+    if (str.slice(pointer, pointer+5) !== 'prio(') throw new Error('Expecting the priorities to follow the `@list`');
+    pointer += 5;
+    mod.list = parseNumList();
+    is(')', 'list end');
+  }
+
+  function parseMarkov(mod) {
+    while (true) {
+      skipWhitespaces();
+      if (str.slice(pointer, pointer + 7) === 'matrix(') {
+        // TOFIX: there is no validation here. apply stricter and safe matrix parsing
+        let matrix = str.slice(pointer + 7, pointer = str.indexOf(')', pointer));
+        let code = 'return ' + matrix;
+        let func = Function(code);
+        mod.matrix = func();
+        if (pointer === -1) throw new Error('The matrix must be closed by a `)` but did not find any');
+      } else if (str.slice(pointer, pointer + 7) === 'legend(') {
+        pointer += 7;
+        mod.legend = parseNumList();
+        is(')', 'legend closer');
+      } else if (str.slice(pointer, pointer+7) === 'expand(') {
+        pointer += 7;
+        mod.expandVectorsWith = parseNumber();
+        is(')', 'expand closer');
+      } else {
+        break;
+      }
+      skip();
+    }
+  }
+
   function skipComment() {
-    if (str[pointer++] !== '#') throw new Error('expecting comment hash');
-    while (pointer < len && str[pointer] !== '\n' && str[pointer] !== '\r') ++pointer;
-    if (pointer < len) ++pointer; // skip past the newline
+    skip(); //is('#', 'comment hash');
+    while (!isEof() && !isNewline(read())) skip();
+    if (!isEof()) skip();
   }
 
   function parseConstraint() {
-    skipWhitespace();
+    skipWhitespaces();
     let A = parseValue();
-    skipWhitespace();
+    skipWhitespaces();
 
     switch (str[pointer]) {
       case '?':
@@ -85,11 +250,11 @@ function importer_main(str) {
           // reifier
           // A ?= B @ C
           let B = parseValue();
-          skipWhitespace();
+          skipWhitespaces();
           let op = parseComparisonOp();
-          skipWhitespace();
+          skipWhitespaces();
           let C = parseValue();
-          skipWhitespace();
+          skipWhitespaces();
 
           switch (op) {
             case '==':
@@ -192,132 +357,12 @@ function importer_main(str) {
     throw new Error('Invalid binary op start: `' + str[pointer] + str[pointer + 1] + '`');
   }
 
-  function parseIdentifier() {
-    // anything terminated by whitespace
-    let start = pointer;
-    while (!isAnyWhitespace(str[pointer])) ++pointer;
-    if (start === pointer) throw new Error('Expected to parse identifier, found none');
-    return str.slice(start, pointer);
-  }
-
-  function parseDomain() {
-    // [lo hi]
-    // [[lo hi] [lo hi] ..]
-
-    if (str[pointer] !== '[') throw new Error('Expecting domain start `[` found `' + str[pointer] + '`');
-    ++pointer;
-    skipWhitespace();
-
-    let domain = [];
-
-    if (str[pointer] === '[') {
-      while (str[pointer] === '[') {
-        ++pointer;
-        skipWhitespace();
-        let lo = parseNumber();
-        skipWhitespace();
-        let hi = parseNumber();
-        skipWhitespace();
-        if (str[pointer] !== ']') throw new Error('Expecting range-end `]` found `' + str[pointer] + '`');
-
-        domain.push(lo, hi);
-      }
-    } else {
-      ++pointer;
-      skipWhitespace();
-      let lo = parseNumber();
-      skipWhitespace();
-      let hi = parseNumber();
-      skipWhitespace();
-
-      domain.push(lo, hi);
-    }
-
-    if (str[pointer] !== ']') throw new Error('Expecting domain-end `]` found `' + str[pointer] + '`');
-
-    if (domain.length === 0) throw new Error('Not expecting empty domain');
-
-    return domain;
-  }
-
-  function parseAlias() {
-    if (str[pointer] !== '(') throw new Error('`alias` should be followed by `(` was `' + str[pointer] + '`');
-    skipWhitespace();
-
-    let start = pointer;
-    while (str[pointer] !== ')' && !isAnyWhitespace(str[pointer])) ++pointer;
-    let alias = str.slice(start, pointer);
-    if (!alias) throw new Error('The alias() can not be empty but was');
-
-    skipWhitespace();
-    if (str[pointer] !== ')') throw new Error('`alias` should be closed by `)` was `' + str[pointer] + '`');
-
-    return alias;
-  }
-
-  function parseModifier() {
-    if (str[pointer] !== '@') return;
-
-    let mod = {};
-
-    let start = pointer;
-    while (str[pointer] >= 'a' && str[pointer] <= 'z') ++pointer;
-    let stratName = str.slice(start, pointer);
-    if (!stratName) throw new Error('Expecting a strategy name after the `@` modifier');
-
-    mod.valtype = stratName;
-
-    switch (stratName) {
-      case 'list':
-        skipWhitespace();
-        if (str.slice(0, 5) !== 'prio(') throw new Error('Expecting the priorities to follow the `@list`');
-        pointer += 5;
-        mod.list = parseNumList();
-        if (str[pointer] !== ')') throw new Error('Expecting list end `)` but found `' + str[pointer] + '`');
-        break;
-
-      case 'markov':
-        while (true) {
-          skipWhitespace();
-          if (str.slice(0, 7) === 'matrix(') {
-            // TOFIX: there is no validation here. apply stricter and safe matrix parsing
-            mod.matrix = Function('return ' + str.slice(pointer + 7, pointer += str.indexOf(')', pointer)))();
-            if (pointer === -1) throw new Error('The matrix must be closed by a `)` but did not find any');
-            ++pointer;
-          } else if (str.slice(0, 7) === 'legend(') {
-            mod.legend = parseNumList();
-            if (pointer !== ')') throw new Error('The legend must be closed by a `)` but did not find any');
-            ++pointer;
-          } else if (str.slice(0, 7) === 'expand(') {
-            mod.expandVectorsWith = parseNumber();
-            if (pointer !== ')') throw new Error('The expand must be closed by a `)` but did not find any');
-            ++pointer;
-          } else {
-            break;
-          }
-        }
-        break;
-
-        case 'max':
-        case 'mid':
-        case 'min':
-        case 'minMaxCycle':
-        case 'naive':
-        case 'splitMax':
-        case 'splitMin':
-          break;
-
-      default:
-        throw new Error('Unknown value strategy override: ' + stratName);
-    }
-
-    return mod;
-  }
-
   function parseNumber() {
     let start = pointer;
-    while (str[pointer] >= '0' && str[pointer] <= '9') ++pointer;
-    if (start === pointer) throw new Error('Expecting to parse a number but did not find any digits');
+    while (read() >= '0' && read() <= '9') skip();
+    if (start === pointer) {
+      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + ']['+read()+']');
+    }
     return parseInt(str.slice(start, pointer), 10);
   }
 
@@ -330,14 +375,14 @@ function importer_main(str) {
   function parseNumList() {
     let nums = [];
 
-    skipWhitespace();
+    skipWhitespaces();
     let numstr = parseNumstr();
     while (numstr) {
       nums.push(parseInt(numstr, 10));
-      skipWhitespace();
+      skipWhitespaces();
       if (str[pointer] === ',') {
         ++pointer;
-        skipWhitespace();
+        skipWhitespaces();
       }
       numstr = parseNumstr();
     }

@@ -18,15 +18,11 @@ function importer_main(str) {
 
   while (!isEof()) parseStatement();
 
-
   function read() {
     return str[pointer];
   }
   function skip() {
     ++pointer;
-  }
-  function consume() {
-    return str[pointer++];
   }
   function is(c, desc) {
     if (read() !== c) throw new Error('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
@@ -37,21 +33,41 @@ function importer_main(str) {
     while (pointer < len && isWhitespace(read())) skip();
   }
   function skipWhites() {
-    while (pointer < len && isWhite(read())) skip();
+    while (!isEof()) {
+      let c = read();
+      if (isWhite(c)) {
+        skip();
+      } else if (isComment(c)) {
+        skipComment();
+      } else {
+        break;
+      }
+    }
   }
   function isWhitespace(s) {
     return s === ' ' || s === '\t';
   }
   function isNewline(s) {
-    return s === ' ' || s === '\t' || s === '\n' || s === '\r';
+    // no, I don't feel bad for also flaggin a comment as eol :)
+    return s === '\n' || s === '\r';
+  }
+  function isComment(s) {
+    return s === '#';
   }
   function isWhite(s) {
     return isWhitespace(s) || isNewline(s);
   }
   function expectEol() {
-    if (pointer >= len) return true;
     skipWhitespaces();
-    if (!isNewline(read()) && read() !== '#') throw new Error('Expected EOL but got `' + read() + '`');
+    if (pointer >= len) return true;
+    let c = read();
+    if (c === '#') {
+      skipComment();
+    } else if (isNewline(c)) {
+      skip();
+    } else {
+      throw new Error('Expected EOL but got `' + read() + '`');
+    }
   }
   function isEof() {
     return pointer >= len;
@@ -80,7 +96,7 @@ function importer_main(str) {
     skipWhitespaces();
     let domain = parseDomain();
     skipWhitespaces();
-    let alts = undefined;
+    let alts;
     while (str.slice(pointer, pointer + 6) === 'alias(') {
       if (!alts) alts = [];
       alts.push(parseAlias(pointer += 6));
@@ -105,7 +121,7 @@ function importer_main(str) {
     // [lo hi]
     // [[lo hi] [lo hi] ..]
 
-    is('[', 'domain start')
+    is('[', 'domain start');
     skipWhitespaces();
 
     let domain = [];
@@ -152,7 +168,13 @@ function importer_main(str) {
     skipWhitespaces();
 
     let start = pointer;
-    while (read() !== ')' && !isWhite(read())) skip();
+    while (true) {
+      let c = read();
+      if (c === ')') break;
+      if (isNewline(c)) throw new Error('Alias must be closed with a `)` but wasnt (eol)');
+      if (isEof()) throw new Error('Alias must be closed with a `)` but wasnt (eof)');
+      skip();
+    }
     let alias = str.slice(start, pointer);
     if (!alias) throw new Error('The alias() can not be empty but was');
 
@@ -181,14 +203,14 @@ function importer_main(str) {
         parseMarkov(mod);
         break;
 
-        case 'max':
-        case 'mid':
-        case 'min':
-        case 'minMaxCycle':
-        case 'naive':
-        case 'splitMax':
-        case 'splitMin':
-          break;
+      case 'max':
+      case 'mid':
+      case 'min':
+      case 'minMaxCycle':
+      case 'naive':
+      case 'splitMax':
+      case 'splitMin':
+        break;
 
       default:
         throw new Error('Expecting a strategy name after the `@` modifier (`' + stratName + '`)');
@@ -201,7 +223,7 @@ function importer_main(str) {
 
   function parseList(mod) {
     skipWhitespaces();
-    if (str.slice(pointer, pointer+5) !== 'prio(') throw new Error('Expecting the priorities to follow the `@list`');
+    if (str.slice(pointer, pointer + 5) !== 'prio(') throw new Error('Expecting the priorities to follow the `@list`');
     pointer += 5;
     mod.list = parseNumList();
     is(')', 'list end');
@@ -214,16 +236,18 @@ function importer_main(str) {
         // TOFIX: there is no validation here. apply stricter and safe matrix parsing
         let matrix = str.slice(pointer + 7, pointer = str.indexOf(')', pointer));
         let code = 'return ' + matrix;
-        let func = Function(code);
+        let func = Function(code); /* eslint no-new-func: "off" */
         mod.matrix = func();
         if (pointer === -1) throw new Error('The matrix must be closed by a `)` but did not find any');
       } else if (str.slice(pointer, pointer + 7) === 'legend(') {
         pointer += 7;
         mod.legend = parseNumList();
+        skipWhitespaces();
         is(')', 'legend closer');
-      } else if (str.slice(pointer, pointer+7) === 'expand(') {
+      } else if (str.slice(pointer, pointer + 7) === 'expand(') {
         pointer += 7;
         mod.expandVectorsWith = parseNumber();
+        skipWhitespaces();
         is(')', 'expand closer');
       } else {
         break;
@@ -233,7 +257,7 @@ function importer_main(str) {
   }
 
   function skipComment() {
-    skip(); //is('#', 'comment hash');
+    is('#', 'comment start'); //is('#', 'comment hash');
     while (!isEof() && !isNewline(read())) skip();
     if (!isEof()) skip();
   }
@@ -245,27 +269,180 @@ function importer_main(str) {
     if (parseUexpr()) return;
 
     // so the first value must be a value returning expr
-    let v = parseVexpr(); // returns a var name or a constant value
+    let A = parseVexpr(); // returns a var name or a constant value
 
-    throw 'fixmeeee';
+    skipWhitespaces();
+    let cop = parseCop();
+    skipWhitespaces();
+    switch (cop) {
+      case '=':
+        parseAssignment(A);
+        break;
 
-    //let cop = parseCop();
-    //switch (cop) {
-    //  case '=':
-    //
-    //  case '==':
-    //  case '!=':
-    //  case '<':
-    //  case '<=':
-    //  case '>':
-    //  case '>=':
-    //
-    //  default:
-    //    if (cop) throw new Error('Unknown constraint op: [' + cop + ']');
-    //    // else it was probably something like markov() or distinct()
-    //}
+      case '==':
+        solver.eq(A, parseVexpr());
+        break;
+
+      case '!=':
+        solver.neq(A, parseVexpr());
+        break;
+
+      case '<':
+        solver.lt(A, parseVexpr());
+        break;
+
+      case '<=':
+        solver.lte(A, parseVexpr());
+        break;
+
+      case '>':
+        solver.gt(A, parseVexpr());
+        break;
+
+      case '>=':
+        solver.gte(A, parseVexpr());
+        break;
+
+      default:
+        if (cop) throw new Error('Unknown constraint op: [' + cop + ']');
+    }
 
     expectEol();
+  }
+
+  function parseAssignment(C) {
+    let A = parseVexpr(C);
+    skipWhitespaces();
+    let c = read();
+    if (isEof() || isNewline(c) || isComment(c)) return A; // any group without "top-level" op (`A=(B+C)`), or sum() etc
+    return parseAssignRest(A, C);
+  }
+
+  function parseAssignRest(A, C) {
+    // note: if Solver api changes this may return the wrong value...
+    // it should always return the "result var" var name or constant
+    // (that would be C, but C may be undefined here and created by Solver)
+
+    let rop = parseRop();
+    skipWhitespaces();
+    switch (rop) {
+      case '==?':
+        return solver.isEq(A, parseVexpr(), C);
+      case '!=?':
+        return solver.isNeq(A, parseVexpr(), C);
+      case '<?':
+        return solver.isLt(A, parseVexpr(), C);
+      case '<=?':
+        return solver.isLte(A, parseVexpr(), C);
+      case '>?':
+        return solver.isGt(A, parseVexpr(), C);
+      case '>=?':
+        return solver.isGte(A, parseVexpr(), C);
+      case '+':
+        return solver.plus(A, parseVexpr(), C);
+      case '-':
+        return solver.minus(A, parseVexpr(), C);
+      case '*':
+        return solver.times(A, parseVexpr(), C);
+      case '/':
+        return solver.div(A, parseVexpr(), C);
+      default:
+        if (rop !== undefined) throw new Error('Unknown rop: `' + rop + '`');
+        return A;
+    }
+  }
+
+  function parseCop() {
+    let c = read();
+    switch (c) {
+      case '=':
+        skip();
+        if (read() === '=') {
+          skip();
+          return '==';
+        }
+        return '=';
+      case '!':
+        skip();
+        if (read() === '=') {
+          skip();
+          return '!=';
+        }
+        return '!';
+      case '<':
+        skip();
+        if (read() === '=') {
+          skip();
+          return '<=';
+        }
+        return '<';
+      case '>':
+        skip();
+        if (read() === '=') {
+          skip();
+          return '>=';
+        }
+        return '>';
+      case '#':
+        throw new Error('Expected to parse a cop but found a comment instead');
+      default:
+        if (isEof()) throw new Error('Expected to parse a cop but reached eof instead');
+        throw new Error('Unknown cop char: `' + c + '`');
+    }
+  }
+
+  function parseRop() {
+    let a = read();
+    switch (a) {
+      case '=':
+        skip();
+        let b = read();
+        if (b === '=') {
+          skip();
+          is('?', 'reifier suffix');
+          return '==?';
+        } else {
+          return '=';
+        }
+
+      case '!':
+        skip();
+        is('=', 'middle part of !=? op');
+        is('?', 'reifier suffix');
+        return '!=?';
+
+      case '<':
+        skip();
+        if (read() === '=') {
+          skip();
+          is('?', 'reifier suffix');
+          return '<=?';
+        } else {
+          is('?', 'reifier suffix');
+          return '<?';
+        }
+
+      case '>':
+        skip();
+        if (read() === '=') {
+          skip();
+          is('?', 'reifier suffix');
+          return '>=?';
+        } else {
+          is('?', 'reifier suffix');
+          return '>?';
+        }
+
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        skip();
+        return a;
+
+      default:
+        throw new Error('Wanted to parse a rop but next char is `' + a + '`');
+    }
   }
 
   function parseUexpr() {
@@ -302,7 +479,7 @@ function importer_main(str) {
     return list;
   }
 
-  function parseVexpr() {
+  function parseVexpr(resultVar) {
     // valcall, ident, number, group
 
     let c = read();
@@ -313,8 +490,8 @@ function importer_main(str) {
       let ident = parseIdentifier();
 
       if (read() === '(') {
-        if (ident === 'sum') v = parseSum();
-        else if (ident === 'product') v = parseProduct();
+        if (ident === 'sum') v = parseSum(resultVar);
+        else if (ident === 'product') v = parseProduct(resultVar);
         else throw new Error('Unknown constraint func: ' + ident);
       } else {
         v = ident;
@@ -324,152 +501,61 @@ function importer_main(str) {
     return v;
   }
 
+  function parseGrouping() {
+    is('(', 'group open');
+    skipWhitespaces();
+    let A = parseVexpr();
+    skipWhitespaces();
+
+    if (read() === '=') {
+      if (read() !== '=') {
+        parseAssignment(A);
+        skipWhitespaces();
+        is(')', 'group closer');
+        return A;
+      }
+    }
+
+    if (read() === ')') {
+      // just wrapping a vexpr is okay
+      skip();
+      return A;
+    }
+
+    let C = parseAssignRest(A);
+    skipWhitespaces();
+    is(')', 'group closer');
+    return C;
+  }
+
   function parseNumber() {
     let start = pointer;
     while (read() >= '0' && read() <= '9') skip();
     if (start === pointer) {
-      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + ']['+read()+']');
+      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + '][' + read() + ']');
     }
     return parseInt(str.slice(start, pointer), 10);
   }
 
   function parseSum(result) {
-    pointer += 4;
+    is('(', 'sum call opener');
+    skipWhitespaces();
     let refs = parseVexpList();
-    solver.sum(refs, result);
-  }
-
-  function parseProduct() {
-    pointer += 8;
-
-  }
-
-
-
-
-
-  function parseConstraint2() {
+    let r = solver.sum(refs, result);
     skipWhitespaces();
-    let A = parseValue();
+    is(')', 'sum closer');
+    return r;
+  }
+
+  function parseProduct(result) {
+    is('(', 'product call opener');
     skipWhitespaces();
-
-    switch (str[pointer]) {
-      case '?':
-        if (str[pointer + 1] === '=') {
-          ++pointer;
-          // reifier
-          // A ?= B @ C
-          let B = parseValue();
-          skipWhitespaces();
-          let op = parseComparisonOp();
-          skipWhitespaces();
-          let C = parseValue();
-          skipWhitespaces();
-
-          switch (op) {
-            case '==':
-              return solver.isEq(B, C, A);
-            case '!=':
-              return solver.isNeq(B, C, A);
-            case '<':
-              return solver.isLt(B, C, A);
-            case '<=':
-              return solver.isLte(B, C, A);
-            case '>':
-              return solver.isGt(B, C, A);
-            case '>=':
-              return solver.isGte(B, C, A);
-            default:
-              throw new Error('Unknown reifier op: ' + op);
-          }
-        } else {
-          throw new Error('Expecting reifier assignment `?=` found `?' + str[pointer] + '`');
-        }
-        break;
-
-      case '=':
-        if (str[pointer + 1] === '=') {
-          ++pointer;
-          let B = parseValue();
-          solver.eq(A, B);
-        } else {
-          // A is a result of the B constraint (something that merely collects a result like addition, sum, etc)
-          return parseInactiveConstraint(A);
-        }
-        break;
-
-      case '!':
-        if (str[pointer + 1] === '=') {
-          ++pointer;
-          let B = parseValue();
-          solver.neq(A, B);
-        } else {
-          throw new Error('Expecting neq op `!=` found `!' + str[pointer] + '`');
-        }
-        break;
-
-      case '<':
-        if (str[pointer + 1] === '=') {
-          ++pointer;
-          let B = parseValue();
-          solver.lte(A, B);
-        } else {
-          ++pointer;
-          let B = parseValue();
-          solver.lt(A, B);
-        }
-        break;
-
-      case '>':
-        if (str[pointer + 1] === '=') {
-          ++pointer;
-          let B = parseValue();
-          solver.gte(A, B);
-        } else {
-          ++pointer;
-          let B = parseValue();
-          solver.gt(A, B);
-        }
-        break;
-
-      case '#':
-        skipComment();
-        break;
-
-      case '\n':
-      case '\r':
-        // `A` is an active constraint without result like distinct() or markov()
-        // it should not have a result and so we can ignore it
-        return;
-
-
-      default:
-        throw new Error('Expecting =, ?=, #, a constraint op, or EOL after the first constraint value, found: `' + str[pointer] + '`');
-    }
+    let refs = parseVexpList();
+    let r = solver.product(refs, result);
+    skipWhitespaces();
+    is(')', 'product closer');
+    return r;
   }
-
-
-
-
-  function parseComparisonOp() {
-    switch (str[pointer]) {
-      case '=':
-        if (str[pointer + 1] === '=') return '==';
-        break;
-      case '!':
-        if (str[pointer + 1] === '=') return '!=';
-        break;
-      case '<':
-        if (str[pointer + 1] === '=') return '<=';
-        return '<';
-      case '>':
-        if (str[pointer + 1] === '=') return '>=';
-        return '>';
-      default:
-    }
-    throw new Error('Invalid binary op start: `' + str[pointer] + str[pointer + 1] + '`');
-  }
-
 
   function parseNumstr() {
     let start = pointer;
@@ -495,54 +581,6 @@ function importer_main(str) {
     if (!nums.length) throw new Error('Expected to parse a list of at least some numbers but found none');
     return nums;
   }
-
-  function parseValue() {
-    // variable name (maybe with parens)
-    // number
-    // group
-
-    if (str[pointer] === '(') {
-      let result = parseUndefConstraint();
-      if (!result) throw new Error('A group should wrap a constraint that has a result var (implicit or explicit)');
-      return result;
-    }
-
-    if (str[pointer] >= '0' && str[pointer] <= '9') {
-      return parseNumber();
-    }
-
-    let ident = parseIdentifier();
-    if (str[pointer] === '(') {
-      return parseCall(ident);
-    }
-    return ident;
-  }
-
-  function parseInactiveConstraint(C) {
-    // this is the rhs of `C = ...` like:
-    // - `C = A + B`
-    // - `C = sum(...)`
-    // - `C = (X + Y) < Z`
-    // - `5 = A + B`
-    // - `C = 10 <? A
-    // the rhs is supposed to be "inactive" insofar that it's not a constraint by itself
-
-
-
-    return parseCall(result);
-  }
-
-  function parseCall(ident) {
-    switch (ident) {
-      case 'sum':
-      case 'product':
-
-      case 'distinct':
-      case 'markov':
-
-    }
-  }
-
 }
 
 // BODY_STOP

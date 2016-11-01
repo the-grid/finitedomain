@@ -397,7 +397,7 @@ class Solver {
 
     this._prepare(options, log);
 
-    if (options._tostring || 1) console.log(exporter(this.config));
+    if (options._tostring) console.log(exporter(this.config));
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__

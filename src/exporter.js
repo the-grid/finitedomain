@@ -12,7 +12,6 @@ import {
 import {
   trie_get,
 } from './trie';
-import Solver from './solver';
 
 // BODY_START
 
@@ -21,17 +20,16 @@ function exporter_main(config) {
   let initialDomains = config.initial_domains;
   let vars = config.all_var_names.map((varName, varIndex) => {
     let domain = exporter_domstr(initialDomains[varIndex]);
-    let s = ': v'+varIndex+' = ' +domain;
-    if (varName !== String(varIndex)) s += ' alias('+varName.replace(/[\(\) ]/g,'_')+')';
+    let s = ': v' + varIndex + ' = ' + domain;
+    if (varName !== String(varIndex)) s += ' alias(' + varName.replace(/[\(\) ]/g, '_') + ')';
     let overrides = var_dist_options[varName];
-    if (overrides
-      && (overrides.valtype !== 'list' || (overrides.list && overrides.list.length))) {
+    if (overrides && (overrides.valtype !== 'list' || (overrides.list && overrides.list.length))) {
       s += ' @' + overrides.valtype;
       switch (overrides.valtype) {
         case 'markov':
-          if ('expandVectorsWith' in overrides) s += 'expand(' + (overrides.expandVectorsWith || 0)+')';
-          if ('legend' in overrides) s += ' legend('+overrides.legend+')';
-          if ('matrix' in overrides) s += ' matrix('+JSON.stringify(overrides.matrix).replace(/"/g, '')+')';
+          if ('expandVectorsWith' in overrides) s += 'expand(' + (overrides.expandVectorsWith || 0) + ')';
+          if ('legend' in overrides) s += ' legend(' + overrides.legend + ')';
+          if ('matrix' in overrides) s += ' matrix(' + JSON.stringify(overrides.matrix).replace(/"/g, '') + ')';
           break;
 
         case 'list':
@@ -105,7 +103,7 @@ function exporter_main(config) {
         break;
       case 'distinct':
         if (indexes.length === 1) {
-          comment += '# eliminated distinct(v'+indexes[0]+')';
+          comment += '# eliminated distinct(v' + indexes[0] + ')';
         } else if (indexes.length === 2) {
           s += 'v' + indexes[0] + ' != v' + indexes[1];
           comment += ' # was distinct';
@@ -140,7 +138,7 @@ function exporter_main(config) {
     // this is more for easier debugging...
     let t = s;
     indexes.forEach(varIndex => t = t.replace('v' + varIndex, exporter_domstr(initialDomains[varIndex])));
-    if (typeof constraint.param === 'number') t = t.replace('v' + constraint.param, exporter_domstr(initialDomains[constraint.param]))
+    if (typeof constraint.param === 'number') t = t.replace('v' + constraint.param, exporter_domstr(initialDomains[constraint.param]));
 
     s = s.padEnd(25, ' ') + '      # initial: ' + t;
     s += comment;
@@ -154,7 +152,7 @@ function exporter_main(config) {
     '@val strat = ' + config.valueStratName,
     vars.join('\n') || '# no vars',
     constraints.join('\n') || '# no constraints',
-    '@targets = ' + (config.targetedVars === 'all' ? 'all' : '[v' + config.targetedVars.map(varName => trie_get(config._var_names_trie, varName)).join(' v')+']'),
+    '@targets = ' + (config.targetedVars === 'all' ? 'all' : '[v' + config.targetedVars.map(varName => trie_get(config._var_names_trie, varName)).join(' v') + ']'),
     '## end of export',
   ].join('\n\n');
 }
@@ -165,7 +163,7 @@ function exporter_domstr(domain) {
   if (arrdom.length > 2) {
     let dom = [];
     for (let i = 0, n = arrdom.length; i < n; i += 2) {
-      dom.push('[' + arrdom[i] + ' ' + arrdom[i+1] + ']');
+      dom.push('[' + arrdom[i] + ' ' + arrdom[i + 1] + ']');
     }
     arrdom = dom;
   }

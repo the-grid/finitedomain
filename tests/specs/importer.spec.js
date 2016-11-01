@@ -246,6 +246,89 @@ let units = [
     : A [0 10] @markov expand(1) legend(1) matrix([{vector: [10, 1]}])
     `
   ],
+
+  '- constraint',
+
+  '  - distinct',
+  [
+    'simple distincts',
+    s => {
+      s.declRange('A', 0, 10);
+      s.declRange('B', 0, 10);
+      s.declRange('C', 0, 10);
+      s.distinct(['A', 'B', 'C']);
+    },
+    `
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    distinct(A B C)
+    |--
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    distinct( A, B C)
+    `
+  ],
+  [
+    'distinct with one constant',
+    s => {
+      s.declRange('A', 0, 10);
+      s.declRange('B', 0, 10);
+      s.distinct(['A', 5, 'B']);
+    },
+    `
+    : A [0 10]
+    : B [0 10]
+    distinct(A 5 B)
+    |--
+    : A [0 10]
+    : B [0 10]
+    distinct( A, 5 B)
+    `
+  ],
+  [
+    'distinct with two constants',
+    s => {
+      s.declRange('A', 0, 10);
+      s.distinct([3, 'A', 8]);
+    },
+    `
+    : A [0 10]
+    distinct( 3 A 8)
+    |--
+    : A [0 10]
+    distinct( 3, A 8 )
+    `
+  ],
+  [
+    'distinct with one var',
+    s => {
+      s.declRange('A', 0, 10);
+      s.distinct(['A']);
+    },
+    `
+    : A [0 10]
+    distinct(A)
+    `
+  ],
+  [
+    'distinct with two vars',
+    s => {
+      s.declRange('A', 0, 10);
+      s.declRange('B', 0, 10);
+      s.distinct(['A']);
+    },
+    `
+    : A [0 10]
+    : B [0 10]
+    distinct(A B)
+    |--
+    : A [0 10]
+    : B [0 10]
+    distinct(A ,B)
+    `
+  ],
 ];
 
 describe.only('importer', function() {
@@ -276,8 +359,8 @@ describe.only('importer', function() {
 
       inputs.forEach(input => {
         ++n;
-        //if (n !== 46) return;
-        it('[test #' + n + '] input=`' + input + '`', function() {
+        //if (n !== 57) return;
+        it('[test #' + n + '] input=`' + input.replace(/[\n\r]/g, '\u23CE') + '`', function() {
           let output = importer(input);
 
           expect(output).to.eql(expectation);

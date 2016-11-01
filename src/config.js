@@ -629,7 +629,7 @@ function config_addConstraint(config, name, varNames, param) {
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
     let varIndex = trie_get(config._varNamesTrie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
     varIndexes[i] = varIndex;
   }
 

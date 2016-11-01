@@ -82,24 +82,21 @@ expand:
 constraint:
   expr [cop expr]
   nulcall
-expr:
-  sexpr
-  sexpr rop sexpr
-  sexpr rop grouping
-  grouping rop sexpr
-sexpr:
+expr: // does not return a value (expression statement)
+  vexpr [rop vexpr]
+vexpr: // value returning expression (var or constant value)
   valcall
   ident
   number
+  grouping
 expressions:
   expr [[`,`] expressions]
 nulcall:
   `distinct(` expressions `)`
-  `markov(` expressions `)`
 valcall:
   `sum(` expressions `)`
   `product(` expressions `)`
-rop:
+rop: // reflecting op (not a constraint on its own, but enforces result var state)
   `==?`
   `!=?`
   `<?`
@@ -110,7 +107,7 @@ rop:
   `-`
   `*`
   `/`
-cop:
+cop: // constraining op, has no result
   `==`
   `!=`
   `<`
@@ -118,7 +115,7 @@ cop:
   `>`
   `>=`
 grouping:
-  `(` expr `)`
+  `(` vexpr `)`
   `(` grouping `)`
 
 

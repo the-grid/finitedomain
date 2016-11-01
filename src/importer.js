@@ -51,7 +51,7 @@ function importer_main(str) {
   function expectEol() {
     if (pointer >= len) return true;
     skipWhitespaces();
-    if (!isNewline()) throw new Error('Expected EOL but got `' + read() + '`');
+    if (!isNewline(read()) && read() !== '#') throw new Error('Expected EOL but got `' + read() + '`');
   }
   function isEof() {
     return pointer >= len;
@@ -69,7 +69,7 @@ function importer_main(str) {
       case ':': return parseVar();
       case '#': return skipComment();
       default:
-        if (!isEof()) throw 'fixme'; // return parseConstraint();
+        if (!isEof()) return parseUndefConstraint();
     }
   }
 
@@ -96,7 +96,7 @@ function importer_main(str) {
   function parseIdentifier() {
     // anything terminated by whitespace
     let start = pointer;
-    while (!isWhite(read())) skip();
+    while (!isEof() && !isWhite(read()) && read() !== '(' && read() !== ')' && read() !== ',') skip();
     if (start === pointer) throw new Error('Expected to parse identifier, found none');
     return str.slice(start, pointer);
   }
@@ -238,7 +238,117 @@ function importer_main(str) {
     if (!isEof()) skip();
   }
 
-  function parseConstraint() {
+  function parseUndefConstraint() {
+    // parse a constraint that does not return a value itself
+
+    // first try to parse single value constraints without value like markov() and distinct()
+    if (parseUexpr()) return;
+
+    // so the first value must be a value returning expr
+    let v = parseVexpr(); // returns a var name or a constant value
+
+    throw 'fixmeeee';
+
+    //let cop = parseCop();
+    //switch (cop) {
+    //  case '=':
+    //
+    //  case '==':
+    //  case '!=':
+    //  case '<':
+    //  case '<=':
+    //  case '>':
+    //  case '>=':
+    //
+    //  default:
+    //    if (cop) throw new Error('Unknown constraint op: [' + cop + ']');
+    //    // else it was probably something like markov() or distinct()
+    //}
+
+    expectEol();
+  }
+
+  function parseUexpr() {
+    // it's not very efficient (we could parse an ident before and check that result here) but it'll work for now
+    if (str.slice(pointer, pointer + 9) === 'distinct(') parseDistinct();
+    else return false;
+
+    return true;
+  }
+
+  function parseDistinct() {
+    pointer += 9;
+    skipWhitespaces();
+    let vals = parseVexpList();
+    solver.distinct(vals);
+    skipWhitespaces();
+    is(')', 'distinct call closer');
+    expectEol();
+  }
+
+  function parseVexpList() {
+    let list = [];
+    skipWhitespaces();
+    while (!isEof() && read() !== ')') {
+      let v = parseVexpr();
+      list.push(v);
+
+      skipWhitespaces();
+      if (read() === ',') {
+        skip();
+        skipWhitespaces();
+      }
+    }
+    return list;
+  }
+
+  function parseVexpr() {
+    // valcall, ident, number, group
+
+    let c = read();
+    let v;
+    if (c === '(') v = parseGrouping();
+    else if (c >= '0' && c <= '9') v = parseNumber();
+    else {
+      let ident = parseIdentifier();
+
+      if (read() === '(') {
+        if (ident === 'sum') v = parseSum();
+        else if (ident === 'product') v = parseProduct();
+        else throw new Error('Unknown constraint func: ' + ident);
+      } else {
+        v = ident;
+      }
+    }
+
+    return v;
+  }
+
+  function parseNumber() {
+    let start = pointer;
+    while (read() >= '0' && read() <= '9') skip();
+    if (start === pointer) {
+      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + ']['+read()+']');
+    }
+    return parseInt(str.slice(start, pointer), 10);
+  }
+
+  function parseSum(result) {
+    pointer += 4;
+    let refs = parseVexpList();
+    solver.sum(refs, result);
+  }
+
+  function parseProduct() {
+    pointer += 8;
+
+  }
+
+
+
+
+
+  function parseConstraint2() {
     skipWhitespaces();
     let A = parseValue();
     skipWhitespaces();
@@ -338,6 +448,9 @@ function importer_main(str) {
     }
   }
 
+
+
+
   function parseComparisonOp() {
     switch (str[pointer]) {
       case '=':
@@ -357,14 +470,6 @@ function importer_main(str) {
     throw new Error('Invalid binary op start: `' + str[pointer] + str[pointer + 1] + '`');
   }
 
-  function parseNumber() {
-    let start = pointer;
-    while (read() >= '0' && read() <= '9') skip();
-    if (start === pointer) {
-      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + ']['+read()+']');
-    }
-    return parseInt(str.slice(start, pointer), 10);
-  }
 
   function parseNumstr() {
     let start = pointer;
@@ -397,7 +502,7 @@ function importer_main(str) {
     // group
 
     if (str[pointer] === '(') {
-      let result = parseConstraint();
+      let result = parseUndefConstraint();
       if (!result) throw new Error('A group should wrap a constraint that has a result var (implicit or explicit)');
       return result;
     }

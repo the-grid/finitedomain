@@ -1,22 +1,22 @@
 /**
  * @private Do not read any property from this object outside of `finitedomain`. Expose required data on Solver instead.
  * @typedef {Object} $config
+ * @property {string[]} allVarNames Should at the start of a search contain the names of _all_ vars. "varIndex" maps to this. space._vardoms maps 1:1 to this.
  * @property {$trie} _varNamesTrie
  * @property {$var_strat_config} varStratConfig Defaults to a naive strategy
- * @property {Object} varDistOptions
  * @property {string} valueStratName
  * @property {string[]|string} targetedVars='all' Search stops when these are solved.
- * @property {$var_strat_overrides} varStratOverrides Can apply a specific $var_strat_config per var
- * @property {string[]} [priority_list] Ordered list of var names to process first. Set through var distribution options
+ * @property {Object} varDistOptions
  * @property {Function} [timeoutCallback] When this func returns true the search is aborted immediately. For timing out
- * @property {Object} constantCache Any (initial) var that is solved is logged in here. May refactor this away soon.
- * @property {string[]} allVarNames Should at the start of a search contain the names of _all_ vars. "varIndex" maps to this. space._vardoms maps 1:1 to this.
  * @property {$constraint[]} allConstraints Abstract constraints, higher level objects, all propagators are generated from these. Matches Solver input closer.
- * @property {$propagator[]} _propagators
+ * @property {Object} constantCache Any (initial) var that is solved is logged in here. May refactor this away soon.
+ * @property {$domain} initialDomains The root space will clone a vardoms from this list
+ * @property {$propagator[]} _propagators Generated from the constraints
  * @property {Object.<number,number[]>} _varToPropagators Runtime mapping from var index to a list of constraint indexes that uses that var. Pregenerated.
+ * @property {number[] _constrainedAway List of var indexes that were optimized away. Tracking them because they may need to become solved anyways.
  *
- * This is the base model for a search. The root space
+ * This is the immutable model for a search. The root space
  * (search node) will is based on and initialized from
- * a $config.
- * Note that the state of a config may not be "sound".
+ * a $config. The config should only contain immutable data
+ * during a search.
  */

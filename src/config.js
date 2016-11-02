@@ -71,8 +71,10 @@ import distribution_getDefaults from './distribution/defaults';
 function config_create() {
   let config = {
     _class: '$config',
+    // names of all vars in this search tree
+    all_var_names: [],
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
-    _var_names_trie: trie_create(),
+    _varNamesTrie: trie_create(),
 
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
@@ -80,9 +82,6 @@ function config_create() {
     var_dist_options: {},
     timeout_callback: undefined,
 
-    // names of all vars in this search tree
-    // optimizes loops because `for-in` is super slow
-    all_var_names: [],
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
     all_constraints: [],
@@ -120,7 +119,7 @@ function config_clone(config, newDomains) {
 
   let clone = {
     _class: '$config',
-    _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
+    _varNamesTrie: trie_create(all_var_names), // just create a new trie with (should be) the same names
 
     varStratConfig,
     valueStratName,
@@ -265,7 +264,7 @@ function _config_addVar(config, varName, domain) {
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
   if (varIndex < 100) {
-    if (trie_has(config._var_names_trie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
+    if (trie_has(config._varNamesTrie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
   }
 
   let solvedTo = domain_getValue(domain);
@@ -274,7 +273,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT_NORDOM(domain, true, domain__debug);
   config.initial_domains[varIndex] = domain;
   config.all_var_names.push(varName);
-  trie_add(config._var_names_trie, varName, varIndex);
+  trie_add(config._varNamesTrie, varName, varIndex);
 
   return varIndex;
 }
@@ -403,7 +402,7 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
               THROW('row.boolVarName, if it exists, should be the name of a var or a func that returns that name, was/got: ' + boolFuncOrName + ' (' + typeof boolFuncOrName + ')');
             }
             // store the var index
-            row._boolVarIndex = trie_get(config._var_names_trie, boolFuncOrName);
+            row._boolVarIndex = trie_get(config._varNamesTrie, boolFuncOrName);
           }
         }
       }
@@ -583,8 +582,7 @@ function config_addConstraint(config, name, varNames, param) {
       } else if (typeof resultVarName !== 'string') {
         THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
       } else {
-        // TODO: use the trie?
-        resultVarIndex = trie_get(config._var_names_trie, resultVarName);
+        resultVarIndex = trie_get(config._varNamesTrie, resultVarName);
         if (resultVarIndex < 0) THROW('Vars must be defined before using them');
       }
 
@@ -629,7 +627,7 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._var_names_trie, varNames[i]);
+    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
     ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
   }
@@ -1029,7 +1027,7 @@ function config_generatePropagators(config) {
     let constraint = constraints[i];
     if (constraint.varNames) {
       console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
-      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._var_names_trie, name));
+      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._varNamesTrie, name));
       let p = constraint.param;
       delete constraint.param;
       delete constraint.varNames;
@@ -1110,7 +1108,7 @@ function config_populateVarStrategyListHash(config) {
       let obj = {};
       let list = vsc.priorityByName;
       for (let i = 0, len = list.length; i < len; ++i) {
-        let varIndex = trie_get(config._var_names_trie, list[i]);
+        let varIndex = trie_get(config._varNamesTrie, list[i]);
         ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'VARS_IN_PRIO_LIST_SHOULD_BE_KNOWN_NOW');
         obj[varIndex] = len - i; // never 0, offset at 1. higher value is higher prio
       }
@@ -1128,8 +1126,8 @@ function config_populateVarStrategyListHash(config) {
  * @param {$space} space
  */
 function config_initForSpace(config, space) {
-  if (!config._var_names_trie) {
-    config._var_names_trie = trie_create(config.all_var_names);
+  if (!config._varNamesTrie) {
+    config._varNamesTrie = trie_create(config.all_var_names);
   }
 
 

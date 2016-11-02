@@ -5,7 +5,7 @@
 
 let config = {
   _class: '$config',
-  _var_names_trie: null,
+  _varNamesTrie: null,
   varStratConfig: {
     _class: '$var_strat_config',
     type: 'naive',

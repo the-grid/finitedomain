@@ -212,7 +212,7 @@ function space_initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let varNamesTrie = config._var_names_trie;
+    let varNamesTrie = config._varNamesTrie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);

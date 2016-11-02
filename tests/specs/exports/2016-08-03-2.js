@@ -2531,7 +2531,7 @@ let config = {
       varIndexes: [332, 323],
       param: undefined,
     }],
-  constant_cache: {
+  constantCache: {
     '0': 285,
     '1': 2,
     '2': 8,

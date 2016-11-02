@@ -1059,7 +1059,7 @@ let config = {
     {_class: '$constraint', name: 'reifier', varIndexes: [374, 0, 375], param: 'eq'},
     {_class: '$constraint', name: 'gte', varIndexes: [375, 97], param: undefined},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '67',
     '1': '0',
     '2': '6',

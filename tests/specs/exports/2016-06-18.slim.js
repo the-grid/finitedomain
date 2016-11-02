@@ -247,7 +247,7 @@ let config = {
     {_class: '$constraint', name: 'reifier', varIndexes: [209, 214, 215], param: 'eq'},
     {_class: '$constraint', name: 'neq', varIndexes: [211, 215], param: undefined},
   ],
-  constant_cache: {},
+  constantCache: {},
   initial_domains: [
     [1, 1],
     [0, 0],

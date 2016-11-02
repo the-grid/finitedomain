@@ -86,7 +86,7 @@ function config_create() {
     // is created from this config. constraints are more higher level.
     allConstraints: [],
 
-    constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
+    constantCache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
     initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
 
     _propagators: [], // initialized later
@@ -108,7 +108,7 @@ function config_clone(config, newDomains) {
     targetedVars,
     varDistOptions,
     timeoutCallback,
-    constant_cache,
+    constantCache,
     allVarNames,
     allConstraints,
     initial_domains,
@@ -127,7 +127,7 @@ function config_clone(config, newDomains) {
     varDistOptions: JSON.parse(JSON.stringify(varDistOptions)),  // TOFIX: clone this more efficiently
     timeoutCallback, // by reference because it's a function if passed on...
 
-    constant_cache, // is by reference ok?
+    constantCache, // is by reference ok?
 
     allVarNames: allVarNames.slice(0),
     allConstraints: allConstraints.slice(0),
@@ -212,8 +212,8 @@ function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  if (config.constant_cache[value] !== undefined) {
-    return config.constant_cache[value];
+  if (config.constantCache[value] !== undefined) {
+    return config.constantCache[value];
   }
 
   return config_addVarConstant(config, true, value);
@@ -268,7 +268,7 @@ function _config_addVar(config, varName, domain) {
   }
 
   let solvedTo = domain_getValue(domain);
-  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
+  if (solvedTo !== NOT_FOUND && !config.constantCache[solvedTo]) config.constantCache[solvedTo] = varIndex;
 
   ASSERT_NORDOM(domain, true, domain__debug);
   config.initial_domains[varIndex] = domain;

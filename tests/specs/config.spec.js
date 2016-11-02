@@ -987,7 +987,7 @@ describe('src/config.spec', function() {
       let config = config_create();
       let varIndex = config_addVarAnonConstant(config, 15);
 
-      expect(config.constant_cache[15]).to.equal(varIndex);
+      expect(config.constantCache[15]).to.equal(varIndex);
     });
 
     it('should reuse the constant cache if available', function() {
@@ -1065,7 +1065,7 @@ describe('src/config.spec', function() {
 
         expect(config.allVarNames.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
-        expect(config.constant_cache[lo]).to.eql(varIndex);
+        expect(config.constantCache[lo]).to.eql(varIndex);
       });
     });
 
@@ -1093,7 +1093,7 @@ describe('src/config.spec', function() {
 
         expect(config.allVarNames.length).to.equal(1);
         expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
-        expect(config.constant_cache[lo]).to.eql(varIndex);
+        expect(config.constantCache[lo]).to.eql(varIndex);
       });
     });
   });

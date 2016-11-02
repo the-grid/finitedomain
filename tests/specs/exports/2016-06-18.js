@@ -715,7 +715,7 @@ let config = {
     {_class: '$constraint', name: 'eq', varIndexes: [266, 0], param: undefined},
     {_class: '$constraint', name: 'eq', varIndexes: [272, 0], param: undefined},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '163',
     '1': '0',
     '2': '3',

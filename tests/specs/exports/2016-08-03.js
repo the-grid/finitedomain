@@ -208,7 +208,7 @@ let config = {
       param: undefined,
     },
   ],
-  constant_cache: {'0': 24, '1': 2, '2': 3, '3': 4},
+  constantCache: {'0': 24, '1': 2, '2': 3, '3': 4},
   initial_domains: [
     [1, 1],
     [1, 1],

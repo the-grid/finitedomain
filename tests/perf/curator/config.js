@@ -20489,7 +20489,7 @@ var config = module.exports = {
     {_class: '$constraint', name: 'markov', varIndexes: [3219], param: undefined},
     {_class: '$constraint', name: 'markov', varIndexes: [3416], param: undefined},
   ],
-  constant_cache: {
+  constantCache: {
     '0': 4763,
     '1': 2,
     '2': 4,

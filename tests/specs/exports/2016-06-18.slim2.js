@@ -310,7 +310,7 @@ varIndex= 261 domain= [ 0, 1 ]
     {_class: '$constraint', name: 'reifier', varIndexes: [203, 0, 204], param: 'gte'},
     {_class: '$constraint', name: 'sum', varIndexes: [261, 204], param: 3},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '163',
     '1': '0',
     '2': '3',

@@ -58,7 +58,7 @@ describe('exports/export.cases.spec', function() {
         {_class: '$constraint', name: 'neq', varIndexes: [5, 6], param: undefined},
         {_class: '$constraint', name: 'neq', varIndexes: [6, 6], param: undefined},
       ],
-      constant_cache: {'1': '0', '2': '2', '3': '4'},
+      constantCache: {'1': '0', '2': '2', '3': '4'},
       initial_domains: [
         [1, 1],
         [0, 1],
@@ -434,7 +434,7 @@ describe('exports/export.cases.spec', function() {
         allConstraints: [
           {_class: '$constraint', name: 'reifier', varIndexes: [0, 1, 2], param: 'eq'},
         ],
-        constant_cache: {},
+        constantCache: {},
         initial_domains: [
           [3, 3], // 8
           [4, 4], // 4

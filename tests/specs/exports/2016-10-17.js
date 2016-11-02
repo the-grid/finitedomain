@@ -140,7 +140,7 @@ let config = {
     { _class: '$constraint', name: 'reifier', varIndexes: [33, 4, 123], param: 'eq' },
     { _class: '$constraint', name: 'reifier', varIndexes: [40, 4, 124], param: 'eq' },
     { _class: '$constraint', name: 'reifier', varIndexes: [47, 4, 125], param: 'eq' }],
-  constant_cache: {
+  constantCache: {
     '0': 119,
     '1': 2,
     '2': 3,

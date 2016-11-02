@@ -50,8 +50,8 @@ describe('propagators/neq.spec', function() {
     let space = space_createRoot();
     space_initFromConfig(space, config);
 
-    let A = config.all_var_names.indexOf('A');
-    let B = config.all_var_names.indexOf('B');
+    let A = config.allVarNames.indexOf('A');
+    let B = config.allVarNames.indexOf('B');
 
     expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare()).to.throw('SHOULD_GET_SPACE');
@@ -69,13 +69,13 @@ describe('propagators/neq.spec', function() {
     config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot();
     space_initFromConfig(space, config);
-    space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
-    space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
+    space.vardoms[config.allVarNames.indexOf('C')] = fixt_numdom_empty();
+    space.vardoms[config.allVarNames.indexOf('D')] = fixt_numdom_empty();
 
-    let A = config.all_var_names.indexOf('A');
-    let B = config.all_var_names.indexOf('B');
-    let C = config.all_var_names.indexOf('C');
-    let D = config.all_var_names.indexOf('D');
+    let A = config.allVarNames.indexOf('A');
+    let B = config.allVarNames.indexOf('B');
+    let C = config.allVarNames.indexOf('C');
+    let D = config.allVarNames.indexOf('D');
 
     expect(_ => propagator_neqStepBare(space, config, A, B)).not.to.throw();
     expect(_ => propagator_neqStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
@@ -93,8 +93,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -109,8 +109,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -152,8 +152,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -168,8 +168,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let B = config.all_var_names.indexOf('B');
-        let A = config.all_var_names.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -211,8 +211,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -227,8 +227,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -243,8 +243,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -259,8 +259,8 @@ describe('propagators/neq.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         propagator_neqStepBare(space, config, A, B);
 
@@ -307,8 +307,8 @@ describe('propagators/neq.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_neqStepBare(space, config, A, B);
 

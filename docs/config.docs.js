@@ -10,7 +10,7 @@
  * @property {string[]} [priority_list] Ordered list of var names to process first. Set through var distribution options
  * @property {Function} [timeout_callback] When this func returns true the search is aborted immediately. For timing out
  * @property {Object} constant_cache Any (initial) var that is solved is logged in here. May refactor this away soon.
- * @property {string[]} all_var_names Should at the start of a search contain the names of _all_ vars. "varIndex" maps to this. space._vardoms maps 1:1 to this.
+ * @property {string[]} allVarNames Should at the start of a search contain the names of _all_ vars. "varIndex" maps to this. space._vardoms maps 1:1 to this.
  * @property {$constraint[]} all_constraints Abstract constraints, higher level objects, all propagators are generated from these. Matches Solver input closer.
  * @property {$propagator[]} _propagators
  * @property {Object.<number,number[]>} _varToPropagators Runtime mapping from var index to a list of constraint indexes that uses that var. Pregenerated.

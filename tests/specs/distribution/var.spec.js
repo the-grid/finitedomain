@@ -60,7 +60,7 @@ describe('distribution/var.spec', function() {
 
       let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
-      expect(varIndex, stack).to.equal(solver.config.all_var_names.indexOf(out));
+      expect(varIndex, stack).to.equal(solver.config.allVarNames.indexOf(out));
     });
   }
 
@@ -74,8 +74,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMin(space, config, A, B)).to.equal(BETTER);
       });
@@ -86,8 +86,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMin(space, config, A, B)).to.equal(SAME);
       });
@@ -98,8 +98,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMin(space, config, A, B)).to.equal(WORSE);
       });
@@ -122,8 +122,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMax(space, config, A, B)).to.equal(BETTER);
       });
@@ -134,8 +134,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMax(space, config, A, B)).to.equal(SAME);
       });
@@ -146,8 +146,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMax(space, config, A, B)).to.equal(WORSE);
       });
@@ -171,8 +171,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 12);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMinSize(space, config, A, B)).to.equal(BETTER);
       });
@@ -183,8 +183,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 8, 8);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMinSize(space, config, A, B)).to.equal(SAME);
       });
@@ -195,8 +195,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 12, 13, 14));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMinSize(space, config, A, B)).to.equal(SAME);
       });
@@ -207,8 +207,8 @@ describe('distribution/var.spec', function() {
         config_addVarDomain(config, 'B', fixt_arrdom_nums(8, 9, 10, 13, 14));
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMinSize(space, config, A, B)).to.equal(SAME);
       });
@@ -219,8 +219,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMinSize(space, config, A, B)).to.equal(WORSE);
       });
@@ -247,7 +247,7 @@ describe('distribution/var.spec', function() {
         });
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
-        expect(varName).to.eql(solver.config.all_var_names.indexOf('A'));
+        expect(varName).to.eql(solver.config.allVarNames.indexOf('A'));
       });
 
       it('should count actual elements in the domain B', function() {
@@ -266,7 +266,7 @@ describe('distribution/var.spec', function() {
         });
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
-        expect(varName).to.eql(solver.config.all_var_names.indexOf('B'));
+        expect(varName).to.eql(solver.config.allVarNames.indexOf('B'));
       });
     });
   });
@@ -285,8 +285,8 @@ describe('distribution/var.spec', function() {
         }, 'A');
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, {})).to.equal(BETTER);
       });
@@ -301,8 +301,8 @@ describe('distribution/var.spec', function() {
         }, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, {})).to.equal(WORSE);
       });
@@ -321,8 +321,8 @@ describe('distribution/var.spec', function() {
         }, 'B');
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, {})).to.equal(BETTER);
       });
@@ -333,8 +333,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 11, 11);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, {})).to.equal(SAME);
       });
@@ -346,8 +346,8 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, fallback)).to.equal(BETTER);
       });
@@ -359,8 +359,8 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, fallback)).to.equal(SAME);
       });
@@ -372,8 +372,8 @@ describe('distribution/var.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let fallback = {fallback: {type: 'size'}};
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         expect(distribution_varByMarkov(space, config, A, B, fallback)).to.equal(WORSE);
       });
@@ -398,7 +398,7 @@ describe('distribution/var.spec', function() {
 
         let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varIndex).to.eql(solver.config.all_var_names.indexOf('B'));
+        expect(varIndex).to.eql(solver.config.allVarNames.indexOf('B'));
       });
 
       it('should get markov vars back to front', function() {
@@ -423,7 +423,7 @@ describe('distribution/var.spec', function() {
 
         let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varIndex).to.eql(solver.config.all_var_names.indexOf('C'));
+        expect(varIndex).to.eql(solver.config.allVarNames.indexOf('C'));
       });
     });
   });
@@ -438,8 +438,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -457,8 +457,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -477,8 +477,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -496,8 +496,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -515,8 +515,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -535,8 +535,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -553,8 +553,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -572,8 +572,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -590,8 +590,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -609,8 +609,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -628,8 +628,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {
@@ -647,8 +647,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {},
@@ -663,8 +663,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -680,8 +680,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {},
@@ -699,8 +699,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           inverted: true,
@@ -719,8 +719,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 10);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {},
@@ -738,8 +738,8 @@ describe('distribution/var.spec', function() {
         config_addVarRange(config, 'B', 0, 0);
         let space = space_createRoot();
         space_initFromConfig(space, config);
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
 
         let nvconfig = {
           _priorityByIndex: {},
@@ -770,7 +770,7 @@ describe('distribution/var.spec', function() {
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varName).to.eql(solver.config.all_var_names.indexOf('A'));
+        expect(varName).to.eql(solver.config.allVarNames.indexOf('A'));
       });
 
       it('should solve vars in the explicit order of the list B', function() {
@@ -789,7 +789,7 @@ describe('distribution/var.spec', function() {
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varName).to.eql(solver.config.all_var_names.indexOf('B'));
+        expect(varName).to.eql(solver.config.allVarNames.indexOf('B'));
       });
 
       it('should not crash if a var is not on the list or when list is empty', function() {
@@ -807,7 +807,7 @@ describe('distribution/var.spec', function() {
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varName).to.eql(solver.config.all_var_names.indexOf('A'));
+        expect(varName).to.eql(solver.config.allVarNames.indexOf('A'));
       });
 
       function unlistedTest(desc, targetNames, expectingName) {
@@ -826,7 +826,7 @@ describe('distribution/var.spec', function() {
         });
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
-        expect(varName, desc).to.eql(solver.config.all_var_names.indexOf(expectingName));
+        expect(varName, desc).to.eql(solver.config.allVarNames.indexOf(expectingName));
       }
 
       it('should assume unlisted vars come after listed vars', function() {
@@ -855,7 +855,7 @@ describe('distribution/var.spec', function() {
         });
 
         let varName = distribution_getNextVarIndex(solver._space, solver.config);
-        expect(varName, desc).to.eql(solver.config.all_var_names.indexOf(expectedName));
+        expect(varName, desc).to.eql(solver.config.allVarNames.indexOf(expectedName));
       }
 
       it('should work with list as fallback dist', function() {
@@ -906,7 +906,7 @@ describe('distribution/var.spec', function() {
       let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
       if (resultName !== undefined) {
-        expect(varIndex).to.equal(solver.config.all_var_names.indexOf(resultName));
+        expect(varIndex).to.equal(solver.config.allVarNames.indexOf(resultName));
       }
     }
 
@@ -977,7 +977,7 @@ describe('distribution/var.spec', function() {
 
       let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
-      expect(varIndex).to.equal(solver.config.all_var_names.indexOf(expectName));
+      expect(varIndex).to.equal(solver.config.allVarNames.indexOf(expectName));
     }
 
     it('should prioritize list over rest A', function() {

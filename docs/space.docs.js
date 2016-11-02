@@ -1,7 +1,7 @@
 /**
  * @typedef {Object} $space
- * @property {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @property {number[]} _unsolved Maps to config.all_var_names and are the var indexes that are not solved in this space
+ * @property {$domain[]} vardoms Maps 1:1 to config.allVarNames
+ * @property {number[]} _unsolved Maps to config.allVarNames and are the var indexes that are not solved in this space
  * @property {number} next_distribution_choice Current decision in search node
  * @property {number} updatedVarIndex=-1 varIndex that was updated when creating this space (-1 for root)
  * @property {number} _lastChosenValue=-1 The value selected in the previous choice in the value distributor

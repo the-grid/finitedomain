@@ -14,7 +14,7 @@ let config = {
     'width&n=2': {list: [4], valtype: 'list'},
   },
   timeout_callback: undefined,
-  all_var_names: [
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',

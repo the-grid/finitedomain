@@ -55,7 +55,7 @@ function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
 
   // each var can override the value distributor
   let configVarDistOptions = config.varDistOptions;
-  let varName = config.all_var_names[varIndex];
+  let varName = config.allVarNames[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   let valueDistributorName = configVarDistOptions[varName] && configVarDistOptions[varName].valtype;
   if (valueDistributorName) valueStrategy = valueDistributorName;
@@ -124,7 +124,7 @@ function distribution_valueByList(space, config, varIndex, choiceIndex) {
   ASSERT(typeof choiceIndex === 'number', 'CHOICE_SHOULD_BE_NUMBER');
 
   let domain = space.vardoms[varIndex];
-  let varName = config.all_var_names[varIndex];
+  let varName = config.allVarNames[varIndex];
   ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   ASSERT(domain && !domain_isSolved(domain), 'DOMAIN_SHOULD_BE_UNDETERMINED');
 
@@ -424,7 +424,7 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
     case FIRST_CHOICE: {
       // THIS IS AN EXPENSIVE STEP!
 
-      let varName = config.all_var_names[varIndex];
+      let varName = config.allVarNames[varIndex];
       ASSERT(typeof varName === 'string', 'VAR_NAME_SHOULD_BE_STRING');
       let configVarDistOptions = config.varDistOptions;
       ASSERT(configVarDistOptions, 'space should have config.varDistOptions');

@@ -106,7 +106,7 @@ class Solver {
       THROW('Solver#num: expecting a number, got NaN');
     }
     let varIndex = config_addVarAnonConstant(this.config, num);
-    return this.config.all_var_names[varIndex];
+    return this.config.allVarNames[varIndex];
   }
 
   /**
@@ -134,7 +134,7 @@ class Solver {
 
     if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     let varIndex = config_addVarDomain(this.config, varName, domain);
-    ASSERT(this.config.all_var_names[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
+    ASSERT(this.config.allVarNames[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
 
     if (distributionOptions) {
       if (distributionOptions.distribute) THROW('Use `valtype` to set the value distribution strategy');
@@ -455,7 +455,7 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Var Count: ${this.config.all_var_names.length}`);
+      console.log(`      - FD Var Count: ${this.config.allVarNames.length}`);
       console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
@@ -545,7 +545,7 @@ class Solver {
 
   _debugLegible() {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
-    let names = clone.all_var_names;
+    let names = clone.allVarNames;
     let targeted = clone.targetedVars;
     let constraints = clone.all_constraints;
     let domains = clone.initial_domains;
@@ -558,7 +558,7 @@ class Solver {
         clone[key] = '<removed>';
       }
     }
-    clone.all_var_names = '<removed>';
+    clone.allVarNames = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
     clone.varDistOptions = '<removed>';
@@ -592,7 +592,7 @@ class Solver {
     //console.log('# Config:');
     //console.log(inspect(_clone(config)));
 
-    let names = config.all_var_names;
+    let names = config.allVarNames;
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {

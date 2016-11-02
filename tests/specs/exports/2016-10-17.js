@@ -27,7 +27,7 @@ let config = {
     'width&n=5': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
   },
   timeout_callback: undefined,
-  all_var_names: [
+  allVarNames: [
     '0', '_ROOT_BRANCH_', 'SECTION', '3', '4', '5', '6', 'VERSE_INDEX', '8', 'ITEM_INDEX', '10', '11', 'width', 'color', 'post_type', 'state', 'SECTION&n=1', 'VERSE_INDEX&n=1', 'ITEM_INDEX&n=1', 'width&n=1', 'color&n=1', 'post_type&n=1', 'state&n=1', 'SECTION&n=2', 'VERSE_INDEX&n=2', 'ITEM_INDEX&n=2', 'width&n=2', 'color&n=2', 'post_type&n=2', 'state&n=2', 'SECTION&n=3', 'VERSE_INDEX&n=3', 'ITEM_INDEX&n=3', 'width&n=3', 'color&n=3', 'post_type&n=3', 'state&n=3', 'SECTION&n=4', 'VERSE_INDEX&n=4', 'ITEM_INDEX&n=4', 'width&n=4', 'color&n=4', 'post_type&n=4', 'state&n=4', 'SECTION&n=5', 'VERSE_INDEX&n=5', 'ITEM_INDEX&n=5', 'width&n=5', 'color&n=5', 'post_type&n=5', 'state&n=5', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '121', '122', '123', '124', '125',
   ],
   all_constraints: [

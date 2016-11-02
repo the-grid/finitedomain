@@ -19,7 +19,7 @@ let config = {
   targetedVars: 'all',
   varDistOptions: {},
   timeout_callback: undefined,
-  all_var_names: [
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'rootBranch',

@@ -69,7 +69,7 @@ describe('src/propagator.spec', function() {
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
               config_addVarDomain(config, 'C', C);
-              expect(propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.equal(undefined);
+              expect(propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'))).to.equal(undefined);
             });
 
             it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
@@ -77,7 +77,7 @@ describe('src/propagator.spec', function() {
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
               config_addVarDomain(config, 'C', [0, 100]);
-              expect(_ => propagator_addReified(config, op, config.all_var_names.indexOf('A'), config.all_var_names.indexOf('B'), config.all_var_names.indexOf('C'))).to.throw('should be bool bound');
+              expect(_ => propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'))).to.throw('should be bool bound');
             });
           });
         });

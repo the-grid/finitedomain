@@ -72,7 +72,7 @@ function config_create() {
   let config = {
     _class: '$config',
     // names of all vars in this search tree
-    all_var_names: [],
+    allVarNames: [],
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _varNamesTrie: trie_create(),
 
@@ -87,7 +87,7 @@ function config_create() {
     all_constraints: [],
 
     constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
-    initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to all_var_names
+    initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
@@ -109,7 +109,7 @@ function config_clone(config, newDomains) {
     varDistOptions,
     timeout_callback,
     constant_cache,
-    all_var_names,
+    allVarNames,
     all_constraints,
     initial_domains,
     _propagators,
@@ -119,7 +119,7 @@ function config_clone(config, newDomains) {
 
   let clone = {
     _class: '$config',
-    _varNamesTrie: trie_create(all_var_names), // just create a new trie with (should be) the same names
+    _varNamesTrie: trie_create(allVarNames), // just create a new trie with (should be) the same names
 
     varStratConfig,
     valueStratName,
@@ -129,7 +129,7 @@ function config_clone(config, newDomains) {
 
     constant_cache, // is by reference ok?
 
-    all_var_names: all_var_names.slice(0),
+    allVarNames: allVarNames.slice(0),
     all_constraints: all_constraints.slice(0),
     initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
 
@@ -236,7 +236,7 @@ function config_addVarConstant(config, varName, value) {
 
 /**
  * @param {$config} config
- * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
+ * @param {string|true} varName If true, the varname will be the same as the index it gets on allVarNames
  * @param {$nordom} domain
  * @returns {number} varIndex
  */
@@ -248,7 +248,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;
 
   // note: 100 is an arbitrary number but since large sets are probably
@@ -272,7 +272,7 @@ function _config_addVar(config, varName, domain) {
 
   ASSERT_NORDOM(domain, true, domain__debug);
   config.initial_domains[varIndex] = domain;
-  config.all_var_names.push(varName);
+  config.allVarNames.push(varName);
   trie_add(config._varNamesTrie, varName, varIndex);
 
   return varIndex;
@@ -477,7 +477,7 @@ function config_generateVars(config, space) {
   ASSERT(vardoms, 'expecting var domains');
   let initialDomains = config.initial_domains;
   ASSERT(initialDomains, 'config should have initial vars');
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   ASSERT(allVarNames, 'config should have a list of vars');
 
   for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
@@ -496,7 +496,7 @@ function config_generateVars(config, space) {
  * @param {$config} config
  */
 function config_populateVarPropHash(config) {
-  let hash = new Array(config.all_var_names.length);
+  let hash = new Array(config.allVarNames.length);
   let propagators = config._propagators;
   let initialDomains = config.initial_domains;
   for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
@@ -566,7 +566,7 @@ function config_addConstraint(config, name, varNames, param) {
       let sumOrProduct = name === 'product' || name === 'sum';
       if (sumOrProduct && varNames.length === 0) {
         // no variables means the sum/product is zero. not sure about the product though. nothing times nothing = 0?
-        return config.all_var_names[config_addVarAnonConstant(config, 0)];
+        return config.allVarNames[config_addVarAnonConstant(config, 0)];
       }
 
       resultVarName = sumOrProduct ? param : varNames[2];
@@ -575,10 +575,10 @@ function config_addConstraint(config, name, varNames, param) {
       if (resultVarName === undefined) {
         if (forceBool) resultVarIndex = config_addVarAnonRange(config, 0, 1);
         else resultVarIndex = config_addVarAnonNothing(config);
-        resultVarName = config.all_var_names[resultVarIndex];
+        resultVarName = config.allVarNames[resultVarIndex];
       } else if (typeof resultVarName === 'number') {
         resultVarIndex = config_addVarAnonConstant(config, resultVarName);
-        resultVarName = config.all_var_names[resultVarIndex];
+        resultVarName = config.allVarNames[resultVarIndex];
       } else if (typeof resultVarName !== 'string') {
         THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
       } else {
@@ -593,7 +593,7 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varNames.length - (sumOrProduct ? 0 : 1); i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.all_var_names[varIndex];
+          varNames[i] = config.allVarNames[varIndex];
         }
       }
 
@@ -613,7 +613,7 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.all_var_names[varIndex];
+          varNames[i] = config.allVarNames[varIndex];
           resultVarName = varNames[i];
         }
       }
@@ -1127,7 +1127,7 @@ function config_populateVarStrategyListHash(config) {
  */
 function config_initForSpace(config, space) {
   if (!config._varNamesTrie) {
-    config._varNamesTrie = trie_create(config.all_var_names);
+    config._varNamesTrie = trie_create(config.allVarNames);
   }
 
 

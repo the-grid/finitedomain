@@ -77,9 +77,9 @@ describe('propagators/ring.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
-      let C = config.all_var_names.indexOf('C');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
+      let C = config.allVarNames.indexOf('C');
 
       propagator_ringStepBare(space, config, A, B, C, 'plus', domain_plus);
 

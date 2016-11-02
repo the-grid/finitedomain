@@ -258,7 +258,7 @@ let config = {
     'item&n=5': {list: [3, 1, 2, 4, 5, 6], valtype: 'list'},
   },
   timeout_callback: undefined,
-  all_var_names: [
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',

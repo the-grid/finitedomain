@@ -101,7 +101,7 @@ function space_toConfig(space, config) {
 
   let vardoms = space.vardoms;
   let newDomains = [];
-  let names = config.all_var_names;
+  let names = config.allVarNames;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
     newDomains[i] = domain_toStr(domain);
@@ -113,7 +113,7 @@ function space_toConfig(space, config) {
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
- * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
+ * @param {$domain[]} vardoms Maps 1:1 to config.allVarNames
  * @param {number[]|undefined} unsolvedVarIndexes
  * @param {number} _depth
  * @param {number} _child
@@ -183,7 +183,7 @@ function _space_getUnsolvedVarNamesFresh(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  return space._unsolved.map(varIndex => config.all_var_names[varIndex]);
+  return space._unsolved.map(varIndex => config.allVarNames[varIndex]);
 }
 
 /**
@@ -454,7 +454,7 @@ function space_solution(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   let result = {};
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
@@ -505,7 +505,7 @@ function _space_debug(space, config, printPath) {
   if (printPath) console.log('path:', space._path);
   //__REMOVE_ABOVE_FOR_ASSERTS__
   console.log('# Domains:');
-  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.all_var_names[i] === String(i)) ? '' : ' (' + config.all_var_names[i] + ')')).join('\n'));
+  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.allVarNames[i] === String(i)) ? '' : ' (' + config.allVarNames[i] + ')')).join('\n'));
   console.log('##\n');
 }
 

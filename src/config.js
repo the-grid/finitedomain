@@ -84,7 +84,7 @@ function config_create() {
 
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
-    all_constraints: [],
+    allConstraints: [],
 
     constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
     initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
@@ -110,7 +110,7 @@ function config_clone(config, newDomains) {
     timeoutCallback,
     constant_cache,
     allVarNames,
-    all_constraints,
+    allConstraints,
     initial_domains,
     _propagators,
     _varToPropagators,
@@ -130,7 +130,7 @@ function config_clone(config, newDomains) {
     constant_cache, // is by reference ok?
 
     allVarNames: allVarNames.slice(0),
-    all_constraints: all_constraints.slice(0),
+    allConstraints: allConstraints.slice(0),
     initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
 
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
@@ -670,7 +670,7 @@ function config_addConstraint(config, name, varNames, param) {
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
     let constraint = constraint_create(name, varIndexes, param);
-    config.all_constraints.push(constraint);
+    config.allConstraints.push(constraint);
   }
 
   return resultVarName;
@@ -1021,7 +1021,7 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
  */
 function config_generatePropagators(config) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
-  let constraints = config.all_constraints;
+  let constraints = config.allConstraints;
   config._propagators = [];
   for (let i = 0, n = constraints.length; i < n; ++i) {
     let constraint = constraints[i];

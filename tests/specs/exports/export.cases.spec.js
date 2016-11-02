@@ -43,7 +43,7 @@ describe('exports/export.cases.spec', function() {
       varDistOptions: {},
       timeoutCallback: undefined,
       allVarNames: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
-      all_constraints: [
+      allConstraints: [
         {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
         {_class: '$constraint', name: 'gte', varIndexes: [3, 0], param: undefined},
         {_class: '$constraint', name: 'gte', varIndexes: [5, 0], param: undefined},
@@ -431,7 +431,7 @@ describe('exports/export.cases.spec', function() {
           '272',
           '273',
           '274'],
-        all_constraints: [
+        allConstraints: [
           {_class: '$constraint', name: 'reifier', varIndexes: [0, 1, 2], param: 'eq'},
         ],
         constant_cache: {},

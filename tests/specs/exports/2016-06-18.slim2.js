@@ -286,7 +286,7 @@ let config = {
     '272',
     '273',
     '274'],
-  all_constraints: [
+  allConstraints: [
     /*
 varIndex= 0 domain= [ 1, 1 ]
 varIndex= 8 domain= [ 3, 3 ]

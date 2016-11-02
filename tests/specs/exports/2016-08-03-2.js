@@ -514,7 +514,7 @@ let config = {
     '361',
     '362',
     '363'],
-  all_constraints: [
+  allConstraints: [
     {
       _class: '$constraint',
       name: 'distinct',

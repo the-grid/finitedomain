@@ -232,7 +232,7 @@ let config = {
     '214',
     '215',
   ],
-  all_constraints: [
+  allConstraints: [
     {_class: '$constraint', name: 'reifier', varIndexes: [12, 4, 164], param: 'eq'},
     {_class: '$constraint', name: 'reifier', varIndexes: [19, 4, 165], param: 'eq'},
     {_class: '$constraint', name: 'reifier', varIndexes: [26, 4, 166], param: 'eq'},

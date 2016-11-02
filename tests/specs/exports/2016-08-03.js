@@ -56,7 +56,7 @@ let config = {
     '33',
     '34',
   ],
-  all_constraints: [
+  allConstraints: [
     {
       _class: '$constraint',
       name: 'reifier',

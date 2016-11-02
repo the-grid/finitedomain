@@ -456,7 +456,7 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.log(`      - FD Var Count: ${this.config.allVarNames.length}`);
-      console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
+      console.log(`      - FD Constraint Count: ${this.config.allConstraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
@@ -547,7 +547,7 @@ class Solver {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.allVarNames;
     let targeted = clone.targetedVars;
-    let constraints = clone.all_constraints;
+    let constraints = clone.allConstraints;
     let domains = clone.initial_domains;
     let propagators = clone._propagators;
 
@@ -559,7 +559,7 @@ class Solver {
       }
     }
     clone.allVarNames = '<removed>';
-    clone.all_constraints = '<removed>';
+    clone.allConstraints = '<removed>';
     clone.initial_domains = '<removed>';
     clone.varDistOptions = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
@@ -599,7 +599,7 @@ class Solver {
       console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initial_domains[varIndex]));
     }
 
-    let constraints = config.all_constraints;
+    let constraints = config.allConstraints;
     console.log('# Constraints (' + constraints.length + 'x):');
     console.log('  index name vars param');
     for (let i = 0; i < constraints.length; ++i) {

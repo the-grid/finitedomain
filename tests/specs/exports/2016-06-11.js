@@ -660,7 +660,7 @@ let config = {
     '398',
     '399',
   ],
-  all_constraints: [
+  allConstraints: [
     {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [2, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [4, 0], param: undefined},

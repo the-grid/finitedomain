@@ -2546,7 +2546,7 @@ let config = {
     '11': 55,
     '12': 6,
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [1, 1],
     [1, 1],

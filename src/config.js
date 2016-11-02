@@ -87,7 +87,7 @@ function config_create() {
     allConstraints: [],
 
     constantCache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
-    initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
+    initialDomains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
@@ -111,7 +111,7 @@ function config_clone(config, newDomains) {
     constantCache,
     allVarNames,
     allConstraints,
-    initial_domains,
+    initialDomains,
     _propagators,
     _varToPropagators,
     _constrainedAway,
@@ -131,7 +131,7 @@ function config_clone(config, newDomains) {
 
     allVarNames: allVarNames.slice(0),
     allConstraints: allConstraints.slice(0),
-    initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
+    initialDomains: newDomains ? newDomains.map(domain_toSmallest) : initialDomains, // <varName:domain>
 
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
@@ -271,7 +271,7 @@ function _config_addVar(config, varName, domain) {
   if (solvedTo !== NOT_FOUND && !config.constantCache[solvedTo]) config.constantCache[solvedTo] = varIndex;
 
   ASSERT_NORDOM(domain, true, domain__debug);
-  config.initial_domains[varIndex] = domain;
+  config.initialDomains[varIndex] = domain;
   config.allVarNames.push(varName);
   trie_add(config._varNamesTrie, varName, varIndex);
 
@@ -475,7 +475,7 @@ function config_generateVars(config, space) {
 
   let vardoms = space.vardoms;
   ASSERT(vardoms, 'expecting var domains');
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   ASSERT(initialDomains, 'config should have initial vars');
   let allVarNames = config.allVarNames;
   ASSERT(allVarNames, 'config should have a list of vars');
@@ -498,7 +498,7 @@ function config_generateVars(config, space) {
 function config_populateVarPropHash(config) {
   let hash = new Array(config.allVarNames.length);
   let propagators = config._propagators;
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
     let propagator = propagators[propagatorIndex];
     _config_addVarConditionally(propagator.index1, initialDomains, hash, propagatorIndex);
@@ -633,7 +633,7 @@ function config_addConstraint(config, name, varNames, param) {
   }
 
   if (name === 'sum') { // TODO: same for product or why not?
-    let initialDomains = config.initial_domains;
+    let initialDomains = config.initialDomains;
 
     // limit result var to the min/max possible sum
     let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
@@ -708,7 +708,7 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
   return false;
 }
 function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
 
@@ -748,7 +748,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
 
@@ -786,7 +786,7 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let a = initialDomains[varIndexLeft];
@@ -803,7 +803,7 @@ function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let v = domain_getValue(initialDomains[varIndexLeft]);
@@ -821,7 +821,7 @@ function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, opName) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let varIndexResult = varIndexes[2];
@@ -885,12 +885,12 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
   return false;
 }
 function _config_eliminate(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, value) {
-  config.initial_domains[resultVarIndex] = domain_removeValue(resultDomain, value);
+  config.initialDomains[resultVarIndex] = domain_removeValue(resultDomain, value);
   config._constrainedAway.push(leftVarIndex, rightVarIndex, resultVarIndex);
   return true;
 }
 function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexResult = varIndexes[2];
 
   let bool = false;
@@ -922,7 +922,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
   return true;
 }
 function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndex, value, result, domain1, domain2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
 
   let domain = initialDomains[varIndex];
   switch (opName) {
@@ -960,7 +960,7 @@ function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndex, value,
   return true;
 }
 function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value, result, domain1, domain2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
 
   let domain = initialDomains[varIndex];
   switch (opName) {
@@ -1001,9 +1001,9 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways
-    let domain = domain_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]);
-    config.initial_domains[resultIndex] = domain;
-    config.initial_domains[varIndexes[0]] = domain;
+    let domain = domain_intersection(config.initialDomains[resultIndex], config.initialDomains[varIndexes[0]]);
+    config.initialDomains[resultIndex] = domain;
+    config.initialDomains[varIndexes[0]] = domain;
     if (domain_isSolved(domain)) {
       config._constrainedAway.push(varIndexes[0], resultIndex);
       return true;
@@ -1131,12 +1131,12 @@ function config_initForSpace(config, space) {
   }
 
 
-  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+  ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
-  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+  ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
   ASSERT(config._varToPropagators, 'should have generated hash');
 }

@@ -89,7 +89,7 @@ function space_createClone(space) {
 
 /**
  * Create a new config with the configuration of the given Space
- * Basically clones its config but updates the `initial_domains` with fresh state
+ * Basically clones its config but updates the `initialDomains` with fresh state
  *
  * @param {$space} space
  * @param {$config} config

@@ -248,7 +248,7 @@ let config = {
     {_class: '$constraint', name: 'neq', varIndexes: [211, 215], param: undefined},
   ],
   constantCache: {},
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [0, 0],
     [1, 1],

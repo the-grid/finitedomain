@@ -344,7 +344,7 @@ describe('src/space.spec', function() {
         let config2 = space_toConfig(space, config);
 
         expect(config2.allVarNames).to.eql(['A']);
-        expect(config2.initial_domains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);
+        expect(config2.initialDomains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);
       });
     });
 

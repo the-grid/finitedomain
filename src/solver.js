@@ -65,8 +65,8 @@ class Solver {
 
     if (options.config) {
       let config = this.config = options.config;
-      if (config.initial_domains) {
-        let initialDomains = config.initial_domains;
+      if (config.initialDomains) {
+        let initialDomains = config.initialDomains;
         for (let i = 0, len = initialDomains.length; i < len; ++i) {
           let domain = initialDomains[i];
           if (domain.length === 0) domain = domain_createEmpty();
@@ -411,7 +411,7 @@ class Solver {
     }
 
     let config = this.config;
-    ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+    ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
     // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
     if (options.vars && options.vars !== 'all') {
@@ -548,7 +548,7 @@ class Solver {
     let names = clone.allVarNames;
     let targeted = clone.targetedVars;
     let constraints = clone.allConstraints;
-    let domains = clone.initial_domains;
+    let domains = clone.initialDomains;
     let propagators = clone._propagators;
 
     for (let key in clone) {
@@ -560,7 +560,7 @@ class Solver {
     }
     clone.allVarNames = '<removed>';
     clone.allConstraints = '<removed>';
-    clone.initial_domains = '<removed>';
+    clone.initialDomains = '<removed>';
     clone.varDistOptions = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
 
@@ -596,7 +596,7 @@ class Solver {
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initial_domains[varIndex]));
+      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initialDomains[varIndex]));
     }
 
     let constraints = config.allConstraints;
@@ -615,9 +615,9 @@ class Solver {
         ':',
         propagators[i].index1, propagators[i].index2, propagators[i].index3,
         '->',
-        domain__debug(config.initial_domains[propagators[i].index1]),
-        domain__debug(config.initial_domains[propagators[i].index2]),
-        domain__debug(config.initial_domains[propagators[i].index3])
+        domain__debug(config.initialDomains[propagators[i].index1]),
+        domain__debug(config.initialDomains[propagators[i].index2]),
+        domain__debug(config.initialDomains[propagators[i].index3])
     );
     }
 
@@ -626,7 +626,7 @@ class Solver {
 
   _debugConfig() {
     let config = _clone(this.config);
-    config.initial_domains = config.initial_domains.map(domain__debug);
+    config.initialDomains = config.initialDomains.map(domain__debug);
 
     console.log('## _debugConfig:\n', getInspector()(config));
   }

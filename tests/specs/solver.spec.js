@@ -119,7 +119,7 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]); // dont use fixtures because small domain
 
-        expect(solver.config.initial_domains[solver.config.allVarNames.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initialDomains[solver.config.allVarNames.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       it('should no longer accept a legacy nested array for domain', function() {

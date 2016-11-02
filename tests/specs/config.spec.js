@@ -60,8 +60,8 @@ describe('src/config.spec', function() {
 
           config_addConstraint(config, 'lt', ['A', 'B']);
 
-          fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 9));
-          fixt_domainEql(config.initial_domains[B], fixt_dom_range(1, 10));
+          fixt_domainEql(config.initialDomains[A], fixt_dom_range(0, 9));
+          fixt_domainEql(config.initialDomains[B], fixt_dom_range(1, 10));
         });
       });
 
@@ -74,8 +74,8 @@ describe('src/config.spec', function() {
 
           config_addConstraint(config, 'lte', ['A', 'B']);
 
-          fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 10));
-          fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 10));
+          fixt_domainEql(config.initialDomains[A], fixt_dom_range(0, 10));
+          fixt_domainEql(config.initialDomains[B], fixt_dom_range(0, 10));
         });
       });
 
@@ -88,8 +88,8 @@ describe('src/config.spec', function() {
 
           config_addConstraint(config, 'gt', ['A', 'B']);
 
-          fixt_domainEql(config.initial_domains[A], fixt_dom_range(1, 10));
-          fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 9));
+          fixt_domainEql(config.initialDomains[A], fixt_dom_range(1, 10));
+          fixt_domainEql(config.initialDomains[B], fixt_dom_range(0, 9));
         });
       });
 
@@ -102,8 +102,8 @@ describe('src/config.spec', function() {
 
           config_addConstraint(config, 'gte', ['A', 'B']);
 
-          fixt_domainEql(config.initial_domains[A], fixt_dom_range(0, 10));
-          fixt_domainEql(config.initial_domains[B], fixt_dom_range(0, 10));
+          fixt_domainEql(config.initialDomains[A], fixt_dom_range(0, 10));
+          fixt_domainEql(config.initialDomains[B], fixt_dom_range(0, 10));
         });
       });
 
@@ -118,9 +118,9 @@ describe('src/config.spec', function() {
 
             config_addConstraint(config, 'reifier', ['A', 'B', 'C'], op);
 
-            fixt_domainEql(config.initial_domains[a], D, 'a=d');
-            fixt_domainEql(config.initial_domains[b], E, 'b=e');
-            fixt_domainEql(config.initial_domains[c], F, 'c=f');
+            fixt_domainEql(config.initialDomains[a], D, 'a=d');
+            fixt_domainEql(config.initialDomains[b], E, 'b=e');
+            fixt_domainEql(config.initialDomains[c], F, 'c=f');
           });
         }
 
@@ -980,7 +980,7 @@ describe('src/config.spec', function() {
       let varIndex = config_addVarAnonConstant(config, 15);
 
       expect(config.allVarNames[varIndex]).to.be.above(-1);
-      expect(config.initial_domains[varIndex]).to.eql(fixt_dom_nums(15));
+      expect(config.initialDomains[varIndex]).to.eql(fixt_dom_nums(15));
     });
 
     it('should populate the constant cache', function() {
@@ -1013,7 +1013,7 @@ describe('src/config.spec', function() {
       config_addVarAnonNothing(config);
 
       expect(config.allVarNames.length).to.equal(1);
-      expect(config.initial_domains[0]).to.eql(fixt_dom_range(SUB, SUP));
+      expect(config.initialDomains[0]).to.eql(fixt_dom_range(SUB, SUP));
     });
   });
 
@@ -1052,7 +1052,7 @@ describe('src/config.spec', function() {
         config_addVarAnonRange(config, lo, hi);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(lo, hi));
       });
 
       it('should make a constant if lo=hi', function() {
@@ -1064,7 +1064,7 @@ describe('src/config.spec', function() {
         let varIndex = config_addVarAnonRange(config, lo, hi);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(lo, hi));
         expect(config.constantCache[lo]).to.eql(varIndex);
       });
     });
@@ -1080,7 +1080,7 @@ describe('src/config.spec', function() {
         config_addVarAnonRange(config, lo, hi);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(lo, hi));
       });
 
       it('should make a constant if lo=hi', function() {
@@ -1092,7 +1092,7 @@ describe('src/config.spec', function() {
         let varIndex = config_addVarAnonRange(config, lo, hi);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(lo, hi));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(lo, hi));
         expect(config.constantCache[lo]).to.eql(varIndex);
       });
     });
@@ -1132,7 +1132,7 @@ describe('src/config.spec', function() {
         config_addVarConstant(config, 'A', value);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(value, value));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(value, value));
       });
     });
 
@@ -1146,7 +1146,7 @@ describe('src/config.spec', function() {
         config_addVarConstant(config, 'A', value);
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(value, value));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(value, value));
       });
     });
   });
@@ -1177,7 +1177,7 @@ describe('src/config.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_range(50, 55));
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(50, 55));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(50, 55));
       });
     });
 
@@ -1189,7 +1189,7 @@ describe('src/config.spec', function() {
         config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12, true));
 
         expect(config.allVarNames.length).to.equal(1);
-        expect(config.initial_domains[0]).to.equal(fixt_dom_range(5, 12));
+        expect(config.initialDomains[0]).to.equal(fixt_dom_range(5, 12));
       });
     });
   });
@@ -1212,7 +1212,7 @@ describe('src/config.spec', function() {
       config_addVarNothing(config, 'A');
 
       expect(config.allVarNames).to.eql(['A']);
-      expect(config.initial_domains[0]).to.eql(fixt_dom_range(SUB, SUP));
+      expect(config.initialDomains[0]).to.eql(fixt_dom_range(SUB, SUP));
     });
   });
 
@@ -1272,7 +1272,7 @@ describe('src/config.spec', function() {
         config_addVarRange(config, 'A', 50, 55);
 
         expect(config.allVarNames).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(50, 55));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(50, 55));
       });
     });
 
@@ -1284,7 +1284,7 @@ describe('src/config.spec', function() {
         config_addVarRange(config, 'A', 5, 12);
 
         expect(config.allVarNames).to.eql(['A']);
-        expect(config.initial_domains[0]).to.eql(fixt_dom_range(5, 12));
+        expect(config.initialDomains[0]).to.eql(fixt_dom_range(5, 12));
       });
     });
   });
@@ -1570,7 +1570,7 @@ describe('src/config.spec', function() {
       let newVars = [];
       let clone = config_clone(config, newVars);
 
-      expect(clone.initial_domains).to.eql(newVars);
+      expect(clone.initialDomains).to.eql(newVars);
     });
   });
 

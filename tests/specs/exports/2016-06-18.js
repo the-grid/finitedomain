@@ -726,7 +726,7 @@ let config = {
     '7': '6',
     '8': '11',
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [0, 1],
     [1, 1],

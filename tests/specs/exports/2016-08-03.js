@@ -209,7 +209,7 @@ let config = {
     },
   ],
   constantCache: {'0': 24, '1': 2, '2': 3, '3': 4},
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [1, 1],
     [1, 1],

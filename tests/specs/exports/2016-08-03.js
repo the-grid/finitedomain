@@ -18,7 +18,7 @@ let config = {
   valueStratName: 'min',
   targetedVars: 'all',
   varDistOptions: {},
-  timeout_callback: undefined,
+  timeoutCallback: undefined,
   allVarNames: [
     '0',
     '_ROOT_BRANCH_',

@@ -1398,9 +1398,9 @@ describe('src/config.spec', function() {
 
     it('should copy the timeout callback', function() {
       let config = config_create();
-      config_setOption(config, 'timeout_callback', 'A');
+      config_setOption(config, 'timeoutCallback', 'A');
 
-      expect(config.timeout_callback).to.equal('A');
+      expect(config.timeoutCallback).to.equal('A');
     });
 
     it('should override value strats per var', function() {
@@ -1520,7 +1520,7 @@ describe('src/config.spec', function() {
 
     it('should set the timeout callback', function() {
       let config = config_create();
-      config_setOptions(config, {timeout_callback: function() {}});
+      config_setOptions(config, {timeoutCallback: function() {}});
 
       expect(true).to.eql(true);
     });

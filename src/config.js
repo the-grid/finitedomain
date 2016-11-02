@@ -80,7 +80,7 @@ function config_create() {
     valueStratName: 'min',
     targetedVars: 'all',
     varDistOptions: {},
-    timeout_callback: undefined,
+    timeoutCallback: undefined,
 
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
@@ -107,7 +107,7 @@ function config_clone(config, newDomains) {
     valueStratName,
     targetedVars,
     varDistOptions,
-    timeout_callback,
+    timeoutCallback,
     constant_cache,
     allVarNames,
     all_constraints,
@@ -125,7 +125,7 @@ function config_clone(config, newDomains) {
     valueStratName,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
     varDistOptions: JSON.parse(JSON.stringify(varDistOptions)),  // TOFIX: clone this more efficiently
-    timeout_callback, // by reference because it's a function if passed on...
+    timeoutCallback, // by reference because it's a function if passed on...
 
     constant_cache, // is by reference ok?
 
@@ -409,13 +409,13 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
 
       break;
 
-    case 'timeout_callback':
+    case 'timeoutCallback':
       // A function that returns true if the current search should stop
       // Can be called multiple times after the search is stopped, should
       // keep returning false (or assume an uncertain outcome).
       // The function is called after the first batch of propagators is
       // called so it won't immediately stop. But it stops quickly.
-      config.timeout_callback = optionValue;
+      config.timeoutCallback = optionValue;
       break;
 
     case 'var': return THROW('REMOVED. Replace `var` with `varStrategy`');
@@ -450,7 +450,7 @@ function config_setOptions(config, options) {
     config_setOption(config, 'varValueStrat', options.varStratOverride, options.varStratOverrideName);
   }
   if (options.varValueStrat) config_setOption(config, 'varValueStrat', options.varValueStrat, options.varStratOverrideName);
-  if (options.timeout_callback) config_setOption(config, 'timeout_callback', options.timeout_callback);
+  if (options.timeoutCallback) config_setOption(config, 'timeoutCallback', options.timeoutCallback);
 }
 
 /**

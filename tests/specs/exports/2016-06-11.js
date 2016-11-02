@@ -257,7 +257,7 @@ let config = {
     'CLUSTER_END&n=5': {list: [1, 0], valtype: 'list'},
     'item&n=5': {list: [3, 1, 2, 4, 5, 6], valtype: 'list'},
   },
-  timeout_callback: undefined,
+  timeoutCallback: undefined,
   allVarNames: [
     '0',
     '_ROOT_BRANCH_',

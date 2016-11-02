@@ -41,7 +41,7 @@ describe('exports/export.cases.spec', function() {
       valueStratName: 'min',
       targetedVars: 'all',
       varDistOptions: {},
-      timeout_callback: undefined,
+      timeoutCallback: undefined,
       allVarNames: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
       all_constraints: [
         {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
@@ -154,7 +154,7 @@ describe('exports/export.cases.spec', function() {
         valueStratName: 'min',
         targetedVars: 'all',
         varDistOptions: {},
-        timeout_callback: undefined,
+        timeoutCallback: undefined,
         allVarNames: [
           '0',
           '_ROOT_BRANCH_',

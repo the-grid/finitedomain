@@ -399,7 +399,7 @@ function space_abortSearch(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let callback = config.timeout_callback;
+  let callback = config.timeoutCallback;
   if (callback) {
     return callback(space);
   }

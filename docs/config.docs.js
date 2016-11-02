@@ -8,7 +8,7 @@
  * @property {string[]|string} targetedVars='all' Search stops when these are solved.
  * @property {$var_strat_overrides} varStratOverrides Can apply a specific $var_strat_config per var
  * @property {string[]} [priority_list] Ordered list of var names to process first. Set through var distribution options
- * @property {Function} [timeout_callback] When this func returns true the search is aborted immediately. For timing out
+ * @property {Function} [timeoutCallback] When this func returns true the search is aborted immediately. For timing out
  * @property {Object} constant_cache Any (initial) var that is solved is logged in here. May refactor this away soon.
  * @property {string[]} allVarNames Should at the start of a search contain the names of _all_ vars. "varIndex" maps to this. space._vardoms maps 1:1 to this.
  * @property {$constraint[]} all_constraints Abstract constraints, higher level objects, all propagators are generated from these. Matches Solver input closer.

@@ -461,7 +461,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(config, 'lt', ['A', 'B']);
 
-          config_setOption(config, 'timeout_callback', _ => false);
+          config_setOption(config, 'timeoutCallback', _ => false);
           space_initFromConfig(space, config);
 
           expect(space_propagate(space, config)).to.eql(false);
@@ -476,7 +476,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(config, 'lt', ['A', 'B']);
 
-          config_setOption(config, 'timeout_callback', _ => true);
+          config_setOption(config, 'timeoutCallback', _ => true);
           space_initFromConfig(space, config);
 
           expect(space_propagate(space, config)).to.eql(true);

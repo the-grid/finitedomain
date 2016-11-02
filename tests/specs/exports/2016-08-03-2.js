@@ -148,7 +148,7 @@ let config = {
     'width&n=10': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=11': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
   },
-  timeout_callback: undefined,
+  timeoutCallback: undefined,
   allVarNames: [
     '0',
     '_ROOT_BRANCH_',

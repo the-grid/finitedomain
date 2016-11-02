@@ -19,7 +19,7 @@ var perf = module.exports = function perf(config, max, _waited) {
 
   if (config.callbackTimeoutMax) {
     var counter = config.callbackTimeoutMax;
-    config.timeout_callback = function() {
+    config.timeoutCallback = function() {
       if (--counter < 0) {
         console.log('ABORTING');
         return true;

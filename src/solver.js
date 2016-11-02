@@ -65,8 +65,8 @@ class Solver {
 
     if (options.config) {
       let config = this.config = options.config;
-      if (config.initial_domains) {
-        let initialDomains = config.initial_domains;
+      if (config.initialDomains) {
+        let initialDomains = config.initialDomains;
         for (let i = 0, len = initialDomains.length; i < len; ++i) {
           let domain = initialDomains[i];
           if (domain.length === 0) domain = domain_createEmpty();
@@ -106,7 +106,7 @@ class Solver {
       THROW('Solver#num: expecting a number, got NaN');
     }
     let varIndex = config_addVarAnonConstant(this.config, num);
-    return this.config.all_var_names[varIndex];
+    return this.config.allVarNames[varIndex];
   }
 
   /**
@@ -134,7 +134,7 @@ class Solver {
 
     if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
     let varIndex = config_addVarDomain(this.config, varName, domain);
-    ASSERT(this.config.all_var_names[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
+    ASSERT(this.config.allVarNames[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
 
     if (distributionOptions) {
       if (distributionOptions.distribute) THROW('Use `valtype` to set the value distribution strategy');
@@ -411,7 +411,7 @@ class Solver {
     }
 
     let config = this.config;
-    ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+    ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
     // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
     if (options.vars && options.vars !== 'all') {
@@ -455,8 +455,8 @@ class Solver {
     ASSERT(state);
 
     if (log >= LOG_STATS) {
-      console.log(`      - FD Var Count: ${this.config.all_var_names.length}`);
-      console.log(`      - FD Constraint Count: ${this.config.all_constraints.length}`);
+      console.log(`      - FD Var Count: ${this.config.allVarNames.length}`);
+      console.log(`      - FD Constraint Count: ${this.config.allConstraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
       console.time('      - FD Solving Time');
@@ -545,10 +545,10 @@ class Solver {
 
   _debugLegible() {
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
-    let names = clone.all_var_names;
+    let names = clone.allVarNames;
     let targeted = clone.targetedVars;
-    let constraints = clone.all_constraints;
-    let domains = clone.initial_domains;
+    let constraints = clone.allConstraints;
+    let domains = clone.initialDomains;
     let propagators = clone._propagators;
 
     for (let key in clone) {
@@ -558,10 +558,10 @@ class Solver {
         clone[key] = '<removed>';
       }
     }
-    clone.all_var_names = '<removed>';
-    clone.all_constraints = '<removed>';
-    clone.initial_domains = '<removed>';
-    clone.var_dist_options = '<removed>';
+    clone.allVarNames = '<removed>';
+    clone.allConstraints = '<removed>';
+    clone.initialDomains = '<removed>';
+    clone.varDistOptions = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
 
     console.log('\n## _debug:\n');
@@ -592,14 +592,14 @@ class Solver {
     //console.log('# Config:');
     //console.log(inspect(_clone(config)));
 
-    let names = config.all_var_names;
+    let names = config.allVarNames;
     console.log('# Variables (' + names.length + 'x):');
     console.log('  index name domain toArr');
     for (let varIndex = 0; varIndex < names.length; ++varIndex) {
-      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initial_domains[varIndex]));
+      console.log('  ', varIndex, ':', names[varIndex], ':', domain__debug(config.initialDomains[varIndex]));
     }
 
-    let constraints = config.all_constraints;
+    let constraints = config.allConstraints;
     console.log('# Constraints (' + constraints.length + 'x):');
     console.log('  index name vars param');
     for (let i = 0; i < constraints.length; ++i) {
@@ -615,9 +615,9 @@ class Solver {
         ':',
         propagators[i].index1, propagators[i].index2, propagators[i].index3,
         '->',
-        domain__debug(config.initial_domains[propagators[i].index1]),
-        domain__debug(config.initial_domains[propagators[i].index2]),
-        domain__debug(config.initial_domains[propagators[i].index3])
+        domain__debug(config.initialDomains[propagators[i].index1]),
+        domain__debug(config.initialDomains[propagators[i].index2]),
+        domain__debug(config.initialDomains[propagators[i].index3])
     );
     }
 
@@ -626,7 +626,7 @@ class Solver {
 
   _debugConfig() {
     let config = _clone(this.config);
-    config.initial_domains = config.initial_domains.map(domain__debug);
+    config.initialDomains = config.initialDomains.map(domain__debug);
 
     console.log('## _debugConfig:\n', getInspector()(config));
   }

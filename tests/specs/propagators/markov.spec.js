@@ -32,7 +32,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = solver.config.allVarNames.indexOf('A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -50,7 +50,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = solver.config.allVarNames.indexOf('A');
 
       // A=0, which is not in legend
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -70,7 +70,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = solver.config.allVarNames.indexOf('A');
 
         // A=0, which is in legend but has prob=0
         propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -88,7 +88,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = solver.config.allVarNames.indexOf('A');
 
         // A=0, which is in legend and has prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -112,7 +112,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = solver.config.allVarNames.indexOf('A');
 
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
@@ -135,7 +135,7 @@ describe('propagators/markov.spec', function() {
         });
         solver._prepare({});
 
-        let Aindex = solver.config.all_var_names.indexOf('A');
+        let Aindex = solver.config.allVarNames.indexOf('A');
 
         // A=0, which is in legend and has prob=1 in first row,
         // but only second row is considered which gives prob=0
@@ -162,7 +162,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = solver.config.allVarNames.indexOf('A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
@@ -181,7 +181,7 @@ describe('propagators/markov.spec', function() {
       });
       solver._prepare({});
 
-      let Aindex = solver.config.all_var_names.indexOf('A');
+      let Aindex = solver.config.allVarNames.indexOf('A');
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);

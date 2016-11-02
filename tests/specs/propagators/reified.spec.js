@@ -70,9 +70,9 @@ describe('propagators/reified.spec', function() {
           let rejectsOp = op === 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
           let rejectsNop = op !== 'eq' ? propagator_eqStepWouldReject : propagator_neqStepWouldReject;
 
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
-          let bool = config.all_var_names.indexOf('bool');
+          let A = config.allVarNames.indexOf('A');
+          let B = config.allVarNames.indexOf('B');
+          let bool = config.allVarNames.indexOf('bool');
           propagator_reifiedStepBare(space, config, A, B, bool, opFunc, nopFunc, op, invop, rejectsOp, rejectsNop);
 
           fixt_domainEql(space.vardoms[A], A_in, 'A should be unchanged');
@@ -124,9 +124,9 @@ describe('propagators/reified.spec', function() {
         let space = space_createRoot();
         space_initFromConfig(space, config);
 
-        let A = config.all_var_names.indexOf('A');
-        let B = config.all_var_names.indexOf('B');
-        let C = config.all_var_names.indexOf('C');
+        let A = config.allVarNames.indexOf('A');
+        let B = config.allVarNames.indexOf('B');
+        let C = config.allVarNames.indexOf('C');
 
         propagator_reifiedStepBare(space, config, A, B, C, propagator_eqStepBare, propagator_neqStepBare, 'eq', 'neq', propagator_eqStepWouldReject, propagator_neqStepWouldReject);
 

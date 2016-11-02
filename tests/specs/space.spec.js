@@ -84,9 +84,9 @@ describe('src/space.spec', function() {
       });
 
       it('should deep clone the vars', function() {
-        //for var_name in config.all_var_names
-        for (let i = 0; i < config.all_var_names.length; ++i) {
-          let varName = config.all_var_names[i];
+        //for var_name in config.allVarNames
+        for (let i = 0; i < config.allVarNames.length; ++i) {
+          let varName = config.allVarNames[i];
 
           if (typeof clone.vardoms[varName] !== 'number') expect(clone.vardoms[varName]).to.not.equal(space.vardoms[varName]);
           expect(clone.vardoms[varName]).to.eql(space.vardoms[varName]);
@@ -178,7 +178,7 @@ describe('src/space.spec', function() {
         let config = config_create();
         let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
-        config.targetedVars = config.all_var_names.slice(0);
+        config.targetedVars = config.allVarNames.slice(0);
         space_initFromConfig(space, config);
 
         expect(space_updateUnsolvedVarList(space, config), 'only one unsolved var').to.equal(false);
@@ -199,7 +199,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot();
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
-        config.targetedVars = config.all_var_names.slice(0);
+        config.targetedVars = config.allVarNames.slice(0);
         space_initFromConfig(space, config);
 
         expect(space_updateUnsolvedVarList(space, config), 'two unsolved vars').to.equal(false);
@@ -221,7 +221,7 @@ describe('src/space.spec', function() {
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonConstant(config, 1);
-        config.targetedVars = config.all_var_names.slice(0);
+        config.targetedVars = config.allVarNames.slice(0);
         space_initFromConfig(space, config);
 
         expect(space_updateUnsolvedVarList(space, config), 'two unsolved vars and a solved var').to.equal(false);
@@ -244,7 +244,7 @@ describe('src/space.spec', function() {
         config_addVarAnonRange(config, 0, 1);
         config_addVarAnonRange(config, 0, 1);
         let A = config_addVarAnonConstant(config, 1);
-        config.targetedVars = [config.all_var_names[A]];
+        config.targetedVars = [config.allVarNames[A]];
         space_initFromConfig(space, config);
 
         expect(space_updateUnsolvedVarList(space, config), 'two unsolved vars and a solved var').to.equal(true);
@@ -256,7 +256,7 @@ describe('src/space.spec', function() {
         let A = config_addVarAnonRange(config, 0, 1);
         let B = config_addVarAnonRange(config, 0, 1);
         config_addVarAnonConstant(config, 1);
-        config.targetedVars = [config.all_var_names[A], config.all_var_names[B]];
+        config.targetedVars = [config.allVarNames[A], config.allVarNames[B]];
         space_initFromConfig(space, config);
 
         expect(space_updateUnsolvedVarList(space, config), 'two unsolved vars and a solved var').to.equal(false);
@@ -282,7 +282,7 @@ describe('src/space.spec', function() {
         let space = space_createRoot();
         config_addVarDomain(config, 'test', fixt_arrdom_nums(100));
         space_initFromConfig(space, config);
-        space.vardoms[config.all_var_names.indexOf('test')] = fixt_numdom_empty();
+        space.vardoms[config.allVarNames.indexOf('test')] = fixt_numdom_empty();
 
         expect(space_solution(space, config)).to.eql({test: false});
       });
@@ -343,8 +343,8 @@ describe('src/space.spec', function() {
 
         let config2 = space_toConfig(space, config);
 
-        expect(config2.all_var_names).to.eql(['A']);
-        expect(config2.initial_domains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);
+        expect(config2.allVarNames).to.eql(['A']);
+        expect(config2.initialDomains, 'empty property should exist').to.eql([fixt_strdom_range(SUB, SUP)]);
       });
     });
 
@@ -388,8 +388,8 @@ describe('src/space.spec', function() {
           // so after propagate() the vars should remain the same
           space_propagate(space, config);
 
-          expect(space.vardoms[config.all_var_names.indexOf('B')]).to.eql(fixt_numdom_nums(0, 1));
-          expect(space.vardoms[config.all_var_names.indexOf('A')]).to.eql(fixt_numdom_nums(0, 1));
+          expect(space.vardoms[config.allVarNames.indexOf('B')]).to.eql(fixt_numdom_nums(0, 1));
+          expect(space.vardoms[config.allVarNames.indexOf('A')]).to.eql(fixt_numdom_nums(0, 1));
         });
 
         it('step 1; first bool updated', function() {
@@ -401,7 +401,7 @@ describe('src/space.spec', function() {
           config_addConstraint(config, 'neq', ['A', 'B']);
 
           space_initFromConfig(space, config);
-          space.updatedVarIndex = config.all_var_names.indexOf('A'); // mark A as having been updated externally
+          space.updatedVarIndex = config.allVarNames.indexOf('A'); // mark A as having been updated externally
 
           // A "was updated" by a distributor
           // since it ties to neq it should step that propagator which should
@@ -409,8 +409,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space, config);
 
-          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('A')], fixt_numdom_nums(0)); // we set it
-          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('B')], fixt_numdom_nums(1)); // by neq
+          fixt_domainEql(space.vardoms[config.allVarNames.indexOf('A')], fixt_numdom_nums(0)); // we set it
+          fixt_domainEql(space.vardoms[config.allVarNames.indexOf('B')], fixt_numdom_nums(1)); // by neq
         });
 
         it('step 1; second bool updated', function() {
@@ -422,7 +422,7 @@ describe('src/space.spec', function() {
           config_addConstraint(config, 'neq', ['A', 'B']);
 
           space_initFromConfig(space, config);
-          space.updatedVarIndex = config.all_var_names.indexOf('B'); // mark A as having been updated externally
+          space.updatedVarIndex = config.allVarNames.indexOf('B'); // mark A as having been updated externally
 
           // B "was updated" by a distributor
           // since it ties to neq it should step that propagator which should
@@ -430,8 +430,8 @@ describe('src/space.spec', function() {
           // the propagator is incorrectly skipped (or hey, some other bug)
           space_propagate(space, config);
 
-          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('A')], fixt_numdom_nums(1)); // by neq
-          fixt_domainEql(space.vardoms[config.all_var_names.indexOf('B')], fixt_numdom_nums(0)); // we set it
+          fixt_domainEql(space.vardoms[config.allVarNames.indexOf('A')], fixt_numdom_nums(1)); // by neq
+          fixt_domainEql(space.vardoms[config.allVarNames.indexOf('B')], fixt_numdom_nums(0)); // we set it
         });
       });
 
@@ -461,7 +461,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(config, 'lt', ['A', 'B']);
 
-          config_setOption(config, 'timeout_callback', _ => false);
+          config_setOption(config, 'timeoutCallback', _ => false);
           space_initFromConfig(space, config);
 
           expect(space_propagate(space, config)).to.eql(false);
@@ -476,7 +476,7 @@ describe('src/space.spec', function() {
 
           config_addConstraint(config, 'lt', ['A', 'B']);
 
-          config_setOption(config, 'timeout_callback', _ => true);
+          config_setOption(config, 'timeoutCallback', _ => true);
           space_initFromConfig(space, config);
 
           expect(space_propagate(space, config)).to.eql(true);

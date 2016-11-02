@@ -119,7 +119,7 @@ describe('solver.spec', function() {
         let solver = new Solver();
         solver.decl('foo', [0, 10, 20, 30]); // dont use fixtures because small domain
 
-        expect(solver.config.initial_domains[solver.config.all_var_names.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
+        expect(solver.config.initialDomains[solver.config.allVarNames.indexOf('foo')]).to.eql(fixt_dom_ranges([0, 10], [20, 30]));
       });
 
       it('should no longer accept a legacy nested array for domain', function() {
@@ -1554,7 +1554,7 @@ describe('solver.spec', function() {
       solver.declRange('align&n=2', 1, 2);
       solver.declRange('text_align&n=2', 1, 2);
 
-      solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)});
+      solver.solve({max: 10000, vars: solver.config.allVarNames.slice(0)});
 
       // 2×3×2×2×2×3×2×2×3×2×2 (size of each domain multiplied)
       // there are no constraints so it's just all combinations
@@ -1611,7 +1611,7 @@ describe('solver.spec', function() {
 
       solver.eq('_ROOT_BRANCH_', 'SECTION');
 
-      solver.solve({max: 10000, vars: solver.config.all_var_names.slice(0)});
+      solver.solve({max: 10000, vars: solver.config.allVarNames.slice(0)});
 
       // same as 'combine multiple unconstrained vars' but one var has one instead of two options, so /2
       // note: must target all vars explicitly or you'll validly get just one solution back.

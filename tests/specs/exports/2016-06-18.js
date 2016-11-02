@@ -109,7 +109,7 @@ let config = {
     '270',
     '272',
     '274'],
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
     'width&n=1': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
     'width&n=2': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
@@ -118,8 +118,8 @@ let config = {
     'width&n=5': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
     'width&n=6': {list: [4, 3, 2, 1, 5, 6, 7, 8], valtype: 'list'},
   },
-  timeout_callback: undefined,
-  all_var_names: ['0',
+  timeoutCallback: undefined,
+  allVarNames: ['0',
     '_ROOT_BRANCH_',
     'SECTION',
     '3',
@@ -394,7 +394,7 @@ let config = {
     '272',
     '273',
     '274'],
-  all_constraints: [
+  allConstraints: [
     {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [2, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [7, 0], param: undefined},
@@ -715,7 +715,7 @@ let config = {
     {_class: '$constraint', name: 'eq', varIndexes: [266, 0], param: undefined},
     {_class: '$constraint', name: 'eq', varIndexes: [272, 0], param: undefined},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '163',
     '1': '0',
     '2': '3',
@@ -726,7 +726,7 @@ let config = {
     '7': '6',
     '8': '11',
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [0, 1],
     [1, 1],

@@ -9,9 +9,12 @@ import {
 } from './helpers';
 
 import {
+  TRIE_EMPTY,
   TRIE_KEY_NOT_FOUND,
+  TRIE_NODE_SIZE,
 
   trie_addNum,
+  trie_create,
   trie_get,
   trie_getNum,
 } from './trie';
@@ -86,7 +89,7 @@ function space_createClone(space) {
 
 /**
  * Create a new config with the configuration of the given Space
- * Basically clones its config but updates the `initial_domains` with fresh state
+ * Basically clones its config but updates the `initialDomains` with fresh state
  *
  * @param {$space} space
  * @param {$config} config
@@ -98,7 +101,7 @@ function space_toConfig(space, config) {
 
   let vardoms = space.vardoms;
   let newDomains = [];
-  let names = config.all_var_names;
+  let names = config.allVarNames;
   for (let i = 0, n = names.length; i < n; i++) {
     let domain = vardoms[i];
     newDomains[i] = domain_toStr(domain);
@@ -110,8 +113,8 @@ function space_toConfig(space, config) {
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
- * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {number[]} unsolvedVarIndexes
+ * @param {$domain[]} vardoms Maps 1:1 to config.allVarNames
+ * @param {number[]|undefined} unsolvedVarIndexes
  * @param {number} _depth
  * @param {number} _child
  * @param {string} _path
@@ -180,7 +183,7 @@ function _space_getUnsolvedVarNamesFresh(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  return space._unsolved.map(varIndex => config.all_var_names[varIndex]);
+  return space._unsolved.map(varIndex => config.allVarNames[varIndex]);
 }
 
 /**
@@ -209,7 +212,7 @@ function space_initializeUnsolvedVars(space, config) {
       }
     }
   } else {
-    let varNamesTrie = config._var_names_trie;
+    let varNamesTrie = config._varNamesTrie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
@@ -239,8 +242,11 @@ function space_propagate(space, config) {
   let propagators = config._propagators;
 
   // "cycle" is one step, "epoch" all steps until stable (but not solved per se)
-  let cycles = config._propagationCycles;
-  let changedTrie = config._changedVarsTrie; // track changed vars per cycle, epoch. persists across propagate calls for efficiency reasons.
+
+  // worst case all unsolved vars change. but in general it's about 30% so run with that
+  let cells = Math.ceil(space._unsolved.length * TRIE_NODE_SIZE * 0.3);
+  let changedTrie = trie_create(TRIE_EMPTY, cells); // track changed vars per cycle in this epoch
+  let cycles = 0;
 
   ASSERT(typeof cycles === 'number', 'cycles is a number?');
   ASSERT(changedTrie._class === '$trie', 'trie is a trie?');
@@ -254,13 +260,11 @@ function space_propagate(space, config) {
     // very first cycle of first epoch of the search. all propagators must be visited at least once now.
     let rejected = space_propagateAll(space, config, propagators, changedVars, changedTrie, ++cycles);
     if (rejected) {
-      config._propagationCycles = cycles;
       return true;
     }
   }
 
   if (space_abortSearch(space, config)) {
-    config._propagationCycles = cycles;
     return true;
   }
 
@@ -282,7 +286,6 @@ function space_propagate(space, config) {
     minimal = 2; // see space_propagateChanges
   }
 
-  config._propagationCycles = cycles;
   return returnValue;
 }
 
@@ -396,7 +399,7 @@ function space_abortSearch(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let callback = config.timeout_callback;
+  let callback = config.timeoutCallback;
   if (callback) {
     return callback(space);
   }
@@ -451,7 +454,7 @@ function space_solution(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   let result = {};
   for (let varIndex = 0, n = allVarNames.length; varIndex < n; varIndex++) {
     let varName = allVarNames[varIndex];
@@ -502,7 +505,7 @@ function _space_debug(space, config, printPath) {
   if (printPath) console.log('path:', space._path);
   //__REMOVE_ABOVE_FOR_ASSERTS__
   console.log('# Domains:');
-  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.all_var_names[i] === String(i)) ? '' : ' (' + config.all_var_names[i] + ')')).join('\n'));
+  console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.allVarNames[i] === String(i)) ? '' : ' (' + config.allVarNames[i] + ')')).join('\n'));
   console.log('##\n');
 }
 

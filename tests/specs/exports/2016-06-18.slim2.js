@@ -8,9 +8,9 @@ let config = {
   },
   valueStratName: 'min',
   targetedVars: 'all',
-  var_dist_options: {},
-  timeout_callback: undefined,
-  all_var_names: [
+  varDistOptions: {},
+  timeoutCallback: undefined,
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',
@@ -286,7 +286,7 @@ let config = {
     '272',
     '273',
     '274'],
-  all_constraints: [
+  allConstraints: [
     /*
 varIndex= 0 domain= [ 1, 1 ]
 varIndex= 8 domain= [ 3, 3 ]
@@ -310,7 +310,7 @@ varIndex= 261 domain= [ 0, 1 ]
     {_class: '$constraint', name: 'reifier', varIndexes: [203, 0, 204], param: 'gte'},
     {_class: '$constraint', name: 'sum', varIndexes: [261, 204], param: 3},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '163',
     '1': '0',
     '2': '3',
@@ -321,7 +321,7 @@ varIndex= 261 domain= [ 0, 1 ]
     '7': '6',
     '8': '11',
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [0, 1],
     [1, 1],

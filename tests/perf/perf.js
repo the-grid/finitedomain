@@ -19,7 +19,7 @@ var perf = module.exports = function perf(config, max, _waited) {
 
   if (config.callbackTimeoutMax) {
     var counter = config.callbackTimeoutMax;
-    config.timeout_callback = function() {
+    config.timeoutCallback = function() {
       if (--counter < 0) {
         console.log('ABORTING');
         return true;
@@ -32,7 +32,7 @@ var perf = module.exports = function perf(config, max, _waited) {
   console.log('start test');
   console.time('test runtime');
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('gridsolving');
-  solver.solve({log: 1, max: max, vars: solver.config.all_var_names, _debug: false});
+  solver.solve({log: 1, max: max, vars: solver.config.allVarNames, _debug: false});
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('gridsolving');
   console.timeEnd('test runtime');
 };

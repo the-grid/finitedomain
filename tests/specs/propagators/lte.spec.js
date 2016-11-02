@@ -63,13 +63,13 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
-      space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
+      space.vardoms[config.allVarNames.indexOf('C')] = fixt_numdom_empty();
+      space.vardoms[config.allVarNames.indexOf('D')] = fixt_numdom_empty();
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
-      let C = config.all_var_names.indexOf('C');
-      let D = config.all_var_names.indexOf('D');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
+      let C = config.allVarNames.indexOf('C');
+      let D = config.allVarNames.indexOf('D');
 
       expect(_ => propagator_lteStepBare(space, config, A, B)).not.to.throw();
       expect(_ => propagator_lteStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
@@ -84,8 +84,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, 99));
@@ -99,8 +99,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_strdom_range(90, SUP));
@@ -114,8 +114,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 100));
@@ -129,8 +129,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_range(90, 150));
@@ -144,8 +144,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
@@ -159,8 +159,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
@@ -174,8 +174,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_range(200, 200));
@@ -188,8 +188,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'B', fixt_arrdom_range(0, 100));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
@@ -199,8 +199,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'B', fixt_arrdom_range(0, 100));
       space = space_createRoot();
       space_initFromConfig(space, config);
-      A = config.all_var_names.indexOf('A');
-      B = config.all_var_names.indexOf('B');
+      A = config.allVarNames.indexOf('A');
+      B = config.allVarNames.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
@@ -210,8 +210,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'B', fixt_arrdom_range(0, 100));
       space = space_createRoot();
       space_initFromConfig(space, config);
-      A = config.all_var_names.indexOf('A');
-      B = config.all_var_names.indexOf('B');
+      A = config.allVarNames.indexOf('A');
+      B = config.allVarNames.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60], [70, 98], [100, 100]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_range(10, 100));
@@ -223,8 +223,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 10], [20, 100]));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([10, 10], [20, 100]));
@@ -234,8 +234,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'B', fixt_arrdom_ranges([0, 5], [20, 100]));
       space = space_createRoot();
       space_initFromConfig(space, config);
-      A = config.all_var_names.indexOf('A');
-      B = config.all_var_names.indexOf('B');
+      A = config.allVarNames.indexOf('A');
+      B = config.allVarNames.indexOf('B');
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
       fixt_domainEql(space.vardoms[B], fixt_strdom_ranges([20, 100]));
@@ -244,8 +244,8 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'A', fixt_arrdom_ranges([10, 20], [30, 40], [50, 60]));
       config_addVarDomain(config, 'B', fixt_arrdom_ranges([10, 10], [20, 100]));
       space = space_createRoot();
-      A = config.all_var_names.indexOf('A');
-      B = config.all_var_names.indexOf('B');
+      A = config.allVarNames.indexOf('A');
+      B = config.allVarNames.indexOf('B');
       space_initFromConfig(space, config);
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_strdom_ranges([10, 20], [30, 40], [50, 60]));
@@ -264,8 +264,8 @@ describe('propagators/lte.spec', function() {
           let space = space_createRoot();
           space_initFromConfig(space, config);
 
-          let A = config.all_var_names.indexOf('A');
-          let B = config.all_var_names.indexOf('B');
+          let A = config.allVarNames.indexOf('A');
+          let B = config.allVarNames.indexOf('B');
 
           propagator_lteStepBare(space, config, A, B);
           fixt_domainEql(space.vardoms[A], domainC, 'C');
@@ -293,13 +293,13 @@ describe('propagators/lte.spec', function() {
       config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      space.vardoms[config.all_var_names.indexOf('C')] = fixt_numdom_empty();
-      space.vardoms[config.all_var_names.indexOf('D')] = fixt_numdom_empty();
+      space.vardoms[config.allVarNames.indexOf('C')] = fixt_numdom_empty();
+      space.vardoms[config.allVarNames.indexOf('D')] = fixt_numdom_empty();
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
-      let C = config.all_var_names.indexOf('C');
-      let D = config.all_var_names.indexOf('D');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
+      let C = config.allVarNames.indexOf('C');
+      let D = config.allVarNames.indexOf('D');
 
       expect(_ => propagator_lteStepBare(space, config, A, B)).not.to.throw();
       expect(_ => propagator_lteStepBare(space, config, A, D)).to.throw('SHOULD_NOT_BE_REJECTED');
@@ -314,8 +314,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 9));
@@ -329,8 +329,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 15));
@@ -344,8 +344,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 10));
@@ -359,8 +359,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_range(0, 13));
@@ -374,8 +374,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       expect(space.vardoms[A]).to.eql(fixt_numdom_empty());
@@ -389,8 +389,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_numdom_range(8, 8));
@@ -404,8 +404,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
       fixt_domainEql(space.vardoms[A], fixt_numdom_range(7, 7));
@@ -426,8 +426,8 @@ describe('propagators/lte.spec', function() {
       let space = space_createRoot();
       space_initFromConfig(space, config);
 
-      let A = config.all_var_names.indexOf('A');
-      let B = config.all_var_names.indexOf('B');
+      let A = config.allVarNames.indexOf('A');
+      let B = config.allVarNames.indexOf('B');
 
       propagator_lteStepBare(space, config, A, B);
 

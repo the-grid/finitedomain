@@ -107,8 +107,8 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
-  ASSERT(domain_min(config.initial_domains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
-  ASSERT(domain_max(config.initial_domains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
+  ASSERT(domain_min(config.initialDomains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
+  ASSERT(domain_max(config.initialDomains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
   let nopName;
   let opFunc;
@@ -123,9 +123,9 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_neqStepBare;
       nopRejectChecker = propagator_neqStepWouldReject;
 
-      let A = config.initial_domains[leftVarIndex];
-      let B = config.initial_domains[rightVarIndex];
-      let C = config.initial_domains[resultVarIndex];
+      let A = config.initialDomains[leftVarIndex];
+      let B = config.initialDomains[rightVarIndex];
+      let C = config.initialDomains[resultVarIndex];
 
       // while at most one var should be solved at this point, it's possible
       // (and fine) if multiple vars are solved here. it's just less efficient.
@@ -172,9 +172,9 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopFunc = propagator_eqStepBare;
       nopRejectChecker = propagator_eqStepWouldReject;
 
-      let A = config.initial_domains[leftVarIndex];
-      let B = config.initial_domains[rightVarIndex];
-      let C = config.initial_domains[resultVarIndex];
+      let A = config.initialDomains[leftVarIndex];
+      let B = config.initialDomains[rightVarIndex];
+      let C = config.initialDomains[resultVarIndex];
 
       let valueC = domain_getValue(C);
 

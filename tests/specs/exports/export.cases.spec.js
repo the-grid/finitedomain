@@ -40,10 +40,10 @@ describe('exports/export.cases.spec', function() {
       },
       valueStratName: 'min',
       targetedVars: 'all',
-      var_dist_options: {},
-      timeout_callback: undefined,
-      all_var_names: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
-      all_constraints: [
+      varDistOptions: {},
+      timeoutCallback: undefined,
+      allVarNames: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
+      allConstraints: [
         {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
         {_class: '$constraint', name: 'gte', varIndexes: [3, 0], param: undefined},
         {_class: '$constraint', name: 'gte', varIndexes: [5, 0], param: undefined},
@@ -58,8 +58,8 @@ describe('exports/export.cases.spec', function() {
         {_class: '$constraint', name: 'neq', varIndexes: [5, 6], param: undefined},
         {_class: '$constraint', name: 'neq', varIndexes: [6, 6], param: undefined},
       ],
-      constant_cache: {'1': '0', '2': '2', '3': '4'},
-      initial_domains: [
+      constantCache: {'1': '0', '2': '2', '3': '4'},
+      initialDomains: [
         [1, 1],
         [0, 1],
         [2, 2],
@@ -153,9 +153,9 @@ describe('exports/export.cases.spec', function() {
         nextVarStrat: 'naive',
         valueStratName: 'min',
         targetedVars: 'all',
-        var_dist_options: {},
-        timeout_callback: undefined,
-        all_var_names: [
+        varDistOptions: {},
+        timeoutCallback: undefined,
+        allVarNames: [
           '0',
           '_ROOT_BRANCH_',
           'SECTION',
@@ -431,11 +431,11 @@ describe('exports/export.cases.spec', function() {
           '272',
           '273',
           '274'],
-        all_constraints: [
+        allConstraints: [
           {_class: '$constraint', name: 'reifier', varIndexes: [0, 1, 2], param: 'eq'},
         ],
-        constant_cache: {},
-        initial_domains: [
+        constantCache: {},
+        initialDomains: [
           [3, 3], // 8
           [4, 4], // 4
           [0, 1], // 0

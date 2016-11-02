@@ -134,7 +134,7 @@ let config = {
     '334',
     '335',
   ],
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=1': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=2': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
@@ -148,8 +148,8 @@ let config = {
     'width&n=10': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=11': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
   },
-  timeout_callback: undefined,
-  all_var_names: [
+  timeoutCallback: undefined,
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',
@@ -514,7 +514,7 @@ let config = {
     '361',
     '362',
     '363'],
-  all_constraints: [
+  allConstraints: [
     {
       _class: '$constraint',
       name: 'distinct',
@@ -2531,7 +2531,7 @@ let config = {
       varIndexes: [332, 323],
       param: undefined,
     }],
-  constant_cache: {
+  constantCache: {
     '0': 285,
     '1': 2,
     '2': 8,
@@ -2546,7 +2546,7 @@ let config = {
     '11': 55,
     '12': 6,
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [1, 1],
     [1, 1],

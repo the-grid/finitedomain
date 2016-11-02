@@ -5,9 +5,7 @@
 
 let config = {
   _class: '$config',
-  _var_names_trie: null,
-  _changedVarsTrie: null,
-  _propagationCycles: 0,
+  _varNamesTrie: null,
   varStratConfig: {
     _class: '$var_strat_config',
     type: 'naive',
@@ -20,7 +18,7 @@ let config = {
   targetedVars: [
     'ITEM_INDEX', 'ITEM_INDEX&n=1', 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=3', 'ITEM_INDEX&n=4', 'ITEM_INDEX&n=5', 'width', 'width&n=1', 'width&n=2', 'width&n=3', 'width&n=4', 'width&n=5', '_ROOT_BRANCH_', 'SECTION', 'color', 'post_type', 'state', 'SECTION&n=1', 'color&n=1', 'post_type&n=1', 'state&n=1', 'SECTION&n=2', 'color&n=2', 'post_type&n=2', 'state&n=2', 'SECTION&n=3', 'color&n=3', 'post_type&n=3', 'state&n=3', 'SECTION&n=4', 'color&n=4', 'post_type&n=4', 'state&n=4', 'SECTION&n=5', 'color&n=5', 'post_type&n=5', 'state&n=5', 'VERSE_INDEX', 'VERSE_INDEX&n=1', 'VERSE_INDEX&n=2', 'VERSE_INDEX&n=3', 'VERSE_INDEX&n=4', 'VERSE_INDEX&n=5', '119', '120', '121', '122', '123', '124', '125',
   ],
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=1': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=2': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
@@ -28,11 +26,11 @@ let config = {
     'width&n=4': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=5': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
   },
-  timeout_callback: undefined,
-  all_var_names: [
+  timeoutCallback: undefined,
+  allVarNames: [
     '0', '_ROOT_BRANCH_', 'SECTION', '3', '4', '5', '6', 'VERSE_INDEX', '8', 'ITEM_INDEX', '10', '11', 'width', 'color', 'post_type', 'state', 'SECTION&n=1', 'VERSE_INDEX&n=1', 'ITEM_INDEX&n=1', 'width&n=1', 'color&n=1', 'post_type&n=1', 'state&n=1', 'SECTION&n=2', 'VERSE_INDEX&n=2', 'ITEM_INDEX&n=2', 'width&n=2', 'color&n=2', 'post_type&n=2', 'state&n=2', 'SECTION&n=3', 'VERSE_INDEX&n=3', 'ITEM_INDEX&n=3', 'width&n=3', 'color&n=3', 'post_type&n=3', 'state&n=3', 'SECTION&n=4', 'VERSE_INDEX&n=4', 'ITEM_INDEX&n=4', 'width&n=4', 'color&n=4', 'post_type&n=4', 'state&n=4', 'SECTION&n=5', 'VERSE_INDEX&n=5', 'ITEM_INDEX&n=5', 'width&n=5', 'color&n=5', 'post_type&n=5', 'state&n=5', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '100', '101', '102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '121', '122', '123', '124', '125',
   ],
-  all_constraints: [
+  allConstraints: [
     { _class: '$constraint', name: 'distinct', varIndexes: [9, 18, 25, 32, 39, 46], param: undefined },
     { _class: '$constraint', name: 'reifier', varIndexes: [7, 4, 51], param: 'eq' },
     { _class: '$constraint', name: 'reifier', varIndexes: [9, 2, 52], param: 'eq' },
@@ -142,7 +140,7 @@ let config = {
     { _class: '$constraint', name: 'reifier', varIndexes: [33, 4, 123], param: 'eq' },
     { _class: '$constraint', name: 'reifier', varIndexes: [40, 4, 124], param: 'eq' },
     { _class: '$constraint', name: 'reifier', varIndexes: [47, 4, 125], param: 'eq' }],
-  constant_cache: {
+  constantCache: {
     '0': 119,
     '1': 2,
     '2': 3,
@@ -153,7 +151,7 @@ let config = {
     '7': 10,
     '8': 11,
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1], [1, 1], [1, 1], [2, 2], [3, 3], [5, 5], [6, 6], [1, 3, 5, 6], [4, 4], [1, 5], [7, 7], [8, 8], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [1, 1], [1, 6], [1, 6], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [1, 1], [1, 6], [1, 6], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [1, 1], [1, 6], [1, 6], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [1, 1], [1, 6], [1, 6], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [1, 1], [1, 2, 4, 6], [2, 6], [1, 1, 3, 8], [1, 2], [1, 2], [1, 2], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 0], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1],
   ],
   _propagators: null,

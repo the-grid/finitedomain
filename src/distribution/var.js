@@ -130,17 +130,17 @@ function distribution_varByMarkov(space, config, varIndex1, varIndex2, varStratC
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let distOptions = config.var_dist_options;
+  let distOptions = config.varDistOptions;
 
   // v1 is only, but if so always, better than v2 if v1 is a markov var
 
-  let varName1 = config.all_var_names[varIndex1];
+  let varName1 = config.allVarNames[varIndex1];
   ASSERT(typeof varName1 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   if (distOptions[varName1] && distOptions[varName1].valtype === 'markov') {
     return BETTER;
   }
 
-  let varName2 = config.all_var_names[varIndex2];
+  let varName2 = config.allVarNames[varIndex2];
   ASSERT(typeof varName2 === 'string', 'VAR_NAME_SHOULD_BE_STRING');
   if (distOptions[varName2] && distOptions[varName2].valtype === 'markov') {
     return WORSE;

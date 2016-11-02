@@ -231,7 +231,7 @@ let config = {
     '362',
     '363',
   ],
-  var_dist_options: {
+  varDistOptions: {
     CLUSTER: {list: [2, 1, 3], valtype: 'list'},
     CLUSTER_START: {list: [1, 0], valtype: 'list'},
     CLUSTER_END: {list: [1, 0], valtype: 'list'},
@@ -257,8 +257,8 @@ let config = {
     'CLUSTER_END&n=5': {list: [1, 0], valtype: 'list'},
     'item&n=5': {list: [3, 1, 2, 4, 5, 6], valtype: 'list'},
   },
-  timeout_callback: undefined,
-  all_var_names: [
+  timeoutCallback: undefined,
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',
@@ -660,7 +660,7 @@ let config = {
     '398',
     '399',
   ],
-  all_constraints: [
+  allConstraints: [
     {_class: '$constraint', name: 'eq', varIndexes: [1, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [2, 0], param: undefined},
     {_class: '$constraint', name: 'gte', varIndexes: [4, 0], param: undefined},
@@ -1059,7 +1059,7 @@ let config = {
     {_class: '$constraint', name: 'reifier', varIndexes: [374, 0, 375], param: 'eq'},
     {_class: '$constraint', name: 'gte', varIndexes: [375, 97], param: undefined},
   ],
-  constant_cache: {
+  constantCache: {
     '0': '67',
     '1': '0',
     '2': '6',
@@ -1069,7 +1069,7 @@ let config = {
     '6': '12',
     '9999': '266',
   },
-  initial_domains: [
+  initialDomains: [
     [1, 1],
     [0, 1],
     [1, 1],

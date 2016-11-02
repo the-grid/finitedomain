@@ -15,9 +15,7 @@ import {
   THROW,
 } from './helpers';
 import {
-  TRIE_EMPTY,
   TRIE_KEY_NOT_FOUND,
-  TRIE_NODE_SIZE,
 
   trie_add,
   trie_create,
@@ -73,26 +71,23 @@ import distribution_getDefaults from './distribution/defaults';
 function config_create() {
   let config = {
     _class: '$config',
+    // names of all vars in this search tree
+    allVarNames: [],
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
-    _var_names_trie: trie_create(),
-    _changedVarsTrie: undefined,
-    _propagationCycles: 0, // current step value, needed for "fencing" config._changedVarsTrie
+    _varNamesTrie: trie_create(),
 
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
     targetedVars: 'all',
-    var_dist_options: {},
-    timeout_callback: undefined,
+    varDistOptions: {},
+    timeoutCallback: undefined,
 
-    // names of all vars in this search tree
-    // optimizes loops because `for-in` is super slow
-    all_var_names: [],
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
-    all_constraints: [],
+    allConstraints: [],
 
-    constant_cache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
-    initial_domains: [], // $nordom[] : initial domains for each var, maps 1:1 to all_var_names
+    constantCache: {}, // <value:varIndex>, generally anonymous vars but pretty much first come first serve
+    initialDomains: [], // $nordom[] : initial domains for each var, maps 1:1 to allVarNames
 
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
@@ -111,35 +106,32 @@ function config_clone(config, newDomains) {
     varStratConfig,
     valueStratName,
     targetedVars,
-    var_dist_options,
-    timeout_callback,
-    constant_cache,
-    all_var_names,
-    all_constraints,
-    initial_domains,
+    varDistOptions,
+    timeoutCallback,
+    constantCache,
+    allVarNames,
+    allConstraints,
+    initialDomains,
     _propagators,
     _varToPropagators,
     _constrainedAway,
-    _propagationCycles,
   } = config;
 
   let clone = {
     _class: '$config',
-    _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
-    _changedVarsTrie: undefined,
-    _propagationCycles,
+    _varNamesTrie: trie_create(allVarNames), // just create a new trie with (should be) the same names
 
     varStratConfig,
     valueStratName,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
-    var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
-    timeout_callback, // by reference because it's a function if passed on...
+    varDistOptions: JSON.parse(JSON.stringify(varDistOptions)),  // TOFIX: clone this more efficiently
+    timeoutCallback, // by reference because it's a function if passed on...
 
-    constant_cache, // is by reference ok?
+    constantCache, // is by reference ok?
 
-    all_var_names: all_var_names.slice(0),
-    all_constraints: all_constraints.slice(0),
-    initial_domains: newDomains ? newDomains.map(domain_toSmallest) : initial_domains, // <varName:domain>
+    allVarNames: allVarNames.slice(0),
+    allConstraints: allConstraints.slice(0),
+    initialDomains: newDomains ? newDomains.map(domain_toSmallest) : initialDomains, // <varName:domain>
 
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
@@ -220,8 +212,8 @@ function config_addVarAnonConstant(config, value) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
 
-  if (config.constant_cache[value] !== undefined) {
-    return config.constant_cache[value];
+  if (config.constantCache[value] !== undefined) {
+    return config.constantCache[value];
   }
 
   return config_addVarConstant(config, true, value);
@@ -244,7 +236,7 @@ function config_addVarConstant(config, varName, value) {
 
 /**
  * @param {$config} config
- * @param {string|true} varName If true, the varname will be the same as the index it gets on all_var_names
+ * @param {string|true} varName If true, the varname will be the same as the index it gets on allVarNames
  * @param {$nordom} domain
  * @returns {number} varIndex
  */
@@ -256,7 +248,7 @@ function _config_addVar(config, varName, domain) {
   ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;
 
   // note: 100 is an arbitrary number but since large sets are probably
@@ -272,16 +264,16 @@ function _config_addVar(config, varName, domain) {
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
   if (varIndex < 100) {
-    if (trie_has(config._var_names_trie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
+    if (trie_has(config._varNamesTrie, varName)) THROW('Var name already part of this config. Probably a bug?', varName);
   }
 
   let solvedTo = domain_getValue(domain);
-  if (solvedTo !== NOT_FOUND && !config.constant_cache[solvedTo]) config.constant_cache[solvedTo] = varIndex;
+  if (solvedTo !== NOT_FOUND && !config.constantCache[solvedTo]) config.constantCache[solvedTo] = varIndex;
 
   ASSERT_NORDOM(domain, true, domain__debug);
-  config.initial_domains[varIndex] = domain;
-  config.all_var_names.push(varName);
-  trie_add(config._var_names_trie, varName, varIndex);
+  config.initialDomains[varIndex] = domain;
+  config.allVarNames.push(varName);
+  trie_add(config._varNamesTrie, varName, varIndex);
 
   return varIndex;
 }
@@ -383,9 +375,9 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
     case 'varValueStrat':
       // override all the specific strategy parameters for one variable
       ASSERT(typeof optionTarget === 'string', 'expecting a name');
-      if (!config.var_dist_options) config.var_dist_options = {};
-      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet');
-      config.var_dist_options[optionTarget] = optionValue;
+      if (!config.varDistOptions) config.varDistOptions = {};
+      ASSERT(!config.varDistOptions[optionTarget], 'should not be known yet');
+      config.varDistOptions[optionTarget] = optionValue;
 
       if (optionValue.valtype === 'markov') {
         let matrix = optionValue.matrix;
@@ -410,20 +402,20 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
               THROW('row.boolVarName, if it exists, should be the name of a var or a func that returns that name, was/got: ' + boolFuncOrName + ' (' + typeof boolFuncOrName + ')');
             }
             // store the var index
-            row._boolVarIndex = trie_get(config._var_names_trie, boolFuncOrName);
+            row._boolVarIndex = trie_get(config._varNamesTrie, boolFuncOrName);
           }
         }
       }
 
       break;
 
-    case 'timeout_callback':
+    case 'timeoutCallback':
       // A function that returns true if the current search should stop
       // Can be called multiple times after the search is stopped, should
       // keep returning false (or assume an uncertain outcome).
       // The function is called after the first batch of propagators is
       // called so it won't immediately stop. But it stops quickly.
-      config.timeout_callback = optionValue;
+      config.timeoutCallback = optionValue;
       break;
 
     case 'var': return THROW('REMOVED. Replace `var` with `varStrategy`');
@@ -458,7 +450,7 @@ function config_setOptions(config, options) {
     config_setOption(config, 'varValueStrat', options.varStratOverride, options.varStratOverrideName);
   }
   if (options.varValueStrat) config_setOption(config, 'varValueStrat', options.varValueStrat, options.varStratOverrideName);
-  if (options.timeout_callback) config_setOption(config, 'timeout_callback', options.timeout_callback);
+  if (options.timeoutCallback) config_setOption(config, 'timeoutCallback', options.timeoutCallback);
 }
 
 /**
@@ -483,9 +475,9 @@ function config_generateVars(config, space) {
 
   let vardoms = space.vardoms;
   ASSERT(vardoms, 'expecting var domains');
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   ASSERT(initialDomains, 'config should have initial vars');
-  let allVarNames = config.all_var_names;
+  let allVarNames = config.allVarNames;
   ASSERT(allVarNames, 'config should have a list of vars');
 
   for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
@@ -504,9 +496,9 @@ function config_generateVars(config, space) {
  * @param {$config} config
  */
 function config_populateVarPropHash(config) {
-  let hash = new Array(config.all_var_names.length);
+  let hash = new Array(config.allVarNames.length);
   let propagators = config._propagators;
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   for (let propagatorIndex = 0, plen = propagators.length; propagatorIndex < plen; ++propagatorIndex) {
     let propagator = propagators[propagatorIndex];
     _config_addVarConditionally(propagator.index1, initialDomains, hash, propagatorIndex);
@@ -574,7 +566,7 @@ function config_addConstraint(config, name, varNames, param) {
       let sumOrProduct = name === 'product' || name === 'sum';
       if (sumOrProduct && varNames.length === 0) {
         // no variables means the sum/product is zero. not sure about the product though. nothing times nothing = 0?
-        return config.all_var_names[config_addVarAnonConstant(config, 0)];
+        return config.allVarNames[config_addVarAnonConstant(config, 0)];
       }
 
       resultVarName = sumOrProduct ? param : varNames[2];
@@ -583,15 +575,14 @@ function config_addConstraint(config, name, varNames, param) {
       if (resultVarName === undefined) {
         if (forceBool) resultVarIndex = config_addVarAnonRange(config, 0, 1);
         else resultVarIndex = config_addVarAnonNothing(config);
-        resultVarName = config.all_var_names[resultVarIndex];
+        resultVarName = config.allVarNames[resultVarIndex];
       } else if (typeof resultVarName === 'number') {
         resultVarIndex = config_addVarAnonConstant(config, resultVarName);
-        resultVarName = config.all_var_names[resultVarIndex];
+        resultVarName = config.allVarNames[resultVarIndex];
       } else if (typeof resultVarName !== 'string') {
         THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
       } else {
-        // TODO: use the trie?
-        resultVarIndex = trie_get(config._var_names_trie, resultVarName);
+        resultVarIndex = trie_get(config._varNamesTrie, resultVarName);
         if (resultVarIndex < 0) THROW('Vars must be defined before using them');
       }
 
@@ -602,7 +593,7 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varNames.length - (sumOrProduct ? 0 : 1); i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.all_var_names[varIndex];
+          varNames[i] = config.allVarNames[varIndex];
         }
       }
 
@@ -622,7 +613,7 @@ function config_addConstraint(config, name, varNames, param) {
       for (let i = 0, n = varNames.length; i < n; ++i) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.all_var_names[varIndex];
+          varNames[i] = config.allVarNames[varIndex];
           resultVarName = varNames[i];
         }
       }
@@ -636,13 +627,13 @@ function config_addConstraint(config, name, varNames, param) {
 
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._var_names_trie, varNames[i]);
+    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
     ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
     varIndexes[i] = varIndex;
   }
 
   if (name === 'sum') { // TODO: same for product or why not?
-    let initialDomains = config.initial_domains;
+    let initialDomains = config.initialDomains;
 
     // limit result var to the min/max possible sum
     let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
@@ -679,7 +670,7 @@ function config_addConstraint(config, name, varNames, param) {
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
     let constraint = constraint_create(name, varIndexes, param);
-    config.all_constraints.push(constraint);
+    config.allConstraints.push(constraint);
   }
 
   return resultVarName;
@@ -717,7 +708,7 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
   return false;
 }
 function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
 
@@ -757,7 +748,7 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
 
@@ -795,7 +786,7 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let a = initialDomains[varIndexLeft];
@@ -812,7 +803,7 @@ function _config_solvedAtCompileTimeEq(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let v = domain_getValue(initialDomains[varIndexLeft]);
@@ -830,7 +821,7 @@ function _config_solvedAtCompileTimeNeq(config, constraintName, varIndexes) {
   return false;
 }
 function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, opName) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexLeft = varIndexes[0];
   let varIndexRight = varIndexes[1];
   let varIndexResult = varIndexes[2];
@@ -894,12 +885,12 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
   return false;
 }
 function _config_eliminate(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, value) {
-  config.initial_domains[resultVarIndex] = domain_removeValue(resultDomain, value);
+  config.initialDomains[resultVarIndex] = domain_removeValue(resultDomain, value);
   config._constrainedAway.push(leftVarIndex, rightVarIndex, resultVarIndex);
   return true;
 }
 function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
   let varIndexResult = varIndexes[2];
 
   let bool = false;
@@ -931,7 +922,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
   return true;
 }
 function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndex, value, result, domain1, domain2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
 
   let domain = initialDomains[varIndex];
   switch (opName) {
@@ -969,7 +960,7 @@ function _config_solvedAtCompileTimeReifierLeft(config, opName, varIndex, value,
   return true;
 }
 function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value, result, domain1, domain2) {
-  let initialDomains = config.initial_domains;
+  let initialDomains = config.initialDomains;
 
   let domain = initialDomains[varIndex];
   switch (opName) {
@@ -1010,9 +1001,9 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways
-    let domain = domain_intersection(config.initial_domains[resultIndex], config.initial_domains[varIndexes[0]]);
-    config.initial_domains[resultIndex] = domain;
-    config.initial_domains[varIndexes[0]] = domain;
+    let domain = domain_intersection(config.initialDomains[resultIndex], config.initialDomains[varIndexes[0]]);
+    config.initialDomains[resultIndex] = domain;
+    config.initialDomains[varIndexes[0]] = domain;
     if (domain_isSolved(domain)) {
       config._constrainedAway.push(varIndexes[0], resultIndex);
       return true;
@@ -1030,13 +1021,13 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
  */
 function config_generatePropagators(config) {
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
-  let constraints = config.all_constraints;
+  let constraints = config.allConstraints;
   config._propagators = [];
   for (let i = 0, n = constraints.length; i < n; ++i) {
     let constraint = constraints[i];
     if (constraint.varNames) {
       console.warn('saw constraint.varNames, converting to varIndexes, log out result and update test accordingly');
-      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._var_names_trie, name));
+      constraint.varIndexes = constraint.varNames.map(name => trie_get(config._varNamesTrie, name));
       let p = constraint.param;
       delete constraint.param;
       delete constraint.varNames;
@@ -1117,7 +1108,7 @@ function config_populateVarStrategyListHash(config) {
       let obj = {};
       let list = vsc.priorityByName;
       for (let i = 0, len = list.length; i < len; ++i) {
-        let varIndex = trie_get(config._var_names_trie, list[i]);
+        let varIndex = trie_get(config._varNamesTrie, list[i]);
         ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'VARS_IN_PRIO_LIST_SHOULD_BE_KNOWN_NOW');
         obj[varIndex] = len - i; // never 0, offset at 1. higher value is higher prio
       }
@@ -1135,24 +1126,17 @@ function config_populateVarStrategyListHash(config) {
  * @param {$space} space
  */
 function config_initForSpace(config, space) {
-  if (!config._var_names_trie) {
-    config._var_names_trie = trie_create(config.all_var_names);
+  if (!config._varNamesTrie) {
+    config._varNamesTrie = trie_create(config.allVarNames);
   }
-  // we know the max number of var names used in this search so we
-  // know the number of indexes the changevars trie may need to hash
-  // worst case. set the size accordingly. after some benchmarking
-  // it turns out these tries use about 1.1 node per index so just
-  // reserve that many cells. this saves some memcopies when growing.
-  let cells = Math.ceil(config.all_var_names.length * TRIE_NODE_SIZE * 1.1);
-  config._changedVarsTrie = trie_create(TRIE_EMPTY, cells);
-  config._propagationCycles = 0;
 
-  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+
+  ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
   config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
-  ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
+  ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
   ASSERT(config._varToPropagators, 'should have generated hash');
 }

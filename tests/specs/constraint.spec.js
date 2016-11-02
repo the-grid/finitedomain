@@ -90,7 +90,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 
@@ -148,7 +148,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 
@@ -236,7 +236,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 
@@ -324,7 +324,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 
@@ -412,7 +412,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 
@@ -500,7 +500,7 @@ describe('src/constraint.spec', function() {
             let solution = solver.solve({});
 
             expect(solution).to.eql(out);
-            expect(solver.config.all_constraints.length, 'constraint count').to.eql(0);
+            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
           });
         }
 

@@ -8,13 +8,13 @@ let config = {
   },
   valueStratName: 'min',
   targetedVars: 'all',
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [4], valtype: 'list'},
     'width&n=1': {list: [4], valtype: 'list'},
     'width&n=2': {list: [4], valtype: 'list'},
   },
-  timeout_callback: undefined,
-  all_var_names: [
+  timeoutCallback: undefined,
+  allVarNames: [
     '0',
     '_ROOT_BRANCH_',
     'SECTION',
@@ -232,7 +232,7 @@ let config = {
     '214',
     '215',
   ],
-  all_constraints: [
+  allConstraints: [
     {_class: '$constraint', name: 'reifier', varIndexes: [12, 4, 164], param: 'eq'},
     {_class: '$constraint', name: 'reifier', varIndexes: [19, 4, 165], param: 'eq'},
     {_class: '$constraint', name: 'reifier', varIndexes: [26, 4, 166], param: 'eq'},
@@ -247,8 +247,8 @@ let config = {
     {_class: '$constraint', name: 'reifier', varIndexes: [209, 214, 215], param: 'eq'},
     {_class: '$constraint', name: 'neq', varIndexes: [211, 215], param: undefined},
   ],
-  constant_cache: {},
-  initial_domains: [
+  constantCache: {},
+  initialDomains: [
     [1, 1],
     [0, 0],
     [1, 1],

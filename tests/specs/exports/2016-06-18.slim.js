@@ -8,7 +8,7 @@ let config = {
   },
   valueStratName: 'min',
   targetedVars: 'all',
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [4], valtype: 'list'},
     'width&n=1': {list: [4], valtype: 'list'},
     'width&n=2': {list: [4], valtype: 'list'},

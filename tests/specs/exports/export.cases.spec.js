@@ -40,7 +40,7 @@ describe('exports/export.cases.spec', function() {
       },
       valueStratName: 'min',
       targetedVars: 'all',
-      var_dist_options: {},
+      varDistOptions: {},
       timeout_callback: undefined,
       all_var_names: ['0', '_ROOT_BRANCH_', '2', 'align', '4', 'text_align', 'size', 'cols', '8', '9', '10', '11'],
       all_constraints: [
@@ -153,7 +153,7 @@ describe('exports/export.cases.spec', function() {
         nextVarStrat: 'naive',
         valueStratName: 'min',
         targetedVars: 'all',
-        var_dist_options: {},
+        varDistOptions: {},
         timeout_callback: undefined,
         all_var_names: [
           '0',

@@ -130,7 +130,7 @@ function distribution_varByMarkov(space, config, varIndex1, varIndex2, varStratC
   ASSERT(typeof varIndex1 === 'number', 'INDEX_SHOULD_BE_NUMBER');
   ASSERT(typeof varIndex2 === 'number', 'INDEX_SHOULD_BE_NUMBER');
 
-  let distOptions = config.var_dist_options;
+  let distOptions = config.varDistOptions;
 
   // v1 is only, but if so always, better than v2 if v1 is a markov var
 

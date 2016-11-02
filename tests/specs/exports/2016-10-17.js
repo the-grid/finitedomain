@@ -18,7 +18,7 @@ let config = {
   targetedVars: [
     'ITEM_INDEX', 'ITEM_INDEX&n=1', 'ITEM_INDEX&n=2', 'ITEM_INDEX&n=3', 'ITEM_INDEX&n=4', 'ITEM_INDEX&n=5', 'width', 'width&n=1', 'width&n=2', 'width&n=3', 'width&n=4', 'width&n=5', '_ROOT_BRANCH_', 'SECTION', 'color', 'post_type', 'state', 'SECTION&n=1', 'color&n=1', 'post_type&n=1', 'state&n=1', 'SECTION&n=2', 'color&n=2', 'post_type&n=2', 'state&n=2', 'SECTION&n=3', 'color&n=3', 'post_type&n=3', 'state&n=3', 'SECTION&n=4', 'color&n=4', 'post_type&n=4', 'state&n=4', 'SECTION&n=5', 'color&n=5', 'post_type&n=5', 'state&n=5', 'VERSE_INDEX', 'VERSE_INDEX&n=1', 'VERSE_INDEX&n=2', 'VERSE_INDEX&n=3', 'VERSE_INDEX&n=4', 'VERSE_INDEX&n=5', '119', '120', '121', '122', '123', '124', '125',
   ],
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=1': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=2': {list: [3, 1, 2, 4, 5, 6, 7, 8], valtype: 'list'},

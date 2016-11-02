@@ -231,7 +231,7 @@ let config = {
     '362',
     '363',
   ],
-  var_dist_options: {
+  varDistOptions: {
     CLUSTER: {list: [2, 1, 3], valtype: 'list'},
     CLUSTER_START: {list: [1, 0], valtype: 'list'},
     CLUSTER_END: {list: [1, 0], valtype: 'list'},

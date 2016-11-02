@@ -561,7 +561,7 @@ class Solver {
     clone.all_var_names = '<removed>';
     clone.all_constraints = '<removed>';
     clone.initial_domains = '<removed>';
-    clone.var_dist_options = '<removed>';
+    clone.varDistOptions = '<removed>';
     if (targeted !== 'all') clone.targetedVars = '<removed>';
 
     console.log('\n## _debug:\n');

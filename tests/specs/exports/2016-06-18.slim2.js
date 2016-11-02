@@ -8,7 +8,7 @@ let config = {
   },
   valueStratName: 'min',
   targetedVars: 'all',
-  var_dist_options: {},
+  varDistOptions: {},
   timeout_callback: undefined,
   all_var_names: [
     '0',

@@ -1387,7 +1387,7 @@ describe('src/config.spec', function() {
       let config = config_create();
       config_setOption(config, 'varValueStrat', {valtype: 'B'}, 'A');
 
-      expect(config.var_dist_options).to.eql({A: {valtype: 'B'}});
+      expect(config.varDistOptions).to.eql({A: {valtype: 'B'}});
     });
 
     it('DEPRECATED; remove once actually obsolete', function() {
@@ -1409,8 +1409,8 @@ describe('src/config.spec', function() {
         'A': 'foobar',
       });
 
-      expect(config.var_dist_options).to.be.an('object');
-      expect(config.var_dist_options.A).to.equal('foobar');
+      expect(config.varDistOptions).to.be.an('object');
+      expect(config.varDistOptions.A).to.equal('foobar');
     });
 
     it('should override value strats per var', function() {
@@ -1419,9 +1419,9 @@ describe('src/config.spec', function() {
         'strat': 'foobar',
       }, 'A');
 
-      expect(config.var_dist_options).to.be.an('object');
-      expect(config.var_dist_options.A).to.be.an('object');
-      expect(config.var_dist_options.A.strat).to.equal('foobar');
+      expect(config.varDistOptions).to.be.an('object');
+      expect(config.varDistOptions.A).to.be.an('object');
+      expect(config.varDistOptions.A.strat).to.equal('foobar');
     });
 
     it('should throw for setting it twice', function() {
@@ -1483,14 +1483,14 @@ describe('src/config.spec', function() {
 
     it('should override the var-specific strategies for multiple vars', function() {
       let config = config_create();
-      expect(config.var_dist_options).to.eql({});
+      expect(config.varDistOptions).to.eql({});
 
       config_setOptions(config, {varStratOverrides: {
         'A': 'something for a',
         'B': 'something for b',
       }});
 
-      expect(config.var_dist_options).to.eql({
+      expect(config.varDistOptions).to.eql({
         'A': 'something for a',
         'B': 'something for b',
       });
@@ -1498,22 +1498,22 @@ describe('src/config.spec', function() {
 
     it('should override the var-specific strategy for one var', function() {
       let config = config_create();
-      expect(config.var_dist_options).to.eql({});
+      expect(config.varDistOptions).to.eql({});
 
       config_setOptions(config, {varValueStrat: 'max', varStratOverrideName: 'A'});
 
-      expect(config.var_dist_options).to.eql({
+      expect(config.varDistOptions).to.eql({
         'A': 'max',
       });
     });
 
     it('DEPRECATED; remove once obsoleted', function() {
       let config = config_create();
-      expect(config.var_dist_options).to.eql({});
+      expect(config.varDistOptions).to.eql({});
 
       config_setOptions(config, {varStratOverride: 'max', varStratOverrideName: 'A'});
 
-      expect(config.var_dist_options).to.eql({
+      expect(config.varDistOptions).to.eql({
         'A': 'max',
       });
     });

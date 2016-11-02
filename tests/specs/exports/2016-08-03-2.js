@@ -134,7 +134,7 @@ let config = {
     '334',
     '335',
   ],
-  var_dist_options: {
+  varDistOptions: {
     width: {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=1': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},
     'width&n=2': {list: [2, 3, 1, 4, 5, 6, 7, 8], valtype: 'list'},

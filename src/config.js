@@ -79,7 +79,7 @@ function config_create() {
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
     targetedVars: 'all',
-    var_dist_options: {},
+    varDistOptions: {},
     timeout_callback: undefined,
 
     // the propagators are generated from the constraints when a space
@@ -106,7 +106,7 @@ function config_clone(config, newDomains) {
     varStratConfig,
     valueStratName,
     targetedVars,
-    var_dist_options,
+    varDistOptions,
     timeout_callback,
     constant_cache,
     all_var_names,
@@ -124,7 +124,7 @@ function config_clone(config, newDomains) {
     varStratConfig,
     valueStratName,
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
-    var_dist_options: JSON.parse(JSON.stringify(var_dist_options)),  // TOFIX: clone this more efficiently
+    varDistOptions: JSON.parse(JSON.stringify(varDistOptions)),  // TOFIX: clone this more efficiently
     timeout_callback, // by reference because it's a function if passed on...
 
     constant_cache, // is by reference ok?
@@ -375,9 +375,9 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
     case 'varValueStrat':
       // override all the specific strategy parameters for one variable
       ASSERT(typeof optionTarget === 'string', 'expecting a name');
-      if (!config.var_dist_options) config.var_dist_options = {};
-      ASSERT(!config.var_dist_options[optionTarget], 'should not be known yet');
-      config.var_dist_options[optionTarget] = optionValue;
+      if (!config.varDistOptions) config.varDistOptions = {};
+      ASSERT(!config.varDistOptions[optionTarget], 'should not be known yet');
+      config.varDistOptions[optionTarget] = optionValue;
 
       if (optionValue.valtype === 'markov') {
         let matrix = optionValue.matrix;

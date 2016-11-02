@@ -9,9 +9,12 @@ import {
 } from './helpers';
 
 import {
+  TRIE_EMPTY,
   TRIE_KEY_NOT_FOUND,
+  TRIE_NODE_SIZE,
 
   trie_addNum,
+  trie_create,
   trie_get,
   trie_getNum,
 } from './trie';
@@ -111,7 +114,7 @@ function space_toConfig(space, config) {
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {number[]} unsolvedVarIndexes
+ * @param {number[]|undefined} unsolvedVarIndexes
  * @param {number} _depth
  * @param {number} _child
  * @param {string} _path
@@ -239,8 +242,11 @@ function space_propagate(space, config) {
   let propagators = config._propagators;
 
   // "cycle" is one step, "epoch" all steps until stable (but not solved per se)
-  let cycles = config._propagationCycles;
-  let changedTrie = config._changedVarsTrie; // track changed vars per cycle, epoch. persists across propagate calls for efficiency reasons.
+
+  // worst case all unsolved vars change. but in general it's about 30% so run with that
+  let cells = Math.ceil(space._unsolved.length * TRIE_NODE_SIZE * 0.3);
+  let changedTrie = trie_create(TRIE_EMPTY, cells); // track changed vars per cycle in this epoch
+  let cycles = 0;
 
   ASSERT(typeof cycles === 'number', 'cycles is a number?');
   ASSERT(changedTrie._class === '$trie', 'trie is a trie?');
@@ -254,13 +260,11 @@ function space_propagate(space, config) {
     // very first cycle of first epoch of the search. all propagators must be visited at least once now.
     let rejected = space_propagateAll(space, config, propagators, changedVars, changedTrie, ++cycles);
     if (rejected) {
-      config._propagationCycles = cycles;
       return true;
     }
   }
 
   if (space_abortSearch(space, config)) {
-    config._propagationCycles = cycles;
     return true;
   }
 
@@ -282,7 +286,6 @@ function space_propagate(space, config) {
     minimal = 2; // see space_propagateChanges
   }
 
-  config._propagationCycles = cycles;
   return returnValue;
 }
 

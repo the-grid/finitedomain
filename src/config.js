@@ -15,9 +15,7 @@ import {
   THROW,
 } from './helpers';
 import {
-  TRIE_EMPTY,
   TRIE_KEY_NOT_FOUND,
-  TRIE_NODE_SIZE,
 
   trie_add,
   trie_create,
@@ -75,8 +73,6 @@ function config_create() {
     _class: '$config',
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _var_names_trie: trie_create(),
-    _changedVarsTrie: undefined,
-    _propagationCycles: 0, // current step value, needed for "fencing" config._changedVarsTrie
 
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
@@ -120,14 +116,11 @@ function config_clone(config, newDomains) {
     _propagators,
     _varToPropagators,
     _constrainedAway,
-    _propagationCycles,
   } = config;
 
   let clone = {
     _class: '$config',
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
-    _changedVarsTrie: undefined,
-    _propagationCycles,
 
     varStratConfig,
     valueStratName,
@@ -1138,14 +1131,7 @@ function config_initForSpace(config, space) {
   if (!config._var_names_trie) {
     config._var_names_trie = trie_create(config.all_var_names);
   }
-  // we know the max number of var names used in this search so we
-  // know the number of indexes the changevars trie may need to hash
-  // worst case. set the size accordingly. after some benchmarking
-  // it turns out these tries use about 1.1 node per index so just
-  // reserve that many cells. this saves some memcopies when growing.
-  let cells = Math.ceil(config.all_var_names.length * TRIE_NODE_SIZE * 1.1);
-  config._changedVarsTrie = trie_create(TRIE_EMPTY, cells);
-  config._propagationCycles = 0;
+
 
   ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);
   config_generatePropagators(config);

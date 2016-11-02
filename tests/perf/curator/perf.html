@@ -5,8 +5,12 @@
   The magic happens in your console.<br>
   Note that multiple solutions doesn't mean running from scratch. Solutions beyond the first build on the first solution.<br>
   Run <code>grunt distperf</code> for a perf build. You can also run <code>grunt distbug</code> for debugging.<br>
+  Add <code><a href="?wait=1">?wait=1</a></code> to the code to have the test wait five seconds before starting. Allows you to press buttons for metrics.<br>
+  Add <code><a href="?perf=0">?perf=0</a></code> to NOT call <code>console.profile</code>, which should make the thing run a little faster.<br>
+  These can be <a href="?wait=1&perf=0">combined</a>...<br>
+  <hr>
 
-  <a href="https://github.com/qfox/heatfiler">Heatfiler</a> instructions (assumes heatfiler runs on same domain as finitedomain files, just clone it):
+  <a href="https://github.com/qfox/heatfiler">Heatfiler</a> instructions (assumes heatfiler runs on same domain as finitedomain files, just clone the repo and run it):
   <pre>
 @ console.log('starting now...');
 @ var exports = {};

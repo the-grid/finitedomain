@@ -17,15 +17,6 @@ import {
 } from './trie';
 
 import {
-  front_addNode,
-  front_addCell,
-  _front_getCell,
-  front_getSizeOf,
-  _front_getSizeOf,
-  front_setSizeOf,
-} from './front';
-
-import {
   config_clone,
   config_initForSpace,
 } from './config';
@@ -54,7 +45,7 @@ function space_createRoot() {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew([], 0, _depth, _child, _path);
+  return space_createNew([], undefined, 0, _depth, _child, _path);
 }
 
 /**
@@ -79,7 +70,7 @@ function space_createClone(space) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
 
   let vardomsCopy = space.vardoms.slice(0);
-  let frontNodeIndex = space.frontNodeIndex;
+  let unsolvedVarIndexes = space._unsolved.slice(0);
 
   // only for debugging
   let _depth;
@@ -90,7 +81,7 @@ function space_createClone(space) {
   ASSERT(!void (_child = space._child_count++));
   ASSERT(!void (_path = space._path));
 
-  return space_createNew(vardomsCopy, frontNodeIndex, _depth, _child, _path);
+  return space_createNew(vardomsCopy, unsolvedVarIndexes, _depth, _child, _path);
 }
 
 /**
@@ -113,28 +104,27 @@ function space_toConfig(space, config) {
     newDomains[i] = domain_toStr(domain);
   }
 
-  return config_clone(config, newDomains);
+  return config_clone(config, undefined, newDomains);
 }
 
 /**
  * Concept of a space that holds config, some named domains (referred to as "vars"), and some propagators
  *
  * @param {$domain[]} vardoms Maps 1:1 to config.all_var_names
- * @param {number} frontNodeIndex
+ * @param {number[]} unsolvedVarIndexes
  * @param {number} _depth
  * @param {number} _child
  * @param {string} _path
  * @returns {$space}
  */
-function space_createNew(vardoms, frontNodeIndex, _depth, _child, _path) {
+function space_createNew(vardoms, unsolvedVarIndexes, _depth, _child, _path) {
   ASSERT(typeof vardoms === 'object' && vardoms, 'vars should be an object', vardoms);
 
   let space = {
     _class: '$space',
 
     vardoms,
-
-    frontNodeIndex,
+    _unsolved: unsolvedVarIndexes,
 
     next_distribution_choice: 0,
     updatedVarIndex: -1, // the varIndex that was updated when creating this space (-1 for root)
@@ -161,13 +151,11 @@ function space_initFromConfig(space, config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   config_initForSpace(config, space);
-  initializeUnsolvedVars(space, config);
+  space_initializeUnsolvedVars(space, config);
 }
 
 /**
  * Return the current number of unsolved vars for given space.
- * Due to the nature of how we use a $front this is not reliable
- * retroactively.
  * This is only used for testing, prevents leaking internals into tests
  *
  * @param {$space} space
@@ -178,7 +166,7 @@ function space_getUnsolvedVarCount(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  return front_getSizeOf(config._front, space.frontNodeIndex);
+  return space._unsolved.length;
 }
 /**
  * Only use this for testing or debugging as it creates a fresh array
@@ -192,36 +180,31 @@ function _space_getUnsolvedVarNamesFresh(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  let nodeIndex = space.frontNodeIndex;
-  // fugly! :)
-  let buf = config._front.buffer;
-  let sub = [].slice.call(buf, nodeIndex + 1, nodeIndex + 1 + buf[nodeIndex]); // or .subArray() or something like that... or even toArray?
-  return sub.map(index => config.all_var_names[index]);
+  return space._unsolved.map(varIndex => config.all_var_names[varIndex]);
 }
 
 /**
- * Initialized the front with unsolved variables. These are either the explicitly
+ * Initialized the list of unsolved variables. These are either the explicitly
  * targeted variables, or any unsolved variables if none were explicitly targeted.
  *
  * @param {$space} space
  * @param {$config} config
  */
-function initializeUnsolvedVars(space, config) {
+function space_initializeUnsolvedVars(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let targetVarNames = config.targetedVars;
   let vardoms = space.vardoms;
 
-  let unsolvedFront = config._front;
-  let nodeIndexStart = space.frontNodeIndex;
-  let cellIndex = 0;
+  let unsolvedVarIndexes = [];
+  space._unsolved = unsolvedVarIndexes;
 
   if (targetVarNames === 'all') {
     for (let varIndex = 0, n = vardoms.length; varIndex < n; ++varIndex) {
       if (!domain_isSolved(vardoms[varIndex])) {
         if (config._varToPropagators[varIndex] || (config._constrainedAway && config._constrainedAway.indexOf(varIndex) >= 0)) {
-          front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
+          unsolvedVarIndexes.push(varIndex);
         }
       }
     }
@@ -232,12 +215,10 @@ function initializeUnsolvedVars(space, config) {
       let varIndex = trie_get(varNamesTrie, varName);
       if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
       if (!domain_isSolved(vardoms[varIndex])) {
-        front_addCell(unsolvedFront, nodeIndexStart, cellIndex++, varIndex);
+        unsolvedVarIndexes.push(varIndex);
       }
     }
   }
-
-  front_setSizeOf(unsolvedFront, nodeIndexStart, cellIndex);
 }
 
 /**
@@ -442,25 +423,19 @@ function space_updateUnsolvedVarList(space, config) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
   let vardoms = space.vardoms;
+  let unsolvedVarIndexes = space._unsolved;
 
-  let unsolvedFront = config._front;
-  let lastNodeIndex = unsolvedFront.lastNodeIndex;
-  let nodeIndex = front_addNode(unsolvedFront);
-  space.frontNodeIndex = nodeIndex;
-
-  let cellIndex = 0;
-
-  for (let i = 0, n = _front_getSizeOf(unsolvedFront.buffer, lastNodeIndex); i < n; i++) {
-    let varIndex = _front_getCell(unsolvedFront.buffer, lastNodeIndex, i);
+  let m = 0;
+  for (let i = 0, len = unsolvedVarIndexes.length; i < len; ++i) {
+    let varIndex = unsolvedVarIndexes[i];
     let domain = vardoms[varIndex];
-
     if (!domain_isSolved(domain)) {
-      front_addCell(unsolvedFront, nodeIndex, cellIndex++, varIndex);
+      unsolvedVarIndexes[m++] = varIndex;
     }
   }
+  unsolvedVarIndexes.length = m;
 
-  front_setSizeOf(unsolvedFront, nodeIndex, cellIndex);
-  return cellIndex === 0; // 0 unsolved means we've solved it :)
+  return m === 0; // 0 unsolved means we've solved it :)
 }
 
 /**

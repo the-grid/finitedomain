@@ -9,7 +9,6 @@ let config = {
   _changedVarsTrie: null,
   _propagationBatch: 0,
   _propagationCycles: 0,
-  _front: null,
   varStratConfig: {
     _class: '$var_strat_config',
     type: 'naive',

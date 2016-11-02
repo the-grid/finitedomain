@@ -60,17 +60,27 @@ describe('src/space.spec', function() {
     });
 
     describe('space_createClone()', function() {
+      let config;
+      let space;
+      let clone;
 
-      let config = config_create();
-      let space = space_createRoot();
-      let clone = space_createClone(space);
+      beforeEach(function() {
+        config = config_create();
+        space = space_createRoot();
+        space_initFromConfig(space, config);
+        clone = space_createClone(space);
+      });
 
       it('should return a new space', function() {
         expect(clone).to.not.equal(space);
       });
 
-      it('should clone vars', function() {
+      it('should clone vardoms', function() {
         expect(space.vardoms).to.not.equal(clone.vardoms);
+      });
+
+      it('should clone solved var list', function() {
+        expect(space._unsolved).to.not.equal(clone._unsolved);
       });
 
       it('should deep clone the vars', function() {

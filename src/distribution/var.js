@@ -10,11 +10,6 @@ import {
   domain_size,
 } from '../domain';
 
-import {
-  _front_getCell,
-  _front_getSizeOf,
-} from '../front';
-
 // BODY_START
 
 const BETTER = 1;
@@ -72,13 +67,13 @@ function distribution_getFunc(distName) {
  */
 function _distribution_varFindBest(space, config, fitnessFunc, varStratConfig) {
   let i = 0;
-  let buf = config._front.buffer;
-  let nodeIndex = space.frontNodeIndex;
-  let bestVarIndex = _front_getCell(buf, nodeIndex, i++);
+  let unsolvedVarIndexes = space._unsolved;
+
+  let bestVarIndex = unsolvedVarIndexes[i++];
 
   if (fitnessFunc) {
-    for (let len = _front_getSizeOf(buf, nodeIndex); i < len; i++) {
-      let varIndex = _front_getCell(buf, nodeIndex, i);
+    for (let len = unsolvedVarIndexes.length; i < len; i++) {
+      let varIndex = unsolvedVarIndexes[i];
       ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
       ASSERT(space.vardoms[varIndex] !== undefined, 'expecting each varIndex to have an domain', varIndex);
 

@@ -25,9 +25,6 @@ import {
   trie_has,
 } from './trie';
 import {
-  front_create,
-} from './front';
-import {
   propagator_addDistinct,
   propagator_addDiv,
   propagator_addEq,
@@ -82,8 +79,6 @@ function config_create() {
     _propagationBatch: 0,
     _propagationCycles: 0,
 
-    _front: undefined,
-
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
     targetedVars: 'all',
@@ -136,8 +131,6 @@ function config_clone(config, newDomains) {
     _changedVarsTrie: undefined,
     _propagationBatch, // track _propagationCycles at start of last propagate() call
     _propagationCycles, // current step value
-
-    _front: undefined, // dont clone this, that's useless.
 
     varStratConfig,
     valueStratName,
@@ -1148,8 +1141,6 @@ function config_initForSpace(config, space) {
   if (!config._var_names_trie) {
     config._var_names_trie = trie_create(config.all_var_names);
   }
-  // always create a new front (we may assume this is a new search)
-  config._front = front_create();
   // we know the max number of var names used in this search so we
   // know the number of indexes the changevars trie may need to hash
   // worst case. set the size accordingly. after some benchmarking

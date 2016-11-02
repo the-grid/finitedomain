@@ -66,10 +66,6 @@ function search_depthFirst(state, config) {
  * @returns {boolean}
  */
 function search_depthFirstLoop(space, config, stack, state) {
-  // we backtrack, update the last node in the data model with the previous space
-  // I don't like doing it this way but what else?
-  config._front.lastNodeIndex = space.frontNodeIndex;
-
   let rejected = space_propagate(space, config);
 
   if (rejected) {

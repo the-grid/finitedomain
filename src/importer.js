@@ -18,6 +18,8 @@ function importer_main(str) {
 
   while (!isEof()) parseStatement();
 
+  return solver;
+
   function read() {
     return str[pointer];
   }
@@ -559,8 +561,8 @@ function importer_main(str) {
 
   function parseNumstr() {
     let start = pointer;
-    while (str[pointer] >= '0' && str[pointer] <= '9') ++pointer;
-    return parseInt(str.slice(start, pointer), 10);
+    while (str[pointer] >= '0' && str[pointer] <= '9') skip();
+    return str.slice(start, pointer);
   }
 
   function parseNumList() {

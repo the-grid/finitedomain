@@ -76,8 +76,7 @@ function config_create() {
     // doing `indexOf` for 5000+ names is _not_ fast. so use a trie
     _var_names_trie: trie_create(),
     _changedVarsTrie: undefined,
-    _propagationBatch: 0,
-    _propagationCycles: 0,
+    _propagationCycles: 0, // current step value, needed for "fencing" config._changedVarsTrie
 
     varStratConfig: config_createVarStratConfig(),
     valueStratName: 'min',
@@ -121,7 +120,6 @@ function config_clone(config, newDomains) {
     _propagators,
     _varToPropagators,
     _constrainedAway,
-    _propagationBatch,
     _propagationCycles,
   } = config;
 
@@ -129,8 +127,7 @@ function config_clone(config, newDomains) {
     _class: '$config',
     _var_names_trie: trie_create(all_var_names), // just create a new trie with (should be) the same names
     _changedVarsTrie: undefined,
-    _propagationBatch, // track _propagationCycles at start of last propagate() call
-    _propagationCycles, // current step value
+    _propagationCycles,
 
     varStratConfig,
     valueStratName,
@@ -1148,7 +1145,6 @@ function config_initForSpace(config, space) {
   // reserve that many cells. this saves some memcopies when growing.
   let cells = Math.ceil(config.all_var_names.length * TRIE_NODE_SIZE * 1.1);
   config._changedVarsTrie = trie_create(TRIE_EMPTY, cells);
-  config._propagationBatch = 0;
   config._propagationCycles = 0;
 
   ASSERT_VARDOMS_SLOW(config.initial_domains, domain__debug);

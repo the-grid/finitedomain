@@ -7,7 +7,6 @@ let config = {
   _class: '$config',
   _var_names_trie: null,
   _changedVarsTrie: null,
-  _propagationBatch: 0,
   _propagationCycles: 0,
   varStratConfig: {
     _class: '$var_strat_config',

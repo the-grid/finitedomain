@@ -48,7 +48,7 @@ function space_createRoot() {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew([], undefined, 0, _depth, _child, _path);
+  return space_createNew([], undefined, _depth, _child, _path);
 }
 
 /**

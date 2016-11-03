@@ -18,6 +18,7 @@ import {
   config_addVarAnonConstant,
   config_addVarDomain,
   config_create,
+  config_init,
   config_setDefaults,
   config_setOption,
   config_setOptions,
@@ -423,6 +424,8 @@ class Solver {
     let distributionSettings = options.distribute || this.distribute;
     if (typeof distributionSettings === 'string') config_setDefaults(config, distributionSettings);
     else config_setOptions(config, distributionSettings); // TOFIX: get rid of this in mv
+
+    config_init(config);
 
     // create the root node of the search tree (each node is a Space)
     let rootSpace = space_createFromConfig(config);

@@ -21,7 +21,6 @@ import {
 
 import {
   config_clone,
-  config_initForSpace,
 } from './config';
 
 import {
@@ -30,6 +29,7 @@ import {
   domain_isEmpty,
   domain_isSolved,
   domain_toArr,
+  domain_toSmallest,
   domain_toStr,
 } from './domain';
 
@@ -153,7 +153,7 @@ function space_initFromConfig(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  config_initForSpace(config, space);
+  space_generateVars(space, config); // config must be initialized (generating propas may introduce fresh vars)
   space_initializeUnsolvedVars(space, config);
 }
 
@@ -490,6 +490,30 @@ function space_getDomainArr(space, varIndex) {
 }
 
 /**
+ * Initialize the vardoms array on the first space node.
+ *
+ * @param {$space} space
+ * @param {$config} config
+ */
+function space_generateVars(space, config) {
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  let vardoms = space.vardoms;
+  ASSERT(vardoms, 'expecting var domains');
+  let initialDomains = config.initialDomains;
+  ASSERT(initialDomains, 'config should have initial vars');
+  let allVarNames = config.allVarNames;
+  ASSERT(allVarNames, 'config should have a list of vars');
+
+  for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
+    let domain = initialDomains[varIndex];
+    ASSERT_NORDOM(domain, true, domain__debug);
+    vardoms[varIndex] = domain_toSmallest(domain);
+  }
+}
+
+/**
  * @param {$space} space
  * @param {$config} [config]
  * @param {boolean} [printPath]
@@ -516,6 +540,7 @@ export {
   space_createClone,
   space_createFromConfig,
   space_createRoot,
+  space_generateVars,
   space_getDomainArr,
   space_getUnsolvedVarCount,
   _space_getUnsolvedVarNamesFresh,

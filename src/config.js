@@ -464,30 +464,6 @@ function config_addPropagator(config, propagator) {
 }
 
 /**
- * Initialize the vardoms array on the first space node.
- *
- * @param {$config} config
- * @param {$space} space
- */
-function config_generateVars(config, space) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-
-  let vardoms = space.vardoms;
-  ASSERT(vardoms, 'expecting var domains');
-  let initialDomains = config.initialDomains;
-  ASSERT(initialDomains, 'config should have initial vars');
-  let allVarNames = config.allVarNames;
-  ASSERT(allVarNames, 'config should have a list of vars');
-
-  for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
-    let domain = initialDomains[varIndex];
-    ASSERT_NORDOM(domain, true, domain__debug);
-    vardoms[varIndex] = domain_toSmallest(domain);
-  }
-}
-
-/**
  * Creates a mapping from a varIndex to a set of propagatorIndexes
  * These propagators are the ones that use the varIndex
  * This is useful for quickly determining which propagators
@@ -1123,9 +1099,9 @@ function config_populateVarStrategyListHash(config) {
  * At the start of a search, populate this config with the dynamic data
  *
  * @param {$config} config
- * @param {$space} space
  */
-function config_initForSpace(config, space) {
+function config_init(config) {
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   if (!config._varNamesTrie) {
     config._varNamesTrie = trie_create(config.allVarNames);
   }
@@ -1133,7 +1109,6 @@ function config_initForSpace(config, space) {
 
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
-  config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
@@ -1156,9 +1131,8 @@ export {
   config_clone,
   config_create,
   config_createVarStratConfig,
-  config_generateVars,
   config_generatePropagators,
-  config_initForSpace,
+  config_init,
   config_populateVarPropHash,
   config_setDefaults,
   config_setOption,

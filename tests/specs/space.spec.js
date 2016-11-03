@@ -1,5 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_dom_nums,
+  fixt_dom_range,
   fixt_domainEql,
   fixt_arrdom_nums,
   fixt_arrdom_range,
@@ -18,6 +20,7 @@ import {
 import {
   config_addConstraint,
   config_addVarAnonConstant,
+  config_addVarAnonNothing,
   config_addVarAnonRange,
   config_addVarConstant,
   config_addVarDomain,
@@ -28,8 +31,8 @@ import {
 } from '../../src/config';
 import {
   space_createClone,
-  //space_createFromConfig,
   space_createRoot,
+  space_generateVars,
   space_getUnsolvedVarCount,
   _space_getUnsolvedVarNamesFresh,
   space_initFromConfig,
@@ -481,6 +484,51 @@ describe('src/space.spec', function() {
 
           expect(space_propagate(space, config)).to.eql(true);
         });
+      });
+    });
+
+    describe('space_generateVars', function() {
+
+      it('should exist', function() {
+        expect(space_generateVars).to.be.a('function');
+      });
+
+      it('should require config and space', function() {
+        let config = config_create();
+        let space = space_createRoot();
+
+        expect(_ => space_generateVars(space, {})).to.throw('EXPECTING_CONFIG');
+        expect(_ => space_generateVars({}, config)).to.throw('SPACE_SHOULD_BE_SPACE');
+      });
+
+      it('should create a constant', function() {
+        let config = config_create();
+        let name = config_addVarAnonConstant(config, 10);
+        let space = space_createRoot();
+
+        space_generateVars(space, config);
+
+        fixt_domainEql(space.vardoms[name], fixt_dom_nums(10));
+      });
+
+      it('should create a full width var', function() {
+        let config = config_create();
+        let name = config_addVarAnonNothing(config);
+        let space = space_createRoot();
+
+        space_generateVars(space, config);
+
+        expect(space.vardoms[name]).to.eql(fixt_dom_range(SUB, SUP));
+      });
+
+      it('should clone a domained var', function() {
+        let config = config_create();
+        let name = config_addVarAnonRange(config, 32, 55);
+        let space = space_createRoot();
+
+        space_generateVars(space, config);
+
+        expect(space.vardoms[name]).to.eql(fixt_dom_range(32, 55));
       });
     });
   });

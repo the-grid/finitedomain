@@ -405,10 +405,23 @@ class Solver {
     return this.solutions;
   }
 
+  /**
+   * Generate the next child from given space. Or none if there isn't any.
+   *
+   * @param {$space} space
+   * @returns {$space|undefined}
+   */
   offspring(space) {
     return search_createNextSpace(space, this.config);
   }
 
+  /**
+   * Propagate the given space to stability.
+   * Returns whether this ended in a reject.
+   *
+   * @param {$space} space
+   * @returns {boolean}
+   */
   propagate(space) {
     return space_propagate(space, this.config);
   }

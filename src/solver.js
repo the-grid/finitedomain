@@ -18,6 +18,7 @@ import {
   config_addVarAnonConstant,
   config_addVarDomain,
   config_create,
+  config_init,
   config_setDefaults,
   config_setOption,
   config_setOptions,
@@ -32,13 +33,21 @@ import {
   domain_anyToSmallest,
 } from './domain';
 
-import search_depthFirst from './search';
+import search_depthFirst, {
+  search_afterPropagation,
+  search_createNextSpace,
+} from './search';
 
 import {
   space_createFromConfig,
+  space_propagate,
   space_solution,
   space_toConfig,
 } from './space';
+
+import {
+  trie_get,
+} from './trie';
 
 // BODY_START
 
@@ -62,6 +71,8 @@ class Solver {
   constructor(options = {}) {
     this._class = 'solver';
     this.distribute = options.distribute || 'naive';
+
+    ASSERT(options._class !== '$config', 'config should be passed on in a config property of options');
 
     if (options.config) {
       let config = this.config = options.config;
@@ -397,6 +408,41 @@ class Solver {
   }
 
   /**
+   * Generate the next child from given space. Or none if there isn't any.
+   *
+   * @param {$space} space
+   * @returns {$space|undefined}
+   */
+  offspring(space) {
+    return search_createNextSpace(space, this.config);
+  }
+
+  /**
+   * Propagate the given space to stability.
+   * Returns whether this ended in a reject.
+   *
+   * @param {$space} space
+   * @returns {boolean}
+   */
+  propagate(space) {
+    return space_propagate(space, this.config);
+  }
+
+  /**
+   * Checks the state of a space (search node).
+   * Basically one depth first search loop step
+   * without the propagation. Returns true if
+   * the space was solved, false if the space
+   * was rejected, and undefined otherwise.
+   *
+   * @param {$space} space
+   * @returns {boolean|undefined} true=solved, false=rejected, undefined=neither
+   */
+  checkStableSpace(space) {
+    return search_afterPropagation(false, space, this.config, this.state.stack, this.state);
+  }
+
+  /**
    * Prepare internal configuration before actually solving
    * Collects one-time config data and sets up defaults
    *
@@ -409,6 +455,41 @@ class Solver {
       console.log('      - FD Preparing...');
       console.time('      - FD Prepare Time');
     }
+
+    this._prepareConfig(options, log);
+
+    // create the root node of the search tree (each node is a Space)
+    let rootSpace = this.createSpace();
+
+    // __REMOVE_BELOW_FOR_DIST__
+    this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
+    // __REMOVE_ABOVE_FOR_DIST__
+    this.state.space = rootSpace;
+    this.state.more = true;
+    this.state.stack = [];
+
+    this._prepared = true;
+    if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
+  }
+
+  /**
+   * Create the root space using the config of this solver as its base.
+   *
+   * @returns {$space}
+   */
+  createSpace() {
+    return space_createFromConfig(this.config);
+  }
+
+  /**
+   * Prepare the config side of things for a solve.
+   * No space is created in this function (that's the point).
+   *
+   * @param {Object} options See _prepare
+   * @param {number} log
+   */
+  _prepareConfig(options, log) {
+    ASSERT(log === undefined || log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value or be undefined (in tests)');
 
     let config = this.config;
     ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
@@ -424,18 +505,7 @@ class Solver {
     if (typeof distributionSettings === 'string') config_setDefaults(config, distributionSettings);
     else config_setOptions(config, distributionSettings); // TOFIX: get rid of this in mv
 
-    // create the root node of the search tree (each node is a Space)
-    let rootSpace = space_createFromConfig(config);
-
-    // __REMOVE_BELOW_FOR_DIST__
-    this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
-    // __REMOVE_ABOVE_FOR_DIST__
-    this.state.space = rootSpace;
-    this.state.more = true;
-    this.state.stack = [];
-
-    this._prepared = true;
-    if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
+    config_init(config);
   }
 
   /**
@@ -490,6 +560,10 @@ class Solver {
     solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
+  generateSolutions(solvedSpaces, config, targetObject, log) {
+    solver_getSolutions(solvedSpaces, config, targetObject, log);
+  }
+
   /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)
@@ -514,6 +588,28 @@ class Solver {
    */
   getDomain(space, varIndex) {
     return domain_toArr(space.vardoms[varIndex]);
+  }
+
+  /**
+   * Get the current domains for all targeted vars (only)
+   * Heavy operation.
+   *
+   * @param {$space} space
+   * @returns {Object.<string,$arrdom>}
+   */
+  getTargetState(space) {
+    let result = {};
+    let targets = this.config.targetedVars;
+    if (targets === 'all') {
+      targets = this.config.allVarNames;
+    }
+    let varNamesTrie = this.config._varNamesTrie;
+    for (let i = 0, n = targets.length; i < n; ++i) {
+      let varName = targets[i];
+      let varIndex = trie_get(varNamesTrie, varName);
+      result[varName] = domain_toArr(space.vardoms[varIndex]);
+    }
+    return result;
   }
 
   /**
@@ -700,7 +796,7 @@ function solver_runLoop(state, config, max) {
 }
 
 function solver_getSolutions(solvedSpaces, config, solutions, log) {
-  ASSERT(solutions instanceof Array);
+  ASSERT(solutions instanceof Array, 'solutions target object should be an array');
   if (log >= LOG_STATS) {
     console.time('      - FD Solution Construction Time');
   }

@@ -21,7 +21,6 @@ import {
 
 import {
   config_clone,
-  config_initForSpace,
 } from './config';
 
 import {
@@ -30,6 +29,7 @@ import {
   domain_isEmpty,
   domain_isSolved,
   domain_toArr,
+  domain_toSmallest,
   domain_toStr,
 } from './domain';
 
@@ -48,7 +48,7 @@ function space_createRoot() {
 
   ASSERT(!(space_uid = 0));
 
-  return space_createNew([], undefined, 0, _depth, _child, _path);
+  return space_createNew([], undefined, _depth, _child, _path);
 }
 
 /**
@@ -115,9 +115,9 @@ function space_toConfig(space, config) {
  *
  * @param {$domain[]} vardoms Maps 1:1 to config.allVarNames
  * @param {number[]|undefined} unsolvedVarIndexes
- * @param {number} _depth
- * @param {number} _child
- * @param {string} _path
+ * @param {number} _depth (Debugging only) How many parent nodes are there from this node?
+ * @param {number} _child (Debugging only) How manieth child is this of the parent?
+ * @param {string} _path (Debugging only) String of _child values from root to this node (should be unique per node and len=_depth+1)
  * @returns {$space}
  */
 function space_createNew(vardoms, unsolvedVarIndexes, _depth, _child, _path) {
@@ -140,7 +140,7 @@ function space_createNew(vardoms, unsolvedVarIndexes, _depth, _child, _path) {
   ASSERT(!void (space._child = _child));
   ASSERT(!void (space._child_count = 0));
   ASSERT(!void (space._path = _path + _child));
-  ASSERT(!void (space._uid = ++space_uid));
+  ASSERT(!void (space._uid = ++space_uid)); // this will not hold in distributed solving...
 
   return space;
 }
@@ -153,7 +153,7 @@ function space_initFromConfig(space, config) {
   ASSERT(space._class === '$space', 'EXPECTING_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
 
-  config_initForSpace(config, space);
+  space_generateVars(space, config); // config must be initialized (generating propas may introduce fresh vars)
   space_initializeUnsolvedVars(space, config);
 }
 
@@ -490,6 +490,30 @@ function space_getDomainArr(space, varIndex) {
 }
 
 /**
+ * Initialize the vardoms array on the first space node.
+ *
+ * @param {$space} space
+ * @param {$config} config
+ */
+function space_generateVars(space, config) {
+  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
+
+  let vardoms = space.vardoms;
+  ASSERT(vardoms, 'expecting var domains');
+  let initialDomains = config.initialDomains;
+  ASSERT(initialDomains, 'config should have initial vars');
+  let allVarNames = config.allVarNames;
+  ASSERT(allVarNames, 'config should have a list of vars');
+
+  for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
+    let domain = initialDomains[varIndex];
+    ASSERT_NORDOM(domain, true, domain__debug);
+    vardoms[varIndex] = domain_toSmallest(domain);
+  }
+}
+
+/**
  * @param {$space} space
  * @param {$config} [config]
  * @param {boolean} [printPath]
@@ -516,6 +540,7 @@ export {
   space_createClone,
   space_createFromConfig,
   space_createRoot,
+  space_generateVars,
   space_getDomainArr,
   space_getUnsolvedVarCount,
   _space_getUnsolvedVarNamesFresh,

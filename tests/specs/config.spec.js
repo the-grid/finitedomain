@@ -13,7 +13,6 @@ import {
 } from '../../src/helpers';
 import {
   config_addConstraint,
-  //config_addPropagator,
   config_addVarAnonConstant,
   config_addVarAnonNothing,
   config_addVarAnonRange,
@@ -24,17 +23,12 @@ import {
   config_clone,
   config_create,
   config_createVarStratConfig,
-  config_generateVars,
-  //config_setDefaults,
   config_setOptions,
   config_setOption,
 } from '../../src/config';
 import {
   domain__debug,
 } from '../../src/domain';
-import {
-  space_createRoot,
-} from '../../src/space';
 
 describe('src/config.spec', function() {
 
@@ -925,51 +919,6 @@ describe('src/config.spec', function() {
 
     it('should return an object', function() {
       expect(config_create()).to.be.an('object');
-    });
-  });
-
-  describe('config_generateVars', function() {
-
-    it('should exist', function() {
-      expect(config_generateVars).to.be.a('function');
-    });
-
-    it('should require config and space', function() {
-      let config = config_create();
-      let space = space_createRoot();
-
-      expect(_ => config_generateVars({}, space)).to.throw('EXPECTING_CONFIG');
-      expect(_ => config_generateVars(config, {})).to.throw('SPACE_SHOULD_BE_SPACE');
-    });
-
-    it('should create a constant', function() {
-      let config = config_create();
-      let name = config_addVarAnonConstant(config, 10);
-      let space = space_createRoot();
-
-      config_generateVars(config, space);
-
-      fixt_domainEql(space.vardoms[name], fixt_dom_nums(10));
-    });
-
-    it('should create a full width var', function() {
-      let config = config_create();
-      let name = config_addVarAnonNothing(config);
-      let space = space_createRoot();
-
-      config_generateVars(config, space);
-
-      expect(space.vardoms[name]).to.eql(fixt_dom_range(SUB, SUP));
-    });
-
-    it('should clone a domained var', function() {
-      let config = config_create();
-      let name = config_addVarAnonRange(config, 32, 55);
-      let space = space_createRoot();
-
-      config_generateVars(config, space);
-
-      expect(space.vardoms[name]).to.eql(fixt_dom_range(32, 55));
     });
   });
 

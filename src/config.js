@@ -82,6 +82,14 @@ function config_create() {
     varDistOptions: {},
     timeoutCallback: undefined,
 
+    // this is for the rng stuff in this library. in due time all calls
+    // should happen through this function. and it should be initialized
+    // with the rngCode string for exportability. this would be required
+    // for webworkers and DSL imports which can't have functions. tests
+    // can initialize it to something static, prod can use a seeded rng.
+    rngCode: '', // string. Function(rngCode) should return a callable rng
+    _defaultRng: undefined, // Function. if not exist at init time it'll be `rngCode ? Function(rngCode) : Math.random`
+
     // the propagators are generated from the constraints when a space
     // is created from this config. constraints are more higher level.
     allConstraints: [],
@@ -126,6 +134,9 @@ function config_clone(config, newDomains) {
     targetedVars: targetedVars instanceof Array ? targetedVars.slice(0) : targetedVars,
     varDistOptions: JSON.parse(JSON.stringify(varDistOptions)),  // TOFIX: clone this more efficiently
     timeoutCallback, // by reference because it's a function if passed on...
+
+    rngCode: config.rngCode,
+    _defaultRng: config.rngCode ? undefined : config._defaultRng,
 
     constantCache, // is by reference ok?
 
@@ -421,6 +432,20 @@ function config_setOption(config, optionName, optionValue, optionTarget) {
     case 'var': return THROW('REMOVED. Replace `var` with `varStrategy`');
     case 'val': return THROW('REMOVED. Replace `var` with `valueStrategy`');
 
+    case 'rng':
+      // sets the default rng for this solve. a string should be raw js
+      // code, number will be a static return value, a function is used
+      // as is. the resulting function should return a value `0<=v<1`
+      if (typeof optionValue === 'string') {
+        config.rngCode = optionValue;
+      } else if (typeof optionValue === 'number') {
+        config.rngCode = 'return ' + optionValue + ';'; // dont use arrow function. i dont think this passes through babel.
+      } else {
+        ASSERT(typeof optionValue === 'function', 'rng should be a preferably a string and otherwise a function');
+        config._defaultRng = optionValue;
+      }
+      break;
+
     default: THROW('unknown option');
   }
 }
@@ -461,30 +486,6 @@ function config_addPropagator(config, propagator) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(propagator._class === '$propagator', 'EXPECTING_PROPAGATOR');
   config._propagators.push(propagator);
-}
-
-/**
- * Initialize the vardoms array on the first space node.
- *
- * @param {$config} config
- * @param {$space} space
- */
-function config_generateVars(config, space) {
-  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
-
-  let vardoms = space.vardoms;
-  ASSERT(vardoms, 'expecting var domains');
-  let initialDomains = config.initialDomains;
-  ASSERT(initialDomains, 'config should have initial vars');
-  let allVarNames = config.allVarNames;
-  ASSERT(allVarNames, 'config should have a list of vars');
-
-  for (let varIndex = 0, len = allVarNames.length; varIndex < len; varIndex++) {
-    let domain = initialDomains[varIndex];
-    ASSERT_NORDOM(domain, true, domain__debug);
-    vardoms[varIndex] = domain_toSmallest(domain);
-  }
 }
 
 /**
@@ -1123,17 +1124,19 @@ function config_populateVarStrategyListHash(config) {
  * At the start of a search, populate this config with the dynamic data
  *
  * @param {$config} config
- * @param {$space} space
  */
-function config_initForSpace(config, space) {
+function config_init(config) {
+  ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   if (!config._varNamesTrie) {
     config._varNamesTrie = trie_create(config.allVarNames);
   }
 
+  // Generate the default rng ("Random Number Generator") to use in stuff like markov
+  // We prefer the rngCode because that way we can serialize the config (required for stuff like webworkers)
+  if (!config._defaultRng) config._defaultRng = config.rngCode ? Function(config.rngCode) : Math.random; /* eslint no-new-func: "off" */
 
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
-  config_generateVars(config, space); // after props because they may introduce new vars (TODO: refactor this...)
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
@@ -1156,9 +1159,8 @@ export {
   config_clone,
   config_create,
   config_createVarStratConfig,
-  config_generateVars,
   config_generatePropagators,
-  config_initForSpace,
+  config_init,
   config_populateVarPropHash,
   config_setDefaults,
   config_setOption,

@@ -35,23 +35,31 @@ import distribute_getNextDomainForVar from './distribution/value';
  * @param {$config} config
  */
 function search_depthFirst(state, config) {
-  let isStart = !state.stack || state.stack.length === 0;
-  if (isStart) {
-    // If no stack argument, then search begins with state.space
-    if (state.stack) {
-      state.stack.push(state.space);
-    } else {
-      state.stack = [state.space];
-    }
-  }
-
   let stack = state.stack;
-  while (stack.length > 0) {
-    let solved = search_depthFirstLoop(stack[stack.length - 1], config, stack, state);
+
+  // the stack only contains stable spaces. the first space is not
+  // stable so we propagate it first and before putting it on the stack.
+  let isStart = !stack || stack.length === 0;
+  if (isStart) {
+    if (!stack) stack = state.stack = [];
+    let solved = search_depthFirstLoop(state.space, config, stack, state);
     if (solved) return;
   }
 
-  // Failed space and no more options to explore.
+  while (stack.length > 0) {
+    // take the top space and generate the next offspring, if any
+    let childSpace = search_createNextSpace(stack[stack.length - 1], config);
+    if (childSpace) {
+      // stabilize the offspring and put it on the stack
+      let solved = search_depthFirstLoop(childSpace, config, stack, state);
+      if (solved) return;
+    } else {
+      // remove the space, it has no more children. this is a dead end.
+      stack.pop();
+    }
+  }
+
+  // there are no more spaces to explore and therefor no further solutions to be found.
   state.status = 'end';
   state.more = false;
 }
@@ -68,6 +76,22 @@ function search_depthFirst(state, config) {
 function search_depthFirstLoop(space, config, stack, state) {
   let rejected = space_propagate(space, config);
 
+  return search_afterPropagation(rejected, space, config, stack, state);
+}
+
+/**
+ * Process a propagated space and the result. If it rejects, discard the
+ * space. If it passed, act accordingly. Otherwise determine whether the
+ * space has children. If so queue them. Otherwise discard the space.
+ *
+ * @param {boolean} rejected Did the propagation end due to a rejection?
+ * @param {$space} space
+ * @param {$config} config
+ * @param {$space[]} stack
+ * @param {Object} state See search_depthFirst
+ * @returns {boolean|undefined}
+ */
+function search_afterPropagation(rejected, space, config, stack, state) {
   if (rejected) {
     _search_onReject(state, space, stack);
     return false;
@@ -79,19 +103,10 @@ function search_depthFirstLoop(space, config, stack, state) {
     return true;
   }
 
-  let next_space = search_createNextSpace(space, config);
-  if (next_space) {
-    // Now this space is neither solved nor failed but since
-    // no constraints are rejecting we must look further.
-    // Push on to the stack and explore further.
-    stack.push(next_space);
-  } else {
-    // Finished exploring branches of this space. Continue with the previous spaces.
-    // This is a stable space, but isn't a solution. Neither is it a failed space.
-    space.stable_children++;
-    stack.pop();
-  }
-  return false;
+  // put on the stack so the next loop can branch off it
+  stack.push(space);
+
+  return undefined; // neither solved nor rejected
 }
 
 /**
@@ -108,11 +123,10 @@ function search_depthFirstLoop(space, config, stack, state) {
  */
 function search_createNextSpace(space, config) {
   let varIndex = distribution_getNextVarIndex(space, config);
+  ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
 
   if (varIndex !== NO_SUCH_VALUE) {
-    ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-    ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
-
     let domain = space.vardoms[varIndex];
     if (!domain_isSolved(domain)) {
       let choice = space.next_distribution_choice++;
@@ -141,7 +155,6 @@ function _search_onReject(state, space, stack) {
   // Some propagators failed so this is now a failed space and we need
   // to pop the stack and continue from above. This is a failed space.
   space.failed = true;
-  stack.pop();
 }
 
 /**
@@ -152,7 +165,6 @@ function _search_onReject(state, space, stack) {
  * @param {Space[]} stack See state.stack
  */
 function _search_onSolve(state, space, stack) {
-  stack.pop();
   state.status = 'solved';
   state.space = space; // is this so the solution can be read from it?
   state.more = stack.length > 0;
@@ -161,3 +173,7 @@ function _search_onSolve(state, space, stack) {
 // BODY_STOP
 
 export default search_depthFirst;
+export {
+  search_afterPropagation,
+  search_createNextSpace,
+};

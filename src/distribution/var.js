@@ -82,6 +82,9 @@ function _distribution_varFindBest(space, config, fitnessFunc, varStratConfig) {
       }
     }
   }
+
+  ASSERT(typeof bestVarIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(bestVarIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
   return bestVarIndex;
 }
 

@@ -459,7 +459,7 @@ class Solver {
     this._prepareConfig(options, log);
 
     // create the root node of the search tree (each node is a Space)
-    let rootSpace = space_createFromConfig(this.config);
+    let rootSpace = this.createSpace();
 
     // __REMOVE_BELOW_FOR_DIST__
     this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
@@ -470,6 +470,15 @@ class Solver {
 
     this._prepared = true;
     if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
+  }
+
+  /**
+   * Create the root space using the config of this solver as its base.
+   *
+   * @returns {$space}
+   */
+  createSpace() {
+    return space_createFromConfig(this.config);
   }
 
   /**

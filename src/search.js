@@ -123,11 +123,10 @@ function search_afterPropagation(rejected, space, config, stack, state) {
  */
 function search_createNextSpace(space, config) {
   let varIndex = distribution_getNextVarIndex(space, config);
+  ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
+  ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
 
   if (varIndex !== NO_SUCH_VALUE) {
-    ASSERT(typeof varIndex === 'number', 'VAR_INDEX_SHOULD_BE_NUMBER');
-    ASSERT(varIndex >= 0, 'VAR_INDEX_SHOULD_BE_POSITIVE');
-
     let domain = space.vardoms[varIndex];
     if (!domain_isSolved(domain)) {
       let choice = space.next_distribution_choice++;

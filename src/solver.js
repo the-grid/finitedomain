@@ -72,6 +72,8 @@ class Solver {
     this._class = 'solver';
     this.distribute = options.distribute || 'naive';
 
+    ASSERT(options._class !== '$config', 'config should be passed on in a config property of options');
+
     if (options.config) {
       let config = this.config = options.config;
       if (config.initialDomains) {

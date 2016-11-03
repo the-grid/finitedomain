@@ -8,6 +8,8 @@
  * @property {string[]|string} targetedVars='all' Search stops when these are solved.
  * @property {Object} varDistOptions
  * @property {Function} [timeoutCallback] When this func returns true the search is aborted immediately. For timing out
+ * @property {string} [rngCode] When set this is used to initialize `_defaultRng = Function(rngCode)`. Needed for serializability like with webworkers or export to DSL.
+ * @property {Function} [_defaultRng] If unset at init time it will be initialized to `rngCode ? Function(rngCode) : Math.random`. Prefer the rngCode for serializability.
  * @property {$constraint[]} allConstraints Abstract constraints, higher level objects, all propagators are generated from these. Matches Solver input closer.
  * @property {Object} constantCache Any (initial) var that is solved is logged in here. May refactor this away soon.
  * @property {$domain} initialDomains The root space will clone a vardoms from this list

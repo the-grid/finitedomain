@@ -43,8 +43,6 @@ const SECOND_CHOICE = 1;
 const THIRD_CHOICE = 2;
 const NO_CHOICE = undefined;
 
-const MATH_RANDOM = Math.random;
-
 function distribute_getNextDomainForVar(space, config, varIndex, choiceIndex) {
   ASSERT(space._class === '$space', 'SPACE_SHOULD_BE_SPACE');
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
@@ -434,7 +432,7 @@ function distribution_valueByMarkov(space, config, varIndex, choiceIndex) {
       ASSERT(distOptions.matrix, 'there should be a matrix available for every var');
       ASSERT(distOptions.legend || (typeof expandVectorsWith === 'number' && expandVectorsWith >= 0), 'every var should have a legend or expandVectorsWith set');
 
-      let random = distOptions.random || MATH_RANDOM;
+      let random = distOptions.random || config._defaultRng;
       ASSERT(typeof random === 'function', 'RNG_SHOULD_BE_FUNCTION');
 
       // note: expandVectorsWith can be 0, so check with null

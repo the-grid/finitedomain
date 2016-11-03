@@ -35,6 +35,7 @@
 - Dropped "internal" exposed api's to support external subclass (`Solver#space_add_var_range`, `Solver#domain_max`, and `Solver#domain_toList`)
 - Removed support for distributor fallback shorthand `fallback_dist_name`. Just use `.fallback = {valtype: ...}` instead. the `fallback` property will be fleshed out a little better in the future.
 - The limitation that constraints must have at least one non-constant has been lifted. These cases are now immediately optimized away as much as possible.
+- Moving the rng (random number gneerator) part of the code to a single property in config. It is strongly encouraged to set the rng as a string (`solver.setOption('rng', 'return 15;')`) which will accept a string (should result in a proper rng function with `Function(code)`, a number (`Function('return '+num+';')`), or a function. The function is discouraged as you won't be able to export the problem and inspection will be more troublesome. Tests should probably also use a predictable pattern or fixed value. This API will be re-evaluated at a later time.
 
 ## v2.3.4:
 

@@ -115,9 +115,9 @@ function space_toConfig(space, config) {
  *
  * @param {$domain[]} vardoms Maps 1:1 to config.allVarNames
  * @param {number[]|undefined} unsolvedVarIndexes
- * @param {number} _depth
- * @param {number} _child
- * @param {string} _path
+ * @param {number} _depth (Debugging only) How many parent nodes are there from this node?
+ * @param {number} _child (Debugging only) How manieth child is this of the parent?
+ * @param {string} _path (Debugging only) String of _child values from root to this node (should be unique per node and len=_depth+1)
  * @returns {$space}
  */
 function space_createNew(vardoms, unsolvedVarIndexes, _depth, _child, _path) {
@@ -140,7 +140,7 @@ function space_createNew(vardoms, unsolvedVarIndexes, _depth, _child, _path) {
   ASSERT(!void (space._child = _child));
   ASSERT(!void (space._child_count = 0));
   ASSERT(!void (space._path = _path + _child));
-  ASSERT(!void (space._uid = ++space_uid));
+  ASSERT(!void (space._uid = ++space_uid)); // this will not hold in distributed solving...
 
   return space;
 }

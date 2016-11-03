@@ -76,6 +76,22 @@ function search_depthFirst(state, config) {
 function search_depthFirstLoop(space, config, stack, state) {
   let rejected = space_propagate(space, config);
 
+  return search_afterPropagation(rejected, space, config, stack, state);
+}
+
+/**
+ * Process a propagated space and the result. If it rejects, discard the
+ * space. If it passed, act accordingly. Otherwise determine whether the
+ * space has children. If so queue them. Otherwise discard the space.
+ *
+ * @param {boolean} rejected Did the propagation end due to a rejection?
+ * @param {$space} space
+ * @param {$config} config
+ * @param {$space[]} stack
+ * @param {Object} state See search_depthFirst
+ * @returns {boolean|undefined}
+ */
+function search_afterPropagation(rejected, space, config, stack, state) {
   if (rejected) {
     _search_onReject(state, space, stack);
     return false;
@@ -158,3 +174,7 @@ function _search_onSolve(state, space, stack) {
 // BODY_STOP
 
 export default search_depthFirst;
+export {
+  search_afterPropagation,
+  search_createNextSpace,
+};

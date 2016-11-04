@@ -35,11 +35,13 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
+  domain_createValue,
   domain_divby,
   domain_getValue,
   domain_max,
   domain_min,
   domain_mul,
+  domain_removeValue,
 } from './domain';
 import domain_plus from './doms/domain_plus';
 import domain_minus from './doms/domain_minus';
@@ -48,6 +50,7 @@ import domain_minus from './doms/domain_minus';
 
 /**
  * @param {string} name
+ * @param {Function} stepFunc
  * @param {number} index1
  * @param {number} [index2=-1]
  * @param {number} [index3=-1]
@@ -110,6 +113,33 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(domain_min(config.initialDomains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
   ASSERT(domain_max(config.initialDomains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
+  let initialDomains = config.initialDomains;
+
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+  let C = initialDomains[resultVarIndex];
+
+  let valueA = domain_getValue(A);
+  let valueB = domain_getValue(B);
+  let valueC = domain_getValue(C);
+
+  // the reifier is solved if all three vars are solved
+  let solved = 0;
+  if (valueA >= 0) ++solved;
+  if (valueB >= 0) ++solved;
+  if (valueC >= 0) ++solved;
+  if (solved === 3) return;
+
+  //let minA = domain_min(A);
+  let maxA = domain_max(A);
+  //let minB = domain_min(B);
+  let maxB = domain_max(B);
+
+  // the reifier can be rewritten if any two of the three vars are solved
+  // the reifier might be rewritable if one var is solved
+  // in some cases certain constraints can be decided without being solved ([0,4]<[5,10] always holds)
+  // the actual rewrites depends on the op, though
+
   let nopName;
   let opFunc;
   let nopFunc;
@@ -117,50 +147,47 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   let nopRejectChecker;
   switch (opname) {
     case 'eq': {
-      opFunc = propagator_eqStepBare;
-      opRejectChecker = propagator_eqStepWouldReject;
-      nopName = 'neq';
-      nopFunc = propagator_neqStepBare;
-      nopRejectChecker = propagator_neqStepWouldReject;
-
-      let A = config.initialDomains[leftVarIndex];
-      let B = config.initialDomains[rightVarIndex];
-      let C = config.initialDomains[resultVarIndex];
-
-      // while at most one var should be solved at this point, it's possible
-      // (and fine) if multiple vars are solved here. it's just less efficient.
-      // (inefficient) config imports could cause this.
-
-      let valueC = domain_getValue(C);
-
-      if (valueC === 0) {
-        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
-      } else if (valueC === 1) {
-        return propagator_addEq(config, leftVarIndex, rightVarIndex);
-      } else {
-        let minA = domain_min(A);
-        let maxA = domain_max(A);
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-
-        if (minA === 0 && maxA === 1) { // A=bool
-          if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_getValue(B) === 0, 'because csis');
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_getValue(B) === 1, 'because csis');
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          }
-        } else if (minB === 0 && maxB === 1) {
-          if (maxA === 0) {
-            ASSERT(domain_getValue(A) === 0, 'because csis');
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          } else if (minA === 1) {
-            ASSERT(domain_getValue(A) === 1, 'because csis');
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
+      // R = A ==? B
+      // 1 = A ==? B        ->    A == B
+      // 0 = A ==? B        ->    A != B
+      // R = x ==? B        ->    check if B contains value x, solve accordingly
+      // if B is boolean we can apply even more special rules (we know R is boolean)
+      // R = 0 ==? B[0 1]   ->    R != B
+      // R = 1 ==? B[0 1]   ->    R == B
+      if (valueC >= 0) { // result solved
+        if (valueA >= 0) {
+          if (valueC) initialDomains[rightVarIndex] = A;
+          else initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
+        } else if (valueB >= 0) {
+          if (valueC) initialDomains[leftVarIndex] = B;
+          else initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
+        } else {
+          // neither A nor B is solved; simplify
+          if (valueC) propagator_addEq(config, leftVarIndex, rightVarIndex);
+          else propagator_addNeq(config, leftVarIndex, rightVarIndex);
         }
+        return;
       }
+      if (valueA >= 0 && valueB >= 0) {
+        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 1 : 0);
+        return;
+      }
+      // C isnt solved, and A and B arent both solved
+      // check the cases of one side solved and other side bool
+      if (maxA <= 1 && maxB === 1) {
+        if (valueA === 0) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+        else if (valueA === 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      }
+      if (maxB <= 1 && maxA === 1) {
+        if (valueB === 0) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+        else if (valueB === 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      }
+
+      nopName = 'neq';
+      opFunc = propagator_eqStepBare;
+      nopFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_eqStepWouldReject;
+      nopRejectChecker = propagator_neqStepWouldReject;
 
       break;
     }

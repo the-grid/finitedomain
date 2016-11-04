@@ -69,7 +69,8 @@ describe('src/propagator.spec', function() {
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
               config_addVarDomain(config, 'C', C);
-              expect(propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'))).to.equal(undefined);
+              propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'));
+              expect(undefined).to.equal(undefined); // "do not crash"
             });
 
             it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {

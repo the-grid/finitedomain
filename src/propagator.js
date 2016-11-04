@@ -259,14 +259,6 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopRejectChecker = propagator_gteStepWouldReject;
       break;
 
-    case 'gt':
-      opFunc = propagator_gtStepBare;
-      opRejectChecker = propagator_gtStepWouldReject;
-      nopName = 'lte';
-      nopFunc = propagator_lteStepBare;
-      nopRejectChecker = propagator_lteStepWouldReject;
-      break;
-
     case 'lte':
       opFunc = propagator_lteStepBare;
       opRejectChecker = propagator_lteStepWouldReject;
@@ -275,13 +267,11 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopRejectChecker = propagator_gtStepWouldReject;
       break;
 
+    case 'gt':
+      return propagator_addReified(config, 'lt', rightVarIndex, leftVarIndex, resultVarIndex);
+
     case 'gte':
-      opFunc = propagator_gteStepBare;
-      opRejectChecker = propagator_gteStepWouldReject;
-      nopName = 'lt';
-      nopFunc = propagator_ltStepBare;
-      nopRejectChecker = propagator_ltStepWouldReject;
-      break;
+      return propagator_addReified(config, 'lte', rightVarIndex, leftVarIndex, resultVarIndex);
 
     default:
       THROW('UNKNOWN_REIFIED_OP');

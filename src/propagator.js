@@ -251,6 +251,8 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       // regardless of being solved, check if the domains are already solving < as is
       if (maxA < minB) return initialDomains[resultVarIndex] = domain_createValue(1);
       if (minA >= maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
+      if (valueA === 0 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      if (valueB === 0 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
 
       opFunc = propagator_neqStepBare;
       opRejectChecker = propagator_ltStepWouldReject;
@@ -260,6 +262,27 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       break;
 
     case 'lte':
+      // R = A <=? B
+      // x = A <=? B        ->    reduce A and B regardless, drop constraint
+      // R = x <=? B        ->    check if B > x, solve accordingly
+      // R = 1 <=? B[0,1]   ->    eq(R, B)
+
+      if (valueC >= 0) { // result solved
+        // either this resolves the constraint or we compile a non-reifier for the remainder
+        if (valueC) {
+          if (maxA <= minB) return;
+          return propagator_addLte(config, leftVarIndex, rightVarIndex);
+        }
+        // C=0 so solve if all A > all B
+        if (minA > maxB) return;
+        return propagator_addGt(config, leftVarIndex, rightVarIndex);
+      }
+      // regardless of being solved, check if the domains are already solving < as is
+      if (maxA <= minB) return initialDomains[resultVarIndex] = domain_createValue(1);
+      if (minA > maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
+      if (valueA === 1 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      if (valueB === 1 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+
       opFunc = propagator_lteStepBare;
       opRejectChecker = propagator_lteStepWouldReject;
       nopName = 'gt';

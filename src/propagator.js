@@ -193,46 +193,42 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     }
 
     case 'neq': {
-      opFunc = propagator_neqStepBare;
-      opRejectChecker = propagator_neqStepWouldReject;
-      nopName = 'eq';
-      nopFunc = propagator_eqStepBare;
-      nopRejectChecker = propagator_eqStepWouldReject;
+      // similar optimizations to eq. just inversed.
 
-      let A = config.initialDomains[leftVarIndex];
-      let B = config.initialDomains[rightVarIndex];
-      let C = config.initialDomains[resultVarIndex];
-
-      let valueC = domain_getValue(C);
-
-      if (valueC === 0) {
-        return propagator_addEq(config, leftVarIndex, rightVarIndex);
-      } else if (valueC === 1) {
-        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
-      } else {
-        let minA = domain_min(A);
-        let maxA = domain_max(A);
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-
-        if (minA === 0 && maxA === 1) { // A=bool
-          if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_getValue(B) === 0, 'because csis');
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_getValue(B) === 1, 'because csis');
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          }
-        } else if (minB === 0 && maxB === 1) {
-          if (maxA === 0) {
-            ASSERT(domain_getValue(A) === 0, 'because csis');
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          } else if (minA === 1) {
-            ASSERT(domain_getValue(A) === 1, 'because csis');
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
+      if (valueC >= 0) { // result solved
+        if (valueA >= 0) {
+          if (valueC) initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
+          else initialDomains[rightVarIndex] = A;
+        } else if (valueB >= 0) {
+          if (valueC) initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
+          else initialDomains[leftVarIndex] = B;
+        } else {
+          // neither A nor B is solved; simplify
+          if (valueC) propagator_addNeq(config, leftVarIndex, rightVarIndex);
+          else propagator_addEq(config, leftVarIndex, rightVarIndex);
         }
+        return;
       }
+      if (valueA >= 0 && valueB >= 0) {
+        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 0 : 1);
+        return;
+      }
+      // C isnt solved, and A and B arent both solved
+      // check the cases of one side solved and other side bool
+      if (maxA <= 1 && maxB === 1) {
+        if (valueA === 0) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        else if (valueA === 1) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+      }
+      if (maxB <= 1 && maxA === 1) {
+        if (valueB === 0) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+        else if (valueB === 1) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+      }
+
+      nopName = 'eq';
+      opFunc = propagator_neqStepBare;
+      nopFunc = propagator_eqStepBare;
+      opRejectChecker = propagator_neqStepWouldReject;
+      nopRejectChecker = propagator_eqStepWouldReject;
 
       break;
     }

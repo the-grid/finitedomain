@@ -1586,7 +1586,8 @@ describe('solver.spec', function() {
       // same as before but none are targeted so algo considers them
       // "solved" and returns all valid values (=init) so it becomes
       // a multiplication of all the number of options...
-      expect(countSolutions(solver)).to.eql(36864);
+      // 2x1x3x2x2x2x1x3x1x2x2x1x3x1x2x2=6912
+      expect(countSolutions(solver)).to.eql(6912);
     });
 
     it('should constrain one var to be equal to another', function() {
@@ -1914,7 +1915,7 @@ describe('solver.spec', function() {
       solver.decl('LIST', fixt_arrdom_nums(2, 4, 9)); // becomes 4
       solver.declRange('IS_LIST_FOUR', 0, 1); // becomes 1
 
-      solver._cacheReified('eq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
+      solver.isEq('LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ZERO');
 
       solver.solve({max: 10000});
@@ -2502,14 +2503,13 @@ describe('solver.spec', function() {
       solver.declRange('C', 1, 5);
       solver['<']('A', 'B');
 
-      // should find a solution (there are three or four or whatever)
+      // should find a solution for A and B
       solver.solve({
         vars: ['A', 'B'],
         max: 1,
       });
       // should not solve C yet because only A and B
-      // were targeted so 1x1x2=4 solutions
-      expect(countSolutions(solver), 'solve count 1').to.eql(2);
+      expect(countSolutions(solver), 'solve count 1').to.eql(5); // C started with 5 values and is unconstrained
       expect(solver.solutions).to.eql([{A: 2, B: 4, C: [1, 5]}]);
 
       let solver2 = solver.branch_from_current_solution();

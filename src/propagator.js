@@ -38,6 +38,7 @@ import {
   domain_createValue,
   domain_divby,
   domain_getValue,
+  domain_intersection,
   domain_max,
   domain_min,
   domain_mul,
@@ -318,6 +319,14 @@ function propagator_addEq(config, leftVarIndex, rightVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
+
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  if (domain_getValue(A) >= 0) return initialDomains[rightVarIndex] = A;
+  let B = initialDomains[rightVarIndex];
+  if (domain_getValue(B) >= 0) return initialDomains[leftVarIndex] = B;
+
+  initialDomains[leftVarIndex] = initialDomains[rightVarIndex] = domain_intersection(A, B);
 
   config_addPropagator(config, propagator_create('eq', propagator_eqStepBare, leftVarIndex, rightVarIndex));
 }

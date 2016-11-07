@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_nums,
+  fixt_arrdom_range,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -94,9 +95,13 @@ describe('src/propagator.spec', function() {
         expect(func).to.be.a('function');
       });
 
-      it('should return undefined', function() {
+      it('should not throw on a zero one literal', function() {
         let config = config_create();
-        expect(func(config, 0, 1)).to.equal(undefined);
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1));
+        func(config, A, B);
+
+        expect(undefined).to.equal(undefined); // "does not throw"
       });
     });
   }

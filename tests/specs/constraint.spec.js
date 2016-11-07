@@ -1,5 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   stripAnonVarsFromArrays,
@@ -1737,9 +1738,8 @@ describe('src/constraint.spec', function() {
       test(0, 0, 0, []);
       test(0, 1, 2, [{A: 0, B: 1, C: 2}]);
       test(1, 2, 3, [{A: 1, B: 2, C: 3}]);
-      test(fixt_arrdom_range(4, 7, true), 5, 6, [
-        {A: 4, B: 5, C: 6},
-        {A: 7, B: 5, C: 6},
+      test(fixt_arrdom_range(4, 7), 5, 6, [
+        {A: fixt_arrdom_nums(4, 7), B: 5, C: 6},
       ]);
       test(fixt_arrdom_ranges([4, 5], [100, 101]), fixt_arrdom_range(4, 5, true), fixt_arrdom_range(100, 101), [
         {A: 4, B: 5, C: 100},

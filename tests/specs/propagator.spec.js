@@ -25,6 +25,7 @@ import {
   propagator_addRingPlusOrMul,
 } from '../../src/propagator';
 import {
+  config_addVarConstant,
   config_addVarDomain,
   config_create,
 } from '../../src/config';
@@ -142,9 +143,14 @@ describe('src/propagator.spec', function() {
         expect(func).to.be.a('function');
       });
 
-      it('should return undefined', function() {
+      it('should not throw', function() {
         let config = config_create();
-        expect(func(config, [0, 1, 2], withResult ? 3 : undefined)).to.equal(undefined);
+        let A = config_addVarConstant(config, 'A', 0);
+        let B = config_addVarConstant(config, 'B', 1);
+        let C = config_addVarConstant(config, 'C', 2);
+        func(config, [A, B, C], withResult ? 3 : undefined);
+
+        expect(undefined).to.equal(undefined);
       });
     });
   }

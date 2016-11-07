@@ -778,7 +778,7 @@ describe('exports/export.cases.spec', function() {
         solver.decl('A', [19, 20]);
         solver.decl('B', [21, 22]);
         solver.neq('A', 'B');
-        let solution = solver.solve({});
+        let solution = solver.solve({vars: ['A', 'B']});
 
         expect(solution).to.eql([{A: 19, B: 21}, {A: 19, B: 22}, {A: 20, B: 21}, {A: 20, B: 22}]); // now it must solve. note: result will be different when we optimize neq to "solve" properly
         expect(_space_getUnsolvedVarNamesFresh(solver._space, solver.config).sort()).to.eql(['A', 'B']); // should A and B because they are under neq

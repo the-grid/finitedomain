@@ -39,6 +39,7 @@ import {
   domain_divby,
   domain_getValue,
   domain_intersection,
+  domain_isEmpty,
   domain_max,
   domain_min,
   domain_mul,
@@ -427,6 +428,16 @@ function propagator_addNeq(config, leftVarIndex, rightVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
+
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+  let vA = domain_getValue(A);
+  if (vA >= 0) return initialDomains[rightVarIndex] = domain_removeValue(B, vA);
+  let vB = domain_getValue(A);
+  if (vB >= 0) return initialDomains[leftVarIndex] = domain_removeValue(A, vB);
+
+  if (domain_isEmpty(domain_intersection(A, B))) return; // no overlapping elements so constraint is redundant
 
   config_addPropagator(config, propagator_create('neq', propagator_neqStepBare, leftVarIndex, rightVarIndex));
 }

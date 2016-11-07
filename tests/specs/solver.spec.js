@@ -1209,11 +1209,11 @@ describe('solver.spec', function() {
     it('should solve a simple >= test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
-      solver.decl('item4', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item2', fixt_arrdom_range(4, 5, true));
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
+      solver.decl('item4', fixt_arrdom_nums(2, 3, 5));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item2', fixt_arrdom_range(4, 5));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
 
       solver['==']('item5', 5);
       solver['>=']('item1', 'item2');
@@ -1221,7 +1221,7 @@ describe('solver.spec', function() {
       solver['>=']('item3', 'item4');
       solver['>=']('item4', 'item5');
 
-      solver.solve();
+      solver.solve({});
 
       // only solution is where everything is `5`
       expect(countSolutions(solver)).to.equal(1);
@@ -1230,11 +1230,11 @@ describe('solver.spec', function() {
     it('should solve a simple < test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
-      solver.decl('item4', fixt_arrdom_range(4, 4, true));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item2', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
+      solver.decl('item4', fixt_arrdom_range(4, 4));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item2', fixt_arrdom_nums(2, 3, 5));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
 
       solver['==']('item5', 5);
       solver['<']('item1', 'item2');

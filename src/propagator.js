@@ -35,6 +35,8 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
+  //domain__debug,
+  domain_createEmpty,
   domain_createValue,
   domain_divby,
   domain_getValue,
@@ -43,6 +45,8 @@ import {
   domain_max,
   domain_min,
   domain_mul,
+  domain_removeGte,
+  domain_removeLte,
   domain_removeValue,
 } from './domain';
 import domain_plus from './doms/domain_plus';
@@ -344,6 +348,31 @@ function propagator_addLt(config, leftVarIndex, rightVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
+
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+
+  let maxA = domain_max(A);
+  let minB = domain_min(B);
+  // A  |----|
+  // B        |--|
+  if (maxA < minB) return; // solved
+
+  let minA = domain_min(A);
+  let maxB = domain_max(B);
+  // A      |----|
+  // B   |--|
+  if (minA >= maxB) return initialDomains[leftVarIndex] = initialDomains[rightVarIndex] = domain_createEmpty();
+
+  // not solved nor rejected. prune invalid values
+
+  // A  |-------|     ->     |---|
+  // B  |----|               |----|
+  if (maxA >= maxB) initialDomains[leftVarIndex] = domain_removeGte(A, maxB);
+  // A    |-----|     ->     |----|
+  // B  |-------|             |---|
+  if (minB <= minA) initialDomains[rightVarIndex] = domain_removeLte(B, minA);
 
   config_addPropagator(config, propagator_create('lt', propagator_ltStepBare, leftVarIndex, rightVarIndex));
 }

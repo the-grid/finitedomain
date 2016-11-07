@@ -784,7 +784,7 @@ describe('src/constraint.spec', function() {
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
 
-        describe('lt', function() {
+        describe('lt-', function() {
 
           function test(domain1, domain2, domain3, out, desc) {
             it('should solve despite optimizations. ' + [domain__debug(domain1), '<', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {

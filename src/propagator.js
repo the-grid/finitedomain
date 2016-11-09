@@ -443,10 +443,25 @@ function propagator_addMul(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
+  if (propagator_mulConstraintResolved(config, leftVarIndex, rightVarIndex, resultVarIndex)) return;
+
+  config_addPropagator(config, propagator_create('mul', propagator_mulStep, leftVarIndex, rightVarIndex, resultVarIndex));
+}
+
+/**
+ * Would a mul for given vars need a constraint?
+ *
+ * @param {$config} config
+ * @param {number} varIndexA
+ * @param {number} varIndexB
+ * @param {number} varIndexC
+ * @returns {boolean}
+ */
+function propagator_mulConstraintResolved(config, varIndexA, varIndexB, varIndexC) {
   let initialDomains = config.initialDomains;
-  let A = initialDomains[leftVarIndex];
-  let B = initialDomains[rightVarIndex];
-  let C = initialDomains[resultVarIndex];
+  let A = initialDomains[varIndexA];
+  let B = initialDomains[varIndexB];
+  let C = initialDomains[varIndexC];
 
   let maxA = domain_max(A);
   let maxB = domain_max(B);
@@ -457,55 +472,55 @@ function propagator_addMul(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   let vC = domain_getValue(C);
   if (vA >= 0) {
     if (vB >= 0) {
-      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(vA * vB));
-      return;
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(vA * vB));
+      return true;
     }
     if (vA === 0) {
       // C must be 0 and B can be anything
-      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(0));
-      return;
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(0));
+      return true;
     }
     if (vC >= 0) {
       if (vC === 0) {
         // if a is zero, b can be anything. otherwise, b must be zero (or the result couldn't be zero)
-        if (vA !== 0) initialDomains[rightVarIndex] = domain_intersection(B, domain_createValue(0));
+        if (vA !== 0) initialDomains[varIndexB] = domain_intersection(B, domain_createValue(0));
       } else {
         let b = (vA % vC) ? domain_createEmpty() : domain_createValue(vA / vC);
-        initialDomains[rightVarIndex] = domain_intersection(B, b);
+        initialDomains[varIndexB] = domain_intersection(B, b);
       }
-      return;
+      return true;
     }
     // C can only contain values that equals b*vA for any b in B
     // TODO: this could be dangerous if B _and_ C are very large ranges... should we guard against that?
-    initialDomains[resultVarIndex] = domain_intersection(C, domain_mulByValue(B, vA));
-    initialDomains[rightVarIndex] = (maxB === 0 || vA === 0) ? B : domain_intersection(B, domain_invMulValue(initialDomains[resultVarIndex], vA));
+    initialDomains[varIndexC] = domain_intersection(C, domain_mulByValue(B, vA));
+    initialDomains[varIndexB] = (maxB === 0 || vA === 0) ? B : domain_intersection(B, domain_invMulValue(initialDomains[varIndexC], vA));
   } else if (vB >= 0) {
     if (vB === 0) {
       // C must be 0 and A can be anything
-      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(0));
-      return;
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(0));
+      return true;
     }
     if (vC >= 0) {
       if (vC === 0) {
         // if b is zero, a can be anything. otherwise, a must be zero (or the result couldn't be zero)
-        if (vB !== 0) initialDomains[leftVarIndex] = domain_intersection(A, domain_createValue(0));
+        if (vB !== 0) initialDomains[varIndexA] = domain_intersection(A, domain_createValue(0));
       } else {
         let a = (vB % vC) ? domain_createEmpty() : domain_createValue(vB / vC);
-        initialDomains[leftVarIndex] = domain_intersection(A, a);
+        initialDomains[varIndexA] = domain_intersection(A, a);
       }
-      return;
+      return true;
     }
     // C can only contain values that equals a*vB for any a in A
     // TODO: this could be dangerous if A _and_ C are very large ranges... should we guard against that?
-    initialDomains[resultVarIndex] = domain_intersection(C, domain_mulByValue(A, vB));
-    initialDomains[leftVarIndex] = (maxA === 0 || vB === 0) ? A : domain_intersection(A, domain_invMulValue(initialDomains[resultVarIndex], vB));
+    initialDomains[varIndexC] = domain_intersection(C, domain_mulByValue(A, vB));
+    initialDomains[varIndexA] = (maxA === 0 || vB === 0) ? A : domain_intersection(A, domain_invMulValue(initialDomains[varIndexC], vB));
   } else {
     // simple bounds enforcement
-    initialDomains[leftVarIndex] = domain_intersection(A, domain_invMul(C, B));
-    initialDomains[rightVarIndex] = domain_intersection(B, domain_invMul(C, A));
-    initialDomains[resultVarIndex] = domain_intersection(C, domain_mul(A, B));
+    initialDomains[varIndexA] = domain_intersection(A, domain_invMul(C, B));
+    initialDomains[varIndexB] = domain_intersection(B, domain_invMul(C, A));
+    initialDomains[varIndexC] = domain_intersection(C, domain_mul(A, B));
   }
-  config_addPropagator(config, propagator_create('mul', propagator_mulStep, leftVarIndex, rightVarIndex, resultVarIndex));
+  return false;
 }
 
 /**
@@ -654,6 +669,8 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
+  if (propagator_mulConstraintResolved(config, leftVarIndex, rightVarIndex, resultVarIndex)) return;
+
   propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_invMul, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 

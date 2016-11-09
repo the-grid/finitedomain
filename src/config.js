@@ -45,10 +45,10 @@ import {
 
   domain__debug,
   domain_createRange,
-  domain_createValue,
   domain_getValue,
   domain_max,
   domain_min,
+  domain_mul,
   domain_isSolved,
   domain_intersection,
   domain_removeGte,
@@ -633,7 +633,7 @@ function config_addConstraint(config, name, varNames, param) {
     varIndexes[i] = varIndex;
   }
 
-  if (name === 'sum') { // TODO: same for product or why not?
+  if (name === 'sum' || name === 'product') {
     let initialDomains = config.initialDomains;
 
     // limit result var to the min/max possible sum
@@ -641,30 +641,32 @@ function config_addConstraint(config, name, varNames, param) {
     for (let i = 1, n = varIndexes.length; i < n; ++i) {
       let varIndex = varIndexes[i];
       let domain = initialDomains[varIndex];
-      maxDomain = domain_plus(maxDomain, domain);
+      if (name === 'sum') maxDomain = domain_plus(maxDomain, domain);
+      else maxDomain = domain_mul(maxDomain, domain);
     }
     initialDomains[param] = domain_intersection(maxDomain, initialDomains[param]);
 
     // eliminate multiple constants
     if (varIndexes.length > 1) {
       let newVarIndexes = [];
-      let constants = domain_createValue(0);
+      let total = name === 'product' ? 1 : 0;
       for (let i = 0, n = varIndexes.length; i < n; ++i) {
         let varIndex = varIndexes[i];
         let domain = initialDomains[varIndex];
         let value = domain_getValue(domain);
         if (value === NO_SUCH_VALUE) {
           newVarIndexes.push(varIndex);
-        } else if (value !== 0) {
-          constants = domain_plus(constants, domain);
+        } else if (name === 'sum') {
+          total += value;
+        } else if (name === 'product') {
+          total *= value;
         }
       }
-      let cValue = domain_getValue(constants);
-      if (cValue !== 0) {
-        let varIndex = config_addVarAnonConstant(config, cValue);
+      // note for product, multiply by 1 to get identity. for sum it's add 0 for identity.
+      if (!newVarIndexes.length || (name === 'sum' && total !== 0) || (name === 'product' && total !== 1)) {
+        let varIndex = config_addVarAnonConstant(config, total);
         newVarIndexes.push(varIndex);
       }
-      if (!newVarIndexes.length) initialDomains[param] = domain_intersection(domain_createValue(0), initialDomains[param]);
       varIndexes = newVarIndexes;
     }
   }

@@ -2226,6 +2226,7 @@ function domain_bitToSmallest(domain) {
 }
 function domain_strToSmallest(domain) {
   let len = domain.length;
+  if (!len) return EMPTY;
   let min = domain_str_decodeValue(domain, 0);
   let max = domain_str_decodeValue(domain, len - STR_VALUE_SIZE);
   if (len === STR_RANGE_SIZE) {

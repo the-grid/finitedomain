@@ -778,19 +778,55 @@ function domain_strstr_mul(domain1, domain2) {
 
   let result = EMPTY_STR;
   for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
-    let loi = domain_str_decodeValue(domain1, i);
-    let hii = domain_str_decodeValue(domain1, i + STR_VALUE_SIZE);
+    let lo = domain_str_decodeValue(domain1, i);
+    let hi = domain_str_decodeValue(domain1, i + STR_VALUE_SIZE);
 
-    for (let j = 0, lenj = domain2.length; j < lenj; j += STR_RANGE_SIZE) {
-      let loj = domain_str_decodeValue(domain2, j);
-      let hij = domain_str_decodeValue(domain2, j + STR_VALUE_SIZE);
-
-      result += domain_str_encodeRange(MIN(SUP, loi * loj), MIN(SUP, hii * hij));
-    }
+    result += _domain_str_mulByRange(domain2, lo, hi);
   }
 
   // TODO: is it worth doing this step immediately?
   return domain_str_simplify(result);
+}
+/**
+ * Multiply a domain by given range
+ *
+ * @param {$strdom} strdom
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {$strdom} NOT normalized
+ */
+function _domain_str_mulByRange(strdom, lo, hi) {
+  ASSERT_STRDOM(strdom, false, domain__debug);
+  ASSERT(typeof lo === 'number', 'lo should be number');
+  ASSERT(typeof hi === 'number', 'hi should be number');
+
+  let result = EMPTY_STR;
+  for (let j = 0, len = strdom.length; j < len; j += STR_RANGE_SIZE) {
+    let loj = domain_str_decodeValue(strdom, j);
+    let hij = domain_str_decodeValue(strdom, j + STR_VALUE_SIZE);
+
+    result += domain_str_encodeRange(MIN(SUP, lo * loj), MIN(SUP, hi * hij));
+  }
+  return result;
+}
+/**
+ * Multiply given domain by a single value
+ * [1, 10] * 5 = [5, 50]
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_mulByValue(domain, value) {
+  ASSERT_NORDOM(domain, false, domain__debug);
+  ASSERT(typeof value === 'number', 'value should be number');
+  ASSERT(value >= 0, 'cannot use negative numbers');
+  ASSERT(arguments.length === 2, 'not expecting a range');
+
+  if (typeof domain === 'number') domain = domain_numToStr(domain);
+  domain = _domain_str_mulByRange(domain, value, value);
+
+  return domain_str_simplify(domain);
 }
 
 /**
@@ -827,45 +863,144 @@ function domain_strstr_divby(domain1, domain2, floorFractions = true) {
   ASSERT_STRDOM(domain2);
 
   let result = EMPTY_STR;
-  for (let i = 0, leni = domain1.length; i < leni; i += STR_RANGE_SIZE) {
-    let loi = domain_str_decodeValue(domain1, i);
-    let hii = domain_str_decodeValue(domain1, i + STR_VALUE_SIZE);
+  for (let i = 0, leni = domain2.length; i < leni; i += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain2, i);
+    let hi = domain_str_decodeValue(domain2, i + STR_VALUE_SIZE);
 
-    for (let j = 0, lenj = domain2.length; j < lenj; j += STR_RANGE_SIZE) {
-      let loj = domain_str_decodeValue(domain2, j);
-      let hij = domain_str_decodeValue(domain2, j + STR_VALUE_SIZE);
+    result += _domain_str_divbyRange(domain1, lo, hi, floorFractions);
+  }
 
-      // cannot /0
-      // we ignore it right now. should we...
-      // - add a 0 or SUB or SUP for it
-      // - throw an error / issue a warning for it
-      if (hij > 0) {
-        let lo = loi / hij;
-        let hi = loj > 0 ? hii / loj : SUP;
+  return domain_str_simplify(result);
+}
+function _domain_str_divbyRange(strdom, divisorLo, divisorHi, floorFractions) {
+  // Division: Dividend / Divisor = Quotient
+  ASSERT_STRDOM(strdom);
+  ASSERT(typeof divisorLo === 'number', 'lo should be a number');
+  ASSERT(typeof divisorHi === 'number', 'hi should be a number');
+  ASSERT(divisorLo >= 0 && divisorHi >= 0, 'lo/hi cannot be negative');
 
-        ASSERT(hi >= 0, 'hi could only be sub zero when domains allow negative numbers', hi);
-        // we cant use fractions, so we'll only include any values in the
-        // resulting domains that are _above_ the lo and _below_ the hi.
-        let left = CEIL(MAX(0, lo));
-        let right = FLOOR(hi);
+  let result = EMPTY_STR;
+  for (let j = 0, lenj = strdom.length; j < lenj; j += STR_RANGE_SIZE) {
+    let dividendLo = domain_str_decodeValue(strdom, j);
+    let dividendHi = domain_str_decodeValue(strdom, j + STR_VALUE_SIZE);
 
-        // if the fraction is within the same integer this could result in
-        // lo>hi so we must prevent this case
-        if (left <= right) {
-          result += domain_str_encodeRange(left, right);
-        } else {
-          ASSERT(FLOOR(lo) === FLOOR(hi), 'left>right when fraction is in same int, which can happen', lo, hi);
-          if (floorFractions) {
-            // only use the floored value
-            // note: this is a choice. not both floor/ceil because then 5/2=2.5 becomes [2,3]. should be [2,2] or [3,3]
-            result += domain_str_encodeRange(right, right);
-          }
+    // cannot /0
+    // we ignore it right now. should we...
+    // - add a 0 or SUB or SUP for it
+    // - throw an error / issue a warning for it
+    if (divisorHi > 0) {
+      let quotientLo = dividendLo / divisorHi;
+      let quotientHi = divisorLo > 0 ? dividendHi / divisorLo : SUP;
+
+      // we cant use fractions, so we'll only include any values in the
+      // resulting domains that are _above_ the lo and _below_ the hi.
+      let left = CEIL(quotientLo);
+      let right = FLOOR(quotientHi);
+
+      // if the fraction is within the same integer this could result in
+      // lo>hi so we must prevent this case
+      if (left <= right) {
+        result += domain_str_encodeRange(left, right);
+      } else {
+        ASSERT(FLOOR(quotientLo) === FLOOR(quotientHi), 'left>right when fraction is in same int, which can happen', quotientLo, quotientHi);
+        if (floorFractions) {
+          // only use the floored value
+          // note: this is a choice. not both floor/ceil because then 5/2=2.5 becomes [2,3]. should be [2,2] or [3,3]
+          result += domain_str_encodeRange(right, right);
         }
       }
     }
   }
 
+  return result;
+}
+function domain_divByValue(domain, value) {
+  ASSERT_NORDOM(domain, false, domain__debug);
+  ASSERT(typeof value === 'number', 'value should be number');
+  ASSERT(value >= 0, 'cannot use negative numbers');
+  ASSERT(arguments.length === 2, 'not expecting a range');
+
+  if (typeof domain === 'number') domain = domain_numToStr(domain);
+  let domain2 = _domain_str_divbyRange(domain, value, value);
+
+  return domain_str_simplify(domain2);
+}
+
+/**
+ * Do the opposite of a mul. This is _like_ a div but there
+ * are special cases for zeroes and fractions:
+ * - x * y = 0
+ *   - x / 0 = y (not infinity)
+ *   - y / 0 = x (not infinity)
+ * - 2 * x = [2, 3]
+ *   - 2 / [1, 3] = x (integer division so x=1)
+ *   - x / [1, 3] = 2
+ *
+ * @param {$nordom} domain1
+ * @param {$nordom} domain2
+ * @returns {$nordom}
+ */
+function domain_invMul(domain1, domain2) {
+  ASSERT_NORDOM(domain1);
+  ASSERT_NORDOM(domain2);
+
+  // TOFIX: add quick shortcut for solved domains
+
+  // for simplicity sake, convert them back to arrays
+  if (typeof domain1 === 'number') domain1 = domain_numToStr(domain1);
+  if (typeof domain2 === 'number') domain2 = domain_numToStr(domain2);
+
+  // TODO: domain_divByNum
+  return domain_strstr_invMul(domain1, domain2);
+}
+function domain_strstr_invMul(domain1, domain2) {
+  ASSERT_STRDOM(domain1);
+  ASSERT_STRDOM(domain2);
+
+  let result = EMPTY_STR;
+  for (let i = 0, len = domain2.length; i < len; i += STR_RANGE_SIZE) {
+    let lo = domain_str_decodeValue(domain2, i);
+    let hi = domain_str_decodeValue(domain2, i + STR_VALUE_SIZE);
+
+    result += _domain_str_invMulRange(domain1, lo, hi);
+  }
+
   return domain_str_simplify(result);
+}
+function _domain_str_invMulRange(domain, divisorLo, divisorHi) {
+  // note: act like div but do exact opposite of mul regardless
+  // all we worry about is the zero since input is >=0 and finite
+  ASSERT_STRDOM(domain);
+
+  let result = EMPTY_STR;
+  for (let i = 0, len = domain.length; i < len; i += STR_RANGE_SIZE) {
+    let dividendLo = domain_str_decodeValue(domain, i);
+    let dividendHi = domain_str_decodeValue(domain, i + STR_VALUE_SIZE);
+
+    let quotientLo = divisorHi ? (dividendLo / divisorHi) : SUB; // use SUB if /0
+    let quotientHi = divisorLo ? (dividendHi / divisorLo) : SUP; // use SUP if /0
+
+    // only care about the integers within the division range
+    let lo = CEIL(quotientLo);
+    let hi = FLOOR(quotientHi);
+    // if the lo hi quotients are inside the same integer, the result is empty
+    if (lo <= hi) {
+      result += domain_str_encodeRange(lo, hi);
+    }
+  }
+
+  return result;
+}
+function domain_invMulValue(domain, value) {
+  ASSERT_NORDOM(domain, false, domain__debug);
+  ASSERT(typeof value === 'number', 'value should be number');
+  ASSERT(value >= 0, 'cannot use negative numbers');
+  ASSERT(arguments.length === 2, 'not expecting a range');
+
+  if (typeof domain === 'number') domain = domain_numToStr(domain);
+  let domain2 = _domain_str_invMulRange(domain, value, value);
+
+  return domain_str_simplify(domain2);
 }
 
 /**
@@ -1826,7 +1961,9 @@ function domain_createValue(value) {
  * @returns {$domain}
  */
 function domain_createRange(lo, hi) {
-  ASSERT(lo >= SUB && hi <= SUP && lo <= hi, 'expecting sanitized inputs');
+  ASSERT(lo >= SUB, 'lo should be >= SUB', lo, hi);
+  ASSERT(hi <= SUP, 'hi should be <= SUP', lo, hi);
+  ASSERT(lo <= hi, 'should be lo<=hi', lo, hi);
   if (lo === hi) return domain_createValue(lo);
   if (hi <= SMALL_MAX_NUM) return domain_num_createRange(lo, hi);
   return domain_str_encodeRange(lo, hi);
@@ -2180,16 +2317,20 @@ export {
   domain_createValue,
   domain__debug,
   domain_divby,
+  domain_divByValue,
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
   domain_intersection,
+  domain_invMul,
+  domain_invMulValue,
   domain_isEmpty,
   domain_isSolved,
   domain_max,
   domain_middleElement,
   domain_min,
   domain_mul,
+  domain_mulByValue,
   domain_numToStr,
   domain_removeGte,
   domain_removeLte,

@@ -1257,7 +1257,7 @@ describe('src/constraint.spec', function() {
             solver.decl('B', B);
             if (C !== undefined) solver.decl('C', C);
             solver.mul('A', 'B', C === undefined ? undefined : 'C');
-            solver.solve({max: 20}); // arbitrary number
+            solver.solve({max: 20, vars: C === undefined ? ['A', 'B'] : ['A', 'B', 'C']}); // arbitrary number
 
             expect(solver.solutions.length).to.be.below(20); // if this breaks (validly) increase the max above
             if (C !== undefined) {

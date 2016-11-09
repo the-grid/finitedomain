@@ -124,7 +124,10 @@ describe('src/propagator.spec', function() {
 
       it('should return undefined', function() {
         let config = config_create();
-        expect(func(config, 0, 1, 2)).to.equal(undefined);
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1));
+        let C = config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1));
+        expect(func(config, A, B, C)).to.equal(undefined);
       });
     });
   }

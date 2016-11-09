@@ -38,13 +38,15 @@ import {
   //domain__debug,
   domain_createEmpty,
   domain_createValue,
-  domain_divby,
+  domain_invMul,
+  domain_invMulValue,
   domain_getValue,
   domain_intersection,
   domain_isEmpty,
   domain_max,
   domain_min,
   domain_mul,
+  domain_mulByValue,
   domain_removeGte,
   domain_removeLte,
   domain_removeValue,
@@ -441,6 +443,68 @@ function propagator_addMul(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+  let C = initialDomains[resultVarIndex];
+
+  let maxA = domain_max(A);
+  let maxB = domain_max(B);
+
+  // if A and B is unsolved just do a bounds check on result for [lo*lo, hi*hi]
+  let vA = domain_getValue(A);
+  let vB = domain_getValue(B);
+  let vC = domain_getValue(C);
+  if (vA >= 0) {
+    if (vB >= 0) {
+      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(vA * vB));
+      return;
+    }
+    if (vA === 0) {
+      // C must be 0 and B can be anything
+      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(0));
+      return;
+    }
+    if (vC >= 0) {
+      if (vC === 0) {
+        // if a is zero, b can be anything. otherwise, b must be zero (or the result couldn't be zero)
+        if (vA !== 0) initialDomains[rightVarIndex] = domain_intersection(B, domain_createValue(0));
+      } else {
+        let b = (vA % vC) ? domain_createEmpty() : domain_createValue(vA / vC);
+        initialDomains[rightVarIndex] = domain_intersection(B, b);
+      }
+      return;
+    }
+    // C can only contain values that equals b*vA for any b in B
+    // TODO: this could be dangerous if B _and_ C are very large ranges... should we guard against that?
+    initialDomains[resultVarIndex] = domain_intersection(C, domain_mulByValue(B, vA));
+    initialDomains[rightVarIndex] = (maxB === 0 || vA === 0) ? B : domain_intersection(B, domain_invMulValue(initialDomains[resultVarIndex], vA));
+  } else if (vB >= 0) {
+    if (vB === 0) {
+      // C must be 0 and A can be anything
+      initialDomains[resultVarIndex] = domain_intersection(C, domain_createValue(0));
+      return;
+    }
+    if (vC >= 0) {
+      if (vC === 0) {
+        // if b is zero, a can be anything. otherwise, a must be zero (or the result couldn't be zero)
+        if (vB !== 0) initialDomains[leftVarIndex] = domain_intersection(A, domain_createValue(0));
+      } else {
+        let a = (vB % vC) ? domain_createEmpty() : domain_createValue(vB / vC);
+        initialDomains[leftVarIndex] = domain_intersection(A, a);
+      }
+      return;
+    }
+    // C can only contain values that equals a*vB for any a in A
+    // TODO: this could be dangerous if A _and_ C are very large ranges... should we guard against that?
+    initialDomains[resultVarIndex] = domain_intersection(C, domain_mulByValue(A, vB));
+    initialDomains[leftVarIndex] = (maxA === 0 || vB === 0) ? A : domain_intersection(A, domain_invMulValue(initialDomains[resultVarIndex], vB));
+  } else {
+    // simple bounds enforcement
+    initialDomains[leftVarIndex] = domain_intersection(A, domain_invMul(C, B));
+    initialDomains[rightVarIndex] = domain_intersection(B, domain_invMul(C, A));
+    initialDomains[resultVarIndex] = domain_intersection(C, domain_mul(A, B));
+  }
   config_addPropagator(config, propagator_create('mul', propagator_mulStep, leftVarIndex, rightVarIndex, resultVarIndex));
 }
 
@@ -590,7 +654,7 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_divby, leftVarIndex, rightVarIndex, resultVarIndex);
+  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_invMul, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**

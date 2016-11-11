@@ -523,10 +523,10 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
-          expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(solver3[method](1, 'B')).to.be.a('string');
-          expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(solver3[method](1, 2)).to.be.a('string');
+          expect(solver3[method](['A', 'B'])).to.be.a('string');
+          expect(solver3[method]([1, 'B'])).to.be.a('string');
+          expect(solver3[method](['A', 1])).to.be.a('string');
+          expect(solver3[method]([1, 2])).to.be.a('string');
 
           expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
           expect(solver3[method]([1, 'B'], 'C')).to.eql('C');
@@ -631,10 +631,10 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
-          expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(solver3[method](1, 'B')).to.be.a('string');
-          expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(solver3[method](1, 2)).to.be.a('string');
+          expect(solver3[method](['A', 'B'])).to.be.a('string');
+          expect(solver3[method]([1, 'B'])).to.be.a('string');
+          expect(solver3[method](['A', 1])).to.be.a('string');
+          expect(solver3[method]([1, 2])).to.be.a('string');
 
           expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
           expect(solver3[method]([1, 'B'], 'C')).to.be.eql('C');
@@ -1875,10 +1875,10 @@ describe('solver.spec', function() {
 
       solver.solve({});
 
-      expect(solver.solutions).to.eql([
-        {'3': 1, '4': 1, A: 0, B: 0, C: 1},
-        {'3': 1, '4': 1, A: 0, B: 1, C: 0},
-        {'3': 1, '4': 0, A: 1, B: 0, C: 0},
+      expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+        {A: 0, B: 0, C: 1},
+        {A: 0, B: 1, C: 0},
+        {A: 1, B: 0, C: 0},
         // the bug would return an extra solution here and no other test would catch it
       ]);
     });

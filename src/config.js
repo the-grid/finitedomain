@@ -270,7 +270,7 @@ function _config_addVar(config, varName, domain, _allowEmpty) {
 
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
-    varName = String(varIndex); // this var will be assigned to this index
+    varName = '__' + String(varIndex) + '__';
   }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases

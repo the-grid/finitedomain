@@ -626,50 +626,7 @@ function config_addConstraint(config, name, varNames, param) {
       THROW(`UNKNOWN_PROPAGATOR ${name}`);
   }
 
-  let varIndexes = [];
-  for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
-    varIndexes[i] = varIndex;
-  }
-
-  if (name === 'sum' || name === 'product') {
-    let initialDomains = config.initialDomains;
-
-    // limit result var to the min/max possible sum
-    let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
-    for (let i = 1, n = varIndexes.length; i < n; ++i) {
-      let varIndex = varIndexes[i];
-      let domain = initialDomains[varIndex];
-      if (name === 'sum') maxDomain = domain_plus(maxDomain, domain);
-      else maxDomain = domain_mul(maxDomain, domain);
-    }
-    initialDomains[param] = domain_intersection(maxDomain, initialDomains[param]);
-
-    // eliminate multiple constants
-    if (varIndexes.length > 1) {
-      let newVarIndexes = [];
-      let total = name === 'product' ? 1 : 0;
-      for (let i = 0, n = varIndexes.length; i < n; ++i) {
-        let varIndex = varIndexes[i];
-        let domain = initialDomains[varIndex];
-        let value = domain_getValue(domain);
-        if (value === NO_SUCH_VALUE) {
-          newVarIndexes.push(varIndex);
-        } else if (name === 'sum') {
-          total += value;
-        } else if (name === 'product') {
-          total *= value;
-        }
-      }
-      // note for product, multiply by 1 to get identity. for sum it's add 0 for identity.
-      if (!newVarIndexes.length || (name === 'sum' && total !== 0) || (name === 'product' && total !== 1)) {
-        let varIndex = config_addVarAnonConstant(config, total);
-        newVarIndexes.push(varIndex);
-      }
-      varIndexes = newVarIndexes;
-    }
-  }
+  let varIndexes = config_varNamesToIndexes(config, varNames);
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
     let constraint = constraint_create(name, varIndexes, param);
@@ -677,6 +634,23 @@ function config_addConstraint(config, name, varNames, param) {
   }
 
   return resultVarName;
+}
+
+/**
+ * Convert a list of var names to a list of their indexes
+ *
+ * @param {$config} config
+ * @param {string[]} varNames
+ * @returns {number[]}
+ */
+function config_varNamesToIndexes(config, varNames) {
+  let varIndexes = [];
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
+    varIndexes[i] = varIndex;
+  }
+  return varIndexes;
 }
 
 /**
@@ -1001,6 +975,52 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value
   return true;
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
+  ASSERT(constraintName === 'sum' || constraintName === 'product', 'if this changes update the function accordingly');
+  let initialDomains = config.initialDomains;
+
+  // if there are no vars then the next step would fail. could happen as an artifact.
+  if (initialDomains.length) {
+    // limit result var to the min/max possible sum
+    let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
+    for (let i = 1, n = varIndexes.length; i < n; ++i) {
+      let varIndex = varIndexes[i];
+      let domain = initialDomains[varIndex];
+      if (constraintName === 'sum') maxDomain = domain_plus(maxDomain, domain);
+      else maxDomain = domain_mul(maxDomain, domain);
+    }
+    initialDomains[resultIndex] = domain_intersection(maxDomain, initialDomains[resultIndex]);
+  }
+
+  // eliminate multiple constants
+  if (varIndexes.length > 1) {
+    let newVarIndexes = [];
+    let total = constraintName === 'product' ? 1 : 0;
+    for (let i = 0, n = varIndexes.length; i < n; ++i) {
+      let varIndex = varIndexes[i];
+      let domain = initialDomains[varIndex];
+      let value = domain_getValue(domain);
+      if (value === NO_SUCH_VALUE) {
+        newVarIndexes.push(varIndex);
+      } else if (constraintName === 'sum') {
+        total += value;
+      } else if (constraintName === 'product') {
+        total *= value;
+      }
+    }
+    // note for product, multiply by 1 to get identity. for sum it's add 0 for identity.
+    if (!newVarIndexes.length || (constraintName === 'sum' && total !== 0) || (constraintName === 'product' && total !== 1)) {
+      let varIndex = config_addVarAnonConstant(config, total);
+      newVarIndexes.push(varIndex);
+    }
+
+    // copy new list inline
+    for (let i = 0, n = newVarIndexes.length; i < n; ++i) {
+      varIndexes[i] = newVarIndexes[i];
+    }
+    varIndexes.length = newVarIndexes.length;
+  }
+
+  // shouldnt be zero here unless it was declared empty
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways

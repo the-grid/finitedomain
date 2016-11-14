@@ -10,8 +10,13 @@ import Solver from './solver';
 
 // BODY_START
 
-function importer_main(str) {
-  let solver = new Solver();
+/**
+ * @param {string} str
+ * @param {Solver} [solver]
+ * @returns {Solver}
+ */
+function importer_main(str, solver) {
+  if (!solver) solver = new Solver();
 
   let pointer = 0;
   let len = str.length;
@@ -27,7 +32,7 @@ function importer_main(str) {
     ++pointer;
   }
   function is(c, desc) {
-    if (read() !== c) throw new Error('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
+    if (read() !== c) THROW('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
     skip();
   }
 
@@ -68,7 +73,7 @@ function importer_main(str) {
     } else if (isNewline(c)) {
       skip();
     } else {
-      throw new Error('Expected EOL but got `' + read() + '`');
+      THROW('Expected EOL but got `' + read() + '`');
     }
   }
   function isEof() {
@@ -83,9 +88,10 @@ function importer_main(str) {
     // - otherwise: constraint
 
     skipWhites();
-    switch (str[pointer]) {
+    switch (read()) {
       case ':': return parseVar();
       case '#': return skipComment();
+      case '@': return parseAt();
       default:
         if (!isEof()) return parseUndefConstraint();
     }
@@ -107,63 +113,17 @@ function importer_main(str) {
     let mod = parseModifier();
     expectEol();
 
-    solver.decl(name, domain, mod);
-    // TODO: declare the alts somehow and map them to the same var
+    solver.decl(name, domain, mod, true);
+    // TODO: properly map the alts to the same var index...
+    if (alts) alts.map(name => solver.decl(name, domain, mod, true));
   }
 
   function parseIdentifier() {
     // anything terminated by whitespace
     let start = pointer;
     while (!isEof() && !isWhite(read()) && read() !== '(' && read() !== ')' && read() !== ',') skip();
-    if (start === pointer) throw new Error('Expected to parse identifier, found none');
+    if (start === pointer) THROW('Expected to parse identifier, found none');
     return str.slice(start, pointer);
-  }
-
-  function parseDomain() {
-    // [lo hi]
-    // [[lo hi] [lo hi] ..]
-
-    is('[', 'domain start');
-    skipWhitespaces();
-
-    let domain = [];
-
-    if (read() === '[') {
-      do {
-        skip();
-        skipWhitespaces();
-        let lo = parseNumber();
-        skipWhitespaces();
-        let hi = parseNumber();
-        skipWhitespaces();
-        is(']', 'range-end');
-        skipWhitespaces();
-
-        domain.push(lo, hi);
-      } while (read() === '[');
-    } else {
-      skipWhitespaces();
-      let lo;
-      let hi;
-      if (read() === '*') {
-        lo = SUB;
-        hi = SUP;
-        skip();
-      } else {
-        lo = parseNumber();
-        skipWhitespaces();
-        hi = parseNumber();
-      }
-      skipWhitespaces();
-
-      domain.push(lo, hi);
-    }
-
-    is(']', 'domain-end');
-
-    if (domain.length === 0) throw new Error('Not expecting empty domain');
-
-    return domain;
   }
 
   function parseAlias() {
@@ -173,17 +133,89 @@ function importer_main(str) {
     while (true) {
       let c = read();
       if (c === ')') break;
-      if (isNewline(c)) throw new Error('Alias must be closed with a `)` but wasnt (eol)');
-      if (isEof()) throw new Error('Alias must be closed with a `)` but wasnt (eof)');
+      if (isNewline(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
+      if (isEof()) THROW('Alias must be closed with a `)` but wasnt (eof)');
       skip();
     }
     let alias = str.slice(start, pointer);
-    if (!alias) throw new Error('The alias() can not be empty but was');
+    if (!alias) THROW('The alias() can not be empty but was');
 
     skipWhitespaces();
     is(')', '`alias` to be closed by `)`');
 
     return alias;
+  }
+
+
+  function parseDomain() {
+    // []
+    // [lo hi]
+    // [[lo hi] [lo hi] ..]
+    // *
+    // 25
+
+    let c = read();
+    if (c === '=') {
+      skip();
+      skipWhitespaces();
+      c = read();
+    }
+
+    let domain;
+    switch (c) {
+      case '[':
+
+        is('[', 'domain start');
+        skipWhitespaces();
+
+        domain = [];
+
+        if (read() === '[') {
+          do {
+            skip();
+            skipWhitespaces();
+            let lo = parseNumber();
+            skipWhitespaces();
+            let hi = parseNumber();
+            skipWhitespaces();
+            is(']', 'range-end');
+            skipWhitespaces();
+
+            domain.push(lo, hi);
+          } while (read() === '[');
+        } else if (read() !== ']') {
+          skipWhitespaces();
+          let lo = parseNumber();
+          skipWhitespaces();
+          let hi = parseNumber();
+          skipWhitespaces();
+
+          domain.push(lo, hi);
+        }
+
+        is(']', 'domain-end');
+        return domain;
+
+      case '*':
+        skip();
+        return [SUB, SUP];
+
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        let v = parseNumber();
+        skipWhitespaces();
+        return [v, v];
+    }
+
+    THROW('Expecting valid domain start, found `' + c + '`');
   }
 
   function parseModifier() {
@@ -215,7 +247,7 @@ function importer_main(str) {
         break;
 
       default:
-        throw new Error('Expecting a strategy name after the `@` modifier (`' + stratName + '`)');
+        THROW('Expecting a strategy name after the `@` modifier (`' + stratName + '`)');
     }
 
     mod.valtype = stratName;
@@ -225,7 +257,7 @@ function importer_main(str) {
 
   function parseList(mod) {
     skipWhitespaces();
-    if (str.slice(pointer, pointer + 5) !== 'prio(') throw new Error('Expecting the priorities to follow the `@list`');
+    if (str.slice(pointer, pointer + 5) !== 'prio(') THROW('Expecting the priorities to follow the `@list`');
     pointer += 5;
     mod.list = parseNumList();
     is(')', 'list end');
@@ -240,7 +272,7 @@ function importer_main(str) {
         let code = 'return ' + matrix;
         let func = Function(code); /* eslint no-new-func: "off" */
         mod.matrix = func();
-        if (pointer === -1) throw new Error('The matrix must be closed by a `)` but did not find any');
+        if (pointer === -1) THROW('The matrix must be closed by a `)` but did not find any');
       } else if (str.slice(pointer, pointer + 7) === 'legend(') {
         pointer += 7;
         mod.legend = parseNumList();
@@ -306,7 +338,7 @@ function importer_main(str) {
         break;
 
       default:
-        if (cop) throw new Error('Unknown constraint op: [' + cop + ']');
+        if (cop) THROW('Unknown constraint op: [' + cop + ']');
     }
 
     expectEol();
@@ -349,7 +381,7 @@ function importer_main(str) {
       case '/':
         return solver.div(A, parseVexpr(), C);
       default:
-        if (rop !== undefined) throw new Error('Unknown rop: `' + rop + '`');
+        if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');
         return A;
     }
   }
@@ -386,10 +418,11 @@ function importer_main(str) {
         }
         return '>';
       case '#':
-        throw new Error('Expected to parse a cop but found a comment instead');
+        THROW('Expected to parse a cop but found a comment instead');
+        break;
       default:
-        if (isEof()) throw new Error('Expected to parse a cop but reached eof instead');
-        throw new Error('Unknown cop char: `' + c + '`');
+        if (isEof()) THROW('Expected to parse a cop but reached eof instead');
+        THROW('Unknown cop char: `' + c + '`');
     }
   }
 
@@ -443,7 +476,7 @@ function importer_main(str) {
         return a;
 
       default:
-        throw new Error('Wanted to parse a rop but next char is `' + a + '`');
+        THROW('Wanted to parse a rop but next char is `' + a + '`');
     }
   }
 
@@ -494,7 +527,7 @@ function importer_main(str) {
       if (read() === '(') {
         if (ident === 'sum') v = parseSum(resultVar);
         else if (ident === 'product') v = parseProduct(resultVar);
-        else throw new Error('Unknown constraint func: ' + ident);
+        else THROW('Unknown constraint func: ' + ident);
       } else {
         v = ident;
       }
@@ -534,7 +567,7 @@ function importer_main(str) {
     let start = pointer;
     while (read() >= '0' && read() <= '9') skip();
     if (start === pointer) {
-      throw new Error('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + '][' + read() + ']');
+      THROW('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + '][' + read() + ']');
     }
     return parseInt(str.slice(start, pointer), 10);
   }
@@ -561,7 +594,7 @@ function importer_main(str) {
 
   function parseNumstr() {
     let start = pointer;
-    while (str[pointer] >= '0' && str[pointer] <= '9') skip();
+    while (read() >= '0' && read() <= '9') skip();
     return str.slice(start, pointer);
   }
 
@@ -573,15 +606,79 @@ function importer_main(str) {
     while (numstr) {
       nums.push(parseInt(numstr, 10));
       skipWhitespaces();
-      if (str[pointer] === ',') {
+      if (read() === ',') {
         ++pointer;
         skipWhitespaces();
       }
       numstr = parseNumstr();
     }
 
-    if (!nums.length) throw new Error('Expected to parse a list of at least some numbers but found none');
+    if (!nums.length) THROW('Expected to parse a list of at least some numbers but found none');
     return nums;
+  }
+
+  function parseIdentList() {
+    let idents = [];
+
+    while (true) {
+      skipWhitespaces();
+      if (read() === ')') break;
+      if (read() === ',') {
+        skip();
+        skipWhitespaces();
+      }
+      let ident = parseIdentifier();
+      idents.push(ident);
+    }
+
+    if (!idents.length) THROW('Expected to parse a list of at least some identifiers but found none');
+    return idents;
+  }
+
+  function parseAt() {
+    is('@');
+    // mostly temporary hacks while the dsl stabilizes...
+
+    if (str.slice(pointer, pointer + 9) === 'var strat') {
+      pointer += 9;
+      parseVarStrat();
+    } else if (str.slice(pointer, pointer + 9) === 'val strat') {
+      pointer += 9;
+      parseValStrat();
+    } else if (str.slice(pointer, pointer + 7) === 'targets') {
+      pointer += 7;
+      parseTargets();
+    }
+  }
+  function parseVarStrat() {
+    skipWhitespaces();
+    is('=');
+    skipWhitespaces();
+    let json = str.slice(pointer, str.indexOf('\n', pointer));
+    pointer += json.length;
+    expectEol();
+    solver.varStratConfig = JSON.parse(json);
+  }
+  function parseValStrat() {
+    skipWhitespaces();
+    is('=');
+    skipWhitespaces();
+    let name = parseIdentifier();
+    expectEol();
+    solver.valueStratName = name;
+  }
+  function parseTargets() {
+    skipWhitespaces();
+    is('(');
+    let idents = parseIdentList();
+    is(')');
+    expectEol();
+    if (idents.length) solver.config.targetedVars = idents;
+  }
+
+  function THROW(msg) {
+    msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
+    throw new Error(msg);
   }
 }
 

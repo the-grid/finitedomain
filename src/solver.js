@@ -23,7 +23,8 @@ import {
   config_setOption,
   config_setOptions,
 } from './config';
-import exporter from './exporter';
+import exporter_main from './exporter';
+import importer_main from './importer';
 
 import {
   domain__debug,
@@ -102,6 +103,30 @@ class Solver {
     };
 
     this._prepared = false;
+  }
+
+  /**
+   * Import from a dsl into this solver
+   *
+   * @param {string} s
+   * @returns {Solver} this
+   */
+  imp(s) {
+    return importer_main(s, this);
+  }
+
+  /**
+   * Export this config to a dsl. Optionally pass on a
+   * space whose vardoms state to use for initialization.
+   *
+   * @param {$space} [space]
+   * @param {boolean} [usePropagators]
+   * @param {boolean} [minimal]
+   * @param {boolean} [withDomainComments]
+   * @returns {string}
+   */
+  exp(space, usePropagators, minimal, withDomainComments) {
+    return exporter_main(this.config, space.vardoms, usePropagators, minimal, withDomainComments);
   }
 
   /**
@@ -397,8 +422,7 @@ class Solver {
     let max = options.max || 1000;
 
     this._prepare(options, log);
-
-    if (options._tostring) console.log(exporter(this.config));
+    if (options._tostring) console.log(exporter_main(this.config));
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__

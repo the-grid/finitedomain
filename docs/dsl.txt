@@ -23,7 +23,7 @@ anywhitespace:
   whitespace
   newline
 ident:
-  /[^0-9() \t\n\r][^() \t\n\r]*/
+  /[^0-9() \t\n\r,][^() \t\n\r,]*/
   cannot result in a literal of this CFG
   cannot result in a keyword part of a literal of this CFG (matrix, distinct, etc)
   cannot start with a digit
@@ -35,19 +35,21 @@ meta:
   `@var strat` *
   `@val strat` *
   `@targets all`
-  `@targets` `[` idents `]`
+  `@targets(` idents `)`
 *:
   i'm just being lazy. todo
 varstmt:
-  `:` ident domain [aliases] mods
+  `:` ident [`=`] domain [aliases] mods
 aliases:
   alias [aliases]
 alias:
   `alias(` ident `)`
 domain:
   pair
+  `[` `]`
   `[` pairs `]`
-  `[` `*` `]`
+  `*`
+  number
 pair:
   `[` number [`,`] number `]`
 pairs:

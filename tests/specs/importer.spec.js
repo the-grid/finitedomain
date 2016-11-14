@@ -126,13 +126,33 @@ let unitTests = [
     'wide domain',
     s => s.declRange('A', SUB, SUP),
     `
-    : A [*]
+    : A *
     |--
-    : A [ *]
+    : A  *
     |--
-    : A [* ]
+    : A * \t
+    `,
+  ],
+  [
+    'literal domains',
+    s => s.declRange('A', SUB, SUP),
+    `
+    : A 15
     |--
-    : A [ * ]
+    : A  1000
+    |--
+    : A 0 \t
+    |--
+    : A 100000000 \t
+    `,
+  ],
+  [
+    'empty domain',
+    s => s.declRange('A', SUB, SUP),
+    `
+    : A []
+    |--
+    : A [ ]
     `,
   ],
 

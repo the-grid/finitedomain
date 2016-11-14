@@ -7,6 +7,7 @@ import {
   THROW,
 } from './helpers';
 import {
+  domain_getValue,
   domain_toArr,
 } from './domain';
 import {
@@ -15,12 +16,32 @@ import {
 
 // BODY_START
 
-function exporter_main(config) {
-  let var_dist_options = config.var_dist_options;
-  let initialDomains = config.initial_domains;
-  let vars = config.all_var_names.map((varName, varIndex) => {
-    let domain = exporter_domstr(initialDomains[varIndex]);
-    let s = ': v' + varIndex + ' = ' + domain;
+/**
+ * Export a given config with optional target domains
+ * (initial domains otherwise) to special DSL string.
+ * The resulting string should be usable with the
+ * importer to create a new solver with same state.
+ * This function only omits constraints when they only
+ * consist of constants. Optimization should occur elsewhere.
+ *
+ * @param {$config} config
+ * @param {$domain[]} [vardoms] If not given then config.initialDomains are used
+ * @param {boolean} [usePropagators] Output the low-level propagators instead of the higher level constraints
+ * @param {boolean} [minimal] Omit comments, use short var names, reduce whitespace where possible. etc
+ * @param {boolean} [withDomainComments] Put the input domains behind each constraint even if minimal=true
+ * @returns {string}
+ */
+function exporter_main(config, vardoms, usePropagators, minimal, withDomainComments) {
+  // TODO: dont export contants that are not bound to constraints and not targeted explicitly
+  // TODO: deal export->import better wrt anonymous vars
+  let indexToString = minimal ? exporter_varstrShort : exporter_varstrNum;
+
+  let var_dist_options = config.varDistOptions;
+  let domains = vardoms || config.initialDomains;
+
+  let vars = config.allVarNames.map((varName, varIndex) => {
+    let domain = exporter_domstr(domains[varIndex]);
+    let s = ': ' + indexToString(varIndex) + ' = ' + domain;
     if (varName !== String(varIndex)) s += ' alias(' + varName.replace(/[\(\) ]/g, '_') + ')';
     let overrides = var_dist_options[varName];
     if (overrides && (overrides.valtype !== 'list' || (overrides.list && overrides.list.length))) {
@@ -28,7 +49,7 @@ function exporter_main(config) {
       switch (overrides.valtype) {
         case 'markov':
           if ('expandVectorsWith' in overrides) s += 'expand(' + (overrides.expandVectorsWith || 0) + ')';
-          if ('legend' in overrides) s += ' legend(' + overrides.legend + ')';
+          if ('legend' in overrides) s += ' legend(' + overrides.legend.join(' ') + ')';
           if ('matrix' in overrides) s += ' matrix(' + JSON.stringify(overrides.matrix).replace(/"/g, '') + ')';
           break;
 
@@ -53,8 +74,25 @@ function exporter_main(config) {
     }
     return s;
   });
-  let constraints = config.all_constraints.map(constraint => {
+
+  let constraints = usePropagators ? [] : config.allConstraints.map(constraint => {
     let indexes = constraint.varIndexes;
+
+    // create var names for each index, unless solved, in that case use solved value as literal
+    let aliases = indexes.map(indexToString);
+    indexes.forEach((varIndex, i) => {
+      let v = domain_getValue(domains[varIndex]);
+      if (v >= 0) indexes[i] = aliases[i] = v;
+    });
+
+    // do same for param if it's an index
+    let paramName = '';
+    if (typeof constraint.param === 'number') {
+      let paramV = domain_getValue(domains[constraint.param]);
+      if (paramV >= 0) paramName = paramV;
+      else paramName = indexToString(constraint.param);
+    }
+
     let s = '';
     let comment = '';
     switch (constraint.name) {
@@ -69,65 +107,52 @@ function exporter_main(config) {
           case 'gte': op = '>='; break;
           default: THROW('what dis param: ' + op);
         }
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' ' + op + '? v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' ' + op + '? ' + aliases[1];
         break;
       case 'plus':
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' + v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' + ' + aliases[1];
         break;
       case 'min':
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' - v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' - ' + aliases[1];
         break;
       case 'ring-mul':
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' * v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' * ' + aliases[1];
         break;
       case 'ring-div':
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' / v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' / ' + aliases[1];
         break;
       case 'mul':
-        s += 'v' + indexes[2] + ' = v' + indexes[0] + ' * v' + indexes[1];
+        s += aliases[2] + ' = ' + aliases[0] + ' * ' + aliases[1];
         break;
       case 'sum':
-        if (indexes.length === 1) s += 'v' + constraint.param + ' == v' + indexes;
-        else if (indexes.length === 2) s += 'v' + constraint.param + ' = v' + indexes[0] + ' + v' + indexes[1];
-        else s += 'v' + constraint.param + ' = sum(v' + indexes.join(' v') + ')';
-        if (indexes.length <= 2) comment += ' # was sum';
+        s += paramName + ' = sum(' + aliases.join(' ') + ')';
         break;
       case 'product':
-        if (indexes.length === 1) s += 'v' + constraint.param + ' == v' + indexes;
-        else if (indexes.length === 2) s += 'v' + constraint.param + ' = v' + indexes[0] + ' * v' + indexes[1];
-        else s += 'v' + constraint.param + ' = product(v' + indexes.join(' v') + ')';
-        if (indexes.length <= 2) comment += ' # was product';
+        s += paramName + ' = product(' + aliases.join(' ') + ')';
         break;
       case 'markov':
-        s += 'markov(v' + indexes.join(' v') + ')';
+        s += 'markov(' + aliases + ')';
         break;
       case 'distinct':
-        if (indexes.length === 1) {
-          comment += '# eliminated distinct(v' + indexes[0] + ')';
-        } else if (indexes.length === 2) {
-          s += 'v' + indexes[0] + ' != v' + indexes[1];
-          comment += ' # was distinct';
-        } else {
-          s += 'distinct(v' + indexes.join(' v') + ')';
-        }
+        s += 'distinct(' + aliases + ')';
         break;
       case 'eq':
-        s += 'v' + indexes[0] + ' == v' + indexes[1];
+        s += aliases[0] + ' == ' + aliases[1];
         break;
       case 'neq':
-        s += 'v' + indexes[0] + ' != v' + indexes[1];
+        s += aliases[0] + ' != ' + aliases[1];
         break;
       case 'lt':
-        s += 'v' + indexes[0] + ' < v' + indexes[1];
+        s += aliases[0] + ' < ' + aliases[1];
         break;
       case 'lte':
-        s += 'v' + indexes[0] + ' <= v' + indexes[1];
+        s += aliases[0] + ' <= ' + aliases[1];
         break;
       case 'gt':
-        s += 'v' + indexes[0] + ' > v' + indexes[1];
+        s += aliases[0] + ' > ' + aliases[1];
         break;
       case 'gte':
-        s += 'v' + indexes[0] + ' >= v' + indexes[1];
+        s += aliases[0] + ' >= ' + aliases[1];
         break;
 
       default:
@@ -135,31 +160,159 @@ function exporter_main(config) {
         s += 'unknown = ' + JSON.stringify(constraint);
     }
 
-    // this is more for easier debugging...
     let t = s;
-    indexes.forEach(varIndex => t = t.replace('v' + varIndex, exporter_domstr(initialDomains[varIndex])));
-    if (typeof constraint.param === 'number') t = t.replace('v' + constraint.param, exporter_domstr(initialDomains[constraint.param]));
+    // if a constraint has no vars, ignore it.
+    // note: this assumes those constraints are not contradictions
+    if (s.indexOf('$') < 0 || (constraint.name === 'distinct' && aliases.length <= 1) || (((constraint.name === 'product' || constraint.name === 'sum') && aliases.length === 0))) {
+      if (!minimal) comment += (comment ? ', ' : ' # ') + 'dropped; constraint already solved (' + s + ')';
+      s = '';
+    }
 
-    s = s.padEnd(25, ' ') + '      # initial: ' + t;
-    s += comment;
+    if (!minimal || withDomainComments) {
+      // this is more for easier debugging...
+      aliases.forEach((alias, i) => { if (typeof alias === 'string') t = t.replace(alias, exporter_domstr(domains[indexes[i]])); });
+      if (typeof constraint.param === 'number' && typeof paramName === 'string') t = t.replace(paramName, exporter_domstr(domains[constraint.param]));
+
+      if (s || !minimal) {
+        // s += ' '.repeat(Math.max(0, 30 - s.length))
+        for (let i = Math.max(0, 30 - s.length); i >= 0; --i) s += ' ';
+        s += '      # ' + t;
+      }
+      s += comment;
+    }
 
     return s;
-  });
+  }).filter(s => !!s);
+
+  let propagators = !usePropagators ? [] : config._propagators.map(propagator => {
+    let varIndex1 = propagator.index1;
+    let varIndex2 = propagator.index2;
+    let varIndex3 = propagator.index3;
+
+    let v1 = varIndex1 >= 0 ? domain_getValue(domains[varIndex1]) : -1;
+    let name1 = v1 >= 0 ? v1 : varIndex1 < 0 ? undefined : indexToString(varIndex1);
+    let v2 = varIndex2 >= 0 ? domain_getValue(domains[varIndex2]) : -1;
+    let name2 = v2 >= 0 ? v2 : varIndex2 < 0 ? undefined : indexToString(varIndex2);
+    let v3 = varIndex3 >= 0 ? domain_getValue(domains[varIndex3]) : -1;
+    let name3 = v3 >= 0 ? v3 : varIndex3 < 0 ? undefined : indexToString(varIndex3);
+
+    let s = '';
+    let comment = '';
+    switch (propagator.name) {
+      case 'reified':
+        let op;
+        switch (propagator.arg3) {
+          case 'eq': op = '=='; break;
+          case 'neq': op = '!='; break;
+          case 'lt': op = '<'; break;
+          case 'lte': op = '<='; break;
+          case 'gt': op = '>'; break;
+          case 'gte': op = '>='; break;
+          default: THROW('what dis param: ' + op);
+        }
+        s += name3 + ' = ' + name1 + ' ' + op + '? ' + name2;
+        break;
+      case 'eq':
+        s += name1 + ' == ' + name2;
+        break;
+      case 'lt':
+        s += name1 + ' < ' + name2;
+        break;
+      case 'lte':
+        s += name1 + ' <= ' + name2;
+        break;
+      case 'mul':
+        s += name3 + ' = ' + name1 + ' * ' + name2;
+        break;
+      case 'div':
+        s += name3 + ' = ' + name1 + ' / ' + name2;
+        break;
+      case 'neq':
+        s += name1 + ' != ' + name2;
+        break;
+      case 'min':
+        s += name3 + ' = ' + name1 + ' - ' + name2;
+        break;
+
+      case 'ring':
+        switch (propagator.arg1) {
+          case 'plus':
+            s += name3 + ' = ' + name1 + ' + ' + name2;
+            break;
+          case 'min':
+            s += name3 + ' = ' + name1 + ' - ' + name2;
+            break;
+          case 'ring-mul':
+            s += name3 + ' = ' + name1 + ' * ' + name2;
+            break;
+          case 'ring-div':
+            s += name3 + ' = ' + name1 + ' / ' + name2;
+            break;
+          default:
+            throw new Error('Unexpected ring op:' + propagator.arg1);
+        }
+        break;
+
+      case 'markov':
+        // ignore. the var @markov modifier should cause this. it's not a real constraint.
+        return '';
+
+      default:
+        console.warn('unknown propagator: ' + propagator.name);
+        s += 'unknown = ' + JSON.stringify(propagator);
+    }
+
+    let t = s;
+
+    // if a propagator has no vars, ignore it.
+    // note: this assumes those constraints are not contradictions
+    if (s.indexOf('$') < 0) {
+      if (!minimal) comment += (comment ? ', ' : ' # ') + 'dropped; constraint already solved (' + s + ')';
+      s = '';
+    }
+
+    if (!minimal) {
+      // this is more for easier debugging...
+
+      if (typeof name1 === 'string') t = t.replace(name1, exporter_domstr(domains[varIndex1]));
+      if (typeof name2 === 'string') t = t.replace(name2, exporter_domstr(domains[varIndex2]));
+      if (typeof name3 === 'string') t = t.replace(name3, exporter_domstr(domains[varIndex3]));
+
+      s += ' '.repeat(Math.max(0, 30 - s.length)) + '      # initial: ' + t;
+      s += comment;
+    }
+
+    return s;
+  }).filter(s => !!s);
 
   return [
     '## constraint problem export',
     '@var strat = ' + JSON.stringify(config.varStratConfig), // TODO
     '@val strat = ' + config.valueStratName,
     vars.join('\n') || '# no vars',
-    constraints.join('\n') || '# no constraints',
-    '@targets = ' + (config.targetedVars === 'all' ? 'all' : '[v' + config.targetedVars.map(varName => trie_get(config._var_names_trie, varName)).join(' v') + ']'),
+    constraints.join('\n') || propagators.join('\n') || '# no constraints',
+    '@targets = ' + (config.targetedVars === 'all' ? 'all' : '[' + config.targetedVars.map(varName => indexToString(trie_get(config._varNamesTrie, varName))).join(' ') + ']'),
     '## end of export',
   ].join('\n\n');
+}
+
+function exporter_varstrNum(varIndex) {
+  // note: we put a `$` behind it so that we can search-n-replace for `$1` without matching `$100`
+  return '$' + varIndex + '$';
+}
+
+function exporter_varstrShort(varIndex) {
+  // take care not to start the name with a number
+  // note: .toString(36) uses a special (standard) base 36 encoding; 0-9a-z to represent 0-35
+  let name = varIndex.toString(36);
+  if (name[0] < 'a') name = '$' + name; // this is a little lazy but whatever
+  return name;
 }
 
 function exporter_domstr(domain) {
   // represent domains as pairs, a single pair as [lo hi] and multiple as [[lo hi] [lo hi]]
   let arrdom = domain_toArr(domain);
+  if (arrdom.length === 2 && arrdom[0] === arrdom[1]) return String(arrdom[0]);
   if (arrdom.length > 2) {
     let dom = [];
     for (let i = 0, n = arrdom.length; i < n; i += 2) {

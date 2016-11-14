@@ -100,6 +100,8 @@ function config_create() {
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
     _constrainedAway: [], // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
+
+    _constraintHash: {}, // every constraint is logged here (note: for results only the actual constraints are stored). if it has a result, the value is the result var _name_. otherwise just `true` if it exists and `false` if it was optimized away.
   };
 
   ASSERT(!void (config._propagates = 0), 'number of propagate() calls');
@@ -147,6 +149,9 @@ function config_clone(config, newDomains) {
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
     _constrainedAway: _constrainedAway && _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
+
+    // not sure what to do with this in the clone...
+    _constraintHash: {},
   };
 
   ASSERT(!void (clone._propagates = 0), 'number of propagate() calls');
@@ -548,12 +553,14 @@ function config_addConstraint(config, name, varNames, param) {
   // should return a new var name for most props
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
 
+  let inputConstraintKeyOp = name;
   let resultVarName;
 
   let forceBool = false;
   switch (name) { /* eslint no-fallthrough: "off" */
     case 'reifier':
       forceBool = true;
+      inputConstraintKeyOp = param;
       // fall-through
     case 'plus':
     case 'min':
@@ -613,6 +620,8 @@ function config_addConstraint(config, name, varNames, param) {
   // note: if param is a var constant then that case is already resolved above
   config_compileConstants(config, varNames);
 
+  if (config_dedupeConstraint(config, inputConstraintKeyOp + '|' + varNames.join(','), resultVarName)) return resultVarName;
+
   let varIndexes = config_varNamesToIndexes(config, varNames);
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
@@ -655,6 +664,35 @@ function config_varNamesToIndexes(config, varNames) {
     varIndexes[i] = varIndex;
   }
   return varIndexes;
+}
+
+/**
+ * Check whether we already know a given constraint (represented by a unique string).
+ * If we don't, add the string to the cache with the expected result name, if any.
+ *
+ * @param config
+ * @param constraintUI
+ * @param resultVarName
+ * @returns {boolean}
+ */
+function config_dedupeConstraint(config, constraintUI, resultVarName) {
+  if (!config._constraintHash) config._constraintHash = {}; // can happen for imported configs that are extended or smt
+  let haveConstraint = config._constraintHash[constraintUI];
+  if (haveConstraint === true) {
+    if (resultVarName !== undefined) {
+      throw new Error('How is this possible?'); // either a constraint-with-value gets a result var, or it's a constraint-sans-value
+    }
+    return true;
+  }
+  if (haveConstraint !== undefined) {
+    ASSERT(typeof haveConstraint === 'string', 'if not true or undefined, it should be a string');
+    ASSERT(resultVarName && typeof resultVarName === 'string', 'if it was recorded as a constraint-with-value then it should have a result var now as well');
+    // the constraint exists and had a result. map that result to this result for equivalent results.
+    config_addConstraint(config, 'eq', [resultVarName, haveConstraint]); // _could_ also be optimized away ;)
+    return true;
+  }
+  config._constraintHash[constraintUI] = resultVarName || true;
+  return false;
 }
 
 /**

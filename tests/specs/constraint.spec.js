@@ -1855,5 +1855,471 @@ describe('src/constraint.spec', function() {
         });
       });
     });
+
+    describe('dupe constraints', function() {
+      // this set contains integration tests with explicitly duplicate constraints.
+      // this case can occur as an procedural artifact in the wild and is optimized.
+
+      it('should work with duplicate eqs', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+
+        solver.eq('A', 'B');
+        solver.eq('A', 'B');
+
+        solver.solve({vars: ['A', 'B']});
+
+        // the order is irrelevant..
+        expect(solver.solutions).to.eql([{A: 0, B: 0}, {A: 1, B: 1}]);
+      });
+
+      it('should work with optimizable constraints', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 0);
+        solver.declRange('B', 1, 1);
+
+        solver.neq('A', 'B');
+        solver.neq('A', 'B');
+
+        solver.solve({vars: ['A', 'B']});
+
+        // the order is irrelevant..
+        expect(solver.solutions).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should work with result var', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 2);
+
+        solver.plus('A', 'B', 'C');
+        solver.plus('A', 'B', 'C');
+
+        solver.solve({vars: ['A', 'B', 'C']});
+
+        // the order is irrelevant..
+        expect(solver.solutions).to.eql([
+          {A: 0, B: 0, C: 0},
+          {A: 0, B: 1, C: 1},
+          {A: 1, B: 0, C: 1},
+          {A: 1, B: 1, C: 2},
+        ]);
+      });
+
+      it('should work with different result vars on same constraint', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 2);
+        solver.declRange('D', 0, 2);
+
+        solver.plus('A', 'B', 'C');
+        solver.plus('A', 'B', 'D');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D']});
+
+        // the order is irrelevant..
+        expect(solver.solutions).to.eql([
+          {A: 0, B: 0, C: 0, D: 0},
+          {A: 0, B: 1, C: 1, D: 1},
+          {A: 1, B: 0, C: 1, D: 1},
+          {A: 1, B: 1, C: 2, D: 2},
+        ]);
+      });
+
+      it('should work with sum on same result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('D', 0, 3);
+
+        solver.sum(['A', 'B', 'C'], 'D');
+        solver.sum(['A', 'B', 'C'], 'D');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 0, D: 0},
+          {A: 0, B: 0, C: 1, D: 1},
+          {A: 0, B: 1, C: 0, D: 1},
+          {A: 0, B: 1, C: 1, D: 2},
+          {A: 1, B: 0, C: 0, D: 1},
+          {A: 1, B: 0, C: 1, D: 2},
+          {A: 1, B: 1, C: 0, D: 2},
+          {A: 1, B: 1, C: 1, D: 3},
+        ]);
+      });
+
+      it('should work with sum on different result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('CC', 0, 1);
+        solver.declRange('D', 0, 3);
+        solver.declRange('E', 0, 3);
+
+        solver.sum(['A', 'B', 'C'], 'D');
+        solver.sum(['A', 'B', 'CC'], 'E');
+
+        solver.solve({vars: ['A', 'B', 'C', 'CC', 'D', 'E']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 0, CC: 0, D: 0, E: 0},
+          {A: 0, B: 0, C: 0, CC: 1, D: 0, E: 1},
+          {A: 0, B: 0, C: 1, CC: 0, D: 1, E: 0},
+          {A: 0, B: 0, C: 1, CC: 1, D: 1, E: 1},
+          {A: 0, B: 1, C: 0, CC: 0, D: 1, E: 1},
+          {A: 0, B: 1, C: 0, CC: 1, D: 1, E: 2},
+          {A: 0, B: 1, C: 1, CC: 0, D: 2, E: 1},
+          {A: 0, B: 1, C: 1, CC: 1, D: 2, E: 2},
+          {A: 1, B: 0, C: 0, CC: 0, D: 1, E: 1},
+          {A: 1, B: 0, C: 0, CC: 1, D: 1, E: 2},
+          {A: 1, B: 0, C: 1, CC: 0, D: 2, E: 1},
+          {A: 1, B: 0, C: 1, CC: 1, D: 2, E: 2},
+          {A: 1, B: 1, C: 0, CC: 0, D: 2, E: 2},
+          {A: 1, B: 1, C: 0, CC: 1, D: 2, E: 3},
+          {A: 1, B: 1, C: 1, CC: 0, D: 3, E: 2},
+          {A: 1, B: 1, C: 1, CC: 1, D: 3, E: 3},
+        ]);
+      });
+
+      it('should work with sum on partially same vars', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('D', 0, 1);
+        solver.declRange('E', 0, 2);
+        solver.declRange('F', 0, 2);
+
+        solver.sum(['A', 'B', 'C'], 'E');
+        solver.sum(['A', 'B', 'D'], 'F');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D', 'E', 'F']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 0, D: 0, E: 0, F: 0},
+          {A: 0, B: 0, C: 0, D: 1, E: 0, F: 1},
+          {A: 0, B: 0, C: 1, D: 0, E: 1, F: 0},
+          {A: 0, B: 0, C: 1, D: 1, E: 1, F: 1},
+          {A: 0, B: 1, C: 0, D: 0, E: 1, F: 1},
+          {A: 0, B: 1, C: 0, D: 1, E: 1, F: 2},
+          {A: 0, B: 1, C: 1, D: 0, E: 2, F: 1},
+          {A: 0, B: 1, C: 1, D: 1, E: 2, F: 2},
+          {A: 1, B: 0, C: 0, D: 0, E: 1, F: 1},
+          {A: 1, B: 0, C: 0, D: 1, E: 1, F: 2},
+          {A: 1, B: 0, C: 1, D: 0, E: 2, F: 1},
+          {A: 1, B: 0, C: 1, D: 1, E: 2, F: 2},
+          {A: 1, B: 1, C: 0, D: 0, E: 2, F: 2},
+        ]);
+      });
+
+      it('should work with product on same result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 1, 2);
+        solver.declRange('B', 1, 2);
+        solver.declRange('C', 1, 2);
+        solver.declRange('D', 0, 8);
+        solver.product(['A', 'B', 'C'], 'D');
+        solver.product(['A', 'B', 'C'], 'D');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 1, B: 1, C: 1, D: 1},
+          {A: 1, B: 1, C: 2, D: 2},
+          {A: 1, B: 2, C: 1, D: 2},
+          {A: 1, B: 2, C: 2, D: 4},
+          {A: 2, B: 1, C: 1, D: 2},
+          {A: 2, B: 1, C: 2, D: 4},
+          {A: 2, B: 2, C: 1, D: 4},
+          {A: 2, B: 2, C: 2, D: 8},
+        ]);
+      });
+
+      it('should work with product on different result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 1, 2);
+        solver.declRange('B', 1, 2);
+        solver.declRange('C', 1, 2);
+        solver.declRange('D', 0, 8);
+        solver.declRange('E', 0, 8);
+        solver.product(['A', 'B', 'C'], 'D');
+        solver.product(['A', 'B', 'C'], 'E');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D', 'E']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 1, B: 1, C: 1, D: 1, E: 1},
+          {A: 1, B: 1, C: 2, D: 2, E: 2},
+          {A: 1, B: 2, C: 1, D: 2, E: 2},
+          {A: 1, B: 2, C: 2, D: 4, E: 4},
+          {A: 2, B: 1, C: 1, D: 2, E: 2},
+          {A: 2, B: 1, C: 2, D: 4, E: 4},
+          {A: 2, B: 2, C: 1, D: 4, E: 4},
+          {A: 2, B: 2, C: 2, D: 8, E: 8},
+        ]);
+      });
+
+      it('should work with product on partially same vars', function() {
+        let solver = new Solver();
+        solver.declRange('A', 1, 2);
+        solver.declRange('B', 1, 2);
+        solver.declRange('C', 1, 2);
+        solver.declRange('D', 1, 2);
+        solver.declRange('E', 0, 8);
+        solver.declRange('F', 0, 8);
+
+        solver.product(['A', 'B', 'C'], 'E');
+        solver.product(['A', 'B', 'D'], 'F');
+
+        solver.solve({vars: ['A', 'B', 'C', 'D', 'E', 'F']});
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 1, B: 1, C: 1, D: 1, E: 1, F: 1},
+          {A: 1, B: 1, C: 1, D: 2, E: 1, F: 2},
+          {A: 1, B: 1, C: 2, D: 1, E: 2, F: 1},
+          {A: 1, B: 1, C: 2, D: 2, E: 2, F: 2},
+          {A: 1, B: 2, C: 1, D: 1, E: 2, F: 2},
+          {A: 1, B: 2, C: 1, D: 2, E: 2, F: 4},
+          {A: 1, B: 2, C: 2, D: 1, E: 4, F: 2},
+          {A: 1, B: 2, C: 2, D: 2, E: 4, F: 4},
+          {A: 2, B: 1, C: 1, D: 1, E: 2, F: 2},
+          {A: 2, B: 1, C: 1, D: 2, E: 2, F: 4},
+          {A: 2, B: 1, C: 2, D: 1, E: 4, F: 2},
+          {A: 2, B: 1, C: 2, D: 2, E: 4, F: 4},
+          {A: 2, B: 2, C: 1, D: 1, E: 4, F: 4},
+          {A: 2, B: 2, C: 1, D: 2, E: 4, F: 8},
+          {A: 2, B: 2, C: 2, D: 1, E: 8, F: 4},
+          {A: 2, B: 2, C: 2, D: 2, E: 8, F: 8},
+        ]);
+      });
+
+      it('should work with distinct on same result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 2);
+        solver.declRange('B', 0, 2);
+        solver.declRange('C', 0, 2);
+
+        solver.distinct(['A', 'B', 'C']);
+        solver.distinct(['A', 'B', 'C']);
+
+        solver.solve();
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 1, C: 2},
+          {A: 0, B: 2, C: 1},
+          {A: 1, B: 0, C: 2},
+          {A: 1, B: 2, C: 0},
+          {A: 2, B: 0, C: 1},
+          {A: 2, B: 1, C: 0},
+        ]);
+      });
+
+      it('should work with distinct on partially same vars', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 3);
+        solver.declRange('B', 0, 3);
+        solver.declRange('C', 0, 3);
+        solver.declRange('D', 0, 3);
+
+        solver.distinct(['A', 'B', 'C']);
+        solver.distinct(['A', 'B', 'D']);
+
+        solver.solve();
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions), JSON.stringify(stripAnonVarsFromArrays(solver.solutions)).replace(/"/g, '')).to.eql([
+          {A: 0, B: 1, C: 2, D: 2},
+          {A: 0, B: 1, C: 2, D: 3},
+          {A: 0, B: 1, C: 3, D: 2},
+          {A: 0, B: 1, C: 3, D: 3},
+          {A: 0, B: 2, C: 1, D: 1},
+          {A: 0, B: 2, C: 1, D: 3},
+          {A: 0, B: 2, C: 3, D: 1},
+          {A: 0, B: 2, C: 3, D: 3},
+          {A: 0, B: 3, C: 1, D: 1},
+          {A: 0, B: 3, C: 1, D: 2},
+          {A: 0, B: 3, C: 2, D: 1},
+          {A: 0, B: 3, C: 2, D: 2},
+          {A: 1, B: 0, C: 2, D: 2},
+          {A: 1, B: 0, C: 2, D: 3},
+          {A: 1, B: 0, C: 3, D: 2},
+          {A: 1, B: 0, C: 3, D: 3},
+          {A: 1, B: 2, C: 0, D: 0},
+          {A: 1, B: 2, C: 0, D: 3},
+          {A: 1, B: 2, C: 3, D: 0},
+          {A: 1, B: 2, C: 3, D: 3},
+          {A: 1, B: 3, C: 0, D: 0},
+          {A: 1, B: 3, C: 0, D: 2},
+          {A: 1, B: 3, C: 2, D: 0},
+          {A: 1, B: 3, C: 2, D: 2},
+          {A: 2, B: 0, C: 1, D: 1},
+          {A: 2, B: 0, C: 1, D: 3},
+          {A: 2, B: 0, C: 3, D: 1},
+          {A: 2, B: 0, C: 3, D: 3},
+          {A: 2, B: 1, C: 0, D: 0},
+          {A: 2, B: 1, C: 0, D: 3},
+          {A: 2, B: 1, C: 3, D: 0},
+          {A: 2, B: 1, C: 3, D: 3},
+          {A: 2, B: 3, C: 0, D: 0},
+          {A: 2, B: 3, C: 0, D: 1},
+          {A: 2, B: 3, C: 1, D: 0},
+          {A: 2, B: 3, C: 1, D: 1},
+          {A: 3, B: 0, C: 1, D: 1},
+          {A: 3, B: 0, C: 1, D: 2},
+          {A: 3, B: 0, C: 2, D: 1},
+          {A: 3, B: 0, C: 2, D: 2},
+          {A: 3, B: 1, C: 0, D: 0},
+          {A: 3, B: 1, C: 0, D: 2},
+          {A: 3, B: 1, C: 2, D: 0},
+          {A: 3, B: 1, C: 2, D: 2},
+          {A: 3, B: 2, C: 0, D: 0},
+          {A: 3, B: 2, C: 0, D: 1},
+          {A: 3, B: 2, C: 1, D: 0},
+          {A: 3, B: 2, C: 1, D: 1},
+        ]);
+      });
+
+      it('should work with reifiers on same result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+
+        solver.isEq('A', 'B', 'C');
+        solver.isEq('A', 'B', 'C');
+
+        solver.solve();
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1},
+          {A: 0, B: 1, C: 0},
+          {A: 1, B: 0, C: 0},
+          {A: 1, B: 1, C: 1},
+        ]);
+      });
+
+      it('should work with reifiers on different result', function() {
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('D', 0, 1);
+
+        solver.isEq('A', 'B', 'C');
+        solver.isEq('A', 'B', 'D');
+
+        solver.solve();
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1, D: 1},
+          {A: 0, B: 1, C: 0, D: 0},
+          {A: 1, B: 0, C: 0, D: 0},
+          {A: 1, B: 1, C: 1, D: 1},
+        ]);
+      });
+
+      it('should work with reifiers on dupe different result', function() {
+        // this case is slightly different in that it should eliminate the
+        // second redirection C->D when A=?B is compiled for D twice
+        // (and if it doesn't it should still just work)
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('D', 0, 1);
+
+        solver.isEq('A', 'B', 'C');
+        solver.isEq('A', 'B', 'D'); // should do D==C, nothing else
+        solver.isEq('A', 'B', 'D'); // twice! should be a noop now
+
+        solver.solve();
+
+        // the order is irrelevant..
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1, D: 1},
+          {A: 0, B: 1, C: 0, D: 0},
+          {A: 1, B: 0, C: 0, D: 0},
+          {A: 1, B: 1, C: 1, D: 1},
+        ]);
+      });
+
+      it('should work with different reifiers on same var (regression)', function() {
+        // make sure reifiers arent cached as "reifiers" but as their op
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+
+        solver.isGte('A', 'B', 'C');
+        solver.isLte('A', 'B', 'C');
+
+        solver.solve();
+
+        // the order is irrelevant..
+        // because same result var is used, when A!=B it wants different values for C and so it rejects
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1},
+          {A: 1, B: 1, C: 1},
+        ]);
+      });
+
+      it('should work with different reifiers on different var (regression)', function() {
+        // make sure reifiers arent cached as "reifiers" but as their op
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+        solver.declRange('D', 0, 1);
+
+        solver.isGte('A', 'B', 'C');
+        solver.isLte('A', 'B', 'D');
+
+        solver.solve();
+
+        // the order is irrelevant..
+        // unlike before, C and D can solve now
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1, D: 1},
+          {A: 0, B: 1, C: 0, D: 1},
+          {A: 1, B: 0, C: 1, D: 0},
+          {A: 1, B: 1, C: 1, D: 1},
+        ]);
+      });
+
+      it('should work with a reifier and a constraint on the same op', function() {
+        // make sure reifiers arent cached as their op without reifier mark
+        let solver = new Solver();
+        solver.declRange('A', 0, 1);
+        solver.declRange('B', 0, 1);
+        solver.declRange('C', 0, 1);
+
+        solver.isEq('A', 'B', 'C'); // should cache A=?B -> C
+        solver.eq('A', 'B'); // should not use the cached A=?B for this but force A==B, so there can only be two results
+
+        solver.solve();
+
+        // the order is irrelevant..
+        // note that the eq discards the A!=B results so there are only two
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+          {A: 0, B: 0, C: 1},
+          {A: 1, B: 1, C: 1},
+        ]);
+      });
+    });
   });
 });

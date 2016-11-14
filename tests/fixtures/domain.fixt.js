@@ -167,7 +167,7 @@ function fixt_bytes(str, desc) {
 
 function stripAnonVars(solution) {
   for (let name in solution) {
-    if (String(parseFloat(name)) === name) { // only true of name is a number
+    if ('__'+String(parseFloat(name.slice(2)))+'__' === name) { // only true of name is a number
       delete solution[name];
     }
   }

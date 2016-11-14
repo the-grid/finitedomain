@@ -35,11 +35,21 @@ import {
   propagator_neqStepWouldReject,
 } from './propagators/neq';
 import {
-  domain_divby,
+  //domain__debug,
+  domain_createEmpty,
+  domain_createValue,
+  domain_invMul,
+  domain_invMulValue,
   domain_getValue,
+  domain_intersection,
+  domain_isEmpty,
   domain_max,
   domain_min,
   domain_mul,
+  domain_mulByValue,
+  domain_removeGte,
+  domain_removeLte,
+  domain_removeValue,
 } from './domain';
 import domain_plus from './doms/domain_plus';
 import domain_minus from './doms/domain_minus';
@@ -48,6 +58,7 @@ import domain_minus from './doms/domain_minus';
 
 /**
  * @param {string} name
+ * @param {Function} stepFunc
  * @param {number} index1
  * @param {number} [index2=-1]
  * @param {number} [index3=-1]
@@ -110,6 +121,33 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(domain_min(config.initialDomains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
   ASSERT(domain_max(config.initialDomains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
+  let initialDomains = config.initialDomains;
+
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+  let C = initialDomains[resultVarIndex];
+
+  let valueA = domain_getValue(A);
+  let valueB = domain_getValue(B);
+  let valueC = domain_getValue(C);
+
+  // the reifier is solved if all three vars are solved
+  let solved = 0;
+  if (valueA >= 0) ++solved;
+  if (valueB >= 0) ++solved;
+  if (valueC >= 0) ++solved;
+  if (solved === 3) return;
+
+  let minA = domain_min(A);
+  let maxA = domain_max(A);
+  let minB = domain_min(B);
+  let maxB = domain_max(B);
+
+  // the reifier can be rewritten if any two of the three vars are solved
+  // the reifier might be rewritable if one var is solved
+  // in some cases certain constraints can be decided without being solved ([0,4]<[5,10] always holds)
+  // the actual rewrites depends on the op, though
+
   let nopName;
   let opFunc;
   let nopFunc;
@@ -117,99 +155,113 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   let nopRejectChecker;
   switch (opname) {
     case 'eq': {
-      opFunc = propagator_eqStepBare;
-      opRejectChecker = propagator_eqStepWouldReject;
-      nopName = 'neq';
-      nopFunc = propagator_neqStepBare;
-      nopRejectChecker = propagator_neqStepWouldReject;
-
-      let A = config.initialDomains[leftVarIndex];
-      let B = config.initialDomains[rightVarIndex];
-      let C = config.initialDomains[resultVarIndex];
-
-      // while at most one var should be solved at this point, it's possible
-      // (and fine) if multiple vars are solved here. it's just less efficient.
-      // (inefficient) config imports could cause this.
-
-      let valueC = domain_getValue(C);
-
-      if (valueC === 0) {
-        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
-      } else if (valueC === 1) {
-        return propagator_addEq(config, leftVarIndex, rightVarIndex);
-      } else {
-        let minA = domain_min(A);
-        let maxA = domain_max(A);
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-
-        if (minA === 0 && maxA === 1) { // A=bool
-          if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_getValue(B) === 0, 'because csis');
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_getValue(B) === 1, 'because csis');
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          }
-        } else if (minB === 0 && maxB === 1) {
-          if (maxA === 0) {
-            ASSERT(domain_getValue(A) === 0, 'because csis');
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          } else if (minA === 1) {
-            ASSERT(domain_getValue(A) === 1, 'because csis');
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          }
+      // R = A ==? B
+      // 1 = A ==? B        ->    A == B
+      // 0 = A ==? B        ->    A != B
+      // R = x ==? B        ->    check if B contains value x, solve accordingly
+      // if B is boolean we can apply even more special rules (we know R is boolean)
+      // R = 0 ==? B[0 1]   ->    R != B
+      // R = 1 ==? B[0 1]   ->    R == B
+      if (valueC >= 0) { // result solved
+        if (valueA >= 0) {
+          if (valueC) initialDomains[rightVarIndex] = A;
+          else initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
+        } else if (valueB >= 0) {
+          if (valueC) initialDomains[leftVarIndex] = B;
+          else initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
+        } else {
+          // neither A nor B is solved; simplify
+          if (valueC) propagator_addEq(config, leftVarIndex, rightVarIndex);
+          else propagator_addNeq(config, leftVarIndex, rightVarIndex);
         }
+        return;
       }
+      if (valueA >= 0 && valueB >= 0) {
+        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 1 : 0);
+        return;
+      }
+      // C isnt solved, and A and B arent both solved
+      // check the cases of one side solved and other side bool
+      if (maxA <= 1 && maxB === 1) {
+        if (valueA === 0) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+        else if (valueA === 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      }
+      if (maxB <= 1 && maxA === 1) {
+        if (valueB === 0) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+        else if (valueB === 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      }
+
+      nopName = 'neq';
+      opFunc = propagator_eqStepBare;
+      nopFunc = propagator_neqStepBare;
+      opRejectChecker = propagator_eqStepWouldReject;
+      nopRejectChecker = propagator_neqStepWouldReject;
 
       break;
     }
 
     case 'neq': {
-      opFunc = propagator_neqStepBare;
-      opRejectChecker = propagator_neqStepWouldReject;
-      nopName = 'eq';
-      nopFunc = propagator_eqStepBare;
-      nopRejectChecker = propagator_eqStepWouldReject;
+      // similar optimizations to eq. just inversed.
 
-      let A = config.initialDomains[leftVarIndex];
-      let B = config.initialDomains[rightVarIndex];
-      let C = config.initialDomains[resultVarIndex];
-
-      let valueC = domain_getValue(C);
-
-      if (valueC === 0) {
-        return propagator_addEq(config, leftVarIndex, rightVarIndex);
-      } else if (valueC === 1) {
-        return propagator_addNeq(config, leftVarIndex, rightVarIndex);
-      } else {
-        let minA = domain_min(A);
-        let maxA = domain_max(A);
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-
-        if (minA === 0 && maxA === 1) { // A=bool
-          if (maxB === 0) { // B solved to 0?
-            ASSERT(domain_getValue(B) === 0, 'because csis');
-            return propagator_addEq(config, leftVarIndex, resultVarIndex);
-          } else if (minB === 1) { // B solved to 1?
-            ASSERT(domain_getValue(B) === 1, 'because csis');
-            return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-          }
-        } else if (minB === 0 && maxB === 1) {
-          if (maxA === 0) {
-            ASSERT(domain_getValue(A) === 0, 'because csis');
-            return propagator_addEq(config, rightVarIndex, resultVarIndex);
-          } else if (minA === 1) {
-            ASSERT(domain_getValue(A) === 1, 'because csis');
-            return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-          }
+      if (valueC >= 0) { // result solved
+        if (valueA >= 0) {
+          if (valueC) initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
+          else initialDomains[rightVarIndex] = A;
+        } else if (valueB >= 0) {
+          if (valueC) initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
+          else initialDomains[leftVarIndex] = B;
+        } else {
+          // neither A nor B is solved; simplify
+          if (valueC) propagator_addNeq(config, leftVarIndex, rightVarIndex);
+          else propagator_addEq(config, leftVarIndex, rightVarIndex);
         }
+        return;
       }
+      if (valueA >= 0 && valueB >= 0) {
+        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 0 : 1);
+        return;
+      }
+      // C isnt solved, and A and B arent both solved
+      // check the cases of one side solved and other side bool
+      if (maxA <= 1 && maxB === 1) {
+        if (valueA === 0) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        else if (valueA === 1) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+      }
+      if (maxB <= 1 && maxA === 1) {
+        if (valueB === 0) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+        else if (valueB === 1) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+      }
+
+      nopName = 'eq';
+      opFunc = propagator_neqStepBare;
+      nopFunc = propagator_eqStepBare;
+      opRejectChecker = propagator_neqStepWouldReject;
+      nopRejectChecker = propagator_eqStepWouldReject;
 
       break;
     }
     case 'lt':
+      // R = A <? B
+      // x = A <? B        ->    reduce A and B regardless, drop constraint
+      // R = x <? B        ->    check if B >= x, solve accordingly
+      // R = 0 <? B[0 1]   ->    R == B
+
+      if (valueC >= 0) { // result solved
+        // either this resolves the constraint or we compile a non-reifier for the remainder
+        if (valueC) {
+          if (maxA < minB) return;
+          return propagator_addLt(config, leftVarIndex, rightVarIndex);
+        }
+        // C=0 so solve if all A >= all B
+        if (minA >= maxB) return;
+        return propagator_addGte(config, leftVarIndex, rightVarIndex);
+      }
+      // regardless of being solved, check if the domains are already solving < as is
+      if (maxA < minB) return initialDomains[resultVarIndex] = domain_createValue(1);
+      if (minA >= maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
+      if (valueA === 0 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      if (valueB === 0 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+
       opFunc = propagator_neqStepBare;
       opRejectChecker = propagator_ltStepWouldReject;
       nopName = 'gte';
@@ -217,15 +269,28 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopRejectChecker = propagator_gteStepWouldReject;
       break;
 
-    case 'gt':
-      opFunc = propagator_gtStepBare;
-      opRejectChecker = propagator_gtStepWouldReject;
-      nopName = 'lte';
-      nopFunc = propagator_lteStepBare;
-      nopRejectChecker = propagator_lteStepWouldReject;
-      break;
-
     case 'lte':
+      // R = A <=? B
+      // x = A <=? B        ->    reduce A and B regardless, drop constraint
+      // R = x <=? B        ->    check if B > x, solve accordingly
+      // R = 1 <=? B[0,1]   ->    eq(R, B)
+
+      if (valueC >= 0) { // result solved
+        // either this resolves the constraint or we compile a non-reifier for the remainder
+        if (valueC) {
+          if (maxA <= minB) return;
+          return propagator_addLte(config, leftVarIndex, rightVarIndex);
+        }
+        // C=0 so solve if all A > all B
+        if (minA > maxB) return;
+        return propagator_addGt(config, leftVarIndex, rightVarIndex);
+      }
+      // regardless of being solved, check if the domains are already solving < as is
+      if (maxA <= minB) return initialDomains[resultVarIndex] = domain_createValue(1);
+      if (minA > maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
+      if (valueA === 1 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+      if (valueB === 1 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+
       opFunc = propagator_lteStepBare;
       opRejectChecker = propagator_lteStepWouldReject;
       nopName = 'gt';
@@ -233,13 +298,11 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       nopRejectChecker = propagator_gtStepWouldReject;
       break;
 
+    case 'gt':
+      return propagator_addReified(config, 'lt', rightVarIndex, leftVarIndex, resultVarIndex);
+
     case 'gte':
-      opFunc = propagator_gteStepBare;
-      opRejectChecker = propagator_gteStepWouldReject;
-      nopName = 'lt';
-      nopFunc = propagator_ltStepBare;
-      nopRejectChecker = propagator_ltStepWouldReject;
-      break;
+      return propagator_addReified(config, 'lte', rightVarIndex, leftVarIndex, resultVarIndex);
 
     default:
       THROW('UNKNOWN_REIFIED_OP');
@@ -264,6 +327,14 @@ function propagator_addEq(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  if (domain_getValue(A) >= 0) return initialDomains[rightVarIndex] = A;
+  let B = initialDomains[rightVarIndex];
+  if (domain_getValue(B) >= 0) return initialDomains[leftVarIndex] = B;
+
+  initialDomains[leftVarIndex] = initialDomains[rightVarIndex] = domain_intersection(A, B);
+
   config_addPropagator(config, propagator_create('eq', propagator_eqStepBare, leftVarIndex, rightVarIndex));
 }
 
@@ -279,6 +350,31 @@ function propagator_addLt(config, leftVarIndex, rightVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
+
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+
+  let maxA = domain_max(A);
+  let minB = domain_min(B);
+  // A  |----|
+  // B        |--|
+  if (maxA < minB) return; // solved
+
+  let minA = domain_min(A);
+  let maxB = domain_max(B);
+  // A      |----|
+  // B   |--|
+  if (minA >= maxB) return initialDomains[leftVarIndex] = initialDomains[rightVarIndex] = domain_createEmpty();
+
+  // not solved nor rejected. prune invalid values
+
+  // A  |-------|     ->     |---|
+  // B  |----|               |----|
+  if (maxA >= maxB) initialDomains[leftVarIndex] = domain_removeGte(A, maxB);
+  // A    |-----|     ->     |----|
+  // B  |-------|             |---|
+  if (minB <= minA) initialDomains[rightVarIndex] = domain_removeLte(B, minA);
 
   config_addPropagator(config, propagator_create('lt', propagator_ltStepBare, leftVarIndex, rightVarIndex));
 }
@@ -307,6 +403,31 @@ function propagator_addLte(config, leftVarIndex, rightVarIndex) {
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
 
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+
+  let maxA = domain_max(A);
+  let minB = domain_min(B);
+  // A  |----|
+  // B       |--|
+  if (maxA < minB) return; // solved
+
+  let minA = domain_min(A);
+  let maxB = domain_max(B);
+  // A       |----|
+  // B   |--|
+  if (minA > maxB) return initialDomains[leftVarIndex] = initialDomains[rightVarIndex] = domain_createEmpty();
+
+  // not solved nor rejected. prune invalid values
+
+  // A  |-------|     ->     |----|
+  // B  |----|               |----|
+  if (maxA >= maxB) initialDomains[leftVarIndex] = domain_removeGte(A, maxB + 1);
+  // A    |-----|     ->     |----|
+  // B  |-------|            |----|
+  if (minB <= minA) initialDomains[rightVarIndex] = domain_removeLte(B, minA - 1);
+
   config_addPropagator(config, propagator_create('lte', propagator_lteStepBare, leftVarIndex, rightVarIndex));
 }
 
@@ -322,7 +443,84 @@ function propagator_addMul(config, leftVarIndex, rightVarIndex, resultVarIndex) 
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
 
+  if (propagator_mulConstraintResolved(config, leftVarIndex, rightVarIndex, resultVarIndex)) return;
+
   config_addPropagator(config, propagator_create('mul', propagator_mulStep, leftVarIndex, rightVarIndex, resultVarIndex));
+}
+
+/**
+ * Would a mul for given vars need a constraint?
+ *
+ * @param {$config} config
+ * @param {number} varIndexA
+ * @param {number} varIndexB
+ * @param {number} varIndexC
+ * @returns {boolean}
+ */
+function propagator_mulConstraintResolved(config, varIndexA, varIndexB, varIndexC) {
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[varIndexA];
+  let B = initialDomains[varIndexB];
+  let C = initialDomains[varIndexC];
+
+  let maxA = domain_max(A);
+  let maxB = domain_max(B);
+
+  // if A and B is unsolved just do a bounds check on result for [lo*lo, hi*hi]
+  let vA = domain_getValue(A);
+  let vB = domain_getValue(B);
+  let vC = domain_getValue(C);
+  if (vA >= 0) {
+    if (vB >= 0) {
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(vA * vB));
+      return true;
+    }
+    if (vA === 0) {
+      // C must be 0 and B can be anything
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(0));
+      return true;
+    }
+    if (vC >= 0) {
+      if (vC === 0) {
+        // if a is zero, b can be anything. otherwise, b must be zero (or the result couldn't be zero)
+        if (vA !== 0) initialDomains[varIndexB] = domain_intersection(B, domain_createValue(0));
+      } else {
+        let b = (vA % vC) ? domain_createEmpty() : domain_createValue(vA / vC);
+        initialDomains[varIndexB] = domain_intersection(B, b);
+      }
+      return true;
+    }
+    // C can only contain values that equals b*vA for any b in B
+    // TODO: this could be dangerous if B _and_ C are very large ranges... should we guard against that?
+    initialDomains[varIndexC] = domain_intersection(C, domain_mulByValue(B, vA));
+    initialDomains[varIndexB] = (maxB === 0 || vA === 0) ? B : domain_intersection(B, domain_invMulValue(initialDomains[varIndexC], vA));
+  } else if (vB >= 0) {
+    if (vB === 0) {
+      // C must be 0 and A can be anything
+      initialDomains[varIndexC] = domain_intersection(C, domain_createValue(0));
+      return true;
+    }
+    if (vC >= 0) {
+      if (vC === 0) {
+        // if b is zero, a can be anything. otherwise, a must be zero (or the result couldn't be zero)
+        if (vB !== 0) initialDomains[varIndexA] = domain_intersection(A, domain_createValue(0));
+      } else {
+        let a = (vB % vC) ? domain_createEmpty() : domain_createValue(vB / vC);
+        initialDomains[varIndexA] = domain_intersection(A, a);
+      }
+      return true;
+    }
+    // C can only contain values that equals a*vB for any a in A
+    // TODO: this could be dangerous if A _and_ C are very large ranges... should we guard against that?
+    initialDomains[varIndexC] = domain_intersection(C, domain_mulByValue(A, vB));
+    initialDomains[varIndexA] = (maxA === 0 || vB === 0) ? A : domain_intersection(A, domain_invMulValue(initialDomains[varIndexC], vB));
+  } else {
+    // simple bounds enforcement
+    initialDomains[varIndexA] = domain_intersection(A, domain_invMul(C, B));
+    initialDomains[varIndexB] = domain_intersection(B, domain_invMul(C, A));
+    initialDomains[varIndexC] = domain_intersection(C, domain_mul(A, B));
+  }
+  return false;
 }
 
 /**
@@ -363,6 +561,16 @@ function propagator_addNeq(config, leftVarIndex, rightVarIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
+
+  let initialDomains = config.initialDomains;
+  let A = initialDomains[leftVarIndex];
+  let B = initialDomains[rightVarIndex];
+  let vA = domain_getValue(A);
+  if (vA >= 0) return initialDomains[rightVarIndex] = domain_removeValue(B, vA);
+  let vB = domain_getValue(A);
+  if (vB >= 0) return initialDomains[leftVarIndex] = domain_removeValue(A, vB);
+
+  if (domain_isEmpty(domain_intersection(A, B))) return; // no overlapping elements so constraint is redundant
 
   config_addPropagator(config, propagator_create('neq', propagator_neqStepBare, leftVarIndex, rightVarIndex));
 }
@@ -461,7 +669,9 @@ function propagator_addMin(config, leftVarIndex, rightVarIndex, resultVarIndex) 
  * @param {number} resultVarIndex
  */
 function propagator_addRingMul(config, leftVarIndex, rightVarIndex, resultVarIndex) {
-  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_divby, leftVarIndex, rightVarIndex, resultVarIndex);
+  if (propagator_mulConstraintResolved(config, leftVarIndex, rightVarIndex, resultVarIndex)) return;
+
+  propagator_addRingPlusOrMul(config, 'mul', 'div', domain_mul, domain_invMul, leftVarIndex, rightVarIndex, resultVarIndex);
 }
 
 /**

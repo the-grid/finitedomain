@@ -1,3 +1,8 @@
+import {
+  domain_arrToSmallest,
+  domain_size,
+} from '../../src/domain';
+
 function countSolutions(solver) {
   let solutions = solver.solutions;
   let total = 0;
@@ -12,7 +17,8 @@ function countSolutions(solver) {
         sub = 0;
         break;
       }
-      if (value instanceof Array) sub *= value.length;
+
+      if (value instanceof Array) sub *= domain_size(domain_arrToSmallest(value));
     }
     total += sub;
   }

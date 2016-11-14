@@ -40,7 +40,16 @@ import Solver from '../../src/solver';
 
 describe('src/einstein.spec', function() {
 
-  it('puzzle', function() {
+  function solutionFor(solution, varNames) {
+    let result = {};
+    for (let i = 0; i < varNames.length; i++) {
+      let varName = varNames[i];
+      result[varName] = solution[varName];
+    }
+    return result;
+  }
+
+  it('puzzle with api', function() {
     let solver = new Solver();
 
     let H = [0, 1, 2, 3, 4];
@@ -110,7 +119,7 @@ describe('src/einstein.spec', function() {
       // "iif house[i]=x then house[i]=y"
       let ifThenHouse = (a, b, houseNumber) => _iif(hash[a] + houseNumber, a, hash[b] + houseNumber, b);
       // "iif A=v1 then B=v2"
-      let _iif = (ha, va, hb, vb) => solver.lte(solver.isEq(ha, va), solver.isEq(hb, vb));
+      let _iif = (ha, va, hb, vb) => solver.eq(solver.isEq(ha, va), solver.isEq(hb, vb));
       // "iif house=x then house+=delta=y" (+1 or -1 for either neighbor)
       let ifThenNeighbor = (a, b, delta) => _iif(hash[a] + i, a, hash[b] + (i + delta), b);
       // "iif house=x then either neighbor=y (not both)"
@@ -127,8 +136,14 @@ describe('src/einstein.spec', function() {
       ifThen(Englishman, red);                             // 1
       ifThen(Swede, dogs);                                 // 2
       ifThen(Dane, tea);                                   // 3
-      if (i < 4) ifThenNeighbor(green, white, +1);         // 4
-      else solver.neq('C4', green);                        // - (otherwise last house can be green and ignore rule 4)
+      if (i === 0) {
+        solver.neq('C0', white);                           // 4; if left-most house is white it cannot be to the right of a green house
+        ifThenNeighbor(green, white, +1);                  // 4
+      } else if (i < 4) {
+        ifThenNeighbor(green, white, +1);                  // 4
+      } else {
+        solver.neq('C4', green);                           // 4: if right-most house is green then it cannot be to the left of a white house
+      }
       ifThen(green, coffee);                               // 5
       ifThen(PallMall, birds);                             // 6
       ifThen(yellow, Dunhill);                             // 7
@@ -143,17 +158,8 @@ describe('src/einstein.spec', function() {
     });
 
     // we only care about solving the assignments of each property for each house (C0, P0, etc)
-    solver.solve({_debug: 0, log: 1, max: 5, vars: [].concat(Cn, Nn, Dn, Sn, Pn)});
+    solver.solve({_debug: 0, log: 1, max: 2, vars: [].concat(Cn, Nn, Dn, Sn, Pn)});
     expect(solver.solutions.length, 'solution count').to.eql(1); // only has one solution
-
-    function solutionFor(solution, varNames) {
-      let result = {};
-      for (let i = 0; i < varNames.length; i++) {
-        let varName = varNames[i];
-        result[varName] = solution[varName];
-      }
-      return result;
-    }
 
     /*
     from the website:

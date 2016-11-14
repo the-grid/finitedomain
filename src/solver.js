@@ -126,9 +126,10 @@ class Solver {
    * @param {string} varName Required. You can use this.num to declare a constant.
    * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
    * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
+   * @param {boolean} [_allowEmpty=false] Temp (i hope) override for importer
    * @returns {string}
    */
-  decl(varName, domainOrValue, distributionOptions) {
+  decl(varName, domainOrValue, distributionOptions, _allowEmpty) {
     ASSERT(varName && typeof varName === 'string', 'EXPECTING_ID_STRING');
     ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
     let domain;
@@ -143,8 +144,8 @@ class Solver {
     ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
     ASSERT(!domain.some(e => typeof e !== 'number'), 'ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS', domain, domainOrValue);
 
-    if (!domain.length) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, varName, domain);
+    if (!domain.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    let varIndex = config_addVarDomain(this.config, varName, domain, _allowEmpty);
     ASSERT(this.config.allVarNames[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
 
     if (distributionOptions) {
@@ -394,7 +395,6 @@ class Solver {
     let max = options.max || 1000;
 
     this._prepare(options, log);
-
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__

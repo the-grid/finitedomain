@@ -1,6 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_nums,
+  fixt_arrdom_range,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -24,6 +25,7 @@ import {
   propagator_addRingPlusOrMul,
 } from '../../src/propagator';
 import {
+  config_addVarConstant,
   config_addVarDomain,
   config_create,
 } from '../../src/config';
@@ -69,7 +71,8 @@ describe('src/propagator.spec', function() {
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
               config_addVarDomain(config, 'C', C);
-              expect(propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'))).to.equal(undefined);
+              propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'));
+              expect(undefined).to.equal(undefined); // "do not crash"
             });
 
             it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
@@ -93,9 +96,13 @@ describe('src/propagator.spec', function() {
         expect(func).to.be.a('function');
       });
 
-      it('should return undefined', function() {
+      it('should not throw on a zero one literal', function() {
         let config = config_create();
-        expect(func(config, 0, 1)).to.equal(undefined);
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1));
+        func(config, A, B);
+
+        expect(undefined).to.equal(undefined); // "does not throw"
       });
     });
   }
@@ -117,7 +124,10 @@ describe('src/propagator.spec', function() {
 
       it('should return undefined', function() {
         let config = config_create();
-        expect(func(config, 0, 1, 2)).to.equal(undefined);
+        let A = config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1));
+        let B = config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1));
+        let C = config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1));
+        expect(func(config, A, B, C)).to.equal(undefined);
       });
     });
   }
@@ -136,9 +146,14 @@ describe('src/propagator.spec', function() {
         expect(func).to.be.a('function');
       });
 
-      it('should return undefined', function() {
+      it('should not throw', function() {
         let config = config_create();
-        expect(func(config, [0, 1, 2], withResult ? 3 : undefined)).to.equal(undefined);
+        let A = config_addVarConstant(config, 'A', 0);
+        let B = config_addVarConstant(config, 'B', 1);
+        let C = config_addVarConstant(config, 'C', 2);
+        func(config, [A, B, C], withResult ? 3 : undefined);
+
+        expect(undefined).to.equal(undefined);
       });
     });
   }

@@ -45,10 +45,10 @@ import {
 
   domain__debug,
   domain_createRange,
-  domain_createValue,
   domain_getValue,
   domain_max,
   domain_min,
+  domain_mul,
   domain_isSolved,
   domain_intersection,
   domain_removeGte,
@@ -209,10 +209,10 @@ function config_addVarRange(config, varName, lo, hi) {
  * @param {$arrdom} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
  * @returns {number} varIndex
  */
-function config_addVarDomain(config, varName, domain) {
+function config_addVarDomain(config, varName, domain, _allowEmpty) {
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
-  return _config_addVar(config, varName, domain_anyToSmallest(domain));
+  return _config_addVar(config, varName, domain_anyToSmallest(domain), _allowEmpty);
 }
 /**
  * @param {$config} config
@@ -251,13 +251,13 @@ function config_addVarConstant(config, varName, value) {
  * @param {$nordom} domain
  * @returns {number} varIndex
  */
-function _config_addVar(config, varName, domain) {
+function _config_addVar(config, varName, domain, _allowEmpty) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
   ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
-  ASSERT(domain, 'NON_EMPTY_DOMAIN');
-  ASSERT(domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
-  ASSERT(domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+  ASSERT(_allowEmpty || domain, 'NON_EMPTY_DOMAIN');
+  ASSERT(_allowEmpty || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
+  ASSERT(_allowEmpty || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
 
   let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;
@@ -270,7 +270,7 @@ function _config_addVar(config, varName, domain) {
 
   let wasAnonymous = varName === true;
   if (wasAnonymous) {
-    varName = String(varIndex); // this var will be assigned to this index
+    varName = '__' + String(varIndex) + '__';
   }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
@@ -584,90 +584,36 @@ function config_addConstraint(config, name, varNames, param) {
         THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
       } else {
         resultVarIndex = trie_get(config._varNamesTrie, resultVarName);
-        if (resultVarIndex < 0) THROW('Vars must be defined before using them');
+        if (resultVarIndex < 0) THROW('Vars must be defined before using them (' + resultVarName + ')');
       }
 
       if (sumOrProduct) param = resultVarIndex;
       else varNames[2] = resultVarName;
 
-      // check all other var names, except result var, for constants
-      for (let i = 0, n = varNames.length - (sumOrProduct ? 0 : 1); i < n; ++i) {
-        if (typeof varNames[i] === 'number') {
-          let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.allVarNames[varIndex];
-        }
-      }
-
       break;
     }
 
     case 'markov':
+      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
+      break;
+
     case 'distinct':
     case 'eq':
     case 'neq':
     case 'lt':
     case 'lte':
     case 'gt':
-    case 'gte': {
-      ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
-
-      for (let i = 0, n = varNames.length; i < n; ++i) {
-        if (typeof varNames[i] === 'number') {
-          let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.allVarNames[varIndex];
-          resultVarName = varNames[i];
-        }
-      }
-
+    case 'gte':
       break;
-    }
 
     default:
       THROW(`UNKNOWN_PROPAGATOR ${name}`);
   }
 
-  let varIndexes = [];
-  for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED');
-    varIndexes[i] = varIndex;
-  }
+  // note: if param is a var constant then that case is already resolved above
+  config_compileConstants(config, varNames);
 
-  if (name === 'sum') { // TODO: same for product or why not?
-    let initialDomains = config.initialDomains;
-
-    // limit result var to the min/max possible sum
-    let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
-    for (let i = 1, n = varIndexes.length; i < n; ++i) {
-      let varIndex = varIndexes[i];
-      let domain = initialDomains[varIndex];
-      maxDomain = domain_plus(maxDomain, domain);
-    }
-    initialDomains[param] = domain_intersection(maxDomain, initialDomains[param]);
-
-    // eliminate multiple constants
-    if (varIndexes.length > 1) {
-      let newVarIndexes = [];
-      let constants = domain_createValue(0);
-      for (let i = 0, n = varIndexes.length; i < n; ++i) {
-        let varIndex = varIndexes[i];
-        let domain = initialDomains[varIndex];
-        let value = domain_getValue(domain);
-        if (value === NO_SUCH_VALUE) {
-          newVarIndexes.push(varIndex);
-        } else if (value !== 0) {
-          constants = domain_plus(constants, domain);
-        }
-      }
-      let cValue = domain_getValue(constants);
-      if (cValue !== 0) {
-        let varIndex = config_addVarAnonConstant(config, cValue);
-        newVarIndexes.push(varIndex);
-      }
-      if (!newVarIndexes.length) initialDomains[param] = domain_intersection(domain_createValue(0), initialDomains[param]);
-      varIndexes = newVarIndexes;
-    }
-  }
+  let varIndexes = config_varNamesToIndexes(config, varNames);
 
   if (!config_solvedAtCompileTime(config, name, varIndexes, param)) {
     let constraint = constraint_create(name, varIndexes, param);
@@ -675,6 +621,40 @@ function config_addConstraint(config, name, varNames, param) {
   }
 
   return resultVarName;
+}
+
+/**
+ * Go through the list of var names and create an anonymous var for
+ * each value that is actually a number rather than a string.
+ * Replaces the values inline.
+ *
+ * @param {$config} config
+ * @param {string|number} varNames
+ */
+function config_compileConstants(config, varNames) {
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    if (typeof varNames[i] === 'number') {
+      let varIndex = config_addVarAnonConstant(config, varNames[i]);
+      varNames[i] = config.allVarNames[varIndex];
+    }
+  }
+}
+
+/**
+ * Convert a list of var names to a list of their indexes
+ *
+ * @param {$config} config
+ * @param {string[]} varNames
+ * @returns {number[]}
+ */
+function config_varNamesToIndexes(config, varNames) {
+  let varIndexes = [];
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
+    varIndexes[i] = varIndex;
+  }
+  return varIndexes;
 }
 
 /**
@@ -999,6 +979,52 @@ function _config_solvedAtCompileTimeReifierRight(config, opName, varIndex, value
   return true;
 }
 function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, resultIndex) {
+  ASSERT(constraintName === 'sum' || constraintName === 'product', 'if this changes update the function accordingly');
+  let initialDomains = config.initialDomains;
+
+  // if there are no vars then the next step would fail. could happen as an artifact.
+  if (initialDomains.length) {
+    // limit result var to the min/max possible sum
+    let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
+    for (let i = 1, n = varIndexes.length; i < n; ++i) {
+      let varIndex = varIndexes[i];
+      let domain = initialDomains[varIndex];
+      if (constraintName === 'sum') maxDomain = domain_plus(maxDomain, domain);
+      else maxDomain = domain_mul(maxDomain, domain);
+    }
+    initialDomains[resultIndex] = domain_intersection(maxDomain, initialDomains[resultIndex]);
+  }
+
+  // eliminate multiple constants
+  if (varIndexes.length > 1) {
+    let newVarIndexes = [];
+    let total = constraintName === 'product' ? 1 : 0;
+    for (let i = 0, n = varIndexes.length; i < n; ++i) {
+      let varIndex = varIndexes[i];
+      let domain = initialDomains[varIndex];
+      let value = domain_getValue(domain);
+      if (value === NO_SUCH_VALUE) {
+        newVarIndexes.push(varIndex);
+      } else if (constraintName === 'sum') {
+        total += value;
+      } else if (constraintName === 'product') {
+        total *= value;
+      }
+    }
+    // note for product, multiply by 1 to get identity. for sum it's add 0 for identity.
+    if (!newVarIndexes.length || (constraintName === 'sum' && total !== 0) || (constraintName === 'product' && total !== 1)) {
+      let varIndex = config_addVarAnonConstant(config, total);
+      newVarIndexes.push(varIndex);
+    }
+
+    // copy new list inline
+    for (let i = 0, n = newVarIndexes.length; i < n; ++i) {
+      varIndexes[i] = newVarIndexes[i];
+    }
+    varIndexes.length = newVarIndexes.length;
+  }
+
+  // shouldnt be zero here unless it was declared empty
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways

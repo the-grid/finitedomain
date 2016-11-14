@@ -523,10 +523,10 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
-          expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(solver3[method](1, 'B')).to.be.a('string');
-          expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(solver3[method](1, 2)).to.be.a('string');
+          expect(solver3[method](['A', 'B'])).to.be.a('string');
+          expect(solver3[method]([1, 'B'])).to.be.a('string');
+          expect(solver3[method](['A', 1])).to.be.a('string');
+          expect(solver3[method]([1, 2])).to.be.a('string');
 
           expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
           expect(solver3[method]([1, 'B'], 'C')).to.eql('C');
@@ -631,10 +631,10 @@ describe('solver.spec', function() {
           solver3.decl('B', 100);
           solver3.decl('C', 100);
 
-          expect(solver3[method]('A', 'B')).to.be.a('string');
-          expect(solver3[method](1, 'B')).to.be.a('string');
-          expect(solver3[method]('A', 1)).to.be.a('string');
-          expect(solver3[method](1, 2)).to.be.a('string');
+          expect(solver3[method](['A', 'B'])).to.be.a('string');
+          expect(solver3[method]([1, 'B'])).to.be.a('string');
+          expect(solver3[method](['A', 1])).to.be.a('string');
+          expect(solver3[method]([1, 2])).to.be.a('string');
 
           expect(solver3[method](['A', 'B'], 'C')).to.eql('C');
           expect(solver3[method]([1, 'B'], 'C')).to.be.eql('C');
@@ -1209,11 +1209,11 @@ describe('solver.spec', function() {
     it('should solve a simple >= test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
-      solver.decl('item4', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item2', fixt_arrdom_range(4, 5, true));
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
+      solver.decl('item4', fixt_arrdom_nums(2, 3, 5));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item2', fixt_arrdom_range(4, 5));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
 
       solver['==']('item5', 5);
       solver['>=']('item1', 'item2');
@@ -1221,7 +1221,7 @@ describe('solver.spec', function() {
       solver['>=']('item3', 'item4');
       solver['>=']('item4', 'item5');
 
-      solver.solve();
+      solver.solve({});
 
       // only solution is where everything is `5`
       expect(countSolutions(solver)).to.equal(1);
@@ -1230,11 +1230,11 @@ describe('solver.spec', function() {
     it('should solve a simple < test', function() {
       let solver = new Solver({});
 
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
-      solver.decl('item4', fixt_arrdom_range(4, 4, true));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item2', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
+      solver.decl('item4', fixt_arrdom_range(4, 4));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item2', fixt_arrdom_nums(2, 3, 5));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
 
       solver['==']('item5', 5);
       solver['<']('item1', 'item2');
@@ -1586,7 +1586,8 @@ describe('solver.spec', function() {
       // same as before but none are targeted so algo considers them
       // "solved" and returns all valid values (=init) so it becomes
       // a multiplication of all the number of options...
-      expect(countSolutions(solver)).to.eql(36864);
+      // 2x1x3x2x2x2x1x3x1x2x2x1x3x1x2x2=6912
+      expect(countSolutions(solver)).to.eql(6912);
     });
 
     it('should constrain one var to be equal to another', function() {
@@ -1874,10 +1875,10 @@ describe('solver.spec', function() {
 
       solver.solve({});
 
-      expect(solver.solutions).to.eql([
-        {'3': 1, '4': 1, A: 0, B: 0, C: 1},
-        {'3': 1, '4': 1, A: 0, B: 1, C: 0},
-        {'3': 1, '4': 0, A: 1, B: 0, C: 0},
+      expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
+        {A: 0, B: 0, C: 1},
+        {A: 0, B: 1, C: 0},
+        {A: 1, B: 0, C: 0},
         // the bug would return an extra solution here and no other test would catch it
       ]);
     });
@@ -1914,7 +1915,7 @@ describe('solver.spec', function() {
       solver.decl('LIST', fixt_arrdom_nums(2, 4, 9)); // becomes 4
       solver.declRange('IS_LIST_FOUR', 0, 1); // becomes 1
 
-      solver._cacheReified('eq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
+      solver.isEq('LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ZERO');
 
       solver.solve({max: 10000});
@@ -2502,14 +2503,13 @@ describe('solver.spec', function() {
       solver.declRange('C', 1, 5);
       solver['<']('A', 'B');
 
-      // should find a solution (there are three or four or whatever)
+      // should find a solution for A and B
       solver.solve({
         vars: ['A', 'B'],
         max: 1,
       });
       // should not solve C yet because only A and B
-      // were targeted so 1x1x2=4 solutions
-      expect(countSolutions(solver), 'solve count 1').to.eql(2);
+      expect(countSolutions(solver), 'solve count 1').to.eql(5); // C started with 5 values and is unconstrained
       expect(solver.solutions).to.eql([{A: 2, B: 4, C: [1, 5]}]);
 
       let solver2 = solver.branch_from_current_solution();

@@ -1,5 +1,6 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
+  fixt_arrdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   stripAnonVarsFromArrays,
@@ -103,6 +104,31 @@ describe('src/constraint.spec', function() {
         preEq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
         preEq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), [{A: 101, B: 101}]);
       });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.eq('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], [{A: 0, B: 0}]);
+        test([0, 1], [0, 0], [{A: 0, B: 0}]); // doe dit voor alle propagators. en zoek uit waarom deze niet werkt.
+        test([1, 1], [0, 0], []);
+        test([0, 0], [0, 1], [{A: 0, B: 0}]);
+        test([0, 1], [0, 1], [{A: 0, B: 0}, {A: 1, B: 1}]);
+        test([1, 1], [0, 1], [{A: 1, B: 1}]);
+        test([0, 0], [1, 1], []);
+        test([0, 1], [1, 1], [{A: 1, B: 1}]);
+        test([1, 1], [1, 1], [{A: 1, B: 1}]);
+      });
     });
 
     describe('neq', function() {
@@ -160,6 +186,31 @@ describe('src/constraint.spec', function() {
         preNeq('should not create a constraint if A and B solved as number and pass', 100, 99, [{A: 100, B: 99}]);
         preNeq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), []);
         preNeq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), [{A: 100, B: 99}]);
+      });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.neq('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], []);
+        test([0, 1], [0, 0], [{A: 1, B: 0}]);
+        test([1, 1], [0, 0], [{A: 1, B: 0}]);
+        test([0, 0], [0, 1], [{A: 0, B: 1}]);
+        test([0, 1], [0, 1], [{A: 0, B: 1}, {A: 1, B: 0}]);
+        test([1, 1], [0, 1], [{A: 1, B: 0}]);
+        test([0, 0], [1, 1], [{A: 0, B: 1}]);
+        test([0, 1], [1, 1], [{A: 0, B: 1}]);
+        test([1, 1], [1, 1], []);
       });
     });
 
@@ -249,6 +300,31 @@ describe('src/constraint.spec', function() {
         preLt('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
         preLt('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(101, 101), [{A: 100, B: 101}]);
       });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.lt('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], []);
+        test([0, 1], [0, 0], []);
+        test([1, 1], [0, 0], []);
+        test([0, 0], [0, 1], [{A: 0, B: 1}]);
+        test([0, 1], [0, 1], [{A: 0, B: 1}]);
+        test([1, 1], [0, 1], []);
+        test([0, 0], [1, 1], [{A: 0, B: 1}]);
+        test([0, 1], [1, 1], [{A: 0, B: 1}]);
+        test([1, 1], [1, 1], []);
+      });
     });
 
     describe('lte', function() {
@@ -336,6 +412,31 @@ describe('src/constraint.spec', function() {
         preLte('should not create a constraint if A and B solved as number and pass', 100, 100, [{A: 100, B: 100}]);
         preLte('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
         preLte('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(100, 100), [{A: 100, B: 100}]);
+      });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.lte('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], [{A: 0, B: 0}]);
+        test([0, 1], [0, 0], [{A: 0, B: 0}]);
+        test([1, 1], [0, 0], []);
+        test([0, 0], [0, 1], [{A: 0, B: 0}, {A: 0, B: 1}]);
+        test([0, 1], [0, 1], [{A: 0, B: 0}, {A: 0, B: 1}, {A: 1, B: 1}]);
+        test([1, 1], [0, 1], [{A: 1, B: 1}]);
+        test([0, 0], [1, 1], [{A: 0, B: 1}]);
+        test([0, 1], [1, 1], [{A: 0, B: 1}, {A: 1, B: 1}]);
+        test([1, 1], [1, 1], [{A: 1, B: 1}]);
       });
     });
 
@@ -425,6 +526,31 @@ describe('src/constraint.spec', function() {
         preGt('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(99, 99), fixt_arrdom_range(100, 100), []);
         preGt('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 100), [{A: 101, B: 100}]);
       });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.gt('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], []);
+        test([0, 1], [0, 0], [{A: 1, B: 0}]);
+        test([1, 1], [0, 0], [{A: 1, B: 0}]);
+        test([0, 0], [0, 1], []);
+        test([0, 1], [0, 1], [{A: 1, B: 0}]);
+        test([1, 1], [0, 1], [{A: 1, B: 0}]);
+        test([0, 0], [1, 1], []);
+        test([0, 1], [1, 1], []);
+        test([1, 1], [1, 1], []);
+      });
     });
 
     describe('gte', function() {
@@ -513,6 +639,31 @@ describe('src/constraint.spec', function() {
         preGte('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(99, 99), fixt_arrdom_range(100, 100), []);
         preGte('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 100), [{A: 101, B: 100}]);
       });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, out) {
+          it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            solver.gte('A', 'B');
+            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
+
+            expect(solver.solutions).to.eql(out);
+          });
+        }
+
+        test([0, 0], [0, 0], [{A: 0, B: 0}]);
+        test([0, 1], [0, 0], [{A: 0, B: 0}, {A: 1, B: 0}]);
+        test([1, 1], [0, 0], [{A: 1, B: 0}]);
+        test([0, 0], [0, 1], [{A: 0, B: 0}]);
+        test([0, 1], [0, 1], [{A: 0, B: 0}, {A: 1, B: 0}, {A: 1, B: 1}]);
+        test([1, 1], [0, 1], [{A: 1, B: 0}, {A: 1, B: 1}]);
+        test([0, 0], [1, 1], []);
+        test([0, 1], [1, 1], [{A: 1, B: 1}]);
+        test([1, 1], [1, 1], [{A: 1, B: 1}]);
+      });
     });
 
     describe('reifier', function() {
@@ -539,7 +690,7 @@ describe('src/constraint.spec', function() {
         expect(solution).to.eql([{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]);
       });
 
-      describe('optimizations in propagator_addReified', function() {
+      describe('exhaustive bool tables to check optimizations in propagator_addReified', function() {
 
         describe('eq', function() {
 
@@ -632,6 +783,101 @@ describe('src/constraint.spec', function() {
             {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
+
+        describe('lt-', function() {
+
+          function test(domain1, domain2, domain3, out, desc) {
+            it('should solve despite optimizations. ' + [domain__debug(domain1), '<', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+              let solver = new Solver();
+              let A = solver.decl('A', domain1);
+              let B = solver.decl('B', domain2);
+              let C = solver.decl('C', domain3);
+              solver.isLt(A, B, C);
+
+              solver.solve({vars: ['A', 'B', 'C']});
+              expect(solver.solutions).to.eql(out);
+            });
+          }
+
+          [
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [1, 1], out: []},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 1], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [1, 1], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 1], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [1, 1], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+          ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
+        });
+
+
+        describe('lte', function() {
+
+          function test(domain1, domain2, domain3, out, desc) {
+            it('should solve despite optimizations. ' + [domain__debug(domain1), '<=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+              let solver = new Solver();
+              let A = solver.decl('A', domain1);
+              let B = solver.decl('B', domain2);
+              let C = solver.decl('C', domain3);
+              solver.isLte(A, B, C);
+
+              solver.solve({vars: ['A', 'B', 'C']});
+              expect(solver.solutions).to.eql(out);
+            });
+          }
+
+          [
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 0], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [0, 1], C: [1, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 0], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 0, B: 0, C: 1}, {A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 1], B: [1, 1], C: [0, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 1}]},
+            {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 1], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [1, 1], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 1], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 1}]},
+            {A: [1, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+          ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
+        });
+
+        // note: gt and gte map to lt and lte so there's no real need to test them as well... but we could :)
       });
     });
 
@@ -703,6 +949,81 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 150, B: 50, C: 200}]);
+      });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, C, out) {
+          it('test: A=[' + A + '] B=[' + B + '] C=[' + C + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            if (C !== undefined) solver.decl('C', C);
+            solver.plus('A', 'B', C === undefined ? undefined : 'C');
+            solver.solve({max: 20}); // arbitrary number
+
+            expect(solver.solutions.length).to.be.below(20); // if this breaks (validly) increase the max above
+            if (C !== undefined) {
+              // easy
+              expect(solver.solutions).to.eql(out);
+            } else {
+              // difficult. find the anonymous var and test it.
+              solver.solutions.forEach((solution, i) => {
+                let foundAnon = false;
+                for (let key in solution) {
+                  if (key === 'A') expect(solution.A).to.eql(out[i].A);
+                  else if (key === 'B') expect(solution.B).to.eql(out[i].B);
+                  else {
+                    // this is not a bug per se, unless there's no reason for the additional anon var(s)
+                    expect(foundAnon, 'expecting only one anon var').to.eql(false);
+                    foundAnon = true;
+                    expect(solution[key]).to.eql(out[i].anon);
+                  }
+                }
+                expect(solution.A).to.eql(out[i].A);
+              });
+            }
+          });
+        }
+
+        [
+          {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], C: [0, 10], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], out: [{A: 0, B: 0, anon: 0}]},
+          {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
+          {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 1], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}]},
+          {A: [0, 0], B: [0, 1], out: [{A: 0, B: 0, anon: 0}, {A: 0, B: 1, anon: 1}]},
+          {A: [0, 0], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+          {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+          {A: [0, 0], B: [1, 1], C: [0, 10], out: [{A: 0, B: 1, C: 1}]},
+          {A: [0, 0], B: [1, 1], out: [{A: 0, B: 1, anon: 1}]},
+          {A: [0, 0], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+          {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 0], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [0, 0], out: [{A: 0, B: 0, anon: 0}, {A: 1, B: 0, anon: 1}]},
+          {A: [0, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 1], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 2}]},
+          {A: [0, 1], B: [0, 1], out: [{A: 0, B: 0, anon: 0}, {A: 0, B: 1, anon: 1}, {A: 1, B: 0, anon: 1}, {A: 1, B: 1, anon: 2}]},
+          {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [1, 1], C: [0, 0], out: []},
+          {A: [0, 1], B: [1, 1], C: [0, 10], out: [{A: 0, B: 1, C: 1}, {A: 1, B: 1, C: 2}]},
+          {A: [0, 1], B: [1, 1], out: [{A: 0, B: 1, anon: 1}, {A: 1, B: 1, anon: 2}]},
+          {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 0, B: 1, C: 1}]},
+          {A: [1, 1], B: [0, 0], C: [0, 0], out: []},
+          {A: [1, 1], B: [0, 0], C: [0, 10], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [0, 0], out: [{A: 1, B: 0, anon: 1}]},
+          {A: [1, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [0, 1], C: [0, 0], out: []},
+          {A: [1, 1], B: [0, 1], C: [0, 10], out: [{A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 2}]},
+          {A: [1, 1], B: [0, 1], out: [{A: 1, B: 0, anon: 1}, {A: 1, B: 1, anon: 2}]},
+          {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+          {A: [1, 1], B: [1, 1], C: [0, 10], out: [{A: 1, B: 1, C: 2}]},
+          {A: [1, 1], B: [1, 1], out: [{A: 1, B: 1, anon: 2}]},
+          {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+        ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
       });
     });
 
@@ -787,6 +1108,82 @@ describe('src/constraint.spec', function() {
 
         expect(solution).to.eql([{A: 150, B: 50, C: 100}]);
       });
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, C, out) {
+          it('test: A=[' + A + '] B=[' + B + '] C=[' + C + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            if (C !== undefined) solver.decl('C', C);
+            solver.minus('A', 'B', C === undefined ? undefined : 'C');
+            solver.solve({max: 20}); // arbitrary number
+
+            expect(solver.solutions.length).to.be.below(20); // if this breaks (validly) increase the max above
+            if (C !== undefined) {
+              // easy
+              expect(solver.solutions).to.eql(out);
+            } else {
+              // difficult. find the anonymous var and test it.
+              expect(solver.solutions.length, 'solve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
+              solver.solutions.forEach((solution, i) => {
+                let foundAnon = false;
+                for (let key in solution) {
+                  if (key === 'A') expect(solution.A).to.eql(out[i].A);
+                  else if (key === 'B') expect(solution.B).to.eql(out[i].B);
+                  else {
+                    // this is not a bug per se, unless there's no reason for the additional anon var(s)
+                    expect(foundAnon, 'expecting only one anon var').to.eql(false);
+                    foundAnon = true;
+                    expect(solution[key]).to.eql(out[i].anon);
+                  }
+                }
+                expect(solution.A).to.eql(out[i].A);
+              });
+            }
+          });
+        }
+
+        [
+          {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], out: [{A: 0, B: 0, anon: 0}]},
+          {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
+          {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 1], out: [{A: 0, B: 0, anon: 0}]},
+          {A: [0, 0], B: [0, 1], C: [1, 1], out: []},
+          {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+          {A: [0, 0], B: [1, 1], C: [0, 1], out: []},
+          {A: [0, 0], B: [1, 1], out: []},
+          {A: [0, 0], B: [1, 1], C: [1, 1], out: []},
+          {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [0, 0], out: [{A: 0, B: 0, anon: 0}, {A: 1, B: 0, anon: 1}]},
+          {A: [0, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+          {A: [0, 1], B: [0, 1], C: [0, 1], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 0}]},
+          {A: [0, 1], B: [0, 1], out: [{A: 0, B: 0, anon: 0}, {A: 1, B: 0, anon: 1}, {A: 1, B: 1, anon: 0}]},
+          {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+          {A: [0, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
+          {A: [0, 1], B: [1, 1], out: [{A: 1, B: 1, anon: 0}]},
+          {A: [0, 1], B: [1, 1], C: [1, 1], out: []},
+          {A: [1, 1], B: [0, 0], C: [0, 0], out: []},
+          {A: [1, 1], B: [0, 0], C: [0, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [0, 0], out: [{A: 1, B: 0, anon: 1}]},
+          {A: [1, 1], B: [0, 0], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+          {A: [1, 1], B: [0, 1], C: [0, 1], out: [{A: 1, B: 0, C: 1}, {A: 1, B: 1, C: 0}]},
+          {A: [1, 1], B: [0, 1], out: [{A: 1, B: 0, anon: 1}, {A: 1, B: 1, anon: 0}]},
+          {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 0, C: 1}]},
+          {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+          {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
+          {A: [1, 1], B: [1, 1], out: [{A: 1, B: 1, anon: 0}]},
+          {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+        ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
+      });
     });
 
     describe('ring-mul', function() {
@@ -848,6 +1245,83 @@ describe('src/constraint.spec', function() {
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 100, B: 10, C: 1000}]);
+      });
+
+
+      describe('brute force bool table', function() {
+
+        function test(A, B, C, out) {
+          it('test: A=[' + A + '] B=[' + B + '] C=[' + C + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
+            let solver = new Solver();
+            solver.decl('A', A);
+            solver.decl('B', B);
+            if (C !== undefined) solver.decl('C', C);
+            solver.mul('A', 'B', C === undefined ? undefined : 'C');
+            solver.solve({max: 20, vars: C === undefined ? ['A', 'B'] : ['A', 'B', 'C']}); // arbitrary number
+
+            expect(solver.solutions.length).to.be.below(20); // if this breaks (validly) increase the max above
+            if (C !== undefined) {
+              // easy
+              expect(solver.solutions).to.eql(out);
+            } else {
+              // difficult. find the anonymous var and test it.
+              expect(solver.solutions.length, 'solve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
+              solver.solutions.forEach((solution, i) => {
+                let foundAnon = false;
+                for (let key in solution) {
+                  if (key === 'A') expect(solution.A, 'A of sol ' + i + ' of ' + JSON.stringify(solver.solutions)).to.eql(out[i].A);
+                  else if (key === 'B') expect(solution.B, 'B of sol ' + i + ' of ' + JSON.stringify(solver.solutions)).to.eql(out[i].B);
+                  else {
+                    // this is not a bug per se, unless there's no reason for the additional anon var(s)
+                    expect(foundAnon, 'expecting only one anon var').to.eql(false);
+                    foundAnon = true;
+                    expect(solution[key]).to.eql(out[i].anon);
+                  }
+                }
+                expect(solution.A).to.eql(out[i].A);
+              });
+            }
+          });
+        }
+
+        [
+          {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], C: [0, 10], out: [{A: 0, B: 0, C: 0}]},
+          {A: [0, 0], B: [0, 0], out: [{A: 0, B: 0, anon: 0}]},
+          {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
+          {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 0}]},
+          {A: [0, 0], B: [0, 1], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 0}]},
+          {A: [0, 0], B: [0, 1], out: [{A: 0, B: 0, anon: 0}, {A: 0, B: 1, anon: 0}]},
+          {A: [0, 0], B: [0, 1], C: [1, 1], out: []},
+          {A: [0, 0], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+          {A: [0, 0], B: [1, 1], C: [0, 10], out: [{A: 0, B: 1, C: 0}]},
+          {A: [0, 0], B: [1, 1], out: [{A: 0, B: 1, anon: 0}]},
+          {A: [0, 0], B: [1, 1], C: [1, 1], out: []},
+          {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 0], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 0], out: [{A: 0, B: 0, anon: 0}, {A: 1, B: 0, anon: 0}]},
+          {A: [0, 1], B: [0, 0], C: [1, 1], out: []},
+          {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}]},
+          {A: [0, 1], B: [0, 1], C: [0, 10], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+          {A: [0, 1], B: [0, 1], out: [{A: 0, B: 0, anon: 0}, {A: 0, B: 1, anon: 0}, {A: 1, B: 0, anon: 0}, {A: 1, B: 1, anon: 1}]},
+          {A: [0, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+          {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+          {A: [0, 1], B: [1, 1], C: [0, 10], out: [{A: 0, B: 1, C: 0}, {A: 1, B: 1, C: 1}]},
+          {A: [0, 1], B: [1, 1], out: [{A: 0, B: 1, anon: 0}, {A: 1, B: 1, anon: 1}]},
+          {A: [0, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+          {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+          {A: [1, 1], B: [0, 0], C: [0, 10], out: [{A: 1, B: 0, C: 0}]},
+          {A: [1, 1], B: [0, 0], out: [{A: 1, B: 0, anon: 0}]},
+          {A: [1, 1], B: [0, 0], C: [1, 1], out: []},
+          {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+          {A: [1, 1], B: [0, 1], C: [0, 10], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 1}]},
+          {A: [1, 1], B: [0, 1], out: [{A: 1, B: 0, anon: 0}, {A: 1, B: 1, anon: 1}]},
+          {A: [1, 1], B: [0, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+          {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+          {A: [1, 1], B: [1, 1], C: [0, 10], out: [{A: 1, B: 1, C: 1}]},
+          {A: [1, 1], B: [1, 1], out: [{A: 1, B: 1, anon: 1}]},
+          {A: [1, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+        ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
       });
     });
 
@@ -1264,9 +1738,8 @@ describe('src/constraint.spec', function() {
       test(0, 0, 0, []);
       test(0, 1, 2, [{A: 0, B: 1, C: 2}]);
       test(1, 2, 3, [{A: 1, B: 2, C: 3}]);
-      test(fixt_arrdom_range(4, 7, true), 5, 6, [
-        {A: 4, B: 5, C: 6},
-        {A: 7, B: 5, C: 6},
+      test(fixt_arrdom_range(4, 7), 5, 6, [
+        {A: fixt_arrdom_nums(4, 7), B: 5, C: 6},
       ]);
       test(fixt_arrdom_ranges([4, 5], [100, 101]), fixt_arrdom_range(4, 5, true), fixt_arrdom_range(100, 101), [
         {A: 4, B: 5, C: 100},

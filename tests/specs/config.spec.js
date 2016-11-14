@@ -928,7 +928,7 @@ describe('src/config.spec', function() {
       let config = config_create();
       let varIndex = config_addVarAnonConstant(config, 15);
 
-      expect(config.allVarNames[varIndex]).to.be.above(-1);
+      expect(config.allVarNames[varIndex]).to.be.a('string');
       expect(config.initialDomains[varIndex]).to.eql(fixt_dom_nums(15));
     });
 

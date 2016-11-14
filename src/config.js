@@ -590,40 +590,28 @@ function config_addConstraint(config, name, varNames, param) {
       if (sumOrProduct) param = resultVarIndex;
       else varNames[2] = resultVarName;
 
-      // check all other var names, except result var, for constants
-      for (let i = 0, n = varNames.length - (sumOrProduct ? 0 : 1); i < n; ++i) {
-        if (typeof varNames[i] === 'number') {
-          let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.allVarNames[varIndex];
-        }
-      }
-
       break;
     }
 
     case 'markov':
+      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
+      break;
+
     case 'distinct':
     case 'eq':
     case 'neq':
     case 'lt':
     case 'lte':
     case 'gt':
-    case 'gte': {
-      ASSERT(name !== 'markov' || varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
-
-      for (let i = 0, n = varNames.length; i < n; ++i) {
-        if (typeof varNames[i] === 'number') {
-          let varIndex = config_addVarAnonConstant(config, varNames[i]);
-          varNames[i] = config.allVarNames[varIndex];
-        }
-      }
-
+    case 'gte':
       break;
-    }
 
     default:
       THROW(`UNKNOWN_PROPAGATOR ${name}`);
   }
+
+  // note: if param is a var constant then that case is already resolved above
+  config_compileConstants(config, varNames);
 
   let varIndexes = config_varNamesToIndexes(config, varNames);
 
@@ -633,6 +621,23 @@ function config_addConstraint(config, name, varNames, param) {
   }
 
   return resultVarName;
+}
+
+/**
+ * Go through the list of var names and create an anonymous var for
+ * each value that is actually a number rather than a string.
+ * Replaces the values inline.
+ *
+ * @param {$config} config
+ * @param {string|number} varNames
+ */
+function config_compileConstants(config, varNames) {
+  for (let i = 0, n = varNames.length; i < n; ++i) {
+    if (typeof varNames[i] === 'number') {
+      let varIndex = config_addVarAnonConstant(config, varNames[i]);
+      varNames[i] = config.allVarNames[varIndex];
+    }
+  }
 }
 
 /**

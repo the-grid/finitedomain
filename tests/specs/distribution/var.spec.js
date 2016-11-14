@@ -401,7 +401,7 @@ describe('distribution/var.spec', function() {
         expect(varIndex).to.eql(solver.config.allVarNames.indexOf('B'));
       });
 
-      it('should get markov vars back to front', function() {
+      it('should get markov vars front to back', function() {
         // it's not really a hard requirement but that's how it works
 
         let solver = new Solver();
@@ -423,7 +423,8 @@ describe('distribution/var.spec', function() {
 
         let varIndex = distribution_getNextVarIndex(solver._space, solver.config);
 
-        expect(varIndex).to.eql(solver.config.allVarNames.indexOf('C'));
+        // (either way, the next var _must_ be a markov var!)
+        expect(varIndex).to.eql(solver.config.allVarNames.indexOf('B'));
       });
     });
   });

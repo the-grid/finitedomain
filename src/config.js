@@ -600,10 +600,6 @@ function config_addConstraint(config, name, varNames, param) {
       break;
     }
 
-    case 'markov':
-      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
-      break;
-
     case 'distinct':
     case 'eq':
     case 'neq':
@@ -1137,9 +1133,6 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
     case 'distinct':
       return propagator_addDistinct(config, varIndexes.slice(0));
 
-    case 'markov':
-      return propagator_addMarkov(config, varIndexes[0]);
-
     case 'reifier':
       return propagator_addReified(config, param, varIndexes[0], varIndexes[1], varIndexes[2]);
 
@@ -1163,6 +1156,18 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
 
     default:
       THROW('UNEXPECTED_NAME');
+  }
+}
+
+function config_generateMarkovs(config) {
+  let varDistOptions = config.varDistOptions;
+  for (let varName in varDistOptions) {
+    let varIndex = trie_get(config._varNamesTrie, varName);
+    if (varIndex < 0) THROW('Found markov var options for an unknown var name (' + varName + ')');
+    let options = varDistOptions[varName];
+    if (options && options.valtype === 'markov') {
+      return propagator_addMarkov(config, varIndex);
+    }
   }
 }
 
@@ -1201,6 +1206,7 @@ function config_init(config) {
 
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
+  config_generateMarkovs(config);
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);

@@ -764,7 +764,7 @@ function propagator_addProduct(config, varIndexes, resultVarIndex) {
 
 /**
  * @param {$config} config
- * @param {string} varIndex
+ * @param {number} varIndex
  */
 function propagator_addMarkov(config, varIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');

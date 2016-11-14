@@ -189,29 +189,29 @@ describe('solver.markov.spec', function() {
   it('should interpret large domain w/ sparse legend & 0 probability as a constraint', function() {
     let solver = new Solver({});
 
-    solver.declRange('STATE', 0, 10);
-    solver.declRange('V1', 0, 100, {
+    solver.declRange('A', 0, 10);
+    solver.declRange('B', 0, 100, {
       valtype: 'markov',
       legend: [10, 100],
       matrix: [
         {
           vector: [1, 0],
           boolVarName() {
-            return solver['==?']('STATE', 5);
+            return solver.isEq('A', 5);
           },
         }, {
           vector: [0, 1],
         },
       ],
     });
-    solver.declRange('V2', 0, 100, {
+    solver.declRange('C', 0, 100, {
       valtype: 'markov',
       legend: [10, 100],
       matrix: [
         {
           vector: [1, 0],
           boolVarName() {
-            return solver['==?']('STATE', 100);
+            return solver.isEq('A', 100);
           },
         }, {
           vector: [0, 1],
@@ -219,19 +219,19 @@ describe('solver.markov.spec', function() {
       ],
     });
 
-    solver['==']('STATE', 5);
+    solver['==']('A', 5);
 
-    let solutions = solver.solve();
+    let solutions = solver.solve({vars: ['A', 'B', 'C']});
 
-    // there is only one solution for STATE (5), in which case V1 will
-    // use vector [1,0] on legend [10,100], meaning 10. V2 will use
+    // there is only one solution for A (5), in which case B will
+    // use vector [1,0] on legend [10,100], meaning 10. C will use
     // vector [0,1] on [10,100], meaning 100. so the only valid
-    // solution can be STATE=5,V1=10,V2=100
+    // solution can be A=5,B=10,C=100
     expect(countSolutions(solver)).to.equal(1);
     expect(stripAnonVars(solutions[0])).to.eql({
-      STATE: 5,
-      V1: 10,
-      V2: 100,
+      A: 5,
+      B: 10,
+      C: 100,
     });
   });
 

@@ -151,9 +151,6 @@ class Solver {
     if (distributionOptions) {
       if (distributionOptions.distribute) THROW('Use `valtype` to set the value distribution strategy');
       config_setOption(this.config, 'varValueStrat', distributionOptions, varName);
-      if (distributionOptions.valtype === 'markov') {
-        config_addConstraint(this.config, 'markov', [varName]);
-      }
     }
 
     return varName;
@@ -624,9 +621,6 @@ class Solver {
     ASSERT(typeof options === 'object', 'value strat options should be an object');
 
     config_setOption(this.config, 'varValueStrat', options, varName);
-    if (options.valtype === 'markov') {
-      config_addConstraint(this.config, 'markov', [varName]);
-    }
   }
 
   /**

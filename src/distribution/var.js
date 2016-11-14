@@ -28,7 +28,8 @@ function distribution_getNextVarIndex(space, config) {
   let varStratConfig = config.varStratConfig;
   let isBetterVarFunc = distribution_getFunc(varStratConfig.type);
 
-  return _distribution_varFindBest(space, config, isBetterVarFunc, varStratConfig);
+  let varIndex = _distribution_varFindBest(space, config, isBetterVarFunc, varStratConfig);
+  return varIndex;
 }
 
 /**

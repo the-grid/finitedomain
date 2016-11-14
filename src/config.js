@@ -584,7 +584,7 @@ function config_addConstraint(config, name, varNames, param) {
         THROW(`expecting result var name to be absent or a number or string: \`${resultVarName}\``);
       } else {
         resultVarIndex = trie_get(config._varNamesTrie, resultVarName);
-        if (resultVarIndex < 0) THROW('Vars must be defined before using them');
+        if (resultVarIndex < 0) THROW('Vars must be defined before using them (' + resultVarName + ')');
       }
 
       if (sumOrProduct) param = resultVarIndex;
@@ -615,7 +615,6 @@ function config_addConstraint(config, name, varNames, param) {
         if (typeof varNames[i] === 'number') {
           let varIndex = config_addVarAnonConstant(config, varNames[i]);
           varNames[i] = config.allVarNames[varIndex];
-          resultVarName = varNames[i];
         }
       }
 

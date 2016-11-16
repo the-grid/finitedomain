@@ -2561,6 +2561,39 @@ describe('solver.spec', function() {
       expect(true).to.eql(true);
     });
 
+    it('should work with exportBare', function() {
+      let solver = new Solver({exportBare: true});
+
+      let A = solver.decl('A', fixt_arrdom_nums(0, 1, 4, 5));
+      let B = solver.declRange('B', 1, 10);
+      let C = solver.num(5);
+      solver.plus(A, B, C);
+      solver.min(A, B, C);
+      solver.times(A, B, C);
+      solver.div(A, B, C);
+      solver.mul(A, B, C);
+      solver.sum([A, B], C);
+      solver.product([A, B], C);
+      solver.distinct([A, B, C]);
+      solver.eq(A, B);
+      solver.neq(A, B);
+      solver.gte(A, B);
+      solver.gt(A, B);
+      solver.lte(A, B);
+      solver.lt(A, B);
+      solver.isEq(A, B, C);
+      solver.isNeq(A, B, C);
+      solver.isLt(A, B, C);
+      solver.isLte(A, B, C);
+      solver.isGt(A, B, C);
+      solver.isGte(A, B, C);
+
+      expect(solver.exported).to.be.a('string');
+      console.log('Exported:');
+      console.log(solver.exported);
+      expect(solver.exported.split('\n').length).to.be.above(22); // 23 declarations above
+    });
+
     it('should support _debugSpace', function() {
       let solver = new Solver();
 

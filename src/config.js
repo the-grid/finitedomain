@@ -846,7 +846,6 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   ASSERT_NORDOM(domain1, true, domain__debug);
   ASSERT_NORDOM(domain2, true, domain__debug);
-  if (!domain1 || !domain2) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
 
   let v1 = domain_getValue(initialDomains[varIndexLeft]);
   let v2 = domain_getValue(initialDomains[varIndexRight]);

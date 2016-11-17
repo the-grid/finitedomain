@@ -1675,9 +1675,9 @@ describe('solver.spec', function() {
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX'); // 3 (noop)
       solver.neq('ITEM_INDEX&n=2', 'ITEM_INDEX&n=1'); // 2!=3 (noop)
       // constraints are enforced with an eq below. the first must be on, the second/third must be off.
-      solver._cacheReified('eq', 'VERSE_INDEX', 'x5', 'x12');
-      solver._cacheReified('eq', 'VERSE_INDEX&n=1', 'x8', 'x13');
-      solver._cacheReified('eq', 'VERSE_INDEX&n=2', 'x2', 'x14');
+      solver.isEq('VERSE_INDEX', 'x5', 'x12');
+      solver.isEq('VERSE_INDEX&n=1', 'x8', 'x13');
+      solver.isEq('VERSE_INDEX&n=2', 'x2', 'x14');
       solver.eq('x12', 'x2'); // so vi must be 4 (it can be)
       solver.eq('x13', 'x3'); // so vi1 must not be 6 (so 5 or 8)
       solver.eq('x14', 'x3'); // so vi2 must not be 1 (so 3 or 7)
@@ -1810,7 +1810,7 @@ describe('solver.spec', function() {
       solver.decl('LIST', fixt_arrdom_nums(2, 4, 9)); // becomes 4
       solver.declRange('IS_LIST_FOUR', 0, 1); // becomes 1
 
-      solver._cacheReified('eq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
+      solver.isEq('LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ONE');
 
       solver.solve({max: 10000});
@@ -1852,7 +1852,7 @@ describe('solver.spec', function() {
       solver.decl('LIST', fixt_arrdom_nums(2, 4, 9)); // becomes 2 or 9
       solver.declRange('IS_LIST_FOUR', 0, 1); // becomes 1
 
-      solver._cacheReified('neq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
+      solver.isNeq('LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ONE');
 
       solver.solve({max: 10000});
@@ -1873,7 +1873,7 @@ describe('solver.spec', function() {
       solver.decl('LIST', fixt_arrdom_nums(2, 4, 9)); // becomes 4
       solver.declRange('IS_LIST_FOUR', 0, 1); // becomes 0
 
-      solver._cacheReified('neq', 'LIST', 'FOUR', 'IS_LIST_FOUR');
+      solver.isNeq('LIST', 'FOUR', 'IS_LIST_FOUR');
       solver.eq('IS_LIST_FOUR', 'ZERO');
 
       solver.solve({max: 10000});
@@ -1894,7 +1894,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3 4 or 5
       solver.declRange('IS_LT', 0, 1); // becomes 1
 
-      solver._cacheReified('lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
+      solver.isLt('ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
       solver.eq('IS_LT', 'STATE');
 
       solver.solve({max: 10000});
@@ -1915,7 +1915,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3
       solver.declRange('IS_LT', 0, 1); // 0
 
-      solver._cacheReified('lt', 'ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
+      solver.isLt('ONE_TWO_THREE', 'THREE_FOUR_FIVE', 'IS_LT');
       solver.eq('IS_LT', 'STATE');
 
       solver.solve({max: 10000});
@@ -1937,7 +1937,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3 4 or 5
       solver.declRange('IS_LTE', 0, 1); // becomes 1
 
-      solver._cacheReified('lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
+      solver.isLte('ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
       solver.eq('IS_LTE', 'STATE');
 
       solver.solve({max: 10000});
@@ -1958,7 +1958,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3
       solver.declRange('IS_LTE', 0, 1); // 0
 
-      solver._cacheReified('lte', 'ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
+      solver.isLte('ONE_TWO_THREE_FOUR', 'THREE_FOUR_FIVE', 'IS_LTE');
       solver.eq('IS_LTE', 'STATE');
 
       solver.solve({max: 10000});
@@ -1979,7 +1979,7 @@ describe('solver.spec', function() {
       solver.declRange('B', 4, 4);
       solver.declRange('NO', 0, 0);
 
-      solver._cacheReified('lte', 'A', 'B', 'NO');
+      solver.isLte('A', 'B', 'NO');
 
       solver.solve({max: 10000});
 
@@ -2000,7 +2000,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3 4 or 5
       solver.declRange('IS_GT', 0, 1); // becomes 1
 
-      solver._cacheReified('gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
+      solver.isGt('THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
       solver.eq('IS_GT', 'STATE');
 
       solver.solve({max: 10000});
@@ -2021,7 +2021,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3
       solver.declRange('IS_GT', 0, 1); // 0
 
-      solver._cacheReified('gt', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
+      solver.isGt('THREE_FOUR_FIVE', 'ONE_TWO_THREE', 'IS_GT');
       solver.eq('IS_GT', 'STATE');
 
       solver.solve({max: 10000});
@@ -2043,7 +2043,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3 4 or 5
       solver.declRange('IS_GTE', 0, 1); // becomes 1
 
-      solver._cacheReified('gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
+      solver.isGte('THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
       solver.eq('IS_GTE', 'STATE');
 
       solver.solve({max: 10000});
@@ -2068,7 +2068,7 @@ describe('solver.spec', function() {
       solver.decl('B', 4);
       solver.decl('YES', 1);
 
-      solver._cacheReified('gte', 'A', 'B', 'YES');
+      solver.isGte('A', 'B', 'YES');
 
       solver.solve({max: 10000});
 
@@ -2083,7 +2083,7 @@ describe('solver.spec', function() {
       solver.decl('B', 4);
       solver.decl('YES', 1);
 
-      solver._cacheReified('gte', 'A', 'B', 'YES');
+      solver.isGte('A', 'B', 'YES');
 
       solver.solve({max: 10000});
 
@@ -2099,7 +2099,7 @@ describe('solver.spec', function() {
       solver.declRange('THREE_FOUR_FIVE', 3, 5); // 3
       solver.declRange('IS_GTE', 0, 1); // 0
 
-      solver._cacheReified('gte', 'THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
+      solver.isGte('THREE_FOUR_FIVE', 'ONE_TWO_THREE_FOUR', 'IS_GTE');
       solver.eq('IS_GTE', 'STATE');
 
       solver.solve({max: 10000});

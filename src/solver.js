@@ -297,36 +297,40 @@ class Solver {
     config_addConstraint(this.config, 'lt', [A, B]);
   }
 
-
-  // Conditions, ie Reified (In)equality Propagators
-  _cacheReified(op, A, B, C) {
-    let R = config_addConstraint(this.config, 'reifier', [A, B, C], op);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' ' + ({eq: '==?', neq: '!=?', gte: '>=?', gt: '>?', lte: '<=?', lt: '<?'}[op] || '???') + ' ' + B + ' # input for result = ' + C + '\n')));
+  isNeq(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'neq');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' !=? ' + B + '\n')));
     return R;
   }
 
-  isNeq(e1, e2, boolVar) {
-    return this._cacheReified('neq', e1, e2, boolVar);
+  isEq(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'eq');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' ==? ' + B + '\n')));
+    return R;
   }
 
-  isEq(e1, e2, boolVar) {
-    return this._cacheReified('eq', e1, e2, boolVar);
+  isGte(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gte');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >=? ' + B + '\n')));
+    return R;
   }
 
-  isGte(e1, e2, boolVar) {
-    return this._cacheReified('gte', e1, e2, boolVar);
+  isLte(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lte');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <=? ' + B + '\n')));
+    return R;
   }
 
-  isLte(e1, e2, boolVar) {
-    return this._cacheReified('lte', e1, e2, boolVar);
+  isGt(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gt');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >? ' + B + '\n')));
+    return R;
   }
 
-  isGt(e1, e2, boolVar) {
-    return this._cacheReified('gt', e1, e2, boolVar);
-  }
-
-  isLt(e1, e2, boolVar) {
-    return this._cacheReified('lt', e1, e2, boolVar);
+  isLt(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lt');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <? ' + B + '\n')));
+    return R;
   }
 
   // Various rest

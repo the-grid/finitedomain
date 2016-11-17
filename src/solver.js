@@ -8,8 +8,6 @@ import {
   ASSERT,
   ASSERT_ARRDOM,
   ASSERT_VARDOMS_SLOW,
-  GET_NAME,
-  GET_NAMES,
   THROW,
 } from './helpers';
 
@@ -198,10 +196,7 @@ class Solver {
   ['+'](e1, e2, resultVar) {
     return this.plus(e1, e2, resultVar);
   }
-  plus(e1, e2, resultVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = resultVar && GET_NAME(resultVar);
+  plus(A, B, C) {
     let R = config_addConstraint(this.config, 'plus', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' + ' + B + ' # plus, result var was: ' + C + '\n')));
     return R;
@@ -213,10 +208,7 @@ class Solver {
   minus(e1, e2, resultVar) {
     return this.min(e1, e2, resultVar);
   }
-  min(e1, e2, resultVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = resultVar && GET_NAME(resultVar);
+  min(A, B, C) {
     let R = config_addConstraint(this.config, 'min', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' - ' + B + ' # min, result var was: ' + C + '\n')));
     return R;
@@ -228,10 +220,7 @@ class Solver {
   times(e1, e2, resultVar) { // deprecated
     return this.ring_mul(e1, e2, resultVar);
   }
-  ring_mul(e1, e2, resultVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = resultVar && GET_NAME(resultVar);
+  ring_mul(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-mul', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # ringmul, result var was: ' + C + '\n')));
     return R;
@@ -240,19 +229,13 @@ class Solver {
   ['/'](e1, e2, resultVar) {
     return this.div(e1, e2, resultVar);
   }
-  div(e1, e2, resultVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = resultVar && GET_NAME(resultVar);
+  div(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-div', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' / ' + B + ' # ringdiv, result var was: ' + C + '\n')));
     return R;
   }
 
-  mul(e1, e2, resultVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = resultVar && GET_NAME(resultVar);
+  mul(A, B, C) {
     let R = config_addConstraint(this.config, 'mul', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # mul, result var was: ' + C + '\n')));
     return R;
@@ -261,9 +244,7 @@ class Solver {
   ['∑'](es, resultVar) {
     return this.sum(es, resultVar);
   }
-  sum(es, resultVar) {
-    let A = GET_NAMES(es);
-    let C = resultVar && GET_NAME(resultVar);
+  sum(A, C) {
     let R = config_addConstraint(this.config, 'sum', A, C);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = sum(' + A + ') # result var was: ' + C + '\n')));
     return R;
@@ -272,9 +253,7 @@ class Solver {
   ['∏'](es, resultVar) {
     return this.product(es, resultVar);
   }
-  product(es, resultVar) {
-    let A = GET_NAMES(es);
-    let C = resultVar && GET_NAME(resultVar);
+  product(A, C) {
     let R = config_addConstraint(this.config, 'product', A, C);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = product(' + A + ') # result var was: ' + C + '\n')));
     return R;
@@ -292,10 +271,9 @@ class Solver {
   ['{}≠'](es) {
     this.distinct(es);
   }
-  distinct(es) {
-    let A = GET_NAMES(es);
+  distinct(A) {
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += 'distinct(' + A + ')\n')));
-    config_addConstraint(this.config, 'distinct', GET_NAMES(es));
+    config_addConstraint(this.config, 'distinct', A);
   }
 
   ['=='](e1, e2) {
@@ -311,10 +289,8 @@ class Solver {
         this.eq(e1, e2[i]);
       }
     } else {
-      let A = GET_NAME(e1);
-      let B = GET_NAME(e2);
-      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' == ' + B + '\n')));
-      config_addConstraint(this.config, 'eq', [A, B]);
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' == ' + e2 + '\n')));
+      config_addConstraint(this.config, 'eq', [e1, e2]);
     }
   }
 
@@ -331,20 +307,16 @@ class Solver {
         this.neq(e1, e2[i]);
       }
     } else {
-      let A = GET_NAME(e1);
-      let B = GET_NAME(e2);
-      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' != ' + B + '\n')));
-      config_addConstraint(this.config, 'neq', [A, B]);
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' != ' + e2 + '\n')));
+      config_addConstraint(this.config, 'neq', [e1, e2]);
     }
   }
 
   ['>='](e1, e2) {
     this.gte(e1, e2);
   }
-  gte(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
+  gte(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >= ' + B + '\n')));
     config_addConstraint(this.config, 'gte', [A, B]);
   }
@@ -352,10 +324,8 @@ class Solver {
   ['<='](e1, e2) {
     this.lte(e1, e2);
   }
-  lte(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
+  lte(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <= ' + B + '\n')));
     config_addConstraint(this.config, 'lte', [A, B]);
   }
@@ -363,10 +333,8 @@ class Solver {
   ['>'](e1, e2) {
     this.gt(e1, e2);
   }
-  gt(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
+  gt(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' > ' + B + '\n')));
     config_addConstraint(this.config, 'gt', [A, B]);
   }
@@ -374,20 +342,15 @@ class Solver {
   ['<'](e1, e2) {
     this.lt(e1, e2);
   }
-  lt(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
+  lt(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' < ' + B + '\n')));
     config_addConstraint(this.config, 'lt', [A, B]);
   }
 
 
   // Conditions, ie Reified (In)equality Propagators
-  _cacheReified(op, e1, e2, boolVar) {
-    let A = GET_NAME(e1);
-    let B = GET_NAME(e2);
-    let C = boolVar && GET_NAME(boolVar);
+  _cacheReified(op, A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], op);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' ' + ({eq: '==?', neq: '!=?', gte: '>=?', gt: '>?', lte: '<=?', lt: '<?'}[op] || '???') + ' ' + B + ' # input for result = ' + C + '\n')));
     return R;
@@ -557,10 +520,8 @@ class Solver {
     let config = this.config;
     ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
-    // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
     if (options.vars && options.vars !== 'all') {
-      let ids = GET_NAMES(options.vars);
-      config_setOption(config, 'targeted_var_names', ids);
+      config_setOption(config, 'targeted_var_names', options.vars);
     }
 
     // TODO: eliminate?

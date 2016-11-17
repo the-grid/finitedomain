@@ -1152,7 +1152,7 @@ describe('src/config.spec', function() {
     it('should throw for missing the name', function() {
       let config = config_create();
 
-      expect(_ => config_addVarNothing(config)).to.throw('VAR_NAMES_SHOULD_BE_STRINGS');
+      expect(_ => config_addVarNothing(config)).to.throw('Var names should be a string or anonymous');
     });
 
     it('should create a new var with max range', function() {
@@ -1541,11 +1541,11 @@ describe('src/config.spec', function() {
 
   it('should reject stringified zero as var', function() {
     let config = config_create();
-    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('Don\'t use numbers as var names');
   });
 
   it('should reject adding a number as a var', function() {
     let config = config_create();
-    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('Don\'t use numbers as var names');
   });
 });

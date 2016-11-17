@@ -258,8 +258,6 @@ function config_addVarConstant(config, varName, value) {
  */
 function _config_addVar(config, varName, domain, _allowEmpty) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
-  ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(_allowEmpty || domain, 'NON_EMPTY_DOMAIN');
   ASSERT(_allowEmpty || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(_allowEmpty || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
@@ -267,16 +265,14 @@ function _config_addVar(config, varName, domain, _allowEmpty) {
   let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;
 
-  // note: 100 is an arbitrary number but since large sets are probably
-  // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100) {
-    if (String(parseInt(varName, 10)) === varName) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES', varName);
+  if (varName === true) {
+    varName = '__' + String(varIndex) + '__';
+  } else {
+    if (typeof varName !== 'string') THROW('Var names should be a string or anonymous, was: ' + JSON.stringify(varName));
+    if (!varName) THROW('Var name cannot be empty string');
+    if (String(parseInt(varName, 10)) === varName) THROW('Don\'t use numbers as var names (' + varName + ')');
   }
 
-  let wasAnonymous = varName === true;
-  if (wasAnonymous) {
-    varName = '__' + String(varIndex) + '__';
-  }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
   if (varIndex < 100) {
@@ -655,8 +651,10 @@ function config_compileConstants(config, varNames) {
 function config_varNamesToIndexes(config, varNames) {
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
+    let varName = varNames[i];
+    ASSERT(typeof varName === 'string', 'var names should be strings here', varName, i, varNames);
+    let varIndex = trie_get(config._varNamesTrie, varName);
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varName, i, varNames);
     varIndexes[i] = varIndex;
   }
   return varIndexes;
@@ -1154,7 +1152,7 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
       return propagator_addLt(config, varIndexes[0], varIndexes[1]);
 
     default:
-      THROW('UNEXPECTED_NAME');
+      THROW('UNEXPECTED_NAME: ' + name);
   }
 }
 

@@ -236,7 +236,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
         });
 
         it('should always return the result var name', function() {
@@ -305,7 +305,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
         });
 
         it('should always return the result var name', function() {
@@ -375,7 +375,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
         });
 
         it('should always return the result var name', function() {
@@ -445,7 +445,7 @@ describe('solver.spec', function() {
           let solver3 = new Solver();
           solver3.decl('A', 100);
           solver3.decl('B', 100);
-          expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+          expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
         });
 
         it('should always return the result var name', function() {
@@ -875,7 +875,7 @@ describe('solver.spec', function() {
             let solver3 = new Solver();
             solver3.decl('A', 100);
             solver3.decl('B', 100);
-            expect(_ => solver3[method](['A', 'B'], {})).to.throw('STRING_KEY');
+            expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
           });
 
           it('should always return the result var name', function() {

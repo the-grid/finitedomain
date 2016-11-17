@@ -20,7 +20,7 @@ describe('solver.min.spec', function() {
         let solver = new Solver(o);
         solver.declRange('Hello', 1, 99);
         solver.decl('World', 0);
-        solver['>']('Hello', 'World');
+        solver.gt('Hello', 'World');
 
         let solutions = solver.solve();
         expect(countSolutions(solver)).to.equal(99);

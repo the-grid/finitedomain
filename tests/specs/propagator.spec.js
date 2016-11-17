@@ -75,12 +75,13 @@ describe('src/propagator.spec', function() {
               expect(undefined).to.equal(undefined); // "do not crash"
             });
 
-            it('should reject for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
+            it('should allow for non-bool result vars with ' + op + ' with A=' + A + ' B=' + B + ' C=[0,100]', function() {
               let config = config_create();
               config_addVarDomain(config, 'A', A);
               config_addVarDomain(config, 'B', B);
               config_addVarDomain(config, 'C', [0, 100]);
-              expect(_ => propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'))).to.throw('should be bool bound');
+              propagator_addReified(config, op, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'), config.allVarNames.indexOf('C'));
+              expect(undefined).to.equal(undefined); // "do not crash"
             });
           });
         });

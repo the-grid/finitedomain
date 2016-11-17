@@ -1,7 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
-  fixt_numdom_range,
-  fixt_strdom_value,
+  fixt_dom_range,
+  fixt_dom_solved,
 } from '../../fixtures/domain.fixt';
 
 import distribution_markovSampleNextFromDomain from '../../../src/distribution/markov';
@@ -16,7 +16,7 @@ const funcRngMax = function() { return 1 - Number.EPSILON; }; // always pick las
 describe('distribution/markov.spec', function() {
 
   it('should return a number', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [5];
     let probVector = [1];
 
@@ -24,7 +24,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return first value in legend if rng is 0', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [2, 5];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
 
@@ -32,7 +32,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return first value in legend if rng is 1', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
 
@@ -40,7 +40,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns 1', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1; // not a valid normalized value
@@ -49,7 +49,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns 1.1', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => 1.1; // not a valid normalized value
@@ -58,7 +58,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should throw if normalized rng returns -1', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [2, 8];
     let probVector = [1, 1]; // equal odds (irrelevant for this test)
     let rngFunc = () => -1; // not a valid normalized value
@@ -67,7 +67,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should return middle value in legend if rng is .5 with equal probs', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [1, 2, 3];
     let probVector = [1, 1, 1]; // equal odds (irrelevant for this test)
 
@@ -75,7 +75,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should not consider values with zero probability', function() {
-    let domain = fixt_numdom_range(0, 10);
+    let domain = fixt_dom_range(0, 10);
     let valueLegend = [1, 2, 3, 4, 5, 6];
     let probVector = [0, 0, 0, 0, 1, 0]; // only `5` has non-zero chance
 
@@ -83,7 +83,7 @@ describe('distribution/markov.spec', function() {
   });
 
   it('should ignore values not in current domain', function() {
-    let domain = fixt_numdom_range(3, 10); // note: 1 and 2 are not part of domain!
+    let domain = fixt_dom_range(3, 10); // note: 1 and 2 are not part of domain!
     let valueLegend = [1, 2, 3, 4, 5, 6];
     let probVector = [1, 1, 0, 0, 1, 0]; // 1, 2, and 5 have non-zero probability
 
@@ -97,7 +97,7 @@ describe('distribution/markov.spec', function() {
       // so since `2` has probability of `5/total` and the only value before it has a prob of
       // `1/total`, the `2` will be chosen if rng outcome is one of [1, 6]. We'll fix it to `4`
       // in this test so we'll know this must be the case.
-      let domain = fixt_numdom_range(0, 10);
+      let domain = fixt_dom_range(0, 10);
       let valueLegend = [1, 2, 3, 4, 5, 6];
       let probVector = [1, 5, 1, 1, 1, 1]; // total probability is 10
       let rngFunc = () => 4; // whole number to prevent precision errors (-> RNG_UNNORMALIZED)
@@ -114,7 +114,7 @@ describe('distribution/markov.spec', function() {
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
-          let domain = fixt_numdom_range(0, 10);
+          let domain = fixt_dom_range(0, 10);
           let valueLegend = [1, 2, 3, 4, 5, 6];
           let rngFunc = function() { return rngRoll; };
 
@@ -144,7 +144,7 @@ describe('distribution/markov.spec', function() {
         }
 
         it(`should solve case probs: ${probVector} roll: ${rngRoll} out: ${outcome} ${desc && ('desc: ' + desc) || ''}`, function() {
-          let domain = fixt_numdom_range(0, 10);
+          let domain = fixt_dom_range(0, 10);
           let valueLegend = [1, 2, 3, 4, 5, 6];
           let rng_func = _ => rngRoll;
           expect(distribution_markovSampleNextFromDomain(domain, probVector, valueLegend, rng_func, RNG_NORMALIZED)).to.equal(outcome);
@@ -172,7 +172,7 @@ describe('distribution/markov.spec', function() {
     };
 
     for (var i = 0; i < 100; ++i) {
-      let domain = fixt_strdom_value(100);
+      let domain = fixt_dom_solved(100);
       let valueLegend = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]; // 16x 100
       let probVector = generateNormalizedProbs(1, 4); // 16 values
       let r = Math.random();

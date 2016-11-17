@@ -29,8 +29,8 @@ describe('src/solver.list.spec', function() {
         valtype: 'list',
         list: [3, 1, 4, 2],
       });
-      solver['>']('V1', 0);
-      solver['>']('V2', 0);
+      solver.gt('V1', 0);
+      solver.gt('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(16);
@@ -71,8 +71,8 @@ describe('src/solver.list.spec', function() {
         expandVectorsWith: 1,
         random() { return 0; }, // causes first element in legend to be picked
       });
-      solver['>']('V1', 0);
-      solver['>']('V2', 0);
+      solver.gt('V1', 0);
+      solver.gt('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver), 'all solutions').to.equal(16);
@@ -134,9 +134,9 @@ describe('src/solver.list.spec', function() {
         valtype: 'list',
         list: listCallback,
       });
-      solver['==']('STATE', 5);
-      solver['>']('V1', 0);
-      solver['>']('V2', 0);
+      solver.eq('STATE', 5);
+      solver.gt('V1', 0);
+      solver.gt('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(16);
@@ -172,7 +172,7 @@ describe('src/solver.list.spec', function() {
         valtype: 'list',
         list: [0, 3, 4],
       });
-      solver['>']('V1', 0);
+      solver.gt('V1', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(2); // list.length
@@ -188,7 +188,7 @@ describe('src/solver.list.spec', function() {
         valtype: 'list',
         list: [0, 15],
       });
-      solver['>']('V1', 0);
+      solver.gt('V1', 0);
 
       solver.solve();
       expect(countSolutions(solver)).to.equal(0);
@@ -203,7 +203,7 @@ describe('src/solver.list.spec', function() {
           valtype: 'max',
         },
       });
-      solver['>']('V1', 0);
+      solver.gt('V1', 0);
       let solutions = solver.solve();
 
       // Ok. First the propagators run. this will reduce
@@ -241,7 +241,7 @@ describe('src/solver.list.spec', function() {
           valtype: 'max',
         },
       });
-      solver['>']('V1', 0);
+      solver.gt('V1', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(5);
@@ -263,7 +263,7 @@ describe('src/solver.list.spec', function() {
           valtype: 'max',
         },
       });
-      solver['>']('V1', 6);
+      solver.gt('V1', 6);
 
       solver.solve();
       // original domain contains 0~5 but constraint requires >6

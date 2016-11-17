@@ -118,14 +118,12 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
   ASSERT(typeof leftVarIndex === 'number' && leftVarIndex >= 0, 'LEFT_VAR_SHOULD_BE_VALID_INDEX', leftVarIndex);
   ASSERT(typeof rightVarIndex === 'number' && rightVarIndex >= 0, 'RIGHT_VAR_SHOULD_BE_VALID_INDEX', rightVarIndex);
   ASSERT(typeof resultVarIndex === 'number' && resultVarIndex >= 0, 'RESULT_VAR_SHOULD_BE_VALID_INDEX', resultVarIndex);
-  ASSERT(domain_min(config.initialDomains[resultVarIndex]) >= 0, 'result var should be bool bound, min 0');
-  ASSERT(domain_max(config.initialDomains[resultVarIndex]) <= 1, 'result var should be bool bound, max 1');
 
   let initialDomains = config.initialDomains;
 
   let A = initialDomains[leftVarIndex];
   let B = initialDomains[rightVarIndex];
-  let C = initialDomains[resultVarIndex];
+  let C = initialDomains[resultVarIndex] = domain_removeGte(initialDomains[resultVarIndex], 2);
 
   let valueA = domain_getValue(A);
   let valueB = domain_getValue(B);
@@ -764,7 +762,7 @@ function propagator_addProduct(config, varIndexes, resultVarIndex) {
 
 /**
  * @param {$config} config
- * @param {string} varIndex
+ * @param {number} varIndex
  */
 function propagator_addMarkov(config, varIndex) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');

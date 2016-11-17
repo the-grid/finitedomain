@@ -1,7 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_empty,
-  fixt_arrdom_nums,
+  fixt_arrdom_solved,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -36,7 +36,7 @@ describe('propagators/markov.spec', function() {
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
-      expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_nums(0));
+      expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_solved(0));
     });
 
     it('should reject if solved value is not in legend', function() {
@@ -117,7 +117,7 @@ describe('propagators/markov.spec', function() {
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_nums(0));
+        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_solved(0));
       });
 
       it('should reject if second row gives value prob=0', function() {

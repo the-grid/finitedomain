@@ -171,36 +171,6 @@ function ASSERT_LOG(flags, func) {
 
 //__REMOVE_ABOVE_FOR_ASSERTS__
 
-// given a value return value.id or value
-// intended to return the name of a variable where the
-// value can be either that variable, or just its name
-// @returns {string}
-
-function GET_NAME(e) {
-  if (e === undefined || e === null) THROW('Var cannot be undefined');
-  // e can be the empty string (TOFIX: let's not allow this...)
-  if (e.id !== undefined && e.id !== null) {
-    return e.id;
-  }
-  return e;
-}
-
-// @see GET_NAME
-// @returns {string[]}
-
-function GET_NAMES(es) {
-  if (es === undefined || es === null) THROW('Var cannot be undefined');
-  if (typeof es === 'string') return es;
-
-  let varNames = [];
-  for (let i = 0; i < es.length; i++) {
-    let varName = es[i];
-    varNames.push(GET_NAME(varName));
-  }
-
-  return varNames;
-}
-
 // Abstraction for throwing because throw statements cause deoptimizations
 // All explicit throws should use this function. Also helps with tooling
 // later, catching and reporting explicits throws and what not.
@@ -247,7 +217,5 @@ export {
   ASSERT_SOLDOM,
   ASSERT_STRDOM,
   ASSERT_VARDOMS_SLOW,
-  GET_NAME,
-  GET_NAMES,
   THROW,
 };

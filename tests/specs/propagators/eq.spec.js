@@ -4,12 +4,12 @@ import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_dom_clone,
+  fixt_dom_empty,
+  fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_ranges,
+  fixt_dom_solved,
   fixt_domainEql,
-  fixt_strdom_range,
-  fixt_strdom_ranges,
-  fixt_numdom_empty,
-  fixt_numdom_nums,
-  fixt_numdom_solved,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -64,8 +64,8 @@ describe('propagators/eq.spec', function() {
       config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
       let space = space_createRoot();
       space_initFromConfig(space, config);
-      space.vardoms[config.allVarNames.indexOf('C')] = fixt_numdom_empty();
-      space.vardoms[config.allVarNames.indexOf('D')] = fixt_numdom_empty();
+      space.vardoms[config.allVarNames.indexOf('C')] = fixt_dom_empty();
+      space.vardoms[config.allVarNames.indexOf('D')] = fixt_dom_empty();
 
       expect(_ => propagator_eqStepBare(space, config, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('B'))).not.to.throw();
       expect(_ => propagator_eqStepBare(space, config, config.allVarNames.indexOf('A'), config.allVarNames.indexOf('D'))).to.throw('SHOULD_NOT_BE_REJECTED');
@@ -83,8 +83,8 @@ describe('propagators/eq.spec', function() {
       let B = config.allVarNames.indexOf('B');
 
       propagator_eqStepBare(space, config, A, B);
-      expect(space.vardoms[A]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
-      expect(space.vardoms[B]).to.eql(fixt_strdom_ranges([0, 10], [20, 300]));
+      expect(space.vardoms[A]).to.eql(fixt_dom_ranges([0, 10], [20, 300]));
+      expect(space.vardoms[B]).to.eql(fixt_dom_ranges([0, 10], [20, 300]));
     });
 
     it('with number should split a domain if it covers multiple ranges of other domain', function() {
@@ -96,7 +96,7 @@ describe('propagators/eq.spec', function() {
       let A = config.allVarNames.indexOf('A');
       let B = config.allVarNames.indexOf('B');
 
-      let C = fixt_numdom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
+      let C = fixt_dom_nums(0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15);
 
       propagator_eqStepBare(space, config, A, B);
       expect(space.vardoms[B]).to.eql(C);
@@ -129,12 +129,12 @@ describe('propagators/eq.spec', function() {
       });
 
       describe('with numbers', function() {
-        test(fixt_numdom_nums(SUB, SUB));
-        test(fixt_numdom_nums(0, 0));
-        test(fixt_numdom_nums(1, 1));
-        test(fixt_numdom_nums(0, 1));
-        test(fixt_numdom_nums(0, 2));
-        test(fixt_numdom_nums(0, 2, 3));
+        test(fixt_dom_nums(SUB, SUB));
+        test(fixt_dom_nums(0, 0));
+        test(fixt_dom_nums(1, 1));
+        test(fixt_dom_nums(0, 1));
+        test(fixt_dom_nums(0, 2));
+        test(fixt_dom_nums(0, 2, 3));
       });
     });
 
@@ -170,14 +170,14 @@ describe('propagators/eq.spec', function() {
         });
       }
 
-      test(fixt_numdom_nums(0, 1), fixt_numdom_nums(0, 0), fixt_numdom_solved(0));
-      test(fixt_numdom_nums(0, 1), fixt_numdom_nums(1, 1), fixt_numdom_solved(1));
-      test(fixt_numdom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_numdom_solved(1));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_numdom_nums(5, 5), fixt_numdom_solved(5));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_numdom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30));
-      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
-      test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 3), fixt_numdom_empty());
-      test(fixt_numdom_nums(0, 2), fixt_numdom_nums(1, 2, 4), fixt_numdom_solved(2));
+      test(fixt_dom_nums(0, 1), fixt_dom_nums(0, 0), fixt_dom_solved(0));
+      test(fixt_dom_nums(0, 1), fixt_dom_nums(1, 1), fixt_dom_solved(1));
+      test(fixt_dom_nums(SUB, 1), fixt_arrdom_range(1, SUP), fixt_dom_solved(1));
+      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_dom_nums(5, 5), fixt_dom_solved(5));
+      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([5, 15], [25, 35]), fixt_dom_nums(5, 6, 7, 8, 9, 10, 25, 26, 27, 28, 29, 30));
+      test(fixt_arrdom_ranges([0, 10], [20, 30], [40, 50]), fixt_arrdom_ranges([SUB, SUP]), fixt_dom_ranges([0, 10], [20, 30], [40, 50]));
+      test(fixt_dom_nums(0, 2), fixt_dom_nums(1, 3), fixt_dom_empty());
+      test(fixt_dom_nums(0, 2), fixt_dom_nums(1, 2, 4), fixt_dom_solved(2));
     });
 
     describe('with LOG', function() {
@@ -214,8 +214,8 @@ describe('propagators/eq.spec', function() {
     });
 
     it('regression', function() {
-      expect(propagator_eqStepWouldReject(fixt_strdom_range(1, 64), fixt_numdom_nums(1))).to.eql(false);
-      expect(propagator_eqStepWouldReject(fixt_strdom_range(1, 64), fixt_numdom_solved(1))).to.eql(false);
+      expect(propagator_eqStepWouldReject(fixt_dom_range(1, 64), fixt_dom_nums(1))).to.eql(false);
+      expect(propagator_eqStepWouldReject(fixt_dom_range(1, 64), fixt_dom_solved(1))).to.eql(false);
     });
   });
 });

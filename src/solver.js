@@ -4,12 +4,12 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  SUB,
+  SUP,
 
   ASSERT,
   ASSERT_ARRDOM,
   ASSERT_VARDOMS_SLOW,
-  GET_NAME,
-  GET_NAMES,
   THROW,
 } from './helpers';
 
@@ -51,6 +51,8 @@ import {
 
 // BODY_START
 
+let GENERATE_BARE_DSL = false;
+
 //
 // It is extended by path_solver
 
@@ -64,13 +66,14 @@ class Solver {
   /**
    * @param {Object} options = {}
    * @property {string} [options.distribute='naive']
-   * @property {$arrdom} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
+   * @property {boolean} [options.exportBare]
    */
   constructor(options = {}) {
     this._class = 'solver';
     this.distribute = options.distribute || 'naive';
+    ASSERT(!void (options.exportBare !== undefined && (GENERATE_BARE_DSL = options.exportBare || false), this.exported = ''), 'bare exports kind of log the api inputs of this class in a DSL and print it at .solve() time');
 
     ASSERT(options._class !== '$config', 'config should be passed on in a config property of options');
 
@@ -89,9 +92,6 @@ class Solver {
     } else {
       this.config = config_create();
     }
-
-    this.defaultDomain = options.defaultDomain || [0, 1];
-    ASSERT_ARRDOM(this.defaultDomain);
 
     this.solutions = [];
 
@@ -116,46 +116,42 @@ class Solver {
     if (isNaN(num)) {
       THROW('Solver#num: expecting a number, got NaN');
     }
+
     let varIndex = config_addVarAnonConstant(this.config, num);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': __' + varIndex + '__ = ' + num + '\n')));
     return this.config.allVarNames[varIndex];
   }
 
   /**
    * Declare a var with optional given domain or constant value and distribution options.
    *
-   * @param {string} varName Required. You can use this.num to declare a constant.
-   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {string} [varName] Optional, Note that you can use this.num() to declare a constant.
+   * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
    * @param {boolean} [_allowEmpty=false] Temp (i hope) override for importer
    * @returns {string}
    */
   decl(varName, domainOrValue, distributionOptions, _allowEmpty) {
-    ASSERT(varName && typeof varName === 'string', 'EXPECTING_ID_STRING');
+    if (varName === '') THROW('Var name can not be the empty string');
+    ASSERT(varName === undefined || typeof varName === 'string', 'var name should be undefined or a string');
     ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
-    let domain;
-    if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
-    else domain = domainOrValue;
 
-    if (domain === undefined) { // domain could be 0
-      ASSERT_ARRDOM(this.defaultDomain);
-      domain = this.defaultDomain.slice(0);
-    }
+    let arrdom;
+    if (typeof domainOrValue === 'number') arrdom = [domainOrValue, domainOrValue]; // just normalize it here.
+    else if (!domainOrValue) arrdom = [SUB, SUP];
+    else arrdom = domainOrValue;
+    ASSERT_ARRDOM(arrdom);
 
-    ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
-    ASSERT(!domain.some(e => typeof e !== 'number'), 'ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS', domain, domainOrValue);
-
-    if (!domain.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, varName, domain, _allowEmpty);
-    ASSERT(this.config.allVarNames[varIndex] === varName, 'SHOULD_USE_ID_AS_IS');
+    if (!arrdom.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty);
+    varName = this.config.allVarNames[varIndex];
 
     if (distributionOptions) {
       if (distributionOptions.distribute) THROW('Use `valtype` to set the value distribution strategy');
       config_setOption(this.config, 'varValueStrat', distributionOptions, varName);
-      if (distributionOptions.valtype === 'markov') {
-        config_addConstraint(this.config, 'markov', [varName]);
-      }
     }
 
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': ' + varName + ' = [' + arrdom + ']' + (distributionOptions ? ' # TODO: ' + JSON.stringify(distributionOptions) : '') + '\n')));
     return varName;
   }
 
@@ -163,7 +159,7 @@ class Solver {
    * Declare multiple variables with the same domain/options
    *
    * @param {string[]} varNames
-   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [options] Var distribution options. A number here will throw an error to prevent doing declRange
    */
   decls(varNames, domainOrValue, options) {
@@ -181,10 +177,8 @@ class Solver {
    * @param {Object} [options] Var distribution options
    */
   declRange(varName, lo, hi, options) {
-    ASSERT(typeof varName === 'string', 'NAME_SHOULD_BE_STRING');
     ASSERT(typeof lo === 'number', 'LO_SHOULD_BE_NUMBER');
     ASSERT(typeof hi === 'number', 'HI_SHOULD_BE_NUMBER');
-    ASSERT(typeof options !== 'number', 'USE_declRange_INSTEAD');
     ASSERT(typeof options === 'object' || options === undefined, 'EXPECTING_OPTIONS_OR_NOTHING');
 
     return this.decl(varName, [lo, hi], options);
@@ -192,56 +186,40 @@ class Solver {
 
   // Arithmetic Propagators
 
-  ['+'](e1, e2, resultVar) {
-    return this.plus(e1, e2, resultVar);
-  }
-  plus(e1, e2, resultVar) {
-    return config_addConstraint(this.config, 'plus', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
-  }
-
-  ['-'](e1, e2, resultVar) {
-    return this.min(e1, e2, resultVar);
-  }
-  minus(e1, e2, resultVar) {
-    return this.min(e1, e2, resultVar);
-  }
-  min(e1, e2, resultVar) {
-    return config_addConstraint(this.config, 'min', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
+  plus(A, B, C) {
+    let R = config_addConstraint(this.config, 'plus', [A, B, C]);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' + ' + B + ' # plus, result var was: ' + C + '\n')));
+    return R;
   }
 
-  ['*'](e1, e2, resultVar) {
-    return this.ring_mul(e1, e2, resultVar);
-  }
-  times(e1, e2, resultVar) { // deprecated
-    return this.ring_mul(e1, e2, resultVar);
-  }
-  ring_mul(e1, e2, resultVar) {
-    return config_addConstraint(this.config, 'ring-mul', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
+  minus(A, B, C) {
+    let R = config_addConstraint(this.config, 'min', [A, B, C]);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' - ' + B + ' # min, result var was: ' + C + '\n')));
+    return R;
   }
 
-  ['/'](e1, e2, resultVar) {
-    return this.div(e1, e2, resultVar);
-  }
-  div(e1, e2, resultVar) {
-    return config_addConstraint(this.config, 'ring-div', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
-  }
-
-  mul(e1, e2, resultVar) {
-    return config_addConstraint(this.config, 'mul', [GET_NAME(e1), GET_NAME(e2), resultVar && GET_NAME(resultVar)]);
+  mul(A, B, C) {
+    let R = config_addConstraint(this.config, 'ring-mul', [A, B, C]);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # ringmul, result var was: ' + C + '\n')));
+    return R;
   }
 
-  ['∑'](es, resultVar) {
-    return this.sum(es, resultVar);
-  }
-  sum(es, resultVar) {
-    return config_addConstraint(this.config, 'sum', GET_NAMES(es), resultVar && GET_NAME(resultVar));
+  div(A, B, C) {
+    let R = config_addConstraint(this.config, 'ring-div', [A, B, C]);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' / ' + B + ' # ringdiv, result var was: ' + C + '\n')));
+    return R;
   }
 
-  ['∏'](es, resultVar) {
-    return this.product(es, resultVar);
+  sum(A, C) {
+    let R = config_addConstraint(this.config, 'sum', A, C);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = sum(' + A + ') # result var was: ' + C + '\n')));
+    return R;
   }
-  product(es, resultVar) {
-    return config_addConstraint(this.config, 'product', GET_NAMES(es), resultVar && GET_NAME(resultVar));
+
+  product(A, C) {
+    let R = config_addConstraint(this.config, 'product', A, C);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = product(' + A + ') # result var was: ' + C + '\n')));
+    return R;
   }
 
   // TODO
@@ -253,16 +231,11 @@ class Solver {
   // (In)equality Propagators
   // only first expression can be array
 
-  ['{}≠'](es) {
-    this.distinct(es);
-  }
-  distinct(es) {
-    config_addConstraint(this.config, 'distinct', GET_NAMES(es));
+  distinct(A) {
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += 'distinct(' + A + ')\n')));
+    config_addConstraint(this.config, 'distinct', A);
   }
 
-  ['=='](e1, e2) {
-    this.eq(e1, e2);
-  }
   eq(e1, e2) {
     if (e1 instanceof Array) {
       for (let i = 0, n = e1.length; i < n; ++i) {
@@ -273,13 +246,11 @@ class Solver {
         this.eq(e1, e2[i]);
       }
     } else {
-      config_addConstraint(this.config, 'eq', [GET_NAME(e1), GET_NAME(e2)]);
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' == ' + e2 + '\n')));
+      config_addConstraint(this.config, 'eq', [e1, e2]);
     }
   }
 
-  ['!='](e1, e2) {
-    this.neq(e1, e2);
-  }
   neq(e1, e2) {
     if (e1 instanceof Array) {
       for (let i = 0, n = e1.length; i < n; ++i) {
@@ -290,88 +261,69 @@ class Solver {
         this.neq(e1, e2[i]);
       }
     } else {
-      config_addConstraint(this.config, 'neq', [GET_NAME(e1), GET_NAME(e2)]);
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' != ' + e2 + '\n')));
+      config_addConstraint(this.config, 'neq', [e1, e2]);
     }
   }
 
-  ['>='](e1, e2) {
-    this.gte(e1, e2);
-  }
-  gte(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    config_addConstraint(this.config, 'gte', [GET_NAME(e1), GET_NAME(e2)]);
+  gte(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >= ' + B + '\n')));
+    config_addConstraint(this.config, 'gte', [A, B]);
   }
 
-  ['<='](e1, e2) {
-    this.lte(e1, e2);
-  }
-  lte(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    config_addConstraint(this.config, 'lte', [GET_NAME(e1), GET_NAME(e2)]);
+  lte(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <= ' + B + '\n')));
+    config_addConstraint(this.config, 'lte', [A, B]);
   }
 
-  ['>'](e1, e2) {
-    this.gt(e1, e2);
-  }
-  gt(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    config_addConstraint(this.config, 'gt', [GET_NAME(e1), GET_NAME(e2)]);
+  gt(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' > ' + B + '\n')));
+    config_addConstraint(this.config, 'gt', [A, B]);
   }
 
-  ['<'](e1, e2) {
-    this.lt(e1, e2);
-  }
-  lt(e1, e2) {
-    ASSERT(!(e1 instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    config_addConstraint(this.config, 'lt', [GET_NAME(e1), GET_NAME(e2)]);
+  lt(A, B) {
+    ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' < ' + B + '\n')));
+    config_addConstraint(this.config, 'lt', [A, B]);
   }
 
-
-  // Conditions, ie Reified (In)equality Propagators
-  _cacheReified(op, e1, e2, boolVar) {
-    return config_addConstraint(this.config, 'reifier', [GET_NAME(e1), GET_NAME(e2), boolVar && GET_NAME(boolVar)], op);
+  isNeq(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'neq');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' !=? ' + B + '\n')));
+    return R;
   }
 
-  ['!=?'](e1, e2, boolVar) {
-    return this.isNeq(e1, e2, boolVar);
-  }
-  isNeq(e1, e2, boolVar) {
-    return this._cacheReified('neq', e1, e2, boolVar);
-  }
-
-  ['==?'](e1, e2, boolVar) {
-    return this.isEq(e1, e2, boolVar);
-  }
-  isEq(e1, e2, boolVar) {
-    return this._cacheReified('eq', e1, e2, boolVar);
+  isEq(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'eq');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' ==? ' + B + '\n')));
+    return R;
   }
 
-  ['>=?'](e1, e2, boolVar) {
-    return this.isGte(e1, e2, boolVar);
-  }
-  isGte(e1, e2, boolVar) {
-    return this._cacheReified('gte', e1, e2, boolVar);
-  }
-
-  ['<=?'](e1, e2, boolVar) {
-    return this.isLte(e1, e2, boolVar);
-  }
-  isLte(e1, e2, boolVar) {
-    return this._cacheReified('lte', e1, e2, boolVar);
+  isGte(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gte');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >=? ' + B + '\n')));
+    return R;
   }
 
-  ['>?'](e1, e2, boolVar) {
-    return this.isGt(e1, e2, boolVar);
-  }
-  isGt(e1, e2, boolVar) {
-    return this._cacheReified('gt', e1, e2, boolVar);
+  isLte(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lte');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <=? ' + B + '\n')));
+    return R;
   }
 
-  ['<?'](e1, e2, boolVar) {
-    return this.isLt(e1, e2, boolVar);
+  isGt(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gt');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >? ' + B + '\n')));
+    return R;
   }
-  isLt(e1, e2, boolVar) {
-    return this._cacheReified('lt', e1, e2, boolVar);
+
+  isLt(A, B, C) {
+    let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lt');
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <? ' + B + '\n')));
+    return R;
   }
 
   // Various rest
@@ -393,6 +345,8 @@ class Solver {
   solve(options = {}) {
     let log = options.log === undefined ? LOG_NONE : options.log;
     let max = options.max || 1000;
+
+    ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
 
     this._prepare(options, log);
     if (options._debug) this._debugLegible();
@@ -494,10 +448,8 @@ class Solver {
     let config = this.config;
     ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
 
-    // TODO: deal with the GET_NAMES bit at callsites, only allow string[] for .vars here. and do rename .vars as well.
     if (options.vars && options.vars !== 'all') {
-      let ids = GET_NAMES(options.vars);
-      config_setOption(config, 'targeted_var_names', ids);
+      config_setOption(config, 'targeted_var_names', options.vars);
     }
 
     // TODO: eliminate?
@@ -624,9 +576,6 @@ class Solver {
     ASSERT(typeof options === 'object', 'value strat options should be an object');
 
     config_setOption(this.config, 'varValueStrat', options, varName);
-    if (options.valtype === 'markov') {
-      config_addConstraint(this.config, 'markov', [varName]);
-    }
   }
 
   /**

@@ -100,6 +100,8 @@ function config_create() {
     _propagators: [], // initialized later
     _varToPropagators: [], // initialized later
     _constrainedAway: [], // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
+
+    _constraintHash: {}, // every constraint is logged here (note: for results only the actual constraints are stored). if it has a result, the value is the result var _name_. otherwise just `true` if it exists and `false` if it was optimized away.
   };
 
   ASSERT(!void (config._propagates = 0), 'number of propagate() calls');
@@ -147,6 +149,9 @@ function config_clone(config, newDomains) {
     _propagators: _propagators && _propagators.slice(0), // in case it is initialized
     _varToPropagators: _varToPropagators && _varToPropagators.slice(0), // inited elsewhere
     _constrainedAway: _constrainedAway && _constrainedAway.slice(0), // list of var names that were constrained but whose constraint was optimized away. they will still be "targeted" if target is all. TODO: fix all tests that depend on this and eliminate this. it is a hack.
+
+    // not sure what to do with this in the clone...
+    _constraintHash: {},
   };
 
   ASSERT(!void (clone._propagates = 0), 'number of propagate() calls');
@@ -253,8 +258,6 @@ function config_addVarConstant(config, varName, value) {
  */
 function _config_addVar(config, varName, domain, _allowEmpty) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
-  ASSERT(varName === true || typeof varName === 'string', 'VAR_NAMES_SHOULD_BE_STRINGS');
-  ASSERT(varName && typeof varName === 'string' || varName === true, 'A_VAR_NAME_MUST_BE_STRING_OR_TRUE');
   ASSERT(_allowEmpty || domain, 'NON_EMPTY_DOMAIN');
   ASSERT(_allowEmpty || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(_allowEmpty || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
@@ -262,16 +265,14 @@ function _config_addVar(config, varName, domain, _allowEmpty) {
   let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;
 
-  // note: 100 is an arbitrary number but since large sets are probably
-  // automated it's very unlikely we'll need this check in those cases
-  if (varIndex < 100) {
-    if (String(parseInt(varName, 10)) === varName) THROW('DONT_USE_NUMBERS_AS_VAR_NAMES', varName);
+  if (varName === true) {
+    varName = '__' + String(varIndex) + '__';
+  } else {
+    if (typeof varName !== 'string') THROW('Var names should be a string or anonymous, was: ' + JSON.stringify(varName));
+    if (!varName) THROW('Var name cannot be empty string');
+    if (String(parseInt(varName, 10)) === varName) THROW('Don\'t use numbers as var names (' + varName + ')');
   }
 
-  let wasAnonymous = varName === true;
-  if (wasAnonymous) {
-    varName = '__' + String(varIndex) + '__';
-  }
   // note: 100 is an arbitrary number but since large sets are probably
   // automated it's very unlikely we'll need this check in those cases
   if (varIndex < 100) {
@@ -548,12 +549,14 @@ function config_addConstraint(config, name, varNames, param) {
   // should return a new var name for most props
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
 
+  let inputConstraintKeyOp = name;
   let resultVarName;
 
   let forceBool = false;
   switch (name) { /* eslint no-fallthrough: "off" */
     case 'reifier':
       forceBool = true;
+      inputConstraintKeyOp = param;
       // fall-through
     case 'plus':
     case 'min':
@@ -593,10 +596,6 @@ function config_addConstraint(config, name, varNames, param) {
       break;
     }
 
-    case 'markov':
-      ASSERT(varNames.length === 1, 'MARKOV_PROP_USES_ONE_VAR');
-      break;
-
     case 'distinct':
     case 'eq':
     case 'neq':
@@ -612,6 +611,8 @@ function config_addConstraint(config, name, varNames, param) {
 
   // note: if param is a var constant then that case is already resolved above
   config_compileConstants(config, varNames);
+
+  if (config_dedupeConstraint(config, inputConstraintKeyOp + '|' + varNames.join(','), resultVarName)) return resultVarName;
 
   let varIndexes = config_varNamesToIndexes(config, varNames);
 
@@ -650,11 +651,42 @@ function config_compileConstants(config, varNames) {
 function config_varNamesToIndexes(config, varNames) {
   let varIndexes = [];
   for (let i = 0, n = varNames.length; i < n; ++i) {
-    let varIndex = trie_get(config._varNamesTrie, varNames[i]);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varNames[i]);
+    let varName = varNames[i];
+    ASSERT(typeof varName === 'string', 'var names should be strings here', varName, i, varNames);
+    let varIndex = trie_get(config._varNamesTrie, varName);
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varName, i, varNames);
     varIndexes[i] = varIndex;
   }
   return varIndexes;
+}
+
+/**
+ * Check whether we already know a given constraint (represented by a unique string).
+ * If we don't, add the string to the cache with the expected result name, if any.
+ *
+ * @param config
+ * @param constraintUI
+ * @param resultVarName
+ * @returns {boolean}
+ */
+function config_dedupeConstraint(config, constraintUI, resultVarName) {
+  if (!config._constraintHash) config._constraintHash = {}; // can happen for imported configs that are extended or smt
+  let haveConstraint = config._constraintHash[constraintUI];
+  if (haveConstraint === true) {
+    if (resultVarName !== undefined) {
+      throw new Error('How is this possible?'); // either a constraint-with-value gets a result var, or it's a constraint-sans-value
+    }
+    return true;
+  }
+  if (haveConstraint !== undefined) {
+    ASSERT(typeof haveConstraint === 'string', 'if not true or undefined, it should be a string');
+    ASSERT(resultVarName && typeof resultVarName === 'string', 'if it was recorded as a constraint-with-value then it should have a result var now as well');
+    // the constraint exists and had a result. map that result to this result for equivalent results.
+    config_addConstraint(config, 'eq', [resultVarName, haveConstraint]); // _could_ also be optimized away ;)
+    return true;
+  }
+  config._constraintHash[constraintUI] = resultVarName || true;
+  return false;
 }
 
 /**
@@ -812,7 +844,6 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   ASSERT_NORDOM(domain1, true, domain__debug);
   ASSERT_NORDOM(domain2, true, domain__debug);
-  if (!domain1 || !domain2) THROW('E_NON_EMPTY_DOMAINS_EXPECTED'); // it's probably a bug to feed empty domains to config
 
   let v1 = domain_getValue(initialDomains[varIndexLeft]);
   let v2 = domain_getValue(initialDomains[varIndexRight]);
@@ -1099,9 +1130,6 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
     case 'distinct':
       return propagator_addDistinct(config, varIndexes.slice(0));
 
-    case 'markov':
-      return propagator_addMarkov(config, varIndexes[0]);
-
     case 'reifier':
       return propagator_addReified(config, param, varIndexes[0], varIndexes[1], varIndexes[2]);
 
@@ -1124,7 +1152,19 @@ function config_generatePropagator(config, name, varIndexes, param, _constraint)
       return propagator_addLt(config, varIndexes[0], varIndexes[1]);
 
     default:
-      THROW('UNEXPECTED_NAME');
+      THROW('UNEXPECTED_NAME: ' + name);
+  }
+}
+
+function config_generateMarkovs(config) {
+  let varDistOptions = config.varDistOptions;
+  for (let varName in varDistOptions) {
+    let varIndex = trie_get(config._varNamesTrie, varName);
+    if (varIndex < 0) THROW('Found markov var options for an unknown var name (' + varName + ')');
+    let options = varDistOptions[varName];
+    if (options && options.valtype === 'markov') {
+      return propagator_addMarkov(config, varIndex);
+    }
   }
 }
 
@@ -1163,6 +1203,7 @@ function config_init(config) {
 
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);
   config_generatePropagators(config);
+  config_generateMarkovs(config);
   config_populateVarPropHash(config);
   config_populateVarStrategyListHash(config);
   ASSERT_VARDOMS_SLOW(config.initialDomains, domain__debug);

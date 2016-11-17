@@ -122,67 +122,67 @@ describe('src/config.spec', function() {
 
           test(
             'lt', 'should do nothing if unsolved',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'A < min(B): C becomes true',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A = min(B): nothing happens',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'min(B) < A < max(B): nothing changes', // though B could be pruned...
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'A = max(B): C becomes false',
-            fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(10, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A > max(B): C becomes false',
-            fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(11, 11), fixt_dom_range(0, 10), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'B < min(A): C becomes false',
-            fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'B = min(A): C becomes false',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'min(A) < B < max(A): nothing changes', // though A could be pruned...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'B = max(A): no change',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(10, 10), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'B > max(A): C becomes true',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(11, 11), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'C = 0: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lt', 'C = 1: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
 
@@ -211,107 +211,107 @@ describe('src/config.spec', function() {
 
           test(
             'lt', 'A=0, B=0: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=1, B=0: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=5, B=0: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=0, B=1: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A=1, B=1: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=5, B=1: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=0, B=5: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A=1, B=5: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A=5, B=5: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=0, C=0: B=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=1, C=0: B=0,1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 1), fixt_dom_range(0, 1), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=5, C=0: B=0,5',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(5, 5), fixt_dom_range(0, 5), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'A=0, C=1: B=[]',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A=1, C=1: B=2,10',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 1), fixt_dom_range(2, 10), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'A=5, C=1: B=5,10',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(5, 5), fixt_dom_range(6, 10), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'B=0, C=0: A=0,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'B=1, C=0: A=1,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 10), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'B=5, C=0: A=5,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0),
             fixt_dom_range(5, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'lt', 'B=0, C=1: A=[]',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1),
             fixt_dom_empty(), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'B=1, C=1: A=0,0',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'lt', 'B=5, C=1: A=0,4',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 4), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
         });
@@ -320,67 +320,67 @@ describe('src/config.spec', function() {
 
           test(
             'lte', 'should do nothing if unsolved',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'A < min(B): C becomes true',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A = min(B): C becomes true',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'min(B) < A < max(B): nothing changes', // though B could be pruned...
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'A = max(B): no changes', // though B could become max(B)
-            fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(10, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'A > max(B): C becomes false',
-            fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(11, 11), fixt_dom_range(0, 10), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'B < min(A): C becomes false',
-            fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'B = min(A): no change', // but A could be set to 0
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'min(A) < B < max(A): nothing changes', // though A could be pruned...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'B = max(A): C becomes true', // there's no value in A that would invalidate lte
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(10, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'B > max(A): C becomes true',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(11, 11), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'C = 0: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'lte', 'C = 1: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
 
@@ -410,108 +410,108 @@ describe('src/config.spec', function() {
 
           test(
             'lte', 'A=0, B=0: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=1, B=0: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=5, B=0: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=0, B=1: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=1, B=1: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=5, B=1: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=0, B=5: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=1, B=5: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=5, B=5: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
 
           test(
             'lte', 'A=0, C=0: B=[]',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_empty(), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=1, C=0: B=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=5, C=0: B=0,4',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(5, 5), fixt_dom_range(0, 4), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'A=0, C=1: B=0,10',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=1, C=1: B=1,10',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 1), fixt_dom_range(1, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'A=5, C=1: B=5,10',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(5, 5), fixt_dom_range(5, 10), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'B=0, C=0: A=1,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'B=1, C=0: A=2,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0),
             fixt_dom_range(2, 10), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'B=5, C=0: A=6,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0),
             fixt_dom_range(6, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'lte', 'B=0, C=1: A=0',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'B=1, C=1: B=0,1',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 1), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'lte', 'B=5, C=1: B=0,5',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 5), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
         });
@@ -520,67 +520,67 @@ describe('src/config.spec', function() {
 
           test(
             'gt', 'should do nothing if unsolved',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'A < min(B): C becomes false',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A = min(B): C becomes false',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'min(B) < A < max(B): nothing changes', // though B could be pruned...
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'A = max(B): no change',
-            fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(10, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'A > max(B): C becomes true',
-            fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(11, 11), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'B < min(A): C becomes true',
-            fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'B = min(A): no change',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'min(A) < B < max(A): nothing changes', // though A could be pruned...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'B = max(A): C becomes false',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(10, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'B > max(A): C becomes false',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(11, 11), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'C = 0: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gt', 'C = 1: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
 
@@ -609,107 +609,107 @@ describe('src/config.spec', function() {
 
           test(
             'gt', 'A=0, B=0: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=1, B=0: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'A=5, B=0: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'A=0, B=1: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=1, B=1: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=5, B=1: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'A=0, B=5: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=1, B=5: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=5, B=5: C=0',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=0, C=0: B=0,10',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=1, C=0: B=1,10',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 1), fixt_dom_range(1, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=5, C=0: B=5,10',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(5, 5), fixt_dom_range(5, 10), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'A=0, C=1: B=[]',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_empty(), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'A=1, C=1: B=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'A=5, C=1: B=0,4',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 4), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'B=0, C=0: A=0,0',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'B=1, C=0: A=0,1',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 1), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'B=5, C=0: A=0,5',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 5), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gt', 'B=0, C=1: A=1,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'B=1, C=1: A=2,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1),
             fixt_dom_range(2, 10), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'gt', 'B=5, C=1: A=6,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1),
             fixt_dom_range(6, 10), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
         });
@@ -718,67 +718,67 @@ describe('src/config.spec', function() {
 
           test(
             'gte', 'should do nothing if unsolved',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'A < min(B): C becomes false',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A = min(B): no change',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'min(B) < A < max(B): nothing changes', // though B could be pruned...
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'A = max(B): C becomes true',
-            fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(10, 10), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A > max(B): C becomes true',
-            fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(11, 11), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'B < min(A): C becomes true',
-            fixt_arrdom_range(1, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 10), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'B = min(A): C becomes true',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'min(A) < B < max(A): nothing changes', // though A could be pruned...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(5, 5), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'B = max(A): no change',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(10, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(10, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(10, 10), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'B > max(A): C becomes false',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(11, 11, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(11, 11), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(11, 11), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'C = 0: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(0, 1)
           );
           test(
             'gte', 'C = 1: nothing changes', // could prune A and B...
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 10), fixt_dom_range(1, 1)
           );
 
@@ -807,107 +807,107 @@ describe('src/config.spec', function() {
 
           test(
             'gte', 'A=0, B=0: C=1',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=1, B=0: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=5, B=0: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=0, B=1: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=1, B=1: C=1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=5, B=1: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=0, B=5: C=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(0, 0), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=1, B=5: C=0',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(1, 1), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=5, B=5: C=1',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 1),
             fixt_dom_range(5, 5), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=0, C=0: B=1,10',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_range(1, 10), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=1, C=0: B=2,10',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(1, 1), fixt_dom_range(2, 10), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=5, C=0: B=6,10',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0),
             fixt_dom_range(5, 5), fixt_dom_range(6, 10), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'A=0, C=1: B=0',
-            fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 0), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=1, C=1: B=0,1',
-            fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 1), fixt_dom_range(0, 1), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'A=5, C=1: B=0,5',
-            fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1),
             fixt_dom_range(5, 5), fixt_dom_range(0, 5), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'B=0, C=0: A=[]',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(0, 0),
             fixt_dom_empty(), fixt_dom_range(0, 0), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'B=1, C=0: A=0,0',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 0), fixt_dom_range(1, 1), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'B=5, C=0: A=0,4',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(0, 0, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(0, 0),
             fixt_dom_range(0, 4), fixt_dom_range(5, 5), fixt_dom_range(0, 0)
           );
           test(
             'gte', 'B=0, C=1: A=0,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(0, 0, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(0, 0), fixt_arrdom_range(1, 1),
             fixt_dom_range(0, 10), fixt_dom_range(0, 0), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'B=1, C=1: A=1,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(1, 1, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(1, 1), fixt_arrdom_range(1, 1),
             fixt_dom_range(1, 10), fixt_dom_range(1, 1), fixt_dom_range(1, 1)
           );
           test(
             'gte', 'B=5, C=1: A=5,10',
-            fixt_arrdom_range(0, 10, true), fixt_arrdom_range(5, 5, true), fixt_arrdom_range(1, 1, true),
+            fixt_arrdom_range(0, 10), fixt_arrdom_range(5, 5), fixt_arrdom_range(1, 1),
             fixt_dom_range(5, 10), fixt_dom_range(5, 5), fixt_dom_range(1, 1)
           );
         });
@@ -1135,7 +1135,7 @@ describe('src/config.spec', function() {
       it('should create a new var with given range', function() {
         let config = config_create();
 
-        config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_range(5, 12));
 
         expect(config.allVarNames.length).to.equal(1);
         expect(config.initialDomains[0]).to.equal(fixt_dom_range(5, 12));
@@ -1152,7 +1152,7 @@ describe('src/config.spec', function() {
     it('should throw for missing the name', function() {
       let config = config_create();
 
-      expect(_ => config_addVarNothing(config)).to.throw('VAR_NAMES_SHOULD_BE_STRINGS');
+      expect(_ => config_addVarNothing(config)).to.throw('Var names should be a string or anonymous');
     });
 
     it('should create a new var with max range', function() {
@@ -1541,11 +1541,11 @@ describe('src/config.spec', function() {
 
   it('should reject stringified zero as var', function() {
     let config = config_create();
-    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('Don\'t use numbers as var names');
   });
 
   it('should reject adding a number as a var', function() {
     let config = config_create();
-    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('DONT_USE_NUMBERS_AS_VAR_NAMES');
+    expect(_ => config_addVarRange(config, '0', 0, 10)).to.throw('Don\'t use numbers as var names');
   });
 });

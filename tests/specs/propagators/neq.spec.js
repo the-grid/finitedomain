@@ -1,15 +1,13 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_nums,
-  fixt_numdom_empty,
-  fixt_numdom_nums,
   fixt_arrdom_range,
   fixt_arrdom_ranges,
-  fixt_numdom_range,
-  fixt_numdom_solved,
-  fixt_strdom_range,
-  fixt_strdom_ranges,
-  fixt_strdom_value,
+  fixt_dom_empty,
+  fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_ranges,
+  fixt_dom_solved,
   fixt_domainEql,
 } from '../../fixtures/domain.fixt';
 
@@ -69,8 +67,8 @@ describe('propagators/neq.spec', function() {
     config_addVarDomain(config, 'D', fixt_arrdom_nums(100));
     let space = space_createRoot();
     space_initFromConfig(space, config);
-    space.vardoms[config.allVarNames.indexOf('C')] = fixt_numdom_empty();
-    space.vardoms[config.allVarNames.indexOf('D')] = fixt_numdom_empty();
+    space.vardoms[config.allVarNames.indexOf('C')] = fixt_dom_empty();
+    space.vardoms[config.allVarNames.indexOf('D')] = fixt_dom_empty();
 
     let A = config.allVarNames.indexOf('A');
     let B = config.allVarNames.indexOf('B');
@@ -121,24 +119,24 @@ describe('propagators/neq.spec', function() {
 
     describe('with array', function() {
       // these are the (non-solved) cases plucked from eq tests
-      test(fixt_strdom_range(SUB, SUP), fixt_strdom_ranges([0, 10], [20, 140]));
-      test(fixt_strdom_range(SUP - 1, SUP), fixt_strdom_range(SUP - 1, SUP));
-      test(fixt_strdom_range(20, 50), fixt_strdom_range(20, 50));
-      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([0, 10], [20, 30], [40, 50]));
-      test(fixt_strdom_ranges([0, 10], [25, 25], [40, 50]), fixt_strdom_ranges([0, 10], [25, 25], [40, 50]));
-      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 2, SUP));
-      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([5, 15], [25, 35]));
-      test(fixt_strdom_ranges([0, 10], [20, 30], [40, 50]), fixt_strdom_ranges([SUB, SUP]));
-      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 3, SUP - 1));
-      test(fixt_strdom_range(SUP - 2, SUP), fixt_strdom_range(SUP - 4, SUP - 1));
+      test(fixt_dom_range(SUB, SUP), fixt_dom_ranges([0, 10], [20, 140]));
+      test(fixt_dom_range(SUP - 1, SUP), fixt_dom_range(SUP - 1, SUP));
+      test(fixt_dom_range(20, 50), fixt_dom_range(20, 50));
+      test(fixt_dom_ranges([0, 10], [20, 30], [40, 50]), fixt_dom_ranges([0, 10], [20, 30], [40, 50]));
+      test(fixt_dom_ranges([0, 10], [25, 25], [40, 50]), fixt_dom_ranges([0, 10], [25, 25], [40, 50]));
+      test(fixt_dom_range(SUP - 2, SUP), fixt_dom_range(SUP - 2, SUP));
+      test(fixt_dom_ranges([0, 10], [20, 30], [40, 50]), fixt_dom_ranges([5, 15], [25, 35]));
+      test(fixt_dom_ranges([0, 10], [20, 30], [40, 50]), fixt_dom_ranges([SUB, SUP]));
+      test(fixt_dom_range(SUP - 2, SUP), fixt_dom_range(SUP - 3, SUP - 1));
+      test(fixt_dom_range(SUP - 2, SUP), fixt_dom_range(SUP - 4, SUP - 1));
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_range(0, 1), fixt_numdom_range(0, 1));
-      test(fixt_numdom_range(2, 5), fixt_numdom_range(2, 5));
-      test(fixt_numdom_range(0, 1), fixt_numdom_range(0, 2));
-      test(fixt_numdom_range(0, 2), fixt_numdom_range(0, 3));
-      test(fixt_numdom_range(0, 2), fixt_numdom_range(0, 4));
+      test(fixt_dom_range(0, 1), fixt_dom_range(0, 1));
+      test(fixt_dom_range(2, 5), fixt_dom_range(2, 5));
+      test(fixt_dom_range(0, 1), fixt_dom_range(0, 2));
+      test(fixt_dom_range(0, 2), fixt_dom_range(0, 3));
+      test(fixt_dom_range(0, 2), fixt_dom_range(0, 4));
     });
   });
 
@@ -179,25 +177,25 @@ describe('propagators/neq.spec', function() {
     }
 
     describe('with array', function() {
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP - 1));
-      test(fixt_strdom_range(SUP - 1, SUP - 1), fixt_strdom_range(SUP - 1, SUP), fixt_numdom_solved(SUP));
-      test(fixt_strdom_range(SUP, SUP), fixt_strdom_range(SUP - 50, SUP), fixt_strdom_range(SUP - 50, SUP - 1));
-      test(fixt_strdom_range(120, 120), fixt_strdom_ranges([120, SUP - 1]), fixt_strdom_range(121, SUP - 1));
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([910, 910], [912, 950]), fixt_strdom_ranges([912, 950]));
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 98], [910, 910], [912, 920]), fixt_strdom_ranges([90, 98], [912, 920]));
-      test(fixt_strdom_range(910, 910), fixt_strdom_ranges([90, 910], [912, 950]), fixt_strdom_ranges([90, 909], [912, 950]));
-      test(fixt_strdom_range(91, 91), fixt_strdom_range(90, 93), fixt_strdom_ranges([90, 90], [92, 93]));
+      test(fixt_dom_range(SUP, SUP), fixt_dom_range(SUP - 1, SUP), fixt_dom_solved(SUP - 1));
+      test(fixt_dom_range(SUP - 1, SUP - 1), fixt_dom_range(SUP - 1, SUP), fixt_dom_solved(SUP));
+      test(fixt_dom_range(SUP, SUP), fixt_dom_range(SUP - 50, SUP), fixt_dom_range(SUP - 50, SUP - 1));
+      test(fixt_dom_range(120, 120), fixt_dom_ranges([120, SUP - 1]), fixt_dom_range(121, SUP - 1));
+      test(fixt_dom_range(910, 910), fixt_dom_ranges([910, 910], [912, 950]), fixt_dom_ranges([912, 950]));
+      test(fixt_dom_range(910, 910), fixt_dom_ranges([90, 98], [910, 910], [912, 920]), fixt_dom_ranges([90, 98], [912, 920]));
+      test(fixt_dom_range(910, 910), fixt_dom_ranges([90, 910], [912, 950]), fixt_dom_ranges([90, 909], [912, 950]));
+      test(fixt_dom_range(91, 91), fixt_dom_range(90, 93), fixt_dom_ranges([90, 90], [92, 93]));
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 1), fixt_numdom_solved(1));
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 1), fixt_numdom_solved(0));
-      test(fixt_numdom_nums(0), fixt_numdom_range(0, 15), fixt_numdom_range(1, 15));
-      test(fixt_numdom_nums(2), fixt_numdom_range(2, 5), fixt_numdom_range(3, 5));
-      test(fixt_numdom_nums(10), fixt_numdom_nums(10, 13, 14, 15), fixt_numdom_range(13, 15));
-      test(fixt_numdom_nums(10), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15));
-      test(fixt_numdom_nums(4), fixt_numdom_nums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), fixt_numdom_nums(0, 1, 2, 3, 10, 12, 13, 14, 15));
-      test(fixt_numdom_nums(1), fixt_numdom_range(0, 3), fixt_numdom_nums(0, 2, 3));
+      test(fixt_dom_nums(0), fixt_dom_range(0, 1), fixt_dom_solved(1));
+      test(fixt_dom_nums(1), fixt_dom_range(0, 1), fixt_dom_solved(0));
+      test(fixt_dom_nums(0), fixt_dom_range(0, 15), fixt_dom_range(1, 15));
+      test(fixt_dom_nums(2), fixt_dom_range(2, 5), fixt_dom_range(3, 5));
+      test(fixt_dom_nums(10), fixt_dom_nums(10, 13, 14, 15), fixt_dom_range(13, 15));
+      test(fixt_dom_nums(10), fixt_dom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15), fixt_dom_nums(0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15));
+      test(fixt_dom_nums(4), fixt_dom_nums(0, 1, 2, 3, 4, 10, 12, 13, 14, 15), fixt_dom_nums(0, 1, 2, 3, 10, 12, 13, 14, 15));
+      test(fixt_dom_nums(1), fixt_dom_range(0, 3), fixt_dom_nums(0, 2, 3));
     });
   });
 
@@ -248,8 +246,8 @@ describe('propagators/neq.spec', function() {
 
         propagator_neqStepBare(space, config, A, B);
 
-        fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
-        fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
+        fixt_domainEql(space.vardoms[A], fixt_dom_empty());
+        fixt_domainEql(space.vardoms[B], fixt_dom_empty());
       });
 
       it(`should reject if same (right-right): ${[domain__debug(domain1), domain__debug(domain2)].join('|')}`, function() {
@@ -264,33 +262,33 @@ describe('propagators/neq.spec', function() {
 
         propagator_neqStepBare(space, config, A, B);
 
-        fixt_domainEql(space.vardoms[A], fixt_numdom_empty());
-        fixt_domainEql(space.vardoms[B], fixt_numdom_empty());
+        fixt_domainEql(space.vardoms[A], fixt_dom_empty());
+        fixt_domainEql(space.vardoms[B], fixt_dom_empty());
       });
     }
 
     describe('with array', function() {
-      test(fixt_strdom_value(SUP), fixt_strdom_value(SUP - 1));
-      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 2));
-      test(fixt_strdom_value(SUP - 1), fixt_strdom_value(SUP - 20));
-      test(fixt_strdom_value(SUP), fixt_strdom_value(500));
-      test(fixt_strdom_value(800), fixt_strdom_value(801));
+      test(fixt_dom_solved(SUP), fixt_dom_solved(SUP - 1));
+      test(fixt_dom_solved(SUP - 1), fixt_dom_solved(SUP - 2));
+      test(fixt_dom_solved(SUP - 1), fixt_dom_solved(SUP - 20));
+      test(fixt_dom_solved(SUP), fixt_dom_solved(500));
+      test(fixt_dom_solved(800), fixt_dom_solved(801));
     });
 
     describe('with numbers', function() {
-      test(fixt_numdom_nums(0), fixt_numdom_nums(1));
-      test(fixt_numdom_nums(1), fixt_numdom_nums(2));
-      test(fixt_numdom_nums(1), fixt_numdom_nums(15));
-      test(fixt_numdom_nums(0), fixt_numdom_nums(5));
-      test(fixt_numdom_nums(8), fixt_numdom_nums(1));
+      test(fixt_dom_nums(0), fixt_dom_nums(1));
+      test(fixt_dom_nums(1), fixt_dom_nums(2));
+      test(fixt_dom_nums(1), fixt_dom_nums(15));
+      test(fixt_dom_nums(0), fixt_dom_nums(5));
+      test(fixt_dom_nums(8), fixt_dom_nums(1));
     });
 
     describe('with solved numbers', function() {
-      test(fixt_numdom_solved(0), fixt_numdom_solved(1));
-      test(fixt_numdom_solved(1), fixt_numdom_solved(2));
-      test(fixt_numdom_solved(1), fixt_numdom_solved(15));
-      test(fixt_numdom_solved(0), fixt_numdom_solved(5));
-      test(fixt_numdom_solved(8), fixt_numdom_solved(1));
+      test(fixt_dom_solved(0), fixt_dom_solved(1));
+      test(fixt_dom_solved(1), fixt_dom_solved(2));
+      test(fixt_dom_solved(1), fixt_dom_solved(15));
+      test(fixt_dom_solved(0), fixt_dom_solved(5));
+      test(fixt_dom_solved(8), fixt_dom_solved(1));
     });
   });
 

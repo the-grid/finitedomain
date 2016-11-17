@@ -3,9 +3,9 @@ import {
   fixt_arrdom_range,
   fixt_arrdom_ranges,
   fixt_dom_empty,
-  fixt_numdom_solved,
-  fixt_strdom_nums,
-  fixt_strdom_range,
+  fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_solved,
 } from '../../fixtures/domain.fixt';
 
 import {
@@ -34,29 +34,29 @@ import domain_plus from '../../../src/doms/domain_plus';
 describe('propagators/ring.spec', function() {
 
   it('should prevent this regression', function() {
-    let A = fixt_strdom_nums(1);
-    let B = fixt_strdom_nums(1);
-    let C = fixt_strdom_range(0, 1);
+    let A = fixt_dom_nums(1);
+    let B = fixt_dom_nums(1);
+    let C = fixt_dom_range(0, 1);
 
     let S = _propagator_ringStepBare(A, B, C, domain_minus, 'min');
 
-    expect(S).to.eql(fixt_numdom_solved(0));
+    expect(S).to.eql(fixt_dom_solved(0));
   });
 
   it('should add two numbers', function() {
-    let A = fixt_strdom_nums(1);
-    let B = fixt_strdom_nums(1);
-    let C = fixt_strdom_range(0, 10);
+    let A = fixt_dom_nums(1);
+    let B = fixt_dom_nums(1);
+    let C = fixt_dom_range(0, 10);
 
     let S = _propagator_ringStepBare(A, B, C, domain_plus, 'plus');
 
-    expect(S).to.eql(fixt_numdom_solved(2));
+    expect(S).to.eql(fixt_dom_solved(2));
   });
 
   it('should reject if result is not in result domain', function() {
-    let A = fixt_strdom_nums(1);
-    let B = fixt_strdom_nums(1);
-    let C = fixt_strdom_range(0, 1);
+    let A = fixt_dom_nums(1);
+    let B = fixt_dom_nums(1);
+    let C = fixt_dom_range(0, 1);
 
     let S = _propagator_ringStepBare(A, B, C, domain_plus, 'plus');
 

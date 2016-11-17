@@ -1034,7 +1034,7 @@ describe('src/constraint.spec', function() {
         solver.decl('A', 500);
         solver.decl('B', 100);
         solver.decl('C', 400);
-        solver.min('A', 'B', 'C');
+        solver.minus('A', 'B', 'C');
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 500, B: 100, C: 400}]);
@@ -1045,7 +1045,7 @@ describe('src/constraint.spec', function() {
         solver.decl('A', 100);
         solver.decl('B', 101);
         solver.decl('C', fixt_arrdom_range(0, 0, true)); // it should not even clamp to zero...
-        solver.min('A', 'B', 'C');
+        solver.minus('A', 'B', 'C');
         let solution = solver.solve();
 
         expect(solution).to.eql([]);
@@ -1057,7 +1057,7 @@ describe('src/constraint.spec', function() {
           solver.decl('A', A);
           solver.decl('B', B);
           solver.decl('C', C);
-          solver.min('A', 'B', 'C');
+          solver.minus('A', 'B', 'C');
           let solution = solver.solve({});
 
           expect(solution).to.eql(solves);
@@ -1081,7 +1081,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', fixt_arrdom_range(100, 102));
         solver.decl('B', fixt_arrdom_range(50, 52));
-        solver.min('A', 'B');
+        solver.minus('A', 'B');
         let solution = solver.solve({});
 
         expect(stripAnonVarsFromArrays(solution)).to.eql([
@@ -1103,7 +1103,7 @@ describe('src/constraint.spec', function() {
         solver.decl('A', fixt_arrdom_range(100, 150));
         solver.decl('B', fixt_arrdom_range(50, SUP));
         solver.decl('C', 100);
-        solver.min('A', 'B', 'C');
+        solver.minus('A', 'B', 'C');
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 150, B: 50, C: 100}]);
@@ -1193,7 +1193,7 @@ describe('src/constraint.spec', function() {
         solver.decl('A', 50);
         solver.decl('B', 10);
         solver.decl('C', 500);
-        solver.times('A', 'B', 'C');
+        solver.mul('A', 'B', 'C');
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 50, B: 10, C: 500}]);
@@ -1205,7 +1205,7 @@ describe('src/constraint.spec', function() {
           solver.decl('A', A);
           solver.decl('B', B);
           solver.decl('C', C);
-          solver.times('A', 'B', 'C');
+          solver.mul('A', 'B', 'C');
           let solution = solver.solve({});
 
           expect(solution).to.eql(solves);
@@ -1219,7 +1219,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', fixt_arrdom_range(50, 52));
         solver.decl('B', fixt_arrdom_range(70, 72));
-        solver.times('A', 'B');
+        solver.mul('A', 'B');
         let solution = solver.solve({});
 
         expect(stripAnonVarsFromArrays(solution)).to.eql([
@@ -1241,7 +1241,7 @@ describe('src/constraint.spec', function() {
         solver.decl('A', fixt_arrdom_range(100, 150));
         solver.decl('B', fixt_arrdom_range(10, SUP));
         solver.decl('C', 1000);
-        solver.times('A', 'B', 'C');
+        solver.mul('A', 'B', 'C');
         let solution = solver.solve({});
 
         expect(solution).to.eql([{A: 100, B: 10, C: 1000}]);

@@ -147,7 +147,7 @@ describe('propagators/reified.spec', function() {
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
-      solver['==?']('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB'));
 
       solver.solve({});
 
@@ -167,7 +167,7 @@ describe('propagators/reified.spec', function() {
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
-      solver['==?']('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB'));
 
       solver.solve({vars: ['A', 'B', 'C']});
 
@@ -192,8 +192,8 @@ describe('propagators/reified.spec', function() {
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
-      solver['==?']('A', 'B', solver.decl('AisB'));
-      solver['==']('AisB', 1);
+      solver.isEq('A', 'B', solver.decl('AisB'));
+      solver.eq('AisB', 1);
 
       solver.solve({});
 
@@ -216,8 +216,8 @@ describe('propagators/reified.spec', function() {
       solver.decl('A');
       solver.decl('B');
       solver.decl('C');
-      solver['==?']('A', 'B', solver.decl('AisB'));
-      solver['==']('AisB', 1);
+      solver.isEq('A', 'B', solver.decl('AisB'));
+      solver.eq('AisB', 1);
 
       let solutions = solver.solve({vars: ['A', 'B', 'C']});
 

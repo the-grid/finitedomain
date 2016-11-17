@@ -76,7 +76,7 @@ describe('solver.markov.spec', function() {
           {
             vector: [0.1, 1],
             boolVarName() {
-              return solver['==?']('STATE', 5);
+              return solver.isEq('STATE', 5);
             },
           }, {
             vector: [1, 1],
@@ -91,7 +91,7 @@ describe('solver.markov.spec', function() {
           {
             vector: [0.1, 1],
             boolVarName() {
-              return solver['==?']('STATE', 100);
+              return solver.isEq('STATE', 100);
             },
           }, {
             vector: [1, 1],
@@ -99,7 +99,7 @@ describe('solver.markov.spec', function() {
         ],
       });
 
-      solver['==']('STATE', 5);
+      solver.eq('STATE', 5);
 
       return solver;
     }
@@ -219,7 +219,7 @@ describe('solver.markov.spec', function() {
       ],
     });
 
-    solver['==']('A', 5);
+    solver.eq('A', 5);
 
     let solutions = solver.solve({vars: ['A', 'B', 'C']});
 
@@ -258,8 +258,8 @@ describe('solver.markov.spec', function() {
         {vector: [1, 1]}, // 1,1] padded by expandVectorsWith
       ],
     });
-    solver['>']('V1', 0);
-    solver['>']('V2', 0);
+    solver.gt('V1', 0);
+    solver.gt('V2', 0);
 
     let solutions = solver.solve();
     expect(countSolutions(solver)).to.equal(16);
@@ -299,8 +299,8 @@ describe('solver.markov.spec', function() {
       random() { return 1 - 1e-5; }, // pick last eligible legend value
     });
     // matrix is added by expandVectorsWith, set to [1, 1, 1, 1]
-    solver['>']('V1', 0);
-    solver['>']('V2', 0);
+    solver.gt('V1', 0);
+    solver.gt('V2', 0);
 
     let solutions = solver.solve();
     expect(countSolutions(solver)).to.equal(16);
@@ -339,7 +339,7 @@ describe('solver.markov.spec', function() {
           {vector: [1]},
         ],
       });
-      solver['>']('B_MARK', 'A_NORM');
+      solver.gt('B_MARK', 'A_NORM');
 
       // B can only become 2 as goverened by the legend, but the domain
       // never contained 2 so it will never be considered. No solution

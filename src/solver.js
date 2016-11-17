@@ -193,66 +193,36 @@ class Solver {
 
   // Arithmetic Propagators
 
-  ['+'](e1, e2, resultVar) {
-    return this.plus(e1, e2, resultVar);
-  }
   plus(A, B, C) {
     let R = config_addConstraint(this.config, 'plus', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' + ' + B + ' # plus, result var was: ' + C + '\n')));
     return R;
   }
 
-  ['-'](e1, e2, resultVar) {
-    return this.min(e1, e2, resultVar);
-  }
-  minus(e1, e2, resultVar) {
-    return this.min(e1, e2, resultVar);
-  }
-  min(A, B, C) {
+  minus(A, B, C) {
     let R = config_addConstraint(this.config, 'min', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' - ' + B + ' # min, result var was: ' + C + '\n')));
     return R;
   }
 
-  ['*'](e1, e2, resultVar) {
-    return this.ring_mul(e1, e2, resultVar);
-  }
-  times(e1, e2, resultVar) { // deprecated
-    return this.ring_mul(e1, e2, resultVar);
-  }
-  ring_mul(A, B, C) {
+  mul(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-mul', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # ringmul, result var was: ' + C + '\n')));
     return R;
   }
 
-  ['/'](e1, e2, resultVar) {
-    return this.div(e1, e2, resultVar);
-  }
   div(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-div', [A, B, C]);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' / ' + B + ' # ringdiv, result var was: ' + C + '\n')));
     return R;
   }
 
-  mul(A, B, C) {
-    let R = config_addConstraint(this.config, 'mul', [A, B, C]);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # mul, result var was: ' + C + '\n')));
-    return R;
-  }
-
-  ['∑'](es, resultVar) {
-    return this.sum(es, resultVar);
-  }
   sum(A, C) {
     let R = config_addConstraint(this.config, 'sum', A, C);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = sum(' + A + ') # result var was: ' + C + '\n')));
     return R;
   }
 
-  ['∏'](es, resultVar) {
-    return this.product(es, resultVar);
-  }
   product(A, C) {
     let R = config_addConstraint(this.config, 'product', A, C);
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = product(' + A + ') # result var was: ' + C + '\n')));
@@ -268,17 +238,11 @@ class Solver {
   // (In)equality Propagators
   // only first expression can be array
 
-  ['{}≠'](es) {
-    this.distinct(es);
-  }
   distinct(A) {
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += 'distinct(' + A + ')\n')));
     config_addConstraint(this.config, 'distinct', A);
   }
 
-  ['=='](e1, e2) {
-    this.eq(e1, e2);
-  }
   eq(e1, e2) {
     if (e1 instanceof Array) {
       for (let i = 0, n = e1.length; i < n; ++i) {
@@ -294,9 +258,6 @@ class Solver {
     }
   }
 
-  ['!='](e1, e2) {
-    this.neq(e1, e2);
-  }
   neq(e1, e2) {
     if (e1 instanceof Array) {
       for (let i = 0, n = e1.length; i < n; ++i) {
@@ -312,36 +273,24 @@ class Solver {
     }
   }
 
-  ['>='](e1, e2) {
-    this.gte(e1, e2);
-  }
   gte(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >= ' + B + '\n')));
     config_addConstraint(this.config, 'gte', [A, B]);
   }
 
-  ['<='](e1, e2) {
-    this.lte(e1, e2);
-  }
   lte(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <= ' + B + '\n')));
     config_addConstraint(this.config, 'lte', [A, B]);
   }
 
-  ['>'](e1, e2) {
-    this.gt(e1, e2);
-  }
   gt(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' > ' + B + '\n')));
     config_addConstraint(this.config, 'gt', [A, B]);
   }
 
-  ['<'](e1, e2) {
-    this.lt(e1, e2);
-  }
   lt(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
     ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' < ' + B + '\n')));
@@ -356,44 +305,26 @@ class Solver {
     return R;
   }
 
-  ['!=?'](e1, e2, boolVar) {
-    return this.isNeq(e1, e2, boolVar);
-  }
   isNeq(e1, e2, boolVar) {
     return this._cacheReified('neq', e1, e2, boolVar);
   }
 
-  ['==?'](e1, e2, boolVar) {
-    return this.isEq(e1, e2, boolVar);
-  }
   isEq(e1, e2, boolVar) {
     return this._cacheReified('eq', e1, e2, boolVar);
   }
 
-  ['>=?'](e1, e2, boolVar) {
-    return this.isGte(e1, e2, boolVar);
-  }
   isGte(e1, e2, boolVar) {
     return this._cacheReified('gte', e1, e2, boolVar);
   }
 
-  ['<=?'](e1, e2, boolVar) {
-    return this.isLte(e1, e2, boolVar);
-  }
   isLte(e1, e2, boolVar) {
     return this._cacheReified('lte', e1, e2, boolVar);
   }
 
-  ['>?'](e1, e2, boolVar) {
-    return this.isGt(e1, e2, boolVar);
-  }
   isGt(e1, e2, boolVar) {
     return this._cacheReified('gt', e1, e2, boolVar);
   }
 
-  ['<?'](e1, e2, boolVar) {
-    return this.isLt(e1, e2, boolVar);
-  }
   isLt(e1, e2, boolVar) {
     return this._cacheReified('lt', e1, e2, boolVar);
   }

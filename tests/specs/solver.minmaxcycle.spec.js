@@ -20,8 +20,8 @@ describe('solver.minmaxcycle.spec', function() {
       let solver = new Solver({distribute: {valueStrategy: 'minMaxCycle'}});
       solver.declRange('V1', 1, 4);
       solver.declRange('V2', 1, 4);
-      solver['>']('V1', 0);
-      solver['>']('V2', 0);
+      solver.gt('V1', 0);
+      solver.gt('V2', 0);
 
       let solutions = solver.solve();
       expect(countSolutions(solver)).to.equal(16);

@@ -36,6 +36,27 @@
 - Removed support for distributor fallback shorthand `fallback_dist_name`. Just use `.fallback = {valtype: ...}` instead. the `fallback` property will be fleshed out a little better in the future.
 - The limitation that constraints must have at least one non-constant has been lifted. These cases are now immediately optimized away as much as possible.
 - Moving the rng (random number gneerator) part of the code to a single property in config. It is strongly encouraged to set the rng as a string (`solver.setOption('rng', 'return 15;')`) which will accept a string (should result in a proper rng function with `Function(code)`, a number (`Function('return '+num+';')`), or a function. The function is discouraged as you won't be able to export the problem and inspection will be more troublesome. Tests should probably also use a predictable pattern or fixed value. This API will be re-evaluated at a later time.
+- Dropped alias methods for most of the constraints. This removes dynamic property access and "weird" code. Note that they were already mappign to regular named methods so nothing changes in semantics. This was part of a cleanup sweep to remove some legacy code. If you want to use symbols there will be support for a DSL soon where this is more suited and constraints are expressed more concisely. To be specific: 
+  - `solver.+` (-> `.plus`)
+  - `solver.-` and `solver.min` (-> `.minus`)
+  - `solver.*` and `solver.times` (-> `.mul`, does a ring)
+  - `solver.mul` is no longer a single propagator constraint, instead it becomes a ring and replaces `*` and `times`. The ring is now fixed for zero edge cases.
+  - `solver./` (-> `.div`)
+  - `solver.∑` (-> `.sum`)
+  - `solver.∏` (-> `.product`)
+  - `solver.{}≠` (-> `.distinct`)
+  - `solver.==` (-> `.eq`)
+  - `solver.!=` (-> `.neq`)
+  - `solver.>=` (-> `.gte`)
+  - `solver.>` (-> `.gt`)
+  - `solver.<=` (-> `.lte`)
+  - `solver.<` (-> `.lt`)
+  - `solver.==?` (-> `isEq`)
+  - `solver.!=?` (-> `.isNeq`)
+  - `solver.>=?` (-> `.isGte`)
+  - `solver.>?` (-> `.isGt`)
+  - `solver.<=?` (-> `.isLte`)
+  - `solver.<?` (-> `.isLt`)
 
 ## v2.3.4:
 

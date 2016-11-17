@@ -23,8 +23,8 @@ describe('distribution/distribute.spec', function() {
         solver.declRange('V2', 121, 124, {
           valtype: 'max',
         });
-        solver['>']('V1', 120);
-        solver['>']('V2', 120);
+        solver.gt('V1', 120);
+        solver.gt('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
@@ -61,8 +61,8 @@ describe('distribution/distribute.spec', function() {
         solver.declRange('V2', 120, 124, {
           valtype: 'max',
         });
-        solver['>']('V1', 120);
-        solver['>']('V2', 120);
+        solver.gt('V1', 120);
+        solver.gt('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
@@ -110,8 +110,8 @@ describe('distribution/distribute.spec', function() {
             {vector: [1, 1, 1, 1]},
           ],
         });
-        solver['>']('V1', 120);
-        solver['>']('V2', 120);
+        solver.gt('V1', 120);
+        solver.gt('V2', 120);
 
         let solutions = solver.solve();
         expect(solutions.length, 'all solutions').to.equal(16);
@@ -147,8 +147,8 @@ describe('distribution/distribute.spec', function() {
         solver.declRange('V2', 1, 4, {
           valtype: 'max',
         });
-        solver['>']('V1', 0);
-        solver['>']('V2', 0);
+        solver.gt('V1', 0);
+        solver.gt('V2', 0);
 
         let solutions = solver.solve();
         expect(countSolutions(solver)).to.equal(16);
@@ -185,8 +185,8 @@ describe('distribution/distribute.spec', function() {
         solver.declRange('V2', 0, 4, {
           valtype: 'max',
         });
-        solver['>']('V1', 0);
-        solver['>']('V2', 0);
+        solver.gt('V1', 0);
+        solver.gt('V2', 0);
 
         let solutions = solver.solve();
         expect(countSolutions(solver)).to.equal(16);
@@ -234,8 +234,8 @@ describe('distribution/distribute.spec', function() {
             {vector: [1, 1, 1, 1]},
           ],
         });
-        solver['>']('V1', 0);
-        solver['>']('V2', 0);
+        solver.gt('V1', 0);
+        solver.gt('V2', 0);
 
         let solutions = solver.solve();
         expect(countSolutions(solver)).to.equal(16);

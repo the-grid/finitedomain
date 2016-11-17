@@ -142,11 +142,11 @@ describe('propagators/reified.spec', function() {
   describe('solver test', function() {
 
     it('should not let reifiers influence results if they are not forced', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       solver.solve({});
@@ -162,11 +162,11 @@ describe('propagators/reified.spec', function() {
     });
 
     it('should reduce vars to a solution if they are targeted expicitly', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       solver.solve({vars: ['A', 'B', 'C']});
@@ -187,11 +187,11 @@ describe('propagators/reified.spec', function() {
     });
 
     it('should be able to force a reifier to be true and affect the outcome when not targeted', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AisB'));
       solver.eq('AisB', 1);
 
@@ -211,11 +211,11 @@ describe('propagators/reified.spec', function() {
     });
 
     it('should be able to force a reifier to be true and affect the outcome when targeted', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AisB'));
       solver.eq('AisB', 1);
 

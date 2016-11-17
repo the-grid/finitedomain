@@ -125,7 +125,7 @@ describe('solver.spec', function() {
       it('should no longer accept a legacy nested array for domain', function() {
         let solver = new Solver();
 
-        expect(_ => solver.decl('foo', [[0, 10], [20, 30]])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+        expect(_ => solver.decl('foo', [[0, 10], [20, 30]])).to.throw('SHOULD_BE_GTE 0');
       });
 
       describe('legacy', function() {
@@ -133,13 +133,13 @@ describe('solver.spec', function() {
         it('should throw for bad legacy domain ', function() {
           let solver = new Solver();
 
-          expect(_ => solver.decl('foo', [[0]])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+          expect(_ => solver.decl('foo', [[0]])).to.throw('SHOULD_CONTAIN_RANGES');
         });
 
         it('should throw for bad legacy domain with multiple ranges', function() {
           let solver = new Solver();
 
-          expect(_ => solver.decl('foo', [[0], [20, 30]])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+          expect(_ => solver.decl('foo', [[0], [20, 30]])).to.throw('SHOULD_BE_LTE 100000000');
         });
       });
 
@@ -175,19 +175,19 @@ describe('solver.spec', function() {
       it('should throw for legacy domains with inverted range', function() {
         let solver = new Solver();
 
-        expect(_ => solver.decl('foo', [[2, 1]])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+        expect(_ => solver.decl('foo', [[2, 1]])).to.throw('SHOULD_CONTAIN_RANGES');
       });
 
       it('should throw for domains with garbage', function() {
         let solver = new Solver();
 
-        expect(_ => solver.decl('foo', [{}, {}])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+        expect(_ => solver.decl('foo', [{}, {}])).to.throw('SHOULD_BE_GTE 0');
       });
 
       it('should throw for legacy domains with garbage', function() {
         let solver = new Solver();
 
-        expect(_ => solver.decl('foo', [[{}]])).to.throw('ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS');
+        expect(_ => solver.decl('foo', [[{}]])).to.throw('SHOULD_CONTAIN_RANGES');
       });
 
       it('should throw for domains with one number', function() {
@@ -925,7 +925,7 @@ describe('solver.spec', function() {
               3
       */
 
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
       // branch vars
       solver.decls(['A', 'C', 'B', 'D']);
@@ -935,7 +935,7 @@ describe('solver.spec', function() {
       let Bvars = ['B1', 'B2', 'B3'];
       let Cvars = ['C1', 'C2', 'C3'];
       let Dvars = ['D1', 'D2', 'D3'];
-      solver.decls([].concat(Avars, Bvars, Cvars, Dvars));
+      solver.decls([].concat(Avars, Bvars, Cvars, Dvars), fixt_arrdom_range(0, 1));
 
       // path to branch binding
       solver.sum(Avars, 'A');
@@ -983,7 +983,7 @@ describe('solver.spec', function() {
               3
        */
 
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
       let branches = {
         A: 3,
@@ -994,7 +994,7 @@ describe('solver.spec', function() {
 
       let pathCount = 3;
       for (let branchId in branches) {
-        solver.decl(branchId);
+        solver.decl(branchId, fixt_arrdom_range(0, 1));
         let pathVars = [];
         for (let i = 1; i <= pathCount; ++i) {
           pathVars.push(branchId + i);
@@ -1042,7 +1042,7 @@ describe('solver.spec', function() {
               3
        */
 
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
       solver.declRange('A', 0, 3);
       solver.declRange('B', 0, 3);
@@ -1322,11 +1322,11 @@ describe('solver.spec', function() {
   describe('targeting vars', function() {
 
     it('should want to solve all vars if targets are not set at all', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       let solutions = solver.solve({});
@@ -1344,22 +1344,22 @@ describe('solver.spec', function() {
     });
 
     it('should throw if explicitly targeting no vars', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       expect(_ => solver.solve({vars: []})).to.throw('ONLY_USE_WITH_SOME_TARGET_VARS');
     });
 
     it('should ignore C when only A and B are targeted', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       let solutions = solver.solve({vars: ['A', 'B']});
@@ -1376,11 +1376,11 @@ describe('solver.spec', function() {
     });
 
     it('should ignore A when only B and C are targeted', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
-      solver.decl('C');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
+      solver.declRange('C', 0, 1);
       solver.isEq('A', 'B', solver.decl('AnotB'));
 
       solver.solve({vars: ['B', 'C']});
@@ -1392,10 +1392,10 @@ describe('solver.spec', function() {
     });
 
     it('should not solve anonymous vars if no targets given', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
       solver.isEq('A', 'B');
 
       solver.solve({});
@@ -1405,10 +1405,10 @@ describe('solver.spec', function() {
     });
 
     it('should be capable of solving an anonymous var', function() {
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 1, true)});
+      let solver = new Solver();
 
-      solver.decl('A');
-      solver.decl('B');
+      solver.declRange('A', 0, 1);
+      solver.declRange('B', 0, 1);
       let anon = solver.isEq('A', 'B');
 
       solver.solve({vars: [anon]});
@@ -1733,9 +1733,9 @@ describe('solver.spec', function() {
       let Dvars = ['D1', 'D2', 'D3'];
       let pathVars = [].concat(Avars, Bvars, Cvars, Dvars);
 
-      let solver = new Solver({defaultDomain: [0, 1]});
-      solver.decls(branchVars);
-      solver.decls(pathVars);
+      let solver = new Solver();
+      solver.decls(branchVars, fixt_arrdom_range(0, 1));
+      solver.decls(pathVars, fixt_arrdom_range(0, 1));
 
       // path to branch binding
       solver.sum(Avars, 'A');
@@ -2220,7 +2220,7 @@ describe('solver.spec', function() {
 
       */
 
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 10000)});
+      let solver = new Solver();
       solver.decl('VIEWPORT_WIDTH', 1200);
       solver.decl('VIEWPORT_HEIGHT', 800);
       solver.decls([
@@ -2323,7 +2323,7 @@ describe('solver.spec', function() {
       let VIEWPORT_WIDTH = 1200;
       let VIEWPORT_HEIGHT = 800;
 
-      let solver = new Solver({defaultDomain: fixt_arrdom_range(0, 10000)});
+      let solver = new Solver();
       solver.decls([
         // box1
         '#box1[x]',

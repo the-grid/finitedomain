@@ -4,6 +4,8 @@ import {
   LOG_SOLVES,
   LOG_MAX,
   LOG_MIN,
+  SUB,
+  SUP,
 
   ASSERT,
   ASSERT_ARRDOM,
@@ -64,7 +66,6 @@ class Solver {
   /**
    * @param {Object} options = {}
    * @property {string} [options.distribute='naive']
-   * @property {$arrdom} [options.defaultDomain=[0,1]]
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    * @property {boolean} [options.exportBare]
@@ -91,9 +92,6 @@ class Solver {
     } else {
       this.config = config_create();
     }
-
-    this.defaultDomain = options.defaultDomain || [0, 1];
-    ASSERT_ARRDOM(this.defaultDomain);
 
     this.solutions = [];
 
@@ -128,7 +126,7 @@ class Solver {
    * Declare a var with optional given domain or constant value and distribution options.
    *
    * @param {string} [varName] Optional, Note that you can use this.num() to declare a constant.
-   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
    * @param {boolean} [_allowEmpty=false] Temp (i hope) override for importer
    * @returns {string}
@@ -137,20 +135,15 @@ class Solver {
     if (varName === '') THROW('Var name can not be the empty string');
     ASSERT(varName === undefined || typeof varName === 'string', 'var name should be undefined or a string');
     ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
-    let domain;
-    if (typeof domainOrValue === 'number') domain = [domainOrValue, domainOrValue]; // just normalize it here.
-    else domain = domainOrValue;
 
-    if (domain === undefined) { // domain could be 0
-      ASSERT_ARRDOM(this.defaultDomain);
-      domain = this.defaultDomain.slice(0);
-    }
+    let arrdom;
+    if (typeof domainOrValue === 'number') arrdom = [domainOrValue, domainOrValue]; // just normalize it here.
+    else if (!domainOrValue) arrdom = [SUB, SUP];
+    else arrdom = domainOrValue;
+    ASSERT_ARRDOM(arrdom);
 
-    ASSERT(domain instanceof Array, 'DOMAIN_SHOULD_BE_ARRAY', domain, domainOrValue);
-    ASSERT(!domain.some(e => typeof e !== 'number'), 'ARRAY_SHOULD_ONLY_CONTAIN_NUMBERS', domain, domainOrValue);
-
-    if (!domain.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, varName || true, domain, _allowEmpty);
+    if (!arrdom.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
+    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty);
     varName = this.config.allVarNames[varIndex];
 
     if (distributionOptions) {
@@ -158,7 +151,7 @@ class Solver {
       config_setOption(this.config, 'varValueStrat', distributionOptions, varName);
     }
 
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': ' + varName + ' = [' + domain_toArr(domain) + ']' + (distributionOptions ? ' # TODO: ' + JSON.stringify(distributionOptions) : '') + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': ' + varName + ' = [' + arrdom + ']' + (distributionOptions ? ' # TODO: ' + JSON.stringify(distributionOptions) : '') + '\n')));
     return varName;
   }
 
@@ -166,7 +159,7 @@ class Solver {
    * Declare multiple variables with the same domain/options
    *
    * @param {string[]} varNames
-   * @param {$arrdom|number} [domainOrValue=this.defaultDomain] Note: if number, it is a constant (so [domain,domain]) not a $numdom!
+   * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [options] Var distribution options. A number here will throw an error to prevent doing declRange
    */
   decls(varNames, domainOrValue, options) {

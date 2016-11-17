@@ -1044,7 +1044,7 @@ describe('src/constraint.spec', function() {
         let solver = new Solver();
         solver.decl('A', 100);
         solver.decl('B', 101);
-        solver.decl('C', fixt_arrdom_range(0, 0, true)); // it should not even clamp to zero...
+        solver.decl('C', fixt_arrdom_range(0, 0)); // it should not even clamp to zero...
         solver.minus('A', 'B', 'C');
         let solution = solver.solve();
 
@@ -1354,8 +1354,8 @@ describe('src/constraint.spec', function() {
     //  }
     //
     //  testABC(1, 1, 1, [{A:1, B:1, C:1}]);
-    //  testABC(specDomainCreateRange(100, 110), specDomainCreateRange(5, 10, true), specDomainCreateRange(1, 2, true), []);
-    //  testABC(specDomainCreateRange(100, 110), specDomainCreateRange(5, 10, true), specDomainCreateRange(10, 20, true), [
+    //  testABC(specDomainCreateRange(100, 110), specDomainCreateRange(5, 10), specDomainCreateRange(1, 2), []);
+    //  testABC(specDomainCreateRange(100, 110), specDomainCreateRange(5, 10), specDomainCreateRange(10, 20), [
     //    {A: 100, B: 5, C: 20},
     //    {A: 100, B: 10, C: 10},
     //    {A: 101, B: 8, C: 12},
@@ -1372,7 +1372,7 @@ describe('src/constraint.spec', function() {
     //  it('should work xxxwithout C', function() {
     //    let solver = new Solver();
     //    solver.decl('A', specDomainCreateRange(70, 75));
-    //    solver.decl('B', specDomainCreateRange(5, 10, true));
+    //    solver.decl('B', specDomainCreateRange(5, 10));
     //    solver.ring_div('A', 'B');
     //    let solution = solver.solve({});
     //
@@ -1571,7 +1571,7 @@ describe('src/constraint.spec', function() {
       it('should sum a single zero', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(0, 0, true));
+        solver.decl('A', fixt_arrdom_range(0, 0));
         solver.sum(['A']);
         let solution = solver.solve({});
 
@@ -1581,8 +1581,8 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(0, 0, true));
-        solver.decl('B', fixt_arrdom_range(0, 0, true));
+        solver.decl('A', fixt_arrdom_range(0, 0));
+        solver.decl('B', fixt_arrdom_range(0, 0));
         solver.sum(['A', 'B']);
         let solution = solver.solve({});
 
@@ -1592,9 +1592,9 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(0, 0, true));
-        solver.decl('B', fixt_arrdom_range(0, 0, true));
-        solver.decl('C', fixt_arrdom_range(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0));
+        solver.decl('B', fixt_arrdom_range(0, 0));
+        solver.decl('C', fixt_arrdom_range(0, 10));
         solver.sum(['A', 'B'], 'C');
         let solution = solver.solve({});
 
@@ -1604,10 +1604,10 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes and a one into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(0, 0, true));
-        solver.decl('B', fixt_arrdom_range(0, 0, true));
-        solver.decl('C', fixt_arrdom_range(1, 1, true));
-        solver.decl('S', fixt_arrdom_range(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0));
+        solver.decl('B', fixt_arrdom_range(0, 0));
+        solver.decl('C', fixt_arrdom_range(1, 1));
+        solver.decl('S', fixt_arrdom_range(0, 10));
         solver.sum(['A', 'B', 'C'], 'S');
         let solution = solver.solve({});
 
@@ -1617,10 +1617,10 @@ describe('src/constraint.spec', function() {
       it('should sum two zeroes and a bool into result', function() {
         // edge case
         let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(0, 0, true));
-        solver.decl('B', fixt_arrdom_range(0, 0, true));
-        solver.decl('C', fixt_arrdom_range(0, 1, true));
-        solver.decl('S', fixt_arrdom_range(0, 10, true));
+        solver.decl('A', fixt_arrdom_range(0, 0));
+        solver.decl('B', fixt_arrdom_range(0, 0));
+        solver.decl('C', fixt_arrdom_range(0, 1));
+        solver.decl('S', fixt_arrdom_range(0, 10));
         solver.sum(['A', 'B', 'C'], 'S');
         let solution = solver.solve({});
 
@@ -1741,7 +1741,7 @@ describe('src/constraint.spec', function() {
       test(fixt_arrdom_range(4, 7), 5, 6, [
         {A: fixt_arrdom_nums(4, 7), B: 5, C: 6},
       ]);
-      test(fixt_arrdom_ranges([4, 5], [100, 101]), fixt_arrdom_range(4, 5, true), fixt_arrdom_range(100, 101), [
+      test(fixt_arrdom_ranges([4, 5], [100, 101]), fixt_arrdom_range(4, 5), fixt_arrdom_range(100, 101), [
         {A: 4, B: 5, C: 100},
         {A: 4, B: 5, C: 101},
         {A: 5, B: 4, C: 100},

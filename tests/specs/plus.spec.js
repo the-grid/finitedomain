@@ -1,16 +1,13 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import {
   fixt_assertStrings,
+  fixt_dom_empty,
   fixt_dom_nums,
   fixt_dom_range,
+  fixt_dom_ranges,
+  fixt_dom_solved,
   fixt_domainEql,
-  fixt_numdom_empty,
-  fixt_numdom_range,
-  fixt_numdom_ranges,
   fixt_strdom_empty,
-  fixt_strdom_range,
-  fixt_strdom_ranges,
-  fixt_strdom_value,
 } from '../fixtures/domain.fixt';
 
 import {
@@ -33,42 +30,42 @@ describe('src/plus.spec.js', function() {
 
     it('should require domains', function() {
       expect(() => domain_plus()).to.throw('ONLY_NORDOM');
-      expect(() => domain_plus(fixt_numdom_empty())).to.throw('ONLY_NORDOM');
-      expect(() => domain_plus(null, fixt_numdom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_plus(fixt_dom_empty())).to.throw('ONLY_NORDOM');
+      expect(() => domain_plus(null, fixt_dom_empty())).to.throw('ONLY_NORDOM');
     });
 
     it('should accept empty domains', function() {
-      expect(domain_plus(fixt_numdom_empty(), fixt_numdom_empty())).to.eql(fixt_numdom_empty());
+      expect(domain_plus(fixt_dom_empty(), fixt_dom_empty())).to.eql(fixt_dom_empty());
     });
 
     it('should throw for empty strdoms', function() {
+      expect(_ => domain_plus(fixt_strdom_empty(), fixt_dom_empty())).to.throw('empty domains are always numdoms');
+      expect(_ => domain_plus(fixt_dom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
       expect(_ => domain_plus(fixt_strdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
-      expect(_ => domain_plus(fixt_strdom_empty(), fixt_numdom_empty())).to.throw('empty domains are always numdoms');
-      expect(_ => domain_plus(fixt_numdom_empty(), fixt_strdom_empty())).to.throw('empty domains are always numdoms');
     });
 
     describe('with array', function() {
 
       it('should add two ranges', function() {
-        let A = fixt_numdom_range(5, 10);
-        let B = fixt_strdom_range(50, 60);
-        let E = fixt_strdom_range(55, 70);
+        let A = fixt_dom_range(5, 10);
+        let B = fixt_dom_range(50, 60);
+        let E = fixt_dom_range(55, 70);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });
 
       it('should add two domains', function() {
-        let A = fixt_strdom_ranges([5, 10], [20, 35]);
-        let B = fixt_strdom_ranges([50, 60], [110, 128]);
-        let E = fixt_strdom_ranges([55, 95], [115, 163]);
+        let A = fixt_dom_ranges([5, 10], [20, 35]);
+        let B = fixt_dom_ranges([50, 60], [110, 128]);
+        let E = fixt_dom_ranges([55, 95], [115, 163]);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });
 
       it('should add two domains', function() {
-        let A = fixt_strdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let B = fixt_strdom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
-        let E = fixt_strdom_ranges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
+        let A = fixt_dom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let B = fixt_dom_ranges([0, 1], [4, 12], [15, 17], [100, 100]);
+        let E = fixt_dom_ranges([0, 2], [4, 34], [100, 101], [104, 112], [115, 117], [200, 200]);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });
@@ -77,9 +74,9 @@ describe('src/plus.spec.js', function() {
         // since [SUP, SUP] + [1, 1] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = fixt_strdom_value(SUP);
-        let B = fixt_strdom_value(1);
-        let E = fixt_numdom_empty();
+        let A = fixt_dom_solved(SUP);
+        let B = fixt_dom_solved(1);
+        let E = fixt_dom_empty();
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -88,9 +85,9 @@ describe('src/plus.spec.js', function() {
         // since [1, 1] + [SUP, SUP] would be [SUP+1, SUP+1] the result is OOB and empty
         // let's hope this never really hurts us irl... but we must have this protection
         // or it may introduce inconsistent domains into the internals, which is bad.
-        let A = fixt_strdom_value(1);
-        let B = fixt_strdom_value(SUP);
-        let E = fixt_numdom_empty();
+        let A = fixt_dom_solved(1);
+        let B = fixt_dom_solved(SUP);
+        let E = fixt_dom_empty();
 
         expect(domain_plus(A, B)).to.eql(E);
       });
@@ -98,25 +95,25 @@ describe('src/plus.spec.js', function() {
     describe('with numbers', function() {
 
       it('should add two ranges', function() {
-        let A = fixt_numdom_range(5, 10);
-        let B = fixt_strdom_range(50, 60);
-        let E = fixt_strdom_range(55, 70);
+        let A = fixt_dom_range(5, 10);
+        let B = fixt_dom_range(50, 60);
+        let E = fixt_dom_range(55, 70);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });
 
       it('should add two domains (1)', function() {
-        let A = fixt_strdom_ranges([5, 10], [20, 35]);
-        let B = fixt_strdom_ranges([50, 60], [110, 128]);
-        let E = fixt_strdom_ranges([55, 95], [115, 163]);
+        let A = fixt_dom_ranges([5, 10], [20, 35]);
+        let B = fixt_dom_ranges([50, 60], [110, 128]);
+        let E = fixt_dom_ranges([55, 95], [115, 163]);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });
 
       it('should add two domains (2)', function() {
-        let A = fixt_numdom_ranges([0, 1], [4, 12], [15, 17]);
-        let B = fixt_numdom_ranges([0, 1], [4, 12], [15, 17]);
-        let E = fixt_strdom_ranges([0, 2], [4, 34]);
+        let A = fixt_dom_ranges([0, 1], [4, 12], [15, 17]);
+        let B = fixt_dom_ranges([0, 1], [4, 12], [15, 17]);
+        let E = fixt_dom_ranges([0, 2], [4, 34]);
 
         fixt_assertStrings(domain_plus(A, B), E);
       });

@@ -1402,7 +1402,7 @@ describe('src/domain.spec', function() {
 
     it('should divide one range from another', function() {
       let A = fixt_strdom_range(500, 600);
-      let B = fixt_strdom_range(5, 10, true);
+      let B = fixt_strdom_range(5, 10);
       let E = fixt_strdom_range(50, 120);
 
       fixt_assertStrings(domain_divby(A, B), E);
@@ -1410,7 +1410,7 @@ describe('src/domain.spec', function() {
 
     it('should return a numdom if result is small enough', function() {
       let A = fixt_strdom_range(50, 60);
-      let B = fixt_strdom_range(5, 10, true);
+      let B = fixt_strdom_range(5, 10);
       let E = fixt_numdom_range(5, 12);
 
       expect(domain_divby(A, B)).to.eql(E);
@@ -1738,13 +1738,13 @@ describe('src/domain.spec', function() {
     });
 
     it('should work with a bool', function() {
-      expect(domain_toArr(fixt_strdom_range(0, 1))).to.eql(fixt_arrdom_range(0, 1, true));
-      expect(domain_toArr(fixt_numdom_nums(0, 1))).to.eql(fixt_arrdom_range(0, 1, true));
-      expect(domain_toArr(fixt_arrdom_range(0, 1, true))).to.eql(fixt_arrdom_range(0, 1, true));
+      expect(domain_toArr(fixt_strdom_range(0, 1))).to.eql(fixt_arrdom_range(0, 1));
+      expect(domain_toArr(fixt_numdom_nums(0, 1))).to.eql(fixt_arrdom_range(0, 1));
+      expect(domain_toArr(fixt_arrdom_range(0, 1))).to.eql(fixt_arrdom_range(0, 1));
     });
 
     it('should clone the arr with param', function() {
-      let A = fixt_arrdom_range(0, 1, true);
+      let A = fixt_arrdom_range(0, 1);
 
       expect(domain_toArr(A, true)).to.not.equal(A);
       expect(domain_toArr(A, true)).to.eql(A);

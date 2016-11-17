@@ -1,7 +1,7 @@
 import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_ranges,
-  fixt_arrdom_value,
+  fixt_arrdom_solved,
   fixt_arrdom_nums,
 } from '../../fixtures/domain.fixt';
 
@@ -70,8 +70,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if lo(v1) < lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(10));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');
@@ -82,8 +82,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if lo(v1) = lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(11));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');
@@ -94,8 +94,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if lo(v1) > lo(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(12));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');
@@ -118,8 +118,8 @@ describe('distribution/var.spec', function() {
 
       it('should return BETTER if hi(v1) > hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(12, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(12));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');
@@ -130,8 +130,8 @@ describe('distribution/var.spec', function() {
 
       it('should return SAME if hi(v1) = hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(11, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(11));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');
@@ -142,8 +142,8 @@ describe('distribution/var.spec', function() {
 
       it('should return WORSE if hi(v1) < hi(v2)', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_value(10, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_value(11, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_solved(10));
+        config_addVarDomain(config, 'B', fixt_arrdom_solved(11));
         let space = space_createRoot();
         space_initFromConfig(space, config);
         let A = config.allVarNames.indexOf('A');

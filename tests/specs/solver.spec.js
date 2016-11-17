@@ -1082,11 +1082,11 @@ describe('solver.spec', function() {
     it('should solve a sparse domain', function() {
       let solver = new Solver({});
 
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
       solver.decl('item2', [2, 2, 4, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [4, 5]));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item4', fixt_arrdom_range(4, 4, true));
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item4', fixt_arrdom_range(4, 4));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
 
       solver.lt('item1', 'item2');
       solver.lt('item2', 'item3');
@@ -1104,11 +1104,11 @@ describe('solver.spec', function() {
       // regression: x>y was wrongfully mapped to y<=x
       let solver = new Solver({});
 
-      solver.decl('item5', fixt_arrdom_range(1, 5, true));
+      solver.decl('item5', fixt_arrdom_range(1, 5));
       solver.decl('item4', [2, 2, 3, 5]); // TODO: restore to specDomainCreateRanges([2, 2], [3, 5]));
-      solver.decl('item3', fixt_arrdom_range(1, 5, true));
-      solver.decl('item2', fixt_arrdom_range(4, 4, true));
-      solver.decl('item1', fixt_arrdom_range(1, 5, true));
+      solver.decl('item3', fixt_arrdom_range(1, 5));
+      solver.decl('item2', fixt_arrdom_range(4, 4));
+      solver.decl('item1', fixt_arrdom_range(1, 5));
 
       solver.eq('item5', 5);
       solver.gt('item1', 'item2');
@@ -1308,8 +1308,8 @@ describe('solver.spec', function() {
     it('should not skip over when a var only has one propagator and is affected', function() {
       // this is more thoroughly tested with space unit tests
       let solver = new Solver({});
-      solver.decl('A', fixt_arrdom_range(0, 1, true));
-      solver.decl('B', fixt_arrdom_range(0, 1, true));
+      solver.decl('A', fixt_arrdom_range(0, 1));
+      solver.decl('B', fixt_arrdom_range(0, 1));
 
       solver.neq('A', 'B');
 

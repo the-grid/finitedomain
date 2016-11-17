@@ -2,10 +2,9 @@ import expect from '../../fixtures/mocha_proxy.fixt';
 import {
   fixt_arrdom_range,
   fixt_dom_clone,
+  fixt_dom_nums,
+  fixt_dom_range,
   fixt_domainEql,
-  fixt_numdom_nums,
-  fixt_numdom_range,
-  fixt_strdom_range,
   stripAnonVarsFromArrays,
 } from '../../fixtures/domain.fixt';
 import {
@@ -41,9 +40,9 @@ import {
 describe('propagators/reified.spec', function() {
 
   // constants (tests must copy args)
-  let zero = fixt_numdom_nums(0);
-  let one = fixt_numdom_nums(1);
-  let bool = fixt_numdom_nums(0, 1);
+  let zero = fixt_dom_nums(0);
+  let one = fixt_dom_nums(1);
+  let bool = fixt_dom_nums(0, 1);
 
   describe('propagator_reifiedStepBare', function() {
     it('should exist', function() {
@@ -103,10 +102,10 @@ describe('propagators/reified.spec', function() {
       });
 
       describe('eq/neq with non-bools', function() {
-        riftest(fixt_numdom_range(0, 5), fixt_numdom_range(10, 15), bool, 'eq', 'neq', zero, 'undetermined but can proof eq is impossible');
-        riftest(fixt_numdom_range(0, 5), fixt_numdom_range(3, 8), bool, 'eq', 'neq', bool, 'undetermined but with overlap so cannot proof eq/neq yet');
-        riftest(fixt_numdom_range(0, 5), one, bool, 'eq', 'neq', bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
-        riftest(fixt_strdom_range(110, 120), one, bool, 'eq', 'neq', zero, 'A is undetermined but B is NOT in A range must be neq');
+        riftest(fixt_dom_range(0, 5), fixt_dom_range(10, 15), bool, 'eq', 'neq', zero, 'undetermined but can proof eq is impossible');
+        riftest(fixt_dom_range(0, 5), fixt_dom_range(3, 8), bool, 'eq', 'neq', bool, 'undetermined but with overlap so cannot proof eq/neq yet');
+        riftest(fixt_dom_range(0, 5), one, bool, 'eq', 'neq', bool, 'A is undetermined and B is in A range so cannot proof eq/neq yet');
+        riftest(fixt_dom_range(110, 120), one, bool, 'eq', 'neq', zero, 'A is undetermined but B is NOT in A range must be neq');
       });
     });
 
@@ -118,9 +117,9 @@ describe('propagators/reified.spec', function() {
 
       it('should improve test coverage by enabling logging', function() {
         let config = config_create();
-        config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1, true));
-        config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1, true));
-        config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1, true));
+        config_addVarDomain(config, 'A', fixt_arrdom_range(0, 1));
+        config_addVarDomain(config, 'B', fixt_arrdom_range(0, 1));
+        config_addVarDomain(config, 'C', fixt_arrdom_range(0, 1));
         let space = space_createRoot();
         space_initFromConfig(space, config);
 

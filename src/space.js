@@ -521,14 +521,14 @@ function space_generateVars(space, config) {
  */
 function _space_debug(space, config, printPath) {
   console.log('\n## Space:');
-  //__REMOVE_BELOW_FOR_ASSERTS__
+  // __REMOVE_BELOW_FOR_ASSERTS__
   console.log('# Meta:');
   console.log('uid:', space._uid);
   console.log('depth:', space._depth);
   console.log('child:', space._child);
   console.log('children:', space._child_count);
   if (printPath) console.log('path:', space._path);
-  //__REMOVE_ABOVE_FOR_ASSERTS__
+  // __REMOVE_ABOVE_FOR_ASSERTS__
   console.log('# Domains:');
   console.log(space.vardoms.map(domain_toArr).map((d, i) => (d + '').padEnd(15, ' ') + ((!config || config.allVarNames[i] === String(i)) ? '' : ' (' + config.allVarNames[i] + ')')).join('\n'));
   console.log('##\n');

@@ -234,12 +234,15 @@ module.exports = function () {
               throw 'No body found in '+path;
             }
             code = match[1];
-            match = code.match(/^([\s\S]*?)\/\/ __REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?\/\/__REMOVE_ABOVE_FOR_ASSERTS__([\s\S]*)$/);
-            if (match) {
-              console.log(' - removing for asserts');
-              code = match[1] + match[2];
-            }
+            code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?__REMOVE_ABOVE_FOR_ASSERTS__[\s\S]*?$/gm, function(match) {
+              console.log(' - removing ' + match.length + 'b/'+code.length+'b for asserts');
+              return '';
+            });
             code = code.replace(/^\s*ASSERT.*$/gm, '');
+            code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_DIST__[\s\S]*?__REMOVE_ABOVE_FOR_DIST__[\s\S]*?$/gm, function(match, before, after) {
+              console.log(' - removing ' + match.length + 'b/'+code.length+'b for dist');
+              return '';
+            });
 
             return '' +
               '// from: ' + path + '\n\n' +

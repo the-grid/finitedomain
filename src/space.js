@@ -212,6 +212,7 @@ function space_initializeUnsolvedVars(space, config) {
       }
     }
   } else {
+    ASSERT(targetVarNames.every(e => typeof e === 'string'), 'you must target var names only, they must all be strings', targetVarNames);
     let varNamesTrie = config._varNamesTrie;
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];

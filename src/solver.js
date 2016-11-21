@@ -23,6 +23,10 @@ import {
   config_setOption,
   config_setOptions,
 } from './config';
+import exporter_main, {
+  exporter_encodeVarName,
+} from './exporter';
+import importer_main from './importer';
 
 import {
   domain__debug,
@@ -151,7 +155,7 @@ class Solver {
       config_setOption(this.config, 'varValueStrat', distributionOptions, varName);
     }
 
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': ' + varName + ' = [' + arrdom + ']' + (distributionOptions ? ' # TODO: ' + JSON.stringify(distributionOptions) : '') + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += ': ' + exporter_encodeVarName(varName) + ' = [' + arrdom + ']' + (distributionOptions ? (distributionOptions.valtype === 'markov' ? (' @markov' + (distributionOptions.matrix ? ' matrix(' + distributionOptions.matrix + ')' : '') + (distributionOptions.expandVectorsWith !== undefined ? ' expand(' + distributionOptions.expandVectorsWith + ')' : '') + (distributionOptions.legend ? ' legend(' + distributionOptions.legend + ')' : '')) : '') : '') + ' # options=' + JSON.stringify(distributionOptions) + '\n')));
     return varName;
   }
 
@@ -188,37 +192,37 @@ class Solver {
 
   plus(A, B, C) {
     let R = config_addConstraint(this.config, 'plus', [A, B, C]);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' + ' + B + ' # plus, result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' + ' + exporter_encodeVarName(B) + ' # plus, result var was: ' + C + '\n')));
     return R;
   }
 
   minus(A, B, C) {
     let R = config_addConstraint(this.config, 'min', [A, B, C]);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' - ' + B + ' # min, result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' - ' + exporter_encodeVarName(B) + ' # min, result var was: ' + C + '\n')));
     return R;
   }
 
   mul(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-mul', [A, B, C]);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' * ' + B + ' # ringmul, result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' * ' + exporter_encodeVarName(B) + ' # ringmul, result var was: ' + C + '\n')));
     return R;
   }
 
   div(A, B, C) {
     let R = config_addConstraint(this.config, 'ring-div', [A, B, C]);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = ' + A + ' / ' + B + ' # ringdiv, result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' / ' + exporter_encodeVarName(B) + ' # ringdiv, result var was: ' + C + '\n')));
     return R;
   }
 
   sum(A, C) {
     let R = config_addConstraint(this.config, 'sum', A, C);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = sum(' + A + ') # result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = sum(' + A.map(exporter_encodeVarName) + ') # result var was: ' + C + '\n')));
     return R;
   }
 
   product(A, C) {
     let R = config_addConstraint(this.config, 'product', A, C);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += R + ' = product(' + A + ') # result var was: ' + C + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = product(' + A.map(exporter_encodeVarName) + ') # result var was: ' + C + '\n')));
     return R;
   }
 
@@ -232,7 +236,7 @@ class Solver {
   // only first expression can be array
 
   distinct(A) {
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += 'distinct(' + A + ')\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += 'distinct(' + A.map(exporter_encodeVarName) + ')\n')));
     config_addConstraint(this.config, 'distinct', A);
   }
 
@@ -246,7 +250,7 @@ class Solver {
         this.eq(e1, e2[i]);
       }
     } else {
-      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' == ' + e2 + '\n')));
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(e1) + ' == ' + exporter_encodeVarName(e2) + '\n')));
       config_addConstraint(this.config, 'eq', [e1, e2]);
     }
   }
@@ -261,68 +265,68 @@ class Solver {
         this.neq(e1, e2[i]);
       }
     } else {
-      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += e1 + ' != ' + e2 + '\n')));
+      ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(e1) + ' != ' + exporter_encodeVarName(e2) + '\n')));
       config_addConstraint(this.config, 'neq', [e1, e2]);
     }
   }
 
   gte(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >= ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(A) + ' >= ' + exporter_encodeVarName(B) + '\n')));
     config_addConstraint(this.config, 'gte', [A, B]);
   }
 
   lte(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <= ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(A) + ' <= ' + exporter_encodeVarName(B) + '\n')));
     config_addConstraint(this.config, 'lte', [A, B]);
   }
 
   gt(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' > ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(A) + ' > ' + exporter_encodeVarName(B) + '\n')));
     config_addConstraint(this.config, 'gt', [A, B]);
   }
 
   lt(A, B) {
     ASSERT(!(A instanceof Array), 'NOT_ACCEPTING_ARRAYS');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' < ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(A) + ' < ' + exporter_encodeVarName(B) + '\n')));
     config_addConstraint(this.config, 'lt', [A, B]);
   }
 
   isNeq(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'neq');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' !=? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' !=? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
   isEq(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'eq');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' ==? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' ==? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
   isGte(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gte');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >=? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' >=? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
   isLte(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lte');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <=? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' <=? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
   isGt(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'gt');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' >? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' >? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
   isLt(A, B, C) {
     let R = config_addConstraint(this.config, 'reifier', [A, B, C], 'lt');
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += A + ' <? ' + B + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported += exporter_encodeVarName(R) + ' = ' + exporter_encodeVarName(A) + ' <? ' + exporter_encodeVarName(B) + '\n')));
     return R;
   }
 
@@ -340,6 +344,7 @@ class Solver {
    * @property {boolean} [_debugConfig] Log out solver.config after prepare() but before run()
    * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run(). Only works in dev code (stripped from dist)
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
+   * @property {boolean} [_tostring] Serialize the config into a DSL
    * @return {Object[]}
    */
   solve(options = {}) {
@@ -349,6 +354,9 @@ class Solver {
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
 
     this._prepare(options, log);
+    // __REMOVE_BELOW_FOR_DSL__
+    if (options._tostring) console.log(exporter_main(this.config));
+    // __REMOVE_ABOVE_FOR_DSL__
     if (options._debug) this._debugLegible();
     if (options._debugConfig) this._debugConfig();
     // __REMOVE_BELOW_FOR_DIST__
@@ -542,6 +550,10 @@ class Solver {
     return domain_toArr(space.vardoms[varIndex]);
   }
 
+  hasVar(varName) {
+    return trie_get(this.config._varNamesTrie, varName) >= 0;
+  }
+
   /**
    * Get the current domains for all targeted vars (only)
    * Heavy operation.
@@ -576,6 +588,7 @@ class Solver {
     ASSERT(typeof options === 'object', 'value strat options should be an object');
 
     config_setOption(this.config, 'varValueStrat', options, varName);
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported = this.exported.replace(new RegExp('^(: ' + exporter_encodeVarName(varName) + ' =.*)', 'm'), '$1 # markov (set below): ' + JSON.stringify(options)) + '@custom set-markov ' + exporter_encodeVarName(varName) + ' ' + JSON.stringify(options) + '\n')));
   }
 
   /**
@@ -675,6 +688,34 @@ class Solver {
 
     console.log('## _debugConfig:\n', getInspector()(config));
   }
+
+  // __REMOVE_BELOW_FOR_DSL__
+
+  /**
+   * Import from a dsl into this solver
+   *
+   * @param {string} s
+   * @returns {Solver} this
+   */
+  imp(s) {
+    return importer_main(s, this);
+  }
+
+  /**
+   * Export this config to a dsl. Optionally pass on a
+   * space whose vardoms state to use for initialization.
+   *
+   * @param {$space} [space]
+   * @param {boolean} [usePropagators]
+   * @param {boolean} [minimal]
+   * @param {boolean} [withDomainComments]
+   * @returns {string}
+   */
+  exp(space, usePropagators, minimal, withDomainComments) {
+    return exporter_main(this.config, space.vardoms, usePropagators, minimal, withDomainComments);
+  }
+
+  // __REMOVE_ABOVE_FOR_DSL__
 }
 
 /**

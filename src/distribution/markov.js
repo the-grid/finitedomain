@@ -125,7 +125,6 @@ function _distribution_markovRoll(rng, totalProb, cumulativeProbVector, valueLeg
     probVal = rngRoll * totalProb;
   }
   // else 0 <= rng < totalProb (mostly to avoid precision problems in tests)
-  ASSERT(!rngIsNormalized || rngRoll < totalProb, 'bad test: roll is higher than total prob (cannot used unnormalized roll if domain filters out options!)', rngRoll, totalProb, probVal);
 
   for (var index = 0; index < cumulativeProbVector.length; index++) {
     // note: if first element is 0.1 and roll is 0.1 this will pick the

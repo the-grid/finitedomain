@@ -235,7 +235,7 @@ describe('solver.spec', function() {
         let solver3 = new Solver();
         solver3.decl('A', 100);
         solver3.decl('B', 100);
-        expect(_ => solver3.plus(['A', 'B'], {})).to.throw('var names should be strings here');
+        expect(_ => solver3.plus(['A', 'B'], {})).to.throw('all var names should be strings or numbers or undefined');
       });
 
       it('should always return the result var name', function() {
@@ -299,7 +299,7 @@ describe('solver.spec', function() {
         let solver3 = new Solver();
         solver3.decl('A', 100);
         solver3.decl('B', 100);
-        expect(_ => solver3.minus(['A', 'B'], {})).to.throw('var names should be strings here');
+        expect(_ => solver3.minus(['A', 'B'], {})).to.throw('all var names should be strings or numbers or undefined');
       });
 
       it('should always return the result var name', function() {
@@ -363,7 +363,7 @@ describe('solver.spec', function() {
         let solver3 = new Solver();
         solver3.decl('A', 100);
         solver3.decl('B', 100);
-        expect(_ => solver3.mul(['A', 'B'], {})).to.throw('var names should be strings here');
+        expect(_ => solver3.mul(['A', 'B'], {})).to.throw('all var names should be strings or numbers or undefined');
       });
 
       it('should always return the result var name', function() {
@@ -427,7 +427,7 @@ describe('solver.spec', function() {
         let solver3 = new Solver();
         solver3.decl('A', 100);
         solver3.decl('B', 100);
-        expect(_ => solver3.div(['A', 'B'], {})).to.throw('var names should be strings here');
+        expect(_ => solver3.div(['A', 'B'], {})).to.throw('all var names should be strings or numbers or undefined');
       });
 
       it('should always return the result var name', function() {
@@ -797,7 +797,7 @@ describe('solver.spec', function() {
             let solver3 = new Solver();
             solver3.decl('A', 100);
             solver3.decl('B', 100);
-            expect(_ => solver3[method](['A', 'B'], {})).to.throw('var names should be strings here');
+            expect(_ => solver3[method](['A', 'B'], {})).to.throw('all var names should be strings or numbers or undefined');
           });
 
           it('should always return the result var name', function() {

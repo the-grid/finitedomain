@@ -228,23 +228,33 @@ module.exports = function () {
           process: function(code, path){
             if (path === 'src/index.js') return '';
             console.log('concatting', path);
-            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
-            if (!match) {
-              console.error('unable to find body start/stop pragmas in '+path);
-              throw 'No body found in '+path;
-            }
-            code = match[1];
-            match = code.match(/^([\s\S]*?)\/\/ __REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?\/\/__REMOVE_ABOVE_FOR_ASSERTS__([\s\S]*)$/);
-            if (match) {
-              console.log(' - removing for asserts');
-              code = match[1] + match[2];
-            }
-            code = code.replace(/^\s*ASSERT.*$/gm, '');
+            code = removeHeaderFooter(code);
+            code = removeAsserts(code);
+            code = removeDists(code);
+            code = removeDsls(code);
 
-            return '' +
-              '// from: ' + path + '\n\n' +
-              code +
-              '\n\n// end of ' + path;
+            return concatFile(code, path);
+          },
+        },
+        files: {
+          'build/finitedomain.es6.concat.js': ['src/**/*'],
+        },
+      },
+      dsl: {
+        options: {
+          // https://github.com/gruntjs/grunt-contrib-concat
+          banner: 'let Solver = (function(){',
+          footer: '\n  return Solver;\n})();\nexport default Solver;\n',
+          sourceMap: true,
+          sourceMapStyle: 'inline', // embed link inline
+          process: function(code, path){
+            if (path === 'src/index.js') return '';
+            console.log('concatting', path);
+            code = removeHeaderFooter(code);
+            code = removeAsserts(code);
+            code = removeDists(code);
+
+            return concatFile(code, path);
           },
         },
         files: {
@@ -261,17 +271,9 @@ module.exports = function () {
           process: function(code, path){
             if (path === 'src/index.js') return '';
             console.log('concatting', path);
-            var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
-            if (!match) {
-              console.error('unable to find body start/stop pragmas in '+path);
-              throw 'No body found in '+path;
-            }
-            code = match[1];
+            code = removeHeaderFooter(code);
 
-            return '' +
-              '// from: ' + path + '\n\n' +
-              code +
-              '\n\n// end of ' + path;
+            return concatFile(code, path);
           },
         },
         files: {
@@ -280,6 +282,44 @@ module.exports = function () {
       },
     },
   });
+
+  function removeHeaderFooter(code) {
+    var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
+    if (!match) {
+      console.error('unable to find body start/stop pragmas in ' + path);
+      throw 'No body found in ' + path;
+    }
+    return match[1];
+  }
+  function removeAsserts(code) {
+    code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_ASSERTS__[\s\S]*?__REMOVE_ABOVE_FOR_ASSERTS__[\s\S]*?$/gm, function(match) {
+      console.log(' - removing ' + match.length + 'b/'+code.length+'b for asserts');
+      return '';
+    });
+    code = code.replace(/^\s*ASSERT.*$/gm, '');
+    return code;
+  }
+  function removeDists(code) {
+    code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_DIST__[\s\S]*?__REMOVE_ABOVE_FOR_DIST__[\s\S]*?$/gm, function(match, before, after) {
+      console.log(' - removing ' + match.length + 'b/' + code.length + 'b for dist');
+      return '';
+    });
+    return code;
+  }
+  function removeDsls(code) {
+    code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_DSL__[\s\S]*?__REMOVE_ABOVE_FOR_DSL__[\s\S]*?$/gm, function(match, before, after) {
+      console.log(' - removing ' + match.length + 'b/' + code.length + 'b for dist');
+      return '';
+    });
+    return code;
+  }
+  function concatFile(code, path) {
+    return '' +
+      '\n// from: ' + path + '\n\n' +
+      code + '\n\n' +
+      '// end of ' + path + '\n' +
+      '';
+  }
 
   grunt.loadNpmTasks('grunt-babel'); // we dont really need this but can be handy for debugging
   grunt.loadNpmTasks('grunt-browserify'); // used to build packages for testing in phantomjs
@@ -307,6 +347,7 @@ module.exports = function () {
   grunt.registerTask('build', 'alias for dist', ['dist']);
   grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq']);
   grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
+  grunt.registerTask('distdsl', 'distq for browser but includes the dsl import/export code', ['clean', 'concat:dsl', 'babel:concat', 'uglify:dist', 'concat-dist-to-browserjs']);
   grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
   grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);

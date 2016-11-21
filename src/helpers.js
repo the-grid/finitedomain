@@ -169,7 +169,7 @@ function ASSERT_LOG(flags, func) {
   }
 }
 
-//__REMOVE_ABOVE_FOR_ASSERTS__
+// __REMOVE_ABOVE_FOR_ASSERTS__
 
 // Abstraction for throwing because throw statements cause deoptimizations
 // All explicit throws should use this function. Also helps with tooling

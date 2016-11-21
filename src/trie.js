@@ -355,9 +355,9 @@ function _trie_get(trie, offset, key, index, len) {
   ASSERT(++trie._getSteps);
 
   ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
-  ASSERT(typeof key === 'string', 'STRING_KEY');
+  ASSERT(typeof key === 'string', 'STRING_KEY', key);
   ASSERT(index >= 0, 'INDEX_UNSIGNED');
-  ASSERT(key.length === len, 'KEY_LEN');
+  ASSERT(key.length === len, 'KEY_LEN', key);
 
   let buf = trie.buffer;
 

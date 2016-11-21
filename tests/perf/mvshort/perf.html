@@ -1,0 +1,36 @@
+<head>
+  <title>Multiverse short perf test</title>
+</head>
+<body>
+  The magic happens in your console.<br>
+  This test should have 3196 vars and 2618 constraints (into 5068 propagators) and run in about 60ms.<br>
+  Note that multiple solutions doesn't mean running from scratch. Solutions beyond the first build on the first solution.<br>
+  Run <code>grunt distdsl</code> for a perf build with dsl code.
+  Add <code><a href="?wait=1">?wait=1</a></code> to the code to have the test wait five seconds before starting. Allows you to press buttons for metrics.<br>
+  Add <code><a href="?perf=0">?perf=0</a></code> to NOT call <code>console.profile</code>, which should make the thing run a little faster.<br>
+  These can be <a href="?wait=1&perf=0">combined</a>...<br>
+  <hr>
+
+  <a href="https://github.com/qfox/heatfiler">Heatfiler</a> instructions (assumes heatfiler runs on same domain as finitedomain files, just clone the repo and run it):
+  <pre>
+@ console.log('starting now...');
+@ var exports = {};
+@ var module = {exports: {}};
++ http://localhost/path/to/finitedomain/dist/browser.js
+- http://localhost/path/to/finitedomain/tests/perf/mvshort/config.js
+- http://localhost/path/to/finitedomain/tests/perf/perf.js
+@ perf(config, 1);
+  </pre>
+
+  <script>var exports= {};</script>
+  <script>var module = {exports: {}};</script>
+  <script src="dsl.js"></script>
+  <script src="../../../dist/browser.js"></script>
+  <script src="../perf.js"></script>
+  <script>
+//    console.warn('baseline run 1x:');
+    perf(config, 1);
+//    console.warn('perf run 50000x:');
+//    perf(config, 50000);
+  </script>
+</body>

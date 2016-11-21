@@ -548,6 +548,7 @@ function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorI
 function config_addConstraint(config, name, varNames, param) {
   // should return a new var name for most props
   ASSERT(config && config._class === '$config', 'EXPECTING_CONFIG');
+  ASSERT(varNames.every(e => typeof e === 'string' || typeof e === 'number' || e === undefined), 'all var names should be strings or numbers or undefined', varNames);
 
   let inputConstraintKeyOp = name;
   let resultVarName;

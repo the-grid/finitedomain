@@ -98,7 +98,6 @@ module.exports = function () {
       p: { // build for perf in browser
         files: [
           'src/**/*.js',
-          'tests/**/*',
         ],
         tasks: [
           'distperf',
@@ -107,7 +106,6 @@ module.exports = function () {
       q: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
         files: [
           'src/**/*.js',
-          'tests/**/*',
         ],
         tasks: [
           'distq',
@@ -116,7 +114,6 @@ module.exports = function () {
       b: { // quick dist WITH asserts, no linting, testing, or minifying. mostly for debugging quickly.
         files: [
           'src/**/*.js',
-          'tests/**/*',
         ],
         tasks: [
           'distbug',
@@ -125,10 +122,17 @@ module.exports = function () {
       h: { // quick dist WITHOUT asserts, no linting, testing, or minifying. mostly for debugging quickly.
         files: [
           'src/**/*.js',
-          'tests/**/*',
         ],
         tasks: [
           'distheat',
+        ],
+      },
+      d: { // quick dist with dsl, no linting, testing, or minifying. for tests that require the dsl api
+        files: [
+          'src/**/*.js',
+        ],
+        tasks: [
+          'distdsl',
         ],
       },
     },

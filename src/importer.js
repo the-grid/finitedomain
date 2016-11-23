@@ -120,11 +120,43 @@ function importer_main(str, solver) {
   }
 
   function parseIdentifier() {
+    if (read() === '\'') return parseQuotedIdentifier();
+    else return parseUnquotedIdentifier();
+  }
+
+  function parseQuotedIdentifier() {
+    is('\'');
+
+    let start = pointer;
+    while (!isEof() && read() !== '\'') skip();
+    if (isEof()) THROW('Quoted identifier must be closed');
+    if (start === pointer) THROW('Expected to parse identifier, found none');
+    skip(); // quote
+    return str.slice(start, pointer - 1); // return unquoted ident
+  }
+
+  function parseUnquotedIdentifier() {
     // anything terminated by whitespace
     let start = pointer;
-    while (!isEof() && !isWhite(read()) && read() !== '(' && read() !== ')' && read() !== ',') skip();
+    if (read() >= '0' && read() <= '9') THROW('Unquoted ident cant start with number');
+    while (!isEof() && isValidUnquotedIdentChar(read())) skip();
+    if (isEof()) THROW('Quoted identifier must be closed');
     if (start === pointer) THROW('Expected to parse identifier, found none');
     return str.slice(start, pointer);
+  }
+  function isValidUnquotedIdentChar(c) {
+    switch (c) {
+      case '(':
+      case ')':
+      case ',':
+      case '[':
+      case ']':
+      case '\'':
+      case '#':
+        return false;
+    }
+    if (isWhite(c)) return false;
+    return true;
   }
 
   function parseAlias() {

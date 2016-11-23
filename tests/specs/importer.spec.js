@@ -81,6 +81,34 @@ let unitTests = [
     `,
   ],
 
+  '  - quoted idents',
+  [
+    'simple quoted ident',
+    s => s.declRange('A', 0, 1),
+    `
+      : 'A' [0 1]
+    `,
+  ],
+  [
+    'quoted ident otherwise illegal',
+    s => s.declRange('[({#=]})', 0, 1),
+    `
+      : '[({#=]})' [0 1]
+    `,
+  ],
+  [
+    'quoted ident in constraint', // make sure constraints are parsed properly too...
+    s => {
+      s.declRange('[({#=]})', 0, 1);
+      s.eq('[({#=]})', 0);
+    },
+    `
+      : '[({#=]})' [0 1]
+      '[({#=]})' == 0
+    `,
+  ],
+
+
   '  - domain',
   [
     'simple var decl with range one pair',

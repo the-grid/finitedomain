@@ -591,7 +591,7 @@ class Solver {
     ASSERT(typeof options === 'object', 'value strat options should be an object');
 
     config_setOption(this.config, 'varValueStrat', options, varName);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported = this.exported.replace(new RegExp('^(: ' + exporter_encodeVarName(varName) + ' =.*)', 'm'), '$1 # markov (set below): ' + JSON.stringify(options)) + '@custom set-markov ' + exporter_encodeVarName(varName) + ' ' + JSON.stringify(options) + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported = this.exported.replace(new RegExp('^(: ' + exporter_encodeVarName(varName) + ' =.*)', 'm'), '$1 # markov (set below): ' + JSON.stringify(options)) + '@custom set-valdist ' + exporter_encodeVarName(varName) + ' ' + JSON.stringify(options) + '\n')));
   }
 
   /**

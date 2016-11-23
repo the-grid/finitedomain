@@ -724,7 +724,8 @@ function importer_main(str, solver) {
         case 'val-strat':
           parseValStrat();
           break;
-        case 'set-markov':
+        case 'set-valdist':
+          skipWhitespaces();
           let target = parseIdentifier();
           let config = parseRestCustom();
           solver.setValueDistributionFor(target, JSON.parse(config));

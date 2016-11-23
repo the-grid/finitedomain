@@ -542,20 +542,6 @@ class Solver {
   }
 
   /**
-   * Exposes internal method domain_fromList for subclass
-   * (Used by PathSolver in a private project)
-   * It will always create an array, never a "small domain"
-   * (number that is bit-wise flags) because that should be
-   * kept an internal finitedomain artifact.
-   *
-   * @param {number[]} list
-   * @returns {$arrdom[]}
-   */
-  domain_fromList(list) {
-    return domain_fromListToArrdom(list);
-  }
-
-  /**
    * Expose a method to normalize the internal representation
    * of a domain to always return an array representation
    *
@@ -733,6 +719,19 @@ class Solver {
   }
 
   // __REMOVE_ABOVE_FOR_DSL__
+  /**
+   * Exposes internal method domain_fromList for subclass
+   * (Used by PathSolver in a private project)
+   * It will always create an array, never a "small domain"
+   * (number that is bit-wise flags) because that should be
+   * kept an internal finitedomain artifact.
+   *
+   * @param {number[]} list
+   * @returns {$arrdom[]}
+   */
+  static domainFromList(list) {
+    return domain_fromListToArrdom(list);
+  }
 }
 
 /**

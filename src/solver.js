@@ -345,6 +345,8 @@ class Solver {
    * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run(). Only works in dev code (stripped from dist)
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
    * @property {boolean} [_tostring] Serialize the config into a DSL
+   * @property {boolean} [_nosolve] Dont actually solve. Used for debugging when printing something but not interested in actually running.
+   * @property {number} [_debugDelay=0] When debugging, how many propagate steps should the debugging wait? (0 is only preprocessing)
    * @return {Object[]}
    */
   solve(options = {}) {
@@ -354,17 +356,28 @@ class Solver {
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
 
     this._prepare(options, log);
-    // __REMOVE_BELOW_FOR_DSL__
-    if (options._tostring) console.log(exporter_main(this.config));
-    // __REMOVE_ABOVE_FOR_DSL__
-    if (options._debug) this._debugLegible();
-    if (options._debugConfig) this._debugConfig();
-    // __REMOVE_BELOW_FOR_DIST__
-    if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
-    // __REMOVE_ABOVE_FOR_DIST__
-    if (options._debugSolver) this._debugSolver();
+    let dbgCallback;
+    if (options._tostring || options._debug || options._debugConfig || options._debugSpace || options._debugSolver) {
+      dbgCallback = epoch => {
+        if (options._debugDelay >= epoch) {
+          // __REMOVE_BELOW_FOR_DSL__
+          if (options._tostring) console.log(exporter_main(this.config));
+          // __REMOVE_ABOVE_FOR_DSL__
+          if (options._debug) this._debugLegible();
+          if (options._debugConfig) this._debugConfig();
+          // __REMOVE_BELOW_FOR_DIST__
+          if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
+          // __REMOVE_ABOVE_FOR_DIST__
+          if (options._debugSolver) this._debugSolver();
+          return true;
+        }
+        return false;
+      };
+      if (dbgCallback(0)) dbgCallback = undefined;
+    }
+    if (options._nosolve) return;
 
-    this._run(max, log);
+    this._run(max, log, dbgCallback);
 
     return this.solutions;
   }
@@ -473,8 +486,9 @@ class Solver {
    *
    * @param {number} max Hard stop the solver when this many solutions have been found
    * @param {number} log One of the LOG_* constants
+   * @param {Function} [dbgCallback] Call after each epoch until it returns false, then stop calling it.
    */
-  _run(max, log) {
+  _run(max, log, dbgCallback) {
     ASSERT(typeof max === 'number', 'max should be a number');
     ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
@@ -506,9 +520,12 @@ class Solver {
 
     let solvedSpaces;
     if (alreadyRejected) {
+      if (log >= LOG_STATS) {
+        console.log('      - FD Input Problem Rejected Immediately');
+      }
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, this.config, max);
+      solvedSpaces = solver_runLoop(state, this.config, max, dbgCallback);
     }
 
     if (log >= LOG_STATS) {
@@ -772,12 +789,13 @@ function getInspector() {
  * @param {Object} state
  * @param {$config} config
  * @param {number} max Stop after finding this many solutions
+ * @param {Function} [dbgCallback] Call after each epoch until it returns false, then stop calling it.
  * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, config, max) {
+function solver_runLoop(state, config, max, dbgCallback) {
   let list = [];
   while (state.more && list.length < max) {
-    search_depthFirst(state, config);
+    search_depthFirst(state, config, dbgCallback);
     if (state.status !== 'end') {
       list.push(state.space);
     }

@@ -605,6 +605,7 @@ class Solver {
   }
 
   _debugLegible() {
+    let WITH_INDEX = true;
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.allVarNames;
     let targeted = clone.targetedVars;
@@ -629,18 +630,18 @@ class Solver {
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${WITH_INDEX ? index : ''}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }
     console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
     console.log(constraints.map((c, index) => {
       if (c.param === undefined) {
-        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
       } else if (c.name === 'reifier') {
-        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
       } else {
-        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
       }
     }).join('\n'));
     console.log('##/\n');
@@ -698,10 +699,11 @@ class Solver {
    * Import from a dsl into this solver
    *
    * @param {string} s
+   * @param {boolean} [_debug] Log out entire input with error token on fail?
    * @returns {Solver} this
    */
-  imp(s) {
-    return importer_main(s, this);
+  imp(s, _debug) {
+    return importer_main(s, this, _debug);
   }
 
   /**
@@ -719,6 +721,7 @@ class Solver {
   }
 
   // __REMOVE_ABOVE_FOR_DSL__
+
   /**
    * Exposes internal method domain_fromList for subclass
    * (Used by PathSolver in a private project)

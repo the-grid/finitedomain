@@ -15,7 +15,7 @@ import Solver from './solver';
  * @param {Solver} [solver]
  * @returns {Solver}
  */
-function importer_main(str, solver) {
+function importer_main(str, solver, _debug) {
   if (!solver) solver = new Solver();
 
   let pointer = 0;
@@ -803,6 +803,9 @@ function importer_main(str, solver) {
   }
 
   function THROW(msg) {
+    if (_debug) {
+      console.log(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
+    }
     msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
     throw new Error(msg);
   }

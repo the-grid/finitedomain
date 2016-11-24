@@ -58,6 +58,7 @@
   - `solver.<=?` (-> `.isLte`)
   - `solver.<?` (-> `.isLt`)
 - Drop support for the `defaultDomain` option. The default is now a full domain (0 ... 1000000) and otherwise you'll have to explicitly declare it.
+- Renamed `solver.domain_fromList` to `Solver.domainFromList` (also promoted from method to static class function)
 
 ## v2.3.4:
 

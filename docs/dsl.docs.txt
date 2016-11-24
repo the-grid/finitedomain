@@ -23,7 +23,15 @@ anywhitespace:
   whitespace
   newline
 ident:
-  /[^0-9()\[\] \t\n\r,][^()\[\] \t\n\r,]*/
+  quoted-ident
+  unquoted-ident
+quoted-ident:
+  /'[^']+'/
+  can contain anything except single quotes
+  must be quoted throughout the input problem
+  solver will use name as if without quotes (relevant when reading results or debugging)
+unquoted-ident:
+  /[^0-9()\[\] \t\n\r,'=][^()\[\'] \t\n\r,=]*/
   cannot result in a literal of this CFG
   cannot result in a keyword part of a literal of this CFG (matrix, distinct, etc)
   cannot start with a digit

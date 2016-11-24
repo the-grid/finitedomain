@@ -755,9 +755,11 @@ function _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes) {
   ASSERT(domainRight, 'right should not be empty');
 
   let targetGte = domain_max(domainRight) + (constraintName === 'lt' ? 0 : 1);
-  initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetGte);
+  let newLeft = initialDomains[varIndexLeft] = domain_removeGte(domainLeft, targetGte);
   let targetLte = domain_min(domainLeft) - (constraintName === 'lt' ? 0 : 1);
-  initialDomains[varIndexRight] = domain_removeLte(domainRight, targetLte);
+  let newRight = initialDomains[varIndexRight] = domain_removeLte(domainRight, targetLte);
+
+  if (domainLeft !== newLeft || domainRight !== newRight) return _config_solvedAtCompileTimeLtLte(config, constraintName, varIndexes);
 
   return false;
 }
@@ -793,9 +795,12 @@ function _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes) {
 
   // A > B or A >= B. smallest number in A must be larger than the smallest number in B. largest number in B must be smaller than smallest number in A
   let targetLte = domain_min(domainRight) - (constraintName === 'gt' ? 0 : 1);
-  initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetLte);
+  let newLeft = initialDomains[varIndexLeft] = domain_removeLte(domainLeft, targetLte);
   let targetGte = domain_max(domainLeft) + (constraintName === 'gt' ? 0 : 1);
-  initialDomains[varIndexRight] = domain_removeGte(domainRight, targetGte);
+  let newRight = initialDomains[varIndexRight] = domain_removeGte(domainRight, targetGte);
+
+  // if the domains changed there's a chance this propagator is now removable
+  if (domainLeft !== newLeft || domainRight !== newRight) return _config_solvedAtCompileTimeGtGte(config, constraintName, varIndexes);
 
   return false;
 }
@@ -842,6 +847,8 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
+  let domain3 = initialDomains[varIndexResult];
+  domain3 = initialDomains[varIndexResult] = domain_removeGte(domain3, 2); // result domains are bool. just cut away the rest.
 
   ASSERT_NORDOM(domain1, true, domain__debug);
   ASSERT_NORDOM(domain2, true, domain__debug);
@@ -854,7 +861,6 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
   }
 
-  let domain3 = initialDomains[varIndexResult];
   let v3 = domain_getValue(domain3);
   let hasResult = v3 !== NO_SUCH_VALUE;
   if (hasResult) {

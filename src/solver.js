@@ -73,9 +73,11 @@ class Solver {
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    * @property {boolean} [options.exportBare]
+   * @property {number} [options.logging=LOG_NONE]
    */
   constructor(options = {}) {
     this._class = 'solver';
+    this.logging = options.log || LOG_NONE;
     this.distribute = options.distribute || 'naive';
     ASSERT(!void (options.exportBare !== undefined && (GENERATE_BARE_DSL = options.exportBare || false), this.exported = ''), 'bare exports kind of log the api inputs of this class in a DSL and print it at .solve() time');
 
@@ -337,7 +339,7 @@ class Solver {
    *
    * @param {Object} options
    * @property {number} [options.max=1000]
-   * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
+   * @property {number} [options.log=this.logging] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
    * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} [_debug] A more human readable print of the configuration for this solver
@@ -345,26 +347,39 @@ class Solver {
    * @property {boolean} [_debugSpace] Log out solver._space after prepare() but before run(). Only works in dev code (stripped from dist)
    * @property {boolean} [_debugSolver] Call solver._debugSolver() after prepare() but before run()
    * @property {boolean} [_tostring] Serialize the config into a DSL
+   * @property {boolean} [_nosolve] Dont actually solve. Used for debugging when printing something but not interested in actually running.
+   * @property {number} [_debugDelay=0] When debugging, how many propagate steps should the debugging wait? (0 is only preprocessing)
    * @return {Object[]}
    */
   solve(options = {}) {
-    let log = options.log === undefined ? LOG_NONE : options.log;
+    let log = this.logging = options.log === undefined ? this.logging : options.log;
     let max = options.max || 1000;
 
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
 
     this._prepare(options, log);
-    // __REMOVE_BELOW_FOR_DSL__
-    if (options._tostring) console.log(exporter_main(this.config));
-    // __REMOVE_ABOVE_FOR_DSL__
-    if (options._debug) this._debugLegible();
-    if (options._debugConfig) this._debugConfig();
-    // __REMOVE_BELOW_FOR_DIST__
-    if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
-    // __REMOVE_ABOVE_FOR_DIST__
-    if (options._debugSolver) this._debugSolver();
+    let dbgCallback;
+    if (options._tostring || options._debug || options._debugConfig || options._debugSpace || options._debugSolver) {
+      dbgCallback = epoch => {
+        if (options._debugDelay >= epoch) {
+          // __REMOVE_BELOW_FOR_DSL__
+          if (options._tostring) console.log(exporter_main(this.config));
+          // __REMOVE_ABOVE_FOR_DSL__
+          if (options._debug) this._debugLegible();
+          if (options._debugConfig) this._debugConfig();
+          // __REMOVE_BELOW_FOR_DIST__
+          if (options._debugSpace) console.log('## _debugSpace:\n', getInspector()(this._space));
+          // __REMOVE_ABOVE_FOR_DIST__
+          if (options._debugSolver) this._debugSolver();
+          return true;
+        }
+        return false;
+      };
+      if (dbgCallback(0)) dbgCallback = undefined;
+    }
+    if (options._nosolve) return;
 
-    this._run(max, log);
+    this._run(max, log, dbgCallback);
 
     return this.solutions;
   }
@@ -473,8 +488,9 @@ class Solver {
    *
    * @param {number} max Hard stop the solver when this many solutions have been found
    * @param {number} log One of the LOG_* constants
+   * @param {Function} [dbgCallback] Call after each epoch until it returns false, then stop calling it.
    */
-  _run(max, log) {
+  _run(max, log, dbgCallback) {
     ASSERT(typeof max === 'number', 'max should be a number');
     ASSERT(log >= LOG_MIN && log <= LOG_MAX, 'log level should be a valid value');
 
@@ -506,9 +522,12 @@ class Solver {
 
     let solvedSpaces;
     if (alreadyRejected) {
+      if (log >= LOG_STATS) {
+        console.log('      - FD Input Problem Rejected Immediately');
+      }
       solvedSpaces = [];
     } else {
-      solvedSpaces = solver_runLoop(state, this.config, max);
+      solvedSpaces = solver_runLoop(state, this.config, max, dbgCallback);
     }
 
     if (log >= LOG_STATS) {
@@ -522,20 +541,6 @@ class Solver {
 
   generateSolutions(solvedSpaces, config, targetObject, log) {
     solver_getSolutions(solvedSpaces, config, targetObject, log);
-  }
-
-  /**
-   * Exposes internal method domain_fromList for subclass
-   * (Used by PathSolver in a private project)
-   * It will always create an array, never a "small domain"
-   * (number that is bit-wise flags) because that should be
-   * kept an internal finitedomain artifact.
-   *
-   * @param {number[]} list
-   * @returns {$arrdom[]}
-   */
-  domain_fromList(list) {
-    return domain_fromListToArrdom(list);
   }
 
   /**
@@ -588,7 +593,7 @@ class Solver {
     ASSERT(typeof options === 'object', 'value strat options should be an object');
 
     config_setOption(this.config, 'varValueStrat', options, varName);
-    ASSERT(!void (GENERATE_BARE_DSL && (this.exported = this.exported.replace(new RegExp('^(: ' + exporter_encodeVarName(varName) + ' =.*)', 'm'), '$1 # markov (set below): ' + JSON.stringify(options)) + '@custom set-markov ' + exporter_encodeVarName(varName) + ' ' + JSON.stringify(options) + '\n')));
+    ASSERT(!void (GENERATE_BARE_DSL && (this.exported = this.exported.replace(new RegExp('^(: ' + exporter_encodeVarName(varName) + ' =.*)', 'm'), '$1 # markov (set below): ' + JSON.stringify(options)) + '@custom set-valdist ' + exporter_encodeVarName(varName) + ' ' + JSON.stringify(options) + '\n')));
   }
 
   /**
@@ -602,6 +607,7 @@ class Solver {
   }
 
   _debugLegible() {
+    let WITH_INDEX = true;
     let clone = JSON.parse(JSON.stringify(this.config)); // prefer this over config_clone, just in case.
     let names = clone.allVarNames;
     let targeted = clone.targetedVars;
@@ -626,18 +632,18 @@ class Solver {
     console.log('- config:');
     console.log(getInspector()(clone));
     console.log('- vars (' + names.length + '):');
-    console.log(names.map((name, index) => `${index}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
+    console.log(names.map((name, index) => `${WITH_INDEX ? index : ''}: ${domain__debug(domains[index])} ${name === String(index) ? '' : ' // ' + name}`).join('\n'));
     if (targeted !== 'all') {
       console.log('- targeted vars (' + targeted.length + '): ' + targeted.join(', '));
     }
     console.log('- constraints (' + constraints.length + ' -> ' + propagators.length + '):');
     console.log(constraints.map((c, index) => {
       if (c.param === undefined) {
-        return `${index}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}(${c.varIndexes})      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')}`;
       } else if (c.name === 'reifier') {
-        return `${index}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}[${c.param}](${c.varIndexes})      --->  ${domain__debug(domains[c.varIndexes[0]])} ${c.param} ${domain__debug(domains[c.varIndexes[1]])} = ${domain__debug(domains[c.varIndexes[2]])}`;
       } else {
-        return `${index}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
+        return `${WITH_INDEX ? index : ''}: ${c.name}(${c.varIndexes}) = ${c.param}      --->  ${c.varIndexes.map(index => domain__debug(domains[index])).join(',  ')} -> ${domain__debug(domains[c.param])}`;
       }
     }).join('\n'));
     console.log('##/\n');
@@ -695,10 +701,19 @@ class Solver {
    * Import from a dsl into this solver
    *
    * @param {string} s
+   * @param {boolean} [_debug] Log out entire input with error token on fail?
    * @returns {Solver} this
    */
-  imp(s) {
-    return importer_main(s, this);
+  imp(s, _debug) {
+    if (this.logging) {
+      console.log('      - FD Importing DSL; ' + s.length + ' bytes');
+      console.time('      - FD Import Time:');
+    }
+    let solver = importer_main(s, this, _debug);
+    if (this.logging) {
+      console.timeEnd('      - FD Import Time:');
+    }
+    return solver;
   }
 
   /**
@@ -716,6 +731,20 @@ class Solver {
   }
 
   // __REMOVE_ABOVE_FOR_DSL__
+
+  /**
+   * Exposes internal method domain_fromList for subclass
+   * (Used by PathSolver in a private project)
+   * It will always create an array, never a "small domain"
+   * (number that is bit-wise flags) because that should be
+   * kept an internal finitedomain artifact.
+   *
+   * @param {number[]} list
+   * @returns {$arrdom[]}
+   */
+  static domainFromList(list) {
+    return domain_fromListToArrdom(list);
+  }
 }
 
 /**
@@ -772,12 +801,13 @@ function getInspector() {
  * @param {Object} state
  * @param {$config} config
  * @param {number} max Stop after finding this many solutions
+ * @param {Function} [dbgCallback] Call after each epoch until it returns false, then stop calling it.
  * @returns {$space[]} All solved spaces that were found (until max or end was reached)
  */
-function solver_runLoop(state, config, max) {
+function solver_runLoop(state, config, max, dbgCallback) {
   let list = [];
   while (state.more && list.length < max) {
-    search_depthFirst(state, config);
+    search_depthFirst(state, config, dbgCallback);
     if (state.status !== 'end') {
       list.push(state.space);
     }

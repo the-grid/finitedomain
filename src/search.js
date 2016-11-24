@@ -33,9 +33,11 @@ import distribute_getNextDomainForVar from './distribution/value';
  * @property {$space[]} [state.stack]=[state,space] The search stack as initialized by this class
  * @property {string} [state.status] Set to 'solved' or 'end'
  * @param {$config} config
+ * @param {Function} [dbgCallback] Call after each epoch until it returns false, then stop calling it.
  */
-function search_depthFirst(state, config) {
+function search_depthFirst(state, config, dbgCallback) {
   let stack = state.stack;
+  let epochs = 0;
 
   // the stack only contains stable spaces. the first space is not
   // stable so we propagate it first and before putting it on the stack.
@@ -43,6 +45,7 @@ function search_depthFirst(state, config) {
   if (isStart) {
     if (!stack) stack = state.stack = [];
     let solved = search_depthFirstLoop(state.space, config, stack, state);
+    if (dbgCallback && dbgCallback(++epochs)) dbgCallback = undefined;
     if (solved) return;
   }
 
@@ -52,6 +55,7 @@ function search_depthFirst(state, config) {
     if (childSpace) {
       // stabilize the offspring and put it on the stack
       let solved = search_depthFirstLoop(childSpace, config, stack, state);
+      if (dbgCallback && dbgCallback(++epochs)) dbgCallback = undefined;
       if (solved) return;
     } else {
       // remove the space, it has no more children. this is a dead end.

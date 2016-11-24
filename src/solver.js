@@ -73,9 +73,11 @@ class Solver {
    * @property {Object} [options.searchDefaults]
    * @property {$config} [options.config=config_create()]
    * @property {boolean} [options.exportBare]
+   * @property {number} [options.logging=LOG_NONE]
    */
   constructor(options = {}) {
     this._class = 'solver';
+    this.logging = options.log || LOG_NONE;
     this.distribute = options.distribute || 'naive';
     ASSERT(!void (options.exportBare !== undefined && (GENERATE_BARE_DSL = options.exportBare || false), this.exported = ''), 'bare exports kind of log the api inputs of this class in a DSL and print it at .solve() time');
 
@@ -337,7 +339,7 @@ class Solver {
    *
    * @param {Object} options
    * @property {number} [options.max=1000]
-   * @property {number} [options.log=LOG_NONE] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
+   * @property {number} [options.log=this.logging] Logging level; one of: 0, 1 or 2 (see LOG_* constants)
    * @property {string|Array.<string|Bvar>} options.vars Target branch vars or var names to force solve. Defaults to all.
    * @property {string|Object} [options.distribute='naive'] Maps to FD.distribution.value, see config_setOptions
    * @property {boolean} [_debug] A more human readable print of the configuration for this solver
@@ -350,7 +352,7 @@ class Solver {
    * @return {Object[]}
    */
   solve(options = {}) {
-    let log = options.log === undefined ? LOG_NONE : options.log;
+    let log = this.logging = options.log === undefined ? this.logging : options.log;
     let max = options.max || 1000;
 
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
@@ -703,7 +705,15 @@ class Solver {
    * @returns {Solver} this
    */
   imp(s, _debug) {
-    return importer_main(s, this, _debug);
+    if (this.logging) {
+      console.log('      - FD Importing DSL; ' + s.length + ' bytes');
+      console.time('      - FD Import Time:');
+    }
+    let solver = importer_main(s, this, _debug);
+    if (this.logging) {
+      console.timeEnd('      - FD Import Time:');
+    }
+    return solver;
   }
 
   /**

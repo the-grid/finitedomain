@@ -163,11 +163,16 @@ function ASSERT_SET_LOG(level) {
 
 let helper_logger = (console => function() { console.log('LOG', ...arguments); })(console);
 function ASSERT_LOG(flags, func) {
-  if (flags & LOG_FLAGS) {
-    ASSERT(typeof func === 'function');
+  if (true || flags & LOG_FLAGS) {
+    ASSERT(typeof func === 'function', 'expecting log function');
     func(helper_logger);
   }
 }
+function ASSERT_LOG2(...args) {
+  console.log(...args);
+  return false;
+}
+
 
 // __REMOVE_ABOVE_FOR_ASSERTS__
 
@@ -211,6 +216,7 @@ export {
   ASSERT_ARRDOM,
   ASSERT_BITDOM,
   ASSERT_LOG,
+  ASSERT_LOG2,
   ASSERT_NORDOM,
   ASSERT_NUMDOM,
   ASSERT_SET_LOG,

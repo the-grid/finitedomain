@@ -8,6 +8,7 @@
 import {
   SUB,
   SUP,
+  ASSERT_LOG2,
   THROW,
 } from './helpers';
 import {
@@ -34,8 +35,10 @@ import {
   trie_has,
 } from './trie';
 
-let SOLVED = true;
-let REJECTED = false;
+// BODY_START
+
+let RUNNER_SOLVED = true;
+let RUNNER_REJECTED = false;
 
 function solverSolver(dsl) {
   let varTrie = trie_create();
@@ -77,8 +80,8 @@ function solverSolver(dsl) {
 
   minimize(mls, getVar, domains, addVar);
   let state = getState(domains);
-  if (state === SOLVED) return createSolution(vars, domains);
-  if (state === REJECTED) return REJECTED;
+  if (state === RUNNER_SOLVED) return createSolution(vars, domains);
+  if (state === RUNNER_REJECTED) return RUNNER_REJECTED;
 
   if (input.varstrat === 'throw') THROW('Forcing a choice with strat=throw');
   //
@@ -99,12 +102,13 @@ function solverSolver(dsl) {
   THROW('implement me (solve minimized problem)');
   return false;
 }
+let Solver = solverSolver; // TEMP
 
 function minimize(mls, getVar, domains, addVar) {
   let mlConstraints = Buffer.from(mls, 'binary');
   // now we can access the ml in terms of bytes, jeuj
   let resolved = cr_optimizeConstraints(mlConstraints, domains, addVar, getVar);
-  if (resolved) return console.log('minimizing resolved it!'); // all constraints have been eliminated or an empty domain was found
+  if (resolved) return ASSERT_LOG2('minimizing resolved it!'); // all constraints have been eliminated or an empty domain was found
 
   let mlPropagators = compilePropagators(mlConstraints);
   cr_stabilize(mlPropagators, domains);
@@ -116,28 +120,28 @@ function minimize(mls, getVar, domains, addVar) {
 //  return node.next_distribution_choice >= 2;
 //}
 function getState(domains) {
-  console.log('getState:', domains.map(domain__debug));
-  let returnValue = SOLVED;
+  ASSERT_LOG2('getState:', domains.map(domain__debug));
+  let returnValue = RUNNER_SOLVED;
   domains.some(domain => {
     if (typeof domain !== 'number') {
-      console.log('state of', domain, 'is undefined');
+      ASSERT_LOG2('state of', domain, 'is undefined');
       // any non-soldom halts the function immediately
       returnValue = undefined;
       return true;
     }
     if (!domain) {
-      console.log('state of', domain, 'is rejected');
+      ASSERT_LOG2('state of', domain, 'is rejected');
       // empty domain means rejected
-      returnValue = REJECTED;
+      returnValue = RUNNER_REJECTED;
       return true;
     }
     if (!domain_isSolved(domain)) {
-      console.log('state of', domain, 'is undefined');
+      ASSERT_LOG2('state of', domain, 'is undefined');
       // this domain can only be solved if the soldom flag is set... and it wasn't
       returnValue = undefined;
     }
   });
-  console.log('-->', returnValue);
+  ASSERT_LOG2('-->', returnValue);
   return returnValue;
 }
 function createSolution(vars, domains) {
@@ -149,9 +153,11 @@ function createSolution(vars, domains) {
     else d = domain_toList(d);
     solution[name] = d;
   });
-  console.log('createSolution results in:', solution);
+  ASSERT_LOG2('createSolution results in:', solution);
   return solution;
 }
+
+// BODY_STOP
 
 export default solverSolver;
 //

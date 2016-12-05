@@ -7,8 +7,36 @@ import {
   SUP,
 
   ASSERT,
+  ASSERT_LOG2,
   THROW,
 } from './helpers';
+import {
+  ML_UNUSED,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_GT,
+  ML_GTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
+  ML_ISGT,
+  ML_ISGTE,
+  ML_SUM,
+  ML_PRODUCT,
+  ML_DISTINCT,
+  ML_PLUS,
+  ML_MINUS,
+  ML_MUL,
+  ML_DIV,
+  ML_JMP,
+  ML_NOOP,
+  ML_NOOP2,
+  ML_NOOP4,
+  ML_STOP,
+} from './compiler';
 import {
   domain__debug,
   domain_containsValue,
@@ -28,45 +56,20 @@ import {
   domain_removeValue,
 } from './domain';
 
-
-const ML_UNUSED = 0;
-const ML_EQ = 1;
-const ML_NEQ = 2;
-const ML_LT = 3;
-const ML_LTE = 4;
-const ML_GT = 5; // or just eliminate this immediately?
-const ML_GTE = 6; // or just eliminate this immediately?
-const ML_ISEQ = 7;
-const ML_ISNEQ = 8;
-const ML_ISLT = 9;
-const ML_ISLTE = 0xA;
-const ML_ISGT = 0xB; // or just eliminate this immediately?
-const ML_ISGTE = 0xC; // or just eliminate this immediately?
-const ML_SUM = 0xD;
-const ML_PRODUCT = 0xE;
-const ML_DISTINCT = 0xF;
-const ML_PLUS = 0x10;
-const ML_MINUS = 0x11;
-const ML_MUL = 0x12;
-const ML_DIV = 0x13;
-const ML_JMP = 0x14; // jump by a delta, starting from 3 bytes after op offset (so a total of: 8bit op + 16bit delta + delta)
-const ML_NOOP = 0xF1;
-const ML_NOOP2 = 0xF2;
-const ML_NOOP4 = 0xF4;
-const ML_STOP = 0xFF;
+// BODY_START
 
 function cr_optimizeConstraints(ml, domains, addVar, getVar) {
-  console.log('cr_optimizeConstraints', ml, domains.map(domain__debug));
+  ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   let change = true;
   let onlyJumps = true;
   let emptyDomain = false;
   let pc = 0;
   while (change) {
-    console.log('cr outer loop');
+    ASSERT_LOG2('cr outer loop');
     change = false;
     pc = 0;
     cr_innerLoop();
-    console.log('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
+    ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (onlyJumps) return true; // solved
     if (emptyDomain) return true; // rejected
   }
@@ -77,128 +80,128 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc++];
-      console.log('# CRc[' + pcStart + ']:', op, '(0x' + op.toString(16) + ')');
+      ASSERT_LOG2('# CRc[' + pcStart + ']:', op, '(0x' + op.toString(16) + ')');
       switch (op) {
         case ML_UNUSED:
           return THROW(' ! problem @', pcStart);
 
         case ML_STOP:
-          console.log(' ! good end @', pcStart);
+          ASSERT_LOG2(' ! good end @', pcStart);
           return;
 
         case ML_JMP:
-          console.log('- jmp @', pcStart);
+          ASSERT_LOG2('- jmp @', pcStart);
           let delta = cr_dec16();
-          console.log('- jump', delta);
+          ASSERT_LOG2('- jump', delta);
           pc += delta;
           break;
 
         case ML_EQ:
-          console.log('- eq @', pcStart);
+          ASSERT_LOG2('- eq @', pcStart);
           cr_eq(ml);
           break;
 
         case ML_NEQ:
-          console.log('- neq @', pcStart);
+          ASSERT_LOG2('- neq @', pcStart);
           cr_neq(ml);
           break;
 
         case ML_LT:
-          console.log('- lt @', pcStart);
+          ASSERT_LOG2('- lt @', pcStart);
           cr_lt(ml);
           break;
 
         case ML_LTE:
-          console.log('- lte @', pcStart);
+          ASSERT_LOG2('- lte @', pcStart);
           cr_lte(ml);
           break;
 
         case ML_GT:
-          console.log('- gt @', pcStart);
+          ASSERT_LOG2('- gt @', pcStart);
           cr_gt(ml);
           break;
 
         case ML_GTE:
-          console.log('- gte @', pcStart);
+          ASSERT_LOG2('- gte @', pcStart);
           cr_gte(ml);
           break;
 
         case ML_DISTINCT:
-          console.log('- distinct @', pcStart);
+          ASSERT_LOG2('- distinct @', pcStart);
           cr_distinct(ml);
           break;
 
         case ML_PLUS:
-          console.log('- plus @', pcStart);
+          ASSERT_LOG2('- plus @', pcStart);
           cr_plus(ml);
           break;
 
         case ML_MINUS:
-          console.log('- minus @', pcStart);
+          ASSERT_LOG2('- minus @', pcStart);
           cr_minus(ml);
           break;
 
         case ML_MUL:
-          console.log('- mul @', pcStart);
+          ASSERT_LOG2('- mul @', pcStart);
           cr_mul(ml);
           break;
 
         case ML_DIV:
-          console.log('- div @', pcStart);
+          ASSERT_LOG2('- div @', pcStart);
           cr_div(ml);
           break;
 
         case ML_ISEQ:
-          console.log('- iseq @', pcStart);
+          ASSERT_LOG2('- iseq @', pcStart);
           cr_isEq(ml);
           break;
 
         case ML_ISNEQ:
-          console.log('- isneq @', pcStart);
+          ASSERT_LOG2('- isneq @', pcStart);
           cr_isNeq(ml);
           break;
 
         case ML_ISLT:
-          console.log('- islt @', pcStart);
+          ASSERT_LOG2('- islt @', pcStart);
           cr_isLt(ml);
           break;
 
         case ML_ISLTE:
-          console.log('- islte @', pcStart);
+          ASSERT_LOG2('- islte @', pcStart);
           cr_isLte(ml);
           break;
 
         case ML_ISGT:
-          console.log('- isgt @', pcStart);
+          ASSERT_LOG2('- isgt @', pcStart);
           cr_isGt(ml);
           break;
 
         case ML_ISGTE:
-          console.log('- isgte @', pcStart);
+          ASSERT_LOG2('- isgte @', pcStart);
           cr_isGte(ml);
           break;
 
         case ML_SUM:
-          console.log('- sum @', pcStart);
+          ASSERT_LOG2('- sum @', pcStart);
           cr_sum(ml);
           break;
 
         case ML_PRODUCT:
-          console.log('- product @', pcStart);
+          ASSERT_LOG2('- product @', pcStart);
           cr_product(ml);
           break;
 
         case ML_NOOP:
           pc = pcStart + 1;
-          console.log('- noop @', pcStart, '->', pc);
+          ASSERT_LOG2('- noop @', pcStart, '->', pc);
           break;
         case ML_NOOP2:
           pc = pcStart + 2;
-          console.log('- noop2 @', pcStart, '->', pc);
+          ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
           break;
         case ML_NOOP4:
           pc = pcStart + 4;
-          console.log('- noop4 @', pcStart, '->', pc);
+          ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
           break;
 
         default:
@@ -211,13 +214,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_dec16() {
     ASSERT(pc < ml.length - 1, 'OOB');
-    console.log(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    ASSERT_LOG2(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 8) | ml[pc++];
   }
 
   function cr_dec16pc(pc) {
     ASSERT(pc < ml.length - 1, 'OOB');
-    console.log(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
+    ASSERT_LOG2(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
     return (ml[pc++] << 8) | ml[pc];
   }
 
@@ -225,7 +228,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT(typeof num === 'number', 'Encoding numbers');
     ASSERT((num >> 0) <= 0xff, 'Only encode 8bit values');
     ASSERT(pc < ml.length, 'OOB');
-    console.log(' . enc8(' + num + ')', num, 'at', pc);
+    ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc);
     ml[pc] = num;
   }
 
@@ -235,7 +238,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
   //  ASSERT((a >> 0) <= 0xff, 'Only encode 8bit values');
   //  ASSERT((b >> 0) <= 0xff, 'Only encode 8bit values');
   //  ASSERT(pc < ml.length - 1, 'OOB');
-  //  console.log(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
+  //  ASSERT_LOG2(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
   //  ml[pc++] = a;
   //  ml[pc] = b;
   //}
@@ -244,7 +247,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT(typeof num === 'number', 'Encoding numbers');
     ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
     ASSERT(pc < ml.length - 1, 'OOB');
-    console.log(' - enc16(' + num + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+    ASSERT_LOG2(' - enc16(' + num + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
     ml[pc++] = (num >> 8) & 0xff;
     ml[pc] = num & 0xff;
   }
@@ -260,25 +263,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let A = domains[indexA];
     let B = domains[indexB];
 
-    console.log(' = cr_eq', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = cr_eq', indexA, indexB, domain__debug(A), domain__debug(B));
 
     let R = domain_intersection(A, B);
     change = A !== R || B !== R;
     domains[indexA] = R;
     domains[indexB] = R;
 
-    console.log(' ->', domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // solved if the two domains intersect to a solved domain
     if (domain_getValue(R) >= 0) {
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 2);
 
       // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -295,7 +298,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let A = domains[indexA];
     let B = domains[indexB];
 
-    console.log(' = cr_neq', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = cr_neq', indexA, indexB, domain__debug(A), domain__debug(B));
 
     // if either is solved then the other domain should
     // become the result of unsolved_set "minus" solved_set
@@ -310,19 +313,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       A = domains[indexA] = domain_removeValue(A, vB);
     }
 
-    console.log(' ->', domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // solved if the two domains (now) intersects to an empty domain
     let R = domain_intersection(A, B);
     if (domain_isEmpty(R)) {
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 2);
 
       // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -336,7 +339,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' = cr_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
+    ASSERT_LOG2(' = cr_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
     return _cr_lt(ml, indexA, indexB, offset);
   }
@@ -356,11 +359,11 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     B = domains[indexB] = domain_removeLte(B, domain_min(A));
     change = oA !== A || oB !== B;
 
-    console.log(' ->', domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // any value in A must be < any value in B
     if (domain_max(A) < domain_min(B)) {
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // solved because there is no value left in A that is bigger or equal to B
       // op + A are already skipped. this skips over B
       cr_enc8(offset, ML_JMP);
@@ -368,7 +371,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
       // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -382,7 +385,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' = cr_lte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
+    ASSERT_LOG2(' = cr_lte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
     return _cr_lte(ml, indexA, indexB, offset);
   }
@@ -399,19 +402,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let oA = A;
     let oB = B;
     A = domains[indexA] = domain_removeGtUnsafe(A, domain_max(B));
-    console.log(' - updated A', domain__debug(A), 'max B=', domain_max(B));
+    ASSERT_LOG2(' - updated A', domain__debug(A), 'max B=', domain_max(B));
     if (!A) return emptyDomain = true;
     // A is (now) empty so just remove it
     B = domains[indexB] = domain_removeLtUnsafe(B, domain_min(A));
-    console.log(' - updated B', domain__debug(B), 'max A=', domain_min(A));
+    ASSERT_LOG2(' - updated B', domain__debug(B), 'max A=', domain_min(A));
     if (!B) return emptyDomain = true;
     change = oA !== A || oB !== B;
 
-    console.log(' ->', domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // any value in A must be < any value in B
     if (domain_max(A) <= domain_min(B)) {
-      console.log(' - eliminating constraint at 1 because max(A)<=max(B) (', domain_max(A), '<=', domain_min(B), ')');
+      ASSERT_LOG2(' - eliminating constraint at 1 because max(A)<=max(B) (', domain_max(A), '<=', domain_min(B), ')');
       // solved because there is no value left in A that is bigger or equal to B
       // op + A are already skipped. this skips over B
       cr_enc8(offset, ML_JMP);
@@ -419,7 +422,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
       // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -433,7 +436,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' = cr_gt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
+    ASSERT_LOG2(' = cr_gt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
     // swap args!
     _cr_lt(ml, indexB, indexA, offset);
@@ -448,7 +451,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' = cr_gte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
+    ASSERT_LOG2(' = cr_gte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
     // swap args!
     _cr_lte(ml, indexB, indexA, offset);
@@ -458,9 +461,9 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let offset = pc - 1;
     let count = cr_dec16();
 
-    console.log(' = cr_distinct', count, 'x');
-    console.log('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    console.log('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])));
+    ASSERT_LOG2(' = cr_distinct', count, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])));
 
     // a distinct is basically a pyramid of neq's; one for each unique pair of the set
     // to prevent generating an array we'll decode every var during the loop...
@@ -468,22 +471,22 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = domains[indexA];
-      console.log('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
+      ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
       if (!A) return emptyDomain = true;
 
       let v = domain_getValue(A);
       if (v >= 0) {
-        console.log('  - solved, so removing', v, 'from all other domains');
+        ASSERT_LOG2('  - solved, so removing', v, 'from all other domains');
         // if v is solved, remove v from all other domains, then remove v from the list
         for (let j = 0; j >= 0; --j) {
           if (j !== i) {
             let indexB = cr_dec16pc(pc + j * 2);
             ASSERT(indexA !== indexB, 'same var should not occur multiple times...'); // what about constants? could be artifacts (A=1,B=1,distinct(A,B))
-            console.log('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
+            ASSERT_LOG2('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
             let beforeB = domains[indexB];
             let B = domains[indexB] = domain_removeValue(domains[indexB], v);
             change = change || B !== beforeB;
-            console.log('    -> B=', domain__debug(domains[indexB]), B !== beforeB);
+            ASSERT_LOG2('    -> B=', domain__debug(domains[indexB]), B !== beforeB);
             if (!B) return emptyDomain = true;
           }
         }
@@ -492,16 +495,16 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         // - move all indexes bigger than the current back one position
         // - compile the new count back in
         // - compile a NOOP in the place of the last element
-        console.log('  - moving further domains one space forward (from ', i + 1, ' / ', count, ')');
+        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', count, ')');
         for (let k = i + 1; k < count; ++k) {
-          console.log('    - moving ', (k + 1) + 'th var');
+          ASSERT_LOG2('    - moving ', (k + 1) + 'th var');
           ml[pc + k * 2] = ml[pc + (k + 1) * 2];
           ml[pc + k * 2 + 1] = ml[pc + (k + 1) * 2 + 1];
         }
         --count;
-        console.log('  - recompiling new count (', count, ')');
+        ASSERT_LOG2('  - recompiling new count (', count, ')');
         cr_enc16(pc - 2, count);
-        console.log('  - compiling noop into empty spot');
+        ASSERT_LOG2('  - compiling noop into empty spot');
         cr_enc8(pc + count * 2, ML_NOOP2);
       }
     }
@@ -518,30 +521,30 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ml[offset + 4] = ml[offset + 6];
       // this should open up 2 bytes (the count) so encode a NOOP2 in there
       cr_enc8(offset + 5, ML_NOOP2);
-      console.log(' - changed to a neq');
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - changed to a neq');
+      ASSERT_LOG2(' - ml now:', ml);
       onlyJumps = false;
       pc = offset + 1 + 6; // count=2+A=2+B=2=6
     } else if (count === 1) {
       // eliminate. skip (count+1)*2 bytes
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + first var are already skipped. this skips over the other vars
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, -3 + (count + 1) * 2);
 
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - ml now:', ml);
       pc += count * 2;
     } else if (count === 0) {
       // eliminate. skip the op
-      console.log(' - eliminating constraint without vars');
+      ASSERT_LOG2(' - eliminating constraint without vars');
       // there are no vars so only replace the op with a noop (skips one byte) and the count with a noop2
       cr_enc8(offset, ML_NOOP);
       cr_enc8(offset + 1, ML_NOOP2);
 
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - ml now:', ml);
       // pc is already good now
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
       pc = offset + 1 + 2 + count * 2; // skip the 16bit indexes manually
     }
@@ -560,7 +563,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_plus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_plus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oA = A;
@@ -575,31 +578,31 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let maxR = domain_max(R);
     A = domain_removeLtUnsafe(A, minR - domain_max(B));
     A = domain_removeGtUnsafe(A, maxR - domain_min(B));
-    console.log('    - updated A:', domain__debug(A), '<' + minR + '-' + domain_max(B) + '=' + (minR - domain_max(B)) + ', ' + maxR + '-' + domain_min(B) + '=' + (maxR - domain_min(B)) + '>');
+    ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '-' + domain_max(B) + '=' + (minR - domain_max(B)) + ', ' + maxR + '-' + domain_min(B) + '=' + (maxR - domain_min(B)) + '>');
     if (A) {
       let minA = domain_min(A);
       let maxA = domain_max(A);
       B = domain_removeLtUnsafe(B, minR - maxA);
       B = domain_removeGtUnsafe(B, maxR - minA);
-      console.log('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
       if (B) {
         let minB = domain_min(B);
         let maxB = domain_max(B);
         R = domain_removeLtUnsafe(R, minA + minB);
         R = domain_removeGtUnsafe(R, maxA + maxB);
-        console.log('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
         if (R) {
           if (oR !== R || oB !== B) {
             minR = domain_min(R);
             maxR = domain_max(R);
             A = domain_removeLtUnsafe(A, minR - maxB);
             A = domain_removeGtUnsafe(A, maxR - minB);
-            console.log('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
             if (A) {
               if (oR !== R || oA !== A) {
                 B = domain_removeLtUnsafe(B, minR - domain_max(A));
                 B = domain_removeGtUnsafe(B, maxR - domain_min(A));
-                console.log('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
                 if (!B) {
                   emptyDomain = true;
                 }
@@ -618,7 +621,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       emptyDomain = true;
     }
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (oA !== A || oB !== B || oR !== R) {
       change = true;
@@ -632,14 +635,14 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
 
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
       return;
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -657,7 +660,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oA = A;
@@ -673,31 +676,31 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let maxR = domain_max(R);
     A = domain_removeLtUnsafe(A, minR + domain_min(B));
     A = domain_removeGtUnsafe(A, maxR + domain_max(B));
-    console.log('    - updated A:', domain__debug(A), '<' + minR + '+' + domain_min(B) + '=' + (minR + domain_min(B)) + ', ' + maxR + '+' + domain_max(B) + '=' + (maxR + domain_max(B)) + '>');
+    ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '+' + domain_min(B) + '=' + (minR + domain_min(B)) + ', ' + maxR + '+' + domain_max(B) + '=' + (maxR + domain_max(B)) + '>');
     if (A) {
       let minA = domain_min(A);
       let maxA = domain_max(A);
       B = domain_removeLtUnsafe(B, minA - maxR);
       B = domain_removeGtUnsafe(B, maxA - minR);
-      console.log('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
       if (B) {
         let minB = domain_min(B);
         let maxB = domain_max(B);
         R = domain_removeLtUnsafe(R, minA - maxB);
         R = domain_removeGtUnsafe(R, maxA - minB);
-        console.log('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
         if (R) {
           if (oR !== R || oB !== B) {
             minR = domain_min(R);
             maxR = domain_max(R);
             A = domain_removeLtUnsafe(A, minR + minB);
             A = domain_removeGtUnsafe(A, maxR + maxB);
-            console.log('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
             if (A) {
               if (oR !== R || oA !== A) {
                 B = domain_removeLtUnsafe(B, domain_min(A) - maxR);
                 B = domain_removeGtUnsafe(B, domain_max(A) - minR);
-                console.log('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
                 if (!B) {
                   emptyDomain = true;
                 }
@@ -716,7 +719,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       emptyDomain = true;
     }
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (oA !== A || oB !== B || oR !== R) {
       change = true;
@@ -730,13 +733,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
       return;
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -754,7 +757,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oA = A;
@@ -774,33 +777,33 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let maxB = domain_max(B);
     A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
     A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
-    console.log('    - updated A:', domain__debug(A), '<floor(' + minR + '/' + domain_max(B) + ')=' + Math.floor(minR / domain_max(B)) + ', ceil(' + maxR + '/' + domain_min(B) + ')=' + Math.ceil(maxR / domain_min(B)) + '>');
+    ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '/' + domain_max(B) + ')=' + Math.floor(minR / domain_max(B)) + ', ceil(' + maxR + '/' + domain_min(B) + ')=' + Math.ceil(maxR / domain_min(B)) + '>');
     if (A) {
       let minA = domain_min(A);
       let maxA = domain_max(A);
       B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
       B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-      console.log('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
       if (B) {
         minB = domain_min(B);
         maxB = domain_max(B);
         R = domain_removeLtUnsafe(R, minA * minB);
         R = domain_removeGtUnsafe(R, maxA * maxB);
-        console.log('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
         if (R) {
           if (oR !== R || oB !== B) {
             minR = domain_min(R);
             maxR = domain_max(R);
             A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
             A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
-            console.log('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
             if (A) {
               if (oR !== R || oA !== A) {
                 minA = domain_min(A);
                 maxA = domain_max(A);
                 B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
                 B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-                console.log('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
                 if (!B) {
                   emptyDomain = true;
                 }
@@ -819,7 +822,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       emptyDomain = true;
     }
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (oA !== A || oB !== B || oR !== R) {
       change = true;
@@ -833,13 +836,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
       return;
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -857,7 +860,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oA = A;
@@ -878,33 +881,33 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let maxB = domain_max(B);
     A = domain_removeLtUnsafe(A, minR * minB);
     A = domain_removeGtUnsafe(A, maxR * maxB);
-    console.log('    - updated A:', domain__debug(A), '<floor(' + minR + '*' + minB + ')=' + (minR * minB) + ', (' + maxR + '*' + maxB + ')=' + (maxR / maxB) + '>');
+    ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '*' + minB + ')=' + (minR * minB) + ', (' + maxR + '*' + maxB + ')=' + (maxR / maxB) + '>');
     if (A) {
       let minA = domain_min(A);
       let maxA = domain_max(A);
       B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
       B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-      console.log('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
       if (B) {
         minB = domain_min(B);
         maxB = domain_max(B);
         R = domain_removeLtUnsafe(R, maxB ? Math.floor(minA / maxB) : SUB);
         R = domain_removeGtUnsafe(R, minB ? Math.ceil(maxA / minB) : SUP);
-        console.log('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
         if (R) {
           if (oR !== R || oB !== B) {
             minR = domain_min(R);
             maxR = domain_max(R);
             A = domain_removeLtUnsafe(A, minR * minB);
             A = domain_removeGtUnsafe(A, maxR * maxB);
-            console.log('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
             if (A) {
               if (oR !== R || oA !== A) {
                 minA = domain_min(A);
                 maxA = domain_max(A);
                 B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
                 B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-                console.log('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
                 if (!B) {
                   emptyDomain = true;
                 }
@@ -923,7 +926,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       emptyDomain = true;
     }
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (oA !== A || oB !== B || oR !== R) {
       change = true;
@@ -937,13 +940,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
       return;
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -961,12 +964,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let remove = false;
     if (domain_getValue(A) >= 0 && domain_getValue(B) >= 0) {
-      console.log(' - A and B are solved so we can determine R');
+      ASSERT_LOG2(' - A and B are solved so we can determine R');
       let result = A === B ? 1 : 0;
       if (domain_containsValue(R, result)) {
         R = domains[indexR] = domain_createValue(result);
@@ -979,7 +982,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       }
     } else {
       if (domain_max(R) > 1) {
-        console.log(' - Trimming R (', domain__debug(R), ') to bool');
+        ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
         ASSERT(domain_min(R) === 0, 'should be min zero');
         R = domains[indexR] = domain_createRange(0, 1);
         change = true;
@@ -989,7 +992,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
     let vR = domain_getValue(R);
     if (vR === 0) {
-      console.log(' ! changing iseq to neq and revisiting');
+      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_NEQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
@@ -997,7 +1000,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       return;
     }
     if (vR === 1) {
-      console.log(' ! changing iseq to eq and revisiting');
+      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_EQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
@@ -1007,15 +1010,15 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -1033,12 +1036,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let remove = false;
     if (domain_getValue(A) >= 0 && domain_getValue(B) >= 0) {
-      console.log(' - A and B are solved so we can determine R');
+      ASSERT_LOG2(' - A and B are solved so we can determine R');
       let result = A !== B ? 1 : 0;
       if (domain_containsValue(R, result)) {
         R = domains[indexR] = domain_createValue(result);
@@ -1051,7 +1054,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       }
     } else {
       if (domain_max(R) > 1) {
-        console.log(' - Trimming R (', domain__debug(R), ') to bool');
+        ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
         ASSERT(domain_min(R) === 0, 'should be min zero');
         R = domains[indexR] = domain_createRange(0, 1);
         change = true;
@@ -1061,7 +1064,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
     let vR = domain_getValue(R);
     if (vR === 0) {
-      console.log(' ! changing isneq to eq and revisiting');
+      ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_EQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
@@ -1069,7 +1072,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       return;
     }
     if (vR === 1) {
-      console.log(' ! changing isneq to neq and revisiting');
+      ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_NEQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
@@ -1079,15 +1082,15 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
 
-    console.log(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      console.log(' - eliminating constraint');
+      ASSERT_LOG2(' - eliminating constraint');
       // op + A are already skipped. this skips over B and R
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, 4);
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -1105,7 +1108,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oR = R;
@@ -1125,13 +1128,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
-      console.log(' ! result var solved to 1 so compiling an lt in its place');
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
       cr_enc8(offset, ML_LT);
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
-      console.log(' ! result var solved to 0 so compiling an lte with swapped args in its place');
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
       // replace isLt with a regular lte
       cr_enc8(offset, ML_LTE);
       cr_enc16(offset + 1, indexB);
@@ -1139,7 +1142,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -1157,7 +1160,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    console.log(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oR = R;
@@ -1177,13 +1180,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lte is an lt with swapped args
     if (vR === 1) {
-      console.log(' ! result var solved to 1 so compiling an lte in its place');
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLte with regular lt
       cr_enc8(offset, ML_LTE);
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
-      console.log(' ! result var solved to 0 so compiling an lt with swapped args in its place');
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte
       cr_enc8(offset, ML_LT);
       cr_enc16(offset + 1, indexB);
@@ -1191,7 +1194,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
   }
@@ -1202,7 +1205,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' ! changing isgt to islte with swapped A and B');
+    ASSERT_LOG2(' ! changing isgt to islte with swapped A and B');
 
     cr_enc8(offset, ML_ISLT);
     cr_enc16(offset + 1, indexB);
@@ -1217,7 +1220,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    console.log(' ! changing isgt to islte with swapped A and B');
+    ASSERT_LOG2(' ! changing isgt to islte with swapped A and B');
 
     cr_enc8(offset, ML_ISLTE);
     cr_enc16(offset + 1, indexB);
@@ -1233,9 +1236,9 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
     let R = domains[indexR];
 
-    console.log(' = cr_sum', count, 'x');
-    console.log('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    console.log('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2(' = cr_sum', count, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
 
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
     // to prevent generating an array we'll decode every var during the loop...
@@ -1259,13 +1262,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       sumHi += max;
     }
 
-    console.log(' - total min=', sumLo, ', max=', sumHi, '. applying bounds to this R:', domain__debug(R));
+    ASSERT_LOG2(' - total min=', sumLo, ', max=', sumHi, '. applying bounds to this R:', domain__debug(R));
 
     // trim the result to <low, hi>, which is the sum of the lows and his of all the args
     let oR = R;
     R = domain_removeLtUnsafe(R, sumLo);
     R = domain_removeGtUnsafe(R, sumHi);
-    console.log(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
+    ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
     if (R !== oR) {
       if (!R) return emptyDomain = true;
       change = true;
@@ -1275,7 +1278,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let minR = domain_min(R);
     let maxR = domain_max(R);
 
-    console.log(' - Now back propagating R to the args', minR, maxR);
+    ASSERT_LOG2(' - Now back propagating R to the args', minR, maxR);
 
     // now trim the args for any value that can not amount to a valid result according to R
     // we use the min and max of R, subtract the total hi or lo from that number without the
@@ -1307,8 +1310,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       }
     }
 
-    console.log(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants sum to', constantSum);
-    console.log(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
+    ASSERT_LOG2(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants sum to', constantSum);
+    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
     if (count - constants === (constants ? 1 : 2)) {
       ASSERT(constants ? var2 === -1 : var2 >= 0, 'if there are constants there should not be a second non-constant here otherwise expecting a second var');
@@ -1334,17 +1337,17 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       if (count === 2) {
         // in this case you only need to eliminate space for the 16bit count
         // that's 2 bytes space, a jmp would take 3, so compile a noop instead
-        console.log(' - len=2 so just a noop2 for the count');
+        ASSERT_LOG2(' - len=2 so just a noop2 for the count');
         cr_enc8(offset + 7, ML_NOOP2);
       } else {
         // skip count-2 vars. jmp will ignore itself so -3
-        console.log(' - and a jump over the count and', count - 2, 'vars');
+        ASSERT_LOG2(' - and a jump over the count and', count - 2, 'vars');
         cr_enc8(offset + 7, ML_JMP);
         cr_enc16(offset + 8, (1 + count - 2) * 2 - 3);
       }
 
-      console.log(' - changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
+      ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
     } else if (!constants && count === 1) {
@@ -1360,17 +1363,17 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc16(offset + 3, indexR);
       cr_enc8(offset + 5, ML_NOOP2);
 
-      console.log(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
+      ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
     } else if (count - constants === 0) {
       // eliminate. skip (count+1)*2+2 bytes
-      console.log(' - eliminating constraint since all vars are constants');
+      ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
       R = domain_intersection(R, domain_createValue(constantSum));
       if (oR !== R) {
-        console.log(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
+        ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
         if (!R) return emptyDomain = true;
         change = true;
         domains[indexR] = R;
@@ -1378,11 +1381,11 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, delta);
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
     } else {
       ASSERT(count - constants > 2, 'There no other valid options here');
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
       pc = offset + 1 + 2 + count * 2 + 2; // skip the 16bit indexes manually
     }
@@ -1395,9 +1398,9 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
     let R = domains[indexR];
 
-    console.log(' = cr_product', count, 'x');
-    console.log('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    console.log('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2(' = cr_product', count, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
 
     // a product is basically a pyramid of muls; (A*B)*(C*D) etc
     // to prevent generating an array we'll decode every var during the loop...
@@ -1421,13 +1424,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       productHi *= max;
     }
 
-    console.log(' - total min=', productLo, ', max=', productHi, '. applying bounds to this R:', domain__debug(R));
+    ASSERT_LOG2(' - total min=', productLo, ', max=', productHi, '. applying bounds to this R:', domain__debug(R));
 
     // trim the result to <low, hi>, which is the product of the lows and his of all the args
     let oR = R;
     R = domain_removeLtUnsafe(R, productLo);
     R = domain_removeGtUnsafe(R, productHi);
-    console.log(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
+    ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
     if (R !== oR) {
       if (!R) return emptyDomain = true;
       change = true;
@@ -1437,7 +1440,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let minR = domain_min(R);
     let maxR = domain_max(R);
 
-    console.log(' - Now back propagating R to the args', minR, maxR);
+    ASSERT_LOG2(' - Now back propagating R to the args', minR, maxR);
 
     // now trim the args for any value that can not amount to a valid result according to R
     // we use the min and max of R, subtract the total hi or lo from that number without the
@@ -1451,14 +1454,14 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = domains[indexA];
       let oA = A;
-      //console.log('lte, A=', domain__debug(A), 'max=',domain_max(A), 'producthi=',productHi, 'ta=',productHi / domain_max(A), 'min(R)/ta=', minR/(productHi / domain_max(A)));
+      //ASSERT_LOG2('lte, A=', domain__debug(A), 'max=',domain_max(A), 'producthi=',productHi, 'ta=',productHi / domain_max(A), 'min(R)/ta=', minR/(productHi / domain_max(A)));
       let ta = productHi / domain_max(A);
       if (ta) A = domain_removeLtUnsafe(A, Math.floor(minR / ta));
       ta = productLo / domain_min(A);
-      //console.log('gte', ta, maxR/ta)
+      //ASSERT_LOG2('gte', ta, maxR/ta)
       if (ta) A = domain_removeGtUnsafe(A, Math.ceil(maxR / ta));
       if (A !== oA) {
-        console.log(' - updated domain from', domain__debug(oA), 'to', domain__debug(A));
+        ASSERT_LOG2(' - updated domain from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
         change = true;
         domains[indexA] = A;
@@ -1474,8 +1477,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       }
     }
 
-    console.log(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants mul to', constantsProduct);
-    console.log(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
+    ASSERT_LOG2(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants mul to', constantsProduct);
+    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
     if (count - constants === (constants ? 1 : 2)) {
       ASSERT(constants ? var2 === -1 : var2 >= 0, 'if there are constants there should not be a second non-constant here otherwise expecting a second var');
@@ -1501,17 +1504,17 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       if (count === 2) {
         // in this case you only need to eliminate space for the 16bit count
         // that's 2 bytes space, a jmp would take 3, so compile a noop instead
-        console.log(' - len=2 so just a noop2 for the count');
+        ASSERT_LOG2(' - len=2 so just a noop2 for the count');
         cr_enc8(offset + 7, ML_NOOP2);
       } else {
         // skip count-2 vars. jmp will ignore itself so -3
-        console.log(' - and a jump over the count and', count - 2, 'vars');
+        ASSERT_LOG2(' - and a jump over the count and', count - 2, 'vars');
         cr_enc8(offset + 7, ML_JMP);
         cr_enc16(offset + 8, (1 + count - 2) * 2 - 3);
       }
 
-      console.log(' - changed to a mul on index', newIndexA, 'and', (constants ? 'constant value ' + constantsProduct : 'index ' + newIndexB));
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - changed to a mul on index', newIndexA, 'and', (constants ? 'constant value ' + constantsProduct : 'index ' + newIndexB));
+      ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
     } else if (!constants && count === 1) {
@@ -1527,17 +1530,17 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc16(offset + 3, indexR);
       cr_enc8(offset + 5, ML_NOOP2);
 
-      console.log(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
+      ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
     } else if (count - constants === 0) {
       // eliminate. skip (count+1)*2+2 bytes
-      console.log(' - eliminating constraint since all vars are constants');
+      ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
       R = domain_intersection(R, domain_createValue(constantsProduct));
       if (oR !== R) {
-        console.log(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
+        ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
         if (!R) return emptyDomain = true;
         change = true;
         domains[indexR] = R;
@@ -1545,11 +1548,11 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
       cr_enc8(offset, ML_JMP);
       cr_enc16(offset + 1, delta);
-      console.log(' - ml now:', ml);
+      ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
     } else {
       ASSERT(count - constants > 2, 'There no other valid options here');
-      console.log(' - not only jumps...');
+      ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
       pc = offset + 1 + 2 + count * 2 + 2; // skip the 16bit indexes manually
     }
@@ -1559,6 +1562,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 function cr_stabilize(ml, domains) {
 
 }
+
+// BODY_STOP
 
 export {
   cr_optimizeConstraints,

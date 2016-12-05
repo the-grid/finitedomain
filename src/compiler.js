@@ -6,6 +6,7 @@ import {
   SUB,
   SUP,
   ASSERT,
+  ASSERT_LOG2,
   THROW,
 } from './helpers';
 
@@ -404,13 +405,13 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
   }
 
   function encodeName(name) {
-    console.log('encoding name:', name);
-    console.log('to index', nameToIndex(name));
+    ASSERT_LOG2('encoding name:', name);
+    ASSERT_LOG2('to index', nameToIndex(name));
     return encode16bit(nameToIndex(name));
   }
 
   function encode16bit(index) {
-    console.log('encode16bit:', index, '->', index >> 8, index & 0xff);
+    ASSERT_LOG2('encode16bit:', index, '->', index >> 8, index & 0xff);
     ASSERT(typeof index === 'number', 'Encoding 16bit num', index);
     ASSERT(index <= 0xffff, 'implement 32bit index support if this breaks', index);
     return String.fromCharCode(index >> 8, index & 0xff).padStart('\0', 2);
@@ -440,7 +441,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
           break;
 
         case '!=':
-          console.log('not equal', A, B);
+          ASSERT_LOG2('not equal', A, B);
           ml += encode8bit(ML_NEQ) + mlab;
           break;
 
@@ -718,7 +719,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
     skipWhitespaces();
     let refs = parseVexpList();
     // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
-    console.log('refS:', refs);
+    ASSERT_LOG2('refS:', refs);
     ml += encode8bit(ML_SUM) + encode16bit(refs.length) + refs.map(encodeName).join('') + encodeName(result);
     skipWhitespaces();
     is(')', 'sum closer');
@@ -885,7 +886,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
 
   function THROW(msg) {
     if (_debug) {
-      console.log(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
+      ASSERT_LOG2(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
     }
     msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
     throw new Error(msg);
@@ -903,23 +904,23 @@ function compilePropagators(ml) {
   while (pc < ml.length) {
     let pcStart = pc;
     let op = ml[pc];
-    console.log('CRp[' + pc + ']:', op);
+    ASSERT_LOG2('CRp[' + pc + ']:', op);
     switch (op) {
       case ML_UNUSED:
         return THROW('problem');
 
       case ML_STOP:
-        console.log(' - stop');
+        ASSERT_LOG2(' - stop');
         out[oc++] = ML_STOP >>> 0;
         ++pc;
         break;
 
       case ML_JMP:
-        console.log(' - jump');
+        ASSERT_LOG2(' - jump');
         ++pc;
         let delta = cr_dec16();
         if (delta <= 0) THROW('Empty jump'); // infinite loop
-        console.log('jumping by', delta, 'from', pc, 'to', pc + delta);
+        ASSERT_LOG2('jumping by', delta, 'from', pc, 'to', pc + delta);
         pc = pcStart + delta;
         break;
 
@@ -927,7 +928,7 @@ function compilePropagators(ml) {
       case ML_NEQ:
       case ML_LT:
       case ML_LTE:
-        console.log(' - eq neq lt lte');
+        ASSERT_LOG2(' - eq neq lt lte');
         out[oc++] = ml[pc++]; // OP
         out[oc++] = ml[pc++]; // A
         out[oc++] = ml[pc++];
@@ -937,7 +938,7 @@ function compilePropagators(ml) {
 
       case ML_GT:
       case ML_GTE:
-        console.log(' - gt gte');
+        ASSERT_LOG2(' - gt gte');
         // map to lt(e)
         // note: lt/lte have the same footprint as gt/gte
         out[oc++] = op === ML_GT ? ML_LT : ML_LTE; //
@@ -950,15 +951,15 @@ function compilePropagators(ml) {
 
       case ML_NOOP:
         pc = pcStart + 1;
-        console.log('- noop @', pcStart, '->', pc);
+        ASSERT_LOG2('- noop @', pcStart, '->', pc);
         break;
       case ML_NOOP2:
         pc = pcStart + 2;
-        console.log('- noop2 @', pcStart, '->', pc);
+        ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
         break;
       case ML_NOOP4:
         pc = pcStart + 4;
-        console.log('- noop4 @', pcStart, '->', pc);
+        ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
         break;
 
       case ML_ISEQ:
@@ -987,7 +988,7 @@ function compilePropagators(ml) {
 
   function cr_dec16() {
     ASSERT(pc < ml.length - 1, 'OOB');
-    console.log(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
+    ASSERT_LOG2(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
     return (ml[pc++] << 8) | ml[pc++];
   }
 
@@ -1004,7 +1005,7 @@ function compilePropagators(ml) {
   //  ASSERT((a >> 0) <= 0xff, 'Only encode 8bit values');
   //  ASSERT((b >> 0) <= 0xff, 'Only encode 8bit values');
   //  ASSERT(pc < ml.length - 1, 'OOB');
-  //  console.log(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
+  //  LOG(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
   //  ml[pc++] = a;
   //  ml[pc] = b;
   //}
@@ -1013,7 +1014,7 @@ function compilePropagators(ml) {
   //  ASSERT(typeof num === 'number', 'Encoding numbers');
   //  ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
   //  ASSERT(pc < ml.length - 1, 'OOB');
-  //  console.log(' - encoding', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+  //  LOG(' - encoding', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
   //  ml[pc++] = (num >> 8) & 0xff;
   //  ml[pc] = num & 0xff;
   //}
@@ -1022,6 +1023,32 @@ function compilePropagators(ml) {
 // BODY_STOP
 
 export {
+  ML_UNUSED,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_GT,
+  ML_GTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
+  ML_ISGT,
+  ML_ISGTE,
+  ML_SUM,
+  ML_PRODUCT,
+  ML_DISTINCT,
+  ML_PLUS,
+  ML_MINUS,
+  ML_MUL,
+  ML_DIV,
+  ML_JMP,
+  ML_NOOP,
+  ML_NOOP2,
+  ML_NOOP4,
+  ML_STOP,
+
   parseDsl,
   compilePropagators,
 };

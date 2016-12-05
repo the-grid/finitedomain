@@ -1,4 +1,3 @@
-
 // a domain, in this lib, is a set of numbers denoted by lo-hi range pairs (inclusive)
 // for memory and performance reasons finitedomain has three different representations for a domain;
 // - arrdom: an array with number pairs. mostly used by external apis because its easier to deal with. GC sensitive.
@@ -1033,10 +1032,14 @@ function domain_bit_size(domain) {
   // hot paths; binary
   // the empty domain is "free"
   switch (domain) {
-    case 0: return 0; // empty domain
-    case 1: return 1;
-    case 2: return 1;
-    case 3: return 2;
+    case 0:
+      return 0; // empty domain
+    case 1:
+      return 1;
+    case 2:
+      return 1;
+    case 3:
+      return 2;
   }
 
   return (
@@ -1396,14 +1399,14 @@ function domain_sol_removeGte(domain, value) {
   if (solvedValue >= value) return EMPTY;
   return domain; // no change
 }
-  /**
-   * Remove all values from domain that are greater
-   * than or equal to given value
-   *
-   * @param {$numdom} domain
-   * @param {number} value NOT a flag
-   * @returns {$numdom}
-*/
+/**
+ * Remove all values from domain that are greater
+ * than or equal to given value
+ *
+ * @param {$numdom} domain
+ * @param {number} value NOT a flag
+ * @returns {$numdom}
+ */
 function domain_bit_removeGte(domain, value) {
   switch (value) {
     case 0:
@@ -1686,6 +1689,43 @@ function domain_str_removeLte(strdom, value) {
 }
 
 /**
+ * Removes all values lower than value.
+ * Only "unsafe" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values.
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeLtUnsafe(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value <= SUB) return domain;
+  if (value > SUP) return domain_createEmpty();
+  return domain_removeLte(domain, value - 1);
+}
+/**
+ * Removes all values lower than value.
+ * Only "unsafe" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeGtUnsafe(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value >= SUP) return domain;
+  if (value < SUB) return domain_createEmpty();
+  return domain_removeGte(domain, value + 1);
+}
+
+/**
  * Remove given value from given domain and return
  * the new domain that doesn't contain it.
  *
@@ -1950,8 +1990,8 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
  * @returns {$domain} will be a soldom
  */
 function domain_createValue(value) {
-  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
-  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
+  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range', value);
+  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range', value);
 
   return (value | SOLVED_FLAG) >>> 0;
 }
@@ -2334,7 +2374,9 @@ export {
   domain_mulByValue,
   domain_numToStr,
   domain_removeGte,
+  domain_removeGtUnsafe,
   domain_removeLte,
+  domain_removeLtUnsafe,
   domain_removeValue,
   domain_sharesNoElements,
   domain_str_simplify,

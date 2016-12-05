@@ -5,32 +5,71 @@
 import {
   SUB,
   SUP,
+  ASSERT,
+  THROW,
 } from './helpers';
-import Solver from './solver';
 
 // BODY_START
 
+const ML_UNUSED = 0;
+const ML_EQ = 1;
+const ML_NEQ = 2;
+const ML_LT = 3;
+const ML_LTE = 4;
+const ML_GT = 5; // or just eliminate this immediately?
+const ML_GTE = 6; // or just eliminate this immediately?
+const ML_ISEQ = 7;
+const ML_ISNEQ = 8;
+const ML_ISLT = 9;
+const ML_ISLTE = 10;
+const ML_ISGT = 11; // or just eliminate this immediately?
+const ML_ISGTE = 12; // or just eliminate this immediately?
+const ML_SUM = 13;
+const ML_PRODUCT = 14;
+const ML_DISTINCT = 15;
+const ML_PLUS = 16;
+const ML_MINUS = 17;
+const ML_MUL = 18;
+const ML_DIV = 19;
+const ML_JMP = 20;
+const ML_NOOP = 0xF1;
+const ML_NOOP2 = 0xF2;
+const ML_NOOP4 = 0xF4;
+const ML_STOP = 0xFF;
+
 /**
+ * Compile the constraint dsl to a bytecode
+ *
  * @param {string} str
- * @param {Solver} [solver]
- * @returns {Solver}
+ * @param {Function} addVar
+ * @param {Function} nameToIndex
+ * @param {boolean} [_debug]
+ * @returns {string}
  */
-function importer_main(str, solver, _debug) {
-  if (!solver) solver = new Solver();
+function parseDsl(str, addVar, nameToIndex, _debug) {
+  let ret = {
+    ml: '',
+    varstrat: 'default',
+    valstrat: 'default',
+  };
+  let ml = '';
 
   let pointer = 0;
   let len = str.length;
 
   while (!isEof()) parseStatement();
 
-  return solver;
+  ret.ml = ml + encode8bit(ML_STOP);
+  return ret;
 
   function read() {
     return str[pointer];
   }
+
   function skip() {
     ++pointer;
   }
+
   function is(c, desc) {
     if (read() !== c) THROW('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
     skip();
@@ -39,6 +78,7 @@ function importer_main(str, solver, _debug) {
   function skipWhitespaces() {
     while (pointer < len && isWhitespace(read())) skip();
   }
+
   function skipWhites() {
     while (!isEof()) {
       let c = read();
@@ -51,19 +91,24 @@ function importer_main(str, solver, _debug) {
       }
     }
   }
+
   function isWhitespace(s) {
     return s === ' ' || s === '\t';
   }
+
   function isNewline(s) {
     // no, I don't feel bad for also flaggin a comment as eol :)
     return s === '\n' || s === '\r';
   }
+
   function isComment(s) {
     return s === '#';
   }
+
   function isWhite(s) {
     return isWhitespace(s) || isNewline(s);
   }
+
   function expectEol() {
     skipWhitespaces();
     if (pointer < len) {
@@ -77,6 +122,7 @@ function importer_main(str, solver, _debug) {
       }
     }
   }
+
   function isEof() {
     return pointer >= len;
   }
@@ -90,11 +136,14 @@ function importer_main(str, solver, _debug) {
 
     skipWhites();
     switch (read()) {
-      case ':': return parseVar();
-      case '#': return skipComment();
-      case '@': return parseAtRule();
+      case ':':
+        return parseVar();
+      case '#':
+        return skipComment();
+      case '@':
+        return parseAtRule();
       default:
-        if (!isEof()) return parseUndefConstraint();
+        if (!isEof()) return parseVoidConstraint();
     }
   }
 
@@ -114,9 +163,8 @@ function importer_main(str, solver, _debug) {
     let mod = parseModifier();
     expectEol();
 
-    solver.decl(name, domain, mod, true);
-    // TODO: properly map the alts to the same var index...
-    if (alts) alts.map(name => solver.decl(name, domain, mod, true));
+    addVar(name, domain, mod);
+    if (alts) THROW('implement me (var alias)'); // alts.map(name => addVar(name, domain, mod));
   }
 
   function parseIdentifier() {
@@ -144,6 +192,7 @@ function importer_main(str, solver, _debug) {
     if (start === pointer) THROW('Expected to parse identifier, found none');
     return str.slice(start, pointer);
   }
+
   function isValidUnquotedIdentChar(c) {
     switch (c) {
       case '(':
@@ -323,7 +372,8 @@ function importer_main(str, solver, _debug) {
         // TOFIX: there is no validation here. apply stricter and safe matrix parsing
         let matrix = str.slice(pointer + 7, pointer = str.indexOf(')', pointer));
         let code = 'return ' + matrix;
-        let func = Function(code); /* eslint no-new-func: "off" */
+        let func = Function(code);
+        /* eslint no-new-func: "off" */
         mod.matrix = func();
         if (pointer === -1) THROW('The matrix must be closed by a `)` but did not find any');
       } else if (str.slice(pointer, pointer + 7) === 'legend(') {
@@ -349,7 +399,24 @@ function importer_main(str, solver, _debug) {
     if (!isEof()) skip();
   }
 
-  function parseUndefConstraint() {
+  function encode8bit(num) {
+    return String.fromCharCode(num);
+  }
+
+  function encodeName(name) {
+    console.log('encoding name:', name);
+    console.log('to index', nameToIndex(name));
+    return encode16bit(nameToIndex(name));
+  }
+
+  function encode16bit(index) {
+    console.log('encode16bit:', index, '->', index >> 8, index & 0xff);
+    ASSERT(typeof index === 'number', 'Encoding 16bit num', index);
+    ASSERT(index <= 0xffff, 'implement 32bit index support if this breaks', index);
+    return String.fromCharCode(index >> 8, index & 0xff).padStart('\0', 2);
+  }
+
+  function parseVoidConstraint() {
     // parse a constraint that does not return a value itself
 
     // first try to parse single value constraints without value like markov() and distinct()
@@ -361,48 +428,49 @@ function importer_main(str, solver, _debug) {
     skipWhitespaces();
     let cop = parseCop();
     skipWhitespaces();
-    switch (cop) {
-      case '=':
-        parseAssignment(A);
-        break;
 
-      case '==':
-        solver.eq(A, parseVexpr());
-        break;
+    if (cop === '=') {
+      parseAssignment(A);
+    } else {
+      let B = parseVexpr();
+      let mlab = encodeName(A) + encodeName(B);
+      switch (cop) {
+        case '==':
+          ml += encode8bit(ML_EQ) + mlab;
+          break;
 
-      case '!=':
-        solver.neq(A, parseVexpr());
-        break;
+        case '!=':
+          console.log('not equal', A, B);
+          ml += encode8bit(ML_NEQ) + mlab;
+          break;
 
-      case '<':
-        solver.lt(A, parseVexpr());
-        break;
+        case '<':
+          ml += encode8bit(ML_LT) + mlab;
+          break;
 
-      case '<=':
-        solver.lte(A, parseVexpr());
-        break;
+        case '<=':
+          ml += encode8bit(ML_LTE) + mlab;
+          break;
 
-      case '>':
-        solver.gt(A, parseVexpr());
-        break;
+        case '>':
+          ml += encode8bit(ML_GT) + mlab;
+          break;
 
-      case '>=':
-        solver.gte(A, parseVexpr());
-        break;
+        case '>=':
+          ml += encode8bit(ML_GTE) + mlab;
+          break;
 
-      default:
-        if (cop) THROW('Unknown constraint op: [' + cop + ']');
+        default:
+          if (cop) THROW('Unknown constraint op: [' + cop + ']');
+      }
     }
 
     expectEol();
   }
 
   function parseAssignment(C) {
-    // note: if Solver api changes this may return the wrong value...
-    // it should always return the "result var" var name or constant
-    // (that would be C, but C may be undefined here and created by Solver)
-
-    if (typeof C === 'string' && !solver.hasVar(C)) C = solver.decl(C);
+    if (typeof C === 'string' && nameToIndex(C) < 0) addVar(C);
+    ASSERT(nameToIndex(C) >= 0, 'C should be resolvable now');
 
     let A = parseVexpr(C);
     skipWhitespaces();
@@ -414,27 +482,39 @@ function importer_main(str, solver, _debug) {
   function parseAssignRest(A, C) {
     let rop = parseRop();
     skipWhitespaces();
+    let B = parseVexpr();
+    let mlab = encodeName(A) + encodeName(B) + encodeName(C);
     switch (rop) {
       case '==?':
-        return solver.isEq(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISEQ) + mlab;
+        break;
       case '!=?':
-        return solver.isNeq(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISNEQ) + mlab;
+        break;
       case '<?':
-        return solver.isLt(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISLT) + mlab;
+        break;
       case '<=?':
-        return solver.isLte(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISLTE) + mlab;
+        break;
       case '>?':
-        return solver.isGt(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISGT) + mlab;
+        break;
       case '>=?':
-        return solver.isGte(A, parseVexpr(), C);
+        ml += encode8bit(ML_ISGTE) + mlab;
+        break;
       case '+':
-        return solver.plus(A, parseVexpr(), C);
+        ml += encode8bit(ML_PLUS) + mlab;
+        break;
       case '-':
-        return solver.minus(A, parseVexpr(), C);
+        ml += encode8bit(ML_MINUS) + mlab;
+        break;
       case '*':
-        return solver.times(A, parseVexpr(), C);
+        ml += encode8bit(ML_MUL) + mlab;
+        break;
       case '/':
-        return solver.div(A, parseVexpr(), C);
+        ml += encode8bit(ML_DIV) + mlab;
+        break;
       default:
         if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');
         return A;
@@ -547,7 +627,8 @@ function importer_main(str, solver, _debug) {
     pointer += 9;
     skipWhitespaces();
     let vals = parseVexpList();
-    solver.distinct(vals);
+    ASSERT(vals.length <= 255, 'dont do distincts with more than 255 vars :('); // sum(0..255)=32385
+    ml += encode8bit(ML_DISTINCT) + encode16bit(vals.length) + vals.map(encodeName).join('');
     skipWhitespaces();
     is(')', 'distinct call closer');
     expectEol();
@@ -578,7 +659,7 @@ function importer_main(str, solver, _debug) {
     else if (c === '[') {
       let d = parseDomain();
       if (d[0] === d[1] && d.length === 2) v = d[0];
-      else v = solver.decl(undefined, d);
+      else v = addVar(undefined, d);
     } else if (c >= '0' && c <= '9') {
       v = parseNumber();
     } else {
@@ -636,20 +717,23 @@ function importer_main(str, solver, _debug) {
     is('(', 'sum call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    let r = solver.sum(refs, result);
+    // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
+    console.log('refS:', refs);
+    ml += encode8bit(ML_SUM) + encode16bit(refs.length) + refs.map(encodeName).join('') + encodeName(result);
     skipWhitespaces();
     is(')', 'sum closer');
-    return r;
+    return result;
   }
 
   function parseProduct(result) {
+    // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
     is('(', 'product call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    let r = solver.product(refs, result);
+    ml += encode8bit(ML_PRODUCT) + encode16bit(refs.length) + refs.map(encodeName).join('') + encodeName(result);
     skipWhitespaces();
     is(')', 'product closer');
-    return r;
+    return result;
   }
 
   function parseNumstr() {
@@ -696,12 +780,9 @@ function importer_main(str, solver, _debug) {
   }
 
   function readLine() {
-    let line = '';
-    while (!isEof() && !isNewline(read())) {
-      line += read();
-      skip();
-    }
-    return line;
+    let offset = pointer;
+    while (!isEof() && !isNewline(read())) skip();
+    return str.slice(offset, pointer);
   }
 
   function parseAtRule() {
@@ -728,7 +809,8 @@ function importer_main(str, solver, _debug) {
           skipWhitespaces();
           let target = parseIdentifier();
           let config = parseRestCustom();
-          solver.setValueDistributionFor(target, JSON.parse(config));
+          THROW('implement me (valdist)');
+          this.solver.setValueDistributionFor(target, JSON.parse(config));
           break;
         default:
           THROW('Unsupported custom rule: ' + ident);
@@ -747,14 +829,12 @@ function importer_main(str, solver, _debug) {
 
   function parseVarStrat() {
     let json = readLine();
-    expectEol();
-    solver.varStratConfig = JSON.parse(json);
+    if (/\w+/.test(json)) ret.varstrat = json;
+    else ret.varstrat = JSON.parse(json);
   }
 
   function parseValStrat() {
-    let name = parseIdentifier();
-    expectEol();
-    solver.valueStratName = name;
+    ret.varstrat = parseIdentifier();
   }
 
   function parseRestCustom() {
@@ -774,13 +854,14 @@ function importer_main(str, solver, _debug) {
       skipWhitespaces();
     }
 
+    THROW('implement me (targeted vars)');
     if (str.slice(pointer, pointer + 3) === 'all') {
       pointer += 3;
-      solver.config.targetedVars = 'all';
+      this.solver.config.targetedVars = 'all';
     } else {
       is('(');
       let idents = parseIdentList();
-      if (idents.length) solver.config.targetedVars = idents;
+      if (idents.length) this.solver.config.targetedVars = idents;
       is(')');
     }
     expectEol();
@@ -811,6 +892,136 @@ function importer_main(str, solver, _debug) {
   }
 }
 
+/**
+ * Generate propagators from a list of
+ */
+function compilePropagators(ml) {
+  let out = Buffer.from(ml, 'binary');
+  let oc = 0;
+
+  let pc = 0;
+  while (pc < ml.length) {
+    let pcStart = pc;
+    let op = ml[pc];
+    console.log('CRp[' + pc + ']:', op);
+    switch (op) {
+      case ML_UNUSED:
+        return THROW('problem');
+
+      case ML_STOP:
+        console.log(' - stop');
+        out[oc++] = ML_STOP >>> 0;
+        ++pc;
+        break;
+
+      case ML_JMP:
+        console.log(' - jump');
+        ++pc;
+        let delta = cr_dec16();
+        if (delta <= 0) THROW('Empty jump'); // infinite loop
+        console.log('jumping by', delta, 'from', pc, 'to', pc + delta);
+        pc = pcStart + delta;
+        break;
+
+      case ML_EQ:
+      case ML_NEQ:
+      case ML_LT:
+      case ML_LTE:
+        console.log(' - eq neq lt lte');
+        out[oc++] = ml[pc++]; // OP
+        out[oc++] = ml[pc++]; // A
+        out[oc++] = ml[pc++];
+        out[oc++] = ml[pc++]; // B
+        out[oc++] = ml[pc++];
+        break;
+
+      case ML_GT:
+      case ML_GTE:
+        console.log(' - gt gte');
+        // map to lt(e)
+        // note: lt/lte have the same footprint as gt/gte
+        out[oc++] = op === ML_GT ? ML_LT : ML_LTE; //
+        // swap A and B
+        out[oc++] = ml[pc + 2]; // B
+        out[oc++] = ml[pc + 3];
+        out[oc++] = ml[pc + 0]; // A
+        out[oc++] = ml[pc + 1];
+        break;
+
+      case ML_NOOP:
+        pc = pcStart + 1;
+        console.log('- noop @', pcStart, '->', pc);
+        break;
+      case ML_NOOP2:
+        pc = pcStart + 2;
+        console.log('- noop2 @', pcStart, '->', pc);
+        break;
+      case ML_NOOP4:
+        pc = pcStart + 4;
+        console.log('- noop4 @', pcStart, '->', pc);
+        break;
+
+      case ML_ISEQ:
+      case ML_ISNEQ:
+      case ML_ISLT:
+      case ML_ISLTE:
+      case ML_ISGT:
+      case ML_ISGTE:
+      case ML_SUM:
+      case ML_PRODUCT:
+      case ML_DISTINCT:
+      case ML_PLUS:
+      case ML_MINUS:
+      case ML_MUL:
+      case ML_DIV:
+        return THROW('implement me (op)');
+
+      default:
+        THROW('unknown op: 0x' + op.toString(16));
+    }
+  }
+  // a STOP will be compiled in as well unless the check below throws
+  if (pc !== ml.length) THROW('Derailed, pc=' + pc + ', len=' + ml.length);
+
+  return out;
+
+  function cr_dec16() {
+    ASSERT(pc < ml.length - 1, 'OOB');
+    console.log(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
+    return (ml[pc++] << 8) | ml[pc++];
+  }
+
+  //function cr_enc8(pc, num) {
+  //  ASSERT(typeof num === 'number', 'Encoding numbers');
+  //  ASSERT((num >> 0) <= 0xff, 'Only encode 8bit values');
+  //  ASSERT(pc < ml.length, 'OOB');
+  //  ml[pc] = num;
+  //}
+  //
+  //function cr_enc88(pc, a, b) {
+  //  ASSERT(typeof a === 'number', 'Encoding numbers');
+  //  ASSERT(typeof b === 'number', 'Encoding numbers');
+  //  ASSERT((a >> 0) <= 0xff, 'Only encode 8bit values');
+  //  ASSERT((b >> 0) <= 0xff, 'Only encode 8bit values');
+  //  ASSERT(pc < ml.length - 1, 'OOB');
+  //  console.log(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
+  //  ml[pc++] = a;
+  //  ml[pc] = b;
+  //}
+  //
+  //function cr_enc16(pc, num) {
+  //  ASSERT(typeof num === 'number', 'Encoding numbers');
+  //  ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
+  //  ASSERT(pc < ml.length - 1, 'OOB');
+  //  console.log(' - encoding', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+  //  ml[pc++] = (num >> 8) & 0xff;
+  //  ml[pc] = num & 0xff;
+  //}
+}
+
 // BODY_STOP
 
-export default importer_main;
+export {
+  parseDsl,
+  compilePropagators,
+};

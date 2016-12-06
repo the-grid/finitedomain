@@ -2233,5 +2233,138 @@ describe('src/runner.spec', function() {
         expect(solution).to.equal(false);
       });
     });
+
+    describe('isneq', function() {
+
+      it('8vv pass', function() {
+        let solution = solverSolver(`
+          : B 22
+          : R 0
+          R = B !=? 22
+        `);
+
+        expect(solution).to.eql({B: 22, R: 0});
+      });
+
+      it('8vv reject', function() {
+        let solution = solverSolver(`
+          : B 21
+          : R 0
+          R = B !=? 22
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('v8v pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          : R 0
+          R = A !=? 22
+        `);
+
+        expect(solution).to.eql({A: 22, R: 0});
+      });
+
+      it('v8v reject', function() {
+        let solution = solverSolver(`
+          : B 21
+          : R 0
+          R = B !=? 22
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('vv8 pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          : B 22
+          0 = A !=? A
+        `);
+
+        expect(solution).to.eql({A: 22, B: 22});
+      });
+
+      it('vv8 reject', function() {
+        let solution = solverSolver(`
+          : A 22
+          : B 21
+          0 = A !=? B
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88v pass', function() {
+        let solution = solverSolver(`
+          : R 0
+          R = 22 !=? 22
+        `);
+
+        expect(solution).to.eql({R: 0});
+      });
+
+      it('88v reject', function() {
+        let solution = solverSolver(`
+          : R 0
+          R = 21 !=? 22
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('v88 pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          0 = A !=? 22
+        `);
+
+        expect(solution).to.eql({A: 22});
+      });
+
+      it('v88 reject', function() {
+        let solution = solverSolver(`
+          : A 22
+          0 = A !=? 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('8v8 pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          0 = A !=? 22
+        `);
+
+        expect(solution).to.eql({A: 22});
+      });
+
+      it('8v8 reject', function() {
+        let solution = solverSolver(`
+          : A 22
+          0 = A !=? 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('888 pass', function() {
+        let solution = solverSolver(`
+          0 = 22 !=? 22
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('888 reject', function() {
+        let solution = solverSolver(`
+          0 = 22 !=? 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+    });
   });
 });

@@ -46,7 +46,13 @@ const ML_88V_ISEQ = ml_opcodeCounter++;
 const ML_V88_ISEQ = ml_opcodeCounter++;
 const ML_888_ISEQ = ml_opcodeCounter++;
 
-const ML_ISNEQ = ml_opcodeCounter++;
+const ML_VVV_ISNEQ = ml_opcodeCounter++;
+const ML_V8V_ISNEQ = ml_opcodeCounter++;
+const ML_VV8_ISNEQ = ml_opcodeCounter++;
+const ML_88V_ISNEQ = ml_opcodeCounter++;
+const ML_V88_ISNEQ = ml_opcodeCounter++;
+const ML_888_ISNEQ = ml_opcodeCounter++;
+
 const ML_ISLT = ml_opcodeCounter++;
 const ML_ISLTE = ml_opcodeCounter++;
 const ML_SUM = ml_opcodeCounter++;
@@ -593,12 +599,35 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
       case '8==?88':
         ml += encode8bit(ML_888_ISEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
         break;
+
+      case 'V!=?VV':
+        ml += encode8bit(ML_VVV_ISNEQ) + encodeName(A) + encodeName(B) + encodeName(C);
+        break;
+      case '8!=?VV':
+        ml += encode8bit(ML_V8V_ISNEQ) + encodeName(B) + encode8bit(A) + encodeName(C);
+        break;
+      case 'V!=?8V':
+        ml += encode8bit(ML_V8V_ISNEQ) + encodeName(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V!=?V8':
+        ml += encode8bit(ML_VV8_ISNEQ) + encodeName(A) + encodeName(B) + encode8bit(C);
+        break;
+      case '8!=?8V':
+        ml += encode8bit(ML_88V_ISNEQ) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V!=?88':
+        ml += encode8bit(ML_V88_ISNEQ) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        break;
+      case '8!=?V8':
+        ml += encode8bit(ML_V88_ISNEQ) + encodeName(B) + encode8bit(A) + encode8bit(C);
+        break;
+      case '8!=?88':
+        ml += encode8bit(ML_888_ISNEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        break;
+
       default:
         let mlab = encodeName(A) + encodeName(B) + encodeName(C);
         switch (rop) {
-          case '!=?':
-            ml += encode8bit(ML_ISNEQ) + mlab;
-            break;
           case '<?':
             ml += encode8bit(ML_ISLT) + mlab;
             break;
@@ -1072,7 +1101,7 @@ function compilePropagators(ml) {
         break;
 
       case ML_VVV_ISEQ:
-      case ML_ISNEQ:
+      case ML_VVV_ISNEQ:
       case ML_ISLT:
       case ML_ISLTE:
       case ML_SUM:
@@ -1151,7 +1180,12 @@ export {
   ML_88V_ISEQ,
   ML_V88_ISEQ,
   ML_888_ISEQ,
-  ML_ISNEQ,
+  ML_VVV_ISNEQ,
+  ML_V8V_ISNEQ,
+  ML_VV8_ISNEQ,
+  ML_88V_ISNEQ,
+  ML_V88_ISNEQ,
+  ML_888_ISNEQ,
   ML_ISLT,
   ML_ISLTE,
   ML_SUM,

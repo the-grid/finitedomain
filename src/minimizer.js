@@ -32,7 +32,12 @@ import {
   ML_88V_ISEQ,
   ML_V88_ISEQ,
   ML_888_ISEQ,
-  ML_ISNEQ,
+  ML_VVV_ISNEQ,
+  ML_V8V_ISNEQ,
+  ML_VV8_ISNEQ,
+  ML_88V_ISNEQ,
+  ML_V88_ISNEQ,
+  ML_888_ISNEQ,
   ML_ISLT,
   ML_ISLTE,
   ML_SUM,
@@ -237,9 +242,34 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_888_isEq(ml);
           break;
 
-        case ML_ISNEQ:
-          ASSERT_LOG2('- isneq @', pcStart);
-          cr_isNeq(ml);
+        case ML_VVV_ISNEQ:
+          ASSERT_LOG2('- isneq vvv @', pcStart);
+          cr_vvv_isNeq(ml);
+          break;
+
+        case ML_V8V_ISNEQ:
+          ASSERT_LOG2('- isneq v8v @', pcStart);
+          cr_v8v_isNeq(ml);
+          break;
+
+        case ML_VV8_ISNEQ:
+          ASSERT_LOG2('- isneq vv8 @', pcStart);
+          cr_vv8_isNeq(ml);
+          break;
+
+        case ML_88V_ISNEQ:
+          ASSERT_LOG2('- isneq 88v @', pcStart);
+          cr_88v_isNeq(ml);
+          break;
+
+        case ML_V88_ISNEQ:
+          ASSERT_LOG2('- isneq v88 @', pcStart);
+          cr_v88_isNeq(ml);
+          break;
+
+        case ML_888_ISNEQ:
+          ASSERT_LOG2('- isneq 888 @', pcStart);
+          cr_888_isNeq(ml);
           break;
 
         case ML_ISLT:
@@ -1472,7 +1502,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     cr_enc8(offset, ML_NOOP4);
   }
 
-  function cr_isNeq(ml) {
+  function cr_vvv_isNeq(ml) {
     // read two indexes to target
 
     let offset = pc - 1;
@@ -1541,6 +1571,173 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
+  }
+
+  function cr_v8v_isNeq(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let A = domains[indexA];
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    if (!A || !R) return emptyDomain = true;
+
+    let vA = domain_getValue(A);
+    if (vA >= 0) {
+      ASSERT_LOG2(' - A and B are solved so we can determine R');
+      let result = vA !== vB ? 1 : 0;
+      if (!domain_containsValue(R, result)) return emptyDomain = true;
+      R = domains[indexR] = domain_createValue(result);
+      change = true;
+
+      ASSERT_LOG2(' - eliminating constraint');
+      // op + A are already skipped. this skips over B and R
+      cr_enc8(offset, ML_JMP);
+      cr_enc16(offset + 1, 3);
+      return;
+    }
+
+    if (domain_max(R) > 1) {
+      ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
+      R = domains[indexR] = domain_createRange(0, 1);
+      if (!R) return emptyDomain = true;
+      change = true;
+    }
+
+    let vR = domain_getValue(R);
+    if (vR === 0) {
+      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
+      // compile a neq and restart
+      cr_enc8(offset, ML_V8_NEQ);
+      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      pc = offset; // make it repeat with the new neq
+      return;
+    }
+    if (vR === 1) {
+      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
+      // compile an eq and restart
+      cr_enc8(offset, ML_V8_EQ);
+      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      pc = offset; // make it repeat with the new eq
+      return;
+    }
+
+    ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
+
+    ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+  }
+
+  function cr_vv8_isNeq(ml) {
+    let offset = pc - 1;
+    let vR = cr_dec8pc(offset + 5);
+
+    ASSERT_LOG2(' = cr_vv8_isNeq', vR, 'immediately recompile to neq or eq');
+
+    // we know R is solved so just recompile it to eq or neq
+    if (vR === 0) {
+      ASSERT_LOG2(' ! changing isneq to eq and revisiting');
+      // compile a neq and restart
+      cr_enc8(offset, ML_VV_EQ);
+      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      pc = offset; // make it repeat with the new neq
+      return;
+    }
+
+    if (vR === 1) {
+      ASSERT_LOG2(' ! changing isneq to neq and revisiting');
+      // compile an eq and restart
+      cr_enc8(offset, ML_VV_NEQ);
+      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      pc = offset; // make it repeat with the new eq
+      return;
+    }
+
+    // it's technically possible to input a problem where the result var is solved to a non-bool value...
+    return emptyDomain = true;
+  }
+
+  function cr_88v_isNeq(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_88v_isNeq', indexR, vA, vB, domain__debug(R));
+    if (!R) return emptyDomain = true;
+
+    ASSERT_LOG2(' - A and B are solved so we can determine R');
+
+    let oR = R;
+    let vR = vA !== vB ? 1 : 0;
+    if (!domain_containsValue(R, vR)) return emptyDomain = true;
+    R = domains[indexR] = domain_createValue(vR);
+    if (R !== oR) change = true;
+
+    ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
+
+    ASSERT_LOG2(' - eliminating constraint');
+    // op + A + B are already skipped. this skips over R
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_v88_isNeq(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v88_isNeq', indexA, domain__debug(A), vB, vR);
+    if (!A) return emptyDomain = true;
+    if (vR > 1) return emptyDomain = true; // R must be bool bound
+
+    ASSERT_LOG2(' - B and R are solved so we can determine A');
+
+    let oA = A;
+    if (vR === 1) {
+      A = domain_removeValue(A, vB);
+      if (!A) return emptyDomain = true;
+    } else {
+      if (!domain_containsValue(A, vB)) return emptyDomain = true;
+      A = domain_createValue(vB);
+    }
+    if (A !== oA) {
+      domains[indexA] = A;
+      change = true;
+    }
+
+    ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
+
+    ASSERT_LOG2(' - eliminating constraint');
+    // op + A are already skipped. this skips over B and R
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_888_isNeq(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
+    ASSERT_LOG2(' - already resolved, only need to verify it');
+    if (vR > 1) return emptyDomain = true; // R must be bool bound
+
+    // isNeq !== shouldNeq
+    if ((vA !== vB) !== (vR === 1)) return emptyDomain = true;
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP4);
   }
 
   function cr_isLt(ml) {

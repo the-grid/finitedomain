@@ -42,6 +42,7 @@ import {
 // BODY_START
 
 function solverSolver(dsl) {
+  console.time('solverSolver');
   let varTrie = trie_create();
   let vars = [];
   let domains = [];
@@ -76,10 +77,16 @@ function solverSolver(dsl) {
     return trie_get(varTrie, name);
   }
 
+  ASSERT_LOG2('Parsing DSL...');
+  console.time('- parsing dls');
   let input = parseDsl(dsl, addVar, getVar);
   let mls = input.ml;
+  console.timeEnd('- parsing dls');
 
+  ASSERT_LOG2('Minimizing ML...');
+  console.time('- minimizing ml');
   let state = minimize(mls, getVar, domains, addVar);
+  console.timeEnd('- minimizing ml');
   //let state = getState(domains);
   if (state === MINIMIZER_SOLVED) return createSolution(vars, domains);
   if (state === MINIMIZER_REJECTED) return false;

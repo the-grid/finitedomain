@@ -590,6 +590,10 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
     let rop = parseRop();
     skipWhitespaces();
     let B = parseVexpr();
+
+    return _parseAssignRest(A, rop, B, C);
+  }
+  function _parseAssignRest(A, rop, B, C) {
     switch ((typeof A === 'number' ? '8' : 'V') + rop + (typeof B === 'number' ? '8' : 'V') + (typeof C === 'number' ? '8' : 'V')) {
       case 'V==?VV':
         ml += encode8bit(ML_VVV_ISEQ) + encodeName(A) + encodeName(B) + encodeName(C);
@@ -692,25 +696,22 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
         break;
 
       default:
-        let mlab = encodeName(A) + encodeName(B) + encodeName(C);
         switch (rop) {
           case '>?':
-            ml += encode8bit(ML_VVV_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
-            break;
+            return _parseAssignRest(B, '<?', A, C);
           case '>=?':
-            ml += encode8bit(ML_VVV_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
-            break;
+            return _parseAssignRest(B, '<=?', A, C);
           case '+':
-            ml += encode8bit(ML_PLUS) + mlab;
+            ml += encode8bit(ML_PLUS) + encodeName(A) + encodeName(B) + encodeName(C);
             break;
           case '-':
-            ml += encode8bit(ML_MINUS) + mlab;
+            ml += encode8bit(ML_MINUS) + encodeName(A) + encodeName(B) + encodeName(C);
             break;
           case '*':
-            ml += encode8bit(ML_MUL) + mlab;
+            ml += encode8bit(ML_MUL) + encodeName(A) + encodeName(B) + encodeName(C);
             break;
           case '/':
-            ml += encode8bit(ML_DIV) + mlab;
+            ml += encode8bit(ML_DIV) + encodeName(A) + encodeName(B) + encodeName(C);
             break;
           default:
             if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');
@@ -1007,8 +1008,9 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
           skipWhitespaces();
           let target = parseIdentifier();
           let config = parseRestCustom();
-          THROW('implement me (valdist)');
-          this.solver.setValueDistributionFor(target, JSON.parse(config));
+
+          if (!ret.valdist) ret.valdist = {};
+          ret.valdist[target] = JSON.parse(config);
           break;
         default:
           THROW('Unsupported custom rule: ' + ident);

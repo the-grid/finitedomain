@@ -33,12 +33,6 @@ var perf = module.exports = function perf(config, max, _waited) {
     };
   }
 
-  if (typeof config === 'string') {
-    var solver = new Solver(config);
-  } else {
-    var solver = new Solver({config: config});
-  }
-
   console.log('start test');
   console.time('test runtime');
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');

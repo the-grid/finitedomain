@@ -1951,8 +1951,44 @@ describe('src/runner.spec', function() {
 
         expect(solution).to.equal(false);
       });
+    });
 
 
+    describe('lt', function(){
+
+      it('v8 pass', function() {
+        let solution = solverSolver(`
+          : A 21
+          A < 22
+        `);
+
+        expect(solution).to.eql({A: 21});
+      });
+
+      it('v8 reject', function() {
+        let solution = solverSolver(`
+          : A 21
+          A < 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88 pass', function() {
+        let solution = solverSolver(`
+          18 < 19
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('88 reject', function() {
+        let solution = solverSolver(`
+          18 < 18
+        `);
+
+        expect(solution).to.equal(false);
+      });
     });
   });
 });

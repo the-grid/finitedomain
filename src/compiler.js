@@ -29,7 +29,10 @@ const ML_VV_NEQ = ml_opcodeCounter++;
 const ML_V8_NEQ = ml_opcodeCounter++;
 const ML_88_NEQ = ml_opcodeCounter++;
 
-const ML_LT = ml_opcodeCounter++;
+const ML_VV_LT = ml_opcodeCounter++;
+const ML_V8_LT = ml_opcodeCounter++;
+const ML_88_LT = ml_opcodeCounter++;
+
 const ML_LTE = ml_opcodeCounter++;
 const ML_GT = ml_opcodeCounter++; // or just eliminate this immediately?
 const ML_GTE = ml_opcodeCounter++; // or just eliminate this immediately?
@@ -468,29 +471,34 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
           break;
 
         case 'V!=V':
-          ASSERT_LOG2('not equal', A, B);
           ml += encode8bit(ML_VV_NEQ) + encodeName(A) + encodeName(B);
           break;
         case 'V!=8':
-          ASSERT_LOG2('not equal', A, B);
           ml += encode8bit(ML_V8_NEQ) + encodeName(A) + encode8bit(B);
           break;
         case '8!=V':
-          ASSERT_LOG2('not equal', A, B);
           ml += encode8bit(ML_V8_NEQ) + encodeName(B) + encode8bit(A);
           break;
         case '8!=8':
-          ASSERT_LOG2('not equal', A, B);
           ml += encode8bit(ML_88_NEQ) + encode8bit(A) + encode8bit(B);
+          break;
+
+        case 'V<V':
+          ml += encode8bit(ML_VV_LT) + encodeName(A) + encodeName(B);
+          break;
+        case 'V<8':
+          ml += encode8bit(ML_V8_LT) + encodeName(A) + encode8bit(B);
+          break;
+        case '8<V':
+          ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
+          break;
+        case '8<8':
+          ml += encode8bit(ML_88_LT) + encode8bit(A) + encode8bit(B);
           break;
 
         default:
           // TEMP
           switch (cop) {
-
-            case '<':
-              ml += encode8bit(ML_LT) + encodeName(A) + encodeName(B);
-              break;
 
             case '<=':
               ml += encode8bit(ML_LTE) + encodeName(A) + encodeName(B);
@@ -974,7 +982,9 @@ function compilePropagators(ml) {
       case ML_VV_NEQ:
       case ML_V8_NEQ:
       case ML_88_NEQ:
-      case ML_LT:
+      case ML_VV_LT:
+      case ML_V8_LT:
+      case ML_88_LT:
       case ML_LTE:
         ASSERT_LOG2(' - eq neq lt lte');
         out[oc++] = ml[pc++]; // OP
@@ -989,7 +999,7 @@ function compilePropagators(ml) {
         ASSERT_LOG2(' - gt gte');
         // map to lt(e)
         // note: lt/lte have the same footprint as gt/gte
-        out[oc++] = op === ML_GT ? ML_LT : ML_LTE; //
+        out[oc++] = op === ML_GT ? ML_VV_LT : ML_LTE; //
         // swap A and B
         out[oc++] = ml[pc + 2]; // B
         out[oc++] = ml[pc + 3];
@@ -1082,7 +1092,9 @@ export {
   ML_VV_NEQ,
   ML_V8_NEQ,
   ML_88_NEQ,
-  ML_LT,
+  ML_VV_LT,
+  ML_V8_LT,
+  ML_88_LT,
   ML_LTE,
   ML_GT,
   ML_GTE,

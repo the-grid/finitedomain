@@ -18,7 +18,9 @@ import {
   ML_VV_NEQ,
   ML_V8_NEQ,
   ML_88_NEQ,
-  ML_LT,
+  ML_VV_LT,
+  ML_V8_LT,
+  ML_88_LT,
   ML_LTE,
   ML_GT,
   ML_GTE,
@@ -135,9 +137,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_88_neq(ml);
           break;
 
-        case ML_LT:
-          ASSERT_LOG2('- lt @', pcStart);
-          cr_lt(ml);
+        case ML_VV_LT:
+          ASSERT_LOG2('- lt vv @', pcStart);
+          cr_vv_lt(ml);
+          break;
+
+        case ML_V8_LT:
+          ASSERT_LOG2('- lt v8 @', pcStart);
+          cr_v8_lt(ml);
+          break;
+
+        case ML_88_LT:
+          ASSERT_LOG2('- lt 88 @', pcStart);
+          cr_88_lt(ml);
           break;
 
         case ML_LTE:
@@ -435,10 +447,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (!A) return emptyDomain = true;
 
     // remove the literal from A and remove constraint
+    let oA = A;
     A = domains[indexA] = domain_removeValue(A, vB);
-
     ASSERT_LOG2(' ->', domain__debug(A));
-    if (!A) return emptyDomain = true;
+    if (A !== oA) {
+      if (!A) return emptyDomain = true;
+      change = true;
+    }
 
     ASSERT_LOG2(' - eliminating constraint');
     cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
@@ -460,7 +475,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
   }
 
-  function cr_lt(ml) {
+  function cr_vv_lt(ml) {
     // read two indexes to target
 
     let offset = pc - 1;
@@ -468,12 +483,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    ASSERT_LOG2(' = cr_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
+    ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
-    _cr_lt(ml, indexA, indexB, offset);
+    _cr_vv_lt(ml, indexA, indexB, offset);
   }
 
-  function _cr_lt(ml, indexA, indexB, offset) {
+  function _cr_vv_lt(ml, indexA, indexB, offset) {
     let A = domains[indexA];
     let B = domains[indexB];
     if (!A || !B) return emptyDomain = true;
@@ -508,6 +523,47 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
+  }
+
+  function cr_v8_lt(ml) {
+    // read one index to target and a literal
+
+    let offset = pc - 1;
+
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v8_lt', indexA, domain__debug(A), vB);
+    if (domain_max(A) >= vB) return emptyDomain = true;
+
+    let oA = A;
+    // remove any value gte vB and remove constraint
+    A = domains[indexA] = domain_removeGte(A, vB);
+    ASSERT_LOG2(' ->', domain__debug(A));
+    if (A !== oA) {
+      if (!A) return emptyDomain = true;
+      change = true;
+    }
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+  }
+
+  function cr_88_lt(ml) {
+    // read two literals
+
+    let offset = pc - 1;
+
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+
+    ASSERT_LOG2(' = cr_88_lt', vA, vB);
+    if (vA >= vB) return emptyDomain = true;
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
   }
 
   function cr_lte(ml) {
@@ -572,7 +628,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' = cr_gt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
     // swap args!
-    _cr_lt(ml, indexB, indexA, offset);
+    _cr_vv_lt(ml, indexB, indexA, offset);
   }
 
   function cr_gte(ml) {
@@ -1255,7 +1311,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_LT);
+      cr_enc8(offset, ML_VV_LT);
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
@@ -1312,7 +1368,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte
-      cr_enc8(offset, ML_LT);
+      cr_enc8(offset, ML_VV_LT);
       cr_enc16(offset + 1, indexB);
       cr_enc16(offset + 3, indexA);
       cr_enc8(offset + 5, ML_NOOP2); // skip the R

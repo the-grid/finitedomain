@@ -38,8 +38,22 @@ import {
   ML_88V_ISNEQ,
   ML_V88_ISNEQ,
   ML_888_ISNEQ,
-  ML_ISLT,
-  ML_ISLTE,
+  ML_VVV_ISLT,
+  ML_8VV_ISLT,
+  ML_V8V_ISLT,
+  ML_VV8_ISLT,
+  ML_88V_ISLT,
+  ML_V88_ISLT,
+  ML_8V8_ISLT,
+  ML_888_ISLT,
+  ML_VVV_ISLTE,
+  ML_8VV_ISLTE,
+  ML_V8V_ISLTE,
+  ML_VV8_ISLTE,
+  ML_88V_ISLTE,
+  ML_V88_ISLTE,
+  ML_8V8_ISLTE,
+  ML_888_ISLTE,
   ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -62,6 +76,7 @@ import {
   domain_createValue,
   domain_getValue,
   domain_intersection,
+  domain_intersectionValue,
   domain_isEmpty,
   domain_isSolved,
   domain_max,
@@ -272,14 +287,84 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_888_isNeq(ml);
           break;
 
-        case ML_ISLT:
-          ASSERT_LOG2('- islt @', pcStart);
-          cr_isLt(ml);
+        case ML_VVV_ISLT:
+          ASSERT_LOG2('- islt vvv @', pcStart);
+          cr_vvv_isLt(ml);
           break;
 
-        case ML_ISLTE:
-          ASSERT_LOG2('- islte @', pcStart);
-          cr_isLte(ml);
+        case ML_8VV_ISLT:
+          ASSERT_LOG2('- islt 8vv @', pcStart);
+          cr_8vv_isLt(ml);
+          break;
+
+        case ML_V8V_ISLT:
+          ASSERT_LOG2('- islt v8v @', pcStart);
+          cr_v8v_isLt(ml);
+          break;
+
+        case ML_VV8_ISLT:
+          ASSERT_LOG2('- islt vv8 @', pcStart);
+          cr_vv8_isLt(ml);
+          break;
+
+        case ML_88V_ISLT:
+          ASSERT_LOG2('- islt 88v @', pcStart);
+          cr_88v_isLt(ml);
+          break;
+
+        case ML_V88_ISLT:
+          ASSERT_LOG2('- islt v88 @', pcStart);
+          cr_v88_isLt(ml);
+          break;
+
+        case ML_8V8_ISLT:
+          ASSERT_LOG2('- islt 8v8 @', pcStart);
+          cr_8v8_isLt(ml);
+          break;
+
+        case ML_888_ISLT:
+          ASSERT_LOG2('- islt 888 @', pcStart);
+          cr_888_isLt(ml);
+          break;
+
+        case ML_VVV_ISLTE:
+          ASSERT_LOG2('- islte vvv @', pcStart);
+          cr_vvv_isLte(ml);
+          break;
+
+        case ML_8VV_ISLTE:
+          ASSERT_LOG2('- islte 8vv @', pcStart);
+          cr_8vv_isLte(ml);
+          break;
+
+        case ML_V8V_ISLTE:
+          ASSERT_LOG2('- islte v8v @', pcStart);
+          cr_v8v_isLte(ml);
+          break;
+
+        case ML_VV8_ISLTE:
+          ASSERT_LOG2('- islte vv8 @', pcStart);
+          cr_vv8_isLte(ml);
+          break;
+
+        case ML_88V_ISLTE:
+          ASSERT_LOG2('- islte 88v @', pcStart);
+          cr_88v_isLte(ml);
+          break;
+
+        case ML_V88_ISLTE:
+          ASSERT_LOG2('- islte v88 @', pcStart);
+          cr_v88_isLte(ml);
+          break;
+
+        case ML_8V8_ISLTE:
+          ASSERT_LOG2('- islte 8v8 @', pcStart);
+          cr_8v8_isLte(ml);
+          break;
+
+        case ML_888_ISLTE:
+          ASSERT_LOG2('- islte 888 @', pcStart);
+          cr_888_isLte(ml);
           break;
 
         case ML_SUM:
@@ -1740,9 +1825,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     cr_enc8(offset, ML_NOOP4);
   }
 
-  function cr_isLt(ml) {
-    // read two indexes to target
-
+  function cr_vvv_isLt(ml) {
     let offset = pc - 1;
     let indexA = cr_dec16();
     let indexB = cr_dec16();
@@ -1752,7 +1835,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    ASSERT_LOG2(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_vvv_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oR = R;
@@ -1791,9 +1874,243 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     }
   }
 
-  function cr_isLte(ml) {
-    // read two indexes to target
+  function cr_8vv_isLt(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+    let indexR = cr_dec16();
 
+    let B = domains[indexB];
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_8vv_isLt', indexB, indexR, vA, domain__debug(B), domain__debug(R));
+    if (!B || !R) return emptyDomain = true;
+
+    let oR = R;
+    R = domain_removeGtUnsafe(R, 1);
+    let vR = domain_getValue(R);
+    if (vR < 0) {
+      // if R isn't set you can't really update A or B. so we don't.
+      if (vA < domain_min(B)) R = domain_createValue(vR = 1);
+      else if (vA >= domain_max(B)) R = domain_createValue(vR = 0);
+    }
+    if (R !== oR) {
+      change = true;
+      domains[indexR] = R;
+    }
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_8V_LT);
+      cr_enc8(offset + 1, vA);
+      cr_enc16(offset + 2, indexB);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
+      // replace isLt with a regular lte, with inverted args
+      cr_enc8(offset, ML_V8_LTE);
+      cr_enc16(offset + 1, indexB);
+      cr_enc8(offset + 3, vA);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+    }
+  }
+
+  function cr_v8v_isLt(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let A = domains[indexA];
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_v8v_isLt', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    if (!A || !R) return emptyDomain = true;
+
+    let oR = R;
+    R = domain_removeGtUnsafe(R, 1);
+    let vR = domain_getValue(R);
+    if (vR < 0) {
+      // if R isn't set you can't really update A or B. so we don't.
+      if (domain_max(A) < vB) R = domain_createValue(vR = 1);
+      else if (domain_min(A) >= vB) R = domain_createValue(vR = 0);
+    }
+    if (R !== oR) {
+      change = true;
+      domains[indexR] = R;
+    }
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_V8_LT);
+      cr_enc16(offset + 1, indexA);
+      cr_enc8(offset + 3, vB);
+      // op was 6 bytes, now 4 bytes, so skip 2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
+      // replace isLt with a regular lte, inverted args
+      cr_enc8(offset, ML_8V_LTE);
+      cr_enc8(offset + 1, vB);
+      cr_enc16(offset + 2, indexA);
+      // op was 6 bytes, now 4 bytes, so skip 2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+    }
+  }
+
+  function cr_vv8_isLt(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let indexB = cr_dec16();
+    let vR = cr_dec8();
+
+    let A = domains[indexA];
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, domain__debug(A), domain__debug(B), vR);
+    if (!A || !B) return emptyDomain = true;
+
+    // R is solved so just replace the reifier by its non-reifier component
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_VV_LT);
+      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
+      // replace isLt with a regular lte
+      cr_enc8(offset, ML_VV_LTE);
+      cr_enc16(offset + 1, indexB);
+      cr_enc16(offset + 3, indexA);
+      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
+      return emptyDomain = true;
+    }
+  }
+
+  function cr_88v_isLt(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_88v_isLt', indexR, vA, vB, domain__debug(R));
+    if (!R) return emptyDomain = true;
+
+    // we know A and B so determine R and remove constraint
+    let oR = R;
+    if (vA < vB) R = domain_intersectionValue(R, 1);
+    else R = domain_intersectionValue(R, 0);
+    if (R !== oR) {
+      if (!R) return emptyDomain = true;
+      change = true;
+      domains[indexR] = R;
+    }
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_v88_isLt(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
+    if (!A) return emptyDomain = true;
+
+    // we know A and R so determine B and remove constraint
+    if (vR === 1) {
+      A = domains[indexA] = domain_removeGte(A, vB);
+    } else if (vR === 0) {
+      A = domains[indexA] = domain_removeLtUnsafe(A, vB);
+    } else {
+      return emptyDomain = true;
+    }
+
+    if (!A) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_8v8_isLt(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+    let vR = cr_dec8();
+
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_8v8_isLt', indexB, vA, domain__debug(B), vR);
+    if (!B) return emptyDomain = true;
+
+    // we know A and R so determine B and remove constraint
+    if (vR === 1) {
+      B = domains[indexB] = domain_removeLte(B, vA);
+    } else if (vR === 0) {
+      B = domains[indexB] = domain_removeGtUnsafe(B, vA);
+    } else {
+      return emptyDomain = true;
+    }
+
+    if (!B) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_888_isLt(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    ASSERT_LOG2(' = cr_888_isLt', vA, vB, vR);
+
+    // just check
+    if ((vA < vB) !== (vR === 1)) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_NOOP4);
+  }
+
+  function cr_vvv_isLte(ml) {
     let offset = pc - 1;
     let indexA = cr_dec16();
     let indexB = cr_dec16();
@@ -1803,7 +2120,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    ASSERT_LOG2(' = cr_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_vvv_isLte', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oR = R;
@@ -1819,12 +2136,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexR] = R;
     }
 
-    // if R is solved replace this isLte with an lte or "gte" and repeat.
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
-    // in this context, the inverse for lte is an lt with swapped args
+    // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
-      // replace isLte with regular lt
+      // replace isLt with regular lt
       cr_enc8(offset, ML_VV_LTE);
       cr_enc8(offset + 5, ML_NOOP2); // skip the R
       pc = offset; // make it repeat with the new lt
@@ -1840,6 +2157,242 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
+  }
+
+  function cr_8vv_isLte(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+    let indexR = cr_dec16();
+
+    let B = domains[indexB];
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, vA, domain__debug(B), domain__debug(R));
+    if (!B || !R) return emptyDomain = true;
+
+    let oR = R;
+    R = domain_removeGtUnsafe(R, 1);
+    let vR = domain_getValue(R);
+    if (vR < 0) {
+      // if R isn't set you can't really update A or B. so we don't.
+      if (vA <= domain_min(B)) R = domain_createValue(vR = 1);
+      else if (vA > domain_max(B)) R = domain_createValue(vR = 0);
+    }
+    if (R !== oR) {
+      change = true;
+      domains[indexR] = R;
+    }
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_8V_LTE);
+      cr_enc8(offset + 1, vA);
+      cr_enc16(offset + 2, indexB);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
+      // replace isLt with a regular lte, with inverted args
+      cr_enc8(offset, ML_V8_LT);
+      cr_enc16(offset + 1, indexB);
+      cr_enc8(offset + 3, vA);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+    }
+  }
+
+  function cr_v8v_isLte(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let A = domains[indexA];
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_v8v_isLte', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    if (!A || !R) return emptyDomain = true;
+
+    let oR = R;
+    R = domain_removeGtUnsafe(R, 1);
+    let vR = domain_getValue(R);
+    if (vR < 0) {
+      // if R isn't set you can't really update A or B. so we don't.
+      if (domain_max(A) <= vB) R = domain_createValue(vR = 1);
+      else if (domain_min(A) > vB) R = domain_createValue(vR = 0);
+    }
+    if (R !== oR) {
+      change = true;
+      domains[indexR] = R;
+    }
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_V8_LTE);
+      cr_enc16(offset + 1, indexA);
+      cr_enc8(offset + 3, vB);
+      // op was 6 bytes, now 4 bytes, so skip 2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
+      // replace isLt with a regular lte, inverted args
+      cr_enc8(offset, ML_8V_LT);
+      cr_enc8(offset + 1, vB);
+      cr_enc16(offset + 2, indexA);
+      // op was 6 bytes, now 4 bytes, so skip 2
+      cr_enc8(offset + 4, ML_NOOP2);
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+    }
+  }
+
+  function cr_vv8_isLte(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let indexB = cr_dec16();
+    let vR = cr_dec8();
+
+    let A = domains[indexA];
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, domain__debug(A), domain__debug(B), vR);
+    if (!A || !B) return emptyDomain = true;
+
+    // R is solved so just replace the reifier by its non-reifier component
+
+    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    // the appropriate op can then prune A and B accordingly.
+    // in this context, the inverse for lt is an lte with swapped args
+    if (vR === 1) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
+      // replace isLt with regular lt
+      cr_enc8(offset, ML_VV_LTE);
+      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      pc = offset; // make it repeat with the new lt
+    } else if (vR === 0) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
+      // replace isLt with a regular lte
+      cr_enc8(offset, ML_VV_LT);
+      cr_enc16(offset + 1, indexB);
+      cr_enc16(offset + 3, indexA);
+      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      pc = offset; // make it repeat with the new lt
+    } else {
+      ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
+      return emptyDomain = true;
+    }
+  }
+
+  function cr_88v_isLte(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let indexR = cr_dec16();
+
+    let R = domains[indexR];
+
+    ASSERT_LOG2(' = cr_88v_isLte', vA, vB, domain__debug(R));
+    if (!R) return emptyDomain = true;
+
+    // we know A and B so determine R and remove constraint
+    let oR = R;
+    if (vA <= vB) R = domain_intersectionValue(R, 1);
+    else R = domain_intersectionValue(R, 0);
+    if (R !== oR) {
+      if (!R) return emptyDomain = true;
+      change = true;
+      domains[indexR] = R;
+    }
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_v88_isLte(ml) {
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v88_isLte', indexA, domain__debug(A), vB, vR);
+    if (!A) return emptyDomain = true;
+
+    // we know A and R so determine B and remove constraint
+    if (vR === 1) {
+      A = domains[indexA] = domain_removeGtUnsafe(A, vB);
+    } else if (vR === 0) {
+      A = domains[indexA] = domain_removeLte(A, vB);
+    } else {
+      return emptyDomain = true;
+    }
+
+    if (!A) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_8v8_isLte(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+    let vR = cr_dec8();
+
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_8v8_isLte', indexB, vA, domain__debug(B), vR);
+    if (!B) return emptyDomain = true;
+
+    // we know A and R so determine B and remove constraint
+    if (vR === 1) {
+      B = domains[indexB] = domain_removeLtUnsafe(B, vA);
+    } else if (vR === 0) {
+      B = domains[indexB] = domain_removeGte(B, vA);
+    } else {
+      return emptyDomain = true;
+    }
+
+    if (!B) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_JMP);
+    cr_enc16(offset + 1, 2);
+  }
+
+  function cr_888_isLte(ml) {
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+    let vR = cr_dec8();
+
+    ASSERT_LOG2(' = cr_888_isLte', vA, vB, vR);
+
+    // just check
+    if ((vA <= vB) !== (vR === 1)) return emptyDomain = true;
+
+    ASSERT_LOG2(' ! removing constraint');
+    cr_enc8(offset, ML_NOOP4);
   }
 
   function cr_sum(ml) {

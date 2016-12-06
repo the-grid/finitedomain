@@ -635,6 +635,22 @@ function domain_strstr_intersection(domain1, domain2) {
 }
 
 /**
+ * Check if domain contains value, if so, return a domain with
+ * just given value. Otherwise return the empty domain.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_intersectionValue(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(value >= SUB && value <= SUP, 'Expecting valid value');
+
+  if (domain_containsValue(domain, value)) return domain_createValue(value);
+  return domain_createEmpty();
+}
+
+/**
  * Return a simple string showing the given domain in array
  * form and the representation type that was passed on.
  *
@@ -2363,6 +2379,7 @@ export {
   domain_getFirstIntersectingValue,
   domain_getValue,
   domain_intersection,
+  domain_intersectionValue,
   domain_invMul,
   domain_invMulValue,
   domain_isEmpty,

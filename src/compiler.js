@@ -53,8 +53,24 @@ const ML_88V_ISNEQ = ml_opcodeCounter++;
 const ML_V88_ISNEQ = ml_opcodeCounter++;
 const ML_888_ISNEQ = ml_opcodeCounter++;
 
-const ML_ISLT = ml_opcodeCounter++;
-const ML_ISLTE = ml_opcodeCounter++;
+const ML_VVV_ISLT = ml_opcodeCounter++;
+const ML_8VV_ISLT = ml_opcodeCounter++;
+const ML_V8V_ISLT = ml_opcodeCounter++;
+const ML_VV8_ISLT = ml_opcodeCounter++;
+const ML_88V_ISLT = ml_opcodeCounter++;
+const ML_V88_ISLT = ml_opcodeCounter++;
+const ML_8V8_ISLT = ml_opcodeCounter++;
+const ML_888_ISLT = ml_opcodeCounter++;
+
+const ML_VVV_ISLTE = ml_opcodeCounter++;
+const ML_8VV_ISLTE = ml_opcodeCounter++;
+const ML_V8V_ISLTE = ml_opcodeCounter++;
+const ML_VV8_ISLTE = ml_opcodeCounter++;
+const ML_88V_ISLTE = ml_opcodeCounter++;
+const ML_V88_ISLTE = ml_opcodeCounter++;
+const ML_8V8_ISLTE = ml_opcodeCounter++;
+const ML_888_ISLTE = ml_opcodeCounter++;
+
 const ML_SUM = ml_opcodeCounter++;
 const ML_PRODUCT = ml_opcodeCounter++;
 const ML_DISTINCT = ml_opcodeCounter++;
@@ -625,20 +641,64 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
         ml += encode8bit(ML_888_ISNEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
         break;
 
+      case 'V<?VV':
+        ml += encode8bit(ML_VVV_ISLT) + encodeName(A) + encodeName(B) + encodeName(C);
+        break;
+      case '8<?VV':
+        ml += encode8bit(ML_8VV_ISLT) + encode8bit(A) + encodeName(B) + encodeName(C);
+        break;
+      case 'V<?8V':
+        ml += encode8bit(ML_V8V_ISLT) + encodeName(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V<?V8':
+        ml += encode8bit(ML_VV8_ISLT) + encodeName(A) + encodeName(B) + encode8bit(C);
+        break;
+      case '8<?8V':
+        ml += encode8bit(ML_88V_ISLT) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V<?88':
+        ml += encode8bit(ML_V88_ISLT) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        break;
+      case '8<?V8':
+        ml += encode8bit(ML_8V8_ISLT) + encode8bit(A) + encodeName(B) + encode8bit(C);
+        break;
+      case '8<?88':
+        ml += encode8bit(ML_888_ISLT) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        break;
+
+      case 'V<=?VV':
+        ml += encode8bit(ML_VVV_ISLTE) + encodeName(A) + encodeName(B) + encodeName(C);
+        break;
+      case '8<=?VV':
+        ml += encode8bit(ML_8VV_ISLTE) + encode8bit(A) + encodeName(B) + encodeName(C);
+        break;
+      case 'V<=?8V':
+        ml += encode8bit(ML_V8V_ISLTE) + encodeName(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V<=?V8':
+        ml += encode8bit(ML_VV8_ISLTE) + encodeName(A) + encodeName(B) + encode8bit(C);
+        break;
+      case '8<=?8V':
+        ml += encode8bit(ML_88V_ISLTE) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        break;
+      case 'V<=?88':
+        ml += encode8bit(ML_V88_ISLTE) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        break;
+      case '8<=?V8':
+        ml += encode8bit(ML_8V8_ISLTE) + encode8bit(A) + encodeName(B) + encode8bit(C);
+        break;
+      case '8<=?88':
+        ml += encode8bit(ML_888_ISLTE) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        break;
+
       default:
         let mlab = encodeName(A) + encodeName(B) + encodeName(C);
         switch (rop) {
-          case '<?':
-            ml += encode8bit(ML_ISLT) + mlab;
-            break;
-          case '<=?':
-            ml += encode8bit(ML_ISLTE) + mlab;
-            break;
           case '>?':
-            ml += encode8bit(ML_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
+            ml += encode8bit(ML_VVV_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
             break;
           case '>=?':
-            ml += encode8bit(ML_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
+            ml += encode8bit(ML_VVV_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
             break;
           case '+':
             ml += encode8bit(ML_PLUS) + mlab;
@@ -1102,8 +1162,8 @@ function compilePropagators(ml) {
 
       case ML_VVV_ISEQ:
       case ML_VVV_ISNEQ:
-      case ML_ISLT:
-      case ML_ISLTE:
+      case ML_VVV_ISLT:
+      case ML_VVV_ISLTE:
       case ML_SUM:
       case ML_PRODUCT:
       case ML_DISTINCT:
@@ -1186,8 +1246,22 @@ export {
   ML_88V_ISNEQ,
   ML_V88_ISNEQ,
   ML_888_ISNEQ,
-  ML_ISLT,
-  ML_ISLTE,
+  ML_VVV_ISLT,
+  ML_8VV_ISLT,
+  ML_V8V_ISLT,
+  ML_VV8_ISLT,
+  ML_88V_ISLT,
+  ML_V88_ISLT,
+  ML_8V8_ISLT,
+  ML_888_ISLT,
+  ML_VVV_ISLTE,
+  ML_8VV_ISLTE,
+  ML_V8V_ISLTE,
+  ML_VV8_ISLTE,
+  ML_88V_ISLTE,
+  ML_V88_ISLTE,
+  ML_8V8_ISLTE,
+  ML_888_ISLTE,
   ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,

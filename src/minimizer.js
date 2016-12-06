@@ -15,9 +15,9 @@ import {
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
-  ML_VF_EQ,
-  ML_FF_EQ,
-  ML_NEQ,
+  ML_VV_NEQ,
+  ML_V8_NEQ,
+  ML_88_NEQ,
   ML_LT,
   ML_LTE,
   ML_GT,
@@ -120,9 +120,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_88_eq(ml);
           break;
 
-        case ML_NEQ:
-          ASSERT_LOG2('- neq @', pcStart);
-          cr_neq(ml);
+        case ML_VV_NEQ:
+          ASSERT_LOG2('- neq vv @', pcStart);
+          cr_vv_neq(ml);
+          break;
+
+        case ML_V8_NEQ:
+          ASSERT_LOG2('- neq v8 @', pcStart);
+          cr_v8_neq(ml);
+          break;
+
+        case ML_88_NEQ:
+          ASSERT_LOG2('- neq 88 @', pcStart);
+          cr_88_neq(ml);
           break;
 
         case ML_LT:
@@ -338,7 +348,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     // domain must be solved now since B was a literal (a solved constant)
 
-    ASSERT_LOG2(' - A contained literal', vB,'so eliminating constraint');
+    ASSERT_LOG2(' - A contained literal', vB, 'so eliminating constraint');
     // op + 2 + 1
     cr_enc8(offset, ML_NOOP4);
 
@@ -364,7 +374,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     }
   }
 
-  function cr_neq(ml) {
+  function cr_vv_neq(ml) {
     // read two indexes to target
     // for now they are 16bit but maybe we'll introduce ML_NEQ32 when using >64k vars
 
@@ -376,7 +386,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let A = domains[indexA];
     let B = domains[indexB];
 
-    ASSERT_LOG2(' = cr_neq', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = cr_vv_neq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
 
     // if either is solved then the other domain should
@@ -409,6 +419,45 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
+  }
+
+  function cr_v8_neq(ml) {
+    // read one index to target and an 8bit literal
+
+    let offset = pc - 1;
+
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v8_neq', indexA, domain__debug(A), vB);
+    if (!A) return emptyDomain = true;
+
+    // remove the literal from A and remove constraint
+    A = domains[indexA] = domain_removeValue(A, vB);
+
+    ASSERT_LOG2(' ->', domain__debug(A));
+    if (!A) return emptyDomain = true;
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+  }
+
+  function cr_88_neq(ml) {
+    // check if two literals are neq. eliminate constraint afterwards.
+
+    let offset = pc - 1;
+
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+
+    ASSERT_LOG2(' = cr_88_neq', vA, vB);
+
+    if (vA === vB) return emptyDomain = true;
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
   }
 
   function cr_lt(ml) {
@@ -597,7 +646,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       // list of vars should not have any holes (not even after elimination above) so we can just copy them.
       // ml len of this distinct should be 7 bytes (op=1, count=2, A=2, B=2)
       // note: skip the count when reading!
-      cr_enc8(offset, ML_NEQ);
+      cr_enc8(offset, ML_VV_NEQ);
       ml[offset + 1] = ml[offset + 3]; // A
       ml[offset + 2] = ml[offset + 4];
       ml[offset + 3] = ml[offset + 5]; // B
@@ -1072,7 +1121,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vR === 0) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_NEQ);
+      cr_enc8(offset, ML_VV_NEQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
       pc = offset; // make it repeat with the new neq
       return;
@@ -1151,7 +1200,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vR === 1) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_NEQ);
+      cr_enc8(offset, ML_VV_NEQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
       pc = offset; // make it repeat with the new eq
       return;

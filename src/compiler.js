@@ -24,10 +24,11 @@ const ML_UNUSED = ml_opcodeCounter++;
 const ML_VV_EQ = ml_opcodeCounter++;
 const ML_V8_EQ = ml_opcodeCounter++;
 const ML_88_EQ = ml_opcodeCounter++;
-const ML_VF_EQ = ml_opcodeCounter++;
-const ML_FF_EQ = ml_opcodeCounter++;
 
-const ML_NEQ = ml_opcodeCounter++;
+const ML_VV_NEQ = ml_opcodeCounter++;
+const ML_V8_NEQ = ml_opcodeCounter++;
+const ML_88_NEQ = ml_opcodeCounter++;
+
 const ML_LT = ml_opcodeCounter++;
 const ML_LTE = ml_opcodeCounter++;
 const ML_GT = ml_opcodeCounter++; // or just eliminate this immediately?
@@ -465,13 +466,27 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
         case '8==8':
           ml += encode8bit(ML_88_EQ) + encode8bit(A) + encode8bit(B);
           break;
+
+        case 'V!=V':
+          ASSERT_LOG2('not equal', A, B);
+          ml += encode8bit(ML_VV_NEQ) + encodeName(A) + encodeName(B);
+          break;
+        case 'V!=8':
+          ASSERT_LOG2('not equal', A, B);
+          ml += encode8bit(ML_V8_NEQ) + encodeName(A) + encode8bit(B);
+          break;
+        case '8!=V':
+          ASSERT_LOG2('not equal', A, B);
+          ml += encode8bit(ML_V8_NEQ) + encodeName(B) + encode8bit(A);
+          break;
+        case '8!=8':
+          ASSERT_LOG2('not equal', A, B);
+          ml += encode8bit(ML_88_NEQ) + encode8bit(A) + encode8bit(B);
+          break;
+
         default:
           // TEMP
           switch (cop) {
-            case '!=':
-              ASSERT_LOG2('not equal', A, B);
-              ml += encode8bit(ML_NEQ) + encodeName(A) + encodeName(B);
-              break;
 
             case '<':
               ml += encode8bit(ML_LT) + encodeName(A) + encodeName(B);
@@ -956,7 +971,9 @@ function compilePropagators(ml) {
       case ML_VV_EQ:
       case ML_V8_EQ:
       case ML_88_EQ:
-      case ML_NEQ:
+      case ML_VV_NEQ:
+      case ML_V8_NEQ:
+      case ML_88_NEQ:
       case ML_LT:
       case ML_LTE:
         ASSERT_LOG2(' - eq neq lt lte');
@@ -1062,9 +1079,9 @@ export {
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
-  ML_VF_EQ,
-  ML_FF_EQ,
-  ML_NEQ,
+  ML_VV_NEQ,
+  ML_V8_NEQ,
+  ML_88_NEQ,
   ML_LT,
   ML_LTE,
   ML_GT,

@@ -1875,9 +1875,9 @@ describe('src/runner.spec', function() {
     });
   });
 
-  describe('op literals', function(){
+  describe('op literals', function() {
 
-    describe('eq', function(){
+    describe('eq', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
@@ -1916,7 +1916,7 @@ describe('src/runner.spec', function() {
 
     });
 
-    describe('neq', function(){
+    describe('neq', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
@@ -1953,8 +1953,7 @@ describe('src/runner.spec', function() {
       });
     });
 
-
-    describe('lt', function(){
+    describe('lt', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
@@ -1985,6 +1984,43 @@ describe('src/runner.spec', function() {
       it('88 reject', function() {
         let solution = solverSolver(`
           18 < 18
+        `);
+
+        expect(solution).to.equal(false);
+      });
+    });
+
+    describe('lte', function() {
+
+      it('v8 pass', function() {
+        let solution = solverSolver(`
+          : A 21
+          A < 22
+        `);
+
+        expect(solution).to.eql({A: 21});
+      });
+
+      it('v8 reject', function() {
+        let solution = solverSolver(`
+          : A 22
+          A < 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88 pass', function() {
+        let solution = solverSolver(`
+          18 < 19
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('88 reject', function() {
+        let solution = solverSolver(`
+          19 < 18
         `);
 
         expect(solution).to.equal(false);

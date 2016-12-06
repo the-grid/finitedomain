@@ -26,11 +26,9 @@ import {
   cr_stabilize,
 } from './minimizer';
 import {
-  domain__debug,
   domain_createRange,
   domain_createValue,
   domain_getValue,
-  domain_isSolved,
   domain_toList,
   domain_arrToSmallest,
 } from './domain';
@@ -122,7 +120,7 @@ function minimize(mls, getVar, domains, addVar) {
   }
   ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
 
-  throw 'fail for now';
+  THROW('fail for now');
   let mlPropagators = compilePropagators(mlConstraints);
   cr_stabilize(mlPropagators, domains);
 }
@@ -173,6 +171,9 @@ function createSolution(vars, domains) {
 // BODY_STOP
 
 export default solverSolver;
+export {
+  Solver,
+};
 //
 //function search(s) {
 //  this.params = {};

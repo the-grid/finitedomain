@@ -12,31 +12,45 @@ import {
 
 // BODY_START
 
-const ML_UNUSED = 0;
-const ML_EQ = 1;
-const ML_NEQ = 2;
-const ML_LT = 3;
-const ML_LTE = 4;
-const ML_GT = 5; // or just eliminate this immediately?
-const ML_GTE = 6; // or just eliminate this immediately?
-const ML_ISEQ = 7;
-const ML_ISNEQ = 8;
-const ML_ISLT = 9;
-const ML_ISLTE = 10;
-const ML_ISGT = 11; // or just eliminate this immediately?
-const ML_ISGTE = 12; // or just eliminate this immediately?
-const ML_SUM = 13;
-const ML_PRODUCT = 14;
-const ML_DISTINCT = 15;
-const ML_PLUS = 16;
-const ML_MINUS = 17;
-const ML_MUL = 18;
-const ML_DIV = 19;
-const ML_JMP = 20;
-const ML_NOOP = 0xF1;
-const ML_NOOP2 = 0xF2;
-const ML_NOOP4 = 0xF4;
-const ML_STOP = 0xFF;
+let ml_opcodeCounter = 0;
+
+// note: all ops accept vars and literals
+// - a var is signified by a V
+// - an 8bit literal signified by 8
+// - a 16bit literal signified by F
+
+const ML_UNUSED = ml_opcodeCounter++;
+
+const ML_VV_EQ = ml_opcodeCounter++;
+const ML_V8_EQ = ml_opcodeCounter++;
+const ML_88_EQ = ml_opcodeCounter++;
+const ML_VF_EQ = ml_opcodeCounter++;
+const ML_FF_EQ = ml_opcodeCounter++;
+
+const ML_NEQ = ml_opcodeCounter++;
+const ML_LT = ml_opcodeCounter++;
+const ML_LTE = ml_opcodeCounter++;
+const ML_GT = ml_opcodeCounter++; // or just eliminate this immediately?
+const ML_GTE = ml_opcodeCounter++; // or just eliminate this immediately?
+const ML_ISEQ = ml_opcodeCounter++;
+const ML_ISNEQ = ml_opcodeCounter++;
+const ML_ISLT = ml_opcodeCounter++;
+const ML_ISLTE = ml_opcodeCounter++;
+const ML_ISGT = ml_opcodeCounter++; // or just eliminate this immediately?
+const ML_ISGTE = ml_opcodeCounter++; // or just eliminate this immediately?
+const ML_SUM = ml_opcodeCounter++;
+const ML_PRODUCT = ml_opcodeCounter++;
+const ML_DISTINCT = ml_opcodeCounter++;
+const ML_PLUS = ml_opcodeCounter++;
+const ML_MINUS = ml_opcodeCounter++;
+const ML_MUL = ml_opcodeCounter++;
+const ML_DIV = ml_opcodeCounter++;
+const ML_JMP = ml_opcodeCounter++;
+const ML_NOOP = ml_opcodeCounter++;
+const ML_NOOP2 = ml_opcodeCounter++;
+const ML_NOOP3 = ml_opcodeCounter++;
+const ML_NOOP4 = ml_opcodeCounter++;
+const ML_STOP = ml_opcodeCounter++;
 
 /**
  * Compile the constraint dsl to a bytecode
@@ -414,7 +428,9 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
     ASSERT_LOG2('encode16bit:', index, '->', index >> 8, index & 0xff);
     ASSERT(typeof index === 'number', 'Encoding 16bit num', index);
     ASSERT(index <= 0xffff, 'implement 32bit index support if this breaks', index);
-    return String.fromCharCode(index >> 8, index & 0xff).padStart('\0', 2);
+    let s = String.fromCharCode(index >> 8, index & 0xff);
+    if (s.length === 1) return '\0' + s;
+    return s;
   }
 
   function parseVoidConstraint() {
@@ -432,37 +448,50 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
 
     if (cop === '=') {
       parseAssignment(A);
-    } else {
+    } else if (cop) {
       let B = parseVexpr();
-      let mlab = encodeName(A) + encodeName(B);
-      switch (cop) {
-        case '==':
-          ml += encode8bit(ML_EQ) + mlab;
+      let codeA = typeof A === 'number' ? '8' : 'V';
+      let codeB = typeof B === 'number' ? '8' : 'V';
+      switch (codeA + cop + codeB) {
+        case 'V==V':
+          ml += encode8bit(ML_VV_EQ) + encodeName(A) + encodeName(B);
           break;
-
-        case '!=':
-          ASSERT_LOG2('not equal', A, B);
-          ml += encode8bit(ML_NEQ) + mlab;
+        case 'V==8':
+          ml += encode8bit(ML_V8_EQ) + encodeName(A) + encode8bit(B);
           break;
-
-        case '<':
-          ml += encode8bit(ML_LT) + mlab;
+        case '8==V':
+          ml += encode8bit(ML_V8_EQ) + encodeName(B) + encode8bit(A);
           break;
-
-        case '<=':
-          ml += encode8bit(ML_LTE) + mlab;
+        case '8==8':
+          ml += encode8bit(ML_88_EQ) + encode8bit(A) + encode8bit(B);
           break;
-
-        case '>':
-          ml += encode8bit(ML_GT) + mlab;
-          break;
-
-        case '>=':
-          ml += encode8bit(ML_GTE) + mlab;
-          break;
-
         default:
-          if (cop) THROW('Unknown constraint op: [' + cop + ']');
+          // TEMP
+          switch (cop) {
+            case '!=':
+              ASSERT_LOG2('not equal', A, B);
+              ml += encode8bit(ML_NEQ) + encodeName(A) + encodeName(B);
+              break;
+
+            case '<':
+              ml += encode8bit(ML_LT) + encodeName(A) + encodeName(B);
+              break;
+
+            case '<=':
+              ml += encode8bit(ML_LTE) + encodeName(A) + encodeName(B);
+              break;
+
+            case '>':
+              ml += encode8bit(ML_GT) + encodeName(A) + encodeName(B);
+              break;
+
+            case '>=':
+              ml += encode8bit(ML_GTE) + encodeName(A) + encodeName(B);
+              break;
+
+            default:
+              THROW('Unknown constraint op: [' + cop + ']');
+          }
       }
     }
 
@@ -924,7 +953,9 @@ function compilePropagators(ml) {
         pc = pcStart + delta;
         break;
 
-      case ML_EQ:
+      case ML_VV_EQ:
+      case ML_V8_EQ:
+      case ML_88_EQ:
       case ML_NEQ:
       case ML_LT:
       case ML_LTE:
@@ -955,6 +986,10 @@ function compilePropagators(ml) {
         break;
       case ML_NOOP2:
         pc = pcStart + 2;
+        ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
+        break;
+      case ML_NOOP3:
+        pc = pcStart + 3;
         ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
         break;
       case ML_NOOP4:
@@ -1024,7 +1059,11 @@ function compilePropagators(ml) {
 
 export {
   ML_UNUSED,
-  ML_EQ,
+  ML_VV_EQ,
+  ML_V8_EQ,
+  ML_88_EQ,
+  ML_VF_EQ,
+  ML_FF_EQ,
   ML_NEQ,
   ML_LT,
   ML_LTE,
@@ -1046,6 +1085,7 @@ export {
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
+  ML_NOOP3,
   ML_NOOP4,
   ML_STOP,
 

@@ -34,7 +34,7 @@ var perf = module.exports = function perf(config, max, _waited) {
   }
 
   if (typeof config === 'string') {
-    var solver = new Solver().imp(config);
+    var solver = new Solver(config);
   } else {
     var solver = new Solver({config: config});
   }
@@ -42,14 +42,15 @@ var perf = module.exports = function perf(config, max, _waited) {
   console.log('start test');
   console.time('test runtime');
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');
-  solver.solve({
-    log: 1,
-    max: max,
-    vars: solver.config.allVarNames,
-    _debug: false,
-    _tostring: false, // requires dsl build
-    exportBare: false, // does not require dsl build
-  });
+  Solver(config);
+  //{
+  //  log: 1,
+  //  max: max,
+  //  vars: solver.config.allVarNames,
+  //  _debug: false,
+  //  _tostring: false, // requires dsl build
+  //  exportBare: false, // does not require dsl build
+  //});
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('fd perf');
   console.timeEnd('test runtime');
 };

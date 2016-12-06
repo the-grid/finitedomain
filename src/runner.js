@@ -8,6 +8,8 @@
 import {
   SUB,
   SUP,
+
+  ASSERT,
   ASSERT_LOG2,
   THROW,
 } from './helpers';
@@ -16,6 +18,10 @@ import {
   compilePropagators,
 } from './compiler';
 import {
+  MINIMIZER_STABLE,
+  MINIMIZER_SOLVED,
+  MINIMIZER_REJECTED,
+
   cr_optimizeConstraints,
   cr_stabilize,
 } from './minimizer';
@@ -36,9 +42,6 @@ import {
 } from './trie';
 
 // BODY_START
-
-let RUNNER_SOLVED = true;
-let RUNNER_REJECTED = false;
 
 function solverSolver(dsl) {
   let varTrie = trie_create();
@@ -78,10 +81,10 @@ function solverSolver(dsl) {
   let input = parseDsl(dsl, addVar, getVar);
   let mls = input.ml;
 
-  minimize(mls, getVar, domains, addVar);
-  let state = getState(domains);
-  if (state === RUNNER_SOLVED) return createSolution(vars, domains);
-  if (state === RUNNER_REJECTED) return RUNNER_REJECTED;
+  let state = minimize(mls, getVar, domains, addVar);
+  //let state = getState(domains);
+  if (state === MINIMIZER_SOLVED) return createSolution(vars, domains);
+  if (state === MINIMIZER_REJECTED) return false;
 
   if (input.varstrat === 'throw') THROW('Forcing a choice with strat=throw');
   //
@@ -106,10 +109,20 @@ let Solver = solverSolver; // TEMP
 
 function minimize(mls, getVar, domains, addVar) {
   let mlConstraints = Buffer.from(mls, 'binary');
+  ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
   // now we can access the ml in terms of bytes, jeuj
-  let resolved = cr_optimizeConstraints(mlConstraints, domains, addVar, getVar);
-  if (resolved) return ASSERT_LOG2('minimizing resolved it!'); // all constraints have been eliminated or an empty domain was found
+  let state = cr_optimizeConstraints(mlConstraints, domains, addVar, getVar);
+  if (state === MINIMIZER_SOLVED) {
+    ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
+    return state;
+  }
+  if (state === MINIMIZER_REJECTED) {
+    ASSERT_LOG2('minimizing rejected it!', state); // an empty domain was found or a literal failed a test
+    return state;
+  }
+  ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
 
+  throw 'fail for now';
   let mlPropagators = compilePropagators(mlConstraints);
   cr_stabilize(mlPropagators, domains);
 }
@@ -119,31 +132,31 @@ function minimize(mls, getVar, domains, addVar) {
 //function barren(node) {
 //  return node.next_distribution_choice >= 2;
 //}
-function getState(domains) {
-  ASSERT_LOG2('getState:', domains.map(domain__debug));
-  let returnValue = RUNNER_SOLVED;
-  domains.some(domain => {
-    if (typeof domain !== 'number') {
-      ASSERT_LOG2('state of', domain, 'is undefined');
-      // any non-soldom halts the function immediately
-      returnValue = undefined;
-      return true;
-    }
-    if (!domain) {
-      ASSERT_LOG2('state of', domain, 'is rejected');
-      // empty domain means rejected
-      returnValue = RUNNER_REJECTED;
-      return true;
-    }
-    if (!domain_isSolved(domain)) {
-      ASSERT_LOG2('state of', domain, 'is undefined');
-      // this domain can only be solved if the soldom flag is set... and it wasn't
-      returnValue = undefined;
-    }
-  });
-  ASSERT_LOG2('-->', returnValue);
-  return returnValue;
-}
+//function getState(domains) {
+//  ASSERT_LOG2('getState:', domains.map(domain__debug));
+//  let returnValue = RUNNER_SOLVED;
+//  domains.some(domain => {
+//    if (typeof domain !== 'number') {
+//      ASSERT_LOG2('state of', domain, 'is undefined');
+//      // any non-soldom halts the function immediately
+//      returnValue = undefined;
+//      return true;
+//    }
+//    if (!domain) {
+//      ASSERT_LOG2('state of', domain, 'is rejected');
+//      // empty domain means rejected
+//      returnValue = RUNNER_REJECTED;
+//      return true;
+//    }
+//    if (!domain_isSolved(domain)) {
+//      ASSERT_LOG2('state of', domain, 'is undefined');
+//      // this domain can only be solved if the soldom flag is set... and it wasn't
+//      returnValue = undefined;
+//    }
+//  });
+//  ASSERT_LOG2('-->', returnValue);
+//  return returnValue;
+//}
 function createSolution(vars, domains) {
   let solution = {};
   vars.forEach((name, index) => {

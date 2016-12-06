@@ -26,7 +26,7 @@ describe('src/runner.spec', function() {
           A == B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -64,7 +64,7 @@ describe('src/runner.spec', function() {
           A != B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -102,7 +102,7 @@ describe('src/runner.spec', function() {
           A < B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -151,7 +151,7 @@ describe('src/runner.spec', function() {
           A <= B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -189,7 +189,7 @@ describe('src/runner.spec', function() {
           A > B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -238,7 +238,7 @@ describe('src/runner.spec', function() {
           A >= B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -276,7 +276,7 @@ describe('src/runner.spec', function() {
           distinct(A B)
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -351,7 +351,7 @@ describe('src/runner.spec', function() {
           C = A + B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -428,7 +428,7 @@ describe('src/runner.spec', function() {
           C = A - B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -505,7 +505,7 @@ describe('src/runner.spec', function() {
           C = A * B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -594,7 +594,7 @@ describe('src/runner.spec', function() {
           C = A / B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve transitivity', function() {
@@ -682,7 +682,7 @@ describe('src/runner.spec', function() {
           C = A ==? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=1 if A!=B', function() {
@@ -694,7 +694,7 @@ describe('src/runner.spec', function() {
           C = A ==? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve B with C=1', function() {
@@ -818,7 +818,7 @@ describe('src/runner.spec', function() {
           C = A !=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=1 if A==B', function() {
@@ -830,7 +830,7 @@ describe('src/runner.spec', function() {
           C = A !=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should solve B with C=1', function() {
@@ -953,7 +953,7 @@ describe('src/runner.spec', function() {
           C = A <? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=1 if A>B', function() {
@@ -965,7 +965,7 @@ describe('src/runner.spec', function() {
           C = A <? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A<B', function() {
@@ -977,7 +977,7 @@ describe('src/runner.spec', function() {
           C = A <? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should accept C=0 if A==B', function() {
@@ -1148,7 +1148,7 @@ describe('src/runner.spec', function() {
           C = A <=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A<B', function() {
@@ -1160,7 +1160,7 @@ describe('src/runner.spec', function() {
           C = A <=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A==B', function() {
@@ -1172,7 +1172,7 @@ describe('src/runner.spec', function() {
           C = A <=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should accept C=0 if A>B', function() {
@@ -1331,7 +1331,7 @@ describe('src/runner.spec', function() {
           C = A >? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=1 if A<B', function() {
@@ -1343,7 +1343,7 @@ describe('src/runner.spec', function() {
           C = A >? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A>B', function() {
@@ -1355,7 +1355,7 @@ describe('src/runner.spec', function() {
           C = A >? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should accept C=0 if A==B', function() {
@@ -1526,7 +1526,7 @@ describe('src/runner.spec', function() {
           C = A >=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A>B', function() {
@@ -1538,7 +1538,7 @@ describe('src/runner.spec', function() {
           C = A >=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should reject C=0 if A==B', function() {
@@ -1550,7 +1550,7 @@ describe('src/runner.spec', function() {
           C = A >=? B
         `);
 
-        expect(solution).to.eql(false);
+        expect(solution).to.equal(false);
       });
 
       it('should accept C=0 if A<B', function() {
@@ -1872,6 +1872,48 @@ describe('src/runner.spec', function() {
 
         expect(solution).to.eql({A: 10, R: 10, X: 10});
       });
+    });
+  });
+
+  describe('op literals', function(){
+
+    describe('eq', function(){
+
+      it('v8 pass', function() {
+        let solution = solverSolver(`
+          : A 21
+          A == 21
+        `);
+
+        expect(solution).to.eql({A: 21});
+      });
+
+      it('v8 reject', function() {
+        let solution = solverSolver(`
+          : A 21
+          A == 22
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88 pass', function() {
+        let solution = solverSolver(`
+          18 == 18
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('88 reject', function() {
+        let solution = solverSolver(`
+          18 == 19
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+
     });
   });
 });

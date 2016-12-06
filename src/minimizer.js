@@ -12,7 +12,11 @@ import {
 } from './helpers';
 import {
   ML_UNUSED,
-  ML_EQ,
+  ML_VV_EQ,
+  ML_V8_EQ,
+  ML_88_EQ,
+  ML_VF_EQ,
+  ML_FF_EQ,
   ML_NEQ,
   ML_LT,
   ML_LTE,
@@ -34,6 +38,7 @@ import {
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
+  ML_NOOP3,
   ML_NOOP4,
   ML_STOP,
 } from './compiler';
@@ -58,6 +63,10 @@ import {
 
 // BODY_START
 
+const MINIMIZER_STABLE = 0;
+const MINIMIZER_SOLVED = 1;
+const MINIMIZER_REJECTED = 2;
+
 function cr_optimizeConstraints(ml, domains, addVar, getVar) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   let change = true;
@@ -70,10 +79,10 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     pc = 0;
     cr_innerLoop();
     ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
-    if (onlyJumps) return true; // solved
-    if (emptyDomain) return true; // rejected
+    if (emptyDomain) return MINIMIZER_REJECTED;
+    if (onlyJumps) return MINIMIZER_SOLVED;
   }
-  return false;
+  return MINIMIZER_STABLE;
 
   function cr_innerLoop() {
     onlyJumps = true;
@@ -96,9 +105,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           pc += delta;
           break;
 
-        case ML_EQ:
-          ASSERT_LOG2('- eq @', pcStart);
-          cr_eq(ml);
+        case ML_VV_EQ:
+          ASSERT_LOG2('- eq vv @', pcStart);
+          cr_vv_eq(ml);
+          break;
+
+        case ML_V8_EQ:
+          ASSERT_LOG2('- eq v8 @', pcStart);
+          cr_v8_eq(ml);
+          break;
+
+        case ML_88_EQ:
+          ASSERT_LOG2('- eq 88 @', pcStart);
+          cr_88_eq(ml);
           break;
 
         case ML_NEQ:
@@ -199,6 +218,10 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           pc = pcStart + 2;
           ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
           break;
+        case ML_NOOP3:
+          pc = pcStart + 3;
+          ASSERT_LOG2('- noop3 @', pcStart, '->', pc);
+          break;
         case ML_NOOP4:
           pc = pcStart + 4;
           ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
@@ -212,15 +235,21 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     return THROW('Derailed; expected to find STOP before EOF');
   }
 
+  function cr_dec8() {
+    ASSERT(pc < ml.length, 'OOB');
+    ASSERT_LOG2(' . dec8 decoding', ml[pc], 'from', pc);
+    return ml[pc++];
+  }
+
   function cr_dec16() {
     ASSERT(pc < ml.length - 1, 'OOB');
-    ASSERT_LOG2(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 8) | ml[pc++];
   }
 
   function cr_dec16pc(pc) {
     ASSERT(pc < ml.length - 1, 'OOB');
-    ASSERT_LOG2(' . decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
+    ASSERT_LOG2(' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
     return (ml[pc++] << 8) | ml[pc];
   }
 
@@ -252,7 +281,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ml[pc] = num & 0xff;
   }
 
-  function cr_eq(ml) {
+  function cr_vv_eq(ml) {
     // read two indexes to target
     // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
@@ -263,14 +292,15 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let A = domains[indexA];
     let B = domains[indexB];
 
-    ASSERT_LOG2(' = cr_eq', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = cr_vv_eq', indexA, indexB, domain__debug(A), domain__debug(B));
+    if (!A || !B) return emptyDomain = true;
 
     let R = domain_intersection(A, B);
+    ASSERT_LOG2(' ->', domain__debug(R));
+    if (!R) return emptyDomain = true;
     change = A !== R || B !== R;
     domains[indexA] = R;
     domains[indexB] = R;
-
-    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // solved if the two domains intersect to a solved domain
     if (domain_getValue(R) >= 0) {
@@ -283,6 +313,54 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+    }
+  }
+
+  function cr_v8_eq(ml) {
+    // read one index to A, B is a literal
+
+    let offset = pc - 1;
+    let indexA = cr_dec16();
+    let vB = cr_dec8();
+
+    let A = domains[indexA];
+
+    ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
+    if (!A) return emptyDomain = true;
+
+    if (!domain_containsValue(A, vB)) {
+      ASSERT_LOG2(' - A did not contain literal', vB, 'so search rejects');
+      domains[indexA] = domain_createEmpty();
+      return emptyDomain = true;
+    }
+
+    domains[indexA] = domain_createValue(vB);
+
+    // domain must be solved now since B was a literal (a solved constant)
+
+    ASSERT_LOG2(' - A contained literal', vB,'so eliminating constraint');
+    // op + 2 + 1
+    cr_enc8(offset, ML_NOOP4);
+
+    // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+  }
+
+  function cr_88_eq(ml) {
+    // eq two literals
+    // either remove constraint if they are equal or reject if they are not
+
+    let offset = pc - 1;
+    let vA = cr_dec8();
+    let vB = cr_dec8();
+
+    ASSERT_LOG2(' = cr_88_eq', vA, vB);
+
+    if (vA === vB) {
+      ASSERT_LOG2(' - literals match so eliminating this constraint');
+      cr_enc8(offset, ML_NOOP3); // 1+1+1
+    } else {
+      ASSERT_LOG2(' - literals dont match so this problem is unsolvable');
+      return emptyDomain = true; // TODO: is there anything higher up that properly handles this case?
     }
   }
 
@@ -299,6 +377,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
 
     ASSERT_LOG2(' = cr_neq', indexA, indexB, domain__debug(A), domain__debug(B));
+    if (!A || !B) return emptyDomain = true;
 
     // if either is solved then the other domain should
     // become the result of unsolved_set "minus" solved_set
@@ -306,11 +385,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vA >= 0) {
       change = true;
       B = domains[indexB] = domain_removeValue(B, vA);
+      if (!B) return emptyDomain = true;
     }
     let vB = domain_getValue(B);
     if (domain_getValue(B) >= 0) {
       change = true;
       A = domains[indexA] = domain_removeValue(A, vB);
+      if (!A) return emptyDomain = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
@@ -332,7 +413,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_lt(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
 
@@ -341,12 +421,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' = cr_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
-    return _cr_lt(ml, indexA, indexB, offset);
+    _cr_lt(ml, indexA, indexB, offset);
   }
 
   function _cr_lt(ml, indexA, indexB, offset) {
     let A = domains[indexA];
     let B = domains[indexB];
+    if (!A || !B) return emptyDomain = true;
 
     // relative comparison is easy; cut away any non-intersecting
     // values that violate the desired outcome. only when a A and
@@ -356,9 +437,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let oA = A;
     let oB = B;
     A = domains[indexA] = domain_removeGte(A, domain_max(B));
+    ASSERT_LOG2(' - updated A', domain__debug(A), 'max B=', domain_max(B));
+    if (!A) return emptyDomain = true;
     B = domains[indexB] = domain_removeLte(B, domain_min(A));
-    change = oA !== A || oB !== B;
+    ASSERT_LOG2(' - updated B', domain__debug(B), 'max A=', domain_min(A));
+    if (!B) return emptyDomain = true;
 
+    change = oA !== A || oB !== B;
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // any value in A must be < any value in B
@@ -378,7 +463,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_lte(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
 
@@ -387,12 +471,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' = cr_lte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
 
-    return _cr_lte(ml, indexA, indexB, offset);
+    _cr_lte(ml, indexA, indexB, offset);
   }
 
   function _cr_lte(ml, indexA, indexB, offset) {
     let A = domains[indexA];
     let B = domains[indexB];
+    if (!A || !B) return emptyDomain = true;
 
     // relative comparison is easy; cut away any non-intersecting
     // values that violate the desired outcome. only when a A and
@@ -408,8 +493,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     B = domains[indexB] = domain_removeLtUnsafe(B, domain_min(A));
     ASSERT_LOG2(' - updated B', domain__debug(B), 'max A=', domain_min(A));
     if (!B) return emptyDomain = true;
-    change = oA !== A || oB !== B;
 
+    change = oA !== A || oB !== B;
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // any value in A must be < any value in B
@@ -429,7 +514,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_gt(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
 
@@ -444,7 +528,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_gte(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
 
@@ -552,7 +635,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_plus(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -649,7 +731,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_minus(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -746,7 +827,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_mul(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -849,7 +929,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_div(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -953,7 +1032,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_isEq(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -1002,7 +1080,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vR === 1) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_EQ);
+      cr_enc8(offset, ML_VV_EQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
       pc = offset; // make it repeat with the new eq
       return;
@@ -1025,7 +1103,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_isNeq(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -1066,7 +1143,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (vR === 0) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_EQ);
+      cr_enc8(offset, ML_VV_EQ);
       cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
       pc = offset; // make it repeat with the new neq
       return;
@@ -1097,7 +1174,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_isLt(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -1149,7 +1225,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
   function cr_isLte(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
@@ -1356,12 +1431,20 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
       let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
 
-      // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
-      // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
-      cr_enc8(offset, ML_EQ);
-      cr_enc16(offset + 1, newIndexA);
-      cr_enc16(offset + 3, indexR);
-      cr_enc8(offset + 5, ML_NOOP2);
+      // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
+      if (minR === maxR) {
+        cr_enc8(offset, ML_V8_EQ);
+        cr_enc16(offset + 1, newIndexA);
+        cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
+        cr_enc8(offset + 4, ML_NOOP3);
+      } else {
+        // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
+        // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
+        cr_enc8(offset, ML_VV_EQ);
+        cr_enc16(offset + 1, newIndexA);
+        cr_enc16(offset + 3, indexR);
+        cr_enc8(offset + 5, ML_NOOP2);
+      }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
@@ -1523,12 +1606,20 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
       let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
 
-      // the len of this product is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
-      // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
-      cr_enc8(offset, ML_EQ);
-      cr_enc16(offset + 1, newIndexA);
-      cr_enc16(offset + 3, indexR);
-      cr_enc8(offset + 5, ML_NOOP2);
+      // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
+      if (minR === maxR) {
+        cr_enc8(offset, ML_V8_EQ);
+        cr_enc16(offset + 1, newIndexA);
+        cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
+        cr_enc8(offset + 4, ML_NOOP3);
+      } else {
+        // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
+        // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
+        cr_enc8(offset, ML_VV_EQ);
+        cr_enc16(offset + 1, newIndexA);
+        cr_enc16(offset + 3, indexR);
+        cr_enc8(offset + 5, ML_NOOP2);
+      }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
@@ -1566,6 +1657,9 @@ function cr_stabilize(ml, domains) {
 // BODY_STOP
 
 export {
+ MINIMIZER_STABLE,
+ MINIMIZER_SOLVED,
+ MINIMIZER_REJECTED,
   cr_optimizeConstraints,
   cr_stabilize,
 };

@@ -20,18 +20,16 @@ import {
   ML_88_NEQ,
   ML_VV_LT,
   ML_V8_LT,
+  ML_8V_LT,
   ML_88_LT,
   ML_VV_LTE,
   ML_V8_LTE,
+  ML_8V_LTE,
   ML_88_LTE,
-  ML_GT,
-  ML_GTE,
   ML_ISEQ,
   ML_ISNEQ,
   ML_ISLT,
   ML_ISLTE,
-  ML_ISGT,
-  ML_ISGTE,
   ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -149,6 +147,11 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_v8_lt(ml);
           break;
 
+        case ML_8V_LT:
+          ASSERT_LOG2('- lt 8v @', pcStart);
+          cr_8v_lt(ml);
+          break;
+
         case ML_88_LT:
           ASSERT_LOG2('- lt 88 @', pcStart);
           cr_88_lt(ml);
@@ -164,19 +167,14 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
           cr_v8_lte(ml);
           break;
 
+        case ML_8V_LTE:
+          ASSERT_LOG2('- lte 8v @', pcStart);
+          cr_8v_lte(ml);
+          break;
+
         case ML_88_LTE:
           ASSERT_LOG2('- lte 88 @', pcStart);
           cr_88_lte(ml);
-          break;
-
-        case ML_GT:
-          ASSERT_LOG2('- gt @', pcStart);
-          cr_gt(ml);
-          break;
-
-        case ML_GTE:
-          ASSERT_LOG2('- gte @', pcStart);
-          cr_gte(ml);
           break;
 
         case ML_DISTINCT:
@@ -222,16 +220,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         case ML_ISLTE:
           ASSERT_LOG2('- islte @', pcStart);
           cr_isLte(ml);
-          break;
-
-        case ML_ISGT:
-          ASSERT_LOG2('- isgt @', pcStart);
-          cr_isGt(ml);
-          break;
-
-        case ML_ISGTE:
-          ASSERT_LOG2('- isgte @', pcStart);
-          cr_isGte(ml);
           break;
 
         case ML_SUM:
@@ -495,14 +483,10 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
-
-    _cr_vv_lt(ml, indexA, indexB, offset);
-  }
-
-  function _cr_vv_lt(ml, indexA, indexB, offset) {
     let A = domains[indexA];
     let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
 
     // relative comparison is easy; cut away any non-intersecting
@@ -563,6 +547,32 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
   }
 
+  function cr_8v_lt(ml) {
+    // read one index to target and a literal
+
+    let offset = pc - 1;
+
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_8v_lt', vA, indexB, domain__debug(B));
+    if (vA >= domain_min(B)) return emptyDomain = true;
+
+    let oB = B;
+    // remove any value lte vA and remove constraint
+    B = domains[indexB] = domain_removeLte(B, vA);
+    ASSERT_LOG2(' ->', domain__debug(B));
+    if (B !== oB) {
+      if (!B) return emptyDomain = true;
+      change = true;
+    }
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+  }
+
   function cr_88_lt(ml) {
     // read two literals
 
@@ -586,14 +596,10 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    ASSERT_LOG2(' = cr_vv_lte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
-
-    _cr_vv_lte(ml, indexA, indexB, offset);
-  }
-
-  function _cr_vv_lte(ml, indexA, indexB, offset) {
     let A = domains[indexA];
     let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_vv_lte', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
 
     // relative comparison is easy; cut away any non-intersecting
@@ -643,11 +649,37 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     if (domain_max(A) > vB) return emptyDomain = true;
 
     let oA = A;
-    // remove any value gte vB and remove constraint
+    // remove any value gt vB and remove constraint
     A = domains[indexA] = domain_removeGtUnsafe(A, vB);
     ASSERT_LOG2(' ->', domain__debug(A));
     if (A !== oA) {
       if (!A) return emptyDomain = true;
+      change = true;
+    }
+
+    ASSERT_LOG2(' - eliminating constraint');
+    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+  }
+
+  function cr_8v_lte(ml) {
+    // read one index to target and a literal
+
+    let offset = pc - 1;
+
+    let vA = cr_dec8();
+    let indexB = cr_dec16();
+
+    let B = domains[indexB];
+
+    ASSERT_LOG2(' = cr_8v_lte', vA, indexB, domain__debug(B));
+    if (vA > domain_min(B)) return emptyDomain = true;
+
+    let oB = B;
+    // remove any value lt vA and remove constraint
+    B = domains[indexB] = domain_removeLtUnsafe(B, vA);
+    ASSERT_LOG2(' ->', domain__debug(B));
+    if (B !== oB) {
+      if (!B) return emptyDomain = true;
       change = true;
     }
 
@@ -668,34 +700,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' - eliminating constraint');
     cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
-  }
-
-  function cr_gt(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-
-    ASSERT_LOG2(' = cr_gt', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
-
-    // swap args!
-    _cr_vv_lt(ml, indexB, indexA, offset);
-  }
-
-  function cr_gte(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-
-    ASSERT_LOG2(' = cr_gte', indexA, indexB, domain__debug(domains[indexA]), domain__debug(domains[indexB]));
-
-    // swap args!
-    _cr_vv_lte(ml, indexB, indexA, offset);
   }
 
   function cr_distinct(ml) {
@@ -1430,36 +1434,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
     }
-  }
-
-  function cr_isGt(ml) {
-    // change GT to LT with swapped args and restart
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-
-    ASSERT_LOG2(' ! changing isgt to islte with swapped A and B');
-
-    cr_enc8(offset, ML_ISLT);
-    cr_enc16(offset + 1, indexB);
-    cr_enc16(offset + 3, indexA);
-    // restart
-    pc = offset;
-  }
-
-  function cr_isGte(ml) {
-    // change GTE to LTE with swapped args and restart
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-
-    ASSERT_LOG2(' ! changing isgt to islte with swapped A and B');
-
-    cr_enc8(offset, ML_ISLTE);
-    cr_enc16(offset + 1, indexB);
-    cr_enc16(offset + 3, indexA);
-    // restart
-    pc = offset;
   }
 
   function cr_sum(ml) {

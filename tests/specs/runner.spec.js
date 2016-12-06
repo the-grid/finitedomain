@@ -1995,7 +1995,7 @@ describe('src/runner.spec', function() {
       it('v8 pass', function() {
         let solution = solverSolver(`
           : A 21
-          A < 22
+          A <= 22
         `);
 
         expect(solution).to.eql({A: 21});
@@ -2004,7 +2004,7 @@ describe('src/runner.spec', function() {
       it('v8 reject', function() {
         let solution = solverSolver(`
           : A 22
-          A < 21
+          A <= 21
         `);
 
         expect(solution).to.equal(false);
@@ -2012,7 +2012,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
-          18 < 19
+          18 <= 19
         `);
 
         expect(solution).to.eql({});
@@ -2020,7 +2020,81 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
-          19 < 18
+          19 <= 18
+        `);
+
+        expect(solution).to.equal(false);
+      });
+    });
+
+    describe('gt', function() {
+
+      it('v8 pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          A > 21
+        `);
+
+        expect(solution).to.eql({A: 22});
+      });
+
+      it('v8 reject', function() {
+        let solution = solverSolver(`
+          : A 21
+          A > 21
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88 pass', function() {
+        let solution = solverSolver(`
+          18 > 19
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('88 reject', function() {
+        let solution = solverSolver(`
+          18 > 18
+        `);
+
+        expect(solution).to.equal(false);
+      });
+    });
+
+    describe('gte', function() {
+
+      it('v8 pass', function() {
+        let solution = solverSolver(`
+          : A 22
+          A >= 21
+        `);
+
+        expect(solution).to.eql({A: 22});
+      });
+
+      it('v8 reject', function() {
+        let solution = solverSolver(`
+          : A 21
+          A >= 22
+        `);
+
+        expect(solution).to.equal(false);
+      });
+
+      it('88 pass', function() {
+        let solution = solverSolver(`
+          18 >= 19
+        `);
+
+        expect(solution).to.eql({});
+      });
+
+      it('88 reject', function() {
+        let solution = solverSolver(`
+          18 >= 19
         `);
 
         expect(solution).to.equal(false);

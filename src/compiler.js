@@ -31,20 +31,18 @@ const ML_88_NEQ = ml_opcodeCounter++;
 
 const ML_VV_LT = ml_opcodeCounter++;
 const ML_V8_LT = ml_opcodeCounter++;
+const ML_8V_LT = ml_opcodeCounter++;
 const ML_88_LT = ml_opcodeCounter++;
 
 const ML_VV_LTE = ml_opcodeCounter++;
 const ML_V8_LTE = ml_opcodeCounter++;
+const ML_8V_LTE = ml_opcodeCounter++;
 const ML_88_LTE = ml_opcodeCounter++;
 
-const ML_GT = ml_opcodeCounter++; // or just eliminate this immediately?
-const ML_GTE = ml_opcodeCounter++; // or just eliminate this immediately?
 const ML_ISEQ = ml_opcodeCounter++;
 const ML_ISNEQ = ml_opcodeCounter++;
 const ML_ISLT = ml_opcodeCounter++;
 const ML_ISLTE = ml_opcodeCounter++;
-const ML_ISGT = ml_opcodeCounter++; // or just eliminate this immediately?
-const ML_ISGTE = ml_opcodeCounter++; // or just eliminate this immediately?
 const ML_SUM = ml_opcodeCounter++;
 const ML_PRODUCT = ml_opcodeCounter++;
 const ML_DISTINCT = ml_opcodeCounter++;
@@ -493,7 +491,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
           ml += encode8bit(ML_V8_LT) + encodeName(A) + encode8bit(B);
           break;
         case '8<V':
-          ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
+          ml += encode8bit(ML_8V_LT) + encode8bit(A) + encodeName(B);
           break;
         case '8<8':
           ml += encode8bit(ML_88_LT) + encode8bit(A) + encode8bit(B);
@@ -506,26 +504,40 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
           ml += encode8bit(ML_V8_LTE) + encodeName(A) + encode8bit(B);
           break;
         case '8<=V':
-          ml += encode8bit(ML_V8_LTE) + encodeName(B) + encode8bit(A);
+          ml += encode8bit(ML_8V_LTE) + encode8bit(A) + encodeName(B);
           break;
         case '8<=8':
           ml += encode8bit(ML_88_LTE) + encode8bit(A) + encode8bit(B);
           break;
 
+        case 'V>V':
+          ml += encode8bit(ML_VV_LT) + encodeName(B) + encodeName(A);
+          break;
+        case 'V>8':
+          ml += encode8bit(ML_8V_LT) + encode8bit(B) + encodeName(A);
+          break;
+        case '8>V':
+          ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
+          break;
+        case '8>8':
+          ml += encode8bit(ML_88_LT) + encode8bit(B) + encode8bit(A);
+          break;
+
+        case 'V>=V':
+          ml += encode8bit(ML_VV_LTE) + encodeName(B) + encodeName(A);
+          break;
+        case 'V>=8':
+          ml += encode8bit(ML_8V_LTE) + encode8bit(B) + encodeName(A);
+          break;
+        case '8>=V':
+          ml += encode8bit(ML_V8_LTE) + encodeName(B) + encode8bit(A);
+          break;
+        case '8>=8':
+          ml += encode8bit(ML_88_LTE) + encode8bit(B) + encode8bit(A);
+          break;
+
         default:
-          // TEMP
-          switch (cop) {
-            case '>':
-              ml += encode8bit(ML_GT) + encodeName(A) + encodeName(B);
-              break;
-
-            case '>=':
-              ml += encode8bit(ML_GTE) + encodeName(A) + encodeName(B);
-              break;
-
-            default:
-              THROW('Unknown constraint op: [' + cop + ']');
-          }
+          THROW('Unknown constraint op: [' + cop + ']');
       }
     }
 
@@ -562,10 +574,10 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
         ml += encode8bit(ML_ISLTE) + mlab;
         break;
       case '>?':
-        ml += encode8bit(ML_ISGT) + mlab;
+        ml += encode8bit(ML_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
         break;
       case '>=?':
-        ml += encode8bit(ML_ISGTE) + mlab;
+        ml += encode8bit(ML_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
         break;
       case '+':
         ml += encode8bit(ML_PLUS) + mlab;
@@ -995,9 +1007,11 @@ function compilePropagators(ml) {
       case ML_88_NEQ:
       case ML_VV_LT:
       case ML_V8_LT:
+      case ML_8V_LT:
       case ML_88_LT:
       case ML_VV_LTE:
       case ML_V8_LTE:
+      case ML_8V_LTE:
       case ML_88_LTE:
         ASSERT_LOG2(' - eq neq lt lte');
         out[oc++] = ml[pc++]; // OP
@@ -1005,19 +1019,6 @@ function compilePropagators(ml) {
         out[oc++] = ml[pc++];
         out[oc++] = ml[pc++]; // B
         out[oc++] = ml[pc++];
-        break;
-
-      case ML_GT:
-      case ML_GTE:
-        ASSERT_LOG2(' - gt gte');
-        // map to lt(e)
-        // note: lt/lte have the same footprint as gt/gte
-        out[oc++] = op === ML_GT ? ML_VV_LT : ML_VV_LTE; //
-        // swap A and B
-        out[oc++] = ml[pc + 2]; // B
-        out[oc++] = ml[pc + 3];
-        out[oc++] = ml[pc + 0]; // A
-        out[oc++] = ml[pc + 1];
         break;
 
       case ML_NOOP:
@@ -1041,8 +1042,6 @@ function compilePropagators(ml) {
       case ML_ISNEQ:
       case ML_ISLT:
       case ML_ISLTE:
-      case ML_ISGT:
-      case ML_ISGTE:
       case ML_SUM:
       case ML_PRODUCT:
       case ML_DISTINCT:
@@ -1107,18 +1106,16 @@ export {
   ML_88_NEQ,
   ML_VV_LT,
   ML_V8_LT,
+  ML_8V_LT,
   ML_88_LT,
   ML_VV_LTE,
   ML_V8_LTE,
+  ML_8V_LTE,
   ML_88_LTE,
-  ML_GT,
-  ML_GTE,
   ML_ISEQ,
   ML_ISNEQ,
   ML_ISLT,
   ML_ISLTE,
-  ML_ISGT,
-  ML_ISGTE,
   ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,

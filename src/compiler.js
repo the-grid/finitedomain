@@ -39,7 +39,13 @@ const ML_V8_LTE = ml_opcodeCounter++;
 const ML_8V_LTE = ml_opcodeCounter++;
 const ML_88_LTE = ml_opcodeCounter++;
 
-const ML_ISEQ = ml_opcodeCounter++;
+const ML_VVV_ISEQ = ml_opcodeCounter++;
+const ML_V8V_ISEQ = ml_opcodeCounter++;
+const ML_VV8_ISEQ = ml_opcodeCounter++;
+const ML_88V_ISEQ = ml_opcodeCounter++;
+const ML_V88_ISEQ = ml_opcodeCounter++;
+const ML_888_ISEQ = ml_opcodeCounter++;
+
 const ML_ISNEQ = ml_opcodeCounter++;
 const ML_ISLT = ml_opcodeCounter++;
 const ML_ISLTE = ml_opcodeCounter++;
@@ -56,6 +62,8 @@ const ML_NOOP2 = ml_opcodeCounter++;
 const ML_NOOP3 = ml_opcodeCounter++;
 const ML_NOOP4 = ml_opcodeCounter++;
 const ML_STOP = ml_opcodeCounter++;
+
+ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
 
 /**
  * Compile the constraint dsl to a bytecode
@@ -424,6 +432,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
   }
 
   function encodeName(name) {
+    if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
     ASSERT_LOG2('encoding name:', name);
     ASSERT_LOG2('to index', nameToIndex(name));
     return encode16bit(nameToIndex(name));
@@ -546,7 +555,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
 
   function parseAssignment(C) {
     if (typeof C === 'string' && nameToIndex(C) < 0) addVar(C);
-    ASSERT(nameToIndex(C) >= 0, 'C should be resolvable now');
+    ASSERT(typeof C === 'number' || nameToIndex(C) >= 0, 'C should be resolvable now');
 
     let A = parseVexpr(C);
     skipWhitespaces();
@@ -559,41 +568,65 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
     let rop = parseRop();
     skipWhitespaces();
     let B = parseVexpr();
-    let mlab = encodeName(A) + encodeName(B) + encodeName(C);
-    switch (rop) {
-      case '==?':
-        ml += encode8bit(ML_ISEQ) + mlab;
+    switch ((typeof A === 'number' ? '8' : 'V') + rop + (typeof B === 'number' ? '8' : 'V') + (typeof C === 'number' ? '8' : 'V')) {
+      case 'V==?VV':
+        ml += encode8bit(ML_VVV_ISEQ) + encodeName(A) + encodeName(B) + encodeName(C);
         break;
-      case '!=?':
-        ml += encode8bit(ML_ISNEQ) + mlab;
+      case '8==?VV':
+        ml += encode8bit(ML_V8V_ISEQ) + encodeName(B) + encode8bit(A) + encodeName(C);
         break;
-      case '<?':
-        ml += encode8bit(ML_ISLT) + mlab;
+      case 'V==?8V':
+        ml += encode8bit(ML_V8V_ISEQ) + encodeName(A) + encode8bit(B) + encodeName(C);
         break;
-      case '<=?':
-        ml += encode8bit(ML_ISLTE) + mlab;
+      case 'V==?V8':
+        ml += encode8bit(ML_VV8_ISEQ) + encodeName(A) + encodeName(B) + encode8bit(C);
         break;
-      case '>?':
-        ml += encode8bit(ML_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
+      case '8==?8V':
+        ml += encode8bit(ML_88V_ISEQ) + encode8bit(A) + encode8bit(B) + encodeName(C);
         break;
-      case '>=?':
-        ml += encode8bit(ML_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
+      case 'V==?88':
+        ml += encode8bit(ML_V88_ISEQ) + encodeName(A) + encode8bit(B) + encode8bit(C);
         break;
-      case '+':
-        ml += encode8bit(ML_PLUS) + mlab;
+      case '8==?V8':
+        ml += encode8bit(ML_V88_ISEQ) + encodeName(B) + encode8bit(A) + encode8bit(C);
         break;
-      case '-':
-        ml += encode8bit(ML_MINUS) + mlab;
-        break;
-      case '*':
-        ml += encode8bit(ML_MUL) + mlab;
-        break;
-      case '/':
-        ml += encode8bit(ML_DIV) + mlab;
+      case '8==?88':
+        ml += encode8bit(ML_888_ISEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
         break;
       default:
-        if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');
-        return A;
+        let mlab = encodeName(A) + encodeName(B) + encodeName(C);
+        switch (rop) {
+          case '!=?':
+            ml += encode8bit(ML_ISNEQ) + mlab;
+            break;
+          case '<?':
+            ml += encode8bit(ML_ISLT) + mlab;
+            break;
+          case '<=?':
+            ml += encode8bit(ML_ISLTE) + mlab;
+            break;
+          case '>?':
+            ml += encode8bit(ML_ISLT) + encodeName(B) + encodeName(A) + encodeName(C);
+            break;
+          case '>=?':
+            ml += encode8bit(ML_ISLTE) + encodeName(B) + encodeName(A) + encodeName(C);
+            break;
+          case '+':
+            ml += encode8bit(ML_PLUS) + mlab;
+            break;
+          case '-':
+            ml += encode8bit(ML_MINUS) + mlab;
+            break;
+          case '*':
+            ml += encode8bit(ML_MUL) + mlab;
+            break;
+          case '/':
+            ml += encode8bit(ML_DIV) + mlab;
+            break;
+          default:
+            if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');
+            return A;
+        }
     }
   }
 
@@ -1038,7 +1071,7 @@ function compilePropagators(ml) {
         ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
         break;
 
-      case ML_ISEQ:
+      case ML_VVV_ISEQ:
       case ML_ISNEQ:
       case ML_ISLT:
       case ML_ISLTE:
@@ -1112,7 +1145,12 @@ export {
   ML_V8_LTE,
   ML_8V_LTE,
   ML_88_LTE,
-  ML_ISEQ,
+  ML_VVV_ISEQ,
+  ML_V8V_ISEQ,
+  ML_VV8_ISEQ,
+  ML_88V_ISEQ,
+  ML_V88_ISEQ,
+  ML_888_ISEQ,
   ML_ISNEQ,
   ML_ISLT,
   ML_ISLTE,

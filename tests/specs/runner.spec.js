@@ -2049,7 +2049,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
-          18 > 19
+          19 > 18
         `);
 
         expect(solution).to.eql({});
@@ -2086,7 +2086,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
-          18 >= 19
+          19 >= 19
         `);
 
         expect(solution).to.eql({});
@@ -2765,7 +2765,6 @@ describe('src/runner.spec', function() {
         expect(solution).to.equal(false);
       });
     });
-
 
     describe('isgte', function() {
 

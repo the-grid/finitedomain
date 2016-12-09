@@ -109,7 +109,9 @@ const MINIMIZER_STABLE = 0;
 const MINIMIZER_SOLVED = 1;
 const MINIMIZER_REJECTED = 2;
 
-function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
+const MINIMIZE_ALIASED = false;
+
+function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('sweeping');
   let change = true;
@@ -134,13 +136,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
   function getDomainOrRestartForAlias(index, argDelta) {
     let D = domains[index];
-    if (D) return D;
-    THROW('should not yet reach here');
+    if (D !== false) return D;
 
-    // for alias
-    //ml[lastPcOffset + argDelta] = getAlias(index);
-    //pc = lastPcOffset; // caller should stop and loop will restart this op with aliased index as if nothing happened
-    //return false;
+    // if the domain is falsy then there was an alias (or a bug)
+    // write the alias back to ML and restart the current op
+    // caller should ensure to check return value and return on
+    // a falsy result as well so the loop can restart.
+    let aliasIndex = getAlias(index);
+    ASSERT(typeof aliasIndex === 'number' && aliasIndex >= 0, 'should have this alias');
+    ml.writeUInt16BE(aliasIndex, lastPcOffset + argDelta);
+    pc = lastPcOffset; // caller should stop and loop will restart this op with aliased index as if nothing happened
+    return false;
   }
 
   function cr_innerLoop() {
@@ -549,6 +555,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv_eq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -579,6 +586,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
     if (!A) return emptyDomain = true;
@@ -625,6 +633,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv_neq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -665,6 +674,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8_neq', indexA, domain__debug(A), vB);
     if (!A) return emptyDomain = true;
@@ -706,6 +716,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -744,6 +755,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8_lt', indexA, domain__debug(A), vB);
     if (domain_min(A) >= vB) return emptyDomain = true;
@@ -770,6 +782,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
 
     let B = getDomainOrRestartForAlias(indexB);
+    if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8v_lt', vA, indexB, domain__debug(B));
     if (vA >= domain_max(B)) return emptyDomain = true;
@@ -810,6 +823,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv_lte', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -850,6 +864,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8_lte', indexA, domain__debug(A), vB);
     if (domain_max(A) > vB) return emptyDomain = true;
@@ -875,6 +890,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
 
     let B = getDomainOrRestartForAlias(indexB);
+    if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8v_lte', vA, indexB, domain__debug(B));
     if (vA > domain_min(B)) return emptyDomain = true;
@@ -923,6 +939,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(varsOffset + i * 2);
       let A = getDomainOrRestartForAlias(indexA);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
       if (!A) return emptyDomain = true;
 
@@ -936,6 +953,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
             ASSERT(indexA !== indexB, 'same var should not occur multiple times...'); // what about constants? could be artifacts (A=1,B=1,distinct(A,B))
             ASSERT_LOG2('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
             let beforeB = getDomainOrRestartForAlias(indexB);
+            if (beforeB === MINIMIZE_ALIASED) return; // there was an alias; restart op
             let B = domains[indexB] = domain_removeValue(beforeB, v);
             if (B !== beforeB) {
               ASSERT_LOG2('    -> changed B=', domain__debug(B));
@@ -1010,6 +1028,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_plus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1086,6 +1105,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1163,6 +1183,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1246,6 +1267,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1328,6 +1350,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vvv_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1391,6 +1414,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1494,6 +1518,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexR = cr_dec16();
 
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_88v_isEq', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -1518,6 +1543,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v88_isEq', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -1570,6 +1596,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1633,6 +1660,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1728,6 +1756,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexR = cr_dec16();
 
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_88v_isNeq', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -1752,6 +1781,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v88_isNeq', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -1801,6 +1831,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vvv_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1849,6 +1880,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8vv_isLt', indexB, indexR, vA, domain__debug(B), domain__debug(R));
     if (!B || !R) return emptyDomain = true;
@@ -1914,6 +1946,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8v_isLt', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1979,6 +2012,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, domain__debug(A), domain__debug(B), vR);
     if (!A || !B) return emptyDomain = true;
@@ -2015,6 +2049,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexR = cr_dec16();
 
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_88v_isLt', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -2039,6 +2074,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -2064,6 +2100,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let B = getDomainOrRestartForAlias(indexB);
+    if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8v8_isLt', indexB, vA, domain__debug(B), vR);
     if (!B) return emptyDomain = true;
@@ -2105,6 +2142,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vvv_isLte', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -2153,6 +2191,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let B = getDomainOrRestartForAlias(indexB);
     let R = getDomainOrRestartForAlias(indexR);
+    if (B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, '->', vA, domain__debug(B), domain__debug(R));
     if (!B || !R) return emptyDomain = true;
@@ -2218,6 +2257,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let R = getDomainOrRestartForAlias(indexR);
+    if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v8v_isLte', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -2283,6 +2323,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let A = getDomainOrRestartForAlias(indexA);
     let B = getDomainOrRestartForAlias(indexB);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, domain__debug(A), domain__debug(B), vR);
     if (!A || !B) return emptyDomain = true;
@@ -2319,6 +2360,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexR = cr_dec16();
 
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_88v_isLte', vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -2343,6 +2385,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let A = getDomainOrRestartForAlias(indexA);
+    if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v88_isLte', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -2368,6 +2411,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vR = cr_dec8();
 
     let B = getDomainOrRestartForAlias(indexB);
+    if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8v8_isLte', indexB, vA, domain__debug(B), vR);
     if (!B) return emptyDomain = true;
@@ -2406,6 +2450,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_sum', count, 'x');
     ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
@@ -2426,6 +2471,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = getDomainOrRestartForAlias(indexA);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
       let max = domain_max(A);
@@ -2462,6 +2508,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     for (let i = 0; i < count; ++i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = getDomainOrRestartForAlias(indexA);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       let oA = A;
       A = domain_removeLtUnsafe(A, minR - (sumHi - domain_max(A)));
       A = domain_removeGtUnsafe(A, maxR - (sumLo - domain_min(A)));
@@ -2577,6 +2624,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
     let R = getDomainOrRestartForAlias(indexR);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_product', count, 'x');
     ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
@@ -2597,6 +2645,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = getDomainOrRestartForAlias(indexA);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
       let max = domain_max(A);
@@ -2633,6 +2682,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     for (let i = 0; i < count; ++i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = getDomainOrRestartForAlias(indexA);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       let oA = A;
       //ASSERT_LOG2('lte, A=', domain__debug(A), 'max=',domain_max(A), 'producthi=',productHi, 'ta=',productHi / domain_max(A), 'min(R)/ta=', minR/(productHi / domain_max(A)));
       let ta = productHi / domain_max(A);

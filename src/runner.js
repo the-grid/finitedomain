@@ -46,6 +46,7 @@ function solverSolver(dsl) {
   console.time('solverSolver');
   let varTrie = trie_create();
   let vars = [];
+  let aliases = {}; // map old index to new index
   let domains = [];
 
   let anonCounter = 0;
@@ -78,6 +79,13 @@ function solverSolver(dsl) {
     return trie_get(varTrie, name);
   }
 
+  function addAlias(indexOld, indexNew) {
+    aliases[indexOld] = indexNew;
+  }
+  function getAlias(index) {
+    return aliases[index];
+  }
+
   ASSERT_LOG2('Parsing DSL...');
   let t = '- parsing dsl (' + dsl.length + ')';
   console.time(t);
@@ -89,7 +97,7 @@ function solverSolver(dsl) {
 
   ASSERT_LOG2('Minimizing ML...');
   console.time('- minimizing ml');
-  let state = minimize(mlConstraints, getVar, addVar, domains, vars);
+  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias);
   console.timeEnd('- minimizing ml');
 
   console.time('ml->dsl:');
@@ -124,10 +132,10 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function minimize(mlConstraints, getVar, addVar, domains, names) {
+function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
   // now we can access the ml in terms of bytes, jeuj
-  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names);
+  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias);
   if (state === MINIMIZER_SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
     return state;

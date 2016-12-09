@@ -132,6 +132,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
   }
   return MINIMIZER_STABLE;
 
+  function getDomainOrRestartForAlias(index, argDelta) {
+    let D = domains[index];
+    if (D) return D;
+    THROW('should not yet reach here');
+
+    // for alias
+    //ml[lastPcOffset + argDelta] = getAlias(index);
+    //pc = lastPcOffset; // caller should stop and loop will restart this op with aliased index as if nothing happened
+    //return false;
+  }
+
   function cr_innerLoop() {
     onlyJumps = true;
     while (pc < ml.length && !emptyDomain) {
@@ -531,24 +542,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
 
   function cr_vv_eq(ml) {
     // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
 
     let offset = pc - 1;
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
 
     ASSERT_LOG2(' = cr_vv_eq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
 
     let R = domain_intersection(A, B);
     ASSERT_LOG2(' ->', domain__debug(R));
-    if (!R) return emptyDomain = true;
-    change = A !== R || B !== R;
-    domains[indexA] = R;
-    domains[indexB] = R;
+    if (A !== R || B !== R) {
+      if (!R) return emptyDomain = true;
+      domains[indexA] = R;
+      domains[indexB] = R;
+      change = true;
+    }
 
     // solved if the two domains intersect to a solved domain
     if (domain_getValue(R) >= 0) {
@@ -566,7 +578,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let vB = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
     if (!A) return emptyDomain = true;
@@ -611,8 +623,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_vv_neq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -652,7 +664,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let vB = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v8_neq', indexA, domain__debug(A), vB);
     if (!A) return emptyDomain = true;
@@ -692,8 +704,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -731,7 +743,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let vB = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v8_lt', indexA, domain__debug(A), vB);
     if (domain_min(A) >= vB) return emptyDomain = true;
@@ -757,7 +769,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vA = cr_dec8();
     let indexB = cr_dec16();
 
-    let B = domains[indexB];
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_8v_lt', vA, indexB, domain__debug(B));
     if (vA >= domain_max(B)) return emptyDomain = true;
@@ -796,8 +808,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let indexB = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_vv_lte', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A || !B) return emptyDomain = true;
@@ -837,7 +849,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexA = cr_dec16();
     let vB = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v8_lte', indexA, domain__debug(A), vB);
     if (domain_max(A) > vB) return emptyDomain = true;
@@ -862,7 +874,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vA = cr_dec8();
     let indexB = cr_dec16();
 
-    let B = domains[indexB];
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_8v_lte', vA, indexB, domain__debug(B));
     if (vA > domain_min(B)) return emptyDomain = true;
@@ -910,7 +922,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     // we loop back to front because we're splicing out vars while looping
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(varsOffset + i * 2);
-      let A = domains[indexA];
+      let A = getDomainOrRestartForAlias(indexA);
       ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
       if (!A) return emptyDomain = true;
 
@@ -923,10 +935,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
             let indexB = cr_dec16pc(varsOffset + j * 2);
             ASSERT(indexA !== indexB, 'same var should not occur multiple times...'); // what about constants? could be artifacts (A=1,B=1,distinct(A,B))
             ASSERT_LOG2('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
-            let beforeB = domains[indexB];
-            let B = domains[indexB] = domain_removeValue(domains[indexB], v);
+            let beforeB = getDomainOrRestartForAlias(indexB);
+            let B = domains[indexB] = domain_removeValue(beforeB, v);
             if (B !== beforeB) {
-              ASSERT_LOG2('    -> changed B=', domain__debug(domains[indexB]));
+              ASSERT_LOG2('    -> changed B=', domain__debug(B));
               if (!B) return emptyDomain = true;
               change = true;
             }
@@ -995,9 +1007,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_plus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1071,9 +1083,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1148,9 +1160,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1231,9 +1243,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1313,9 +1325,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_vvv_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1377,8 +1389,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1481,7 +1493,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_88v_isEq', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -1505,7 +1517,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v88_isEq', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -1555,9 +1567,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1619,8 +1631,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1715,7 +1727,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_88v_isNeq', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -1739,7 +1751,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v88_isNeq', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -1786,9 +1798,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_vvv_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -1835,8 +1847,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_8vv_isLt', indexB, indexR, vA, domain__debug(B), domain__debug(R));
     if (!B || !R) return emptyDomain = true;
@@ -1900,8 +1912,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_v8v_isLt', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -1965,8 +1977,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, domain__debug(A), domain__debug(B), vR);
     if (!A || !B) return emptyDomain = true;
@@ -2002,7 +2014,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_88v_isLt', indexR, vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -2026,7 +2038,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -2051,7 +2063,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let vR = cr_dec8();
 
-    let B = domains[indexB];
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_8v8_isLt', indexB, vA, domain__debug(B), vR);
     if (!B) return emptyDomain = true;
@@ -2090,9 +2102,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_vvv_isLte', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
@@ -2139,8 +2151,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let B = domains[indexB];
-    let R = domains[indexR];
+    let B = getDomainOrRestartForAlias(indexB);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, '->', vA, domain__debug(B), domain__debug(R));
     if (!B || !R) return emptyDomain = true;
@@ -2204,8 +2216,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let A = domains[indexA];
-    let R = domains[indexR];
+    let A = getDomainOrRestartForAlias(indexA);
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_v8v_isLte', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
@@ -2269,8 +2281,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
-    let B = domains[indexB];
+    let A = getDomainOrRestartForAlias(indexA);
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, domain__debug(A), domain__debug(B), vR);
     if (!A || !B) return emptyDomain = true;
@@ -2306,7 +2318,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let indexR = cr_dec16();
 
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_88v_isLte', vA, vB, domain__debug(R));
     if (!R) return emptyDomain = true;
@@ -2330,7 +2342,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let vB = cr_dec8();
     let vR = cr_dec8();
 
-    let A = domains[indexA];
+    let A = getDomainOrRestartForAlias(indexA);
 
     ASSERT_LOG2(' = cr_v88_isLte', indexA, domain__debug(A), vB, vR);
     if (!A) return emptyDomain = true;
@@ -2355,7 +2367,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let indexB = cr_dec16();
     let vR = cr_dec8();
 
-    let B = domains[indexB];
+    let B = getDomainOrRestartForAlias(indexB);
 
     ASSERT_LOG2(' = cr_8v8_isLte', indexB, vA, domain__debug(B), vR);
     if (!B) return emptyDomain = true;
@@ -2393,7 +2405,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let count = cr_dec16();
 
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_sum', count, 'x');
     ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
@@ -2413,7 +2425,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let sumHi = 0;
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
-      let A = domains[indexA];
+      let A = getDomainOrRestartForAlias(indexA);
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
       let max = domain_max(A);
@@ -2449,7 +2461,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let var2 = -1;
     for (let i = 0; i < count; ++i) {
       let indexA = cr_dec16pc(pc + i * 2);
-      let A = domains[indexA];
+      let A = getDomainOrRestartForAlias(indexA);
       let oA = A;
       A = domain_removeLtUnsafe(A, minR - (sumHi - domain_max(A)));
       A = domain_removeGtUnsafe(A, maxR - (sumLo - domain_min(A)));
@@ -2564,7 +2576,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let count = cr_dec16();
 
     let indexR = cr_dec16pc(offset + 1 + count * 2 + 2);
-    let R = domains[indexR];
+    let R = getDomainOrRestartForAlias(indexR);
 
     ASSERT_LOG2(' = cr_product', count, 'x');
     ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
@@ -2584,7 +2596,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let productHi = 1;
     for (let i = count - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
-      let A = domains[indexA];
+      let A = getDomainOrRestartForAlias(indexA);
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
       let max = domain_max(A);
@@ -2620,7 +2632,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
     let var2 = -1;
     for (let i = 0; i < count; ++i) {
       let indexA = cr_dec16pc(pc + i * 2);
-      let A = domains[indexA];
+      let A = getDomainOrRestartForAlias(indexA);
       let oA = A;
       //ASSERT_LOG2('lte, A=', domain__debug(A), 'max=',domain_max(A), 'producthi=',productHi, 'ta=',productHi / domain_max(A), 'min(R)/ta=', minR/(productHi / domain_max(A)));
       let ta = productHi / domain_max(A);

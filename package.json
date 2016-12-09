@@ -33,7 +33,7 @@
     "babelify": "^7.2.0",
     "chai": "^3.5.0",
     "eslint": "^2.7.0",
-    "grunt": "^1.0.1",
+    "grunt": "0.*",
     "grunt-babel": "^6.0.0",
     "grunt-browserify": "^5.0.0",
     "grunt-cli": "^1.2.0",

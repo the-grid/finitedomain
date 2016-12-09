@@ -1,7 +1,7 @@
 import chai from 'chai';
 // enable stack even for non-thrown assertion failures
 // otherwise things like `expect(true).to.eql(false)` would not print a stack trace at all
-chai.Assertion.includeStack = true;
+chai.config.includeStack = true;
 
 let expect = chai.expect;
 export default expect;

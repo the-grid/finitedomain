@@ -9,83 +9,83 @@ import {
   ASSERT_LOG2,
   THROW,
 } from './helpers';
+import {
+  domain__debug,
+} from './domain';
+import {
+  ML_UNUSED,
+  ML_VV_EQ,
+  ML_V8_EQ,
+  ML_88_EQ,
+  ML_VV_NEQ,
+  ML_V8_NEQ,
+  ML_88_NEQ,
+  ML_VV_LT,
+  ML_V8_LT,
+  ML_8V_LT,
+  ML_88_LT,
+  ML_VV_LTE,
+  ML_V8_LTE,
+  ML_8V_LTE,
+  ML_88_LTE,
+  ML_VVV_ISEQ,
+  ML_V8V_ISEQ,
+  ML_VV8_ISEQ,
+  ML_88V_ISEQ,
+  ML_V88_ISEQ,
+  ML_888_ISEQ,
+  ML_VVV_ISNEQ,
+  ML_V8V_ISNEQ,
+  ML_VV8_ISNEQ,
+  ML_88V_ISNEQ,
+  ML_V88_ISNEQ,
+  ML_888_ISNEQ,
+  ML_VVV_ISLT,
+  ML_8VV_ISLT,
+  ML_V8V_ISLT,
+  ML_VV8_ISLT,
+  ML_88V_ISLT,
+  ML_V88_ISLT,
+  ML_8V8_ISLT,
+  ML_888_ISLT,
+  ML_VVV_ISLTE,
+  ML_8VV_ISLTE,
+  ML_V8V_ISLTE,
+  ML_VV8_ISLTE,
+  ML_88V_ISLTE,
+  ML_V88_ISLTE,
+  ML_8V8_ISLTE,
+  ML_888_ISLTE,
+  ML_SUM,
+  ML_PRODUCT,
+  ML_DISTINCT,
+  ML_PLUS,
+  ML_MINUS,
+  ML_MUL,
+  ML_DIV,
+  ML_JMP,
+  ML_NOOP,
+  ML_NOOP2,
+  ML_NOOP3,
+  ML_NOOP4,
+  ML_STOP,
+  //
+  //SIZEOF_VV,
+  //SIZEOF_8V,
+  //SIZEOF_V8,
+  //SIZEOF_88,
+  //SIZEOF_VVV,
+  //SIZEOF_8VV,
+  //SIZEOF_V8V,
+  //SIZEOF_VV8,
+  //SIZEOF_88V,
+  //SIZEOF_V88,
+  //SIZEOF_8V8,
+  //SIZEOF_888,
+  //SIZEOF_COUNT,
+} from './ml';
 
 // BODY_START
-
-let ml_opcodeCounter = 0;
-
-// note: all ops accept vars and literals
-// - a var is signified by a V
-// - an 8bit literal signified by 8
-// - a 16bit literal signified by F
-
-const ML_UNUSED = ml_opcodeCounter++;
-
-const ML_VV_EQ = ml_opcodeCounter++;
-const ML_V8_EQ = ml_opcodeCounter++;
-const ML_88_EQ = ml_opcodeCounter++;
-
-const ML_VV_NEQ = ml_opcodeCounter++;
-const ML_V8_NEQ = ml_opcodeCounter++;
-const ML_88_NEQ = ml_opcodeCounter++;
-
-const ML_VV_LT = ml_opcodeCounter++;
-const ML_V8_LT = ml_opcodeCounter++;
-const ML_8V_LT = ml_opcodeCounter++;
-const ML_88_LT = ml_opcodeCounter++;
-
-const ML_VV_LTE = ml_opcodeCounter++;
-const ML_V8_LTE = ml_opcodeCounter++;
-const ML_8V_LTE = ml_opcodeCounter++;
-const ML_88_LTE = ml_opcodeCounter++;
-
-const ML_VVV_ISEQ = ml_opcodeCounter++;
-const ML_V8V_ISEQ = ml_opcodeCounter++;
-const ML_VV8_ISEQ = ml_opcodeCounter++;
-const ML_88V_ISEQ = ml_opcodeCounter++;
-const ML_V88_ISEQ = ml_opcodeCounter++;
-const ML_888_ISEQ = ml_opcodeCounter++;
-
-const ML_VVV_ISNEQ = ml_opcodeCounter++;
-const ML_V8V_ISNEQ = ml_opcodeCounter++;
-const ML_VV8_ISNEQ = ml_opcodeCounter++;
-const ML_88V_ISNEQ = ml_opcodeCounter++;
-const ML_V88_ISNEQ = ml_opcodeCounter++;
-const ML_888_ISNEQ = ml_opcodeCounter++;
-
-const ML_VVV_ISLT = ml_opcodeCounter++;
-const ML_8VV_ISLT = ml_opcodeCounter++;
-const ML_V8V_ISLT = ml_opcodeCounter++;
-const ML_VV8_ISLT = ml_opcodeCounter++;
-const ML_88V_ISLT = ml_opcodeCounter++;
-const ML_V88_ISLT = ml_opcodeCounter++;
-const ML_8V8_ISLT = ml_opcodeCounter++;
-const ML_888_ISLT = ml_opcodeCounter++;
-
-const ML_VVV_ISLTE = ml_opcodeCounter++;
-const ML_8VV_ISLTE = ml_opcodeCounter++;
-const ML_V8V_ISLTE = ml_opcodeCounter++;
-const ML_VV8_ISLTE = ml_opcodeCounter++;
-const ML_88V_ISLTE = ml_opcodeCounter++;
-const ML_V88_ISLTE = ml_opcodeCounter++;
-const ML_8V8_ISLTE = ml_opcodeCounter++;
-const ML_888_ISLTE = ml_opcodeCounter++;
-
-const ML_SUM = ml_opcodeCounter++;
-const ML_PRODUCT = ml_opcodeCounter++;
-const ML_DISTINCT = ml_opcodeCounter++;
-const ML_PLUS = ml_opcodeCounter++;
-const ML_MINUS = ml_opcodeCounter++;
-const ML_MUL = ml_opcodeCounter++;
-const ML_DIV = ml_opcodeCounter++;
-const ML_JMP = ml_opcodeCounter++;
-const ML_NOOP = ml_opcodeCounter++;
-const ML_NOOP2 = ml_opcodeCounter++;
-const ML_NOOP3 = ml_opcodeCounter++;
-const ML_NOOP4 = ml_opcodeCounter++;
-const ML_STOP = ml_opcodeCounter++;
-
-ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
 
 /**
  * Compile the constraint dsl to a bytecode
@@ -96,7 +96,7 @@ ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
  * @param {boolean} [_debug]
  * @returns {string}
  */
-function parseDsl(str, addVar, nameToIndex, _debug) {
+function dslToMl(str, addVar, nameToIndex, _debug) {
   let ret = {
     ml: '',
     varstrat: 'default',
@@ -593,6 +593,7 @@ function parseDsl(str, addVar, nameToIndex, _debug) {
 
     return _parseAssignRest(A, rop, B, C);
   }
+
   function _parseAssignRest(A, rop, B, C) {
     switch ((typeof A === 'number' ? '8' : 'V') + rop + (typeof B === 'number' ? '8' : 'V') + (typeof C === 'number' ? '8' : 'V')) {
       case 'V==?VV':
@@ -1218,66 +1219,371 @@ function compilePropagators(ml) {
   //}
 }
 
+function mlToDsl(ml, names, domains) {
+  let pc = 0;
+  let dsl = '';
+  cr_innerLoop();
+  return dsl;
+
+  function cr_dec8() {
+    ASSERT(pc < ml.length, 'OOB');
+    ASSERT_LOG2(' . dec8 decoding', ml[pc], 'from', pc);
+    return ml[pc++];
+  }
+
+  function cr_dec16() {
+    ASSERT(pc < ml.length - 1, 'OOB');
+    ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    return (ml[pc++] << 8) | ml[pc++];
+  }
+
+  function cr_decAb(lena, lenb, op) {
+    let a = (lena === 1 ? cr_dec8() : cr_dec16());
+    let b = (lenb === 1 ? cr_dec8() : cr_dec16());
+
+    let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
+    s += '               # ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b;
+    return s + '\n';
+  }
+
+  function cr_decAbc(lena, lenb, lenc, op) {
+    let a = (lena === 1 ? cr_dec8() : cr_dec16());
+    let b = (lenb === 1 ? cr_dec8() : cr_dec16());
+    let c = (lenc === 1 ? cr_dec8() : cr_dec16());
+
+    let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
+    s = (lenc === 1 ? c : names[c]) + ' = ' + s;
+    s += '               # ' + (lenc === 1 ? c : domain__debug(domains[c])) + ' = ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + a + ' = ' + b + ' @ ' + c;
+    return s + '\n';
+  }
+
+
+  function cr_innerLoop() {
+    while (pc < ml.length) {
+      let pcStart = pc;
+      let op = ml[pc++];
+      switch (op) {
+        case ML_UNUSED:
+          return THROW(' ! problem @', pcStart);
+
+        case ML_STOP:
+          ASSERT_LOG2(' ! good end @', pcStart);
+          dsl += '# STOP\n';
+          return;
+
+        case ML_JMP:
+          let delta = cr_dec16();
+          ASSERT_LOG2(' ! jmp', delta);
+          dsl += '# JMP ' + delta + '\n';
+          pc += delta;
+          break;
+
+        case ML_VV_EQ:
+          ASSERT_LOG2(' ! eq vv');
+          dsl += cr_decAb(2, 2, '==');
+          break;
+
+        case ML_V8_EQ:
+          ASSERT_LOG2(' ! eq v8');
+          dsl += cr_decAb(2, 1, '==');
+          break;
+
+        case ML_88_EQ:
+          ASSERT_LOG2(' ! eq 88');
+          dsl += cr_decAb(1, 1, '==');
+          break;
+
+        case ML_VV_NEQ:
+          ASSERT_LOG2(' ! neq vv');
+          dsl += cr_decAb(2, 2, '!=');
+          break;
+
+        case ML_V8_NEQ:
+          ASSERT_LOG2(' ! neq v8');
+          dsl += cr_decAb(2, 1, '!=');
+          break;
+
+        case ML_88_NEQ:
+          ASSERT_LOG2(' ! neq 88');
+          dsl += cr_decAb(1, 1, '!=');
+          break;
+
+        case ML_VV_LT:
+          ASSERT_LOG2(' ! lt vv');
+          dsl += cr_decAb(2, 2, '<');
+          break;
+
+        case ML_V8_LT:
+          ASSERT_LOG2(' ! lt v8');
+          dsl += cr_decAb(2, 1, '<');
+          break;
+
+        case ML_8V_LT:
+          ASSERT_LOG2(' ! lt 8v');
+          dsl += cr_decAb(1, 2, '<');
+          break;
+
+        case ML_88_LT:
+          ASSERT_LOG2(' ! lt 88');
+          dsl += cr_decAb(1, 1, '<');
+          break;
+
+        case ML_VV_LTE:
+          ASSERT_LOG2(' ! lte vv');
+          dsl += cr_decAb(2, 2, '<=');
+          break;
+
+        case ML_V8_LTE:
+          ASSERT_LOG2(' ! lte v8');
+          dsl += cr_decAb(2, 1, '<=');
+          break;
+
+        case ML_8V_LTE:
+          ASSERT_LOG2(' ! lte 8v');
+          dsl += cr_decAb(1, 2, '<=');
+          break;
+
+        case ML_88_LTE:
+          ASSERT_LOG2(' ! lte 88');
+          dsl += cr_decAb(1, 1, '<=');
+          break;
+
+        case ML_DISTINCT:
+          ASSERT_LOG2(' ! distinct');
+          dsl += 'distinct(';
+          for (let i = 0, count = cr_dec16(); i < count; ++i) {
+            dsl += cr_dec16() + ' ';
+          }
+          dsl += ')\n';
+          break;
+
+        case ML_PLUS:
+          ASSERT_LOG2(' ! plus');
+          dsl += cr_decAbc(2, 2, 2, '+');
+          break;
+
+        case ML_MINUS:
+          ASSERT_LOG2(' ! minus');
+          dsl += cr_decAbc(2, 2, 2, '-');
+          break;
+
+        case ML_MUL:
+          ASSERT_LOG2(' ! mul');
+          dsl += cr_decAbc(2, 2, 2, '*');
+          break;
+
+        case ML_DIV:
+          ASSERT_LOG2(' ! div');
+          dsl += cr_decAbc(2, 2, 2, '/');
+          break;
+
+        case ML_VVV_ISEQ:
+          ASSERT_LOG2(' ! iseq vvv');
+          dsl += cr_decAbc(2, 2, 2, '==?');
+          break;
+
+        case ML_V8V_ISEQ:
+          ASSERT_LOG2(' ! iseq v8v');
+          dsl += cr_decAbc(2, 1, 2, '==?');
+          break;
+
+        case ML_VV8_ISEQ:
+          ASSERT_LOG2(' ! iseq vv8');
+          dsl += cr_decAbc(2, 2, 1, '==?');
+          break;
+
+        case ML_88V_ISEQ:
+          ASSERT_LOG2(' ! iseq 88v');
+          dsl += cr_decAbc(1, 1, 2, '==?');
+          break;
+
+        case ML_V88_ISEQ:
+          ASSERT_LOG2(' ! iseq v88');
+          dsl += cr_decAbc(2, 1, 1, '==?');
+          break;
+
+        case ML_888_ISEQ:
+          ASSERT_LOG2(' ! iseq 888');
+          dsl += cr_decAbc(1, 1, 1, '==?');
+          break;
+
+        case ML_VVV_ISNEQ:
+          ASSERT_LOG2(' ! isneq vvv');
+          dsl += cr_decAbc(2, 2, 2, '!=?');
+          break;
+
+        case ML_V8V_ISNEQ:
+          ASSERT_LOG2(' ! isneq v8v');
+          dsl += cr_decAbc(2, 1, 2, '!=?');
+          break;
+
+        case ML_VV8_ISNEQ:
+          ASSERT_LOG2(' ! isneq vv8');
+          dsl += cr_decAbc(2, 2, 1, '!=?');
+          break;
+
+        case ML_88V_ISNEQ:
+          ASSERT_LOG2(' ! isneq 88v');
+          dsl += cr_decAbc(1, 1, 2, '!=?');
+          break;
+
+        case ML_V88_ISNEQ:
+          ASSERT_LOG2(' ! isneq v88');
+          dsl += cr_decAbc(2, 1, 1, '!=?');
+          break;
+
+        case ML_888_ISNEQ:
+          ASSERT_LOG2(' ! isneq 888');
+          dsl += cr_decAbc(1, 1, 1, '!=?');
+          break;
+
+        case ML_VVV_ISLT:
+          ASSERT_LOG2(' ! islt vvv');
+          dsl += cr_decAbc(2, 2, 2, '<?');
+          break;
+
+        case ML_8VV_ISLT:
+          ASSERT_LOG2(' ! islt 8vv');
+          dsl += cr_decAbc(1, 2, 2, '<?');
+          break;
+
+        case ML_V8V_ISLT:
+          ASSERT_LOG2(' ! islt v8v');
+          dsl += cr_decAbc(2, 1, 2, '<?');
+          break;
+
+        case ML_VV8_ISLT:
+          ASSERT_LOG2(' ! islt vv8');
+          dsl += cr_decAbc(2, 2, 1, '<?');
+          break;
+
+        case ML_88V_ISLT:
+          ASSERT_LOG2(' ! islt 88v');
+          dsl += cr_decAbc(1, 1, 2, '<?');
+          break;
+
+        case ML_V88_ISLT:
+          ASSERT_LOG2(' ! islt v88');
+          dsl += cr_decAbc(2, 1, 1, '<?');
+          break;
+
+        case ML_8V8_ISLT:
+          ASSERT_LOG2(' ! islt 8v8');
+          dsl += cr_decAbc(1, 2, 1, '<?');
+          break;
+
+        case ML_888_ISLT:
+          ASSERT_LOG2(' ! islt 888');
+          dsl += cr_decAbc(1, 1, 1, '<?');
+          break;
+
+        case ML_VVV_ISLTE:
+          ASSERT_LOG2(' ! islte vvv');
+          dsl += cr_decAbc(2, 2, 2, '<=?');
+          break;
+
+        case ML_8VV_ISLTE:
+          ASSERT_LOG2(' ! islte 8vv');
+          dsl += cr_decAbc(1, 2, 2, '<=?');
+          break;
+
+        case ML_V8V_ISLTE:
+          ASSERT_LOG2(' ! islte v8v');
+          dsl += cr_decAbc(2, 1, 2, '<=?');
+          break;
+
+        case ML_VV8_ISLTE:
+          ASSERT_LOG2(' ! islte vv8');
+          dsl += cr_decAbc(2, 2, 1, '<=?');
+          break;
+
+        case ML_88V_ISLTE:
+          ASSERT_LOG2(' ! islte 88v');
+          dsl += cr_decAbc(1, 1, 2, '<=?');
+          break;
+
+        case ML_V88_ISLTE:
+          ASSERT_LOG2(' ! islte v88');
+          dsl += cr_decAbc(2, 1, 1, '<=?');
+          break;
+
+        case ML_8V8_ISLTE:
+          ASSERT_LOG2(' ! islte 8v8');
+          dsl += cr_decAbc(1, 2, 1, '<=?');
+          break;
+
+        case ML_888_ISLTE:
+          ASSERT_LOG2(' ! islte 888');
+          dsl += cr_decAbc(1, 1, 1, '<=?');
+          break;
+
+        case ML_SUM:
+          ASSERT_LOG2(' ! sum');
+          let sums = '';
+          let bug = '';
+          for (let i = 0, count = cr_dec16(); i < count; ++i) {
+            let index = cr_dec16();
+            sums += names[index] + ' ';
+            bug += domain__debug(domains[index]) + ' ';
+          }
+          let sumIndex = cr_dec16();
+          dsl += names[sumIndex] + ' = sum(' + sums + ') # ' + domain__debug(domains[sumIndex]) + ' = sum(' + bug + ')\n';
+          break;
+
+        case ML_PRODUCT:
+          ASSERT_LOG2(' ! product');
+          let prods = '';
+          let bugs = '';
+          for (let i = 0, count = cr_dec16(); i < count; ++i) {
+            let index = cr_dec16();
+            prods += names[index] + ' ';
+            bugs += domain__debug(domains[index]) + ' '; ;
+          }
+          let prodIndex = cr_dec16();
+          dsl += names[prodIndex] + ' = product(' + prods + ') # ' + domain__debug(domains[prodIndex]) + ' = sum(' + bug + ')\n';
+          break;
+
+        case ML_NOOP:
+          ASSERT_LOG2(' ! noop');
+          dsl += '# NOOP \n';
+          pc = pcStart + 1;
+          break;
+        case ML_NOOP2:
+          ASSERT_LOG2(' ! noop 2');
+          dsl += '# NOOP 2\n';
+          pc = pcStart + 2;
+          break;
+        case ML_NOOP3:
+          ASSERT_LOG2(' ! noop 3');
+          dsl += '# NOOP 3\n';
+          pc = pcStart + 3;
+          break;
+        case ML_NOOP4:
+          dsl += '# NOOP 4\n';
+          ASSERT_LOG2(' ! noop 4');
+          pc = pcStart + 4;
+          break;
+
+        default:
+          console.log('dsl thus far:');
+          console.log('unknown op: 0x' + op.toString(16) + ' @ ' + pc + ' / ' + ml.length);
+          //console.log(dsl);
+          //console.log('exiting now...');
+
+          console.log('ML_V8V_ISEQ is', ML_V8V_ISEQ, '0x' + ML_V8V_ISEQ.toString(16));
+          console.log('ML_JMP is', ML_JMP, '0x' + ML_JMP.toString(16));
+          console.log(ml.slice(pc - 30, pcStart), '|', ml.slice(pcStart, pc + 10));
+          return true;
+        // THROW();
+      }
+    }
+  }
+}
+
 // BODY_STOP
 
 export {
-  ML_UNUSED,
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
-  ML_SUM,
-  ML_PRODUCT,
-  ML_DISTINCT,
-  ML_PLUS,
-  ML_MINUS,
-  ML_MUL,
-  ML_DIV,
-  ML_JMP,
-  ML_NOOP,
-  ML_NOOP2,
-  ML_NOOP3,
-  ML_NOOP4,
-  ML_STOP,
-
-  parseDsl,
   compilePropagators,
+  dslToMl,
+  mlToDsl,
 };

@@ -67,11 +67,26 @@ import {
   ML_NOOP3,
   ML_NOOP4,
   ML_STOP,
-} from './compiler';
+
+  SIZEOF_8V,
+  SIZEOF_VV,
+  SIZEOF_V8,
+  SIZEOF_88,
+  SIZEOF_VVV,
+  //SIZEOF_8VV,
+  SIZEOF_V8V,
+  //SIZEOF_VV8,
+  SIZEOF_88V,
+  SIZEOF_V88,
+  SIZEOF_8V8,
+  SIZEOF_888,
+  SIZEOF_COUNT,
+
+  ml__debug,
+} from './ml';
 import {
   domain__debug,
   domain_containsValue,
-  domain_createEmpty,
   domain_createRange,
   domain_createValue,
   domain_getValue,
@@ -94,18 +109,24 @@ const MINIMIZER_STABLE = 0;
 const MINIMIZER_SOLVED = 1;
 const MINIMIZER_REJECTED = 2;
 
-function cr_optimizeConstraints(ml, domains, addVar, getVar) {
+function cr_optimizeConstraints(ml, getVar, addVar, domains, names) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
+  console.log('sweeping');
   let change = true;
   let onlyJumps = true;
   let emptyDomain = false;
+  let lastPcOffset = 0;
+  let lastOp = 0;
   let pc = 0;
+  let loops = 0;
   while (change) {
+    console.log('- looping', ++loops);
     ASSERT_LOG2('cr outer loop');
     change = false;
     pc = 0;
     cr_innerLoop();
     ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
+    if (emptyDomain) console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
     if (emptyDomain) return MINIMIZER_REJECTED;
     if (onlyJumps) return MINIMIZER_SOLVED;
   }
@@ -115,7 +136,10 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     onlyJumps = true;
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
+      lastPcOffset = pc;
       let op = ml[pc++];
+      lastOp = op;
+
       ASSERT_LOG2('# CRc[' + pcStart + ']:', op, '(0x' + op.toString(16) + ')');
       switch (op) {
         case ML_UNUSED:
@@ -454,6 +478,57 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ml[pc] = num & 0xff;
   }
 
+  function cr_eliminate(offset, sizeof) {
+    ASSERT_LOG2(' - eliminating constraint');
+    switch (sizeof) {
+      case 0:
+        return THROW('this is a bug');
+      case 1:
+        ASSERT_LOG2('  - compiling a NOOP');
+        return cr_enc8(offset, ML_NOOP);
+      case 2:
+        ASSERT_LOG2('  - compiling a NOOP2');
+        return cr_enc8(offset, ML_NOOP2);
+      case 3:
+        ASSERT_LOG2('  - compiling a NOOP3');
+        return cr_enc8(offset, ML_NOOP3);
+      case 4:
+        ASSERT_LOG2('  - compiling a NOOP4');
+        return cr_enc8(offset, ML_NOOP4);
+      default:
+        ASSERT_LOG2('  - compiling a JMP');
+        ASSERT(sizeof > 4, 'cant jump negative');
+        cr_enc8(offset, ML_JMP);
+        cr_enc16(offset + 1, sizeof - 3);
+        return;
+    }
+  }
+
+  function cr_skip(offset, len) {
+    switch (len) {
+      case 0:
+        return THROW('this is a bug');
+      case 1:
+        ASSERT_LOG2('  - compiling a NOOP');
+        return cr_enc8(offset, ML_NOOP);
+      case 2:
+        ASSERT_LOG2('  - compiling a NOOP2');
+        return cr_enc8(offset, ML_NOOP2);
+      case 3:
+        ASSERT_LOG2('  - compiling a NOOP3');
+        return cr_enc8(offset, ML_NOOP3);
+      case 4:
+        ASSERT_LOG2('  - compiling a NOOP4');
+        return cr_enc8(offset, ML_NOOP4);
+      default:
+        ASSERT_LOG2('  - compiling a JMP');
+        ASSERT(len > 4, 'cant jump negative');
+        cr_enc8(offset, ML_JMP);
+        cr_enc16(offset + 1, len - 3);
+        return;
+    }
+  }
+
   function cr_vv_eq(ml) {
     // read two indexes to target
     // for now they are 16bit but maybe we'll introduce ML_EQ32 when using >64k vars
@@ -477,12 +552,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     // solved if the two domains intersect to a solved domain
     if (domain_getValue(R) >= 0) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 2);
-
-      // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+      cr_eliminate(offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -503,17 +573,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (!domain_containsValue(A, vB)) {
       ASSERT_LOG2(' - A did not contain literal', vB, 'so search rejects');
-      domains[indexA] = domain_createEmpty();
       return emptyDomain = true;
     }
 
     domains[indexA] = domain_createValue(vB);
 
     // domain must be solved now since B was a literal (a solved constant)
-
-    ASSERT_LOG2(' - A contained literal', vB, 'so eliminating constraint');
-    // op + 2 + 1
-    cr_enc8(offset, ML_NOOP4);
+    cr_eliminate(offset, SIZEOF_V8);
 
     // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
   }
@@ -529,8 +595,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' = cr_88_eq', vA, vB);
 
     if (vA === vB) {
-      ASSERT_LOG2(' - literals match so eliminating this constraint');
-      cr_enc8(offset, ML_NOOP3); // 1+1+1
+      cr_eliminate(offset, SIZEOF_88);
     } else {
       ASSERT_LOG2(' - literals dont match so this problem is unsolvable');
       return emptyDomain = true; // TODO: is there anything higher up that properly handles this case?
@@ -572,12 +637,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // solved if the two domains (now) intersects to an empty domain
     let R = domain_intersection(A, B);
     if (domain_isEmpty(R)) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 2);
-
-      // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+      cr_eliminate(offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -606,8 +666,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       change = true;
     }
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+    cr_eliminate(offset, SIZEOF_V8);
   }
 
   function cr_88_neq(ml) {
@@ -622,8 +681,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (vA === vB) return emptyDomain = true;
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
+    cr_eliminate(offset, SIZEOF_88);
   }
 
   function cr_vv_lt(ml) {
@@ -644,7 +702,6 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // values that violate the desired outcome. only when a A and
     // B have multiple intersecting values we have to keep this
     // constraint
-
     let oA = A;
     let oB = B;
     A = domains[indexA] = domain_removeGte(A, domain_max(B));
@@ -659,13 +716,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     // any value in A must be < any value in B
     if (domain_max(A) < domain_min(B)) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // solved because there is no value left in A that is bigger or equal to B
-      // op + A are already skipped. this skips over B
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 2);
-
-      // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+      cr_eliminate(offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -683,19 +734,19 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let A = domains[indexA];
 
     ASSERT_LOG2(' = cr_v8_lt', indexA, domain__debug(A), vB);
-    if (domain_max(A) >= vB) return emptyDomain = true;
+    if (domain_min(A) >= vB) return emptyDomain = true;
 
     let oA = A;
     // remove any value gte vB and remove constraint
     A = domains[indexA] = domain_removeGte(A, vB);
     ASSERT_LOG2(' ->', domain__debug(A));
+
     if (A !== oA) {
       if (!A) return emptyDomain = true;
       change = true;
     }
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+    cr_eliminate(offset, SIZEOF_V8);
   }
 
   function cr_8v_lt(ml) {
@@ -709,7 +760,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
 
     ASSERT_LOG2(' = cr_8v_lt', vA, indexB, domain__debug(B));
-    if (vA >= domain_min(B)) return emptyDomain = true;
+    if (vA >= domain_max(B)) return emptyDomain = true;
 
     let oB = B;
     // remove any value lte vA and remove constraint
@@ -720,8 +771,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       change = true;
     }
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+    cr_eliminate(offset, SIZEOF_8V);
   }
 
   function cr_88_lt(ml) {
@@ -735,8 +785,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' = cr_88_lt', vA, vB);
     if (vA >= vB) return emptyDomain = true;
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
+    cr_eliminate(offset, SIZEOF_88);
   }
 
   function cr_vv_lte(ml) {
@@ -773,13 +822,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     // any value in A must be < any value in B
     if (domain_max(A) <= domain_min(B)) {
-      ASSERT_LOG2(' - eliminating constraint at 1 because max(A)<=max(B) (', domain_max(A), '<=', domain_min(B), ')');
-      // solved because there is no value left in A that is bigger or equal to B
-      // op + A are already skipped. this skips over B
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 2);
-
-      // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+      cr_eliminate(offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -808,8 +851,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       change = true;
     }
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+    cr_eliminate(offset, SIZEOF_V8);
   }
 
   function cr_8v_lte(ml) {
@@ -834,8 +876,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       change = true;
     }
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4); // 1 + 2 + 1
+    cr_eliminate(offset, SIZEOF_8V);
   }
 
   function cr_88_lte(ml) {
@@ -849,23 +890,26 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' = cr_88_lte', vA, vB);
     if (vA > vB) return emptyDomain = true;
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP3); // 1 + 1 + 1
+    cr_eliminate(offset, SIZEOF_88);
   }
 
   function cr_distinct(ml) {
     let offset = pc - 1;
     let count = cr_dec16();
+    let varsOffset = offset + SIZEOF_COUNT;
+    ASSERT(varsOffset === pc, 'pc should be at vars offset');
 
     ASSERT_LOG2(' = cr_distinct', count, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])));
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(varsOffset + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(varsOffset + i * 2)])));
+
+    let countStart = count;
 
     // a distinct is basically a pyramid of neq's; one for each unique pair of the set
     // to prevent generating an array we'll decode every var during the loop...
     // we loop back to front because we're splicing out vars while looping
     for (let i = count - 1; i >= 0; --i) {
-      let indexA = cr_dec16pc(pc + i * 2);
+      let indexA = cr_dec16pc(varsOffset + i * 2);
       let A = domains[indexA];
       ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
       if (!A) return emptyDomain = true;
@@ -876,14 +920,16 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         // if v is solved, remove v from all other domains, then remove v from the list
         for (let j = 0; j >= 0; --j) {
           if (j !== i) {
-            let indexB = cr_dec16pc(pc + j * 2);
+            let indexB = cr_dec16pc(varsOffset + j * 2);
             ASSERT(indexA !== indexB, 'same var should not occur multiple times...'); // what about constants? could be artifacts (A=1,B=1,distinct(A,B))
             ASSERT_LOG2('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
             let beforeB = domains[indexB];
             let B = domains[indexB] = domain_removeValue(domains[indexB], v);
-            change = change || B !== beforeB;
-            ASSERT_LOG2('    -> B=', domain__debug(domains[indexB]), B !== beforeB);
-            if (!B) return emptyDomain = true;
+            if (B !== beforeB) {
+              ASSERT_LOG2('    -> changed B=', domain__debug(domains[indexB]));
+              if (!B) return emptyDomain = true;
+              change = true;
+            }
           }
         }
 
@@ -891,21 +937,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         // - move all indexes bigger than the current back one position
         // - compile the new count back in
         // - compile a NOOP in the place of the last element
-        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', count, ')');
+        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', count, ')', i + 1 < count);
         for (let k = i + 1; k < count; ++k) {
           ASSERT_LOG2('    - moving ', (k + 1) + 'th var');
-          ml[pc + k * 2] = ml[pc + (k + 1) * 2];
-          ml[pc + k * 2 + 1] = ml[pc + (k + 1) * 2 + 1];
+          ml[varsOffset + k * 2] = ml[varsOffset + (k + 1) * 2];
+          ml[varsOffset + k * 2 + 1] = ml[varsOffset + (k + 1) * 2 + 1];
         }
         --count;
-        ASSERT_LOG2('  - recompiling new count (', count, ')');
-        cr_enc16(pc - 2, count);
-        ASSERT_LOG2('  - compiling noop into empty spot');
-        cr_enc8(pc + count * 2, ML_NOOP2);
       }
     }
 
-    if (count === 2) {
+    if (count <= 1) {
+      ASSERT(count >= 0, 'should be zero or one');
+      ASSERT_LOG2(' - Count is', count, '; eliminating constraint');
+      let sizeof = SIZEOF_COUNT + 2 * countStart;
+      cr_eliminate(offset, sizeof);
+      pc = offset + sizeof;
+      //ASSERT_LOG2(' - ml now:', ml);
+    } else if (count === 2) {
+      ASSERT_LOG2(' - Count=2, recompiling to regular neq');
       // recompile as neq
       // list of vars should not have any holes (not even after elimination above) so we can just copy them.
       // ml len of this distinct should be 7 bytes (op=1, count=2, A=2, B=2)
@@ -915,34 +965,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ml[offset + 2] = ml[offset + 4];
       ml[offset + 3] = ml[offset + 5]; // B
       ml[offset + 4] = ml[offset + 6];
-      // this should open up 2 bytes (the count) so encode a NOOP2 in there
-      cr_enc8(offset + 5, ML_NOOP2);
+      ASSERT(offset + SIZEOF_VV === 5, 'should be dis');
+      // this should open up at least 2 bytes, maybe more, so skip anything from the old op right after the new op
+      cr_skip(offset + SIZEOF_VV, (SIZEOF_COUNT + 2 * countStart) - SIZEOF_VV);
       ASSERT_LOG2(' - changed to a neq');
       ASSERT_LOG2(' - ml now:', ml);
       onlyJumps = false;
-      pc = offset + 1 + 6; // count=2+A=2+B=2=6
-    } else if (count === 1) {
-      // eliminate. skip (count+1)*2 bytes
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + first var are already skipped. this skips over the other vars
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, -3 + (count + 1) * 2);
-
-      ASSERT_LOG2(' - ml now:', ml);
-      pc += count * 2;
-    } else if (count === 0) {
-      // eliminate. skip the op
-      ASSERT_LOG2(' - eliminating constraint without vars');
-      // there are no vars so only replace the op with a noop (skips one byte) and the count with a noop2
-      cr_enc8(offset, ML_NOOP);
-      cr_enc8(offset + 1, ML_NOOP2);
-
-      ASSERT_LOG2(' - ml now:', ml);
-      // pc is already good now
+      pc = offset + SIZEOF_COUNT + countStart * 2; // skip to after what the op was before changing it
     } else {
+      if (count !== countStart) {
+        ASSERT_LOG2('  - recompiling new count (', count, ')');
+        cr_enc16(offset + 1, count);
+        ASSERT_LOG2('  - compiling noop into empty spots');
+        cr_skip(varsOffset + count * 2, (countStart - count) * 2);
+      }
+
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + 1 + 2 + count * 2; // skip the 16bit indexes manually
+      // skip over the whole op as we knew it at the start...
+      pc = offset + SIZEOF_COUNT + countStart * 2;
     }
   }
 
@@ -974,46 +1015,32 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     A = domain_removeLtUnsafe(A, minR - domain_max(B));
     A = domain_removeGtUnsafe(A, maxR - domain_min(B));
     ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '-' + domain_max(B) + '=' + (minR - domain_max(B)) + ', ' + maxR + '-' + domain_min(B) + '=' + (maxR - domain_min(B)) + '>');
-    if (A) {
-      let minA = domain_min(A);
-      let maxA = domain_max(A);
-      B = domain_removeLtUnsafe(B, minR - maxA);
-      B = domain_removeGtUnsafe(B, maxR - minA);
-      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-      if (B) {
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-        R = domain_removeLtUnsafe(R, minA + minB);
-        R = domain_removeGtUnsafe(R, maxA + maxB);
-        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-        if (R) {
-          if (oR !== R || oB !== B) {
-            minR = domain_min(R);
-            maxR = domain_max(R);
-            A = domain_removeLtUnsafe(A, minR - maxB);
-            A = domain_removeGtUnsafe(A, maxR - minB);
-            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-            if (A) {
-              if (oR !== R || oA !== A) {
-                B = domain_removeLtUnsafe(B, minR - domain_max(A));
-                B = domain_removeGtUnsafe(B, maxR - domain_min(A));
-                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-                if (!B) {
-                  emptyDomain = true;
-                }
-              }
-            } else {
-              emptyDomain = true;
-            }
-          }
-        } else {
-          emptyDomain = true;
-        }
-      } else {
-        emptyDomain = true;
+    if (!A) return emptyDomain = true;
+    let minA = domain_min(A);
+    let maxA = domain_max(A);
+    B = domain_removeLtUnsafe(B, minR - maxA);
+    B = domain_removeGtUnsafe(B, maxR - minA);
+    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+    if (!B) return emptyDomain = true;
+    let minB = domain_min(B);
+    let maxB = domain_max(B);
+    R = domain_removeLtUnsafe(R, minA + minB);
+    R = domain_removeGtUnsafe(R, maxA + maxB);
+    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+    if (!R) return emptyDomain = true;
+    if (oR !== R || oB !== B) {
+      minR = domain_min(R);
+      maxR = domain_max(R);
+      A = domain_removeLtUnsafe(A, minR - maxB);
+      A = domain_removeGtUnsafe(A, maxR - minB);
+      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+      if (!A) return emptyDomain = true;
+      if (oR !== R || oA !== A) {
+        B = domain_removeLtUnsafe(B, minR - domain_max(A));
+        B = domain_removeGtUnsafe(B, maxR - domain_min(A));
+        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+        if (!B) return emptyDomain = true;
       }
-    } else {
-      emptyDomain = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
@@ -1024,18 +1051,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexB] = B;
       domains[indexR] = R;
     }
-    if (emptyDomain) return;
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      ASSERT_LOG2(' - eliminating constraint');
-
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
-      return;
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1071,46 +1092,32 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     A = domain_removeLtUnsafe(A, minR + domain_min(B));
     A = domain_removeGtUnsafe(A, maxR + domain_max(B));
     ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '+' + domain_min(B) + '=' + (minR + domain_min(B)) + ', ' + maxR + '+' + domain_max(B) + '=' + (maxR + domain_max(B)) + '>');
-    if (A) {
-      let minA = domain_min(A);
-      let maxA = domain_max(A);
-      B = domain_removeLtUnsafe(B, minA - maxR);
-      B = domain_removeGtUnsafe(B, maxA - minR);
-      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-      if (B) {
-        let minB = domain_min(B);
-        let maxB = domain_max(B);
-        R = domain_removeLtUnsafe(R, minA - maxB);
-        R = domain_removeGtUnsafe(R, maxA - minB);
-        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-        if (R) {
-          if (oR !== R || oB !== B) {
-            minR = domain_min(R);
-            maxR = domain_max(R);
-            A = domain_removeLtUnsafe(A, minR + minB);
-            A = domain_removeGtUnsafe(A, maxR + maxB);
-            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-            if (A) {
-              if (oR !== R || oA !== A) {
-                B = domain_removeLtUnsafe(B, domain_min(A) - maxR);
-                B = domain_removeGtUnsafe(B, domain_max(A) - minR);
-                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-                if (!B) {
-                  emptyDomain = true;
-                }
-              }
-            } else {
-              emptyDomain = true;
-            }
-          }
-        } else {
-          emptyDomain = true;
-        }
-      } else {
-        emptyDomain = true;
+    if (!A) return emptyDomain = true;
+    let minA = domain_min(A);
+    let maxA = domain_max(A);
+    B = domain_removeLtUnsafe(B, minA - maxR);
+    B = domain_removeGtUnsafe(B, maxA - minR);
+    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+    if (!B) return emptyDomain = true;
+    let minB = domain_min(B);
+    let maxB = domain_max(B);
+    R = domain_removeLtUnsafe(R, minA - maxB);
+    R = domain_removeGtUnsafe(R, maxA - minB);
+    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+    if (!R) return emptyDomain = true;
+    if (oR !== R || oB !== B) {
+      minR = domain_min(R);
+      maxR = domain_max(R);
+      A = domain_removeLtUnsafe(A, minR + minB);
+      A = domain_removeGtUnsafe(A, maxR + maxB);
+      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+      if (!A) return emptyDomain = true;
+      if (oR !== R || oA !== A) {
+        B = domain_removeLtUnsafe(B, domain_min(A) - maxR);
+        B = domain_removeGtUnsafe(B, domain_max(A) - minR);
+        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+        if (!B) return emptyDomain = true;
       }
-    } else {
-      emptyDomain = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
@@ -1121,17 +1128,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexB] = B;
       domains[indexR] = R;
     }
-    if (emptyDomain) return;
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
-      return;
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1171,48 +1173,34 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
     A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
     ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '/' + domain_max(B) + ')=' + Math.floor(minR / domain_max(B)) + ', ceil(' + maxR + '/' + domain_min(B) + ')=' + Math.ceil(maxR / domain_min(B)) + '>');
-    if (A) {
-      let minA = domain_min(A);
-      let maxA = domain_max(A);
-      B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
-      B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-      if (B) {
-        minB = domain_min(B);
-        maxB = domain_max(B);
-        R = domain_removeLtUnsafe(R, minA * minB);
-        R = domain_removeGtUnsafe(R, maxA * maxB);
-        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-        if (R) {
-          if (oR !== R || oB !== B) {
-            minR = domain_min(R);
-            maxR = domain_max(R);
-            A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
-            A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
-            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-            if (A) {
-              if (oR !== R || oA !== A) {
-                minA = domain_min(A);
-                maxA = domain_max(A);
-                B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
-                B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-                if (!B) {
-                  emptyDomain = true;
-                }
-              }
-            } else {
-              emptyDomain = true;
-            }
-          }
-        } else {
-          emptyDomain = true;
-        }
-      } else {
-        emptyDomain = true;
+    if (!A) return emptyDomain = true;
+    let minA = domain_min(A);
+    let maxA = domain_max(A);
+    B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
+    B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
+    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+    if (!B) return emptyDomain = true;
+    minB = domain_min(B);
+    maxB = domain_max(B);
+    R = domain_removeLtUnsafe(R, minA * minB);
+    R = domain_removeGtUnsafe(R, maxA * maxB);
+    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+    if (!R) return emptyDomain = true;
+    if (oR !== R || oB !== B) {
+      minR = domain_min(R);
+      maxR = domain_max(R);
+      A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
+      A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
+      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+      if (!A) return emptyDomain = true;
+      if (oR !== R || oA !== A) {
+        minA = domain_min(A);
+        maxA = domain_max(A);
+        B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
+        B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
+        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+        if (!B) return emptyDomain = true;
       }
-    } else {
-      emptyDomain = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
@@ -1223,17 +1211,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexB] = B;
       domains[indexR] = R;
     }
-    if (emptyDomain) return;
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
-      return;
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1274,48 +1257,34 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     A = domain_removeLtUnsafe(A, minR * minB);
     A = domain_removeGtUnsafe(A, maxR * maxB);
     ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '*' + minB + ')=' + (minR * minB) + ', (' + maxR + '*' + maxB + ')=' + (maxR / maxB) + '>');
-    if (A) {
-      let minA = domain_min(A);
-      let maxA = domain_max(A);
-      B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
-      B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-      ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-      if (B) {
-        minB = domain_min(B);
-        maxB = domain_max(B);
-        R = domain_removeLtUnsafe(R, maxB ? Math.floor(minA / maxB) : SUB);
-        R = domain_removeGtUnsafe(R, minB ? Math.ceil(maxA / minB) : SUP);
-        ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-        if (R) {
-          if (oR !== R || oB !== B) {
-            minR = domain_min(R);
-            maxR = domain_max(R);
-            A = domain_removeLtUnsafe(A, minR * minB);
-            A = domain_removeGtUnsafe(A, maxR * maxB);
-            ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-            if (A) {
-              if (oR !== R || oA !== A) {
-                minA = domain_min(A);
-                maxA = domain_max(A);
-                B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
-                B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-                ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-                if (!B) {
-                  emptyDomain = true;
-                }
-              }
-            } else {
-              emptyDomain = true;
-            }
-          }
-        } else {
-          emptyDomain = true;
-        }
-      } else {
-        emptyDomain = true;
+    if (!A) return emptyDomain = true;
+    let minA = domain_min(A);
+    let maxA = domain_max(A);
+    B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
+    B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
+    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
+    if (!B) return emptyDomain = true;
+    minB = domain_min(B);
+    maxB = domain_max(B);
+    R = domain_removeLtUnsafe(R, maxB ? Math.floor(minA / maxB) : SUB);
+    R = domain_removeGtUnsafe(R, minB ? Math.ceil(maxA / minB) : SUP);
+    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
+    if (!R) return emptyDomain = true;
+    if (oR !== R || oB !== B) {
+      minR = domain_min(R);
+      maxR = domain_max(R);
+      A = domain_removeLtUnsafe(A, minR * minB);
+      A = domain_removeGtUnsafe(A, maxR * maxB);
+      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
+      if (!A) return emptyDomain = true;
+      if (oR !== R || oA !== A) {
+        minA = domain_min(A);
+        maxA = domain_max(A);
+        B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
+        B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
+        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+        if (!B) return emptyDomain = true;
       }
-    } else {
-      emptyDomain = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
@@ -1326,17 +1295,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexB] = B;
       domains[indexR] = R;
     }
-    if (emptyDomain) return;
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
-      return;
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1365,9 +1329,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         remove = true;
         change = true;
       } else {
-        R = domains[indexR] = domain_createEmpty();
-        emptyDomain = true;
-        return;
+        return emptyDomain = true;
       }
     } else {
       if (domain_max(R) > 1) {
@@ -1384,7 +1346,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_VV_NEQ);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 2);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1392,7 +1354,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_VV_EQ);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 2);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1402,10 +1364,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1451,7 +1410,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_V8_NEQ);
-      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 1, 2);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1459,7 +1418,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_V8_EQ);
-      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 1, 2);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1469,13 +1428,21 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
 
     if (remove) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 3);
+      cr_eliminate(offset, SIZEOF_V8V);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
+      ASSERT(domain_max(A) !== 0, 'if it were zero then it would be solved and that case is caught above');
+      if (vB <= 1 && domain_max(A) === 1) {
+        // - B=0: 0==B=1, 1==B=0: A!=R
+        // - B=1: 0==B=0, 1==B=1: A==R
+        cr_enc8(offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ);
+        cr_enc16(offset + 1, indexA);
+        cr_enc16(offset + 3, indexR);
+        cr_skip(offset + 5, 1);
+      }
     }
   }
 
@@ -1490,7 +1457,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_VV_NEQ);
-      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 1);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1499,7 +1466,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_VV_EQ);
-      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 1);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1529,10 +1496,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
-    ASSERT_LOG2(' - eliminating constraint');
-    // op + A + B are already skipped. this skips over R
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_88V);
   }
 
   function cr_v88_isEq(ml) {
@@ -1564,10 +1528,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
 
-    ASSERT_LOG2(' - eliminating constraint');
-    // op + A are already skipped. this skips over B and R
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_V88);
   }
 
   function cr_888_isEq(ml) {
@@ -1583,8 +1544,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // isEq !== shouldEq
     if ((vA === vB) !== (vR === 1)) return emptyDomain = true;
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4);
+    cr_eliminate(offset, SIZEOF_888);
   }
 
   function cr_vvv_isNeq(ml) {
@@ -1611,9 +1571,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         remove = true;
         change = true;
       } else {
-        R = domains[indexR] = domain_createEmpty();
-        emptyDomain = true;
-        return;
+        return emptyDomain = true;
       }
     } else {
       if (domain_max(R) > 1) {
@@ -1630,7 +1588,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_VV_EQ);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 2);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1638,7 +1596,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_VV_NEQ);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 2);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1648,10 +1606,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 4);
+      cr_eliminate(offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1678,10 +1633,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       R = domains[indexR] = domain_createValue(result);
       change = true;
 
-      ASSERT_LOG2(' - eliminating constraint');
-      // op + A are already skipped. this skips over B and R
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, 3);
+      cr_eliminate(offset, SIZEOF_V8V);
       return;
     }
 
@@ -1697,7 +1649,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_V8_NEQ);
-      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 1, 2);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1705,7 +1657,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_V8_EQ);
-      cr_enc8(offset + 4, ML_NOOP2); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 1, 2);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1715,6 +1667,17 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
     ASSERT_LOG2(' - not only jumps...');
     onlyJumps = false;
+
+    // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
+    ASSERT(domain_max(A) !== 0, 'if max(A) were zero then it would be solved and that case is caught above');
+    if (vB <= 1 && domain_max(A) === 1) {
+      // - B=0: 0!=B=0, 1!=B=1: A==R
+      // - B=1: 0!=B=1, 1!=B=0: A!=R
+      cr_enc8(offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ);
+      cr_enc16(offset + 1, indexA);
+      cr_enc16(offset + 3, indexR);
+      cr_skip(offset + 5, 1);
+    }
   }
 
   function cr_vv8_isNeq(ml) {
@@ -1728,7 +1691,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
       cr_enc8(offset, ML_VV_EQ);
-      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 1);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1737,7 +1700,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
       cr_enc8(offset, ML_VV_NEQ);
-      cr_enc8(offset + 5, ML_NOOP); // skip the op and A and B and overwrite the C with a noop
+      cr_skip(offset + 1 + 2 + 2, 1);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1767,10 +1730,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
-    ASSERT_LOG2(' - eliminating constraint');
-    // op + A + B are already skipped. this skips over R
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_88V);
   }
 
   function cr_v88_isNeq(ml) {
@@ -1801,11 +1761,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
-
-    ASSERT_LOG2(' - eliminating constraint');
-    // op + A are already skipped. this skips over B and R
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_V88);
   }
 
   function cr_888_isNeq(ml) {
@@ -1821,8 +1777,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // isNeq !== shouldNeq
     if ((vA !== vB) !== (vR === 1)) return emptyDomain = true;
 
-    ASSERT_LOG2(' - eliminating constraint');
-    cr_enc8(offset, ML_NOOP4);
+    cr_eliminate(offset, SIZEOF_888);
   }
 
   function cr_vvv_isLt(ml) {
@@ -1858,7 +1813,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
       cr_enc8(offset, ML_VV_LT);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the R
+      cr_skip(offset + 5, 2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
@@ -1866,7 +1821,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_VV_LTE);
       cr_enc16(offset + 1, indexB);
       cr_enc16(offset + 3, indexA);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the R
+      cr_skip(offset + 5, 2);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -1908,8 +1863,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_8V_LT);
       cr_enc8(offset + 1, vA);
       cr_enc16(offset + 2, indexB);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // len was 6 (1+1+2+2), now 4
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
@@ -1917,12 +1872,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_V8_LTE);
       cr_enc16(offset + 1, indexB);
       cr_enc8(offset + 3, vA);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // len was 6 (1+1+2+2), now 4
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+
+      // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
+      ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
+      if (vA <= 1 && domain_max(B) === 1) {
+        // - A=0: A<0=0, A<1=1: B=R
+        // - A=1: A<0=0, A<1=0: R=0, remove constraint (already done above)
+        ASSERT(vA === 0, 'the path for A=1 is handled above');
+
+        cr_enc8(offset, ML_VV_EQ);
+        cr_enc16(offset + 1, indexB);
+        cr_enc16(offset + 3, indexR);
+        cr_skip(offset + 5, 1);
+      }
     }
   }
 
@@ -1960,8 +1928,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_V8_LT);
       cr_enc16(offset + 1, indexA);
       cr_enc8(offset + 3, vB);
-      // op was 6 bytes, now 4 bytes, so skip 2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // op was 6 bytes, now 4 bytes
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
@@ -1969,12 +1937,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_8V_LTE);
       cr_enc8(offset + 1, vB);
       cr_enc16(offset + 2, indexA);
-      // op was 6 bytes, now 4 bytes, so skip 2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // op was 6 bytes, now 4 bytes
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
+      ASSERT(domain_max(A) !== 0, 'if max(A) were zero then R would be solved and that case is caught above');
+      if (vB <= 1 && domain_max(A) === 1) {
+        // - B=0: 0<B=0, 1<B=0: R=0, remove constraint (already done above)
+        // - B=1: 0<B=1, 1<B=0: A!=R
+        ASSERT(vB === 0, 'the path for B=0 is handled above');
+
+        cr_enc8(offset, ML_VV_NEQ);
+        cr_enc16(offset + 1, indexA);
+        cr_enc16(offset + 3, indexR);
+        cr_skip(offset + 5, 1);
+      }
     }
   }
 
@@ -1999,7 +1980,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
       cr_enc8(offset, ML_VV_LT);
-      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      cr_skip(offset + 5, 1); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
@@ -2007,7 +1988,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_VV_LTE);
       cr_enc16(offset + 1, indexB);
       cr_enc16(offset + 3, indexA);
-      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      cr_skip(offset + 5, 1); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -2036,9 +2017,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexR] = R;
     }
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_88V);
   }
 
   function cr_v88_isLt(ml) {
@@ -2063,9 +2042,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (!A) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_V88);
   }
 
   function cr_8v8_isLt(ml) {
@@ -2090,9 +2067,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (!B) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_8V8);
   }
 
   function cr_888_isLt(ml) {
@@ -2106,8 +2081,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // just check
     if ((vA < vB) !== (vR === 1)) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_NOOP4);
+    cr_eliminate(offset, SIZEOF_888);
   }
 
   function cr_vvv_isLte(ml) {
@@ -2143,7 +2117,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
       cr_enc8(offset, ML_VV_LTE);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the R
+      cr_skip(offset + 5, 2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
@@ -2151,7 +2125,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_VV_LT);
       cr_enc16(offset + 1, indexB);
       cr_enc16(offset + 3, indexA);
-      cr_enc8(offset + 5, ML_NOOP2); // skip the R
+      cr_skip(offset + 5, 2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2168,7 +2142,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     let B = domains[indexB];
     let R = domains[indexR];
 
-    ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, vA, domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, '->', vA, domain__debug(B), domain__debug(R));
     if (!B || !R) return emptyDomain = true;
 
     let oR = R;
@@ -2193,8 +2167,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_8V_LTE);
       cr_enc8(offset + 1, vA);
       cr_enc16(offset + 2, indexB);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // len was 6 (1+1+2+2), now 4
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
@@ -2203,11 +2177,24 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc16(offset + 1, indexB);
       cr_enc8(offset + 3, vA);
       // len was 6 (1+1+2+2), now 4, so noop2
-      cr_enc8(offset + 4, ML_NOOP2);
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+
+      // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
+      ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
+      if (vA <= 1 && domain_max(B) === 1) {
+        // - A=0: A<=0=1, A<=1=1: R=1, remove constraint (Already done above)
+        // - A=1: A<=0=0, A<=1=1: B==R
+        ASSERT(vA === 1, 'the path for A=0 is handled above');
+
+        cr_enc8(offset, ML_VV_EQ);
+        cr_enc16(offset + 1, indexB);
+        cr_enc16(offset + 3, indexR);
+        cr_skip(offset + 5, 1);
+      }
     }
   }
 
@@ -2245,8 +2232,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_V8_LTE);
       cr_enc16(offset + 1, indexA);
       cr_enc8(offset + 3, vB);
-      // op was 6 bytes, now 4 bytes, so skip 2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
@@ -2254,12 +2241,25 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_8V_LT);
       cr_enc8(offset + 1, vB);
       cr_enc16(offset + 2, indexA);
-      // op was 6 bytes, now 4 bytes, so skip 2
-      cr_enc8(offset + 4, ML_NOOP2);
+      // len was 6 (1+1+2+2), now 4, so noop2
+      cr_skip(offset + 4, 2);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
+      ASSERT(domain_max(A) !== 0, 'if max(A) were zero then R would be solved and that case is caught above');
+      if (vB <= 1 && domain_max(A) === 1) {
+        // - B=0: 0<=B=1, 1<=B=0: B!=R
+        // - B=1: 0<=B=1, 1<=B=1: R=1, remove constraint (already done above)
+        ASSERT(vB === 0, 'the path for A=1 is handled above');
+
+        cr_enc8(offset, ML_VV_NEQ);
+        cr_enc16(offset + 1, indexA);
+        cr_enc16(offset + 3, indexR);
+        cr_skip(offset + 5, 1);
+      }
     }
   }
 
@@ -2284,7 +2284,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
       cr_enc8(offset, ML_VV_LTE);
-      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      cr_skip(offset + 5, 1); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
@@ -2292,7 +2292,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       cr_enc8(offset, ML_VV_LT);
       cr_enc16(offset + 1, indexB);
       cr_enc16(offset + 3, indexA);
-      cr_enc8(offset + 5, ML_NOOP); // skip the R
+      cr_skip(offset + 5, 1); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -2321,9 +2321,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       domains[indexR] = R;
     }
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_88V);
   }
 
   function cr_v88_isLte(ml) {
@@ -2348,9 +2346,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (!A) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_V88);
   }
 
   function cr_8v8_isLte(ml) {
@@ -2375,9 +2371,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
 
     if (!B) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_JMP);
-    cr_enc16(offset + 1, 2);
+    cr_eliminate(offset, SIZEOF_8V8);
   }
 
   function cr_888_isLte(ml) {
@@ -2391,8 +2385,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
     // just check
     if ((vA <= vB) !== (vR === 1)) return emptyDomain = true;
 
-    ASSERT_LOG2(' ! removing constraint');
-    cr_enc8(offset, ML_NOOP4);
+    cr_eliminate(offset, SIZEOF_888);
   }
 
   function cr_sum(ml) {
@@ -2503,13 +2496,12 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       if (count === 2) {
         // in this case you only need to eliminate space for the 16bit count
         // that's 2 bytes space, a jmp would take 3, so compile a noop instead
-        ASSERT_LOG2(' - len=2 so just a noop2 for the count');
-        cr_enc8(offset + 7, ML_NOOP2);
+        ASSERT_LOG2(' - len=2 so skip 2 for the count');
+        cr_skip(offset + 1 + 2 + 2 + 2, 2);
       } else {
         // skip count-2 vars. jmp will ignore itself so -3
         ASSERT_LOG2(' - and a jump over the count and', count - 2, 'vars');
-        cr_enc8(offset + 7, ML_JMP);
-        cr_enc16(offset + 8, (1 + count - 2) * 2 - 3);
+        cr_skip(offset + 1 + 2 + 2 + 2, 2 + (count - 2) * 2);
       }
 
       ASSERT_LOG2(' - changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
@@ -2527,14 +2519,16 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         cr_enc8(offset, ML_V8_EQ);
         cr_enc16(offset + 1, newIndexA);
         cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
-        cr_enc8(offset + 4, ML_NOOP3);
+
+        cr_skip(offset + 1 + 2 + 1, 3);
       } else {
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
         // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
         cr_enc8(offset, ML_VV_EQ);
         cr_enc16(offset + 1, newIndexA);
         cr_enc16(offset + 3, indexR);
-        cr_enc8(offset + 5, ML_NOOP2);
+
+        cr_skip(offset + 1 + 2 + 2, 2);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
@@ -2552,13 +2546,13 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         change = true;
         domains[indexR] = R;
       }
+
       let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, delta);
+      cr_eliminate(offset, delta);
       ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
     } else {
-      ASSERT(count - constants > 2, 'There no other valid options here');
+      ASSERT(count - constants > 1, 'There no other valid options here', count, constants, count - constants);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
       pc = offset + 1 + 2 + count * 2 + 2; // skip the 16bit indexes manually
@@ -2675,17 +2669,8 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
       // this distinct has at least two var args. a distinct of 2+ takes 1+2+n*2
       // bytes. a plus takes 1+2+2+2 bytes. so this morph should be fine.
       // if the distinct had more than two vars, skip the rest.
-      if (count === 2) {
-        // in this case you only need to eliminate space for the 16bit count
-        // that's 2 bytes space, a jmp would take 3, so compile a noop instead
-        ASSERT_LOG2(' - len=2 so just a noop2 for the count');
-        cr_enc8(offset + 7, ML_NOOP2);
-      } else {
-        // skip count-2 vars. jmp will ignore itself so -3
-        ASSERT_LOG2(' - and a jump over the count and', count - 2, 'vars');
-        cr_enc8(offset + 7, ML_JMP);
-        cr_enc16(offset + 8, (1 + count - 2) * 2 - 3);
-      }
+      ASSERT_LOG2(' - len=2 so just a noop2 for the count');
+      cr_skip(offset + 1 + 2 + 2 + 2, 2 + (count - 2) * 2);
 
       ASSERT_LOG2(' - changed to a mul on index', newIndexA, 'and', (constants ? 'constant value ' + constantsProduct : 'index ' + newIndexB));
       ASSERT_LOG2(' - ml now:', ml);
@@ -2702,14 +2687,14 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         cr_enc8(offset, ML_V8_EQ);
         cr_enc16(offset + 1, newIndexA);
         cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
-        cr_enc8(offset + 4, ML_NOOP3);
+        cr_skip(offset + 1 + 2 + 1, 3);
       } else {
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
         // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
         cr_enc8(offset, ML_VV_EQ);
         cr_enc16(offset + 1, newIndexA);
         cr_enc16(offset + 3, indexR);
-        cr_enc8(offset + 5, ML_NOOP2);
+        cr_skip(offset + 1 + 2 + 2, 2);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
@@ -2728,8 +2713,7 @@ function cr_optimizeConstraints(ml, domains, addVar, getVar) {
         domains[indexR] = R;
       }
       let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
-      cr_enc8(offset, ML_JMP);
-      cr_enc16(offset + 1, delta);
+      cr_eliminate(offset, delta);
       ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
     } else {

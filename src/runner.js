@@ -14,8 +14,9 @@ import {
   THROW,
 } from './helpers';
 import {
-  parseDsl,
   compilePropagators,
+  dslToMl,
+  mlToDsl,
 } from './compiler';
 import {
   MINIMIZER_STABLE,
@@ -78,15 +79,26 @@ function solverSolver(dsl) {
   }
 
   ASSERT_LOG2('Parsing DSL...');
-  console.time('- parsing dls');
-  let input = parseDsl(dsl, addVar, getVar);
+  let t = '- parsing dsl (' + dsl.length + ')';
+  console.time(t);
+  let input = dslToMl(dsl, addVar, getVar);
+  console.timeEnd(t);
+
   let mls = input.ml;
-  console.timeEnd('- parsing dls');
+  let mlConstraints = Buffer.from(mls, 'binary');
 
   ASSERT_LOG2('Minimizing ML...');
   console.time('- minimizing ml');
-  let state = minimize(mls, getVar, domains, addVar);
+  let state = minimize(mlConstraints, getVar, addVar, domains, vars);
   console.timeEnd('- minimizing ml');
+
+  console.time('ml->dsl:');
+  let newdsl = mlToDsl(mlConstraints, vars, domains);
+  console.timeEnd('ml->dsl:');
+  console.log(newdsl);
+
+  //return
+
   //let state = getState(domains);
   if (state === MINIMIZER_SOLVED) return createSolution(vars, domains);
   if (state === MINIMIZER_REJECTED) return false;
@@ -112,11 +124,10 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function minimize(mls, getVar, domains, addVar) {
-  let mlConstraints = Buffer.from(mls, 'binary');
+function minimize(mlConstraints, getVar, addVar, domains, names) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
   // now we can access the ml in terms of bytes, jeuj
-  let state = cr_optimizeConstraints(mlConstraints, domains, addVar, getVar);
+  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names);
   if (state === MINIMIZER_SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
     return state;

@@ -80,10 +80,18 @@ function solverSolver(dsl) {
   }
 
   function addAlias(indexOld, indexNew) {
+    ASSERT(indexOld !== indexNew, 'cant make an alias for itself');
     aliases[indexOld] = indexNew;
   }
   function getAlias(index) {
-    return aliases[index];
+    let alias = aliases[index];
+    if (alias === index) throw new Error('alias is itself?', alias, index);
+    if (alias === undefined) {
+      console.log(JSON.stringify(domains));
+      console.log(JSON.stringify(aliases).replace(/"/g, ''));
+      throw new Error('alias for ' + index + ' does not exist... ');
+    }
+    return alias;
   }
 
   ASSERT_LOG2('Parsing DSL...');
@@ -99,16 +107,16 @@ function solverSolver(dsl) {
   console.time('- minimizing ml');
   let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias);
   console.timeEnd('- minimizing ml');
-
+//return
   console.time('ml->dsl:');
-  let newdsl = mlToDsl(mlConstraints, vars, domains);
+  let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias);
   console.timeEnd('ml->dsl:');
   console.log(newdsl);
 
   //return
 
   //let state = getState(domains);
-  if (state === MINIMIZER_SOLVED) return createSolution(vars, domains);
+  if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias);
   if (state === MINIMIZER_REJECTED) return false;
 
   if (input.varstrat === 'throw') THROW('Forcing a choice with strat=throw');
@@ -145,7 +153,7 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
     return state;
   }
   ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
-
+  return;
   THROW('fail for now');
   let mlPropagators = compilePropagators(mlConstraints);
   cr_stabilize(mlPropagators, domains);
@@ -181,16 +189,24 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
 //  ASSERT_LOG2('-->', returnValue);
 //  return returnValue;
 //}
-function createSolution(vars, domains) {
+function createSolution(vars, domains, getAlias) {
+  ASSERT_LOG2('- createSolution()');
   let solution = {};
   vars.forEach((name, index) => {
     let d = domains[index];
+    while (d === false) {
+      ASSERT_LOG2('   - createSolution;', index, 'is an aliased because the domain is', d);
+      index = getAlias(index);
+      ASSERT_LOG2('   -> alias:', index);
+      d = domains[index];
+    }
+
     let v = domain_getValue(domains[index]);
     if (v >= 0) d = v;
     else d = domain_toList(d);
     solution[name] = d;
   });
-  ASSERT_LOG2('createSolution results in:', solution);
+  ASSERT_LOG2(' -> createSolution results in:', solution);
   return solution;
 }
 

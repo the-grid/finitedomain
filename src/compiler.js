@@ -11,6 +11,8 @@ import {
 } from './helpers';
 import {
   domain__debug,
+  domain_getValue,
+  domain_toArr,
 } from './domain';
 import {
   ML_UNUSED,
@@ -918,7 +920,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     skipWhitespaces();
     let refs = parseVexpList();
     // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
-    ASSERT_LOG2('refS:', refs);
+    ASSERT_LOG2('parseSum refS:', refs);
     ml += encode8bit(ML_SUM) + encode16bit(refs.length) + refs.map(encodeName).join('') + encodeName(result);
     skipWhitespaces();
     is(')', 'sum closer');
@@ -1219,9 +1221,44 @@ function compilePropagators(ml) {
   //}
 }
 
-function mlToDsl(ml, names, domains) {
+function mlToDsl(ml, names, domains, getAlias) {
   let pc = 0;
   let dsl = '';
+
+  let arr = [];
+  let varsLeft = 0;
+  let aliases = 0;
+  let solved = 0;
+  domains.forEach((domain, index) => {
+    if (domain === false) {
+      ++aliases;
+      let alias = getAlias(index);
+      arr[index] = '# var index '+index+' ('+names[index]+') is aliased to index ' + alias + ' (' + names[alias] + ')';
+    } else {
+      ++varsLeft;
+      let domain = domains[index];
+      let v = domain_getValue(domain);
+      if (v >= 0) {
+        ++solved;
+        arr[index] = ': ' + names[index] + ' ' + v;
+      } else {
+        arr[index] = ': ' + names[index] + ' [' + domain_toArr(domain)+']';
+      }
+    }
+  });
+  domains.forEach((domain, index) => {
+    if (domain === false) {
+      let alias = getAlias(index);
+      if (arr[alias][arr[alias].length - 1] === ')') {
+        arr[alias] = arr[alias].slice(0, -1) + ' ' + names[index] + ')';
+      } else {
+        arr[alias] += ' alias(' + names[index] + ')';
+      }
+    }
+  });
+  dsl = '# Vars ('+varsLeft+' vars of which '+solved+' solved, additionally '+aliases+' aliases):\n' + arr.join('\n') + '\n\n';
+
+  dsl += '# Constraints:\n';
   cr_innerLoop();
   return dsl;
 
@@ -1241,6 +1278,9 @@ function mlToDsl(ml, names, domains) {
     let a = (lena === 1 ? cr_dec8() : cr_dec16());
     let b = (lenb === 1 ? cr_dec8() : cr_dec16());
 
+    if (lena === 2 && domains[a] === false) a = getAlias(a);
+    if (lenb === 2 && domains[b] === false) b = getAlias(b);
+
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
     s += '               # ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b;
     return s + '\n';
@@ -1251,12 +1291,15 @@ function mlToDsl(ml, names, domains) {
     let b = (lenb === 1 ? cr_dec8() : cr_dec16());
     let c = (lenc === 1 ? cr_dec8() : cr_dec16());
 
+    if (lena === 2 && domains[a] === false) a = getAlias(a);
+    if (lenb === 2 && domains[b] === false) b = getAlias(b);
+    if (lenc === 2 && domains[c] === false) c = getAlias(c);
+
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
     s = (lenc === 1 ? c : names[c]) + ' = ' + s;
-    s += '               # ' + (lenc === 1 ? c : domain__debug(domains[c])) + ' = ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + a + ' = ' + b + ' @ ' + c;
+    s += '               # ' + (lenc === 1 ? c : domain__debug(domains[c])) + ' = ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b;
     return s + '\n';
   }
-
 
   function cr_innerLoop() {
     while (pc < ml.length) {

@@ -2270,8 +2270,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexB = cr_dec16();
     let indexR = cr_dec16();
 
-    let B = getDomainOrRestartForAlias(indexB, 1);
-    let R = getDomainOrRestartForAlias(indexR, 3);
+    let B = getDomainOrRestartForAlias(indexB, 2);
+    let R = getDomainOrRestartForAlias(indexR, 4);
     if (B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, '->', vA, domain__debug(B), domain__debug(R));

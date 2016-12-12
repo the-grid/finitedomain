@@ -2589,13 +2589,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
     for (let i = 0; i < count; ++i) {
-      let indexA = cr_dec16pc(pc + i * 2);
-      let A = getDomainOrRestartForAlias(indexA, 1 + 2 + i * 2);
+      let indexOffsetDelta = 1 + 2 + i * 2;
+      let indexA = cr_dec16pc(offset + indexOffsetDelta);
+      let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       let oA = A;
       A = domain_removeLtUnsafe(A, minR - (sumHi - domain_max(A)));
       A = domain_removeGtUnsafe(A, maxR - (sumLo - domain_min(A)));
       if (A !== oA) {
+        ASSERT_LOG2('   - updated', indexA, 'from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
         change = true;
         domains[indexA] = A;

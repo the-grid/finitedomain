@@ -1746,6 +1746,35 @@ describe('src/runner.spec', function() {
 
         expect(solution).to.eql({A: 10, R: 10, X: 10});
       });
+
+      it('should clear args if result is solved to zero immediately', function() {
+        let solution = solverSolver(`
+          : A 0
+          : B [0 10]
+          : C [0 80]
+          : D [0 11]
+          : E 0
+          : R 0
+          R = sum(A B C D E)
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0}); // TODO: eliminate that temp var from showing up
+      });
+
+      it('should clear args if result is solved to zero transitive', function() {
+        let solution = solverSolver(`
+          : A 0
+          : B [0 10]
+          : C [0 80]
+          : D [0 11]
+          : E 0
+          : X 0
+          X = sum(A B C D E)
+          B == X
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+      });
     });
 
     describe('product', function() {

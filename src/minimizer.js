@@ -2533,10 +2533,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   function cr_sum(ml) {
     let offset = pc - 1;
     let sumArgCount = cr_dec16();
-    let varsOffset = offset + SIZEOF_COUNT;
+    const SIZEOF_HEAD = SIZEOF_COUNT;
+    let varsOffset = offset + SIZEOF_HEAD;
 
     let indexR = cr_dec16pc(varsOffset + sumArgCount * 2);
-    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + sumArgCount * 2);
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_HEAD + sumArgCount * 2);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_sum', sumArgCount, 'x');
@@ -2556,7 +2557,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let sumLo = 0;
     let sumHi = 0;
     for (let i = sumArgCount - 1; i >= 0; --i) {
-      let indexOffsetDelta = SIZEOF_COUNT + i * 2;
+      let indexOffsetDelta = SIZEOF_HEAD + i * 2;
       let indexA = cr_dec16pc(offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
@@ -2595,7 +2596,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
     for (let i = 0; i < sumArgCount; ++i) {
-      let indexOffsetDelta = SIZEOF_COUNT + i * 2;
+      let indexOffsetDelta = SIZEOF_HEAD + i * 2;
       let indexA = cr_dec16pc(offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2644,7 +2645,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       cr_enc16(offset + 3, newIndexB);
       cr_enc16(offset + 5, indexR);
 
-      cr_skip(offset + 7, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_VVV);
+      cr_skip(offset + 7, (SIZEOF_HEAD + sumArgCount * 2 + 2) - SIZEOF_VVV);
 
       ASSERT_LOG2(' - Changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
       ASSERT_LOG2(' - ml now:', ml);
@@ -2655,7 +2656,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // artifact; a sum with exactly one var is just an eq to R
       ASSERT(!constantSum && var1 >= 0 && var2 < 0, 'should have found exactly one var', 'constants:', constants, 'constantSum:', constantSum, 'var1:', var1, 'var2:', var2);
 
-      let newIndexA = cr_dec16pc(offset + SIZEOF_COUNT + var1 * 2);
+      let newIndexA = cr_dec16pc(offset + SIZEOF_HEAD + var1 * 2);
 
       // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
       if (minR === maxR) {
@@ -2665,7 +2666,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ASSERT(minR <= 255, 'support 16bit if this fails');
         cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
 
-        cr_skip(offset + 5, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_V8);
+        cr_skip(offset + 5, (SIZEOF_HEAD + sumArgCount * 2 + 2) - SIZEOF_V8);
       } else {
         ASSERT_LOG2(' - compiling ML_VV_EQ because R is not yet solved', minR, maxR);
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
@@ -2674,7 +2675,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         cr_enc16(offset + 1, newIndexA);
         cr_enc16(offset + 3, indexR);
 
-        cr_skip(offset + 5, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_VV);
+        cr_skip(offset + 5, (SIZEOF_HEAD + sumArgCount * 2 + 2) - SIZEOF_VV);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
@@ -2693,7 +2694,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         domains[indexR] = R;
       }
 
-      let delta = SIZEOF_COUNT + sumArgCount * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
+      let delta = SIZEOF_HEAD + sumArgCount * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
       cr_eliminate(offset, delta);
       ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
@@ -2701,7 +2702,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT(sumArgCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', sumArgCount, 'constants', constants, 'count-constants', sumArgCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + SIZEOF_COUNT + sumArgCount * 2 + 2; // skip the 16bit indexes manually
+      pc = offset + SIZEOF_HEAD + sumArgCount * 2 + 2; // skip the 16bit indexes manually
     }
   }
 

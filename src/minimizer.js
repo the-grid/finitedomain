@@ -122,13 +122,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   let pc = 0;
   let loops = 0;
   while (change) {
-    console.log('- looping', ++loops);
+    ++loops;
+    //console.log('- looping', loops);
+    console.time('-> loop ' + loops);
     ASSERT_LOG2('cr outer loop');
     change = false;
     pc = 0;
     cr_innerLoop();
     ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
+    console.timeEnd('-> loop ' + loops);
     if (emptyDomain) return MINIMIZER_REJECTED;
     if (onlyJumps) return MINIMIZER_SOLVED;
   }
@@ -2529,15 +2532,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
   function cr_sum(ml) {
     let offset = pc - 1;
-    let count = cr_dec16();
+    let sumArgCount = cr_dec16();
 
-    let indexR = cr_dec16pc(offset + 1 + 2 + count * 2);
-    let R = getDomainOrRestartForAlias(indexR, 1 + 2 + count * 2);
+    let indexR = cr_dec16pc(offset + 1 + 2 + sumArgCount * 2);
+    let R = getDomainOrRestartForAlias(indexR, 1 + 2 + sumArgCount * 2);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_sum', count, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2(' = cr_sum', sumArgCount, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i) => cr_dec16pc(pc + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2(' - start loop, backwards');
 
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
     // to prevent generating an array we'll decode every var during the loop...
@@ -2551,9 +2555,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let sumLo = 0;
     let sumHi = 0;
-    for (let i = count - 1; i >= 0; --i) {
+    for (let i = sumArgCount - 1; i >= 0; --i) {
       let indexA = cr_dec16pc(pc + i * 2);
       let A = getDomainOrRestartForAlias(indexA, 1 + 2 + i * 2);
+      ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
@@ -2588,7 +2593,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let constantSum = 0;
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
-    for (let i = 0; i < count; ++i) {
+    for (let i = 0; i < sumArgCount; ++i) {
       let indexOffsetDelta = 1 + 2 + i * 2;
       let indexA = cr_dec16pc(offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
@@ -2596,6 +2601,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let oA = A;
       A = domain_removeLtUnsafe(A, minR - (sumHi - domain_max(A)));
       A = domain_removeGtUnsafe(A, maxR - (sumLo - domain_min(A)));
+      ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'before:', domain__debug(oA), 'after:', domain__debug(A));
       if (A !== oA) {
         ASSERT_LOG2('   - updated', indexA, 'from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
@@ -2613,11 +2619,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     }
 
-    ASSERT_LOG2(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants sum to', constantSum);
-    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
+    ASSERT_LOG2(' -> There are now', constants, 'constants and', sumArgCount - constants, 'non-constants left. Constants sum to', constantSum);
+    ASSERT_LOG2(constants && !constantSum && (sumArgCount-constants) <= 2 ? ' - Dropping the zero-valued constants and rewriting the remaining args' : '');
+    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(sumArgCount)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
-    if (count - constants === (constants ? 1 : 2)) {
-      ASSERT(constants ? var2 === -1 : var2 >= 0, 'if there are constants there should not be a second non-constant here otherwise expecting a second var');
+    if (sumArgCount - constants === (constantSum ? 1 : 2)) {
+      ASSERT_LOG2(' - Two concrete vars/values left to sum, rewriting to a plus');
+      ASSERT_LOG2(' - Var 1 is the', var1, 'th arg and var 2 is', (constantSum ? 'the constant ' +constantSum : 'the '+var2+'th arg'));
+      ASSERT(constantSum ? var2 === -1 : var2 >= 0, 'if there are non-zero constants there should not be a second non-constant here otherwise expecting a second var');
       // there are either two non-constants and no constants,
       // or one non-constant and some constants left
       // consolidate the constants into one and recompile the
@@ -2628,58 +2637,50 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
       let newIndexB = constants ? getVar(addVar(undefined, constantSum, undefined, true)) : cr_dec16pc(offset + 3 + var2 * 2);
 
-      ASSERT(count >= 2, 'need at least two vars to have enough space for a plus');
+      ASSERT(sumArgCount >= 2, 'need at least two vars to have enough space for a plus');
       cr_enc8(offset, ML_PLUS);
       cr_enc16(offset + 1, newIndexA);
       cr_enc16(offset + 3, newIndexB);
       cr_enc16(offset + 5, indexR);
 
-      // this distinct has at least two var args. a distinct of 2+ takes 1+2+n*2
-      // bytes. a plus takes 1+2+2+2 bytes. so this morph should be fine.
-      // if the distinct had more than two vars, skip the rest.
-      if (count === 2) {
-        // in this case you only need to eliminate space for the 16bit count
-        // that's 2 bytes space, a jmp would take 3, so compile a noop instead
-        ASSERT_LOG2(' - len=2 so skip 2 for the count');
-        cr_skip(offset + 1 + 2 + 2 + 2, 2);
-      } else {
-        // skip count-2 vars. jmp will ignore itself so -3
-        ASSERT_LOG2(' - and a jump over the count and', count - 2, 'vars');
-        cr_skip(offset + 1 + 2 + 2 + 2, 2 + (count - 2) * 2);
-      }
+      cr_skip(offset + 7, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_VVV);
 
-      ASSERT_LOG2(' - changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
+      ASSERT_LOG2(' - Changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
       ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
-    } else if (!constants && count === 1) {
+    } else if (!constantSum && (sumArgCount - constants) === 1) { // ignore the constants that are zero!
+      ASSERT_LOG2(' - One concrete vars/values left to sum (sum arg index',var1,'), rewriting to an eq');
       // artifact; a sum with exactly one var is just an eq to R
-      ASSERT(!constants && var1 >= 0 && var2 < 0, 'should have found exactly one var');
+      ASSERT(!constantSum && var1 >= 0 && var2 < 0, 'should have found exactly one var', 'constants:', constants, 'constantSum:', constantSum, 'var1:', var1, 'var2:', var2);
 
-      let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
+      let newIndexA = cr_dec16pc(offset + SIZEOF_COUNT + var1 * 2);
 
       // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
       if (minR === maxR) {
+        ASSERT_LOG2(' - compiling ML_V8_EQ because R solved to', minR);
         cr_enc8(offset, ML_V8_EQ);
         cr_enc16(offset + 1, newIndexA);
+        ASSERT(minR <= 255, 'support 16bit if this fails');
         cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
 
-        cr_skip(offset + 1 + 2 + 1, 3);
+        cr_skip(offset + 5, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_V8);
       } else {
+        ASSERT_LOG2(' - compiling ML_VV_EQ because R is not yet solved', minR, maxR);
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
         // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
         cr_enc8(offset, ML_VV_EQ);
         cr_enc16(offset + 1, newIndexA);
         cr_enc16(offset + 3, indexR);
 
-        cr_skip(offset + 1 + 2 + 2, 2);
+        cr_skip(offset + 5, (SIZEOF_COUNT + sumArgCount * 2 + 2) - SIZEOF_VV);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
-    } else if (count - constants === 0) {
+    } else if (sumArgCount - constants === 0) {
       // eliminate. skip (count+1)*2+2 bytes
       ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
@@ -2691,15 +2692,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         domains[indexR] = R;
       }
 
-      let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
+      let delta = SIZEOF_COUNT + sumArgCount * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
       cr_eliminate(offset, delta);
       ASSERT_LOG2(' - ml now:', ml);
       pc = offset + delta;
     } else {
-      ASSERT(count - constants > 1, 'There no other valid options here', count, constants, count - constants);
+      ASSERT(sumArgCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', sumArgCount, 'constants', constants, 'count-constants', sumArgCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + 1 + 2 + count * 2 + 2; // skip the 16bit indexes manually
+      pc = offset + SIZEOF_COUNT + sumArgCount * 2 + 2; // skip the 16bit indexes manually
     }
   }
 

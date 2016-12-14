@@ -1562,15 +1562,22 @@ function mlToDsl(ml, names, domains, getAlias) {
 
         case ML_SUM:
           ASSERT_LOG2(' ! sum');
+          let indexes = '';
           let sums = '';
           let bug = '';
           for (let i = 0, count = cr_dec16(); i < count; ++i) {
             let index = cr_dec16();
+            let domain = domains[index];
+            if (domain === false) {
+              index = getAlias(index);
+              domain = domains[index];
+            }
+            indexes += index + ' ';
             sums += names[index] + ' ';
-            bug += domain__debug(domains[index]) + ' ';
+            bug += domain__debug(domain) + ' ';
           }
           let sumIndex = cr_dec16();
-          dsl += names[sumIndex] + ' = sum(' + sums + ') # ' + domain__debug(domains[sumIndex]) + ' = sum(' + bug + ')\n';
+          dsl += names[sumIndex] + ' = sum(' + sums + ') # ' + domain__debug(domains[sumIndex]) + ' = sum(' + bug + ') # indexes: '+indexes+'\n';
           break;
 
         case ML_PRODUCT:

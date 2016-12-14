@@ -2533,14 +2533,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   function cr_sum(ml) {
     let offset = pc - 1;
     let sumArgCount = cr_dec16();
+    let varsOffset = offset + SIZEOF_COUNT;
 
-    let indexR = cr_dec16pc(offset + 1 + 2 + sumArgCount * 2);
-    let R = getDomainOrRestartForAlias(indexR, 1 + 2 + sumArgCount * 2);
+    let indexR = cr_dec16pc(varsOffset + sumArgCount * 2);
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + sumArgCount * 2);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_sum', sumArgCount, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i, x) => (x=cr_dec16pc(varsOffset + i * 2))+'=>'+domain__debug(domains[x])).join(' '));
     ASSERT_LOG2(' - start loop, backwards');
 
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
@@ -2556,8 +2556,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let sumLo = 0;
     let sumHi = 0;
     for (let i = sumArgCount - 1; i >= 0; --i) {
-      let indexA = cr_dec16pc(pc + i * 2);
-      let A = getDomainOrRestartForAlias(indexA, 1 + 2 + i * 2);
+      let indexOffsetDelta = SIZEOF_COUNT + i * 2;
+      let indexA = cr_dec16pc(offset + indexOffsetDelta);
+      let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       if (!A) return emptyDomain = true;
@@ -2594,7 +2595,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
     for (let i = 0; i < sumArgCount; ++i) {
-      let indexOffsetDelta = 1 + 2 + i * 2;
+      let indexOffsetDelta = SIZEOF_COUNT + i * 2;
       let indexA = cr_dec16pc(offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op

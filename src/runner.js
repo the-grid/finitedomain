@@ -153,6 +153,7 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
     return state;
   }
   ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
+  console.error('pre-optimization finished, not yet solved');
   return;
   THROW('fail for now');
   let mlPropagators = compilePropagators(mlConstraints);

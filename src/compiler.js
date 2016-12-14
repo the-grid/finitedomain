@@ -58,7 +58,7 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
-  ML_SUM,
+  ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
@@ -921,7 +921,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     let refs = parseVexpList();
     // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
     ASSERT_LOG2('parseSum refS:', refs);
-    ml += encode8bit(ML_SUM) + encode16bit(refs.length) + refs.map(encodeName).join('') + encodeName(result);
+    ml += encode8bit(ML_8V_SUM) + encode16bit(refs.length) + encode8bit(0) + refs.map(encodeName).join('') + encodeName(result);
     skipWhitespaces();
     is(')', 'sum closer');
     return result;
@@ -1169,7 +1169,7 @@ function compilePropagators(ml) {
       case ML_VVV_ISNEQ:
       case ML_VVV_ISLT:
       case ML_VVV_ISLTE:
-      case ML_SUM:
+      case ML_8V_SUM:
       case ML_PRODUCT:
       case ML_DISTINCT:
       case ML_PLUS:
@@ -1307,7 +1307,7 @@ function mlToDsl(ml, names, domains, getAlias) {
       let op = ml[pc++];
       switch (op) {
         case ML_UNUSED:
-          return THROW(' ! problem @', pcStart);
+          return THROW(' ! compiler problem @', pcStart);
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
@@ -1560,12 +1560,14 @@ function mlToDsl(ml, names, domains, getAlias) {
           dsl += cr_decAbc(1, 1, 1, '<=?');
           break;
 
-        case ML_SUM:
+        case ML_8V_SUM:
           ASSERT_LOG2(' ! sum');
           let indexes = '';
           let sums = '';
           let bug = '';
-          for (let i = 0, count = cr_dec16(); i < count; ++i) {
+          let sumCount = cr_dec16();
+          let sumConstant = cr_dec8();
+          for (let i = 0; i < sumCount; ++i) {
             let index = cr_dec16();
             let domain = domains[index];
             if (domain === false) {
@@ -1577,7 +1579,7 @@ function mlToDsl(ml, names, domains, getAlias) {
             bug += domain__debug(domain) + ' ';
           }
           let sumIndex = cr_dec16();
-          dsl += names[sumIndex] + ' = sum(' + sums + ') # ' + domain__debug(domains[sumIndex]) + ' = sum(' + bug + ') # indexes: '+indexes+'\n';
+          dsl += names[sumIndex] + ' = sum(' + sums + ') # constant='+sumConstant+', ' + domain__debug(domains[sumIndex]) + ' = sum('+sumConstant+', ' + bug + ') # indexes: '+indexes+'\n';
           break;
 
         case ML_PRODUCT:

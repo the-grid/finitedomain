@@ -67,7 +67,8 @@ const ML_V88_ISLTE = ml_opcodeCounter++;
 const ML_8V8_ISLTE = ml_opcodeCounter++;
 const ML_888_ISLTE = ml_opcodeCounter++;
 
-const ML_SUM = ml_opcodeCounter++;
+const ML_8V_SUM = ml_opcodeCounter++; // constant: 8bit literal, result: var
+
 const ML_PRODUCT = ml_opcodeCounter++;
 const ML_DISTINCT = ml_opcodeCounter++;
 const ML_PLUS = ml_opcodeCounter++;
@@ -96,6 +97,7 @@ const SIZEOF_V88 = 1 + 2 + 1 + 1;
 const SIZEOF_8V8 = 1 + 1 + 2 + 1;
 const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
+const SIZEOF_C8_COUNT = 1 + 2 + 1; // + 2*count
 
 function ml_sizeof(opcode, ml, offset) {
   switch (opcode) {
@@ -174,7 +176,10 @@ function ml_sizeof(opcode, ml, offset) {
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2;
       return -1;
 
-    case ML_SUM:
+    case ML_8V_SUM:
+      if (ml && offset >= 0) return SIZEOF_C8_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
+      return -1;
+
     case ML_PRODUCT:
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
       return -1;
@@ -346,9 +351,20 @@ function ml__debug(ml, offset, domains, names) {
       if (!name) name = 'islte';
       return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml_index(offset + 2) + ', ' + ml.readUInt8(offset + 4) + ')';
 
-    case ML_SUM:
+    case ML_8V_SUM: {
       name = 'sum';
-      /* fall-through */
+      let vars = '';
+      let varcount = ml.readUInt16BE(offset + 1);
+      let sumconstant = ml.readUInt8(offset + 3);
+      for (let i = 0; i < varcount; ++i) {
+        vars += ml.readUInt16BE(offset + SIZEOF_C8_COUNT + i * 2);
+      }
+      vars = name + '(' + sumconstant + ', ' + vars + ')';
+      vars = ml.readUInt16BE(offset + SIZEOF_C8_COUNT + varcount * 2) + ' = ' + vars;
+      return vars;
+
+    }
+
     case ML_PRODUCT:
       if (!name) name = 'product';
       /* fall-through */
@@ -357,10 +373,10 @@ function ml__debug(ml, offset, domains, names) {
       let vars = '';
       let varcount = ml.readUInt16BE(offset + 1);
       for (let i = 0; i < varcount; ++i) {
-        vars += ml.readUInt16BE(offset + 3 + i * 2);
+        vars += ml.readUInt16BE(offset + SIZEOF_COUNT + i * 2);
       }
       vars = name + '(' + vars + ')';
-      if (name !== 'distinct') vars = ml.readUInt16BE(offset + 3 + varcount * 2) + ' = ' + vars;
+      if (name !== 'distinct') vars = ml.readUInt16BE(offset + SIZEOF_COUNT + varcount * 2) + ' = ' + vars;
       return vars;
 
     case ML_PLUS:
@@ -443,7 +459,7 @@ export {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
-  ML_SUM,
+  ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
@@ -470,6 +486,7 @@ export {
   SIZEOF_8V8,
   SIZEOF_888,
   SIZEOF_COUNT,
+  SIZEOF_C8_COUNT,
 
   ml__debug,
   ml_sizeof,

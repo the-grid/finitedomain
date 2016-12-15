@@ -102,6 +102,7 @@ import {
   domain_removeLte,
   domain_removeLtUnsafe,
   domain_removeValue,
+  domain_size,
 } from './domain';
 
 // BODY_START
@@ -1136,30 +1137,78 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
-
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
       cr_eliminate(offset, SIZEOF_VVV);
-      return;
-    } else if (domain_getValue(A) === 0) {
-      ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
-      // rewrite to B == R
-      cr_enc8(offset, ML_VV_EQ);
-      cr_enc16(offset+1, indexR);
-      //cr_enc16(offset+3, indexB); // already the case
-      cr_skip(offset+5, 2);
-      pc = offset; // revisit
-    } else if (domain_getValue(B) === 0) {
-      ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
-      // rewrite to A == R
-      cr_enc8(offset, ML_VV_EQ);
-      //cr_enc16(offset+1, indexA); // already the case
-      cr_enc16(offset+3, indexR);
-      cr_skip(offset+5, 2);
-      pc = offset; // revisit
     } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
+      let vA = domain_getValue(A);
+      if (vA >= 0) {
+        ASSERT(!domain_isSolved(B) && !domain_isSolved(R), 'case checked earlier');
+        if (vA === 0) {
+          ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
+          // rewrite to B == R
+          cr_enc8(offset, ML_VV_EQ);
+          cr_enc16(offset + 1, indexR);
+          //cr_enc16(offset+3, indexB); // already the case
+          cr_skip(offset + 5, 2);
+          pc = offset; // revisit
+        } else if (domain_max(B) <= 1 && domain_size(R) === 2) {
+          ASSERT(domain_max(R) > 1, 'if B <= 1 then R must be >1 because R=B+A and A is non-zero and B is not solved (both checked above) so R must be at least [1,2]');
+          // B = R ==? A or B = R !=? A, that depends on max(R)==A
+          ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(R) === vA ? 'B = R ==? A' : 'B = R !=? A'), '->', domain__debug(B), '=', domain__debug(R), (domain_max(R) === vA ?'==?':'!=?'), vA);
+          cr_enc8(offset, domain_max(R) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
+          cr_enc16(offset+1, indexR);
+          cr_enc8(offset+3, vA);
+          cr_enc16(offset+4, indexB);
+          cr_skip(offset+6, 1);
+          pc = offset; // revisit (dont think we need to...)
+        } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
+          // A = R ==? B or A = R !=? B, that depends on max(B)==A
+          ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(B) === vA ? 'R = B ==? A' : 'R = B !=? A'), '->', domain__debug(R), '=', domain__debug(B), (domain_max(B) === vA ?'==?':'!=?'), vA);
+          cr_enc8(offset, domain_max(B) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
+          cr_enc16(offset+1, indexB);
+          cr_enc8(offset+3, vA);
+          cr_enc16(offset+4, indexR);
+          cr_skip(offset+6, 1);
+          pc = offset; // revisit (dont think we need to...)
+        }
+      } else {
+        let vB = domain_getValue(B);
+        if (vB >= 0) {
+          ASSERT(!domain_isSolved(A) && !domain_isSolved(R), 'case checked earlier');
+          if (vB === 0) {
+            ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
+            // rewrite to A == R
+            cr_enc8(offset, ML_VV_EQ);
+            //cr_enc16(offset+1, indexA); // already the case
+            cr_enc16(offset+3, indexR);
+            cr_skip(offset+5, SIZEOF_VVV-SIZEOF_VV);
+            pc = offset; // revisit
+          } else if (domain_max(A) <= 1 && domain_size(R) === 2) {
+            ASSERT(domain_max(R) > 1, 'if A <= 1 then R must be >1 because R=A+B and B is non-zero and A is not solved (both checked above) so R must be at least [1,2]');
+            // A = R ==? B or A = R !=? B, that depends on max(R)==B
+            ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(R) === vB ? 'A = R ==? B' : 'A = R !=? B'), '->', domain__debug(A), '=', domain__debug(R), (domain_max(R) === vB ?'==?':'!=?'), vB);
+            cr_enc8(offset, domain_max(R) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
+            cr_enc16(offset + 1, indexR);
+            cr_enc8(offset + 3, vB);
+            cr_enc16(offset + 4, indexA);
+            cr_skip(offset + 6, 1);
+            pc = offset; // revisit (dont think we need to...)
+          } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
+          // A = R ==? B or A = R !=? B, that depends on max(A)==B
+            ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(A) === vB ? 'R = A ==? B' : 'R = A !=? B'), '->', domain__debug(R), '=', domain__debug(A), (domain_max(A) === vB ?'==?':'!=?'), vB);
+            cr_enc8(offset, domain_max(A) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
+            cr_enc16(offset + 1, indexA);
+            cr_enc8(offset + 3, vB);
+            cr_enc16(offset + 4, indexR);
+            cr_skip(offset + 6, 1);
+            pc = offset; // revisit (dont think we need to...)
+          }
+        } else {
+          ASSERT_LOG2(' - not only jumps...');
+          onlyJumps = false;
+        }
+      }
     }
   }
 
@@ -1748,7 +1797,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' = cr_v8v_isNeq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A || !R) return emptyDomain = true;
 
     let vA = domain_getValue(A);

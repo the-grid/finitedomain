@@ -1645,6 +1645,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple sum with 1 var', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           R = sum(A)
         `);
@@ -1654,6 +1655,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple sum with 2 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B 10
           R = sum(A B)
@@ -1664,6 +1666,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple sum with 3 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B 10
           : C 7
@@ -1675,6 +1678,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple sum with 4 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B 10
           : C 7
@@ -1687,6 +1691,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved but R is', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B [5 10]
           : C 7
@@ -1699,6 +1704,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 2 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B [5 10]
           : X = 10
@@ -1711,6 +1717,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 3 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B [5 10]
           : C 7
@@ -1724,6 +1731,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 4 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 1
           : B [5 10]
           : C 7
@@ -1738,6 +1746,7 @@ describe('src/runner.spec', function() {
 
       it('should accept one var', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A [0 10]
           : X 10
           R = sum(A)
@@ -1749,6 +1758,7 @@ describe('src/runner.spec', function() {
 
       it('should clear args if result is solved to zero immediately', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 0
           : B [0 10]
           : C [0 80]
@@ -1763,6 +1773,7 @@ describe('src/runner.spec', function() {
 
       it('should clear args if result is solved to zero transitive', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 0
           : B [0 10]
           : C [0 80]
@@ -1775,12 +1786,62 @@ describe('src/runner.spec', function() {
 
         expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
       });
+
+      it('should rewrite special case to lt', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B  1
+          : R [1 2]
+          R = sum(A B) # [1 2] = [0 1] + 1 -> A < R
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+      });
+
+      it('should eliminate the zeroes that occur twice', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B  0
+          : R [1 2]
+          R = sum(A B B)
+        `);
+
+        expect(solution).to.eql({A: 1, B: 0, R: 1}); // TODO: eliminate that temp var from showing up
+      });
+
+
+      it('should reduce to plus and ignore the zeroes', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B  0
+          : C  1
+          : R [1 2]
+          R = sum(A B C B)
+        `);
+
+        expect(solution).to.eql({A: 1, B: 0, R: 1}); // TODO: eliminate that temp var from showing up
+      });
+
+      it('should accept constants in sum', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : R [1 2]
+          R = sum(A 1)
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+      });
     });
 
     describe('product', function() {
 
       it('should solve a simple product with 1 var', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 28
           R = product(A)
         `);
@@ -1790,6 +1851,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple product with a zero', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 0
           R = product(A)
         `);
@@ -1799,6 +1861,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple product with 2 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B 10
           R = product(A B)
@@ -1809,6 +1872,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple product with a zero and non-zero', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 14
           : B 0
           R = product(A B)
@@ -1819,6 +1883,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple product with 3 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B 10
           : C 7
@@ -1830,6 +1895,7 @@ describe('src/runner.spec', function() {
 
       it('should solve a simple product with 4 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B 10
           : C 7
@@ -1842,6 +1908,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved but R is', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B [5 10]
           : C 7
@@ -1854,6 +1921,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 2 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B [5 10]
           : X = 9
@@ -1866,6 +1934,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 3 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B [5 10]
           : C 7
@@ -1879,6 +1948,7 @@ describe('src/runner.spec', function() {
 
       it('should solve when B is unsolved and forced by other constraint with 4 vars', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 2
           : B [5 10]
           : C 7
@@ -1893,6 +1963,7 @@ describe('src/runner.spec', function() {
 
       it('should accept one var', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A [0 10]
           : X 10
           R = product(A)
@@ -1910,6 +1981,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A == 21
         `);
@@ -1919,6 +1991,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A == 22
         `);
@@ -1928,6 +2001,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 == 18
         `);
 
@@ -1936,6 +2010,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 == 19
         `);
 
@@ -1949,6 +2024,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A != 22
         `);
@@ -1958,6 +2034,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A != 21
         `);
@@ -1967,6 +2044,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 != 19
         `);
 
@@ -1975,6 +2053,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 != 18
         `);
 
@@ -1986,6 +2065,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A < 22
         `);
@@ -1995,6 +2075,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A < 21
         `);
@@ -2004,6 +2085,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 < 19
         `);
 
@@ -2012,6 +2094,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 < 18
         `);
 
@@ -2023,6 +2106,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A <= 22
         `);
@@ -2032,6 +2116,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           A <= 21
         `);
@@ -2041,6 +2126,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 <= 19
         `);
 
@@ -2049,6 +2135,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           19 <= 18
         `);
 
@@ -2060,6 +2147,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           A > 21
         `);
@@ -2069,6 +2157,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A > 21
         `);
@@ -2078,6 +2167,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           19 > 18
         `);
 
@@ -2086,6 +2176,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 > 18
         `);
 
@@ -2097,6 +2188,7 @@ describe('src/runner.spec', function() {
 
       it('v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           A >= 21
         `);
@@ -2106,6 +2198,7 @@ describe('src/runner.spec', function() {
 
       it('v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 21
           A >= 22
         `);
@@ -2115,6 +2208,7 @@ describe('src/runner.spec', function() {
 
       it('88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           19 >= 19
         `);
 
@@ -2123,6 +2217,7 @@ describe('src/runner.spec', function() {
 
       it('88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           18 >= 19
         `);
 
@@ -2134,6 +2229,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 1
           R = B ==? 22
@@ -2144,6 +2240,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 21
           : R 1
           R = B ==? 22
@@ -2154,6 +2251,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 1
           R = A ==? 22
@@ -2164,6 +2262,7 @@ describe('src/runner.spec', function() {
 
       it('v8v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 21
           : R 1
           R = B ==? 22
@@ -2174,6 +2273,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 22
           1 = A ==? A
@@ -2184,6 +2284,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 21
           1 = A ==? B
@@ -2194,6 +2295,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 22 ==? 22
         `);
@@ -2203,6 +2305,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 21 ==? 22
         `);
@@ -2212,6 +2315,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           1 = A ==? 22
         `);
@@ -2221,6 +2325,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           1 = A ==? 21
         `);
@@ -2230,6 +2335,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           1 = A ==? 22
         `);
@@ -2239,6 +2345,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           1 = A ==? 21
         `);
@@ -2248,6 +2355,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 22 ==? 22
         `);
 
@@ -2256,6 +2364,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 22 ==? 21
         `);
 
@@ -2267,6 +2376,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 0
           R = B !=? 22
@@ -2277,6 +2387,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 21
           : R 0
           R = B !=? 22
@@ -2287,6 +2398,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 0
           R = A !=? 22
@@ -2296,7 +2408,8 @@ describe('src/runner.spec', function() {
       });
 
       it('v8v reject', function() {
-        let solution = solverSolver(`
+          let solution = solverSolver(`
+          @custom var-strat throw
           : B 21
           : R 0
           R = B !=? 22
@@ -2307,6 +2420,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 22
           0 = A !=? A
@@ -2317,6 +2431,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 21
           0 = A !=? B
@@ -2327,6 +2442,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 22 !=? 22
         `);
@@ -2336,6 +2452,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 21 !=? 22
         `);
@@ -2345,6 +2462,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           0 = A !=? 22
         `);
@@ -2354,6 +2472,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           0 = A !=? 21
         `);
@@ -2363,6 +2482,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           0 = A !=? 22
         `);
@@ -2372,6 +2492,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           0 = A !=? 21
         `);
@@ -2381,6 +2502,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 22 !=? 22
         `);
 
@@ -2389,6 +2511,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 22 !=? 21
         `);
 
@@ -2400,6 +2523,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 1
           R = 15 <? B
@@ -2410,6 +2534,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 0
           R = 15 <? B
@@ -2420,6 +2545,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 1
           R = A <? 30
@@ -2430,6 +2556,7 @@ describe('src/runner.spec', function() {
 
       it('v8v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 0
           R = A <? 30
@@ -2440,6 +2567,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 100
           1 = A <? B
@@ -2450,6 +2578,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 100
           0 = A <? B
@@ -2460,6 +2589,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 50 <? 100
         `);
@@ -2469,6 +2599,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 50 <? 100
         `);
@@ -2478,6 +2609,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 15
           1 = A <? 100
         `);
@@ -2487,6 +2619,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 15
           0 = A <? 100
         `);
@@ -2496,6 +2629,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 100
           1 = 30 <? B
         `);
@@ -2505,6 +2639,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 20
           1 = 30 <? B
         `);
@@ -2514,6 +2649,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 30 <? 300
         `);
 
@@ -2522,6 +2658,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 30 <? 150
         `);
 
@@ -2533,6 +2670,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 1
           R = 15 <=? B
@@ -2543,6 +2681,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 22
           : R 0
           R = 15 <=? B
@@ -2553,6 +2692,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 1
           R = A <=? 30
@@ -2563,6 +2703,7 @@ describe('src/runner.spec', function() {
 
       it('v8v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : R 0
           R = A <=? 30
@@ -2573,6 +2714,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 100
           1 = A <=? B
@@ -2583,6 +2725,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 22
           : B 100
           0 = A <=? B
@@ -2593,6 +2736,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 50 <=? 100
         `);
@@ -2602,6 +2746,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 50 <=? 100
         `);
@@ -2611,6 +2756,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 15
           1 = A <=? 100
         `);
@@ -2620,6 +2766,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 15
           0 = A <=? 100
         `);
@@ -2629,6 +2776,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 100
           1 = 30 <=? B
         `);
@@ -2638,6 +2786,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 20
           1 = 30 <=? B
         `);
@@ -2647,6 +2796,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 30 <=? 300
         `);
 
@@ -2655,6 +2805,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 30 <=? 150
         `);
 
@@ -2666,6 +2817,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 2
           : R 1
           R = 15 >? B
@@ -2676,6 +2828,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 2
           : R 0
           R = 15 >? B
@@ -2686,6 +2839,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 52
           : R 1
           R = A >? 30
@@ -2696,6 +2850,7 @@ describe('src/runner.spec', function() {
 
       it('v8v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : R 0
           R = A >? 30
@@ -2706,6 +2861,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : B 100
           1 = A >? B
@@ -2716,6 +2872,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : B 100
           0 = A >? B
@@ -2726,6 +2883,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 150 >? 100
         `);
@@ -2735,6 +2893,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 150 >? 100
         `);
@@ -2744,6 +2903,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 115
           1 = A >? 100
         `);
@@ -2753,6 +2913,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 115
           0 = A >? 100
         `);
@@ -2762,6 +2923,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 100
           1 = 130 >? B
         `);
@@ -2771,6 +2933,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 120
           1 = 30 >? B
         `);
@@ -2780,6 +2943,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 130 >? 30
         `);
 
@@ -2788,6 +2952,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 130 >? 50
         `);
 
@@ -2799,6 +2964,7 @@ describe('src/runner.spec', function() {
 
       it('8vv pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 2
           : R 1
           R = 15 >=? B
@@ -2809,6 +2975,7 @@ describe('src/runner.spec', function() {
 
       it('8vv reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 2
           : R 0
           R = 15 >=? B
@@ -2819,6 +2986,7 @@ describe('src/runner.spec', function() {
 
       it('v8v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 52
           : R 1
           R = A >=? 30
@@ -2829,6 +2997,7 @@ describe('src/runner.spec', function() {
 
       it('v8v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : R 0
           R = A >=? 30
@@ -2839,6 +3008,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : B 100
           1 = A >=? B
@@ -2849,6 +3019,7 @@ describe('src/runner.spec', function() {
 
       it('vv8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 122
           : B 100
           0 = A >=? B
@@ -2859,6 +3030,7 @@ describe('src/runner.spec', function() {
 
       it('88v pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 1
           R = 150 >=? 100
         `);
@@ -2868,6 +3040,7 @@ describe('src/runner.spec', function() {
 
       it('88v reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : R 0
           R = 150 >=? 100
         `);
@@ -2877,6 +3050,7 @@ describe('src/runner.spec', function() {
 
       it('v88 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 115
           1 = A >=? 100
         `);
@@ -2886,6 +3060,7 @@ describe('src/runner.spec', function() {
 
       it('v88 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : A 115
           0 = A >=? 100
         `);
@@ -2895,6 +3070,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 100
           1 = 130 >=? B
         `);
@@ -2904,6 +3080,7 @@ describe('src/runner.spec', function() {
 
       it('8v8 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           : B 120
           1 = 30 >=? B
         `);
@@ -2913,6 +3090,7 @@ describe('src/runner.spec', function() {
 
       it('888 pass', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           1 = 130 >=? 30
         `);
 
@@ -2921,6 +3099,7 @@ describe('src/runner.spec', function() {
 
       it('888 reject', function() {
         let solution = solverSolver(`
+          @custom var-strat throw
           0 = 130 >=? 50
         `);
 

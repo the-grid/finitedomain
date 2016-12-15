@@ -1490,7 +1490,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!A || !B || !R) return emptyDomain = true;
 
     let remove = false;
-    if (domain_getValue(A) >= 0 && domain_getValue(B) >= 0) {
+    let vA = domain_getValue(A);
+    let vB = domain_getValue(B);
+    if (vA >= 0 && vB >= 0) {
       ASSERT_LOG2(' - A and B are solved so we can determine R');
       let result = A === B ? 1 : 0;
       if (domain_containsValue(R, result)) {
@@ -1528,6 +1530,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       return;
     }
 
+    ASSERT(domain_min(R) === 0 && domain_max(R) === 1, 'R wasnt solved so it must be a bool domain at this point');
+    if (domain_max(A) < domain_min(B) || domain_min(A) > domain_max(B)) {
+      ASSERT_LOG2(' - no overlap between',indexA,'and',indexB,' (',domain__debug(A), domain__debug(B),') so R becomes 0 and constraint is removed');
+      // B is solved but A doesn't contain that value, R becomes 0 and the constraint is removed
+      R = domains[indexR] = domain_createValue(0);
+      change = true;
+      remove = true;
+    }
+
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
@@ -1554,24 +1565,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!A || !R) return emptyDomain = true;
 
     let remove = false;
-    let vA = domain_getValue(A);
-    if (vA >= 0) {
-      ASSERT_LOG2(' - A and B are solved so we can determine R');
-      let result = vA === vB ? 1 : 0;
-      if (domain_containsValue(R, result)) {
-        R = domains[indexR] = domain_createValue(result);
-        remove = true;
-        change = true;
-      } else {
-        return emptyDomain = true;
-      }
-    } else {
-      if (domain_max(R) > 1) {
-        ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
-        R = domains[indexR] = domain_createRange(0, 1);
-        if (!R) return emptyDomain = true;
-        change = true;
-      }
+    let oR = R;
+    if (!domain_containsValue(A, vB)) {
+      R = domain_createValue(0);
+      remove = true;
+    } else if (domain_isSolved(A)) {
+      // A and B are solved and A contains B so R=1
+      R = domain_createValue(1);
+      remove = true;
+    } else if (domain_max(R) > 1) {
+      R = domain_createRange(0, 1);
+    }
+
+    if (R !== oR) {
+      if (!R) return emptyDomain = true;
+      domains[indexR] = R;
+      change = true;
     }
 
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
@@ -1594,10 +1603,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
-
     ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
 
     if (remove) {
+      ASSERT(domain_isSolved(A) && domain_isSolved(R), 'A and R should be solved because otherwise the op should be morphed to a regular eq/neq');
       cr_eliminate(offset, SIZEOF_V8V);
     } else {
       ASSERT_LOG2(' - not only jumps...');

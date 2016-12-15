@@ -1282,7 +1282,7 @@ function mlToDsl(ml, names, domains, getAlias) {
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
 
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
-    s += '               # ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b;
+    s += '               # ' + (lena === 1 ? 'lit('+a+')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit('+b+')' : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b;
     return s + '\n';
   }
 
@@ -1297,7 +1297,7 @@ function mlToDsl(ml, names, domains, getAlias) {
 
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
     s = (lenc === 1 ? c : names[c]) + ' = ' + s;
-    s += '               # ' + (lenc === 1 ? c : domain__debug(domains[c])) + ' = ' + (lena === 1 ? a : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? b : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b;
+    s += '               # ' + (lenc === 1 ? 'lit('+c+')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit('+a+')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit('+b+')' : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b;
     return s + '\n';
   }
 

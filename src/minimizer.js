@@ -2539,12 +2539,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let offset = pc - 1;
     ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset+10));
     let sumArgCount = cr_dec16();
+    let startSumArgCount = sumArgCount;
+    ASSERT_LOG2(' - ml for this sum:', ml.slice(offset, offset+SIZEOF_C8_COUNT + 2*sumArgCount+2));
     let fixedConstant = cr_dec8();
-    ASSERT(fixedConstant === 0, 'not yet using this', fixedConstant);
+    let oplen = SIZEOF_C8_COUNT + sumArgCount * 2 + 2;
     let varsOffset = offset + SIZEOF_C8_COUNT;
 
-    let indexR = cr_dec16pc(varsOffset + sumArgCount * 2);
+    let offsetR = varsOffset + sumArgCount * 2;
+    let indexR = cr_dec16pc(offsetR);
     let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8_COUNT + sumArgCount * 2);
+    ASSERT_LOG2(' - offset R =', offsetR, 'indexR=',indexR, 'R=',domain__debug(R));
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_sum', sumArgCount, 'x');
@@ -2629,7 +2633,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     ASSERT_LOG2(' -> There are now', constants, 'constants and', sumArgCount - constants, 'non-constants left. Constants sum to', constantSum);
-    ASSERT_LOG2(constants && !constantSum && (sumArgCount-constants) <= 2 ? ' - Dropping the zero-valued constants and rewriting the remaining args' : '');
+    ASSERT_LOG2(constants && !constantSum && (sumArgCount-constants) <= 2 ? ' - Dropping the zero-valued constants and rewriting the remaining args' : ' - No zero-valued constants to drop');
     ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(sumArgCount)).map((n, i) => domain__debug(domains[cr_dec16pc(varsOffset + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
     if (sumArgCount - constants === (constantSum ? 1 : 2)) {
@@ -2701,16 +2705,45 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         domains[indexR] = R;
       }
 
-      let delta = SIZEOF_C8_COUNT + sumArgCount * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
-      cr_eliminate(offset, delta);
+      cr_eliminate(offset, SIZEOF_C8_COUNT + sumArgCount * 2 + 2); // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+8bit+n*16bit+16bit
       ASSERT_LOG2(' - ml now:', ml);
-      pc = offset + delta;
+      pc = offset + oplen;
+    } else if (constants) {
+      ASSERT_LOG2(' - Unable to morph but there are', constants, 'constants to consolidate to value', constantSum + fixedConstant);
+      ASSERT((constantSum + fixedConstant) < 256, 'TODO: support >8bit');
+      // there are constants and they did not morph or eliminate the constraint; consolidate them.
+      cr_enc16(offset+1, sumArgCount - constants);
+      cr_enc8(offset + 3, constantSum + fixedConstant);
+      // loop through the constants and move non-constants to the left
+      ASSERT_LOG2(' - Moving constants out...');
+      let tgtIndex = 0;
+      for (let i=0; i<sumArgCount; ++i) {
+        let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
+        let indexA = cr_dec16pc(offset + indexOffsetDelta);
+        let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
+        ASSERT_LOG2('   - index:', indexA, 'domain:', domain__debug(A), 'constant:', domain_isSolved(A));
+        ASSERT(A !== MINIMIZE_ALIASED, 'A didnt change so it shouldnt have been aliased since last explicit check');
+        if (!domain_isSolved(A)) {
+          ASSERT_LOG2('     - not a constant so moving 2 bytes from', offset + indexOffsetDelta, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
+          // move forward (wont change anything until a constant was skipped...)
+          cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offset + indexOffsetDelta));
+          cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offset + indexOffsetDelta + 1));
+        }
+      }
+      ASSERT_LOG2(' - Non-constants should now all be moved to the left. Moving result var from', offsetR, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
+      cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offsetR));
+      cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offsetR+  1));
+      ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8_COUNT + (sumArgCount - constants) * 2 + 2);
+      // now "blank out" the remainder
+      cr_skip(offset + SIZEOF_C8_COUNT + (sumArgCount - constants) * 2 + 2, constants * 2);
+      pc = offset; // TODO: temp while debugging + oplen;
     } else {
       ASSERT(sumArgCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', sumArgCount, 'constants', constants, 'count-constants', sumArgCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
       pc = offset + SIZEOF_C8_COUNT + sumArgCount * 2 + 2; // skip the 16bit indexes manually
     }
+    ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset+SIZEOF_C8_COUNT + 2*sumArgCount+2));
   }
 
   function cr_product(ml) {

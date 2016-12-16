@@ -84,6 +84,7 @@ const ML_STOP = ml_opcodeCounter++;
 
 ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
 
+const SIZEOF_V = 1 + 2;
 const SIZEOF_VV = 1 + 2 + 2;
 const SIZEOF_8V = 1 + 1 + 2;
 const SIZEOF_V8 = 1 + 2 + 1;
@@ -473,6 +474,7 @@ export {
   ML_NOOP4,
   ML_STOP,
 
+  SIZEOF_V,
   SIZEOF_VV,
   SIZEOF_8V,
   SIZEOF_V8,

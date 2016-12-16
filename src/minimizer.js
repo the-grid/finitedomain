@@ -68,6 +68,7 @@ import {
   ML_NOOP4,
   ML_STOP,
 
+  SIZEOF_V,
   SIZEOF_8V,
   SIZEOF_VV,
   SIZEOF_V8,
@@ -130,13 +131,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2('cr outer loop');
     change = false;
     pc = 0;
-    cr_innerLoop();
+    let ops = cr_innerLoop();
     ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) {
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
     }
     console.timeEnd('-> loop ' + loops);
+    console.log('   - ops this loop:', ops);
     if (emptyDomain) return MINIMIZER_REJECTED;
     if (onlyJumps) return MINIMIZER_SOLVED;
   }
@@ -161,8 +163,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_innerLoop() {
+    let ops = 0;
     onlyJumps = true;
     while (pc < ml.length && !emptyDomain) {
+      ++ops;
       let pcStart = pc;
       lastPcOffset = pc;
       let op = ml[pc++];
@@ -176,14 +180,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
-          return;
-
-        case ML_JMP:
-          ASSERT_LOG2('- jmp @', pcStart);
-          let delta = cr_dec16();
-          ASSERT_LOG2('- jump', delta);
-          pc += delta;
-          break;
+          return ops;
 
         case ML_VV_EQ:
           ASSERT_LOG2('- eq vv @', pcStart);
@@ -431,28 +428,52 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
           break;
 
         case ML_NOOP:
-          pc = pcStart + 1;
           ASSERT_LOG2('- noop @', pcStart, '->', pc);
+          cr_jumping(pcStart, 1);
           break;
         case ML_NOOP2:
-          pc = pcStart + 2;
           ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
+          cr_jumping(pcStart, 2);
           break;
         case ML_NOOP3:
-          pc = pcStart + 3;
           ASSERT_LOG2('- noop3 @', pcStart, '->', pc);
+          cr_jumping(pcStart, 3);
           break;
         case ML_NOOP4:
-          pc = pcStart + 4;
           ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
+          cr_jumping(pcStart, 4);
           break;
+        case ML_JMP:
+          ASSERT_LOG2('- jmp @', pcStart);
+          let delta = cr_dec16();
+          cr_jumping(pcStart, SIZEOF_V + delta);
+          break;
+
 
         default:
           THROW('unknown op: 0x' + op.toString(16));
       }
     }
-    if (emptyDomain) return;
+    if (emptyDomain) return ops;
     return THROW('Derailed; expected to find STOP before EOF');
+  }
+
+  function cr_jumping(offset, len) {
+    ASSERT_LOG2(' - trying to jump from', offset, 'to', offset+len, 'delta = ', len);
+    switch (cr_dec8pc(offset + len)) {
+      case ML_NOOP:
+      case ML_NOOP2:
+      case ML_NOOP3:
+      case ML_NOOP4:
+      case ML_JMP:
+        ASSERT_LOG2('- jumping to another jump so merging them now');
+        cr_jump(offset, len);
+        pc = offset; // restart, make sure the merge worked
+        break;
+      default:
+        pc = offset + len;
+        break;
+    }
   }
 
   function cr_dec8() {
@@ -508,32 +529,38 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_eliminate(offset, sizeof) {
-    ASSERT_LOG2(' - eliminating constraint with size =', sizeof);
-    switch (sizeof) {
-      case 0:
-        return THROW('this is a bug');
-      case 1:
-        ASSERT_LOG2('  - compiling a NOOP');
-        return cr_enc8(offset, ML_NOOP);
-      case 2:
-        ASSERT_LOG2('  - compiling a NOOP2');
-        return cr_enc8(offset, ML_NOOP2);
-      case 3:
-        ASSERT_LOG2('  - compiling a NOOP3');
-        return cr_enc8(offset, ML_NOOP3);
-      case 4:
-        ASSERT_LOG2('  - compiling a NOOP4');
-        return cr_enc8(offset, ML_NOOP4);
-      default:
-        ASSERT_LOG2('  - compiling a JMP(3 + ' + (sizeof - 3) + ')');
-        ASSERT(sizeof > 4, 'cant jump negative');
-        cr_enc8(offset, ML_JMP);
-        cr_enc16(offset + 1, sizeof - 3);
-        return;
-    }
+    ASSERT_LOG2(' - eliminating constraint at', offset, 'with size =', sizeof);
+    cr_jump(offset, sizeof);
   }
 
   function cr_skip(offset, len) {
+    ASSERT_LOG2(' - compiling a skip at', offset, 'with size =', len);
+    cr_jump(offset, len);
+  }
+
+  function cr_jump(offset, len) {
+    ASSERT_LOG2('  - cr_jump', len);
+
+    switch (ml[offset+len]) {
+      case ML_NOOP:
+        ASSERT_LOG2('  - jmp target is another jmp (noop), merging them');
+        return cr_jump(offset, len + 1);
+      case ML_NOOP2:
+        ASSERT_LOG2('  - jmp target is another jmp (noop2), merging them');
+        return cr_jump(offset, len + 2);
+      case ML_NOOP3:
+        ASSERT_LOG2('  - jmp target is another jmp (noop3), merging them');
+        return cr_jump(offset, len + 3);
+      case ML_NOOP4:
+        ASSERT_LOG2('  - jmp target is another jmp (noop4), merging them');
+        return cr_jump(offset, len + 4);
+      case ML_JMP:
+        let jmplen = cr_dec16pc(offset+len+1);
+        ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
+        ASSERT_LOG2('  - jmp target is another jmp (jmp',jmplen,'), merging them');
+        return cr_jump(offset, len + SIZEOF_V + jmplen);
+    }
+
     switch (len) {
       case 0:
         return THROW('this is a bug');

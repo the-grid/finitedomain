@@ -1,5 +1,6 @@
 import {
   ASSERT,
+  ASSERT_LOG2,
   THROW,
 } from './helpers';
 import {
@@ -80,7 +81,7 @@ const ML_NOOP = ml_opcodeCounter++;
 const ML_NOOP2 = ml_opcodeCounter++;
 const ML_NOOP3 = ml_opcodeCounter++;
 const ML_NOOP4 = ml_opcodeCounter++;
-const ML_STOP = ml_opcodeCounter++;
+const ML_STOP = 0xff;
 
 ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
 
@@ -100,8 +101,8 @@ const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
 const SIZEOF_C8_COUNT = 1 + 2 + 1; // + 2*count
 
-function ml_sizeof(opcode, ml, offset) {
-  switch (opcode) {
+function ml_sizeof(ml, offset) {
+  switch (ml[offset]) {
     case ML_VV_EQ:
     case ML_VV_NEQ:
     case ML_VV_LT:
@@ -186,7 +187,7 @@ function ml_sizeof(opcode, ml, offset) {
       return -1;
 
     case ML_JMP:
-      return 3;
+      return SIZEOF_V;
     case ML_NOOP:
       return 1;
     case ML_NOOP2:
@@ -198,220 +199,373 @@ function ml_sizeof(opcode, ml, offset) {
     case ML_STOP:
       return 1;
     default:
-      THROW('unknown op: ' + opcode);
+      THROW('unknown op: ' + ml[offset]);
   }
 }
 
-function ml__debug(ml, offset, domains, names) {
+function ml_dec8(ml, pc) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  ASSERT_LOG2(' . dec8pc decoding', ml[pc], 'from', pc);
+  return ml[pc];
+}
+
+function ml_dec16(ml, pc) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  let n = ml.readUInt16BE(pc); // (ml[pc++] << 8) | ml[pc];
+  ASSERT_LOG2(' . dec16pc decoding', ml[pc - 1] << 8, 'from', pc, 'and', ml[pc], 'from', pc + 1, '-->', n);
+  return n;
+}
+
+function ml_enc8(ml, pc, num) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  ASSERT(typeof num === 'number', 'Encoding numbers', num);
+  ASSERT((num >> 0) <= 0xff, 'Only encode 8bit values');
+  ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc);
+  ASSERT(num >= 0, 'only expecting non-negative nums');
+  ml[pc] = num;
+}
+
+function ml_enc16(ml, pc, num) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  ASSERT(typeof num === 'number', 'Encoding numbers');
+  ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
+  ASSERT_LOG2(' - enc16(' + num + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+  ASSERT(num >= 0, 'only expecting non-negative nums');
+  // node 4.6 has no uint version and using writeInt16BE will cause problems, so:
+  ml[pc++] = (num >> 8) & 0xff;
+  ml[pc] = num & 0xff;
+}
+
+function ml_eliminate(ml, offset, sizeof) {
+  ASSERT_LOG2(' - ml_eliminate: eliminating constraint at', offset, 'with size =', sizeof);
+  ml_jump(ml, offset, sizeof);
+}
+
+function ml_skip(ml, offset, len) {
+  ASSERT_LOG2(' - ml_skip: compiling a skip at', offset, 'with size =', len);
+  ml_jump(ml, offset, len);
+}
+
+function ml_jump(ml, offset, len) {
+  ASSERT_LOG2('  - ml_jump: offset = ', offset, 'len = ', len);
+
+  switch (ml[offset + len]) {
+    case ML_NOOP:
+      ASSERT_LOG2('  - jmp target is another jmp (noop), merging them');
+      return ml_jump(ml, offset, len + 1);
+    case ML_NOOP2:
+      ASSERT_LOG2('  - jmp target is another jmp (noop2), merging them');
+      return ml_jump(ml, offset, len + 2);
+    case ML_NOOP3:
+      ASSERT_LOG2('  - jmp target is another jmp (noop3), merging them');
+      return ml_jump(ml, offset, len + 3);
+    case ML_NOOP4:
+      ASSERT_LOG2('  - jmp target is another jmp (noop4), merging them');
+      return ml_jump(ml, offset, len + 4);
+    case ML_JMP:
+      let jmplen = ml_dec16(ml, offset + len + 1);
+      ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
+      ASSERT_LOG2('  - jmp target is another jmp (jmp', jmplen, '), merging them');
+      return ml_jump(ml, offset, len + SIZEOF_V + jmplen);
+  }
+
+  switch (len) {
+    case 0:
+      return THROW('this is a bug');
+    case 1:
+      ASSERT_LOG2('  - compiling a NOOP');
+      return ml_enc8(ml, offset, ML_NOOP);
+    case 2:
+      ASSERT_LOG2('  - compiling a NOOP2');
+      return ml_enc8(ml, offset, ML_NOOP2);
+    case 3:
+      ASSERT_LOG2('  - compiling a NOOP3');
+      return ml_enc8(ml, offset, ML_NOOP3);
+    case 4:
+      ASSERT_LOG2('  - compiling a NOOP4');
+      return ml_enc8(ml, offset, ML_NOOP4);
+    default:
+      ASSERT_LOG2('  - compiling a JMP of', len);
+      ml_enc8(ml, offset, ML_JMP);
+      ml_enc16(ml, offset + 1, len - SIZEOF_V);
+  }
+}
+
+function ml_pump(ml, offset, from, to, len) {
+  let fromOffset = offset + from;
+  let fromTo = offset + to;
+  for (let i = 0; i < len; ++i) {
+    ml[fromOffset++] = ml[fromTo++];
+  }
+}
+
+function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
     return '{index=' + index + (names ? ',name=' + names[index] : '') + (domains ? ',' + domain__debug(domains[index]) : '') + '}';
   }
 
-  let name = '';
-  /* eslint-disable no-fallthrough */// should have an option to allow it when explicitly stated like below...
-  switch (ml[offset]) {
-    case ML_UNUSED:
-      return 'unused_error(0)';
+  function ml_8(offset) {
+    return ml[offset];
+  }
 
-    case ML_VV_EQ:
-      name = 'eq';
-      /* fall-through */
-    case ML_VV_NEQ:
-      if (!name) name = 'neq';
-      /* fall-through */
-    case ML_VV_LT:
-      if (!name) name = 'lt';
-      /* fall-through */
-    case ML_VV_LTE:
-      if (!name) name = 'lte';
-      return name + '(' + ml_index(offset + 1) + '), ' + ml_index(offset + 3) + ')';
+  function ml_16(offset) {
+    return ml.readUInt16BE(offset);
+  }
 
-    case ML_V8_EQ:
-      name = 'eq';
-      /* fall-through */
-    case ML_V8_NEQ:
-      if (!name) name = 'neq';
-      /* fall-through */
-    case ML_V8_LT:
-      if (!name) name = 'lt';
-      /* fall-through */
-    case ML_V8_LTE:
-      if (!name) name = 'lte';
-      return name + '(' + ml_index(offset + 1) + ', ' + ml.readUInt8(offset + 3) + ')';
+  let AB; // grrr switches and let are annoying
 
-    case ML_88_EQ:
-      name = 'eq';
-      /* fall-through */
-    case ML_88_NEQ:
-      if (!name) name = 'neq';
-      /* fall-through */
-    case ML_88_LT:
-      if (!name) name = 'lt';
-      /* fall-through */
-    case ML_88_LTE:
-      if (!name) name = 'lte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml.readUInt8(offset + 2) + ')';
+  if (max < 0) max = ml.length;
+  let pc = offset;
+  let count = 0;
+  let rv = [];
+  while (count++ < max && pc < ml.length) {
+    let name = '';
+    /* eslint-disable no-fallthrough */// should have an option to allow it when explicitly stated like below...
+    switch (ml[pc]) {
+      case ML_UNUSED:
+        rv.push('unused_error(0)');
+        return rv.join('\n');
 
-    case ML_8V_LT:
-      name = 'lt';
+      case ML_VV_EQ:
+        name = '==';
       /* fall-through */
-    case ML_8V_LTE:
-      if (!name) name = 'lte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml_index(offset + 3) + ')';
+      case ML_VV_NEQ:
+        if (!name) name = '!=';
+      /* fall-through */
+      case ML_VV_LT:
+        if (!name) name = '<';
+      /* fall-through */
+      case ML_VV_LTE:
+        if (!name) name = '<=';
+        rv.push(ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3));
+        break;
 
-    case ML_VVV_ISEQ:
-      name = 'iseq';
+      case ML_V8_EQ:
+        name = '==';
       /* fall-through */
-    case ML_VVV_ISNEQ:
-      if (!name) name = 'isneq';
+      case ML_V8_NEQ:
+        if (!name) name = '!=';
       /* fall-through */
-    case ML_VVV_ISLT:
-      if (!name) name = 'islt';
+      case ML_V8_LT:
+        if (!name) name = '<';
       /* fall-through */
-    case ML_VVV_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml_index(offset + 1) + ', ' + ml_index(offset + 3) + ', ' + ml_index(offset + 5) + ')';
+      case ML_V8_LTE:
+        if (!name) name = '<=';
+        rv.push(ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3));
+        break;
 
-    case ML_V8V_ISEQ:
-      name = 'iseq';
+      case ML_88_EQ:
+        name = '==';
       /* fall-through */
-    case ML_V8V_ISNEQ:
-      if (!name) name = 'isneq';
+      case ML_88_NEQ:
+        if (!name) name = '!=';
       /* fall-through */
-    case ML_V8V_ISLT:
-      if (!name) name = 'islt';
+      case ML_88_LT:
+        if (!name) name = '<';
       /* fall-through */
-    case ML_V8V_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml_index(offset + 1) + ', ' + ml.readUInt8(offset + 3) + ', ' + ml_index(offset + 4) + ')';
+      case ML_88_LTE:
+        if (!name) name = '<=';
+        rv.push(ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2));
+        break;
 
-    case ML_VV8_ISEQ:
-      name = 'iseq';
+      case ML_8V_LT:
+        name = '<';
       /* fall-through */
-    case ML_VV8_ISNEQ:
-      if (!name) name = 'isneq';
-      /* fall-through */
-    case ML_VV8_ISLT:
-      if (!name) name = 'islt';
-      /* fall-through */
-    case ML_VV8_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml_index(offset + 1) + ', ' + ml_index(offset + 3) + ', ' + ml.readUInt8(offset + 5) + ')';
+      case ML_8V_LTE:
+        if (!name) name = '<=';
+        rv.push(ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3));
+        break;
 
-    case ML_88V_ISEQ:
-      name = 'iseq';
+      case ML_VVV_ISEQ:
+        name = '==?';
       /* fall-through */
-    case ML_88V_ISNEQ:
-      if (!name) name = 'isneq';
+      case ML_VVV_ISNEQ:
+        if (!name) name = '!=?';
       /* fall-through */
-    case ML_88V_ISLT:
-      if (!name) name = 'islt';
+      case ML_VVV_ISLT:
+        if (!name) name = '<?';
       /* fall-through */
-    case ML_88V_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml.readUInt8(offset + 2) + ', ' + ml_index(offset + 3) + ')';
+      case ML_VVV_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3);
+        rv.push(ml_index(pc + 5) + ' = ' + AB);
+        break;
 
-    case ML_V88_ISEQ:
-      name = 'iseq';
+      case ML_V8V_ISEQ:
+        name = '==?';
       /* fall-through */
-    case ML_V88_ISNEQ:
-      if (!name) name = 'isneq';
+      case ML_V8V_ISNEQ:
+        if (!name) name = '!=?';
       /* fall-through */
-    case ML_V88_ISLT:
-      if (!name) name = 'islt';
+      case ML_V8V_ISLT:
+        if (!name) name = '<?';
       /* fall-through */
-    case ML_V88_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml_index(offset + 1) + ', ' + ml.readUInt8(offset + 3) + ', ' + ml.readUInt8(offset + 4) + ')';
+      case ML_V8V_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3);
+        rv.push(ml_index(pc + 4) + ' = ' + AB);
+        break;
 
-    case ML_888_ISEQ:
-      name = 'iseq';
+      case ML_VV8_ISEQ:
+        name = '==?';
       /* fall-through */
-    case ML_888_ISNEQ:
-      if (!name) name = 'isneq';
+      case ML_VV8_ISNEQ:
+        if (!name) name = '!=?';
       /* fall-through */
-    case ML_888_ISLT:
-      if (!name) name = 'islt';
+      case ML_VV8_ISLT:
+        if (!name) name = '<?';
       /* fall-through */
-    case ML_888_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml.readUInt8(offset + 2) + ', ' + ml.readUInt8(offset + 3) + ')';
+      case ML_VV8_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3);
+        rv.push(ml_8(pc + 5) + ' = ' + AB);
+        break;
 
-    case ML_8VV_ISLT:
-      if (!name) name = 'islt';
+      case ML_88V_ISEQ:
+        name = '==?';
       /* fall-through */
-    case ML_8VV_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml_index(offset + 2) + ', ' + ml_index(offset + 4) + ')';
-
-    case ML_8V8_ISLT:
-      if (!name) name = 'islt';
+      case ML_88V_ISNEQ:
+        if (!name) name = '!=?';
       /* fall-through */
-    case ML_8V8_ISLTE:
-      if (!name) name = 'islte';
-      return name + '(' + ml.readUInt8(offset + 1) + ', ' + ml_index(offset + 2) + ', ' + ml.readUInt8(offset + 4) + ')';
+      case ML_88V_ISLT:
+        if (!name) name = '<?';
+      /* fall-through */
+      case ML_88V_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2);
+        rv.push(ml_index(pc + 3) + ' = ' + AB);
+        break;
 
-    case ML_8V_SUM: {
-      name = 'sum';
-      let vars = '';
-      let varcount = ml.readUInt16BE(offset + 1);
-      let sumconstant = ml.readUInt8(offset + 3);
-      for (let i = 0; i < varcount; ++i) {
-        vars += ml.readUInt16BE(offset + SIZEOF_C8_COUNT + i * 2);
-      }
-      vars = name + '(' + sumconstant + ', ' + vars + ')';
-      vars = ml.readUInt16BE(offset + SIZEOF_C8_COUNT + varcount * 2) + ' = ' + vars;
-      return vars;
+      case ML_V88_ISEQ:
+        name = '==?';
+      /* fall-through */
+      case ML_V88_ISNEQ:
+        if (!name) name = '!=?';
+      /* fall-through */
+      case ML_V88_ISLT:
+        if (!name) name = '<?';
+      /* fall-through */
+      case ML_V88_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3);
+        rv.push(ml_8(pc + 4) + ' = ' + AB);
+        break;
 
+      case ML_888_ISEQ:
+        name = '==?';
+      /* fall-through */
+      case ML_888_ISNEQ:
+        if (!name) name = '!=?';
+      /* fall-through */
+      case ML_888_ISLT:
+        if (!name) name = '<?';
+      /* fall-through */
+      case ML_888_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2);
+        rv.push(ml_8(pc + 3) + ' = ' + AB);
+        break;
+
+      case ML_8VV_ISLT:
+        if (!name) name = '<?';
+      /* fall-through */
+      case ML_8VV_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 2);
+        rv.push(ml_index(pc + 4) + ' = ' + AB);
+        break;
+
+      case ML_8V8_ISLT:
+        if (!name) name = '<?';
+      /* fall-through */
+      case ML_8V8_ISLTE:
+        if (!name) name = '<=?';
+        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 2);
+        rv.push(ml_8(pc + 4) + ' = ' + AB);
+        break;
+
+      case ML_8V_SUM:
+        {
+          name = 'sum';
+          let vars = '';
+          let varcount = ml_16(pc + 1);
+          let sumconstant = ml_8(pc + 3);
+          for (let i = 0; i < varcount; ++i) {
+            vars += ml_index(pc + SIZEOF_C8_COUNT + i * 2);
+          }
+          vars = name + '(' + sumconstant + ', ' + vars + ')';
+          vars = ml_index(pc + SIZEOF_C8_COUNT + varcount * 2) + ' = ' + vars;
+          rv.push(vars);
+          break;
+        }
+
+      case ML_PRODUCT:
+        name = 'product';
+      /* fall-through */
+      case ML_DISTINCT:
+        if (!name) name = 'distinct';
+        let vars = '';
+        let varcount = ml_16(pc + 1);
+        for (let i = 0; i < varcount; ++i) {
+          vars += ml_index(pc + SIZEOF_COUNT + i * 2) + ' ';
+        }
+        vars = name + '(' + vars + ')';
+        if (name === 'product') vars = ml_index(pc + SIZEOF_COUNT + varcount * 2) + ' = ' + vars;
+        rv.push(vars);
+        break;
+
+      case ML_PLUS:
+        name = '+';
+      /* fall-through */
+      case ML_MINUS:
+        if (!name) name = '-';
+      /* fall-through */
+      case ML_MUL:
+        if (!name) name = '*';
+      /* fall-through */
+      case ML_DIV:
+        if (!name) name = '/';
+        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3);
+        rv.push(ml_index(pc + 5) + ' = ' + AB);
+        break;
+
+      case ML_JMP:
+        rv.push('jmp(' + ml.readUInt16BE(pc + 1) + ')');
+        break;
+
+      case ML_NOOP:
+        rv.push('noop(1)');
+        break;
+
+      case ML_NOOP2:
+        rv.push('noop(2)');
+        break;
+      case ML_NOOP3:
+        rv.push('noop(3)');
+        break;
+      case ML_NOOP4:
+        rv.push('noop(4)');
+        break;
+      case ML_STOP:
+        rv.push('stop()');
+        break;
+
+      default:
+        THROW('add me');
     }
 
-    case ML_PRODUCT:
-      if (!name) name = 'product';
-      /* fall-through */
-    case ML_DISTINCT:
-      if (!name) name = 'distinct';
-      let vars = '';
-      let varcount = ml.readUInt16BE(offset + 1);
-      for (let i = 0; i < varcount; ++i) {
-        vars += ml.readUInt16BE(offset + SIZEOF_COUNT + i * 2);
-      }
-      vars = name + '(' + vars + ')';
-      if (name !== 'distinct') vars = ml.readUInt16BE(offset + SIZEOF_COUNT + varcount * 2) + ' = ' + vars;
-      return vars;
-
-    case ML_PLUS:
-      name = 'plus';
-      /* fall-through */
-    case ML_MINUS:
-      if (!name) name = 'minus';
-      /* fall-through */
-    case ML_MUL:
-      if (!name) name = 'mul';
-      /* fall-through */
-    case ML_DIV:
-      if (!name) name = 'div';
-      let trips = ml.readUInt16BE(offset + 1) + ', ' + ml.readUInt16BE(offset + 3);
-      return ml.readUInt16BE(offset + 5) + ' = ' + name + '(' + trips + ')';
-
-    case ML_JMP:
-      return 'jmp(' + ml.readUInt16BE(offset + 1) + ')';
-
-    case ML_NOOP:
-      return 'noop(1)';
-
-    case ML_NOOP2:
-      return 'noop(2)';
-    case ML_NOOP3:
-      return 'noop(3)';
-    case ML_NOOP4:
-      return 'noop(4)';
-    case ML_STOP:
-      return 'stop()';
-
-    default:
-      THROW('add me');
+    let size = ml_sizeof(ml, pc);
+    console.log('size was:', size, 'rv=', rv);
+    if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + size)].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' '));
+    pc += size;
   }
+
+  return max === 1 ? rv[0] : ' ## ML Debug:\n' + rv.join('\n') + '\n ## End of ML Debug\n';
 }
 
 // BODY_STOP
@@ -491,5 +645,13 @@ export {
   SIZEOF_C8_COUNT,
 
   ml__debug,
+  ml_dec8,
+  ml_dec16,
+  ml_enc8,
+  ml_enc16,
+  ml_eliminate,
+  ml_pump,
   ml_sizeof,
+  ml_skip,
+  ml_jump,
 };

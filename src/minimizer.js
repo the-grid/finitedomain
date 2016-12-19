@@ -74,9 +74,9 @@ import {
   SIZEOF_V8,
   SIZEOF_88,
   SIZEOF_VVV,
-  //SIZEOF_8VV,
+  SIZEOF_8VV,
   SIZEOF_V8V,
-  //SIZEOF_VV8,
+  SIZEOF_VV8,
   SIZEOF_88V,
   SIZEOF_V88,
   SIZEOF_8V8,
@@ -85,6 +85,14 @@ import {
   SIZEOF_C8_COUNT,
 
   ml__debug,
+  ml_dec8,
+  ml_dec16,
+  ml_enc8,
+  ml_enc16,
+  ml_eliminate,
+  ml_pump,
+  ml_skip,
+  ml_jump,
 } from './ml';
 import {
   domain__debug,
@@ -134,7 +142,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let ops = cr_innerLoop();
     ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) {
-      console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
+      console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
     }
     console.timeEnd('-> loop ' + loops);
@@ -155,10 +163,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // caller should ensure to check return value and return on
     // a falsy result as well so the loop can restart.
     let aliasIndex = getAlias(index);
-    ASSERT_LOG2(' - alias('+index+') = '+aliasIndex);
+    ASSERT_LOG2(' - alias(' + index + ') = ' + aliasIndex);
     ASSERT(typeof aliasIndex === 'number' && aliasIndex >= 0, 'should have this alias');
     ml.writeUInt16BE(aliasIndex, lastPcOffset + argDelta);
-    pc = lastPcOffset; // caller should stop and loop will restart this op with aliased index as if nothing happened
+    ASSERT(pc === lastPcOffset, 'expecting to restart'); // caller should stop and loop will restart this op with aliased index as if nothing happened
     return false;
   }
 
@@ -169,14 +177,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ++ops;
       let pcStart = pc;
       lastPcOffset = pc;
-      let op = ml[pc++];
+      let op = ml[pc];
       lastOp = op;
 
       ASSERT_LOG2('# CRc[' + pcStart + ']:', op, '(0x' + op.toString(16) + ')');
       switch (op) {
         case ML_UNUSED:
-          ASSERT_LOG2('reading a op=zero which should not happen', ml.slice(Math.max(pc-100,0), pc), '<here>', ml.slice(pc, pc+100));
-          return THROW(' ! optimizer problem @', pcStart);
+          ASSERT_LOG2('reading a op=zero which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
+          return THROW(' ! optimizer problem @', pc);
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
@@ -428,46 +436,46 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
           break;
 
         case ML_NOOP:
-          ASSERT_LOG2('- noop @', pcStart, '->', pc);
-          cr_jumping(pcStart, 1);
+          ASSERT_LOG2('- noop @', pc);
+          cr_moveTo(ml, pc, 1);
           break;
         case ML_NOOP2:
-          ASSERT_LOG2('- noop2 @', pcStart, '->', pc);
-          cr_jumping(pcStart, 2);
+          ASSERT_LOG2('- noop2 @', pc);
+          cr_moveTo(ml, pc, 2);
           break;
         case ML_NOOP3:
-          ASSERT_LOG2('- noop3 @', pcStart, '->', pc);
-          cr_jumping(pcStart, 3);
+          ASSERT_LOG2('- noop3 @', pc);
+          cr_moveTo(ml, pc, 3);
           break;
         case ML_NOOP4:
-          ASSERT_LOG2('- noop4 @', pcStart, '->', pc);
-          cr_jumping(pcStart, 4);
+          ASSERT_LOG2('- noop4 @', pc);
+          cr_moveTo(ml, pc, 4);
           break;
         case ML_JMP:
-          ASSERT_LOG2('- jmp @', pcStart);
-          let delta = cr_dec16();
-          cr_jumping(pcStart, SIZEOF_V + delta);
+          ASSERT_LOG2('- jmp @', pc);
+          let delta = ml_dec16(ml, pc + 1);
+          cr_moveTo(ml, pc, SIZEOF_V + delta);
           break;
-
 
         default:
           THROW('unknown op: 0x' + op.toString(16));
       }
+      if (pc === pcStart) ASSERT_LOG2(' - restarting op from same pc...');
     }
     if (emptyDomain) return ops;
     return THROW('Derailed; expected to find STOP before EOF');
   }
 
-  function cr_jumping(offset, len) {
-    ASSERT_LOG2(' - trying to jump from', offset, 'to', offset+len, 'delta = ', len);
-    switch (cr_dec8pc(offset + len)) {
+  function cr_moveTo(ml, offset, len) {
+    ASSERT_LOG2(' - trying to move from', offset, 'to', offset + len, 'delta = ', len);
+    switch (ml_dec8(ml, offset + len)) {
       case ML_NOOP:
       case ML_NOOP2:
       case ML_NOOP3:
       case ML_NOOP4:
       case ML_JMP:
-        ASSERT_LOG2('- jumping to another jump so merging them now');
-        cr_jump(offset, len);
+        ASSERT_LOG2('- moving to another jump so merging them now');
+        ml_jump(ml, offset, len);
         pc = offset; // restart, make sure the merge worked
         break;
       default:
@@ -476,121 +484,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_dec8() {
-    ASSERT(pc < ml.length, 'OOB');
-    ASSERT_LOG2(' . dec8 decoding', ml[pc], 'from', pc);
-    return ml[pc++];
-  }
-
-  function cr_dec8pc(pc) {
-    ASSERT(pc < ml.length, 'OOB');
-    ASSERT_LOG2(' . dec8pc decoding', ml[pc], 'from', pc);
-    return ml[pc];
-  }
-
-  function cr_dec16() {
-    ASSERT(pc < ml.length - 1, 'OOB');
-    ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
-    return (ml[pc++] << 8) | ml[pc++];
-  }
-
-  function cr_dec16pc(pc) {
-    ASSERT(pc < ml.length - 1, 'OOB');
-    ASSERT_LOG2(' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1);
-    return (ml[pc++] << 8) | ml[pc];
-  }
-
-  function cr_enc8(pc, num) {
-    ASSERT(typeof num === 'number', 'Encoding numbers');
-    ASSERT((num >> 0) <= 0xff, 'Only encode 8bit values');
-    ASSERT(pc < ml.length, 'OOB');
-    ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc);
-    ml[pc] = num;
-  }
-
-  //function cr_enc88(pc, a, b) {
-  //  ASSERT(typeof a === 'number', 'Encoding numbers');
-  //  ASSERT(typeof b === 'number', 'Encoding numbers');
-  //  ASSERT((a >> 0) <= 0xff, 'Only encode 8bit values');
-  //  ASSERT((b >> 0) <= 0xff, 'Only encode 8bit values');
-  //  ASSERT(pc < ml.length - 1, 'OOB');
-  //  ASSERT_LOG2(' - encoding', a, 'at', pc, 'and', b, 'at', pc + 1);
-  //  ml[pc++] = a;
-  //  ml[pc] = b;
-  //}
-
-  function cr_enc16(pc, num) {
-    ASSERT(typeof num === 'number', 'Encoding numbers');
-    ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
-    ASSERT(pc < ml.length - 1, 'OOB');
-    ASSERT_LOG2(' - enc16(' + num + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
-    ml[pc++] = (num >> 8) & 0xff;
-    ml[pc] = num & 0xff;
-  }
-
-  function cr_eliminate(offset, sizeof) {
-    ASSERT_LOG2(' - eliminating constraint at', offset, 'with size =', sizeof);
-    cr_jump(offset, sizeof);
-  }
-
-  function cr_skip(offset, len) {
-    ASSERT_LOG2(' - compiling a skip at', offset, 'with size =', len);
-    cr_jump(offset, len);
-  }
-
-  function cr_jump(offset, len) {
-    ASSERT_LOG2('  - cr_jump', len);
-
-    switch (ml[offset+len]) {
-      case ML_NOOP:
-        ASSERT_LOG2('  - jmp target is another jmp (noop), merging them');
-        return cr_jump(offset, len + 1);
-      case ML_NOOP2:
-        ASSERT_LOG2('  - jmp target is another jmp (noop2), merging them');
-        return cr_jump(offset, len + 2);
-      case ML_NOOP3:
-        ASSERT_LOG2('  - jmp target is another jmp (noop3), merging them');
-        return cr_jump(offset, len + 3);
-      case ML_NOOP4:
-        ASSERT_LOG2('  - jmp target is another jmp (noop4), merging them');
-        return cr_jump(offset, len + 4);
-      case ML_JMP:
-        let jmplen = cr_dec16pc(offset+len+1);
-        ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
-        ASSERT_LOG2('  - jmp target is another jmp (jmp',jmplen,'), merging them');
-        return cr_jump(offset, len + SIZEOF_V + jmplen);
-    }
-
-    switch (len) {
-      case 0:
-        return THROW('this is a bug');
-      case 1:
-        ASSERT_LOG2('  - compiling a NOOP');
-        return cr_enc8(offset, ML_NOOP);
-      case 2:
-        ASSERT_LOG2('  - compiling a NOOP2');
-        return cr_enc8(offset, ML_NOOP2);
-      case 3:
-        ASSERT_LOG2('  - compiling a NOOP3');
-        return cr_enc8(offset, ML_NOOP3);
-      case 4:
-        ASSERT_LOG2('  - compiling a NOOP4');
-        return cr_enc8(offset, ML_NOOP4);
-      default:
-        ASSERT_LOG2('  - compiling a JMP');
-        ASSERT(len > 4, 'cant jump negative');
-        cr_enc8(offset, ML_JMP);
-        cr_enc16(offset + 1, len - 3);
-        return;
-    }
-  }
-
-  function cr_vv_eq(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
+  function cr_vv_eq() {
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     if (indexA !== indexB) {
       let A = getDomainOrRestartForAlias(indexA, 1);
@@ -614,20 +513,20 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     // the vars are now intersected and aliased. we can remove this constraint.
-    cr_eliminate(offset, SIZEOF_VV);
+    ml_eliminate(ml, offset, SIZEOF_VV);
   }
 
   function cr_v8_eq(ml) {
-    // read one index to A, B is a literal
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
+    ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
     if (!A) return emptyDomain = true;
 
     if (!domain_containsValue(A, vB)) {
@@ -635,40 +534,40 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       return emptyDomain = true;
     }
 
-    domains[indexA] = domain_createValue(vB);
+    let oA = A;
+    A = domain_createValue(vB);
+    if (A !== oA) {
+      ASSERT_LOG2(' - A (', indexA, ') updated to', domain__debug(A));
+      domains[indexA] = A;
+      change = true;
+    }
 
     // domain must be solved now since B was a literal (a solved constant)
-    cr_eliminate(offset, SIZEOF_V8);
-
-    // TODO: (abstract this) check target field. if it's also a jump, extend this jump by that
+    ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
   function cr_88_eq(ml) {
-    // eq two literals
-    // either remove constraint if they are equal or reject if they are not
+    // (artifact) either remove constraint if they are equal or reject if they are not
 
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     ASSERT_LOG2(' = cr_88_eq', vA, vB);
 
-    if (vA === vB) {
-      cr_eliminate(offset, SIZEOF_88);
-    } else {
-      ASSERT_LOG2(' - literals dont match so this problem is unsolvable');
-      return emptyDomain = true; // TODO: is there anything higher up that properly handles this case?
-    }
+    if (vA !== vB) return emptyDomain = true;
+
+    ml_eliminate(ml, offset, SIZEOF_88);
   }
 
   function cr_vv_neq(ml) {
-    // read two indexes to target
-    // for now they are 16bit but maybe we'll introduce ML_NEQ32 when using >64k vars
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -684,7 +583,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let oB = B;
       B = domain_removeValue(B, vA);
       if (oB !== B) {
-        ASSERT_LOG2(' - B (', indexB,') was updated from', domain__debug(oB), 'to', domain__debug(B));
+        ASSERT_LOG2(' - B (', indexB, ') was updated from', domain__debug(oB), 'to', domain__debug(B));
         if (!B) return emptyDomain = true;
         change = true;
         domains[indexB] = B;
@@ -695,7 +594,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let oA = A;
       A = domain_removeValue(A, vB);
       if (A !== oA) {
-        ASSERT_LOG2(' - A (', indexA,') was updated from', domain__debug(oA), 'to', domain__debug(A));
+        ASSERT_LOG2(' - A (', indexA, ') was updated from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
         change = true;
         domains[indexA] = A;
@@ -721,21 +620,21 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // solved if the two domains (now) intersects to an empty domain
     let R = domain_intersection(A, B);
     if (domain_isEmpty(R)) {
-      ASSERT_LOG2(' - No element overlapping between', indexA, 'and', indexB, '(', domain__debug(A),' & ',domain__debug(B),') so we can eliminate this neq');
-      cr_eliminate(offset, SIZEOF_VV);
+      ASSERT_LOG2(' - No element overlapping between', indexA, 'and', indexB, '(', domain__debug(A), ' & ', domain__debug(B), ') so we can eliminate this neq');
+      ml_eliminate(ml, offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VV;
     }
   }
 
   function cr_v8_neq(ml) {
-    // read one index to target and an 8bit literal
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -752,37 +651,35 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       change = true;
     }
 
-    cr_eliminate(offset, SIZEOF_V8);
+    ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
   function cr_88_neq(ml) {
-    // check if two literals are neq. eliminate constraint afterwards.
-
-    let offset = pc - 1;
-
-    let vA = cr_dec8();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     ASSERT_LOG2(' = cr_88_neq', vA, vB);
 
     if (vA === vB) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_88);
+    ml_eliminate(ml, offset, SIZEOF_88);
   }
 
   function cr_vv_lt(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_lt', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = cr_vv_lt {', indexA, '} < {', indexB, '}   -->  ', domain__debug(A), '<', domain__debug(B));
     if (!A || !B) return emptyDomain = true;
 
     // relative comparison is easy; cut away any non-intersecting
@@ -801,30 +698,32 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let oB = B;
     B = domain_removeLte(B, domain_min(A));
     if (B !== oB) {
-      ASSERT_LOG2(' - updated B', domain__debug(B), 'max A=', domain_min(A));
+      ASSERT_LOG2(' - updated B', domain__debug(B), 'min A=', domain_min(A));
       if (!B) return emptyDomain = true;
       domains[indexB] = B;
       change = true;
+      pc = offset; // repeat because B changed which may affect A
+      return;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // any value in A must be < any value in B
     if (domain_max(A) < domain_min(B)) {
-      cr_eliminate(offset, SIZEOF_VV);
+      ml_eliminate(ml, offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VV;
     }
   }
 
   function cr_v8_lt(ml) {
-    // read one index to target and a literal
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -842,16 +741,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       change = true;
     }
 
-    cr_eliminate(offset, SIZEOF_V8);
+    ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
   function cr_8v_lt(ml) {
-    // read one index to target and a literal
-
-    let offset = pc - 1;
-
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -868,30 +766,28 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       change = true;
     }
 
-    cr_eliminate(offset, SIZEOF_8V);
+    ml_eliminate(ml, offset, SIZEOF_8V);
   }
 
   function cr_88_lt(ml) {
-    // read two literals
-
-    let offset = pc - 1;
-
-    let vA = cr_dec8();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     ASSERT_LOG2(' = cr_88_lt', vA, vB);
     if (vA >= vB) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_88);
+    ml_eliminate(ml, offset, SIZEOF_88);
   }
 
   function cr_vv_lte(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -928,20 +824,20 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     // any value in A must be < any value in B
     if (domain_max(A) <= domain_min(B)) {
-      cr_eliminate(offset, SIZEOF_VV);
+      ml_eliminate(ml, offset, SIZEOF_VV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VV;
     }
   }
 
   function cr_v8_lte(ml) {
-    // read one index to target and a literal
-
-    let offset = pc - 1;
-
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -958,16 +854,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       change = true;
     }
 
-    cr_eliminate(offset, SIZEOF_V8);
+    ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
   function cr_8v_lte(ml) {
-    // read one index to target and a literal
-
-    let offset = pc - 1;
-
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -984,42 +879,43 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       change = true;
     }
 
-    cr_eliminate(offset, SIZEOF_8V);
+    ml_eliminate(ml, offset, SIZEOF_8V);
   }
 
   function cr_88_lte(ml) {
-    // read two literals
-
-    let offset = pc - 1;
-
-    let vA = cr_dec8();
-    let vB = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
 
     ASSERT_LOG2(' = cr_88_lte', vA, vB);
     if (vA > vB) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_88);
+    ml_eliminate(ml, offset, SIZEOF_88);
   }
 
   function cr_distinct(ml) {
-    let offset = pc - 1;
-    let count = cr_dec16();
-    let varsOffset = offset + SIZEOF_COUNT;
-    ASSERT(varsOffset === pc, 'pc should be at vars offset');
+    let offset = pc;
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let offsetArgs = offset + SIZEOF_COUNT;
 
-    ASSERT_LOG2(' = cr_distinct', count, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(varsOffset + i * 2)));
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(varsOffset + i * 2)])));
+    ASSERT_LOG2(' = cr_distinct', argCount, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => ml_dec16(ml, offsetArgs + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])));
 
-    let countStart = count;
+    let countStart = argCount;
 
     // a distinct is basically a pyramid of neq's; one for each unique pair of the set
     // to prevent generating an array we'll decode every var during the loop...
     // we loop back to front because we're splicing out vars while looping
-    for (let i = count - 1; i >= 0; --i) {
-      let indexA = cr_dec16pc(varsOffset + i * 2);
+    for (let i = argCount - 1; i >= 0; --i) {
+      let indexA = ml_dec16(ml, offsetArgs + i * 2);
+
       let A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
       ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
       if (!A) return emptyDomain = true;
 
@@ -1029,13 +925,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // if v is solved, remove v from all other domains, then remove v from the list
         for (let j = 0; j >= 0; --j) {
           if (j !== i) {
-            let indexB = cr_dec16pc(varsOffset + j * 2);
+            let indexB = ml_dec16(ml, offsetArgs + j * 2);
             ASSERT(indexA !== indexB, 'same var should not occur multiple times...'); // what about constants? could be artifacts (A=1,B=1,distinct(A,B))
             ASSERT_LOG2('    - loop j=', j, 'index=', indexB, 'domain=', domain__debug(domains[indexB]));
-            let beforeB = getDomainOrRestartForAlias(indexB, SIZEOF_COUNT + j * 2);
-            if (beforeB === MINIMIZE_ALIASED) return; // there was an alias; restart op
-            let B = domains[indexB] = domain_removeValue(beforeB, v);
-            if (B !== beforeB) {
+
+            let oB = getDomainOrRestartForAlias(indexB, SIZEOF_COUNT + j * 2);
+            if (oB === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+            let B = domains[indexB] = domain_removeValue(oB, v);
+            if (B !== oB) {
               ASSERT_LOG2('    -> changed B=', domain__debug(B));
               if (!B) return emptyDomain = true;
               change = true;
@@ -1047,69 +945,61 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - move all indexes bigger than the current back one position
         // - compile the new count back in
         // - compile a NOOP in the place of the last element
-        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', count, ')', i + 1 < count);
-        for (let k = i + 1; k < count; ++k) {
+        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', argCount, ')', i + 1 < argCount);
+        for (let k = i + 1; k < argCount; ++k) {
           ASSERT_LOG2('    - moving ', (k + 1) + 'th var');
-          ml[varsOffset + k * 2] = ml[varsOffset + (k + 1) * 2];
-          ml[varsOffset + k * 2 + 1] = ml[varsOffset + (k + 1) * 2 + 1];
+          ml[offsetArgs + k * 2] = ml[offsetArgs + (k + 1) * 2];
+          ml[offsetArgs + k * 2 + 1] = ml[offsetArgs + (k + 1) * 2 + 1];
         }
-        --count;
+        --argCount;
       }
     }
 
-    if (count <= 1) {
-      ASSERT(count >= 0, 'should be zero or one');
-      ASSERT_LOG2(' - Count is', count, '; eliminating constraint');
-      let sizeof = SIZEOF_COUNT + 2 * countStart;
-      cr_eliminate(offset, sizeof);
-      pc = offset + sizeof;
-      //ASSERT_LOG2(' - ml now:', ml);
-    } else if (count === 2) {
+    if (argCount <= 1) {
+      ASSERT(argCount >= 0, 'should be zero or one');
+      ASSERT_LOG2(' - Count is', argCount, '; eliminating constraint');
+      ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * countStart);
+    } else if (argCount === 2) {
       ASSERT_LOG2(' - Count=2, recompiling to regular neq');
       // recompile as neq
       // list of vars should not have any holes (not even after elimination above) so we can just copy them.
       // ml len of this distinct should be 7 bytes (op=1, count=2, A=2, B=2)
       // note: skip the count when reading!
-      cr_enc8(offset, ML_VV_NEQ);
-      ml[offset + 1] = ml[offset + 3]; // A
-      ml[offset + 2] = ml[offset + 4];
-      ml[offset + 3] = ml[offset + 5]; // B
-      ml[offset + 4] = ml[offset + 6];
+      ml_enc8(ml, offset, ML_VV_NEQ);
+      ml_pump(ml, offsetCount, 0, 2, 4); // copies the first arg over count and the second arg over the first
       // this should open up at least 2 bytes, maybe more, so skip anything from the old op right after the new op
-      cr_skip(offset + SIZEOF_VV, (SIZEOF_COUNT + 2 * countStart) - SIZEOF_VV);
+      ml_skip(ml, offset + SIZEOF_VV, (SIZEOF_COUNT + 2 * countStart) - SIZEOF_VV);
       ASSERT_LOG2(' - changed to a neq');
-      ASSERT_LOG2(' - ml now:', ml);
-      onlyJumps = false;
       pc = offset; // revisit
     } else {
-      if (count !== countStart) {
-        ASSERT_LOG2('  - recompiling new count (', count, ')');
-        cr_enc16(offset + 1, count);
+      if (argCount !== countStart) {
+        ASSERT_LOG2('  - recompiling new count (', argCount, ')');
+        ml_enc16(ml, offset + 1, argCount);
         ASSERT_LOG2('  - compiling noop into empty spots');
-        cr_skip(varsOffset + count * 2, (countStart - count) * 2);
+        ml_skip(ml, offsetArgs + argCount * 2, (countStart - argCount) * 2);
       }
 
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      // skip over the whole op as we knew it at the start...
       pc = offset + SIZEOF_COUNT + countStart * 2;
     }
   }
 
   function cr_plus(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_plus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = cr_plus', '{', indexR, '} = {', indexA, '} ==? {', indexB, '} -->', domain__debug(R), '=', domain__debug(A), '==?', domain__debug(B));
     if (!A || !B || !R) return emptyDomain = true;
 
     let oA = A;
@@ -1153,7 +1043,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     }
 
-    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '+', domain__debug(B));
 
     if (oA !== A || oB !== B || oR !== R) {
       change = true;
@@ -1166,86 +1056,118 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       let vA = domain_getValue(A);
       if (vA >= 0) {
         ASSERT(!domain_isSolved(B) && !domain_isSolved(R), 'case checked earlier');
         if (vA === 0) {
-          ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
+          ASSERT_LOG2(' - A=0 so B+0==R, rewriting op to eq');
           // rewrite to B == R
-          cr_enc8(offset, ML_VV_EQ);
-          cr_enc16(offset + 1, indexR);
-          //cr_enc16(offset+3, indexB); // already the case
-          cr_skip(offset + 5, 2);
+          cr_vvv2vv(ml, offset, ML_VV_EQ, indexR, indexB);
           pc = offset; // revisit
-        } else if (domain_max(B) <= 1 && domain_size(R) === 2) {
-          ASSERT(domain_max(R) > 1, 'if B <= 1 then R must be >1 because R=B+A and A is non-zero and B is not solved (both checked above) so R must be at least [1,2]');
-          // B = R ==? A or B = R !=? A, that depends on max(R)==A
-          ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(R) === vA ? 'B = R ==? A' : 'B = R !=? A'), '->', domain__debug(B), '=', domain__debug(R), (domain_max(R) === vA ?'==?':'!=?'), vA);
-          cr_enc8(offset, domain_max(R) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
-          cr_enc16(offset+1, indexR);
-          cr_enc8(offset+3, vA);
-          cr_enc16(offset+4, indexB);
-          cr_skip(offset+6, 1);
-          pc = offset; // revisit (dont think we need to...)
-        } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
-          // A = R ==? B or A = R !=? B, that depends on max(B)==A
-          ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(B) === vA ? 'R = B ==? A' : 'R = B !=? A'), '->', domain__debug(R), '=', domain__debug(B), (domain_max(B) === vA ?'==?':'!=?'), vA);
-          cr_enc8(offset, domain_max(B) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
-          cr_enc16(offset+1, indexB);
-          cr_enc8(offset+3, vA);
-          cr_enc16(offset+4, indexR);
-          cr_skip(offset+6, 1);
-          pc = offset; // revisit (dont think we need to...)
+        } else {
+          let sizeB = domain_size(B);
+          let sizeR = domain_size(R);
+          maxB = domain_max(B);
+          if (sizeB === 2 && sizeR === 2 && maxB === domain_min(R)) {
+            ASSERT_LOG2(' - A is solved, size(B)=size(R)=2 and max(B)=min(R), so B<R');
+            cr_vvv2vv(ml, offset, ML_VV_LT, indexB, indexR);
+            pc = offset; // revisit
+          } else if (maxB <= 1 && domain_size(R) === 2) {
+            ASSERT(domain_max(R) > 1, 'if B <= 1 then R must be >1 because R=B+A and A is non-zero and B is not solved (both checked above) so R must be at least [1,2]');
+            // B = R ==? A or B = R !=? A, that depends on max(R)==A
+            ASSERT_LOG2(' - A>0,B<=1,size(R)=2. Morphing to iseq: ', (domain_max(R) === vA ? 'B = R ==? A' : 'B = R !=? A'), '->', domain__debug(B), '=', domain__debug(R), (domain_max(R) === vA ? '==?' : '!=?'), vA);
+            cr_vvv2v8v(ml, offset, domain_max(R) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexR, vA, indexB);
+            pc = offset; // revisit (dont think we need to...)
+          } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
+            // A = R ==? B or A = R !=? B, that depends on max(B)==A
+            ASSERT_LOG2(' - A>0 R<=1 and size(B)=2. Morphing to iseq: ', (maxB === vA ? 'R = B ==? A' : 'R = B !=? A'), '->', domain__debug(R), '=', domain__debug(B), (maxB === vA ? '==?' : '!=?'), vA);
+            cr_vvv2v8v(ml, offset, maxB === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexB, vA, indexR);
+            pc = offset; // revisit (dont think we need to...)
+          } else {
+            ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
+            onlyJumps = false;
+            pc = offset + SIZEOF_VVV;
+          }
         }
       } else {
         let vB = domain_getValue(B);
         if (vB >= 0) {
           ASSERT(!domain_isSolved(A) && !domain_isSolved(R), 'case checked earlier');
           if (vB === 0) {
-            ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
+            ASSERT_LOG2(' - B=0 so A+0==R, rewriting op to eq');
             // rewrite to A == R
-            cr_enc8(offset, ML_VV_EQ);
-            //cr_enc16(offset+1, indexA); // already the case
-            cr_enc16(offset+3, indexR);
-            cr_skip(offset+5, SIZEOF_VVV-SIZEOF_VV);
+            cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexR);
             pc = offset; // revisit
-          } else if (domain_max(A) <= 1 && domain_size(R) === 2) {
-            ASSERT(domain_max(R) > 1, 'if A <= 1 then R must be >1 because R=A+B and B is non-zero and A is not solved (both checked above) so R must be at least [1,2]');
-            // A = R ==? B or A = R !=? B, that depends on max(R)==B
-            ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(R) === vB ? 'A = R ==? B' : 'A = R !=? B'), '->', domain__debug(A), '=', domain__debug(R), (domain_max(R) === vB ?'==?':'!=?'), vB);
-            cr_enc8(offset, domain_max(R) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
-            cr_enc16(offset + 1, indexR);
-            cr_enc8(offset + 3, vB);
-            cr_enc16(offset + 4, indexA);
-            cr_skip(offset + 6, 1);
-            pc = offset; // revisit (dont think we need to...)
-          } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
-          // A = R ==? B or A = R !=? B, that depends on max(A)==B
-            ASSERT_LOG2(' - Morphing to iseq: ', (domain_max(A) === vB ? 'R = A ==? B' : 'R = A !=? B'), '->', domain__debug(R), '=', domain__debug(A), (domain_max(A) === vB ?'==?':'!=?'), vB);
-            cr_enc8(offset, domain_max(A) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ);
-            cr_enc16(offset + 1, indexA);
-            cr_enc8(offset + 3, vB);
-            cr_enc16(offset + 4, indexR);
-            cr_skip(offset + 6, 1);
-            pc = offset; // revisit (dont think we need to...)
+          } else {
+            let sizeA = domain_size(A);
+            let sizeR = domain_size(R);
+            maxA = domain_max(A);
+            if (sizeA === 2 && sizeR === 2 && maxA === domain_min(R)) {
+              ASSERT_LOG2(' - B is solved, size(A)=size(R)=2 and max(A)=min(R), so A<R');
+              cr_vvv2vv(ml, offset, ML_VV_LT, indexA, indexR);
+              pc = offset; // revisit
+            } else if (domain_max(A) <= 1 && domain_size(R) === 2) {
+              ASSERT(domain_max(R) > 1, 'if A <= 1 then R must be >1 because R=A+B and B is non-zero and A is not solved (both checked above) so R must be at least [1,2]');
+              // A = R ==? B or A = R !=? B, that depends on max(R)==B
+              ASSERT_LOG2(' - B>0,A<=1,size(R)=2. Morphing to iseq: ', (domain_max(R) === vB ? 'A = R ==? B' : 'A = R !=? B'), '->', domain__debug(A), '=', domain__debug(R), (domain_max(R) === vB ? '==?' : '!=?'), vB);
+              cr_vvv2v8v(ml, offset, domain_max(R) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexR, vB, indexA);
+              pc = offset; // revisit (dont think we need to...)
+            } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
+              // A = R ==? B or A = R !=? B, that depends on max(A)==B
+              ASSERT_LOG2(' - B>0,R<=1,size(R)=2. Morphing to iseq: ', (domain_max(A) === vB ? 'R = A ==? B' : 'R = A !=? B'), '->', domain__debug(R), '=', domain__debug(A), (domain_max(A) === vB ? '==?' : '!=?'), vB);
+              cr_vvv2v8v(ml, offset, domain_max(A) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexA, vB, indexR);
+              pc = offset; // revisit (dont think we need to...)
+            } else {
+              ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
+              onlyJumps = false;
+              pc = offset + SIZEOF_VVV;
+            }
           }
         } else {
-          ASSERT_LOG2(' - not only jumps...');
+          ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
           onlyJumps = false;
+          pc = offset + SIZEOF_VVV;
         }
       }
     }
   }
 
-  function cr_minus(ml) {
-    // read two indexes to target
+  function cr_vvv2vv(ml, offset, opCode, indexA, indexB) {
+    ASSERT_LOG2(' -| cr_vvv2vv |', opCode, indexA, indexB);
+    ml_enc8(ml, offset, opCode);
+    ml_enc16(ml, offset + 1, indexA);
+    ml_enc16(ml, offset + 3, indexB);
+    ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+  }
 
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+  function cr_vvv2v8v(ml, offset, opCode, indexA, constant, indexR) {
+    ASSERT_LOG2(' -| cr_vvv2v8v |', opCode, indexA, constant, indexR);
+    ml_enc8(ml, offset, opCode);
+    ml_enc16(ml, offset + 1, indexA);
+    ml_enc8(ml, offset + 3, constant);
+    ml_enc16(ml, offset + 4, indexR);
+    ml_skip(ml, offset + SIZEOF_V8V, SIZEOF_VVV - SIZEOF_V8V);
+  }
+
+  function cr_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
+    ASSERT_LOG2(' -| cr_v8v2v88 |', opCode, indexA, vB, vR);
+    ml_enc8(ml, offset, opCode);
+    ml_enc16(ml, offset + 1, indexA);
+    ml_enc8(ml, offset + 3, vB);
+    ml_enc8(ml, offset + 4, vR);
+    ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
+  }
+
+  function cr_minus(ml) {
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -1310,36 +1232,38 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else if (domain_getValue(A) === 0) {
       ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
       // rewrite to B == R
-      cr_enc8(offset, ML_VV_EQ);
-      cr_enc16(offset+1, indexR);
-      //cr_enc16(offset+3, indexB); // already the case
-      cr_skip(offset+5, 2);
+      ml_enc8(offset, ML_VV_EQ);
+      ml_enc16(offset + 1, indexR);
+      //ml_enc16(offset+3, indexB); // already the case
+      ml_skip(ml, offset + 5, 2);
       pc = offset; // revisit
     } else if (domain_getValue(B) === 0) {
       ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
       // rewrite to A == R
-      cr_enc8(offset, ML_VV_EQ);
-      //cr_enc16(offset+1, indexA); // already the case
-      cr_enc16(offset+3, indexR);
-      cr_skip(offset+5, 2);
+      ml_enc8(offset, ML_VV_EQ);
+      //ml_enc16(offset+1, indexA); // already the case
+      ml_enc16(offset + 3, indexR);
+      ml_skip(ml, offset + 5, 2);
       pc = offset; // revisit
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_mul(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -1410,20 +1334,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_div(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -1495,18 +1421,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_vvv_isEq(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -1542,24 +1472,20 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vR = domain_getValue(R);
     if (vR === 0) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
-      // compile a neq and restart
-      cr_enc8(offset, ML_VV_NEQ);
-      cr_skip(offset + 1 + 2 + 2, 2);
+      cr_vvv2vv(ml, offset, ML_VV_NEQ, indexA, indexB);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
-      // compile an eq and restart
-      cr_enc8(offset, ML_VV_EQ);
-      cr_skip(offset + 1 + 2 + 2, 2);
+      cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexB);
       pc = offset; // make it repeat with the new eq
       return;
     }
 
     ASSERT(domain_min(R) === 0 && domain_max(R) === 1, 'R wasnt solved so it must be a bool domain at this point');
     if (domain_max(A) < domain_min(B) || domain_min(A) > domain_max(B)) {
-      ASSERT_LOG2(' - no overlap between',indexA,'and',indexB,' (',domain__debug(A), domain__debug(B),') so R becomes 0 and constraint is removed');
+      ASSERT_LOG2(' - no overlap between', indexA, 'and', indexB, ' (', domain__debug(A), domain__debug(B), ') so R becomes 0 and constraint is removed');
       // B is solved but A doesn't contain that value, R becomes 0 and the constraint is removed
       R = domains[indexR] = domain_createValue(0);
       change = true;
@@ -1571,60 +1497,74 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_v8v_isEq(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let R = getDomainOrRestartForAlias(indexR, 4);
-    ASSERT_LOG2(' = cr_v8v_isEq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' = cr_v8v_isEq', '{', indexR, '} = {', indexA, '} ==?', vB, '-->', domain__debug(R), '=', domain__debug(A), '==?', vB);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     if (!A || !R) return emptyDomain = true;
 
+    let vR = domain_getValue(R);
+    if (vR >= 0) {
+      cr_v8v2v88(ml, offset, ML_V88_ISEQ, indexA, vB, vR);
+      pc = offset; // revisit
+      return;
+    }
+
+    // okay, R isnt solved (yet)
     let remove = false;
     let oR = R;
     if (!domain_containsValue(A, vB)) {
-      R = domain_createValue(0);
+      R = domain_createValue(vR = 0);
       remove = true;
     } else if (domain_isSolved(A)) {
       // A and B are solved and A contains B so R=1
-      R = domain_createValue(1);
+      R = domain_createValue(vR = 1);
       remove = true;
+    } else if (domain_min(R) > 1) {
+      return emptyDomain = true;
     } else if (domain_max(R) > 1) {
       R = domain_createRange(0, 1);
     }
 
     if (R !== oR) {
+      ASSERT_LOG2(' - R updated from', domain__debug(oR), 'to', domain__debug(R));
       if (!R) return emptyDomain = true;
       domains[indexR] = R;
       change = true;
     }
 
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
-    let vR = domain_getValue(R);
     if (vR === 0) {
-      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
+      ASSERT_LOG2(' ! vR=0 so changing iseq to neq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_V8_NEQ);
-      cr_skip(offset + 1 + 2 + 1, 2);
+      ml_enc8(ml, offset, ML_V8_NEQ);
+      ml_skip(ml, offset + SIZEOF_V8, 2);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
-      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
+      ASSERT_LOG2(' ! vR=1 so changing iseq to eq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_V8_EQ);
-      cr_skip(offset + 1 + 2 + 1, 2);
+      ml_enc8(ml, offset, ML_V8_EQ);
+      ml_skip(ml, offset + SIZEOF_V8, 2);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1634,7 +1574,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (remove) {
       ASSERT(domain_isSolved(A) && domain_isSolved(R), 'A and R should be solved because otherwise the op should be morphed to a regular eq/neq');
-      cr_eliminate(offset, SIZEOF_V8V);
+      ml_eliminate(ml, offset, SIZEOF_V8V);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
@@ -1644,18 +1584,21 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (vB <= 1 && domain_max(A) === 1) {
         // - B=0: 0==B=1, 1==B=0: A!=R
         // - B=1: 0==B=0, 1==B=1: A==R
-        cr_enc8(offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ);
-        cr_enc16(offset + 1, indexA);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 5, 1);
+        ml_enc8(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ);
+        ml_enc16(ml, offset + 1, indexA);
+        ml_enc16(ml, offset + 3, indexR);
+        ml_skip(ml, offset + 5, 1);
         pc = offset; // revisit
+      } else {
+        pc = offset + SIZEOF_V8V;
       }
     }
   }
 
   function cr_vv8_isEq(ml) {
-    let offset = pc - 1;
-    let vR = cr_dec8pc(offset + 5);
+    let offset = pc;
+    let offsetR = offset + 5;
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_vv8_isEq', vR, 'immediately recompile to eq or neq');
 
@@ -1663,8 +1606,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 0) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_VV_NEQ);
-      cr_skip(offset + 1 + 2 + 2, 1);
+      ml_enc8(ml, offset, ML_VV_NEQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1672,8 +1615,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_VV_EQ);
-      cr_skip(offset + 1 + 2 + 2, 1);
+      ml_enc8(ml, offset, ML_VV_EQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1683,10 +1626,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_88v_isEq(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -1704,19 +1650,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
-    cr_eliminate(offset, SIZEOF_88V);
+    ml_eliminate(ml, offset, SIZEOF_88V);
   }
 
   function cr_v88_isEq(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v88_isEq', indexA, domain__debug(A), vB, vR);
+    ASSERT_LOG2(' = cr_v88_isEq', vR, '= {', indexA, '} ==?', vB, ' --> ', vR, '=', domain__debug(A), '==?', vB);
     if (!A) return emptyDomain = true;
     if (vR > 1) return emptyDomain = true; // R must be bool bound
 
@@ -1731,20 +1680,24 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (!A) return emptyDomain = true;
     }
     if (A !== oA) {
+      ASSERT_LOG2(' - A (', indexA, ') changed from', domain__debug(oA), 'to', domain__debug(A));
       domains[indexA] = A;
       change = true;
     }
 
-    ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
+    ASSERT_LOG2(' ->', vR, '=', domain__debug(A), '==?', vB);
 
-    cr_eliminate(offset, SIZEOF_V88);
+    ml_eliminate(ml, offset, SIZEOF_V88);
   }
 
   function cr_888_isEq(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
     ASSERT_LOG2(' - already resolved, only need to verify it');
@@ -1753,16 +1706,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // isEq !== shouldEq
     if ((vA === vB) !== (vR === 1)) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_888);
+    ml_eliminate(ml, offset, SIZEOF_888);
   }
 
   function cr_vvv_isNeq(ml) {
-    // read two indexes to target
-
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -1784,9 +1738,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         return emptyDomain = true;
       }
     } else {
+      if (domain_min(R) > 1) return emptyDomain = true;
       if (domain_max(R) > 1) {
         ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
-        ASSERT(domain_min(R) === 0, 'should be min zero');
+        ASSERT(domain_min(R) === 0, 'should be min zero'); // TODO: why? we havent asserted it not being solved yet
         R = domains[indexR] = domain_createRange(0, 1);
         change = true;
       }
@@ -1797,16 +1752,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 0) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_VV_EQ);
-      cr_skip(offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+      ml_enc8(ml, offset, ML_VV_EQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_VV_NEQ);
-      cr_skip(offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+      ml_enc8(ml, offset, ML_VV_NEQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1816,18 +1771,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
-      cr_eliminate(offset, SIZEOF_VVV);
+      ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_v8v_isNeq(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let R = getDomainOrRestartForAlias(indexR, 4);
@@ -1844,31 +1803,32 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       R = domains[indexR] = domain_createValue(result);
       change = true;
 
-      cr_eliminate(offset, SIZEOF_V8V);
+      ml_eliminate(ml, offset, SIZEOF_V8V);
       return;
     }
 
     if (domain_max(R) > 1) {
+      if (domain_min(R) > 1) return emptyDomain = true;
       ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
-      R = domains[indexR] = domain_createRange(0, 1);
+      R = domains[indexR] = domain_createRange(0, 1); // TODO: we havent asserted R isnt solved so this isnt safe
       if (!R) return emptyDomain = true;
       change = true;
     }
 
     let vR = domain_getValue(R);
     if (vR === 0) {
-      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
+      ASSERT_LOG2(' ! vR=0 so changing isneq to eq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_V8_NEQ);
-      cr_skip(offset + 1 + 2 + 1, 2);
+      ml_enc8(ml, offset, ML_V8_EQ);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
-      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
+      ASSERT_LOG2(' ! vR=1 so changing isneq to neq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_V8_EQ);
-      cr_skip(offset + 1 + 2 + 1, 2);
+      ml_enc8(ml, offset, ML_V8_NEQ);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1884,17 +1844,20 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vB <= 1 && domain_max(A) === 1) {
       // - B=0: 0!=B=0, 1!=B=1: A==R
       // - B=1: 0!=B=1, 1!=B=0: A!=R
-      cr_enc8(offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ);
-      cr_enc16(offset + 1, indexA);
-      cr_enc16(offset + 3, indexR);
-      cr_skip(offset + 5, 1);
+      ml_enc8(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ);
+      ml_enc16(ml, offset + 1, indexA);
+      ml_enc16(ml, offset + 3, indexR);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
       pc = offset; // revisit
+    } else {
+      pc = offset + SIZEOF_V8V;
     }
   }
 
   function cr_vv8_isNeq(ml) {
-    let offset = pc - 1;
-    let vR = cr_dec8pc(offset + 5);
+    let offset = pc;
+    let offsetR = offset + 4;
+    let vR = ml_dec16(ml, offsetR);
 
     ASSERT_LOG2(' = cr_vv8_isNeq', vR, 'immediately recompile to neq or eq');
 
@@ -1902,8 +1865,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 0) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
       // compile a neq and restart
-      cr_enc8(offset, ML_VV_EQ);
-      cr_skip(offset + 1 + 2 + 2, 1);
+      ml_enc8(ml, offset, ML_VV_EQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
       pc = offset; // make it repeat with the new neq
       return;
     }
@@ -1911,8 +1874,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
       // compile an eq and restart
-      cr_enc8(offset, ML_VV_NEQ);
-      cr_skip(offset + 1 + 2 + 2, 1);
+      ml_enc8(ml, offset, ML_VV_NEQ);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1922,10 +1885,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_88v_isNeq(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -1943,14 +1909,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
-    cr_eliminate(offset, SIZEOF_88V);
+    ml_eliminate(ml, offset, SIZEOF_88V);
   }
 
   function cr_v88_isNeq(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -1975,14 +1944,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
-    cr_eliminate(offset, SIZEOF_V88);
+    ml_eliminate(ml, offset, SIZEOF_V88);
   }
 
   function cr_888_isNeq(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
     ASSERT_LOG2(' - already resolved, only need to verify it');
@@ -1991,14 +1963,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // isNeq !== shouldNeq
     if ((vA !== vB) !== (vR === 1)) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_888);
+    ml_eliminate(ml, offset, SIZEOF_888);
   }
 
   function cr_vvv_isLt(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -2027,28 +2002,32 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_VV_LT);
-      cr_skip(offset + 5, 2); // skip the R
+      ml_enc8(ml, offset, ML_VV_LT);
+      ml_skip(ml, offset + 5, 2); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
       // replace isLt with a regular lte
-      cr_enc8(offset, ML_VV_LTE);
-      cr_enc16(offset + 1, indexB);
-      cr_enc16(offset + 3, indexA);
-      cr_skip(offset + 5, 2);
+      ml_enc8(ml, offset, ML_VV_LTE);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc16(ml, offset + 3, indexA);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_8vv_isLt(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 4;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     let R = getDomainOrRestartForAlias(indexR, 4);
@@ -2076,20 +2055,18 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_8V_LT);
-      cr_enc8(offset + 1, vA);
-      cr_enc16(offset + 2, indexB);
-      // len was 6 (1+1+2+2), now 4
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_8V_LT);
+      ml_enc8(ml, offset + 1, vA);
+      ml_enc16(ml, offset + 2, indexB);
+      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
       // replace isLt with a regular lte, with inverted args
-      cr_enc8(offset, ML_V8_LTE);
-      cr_enc16(offset + 1, indexB);
-      cr_enc8(offset + 3, vA);
-      // len was 6 (1+1+2+2), now 4
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_V8_LTE);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc8(ml, offset + 3, vA);
+      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2102,20 +2079,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - A=1: A<0=0, A<1=0: R=0, remove constraint (already done above)
         ASSERT(vA === 0, 'the path for A=1 is handled above');
 
-        cr_enc8(offset, ML_VV_EQ);
-        cr_enc16(offset + 1, indexB);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 5, 1);
+        ml_enc8(offset, ML_VV_EQ);
+        ml_enc16(offset + 1, indexB);
+        ml_enc16(offset + 3, indexR);
+        ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
         pc = offset; // revisit
+      } else {
+        pc = offset + SIZEOF_8VV;
       }
     }
   }
 
   function cr_v8v_isLt(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let R = getDomainOrRestartForAlias(indexR, 4);
@@ -2143,20 +2125,18 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_V8_LT);
-      cr_enc16(offset + 1, indexA);
-      cr_enc8(offset + 3, vB);
-      // op was 6 bytes, now 4 bytes
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_V8_LT);
+      ml_enc16(ml, offset + 1, indexA);
+      ml_enc8(ml, offset + 3, vB);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
       // replace isLt with a regular lte, inverted args
-      cr_enc8(offset, ML_8V_LTE);
-      cr_enc8(offset + 1, vB);
-      cr_enc16(offset + 2, indexA);
-      // op was 6 bytes, now 4 bytes
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_8V_LTE);
+      ml_enc8(ml, offset + 1, vB);
+      ml_enc16(ml, offset + 2, indexA);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2169,20 +2149,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - B=1: 0<B=1, 1<B=0: A!=R
         ASSERT(vB === 0, 'the path for B=0 is handled above');
 
-        cr_enc8(offset, ML_VV_NEQ);
-        cr_enc16(offset + 1, indexA);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 5, 1);
+        ml_enc8(offset, ML_VV_NEQ);
+        ml_enc16(offset + 1, indexA);
+        ml_enc16(offset + 3, indexR);
+        ml_skip(ml, offset + 5, 1);
         pc = offset; // revisit
+      } else {
+        pc = offset + SIZEOF_V8V;
       }
     }
   }
 
   function cr_vv8_isLt(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -2199,16 +2184,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_VV_LT);
-      cr_skip(offset + 5, 1); // skip the R
+      ml_enc8(ml, offset, ML_VV_LT);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
       // replace isLt with a regular lte
-      cr_enc8(offset, ML_VV_LTE);
-      cr_enc16(offset + 1, indexB);
-      cr_enc16(offset + 3, indexA);
-      cr_skip(offset + 5, 1); // skip the R
+      ml_enc8(ml, offset, ML_VV_LTE);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc16(ml, offset + 3, indexA);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -2217,10 +2202,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_88v_isLt(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2238,16 +2226,19 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       domains[indexR] = R;
     }
 
-    cr_eliminate(offset, SIZEOF_88V);
+    ml_eliminate(ml, offset, SIZEOF_88V);
   }
 
   function cr_v88_isLt(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
-    let A = getDomainOrRestartForAlias(indexA);
+    let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
@@ -2264,14 +2255,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!A) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_V88);
+    ml_eliminate(ml, offset, SIZEOF_V88);
   }
 
   function cr_8v8_isLt(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 4;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2290,28 +2284,34 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!B) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_8V8);
+    ml_eliminate(ml, offset, SIZEOF_8V8);
   }
 
   function cr_888_isLt(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_888_isLt', vA, vB, vR);
 
     // just check
     if ((vA < vB) !== (vR === 1)) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_888);
+    ml_eliminate(ml, offset, SIZEOF_888);
   }
 
   function cr_vvv_isLte(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -2340,28 +2340,32 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_VV_LTE);
-      cr_skip(offset + 5, 2); // skip the R
+      ml_enc8(ml, offset, ML_VV_LTE);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte
-      cr_enc8(offset, ML_VV_LT);
-      cr_enc16(offset + 1, indexB);
-      cr_enc16(offset + 3, indexA);
-      cr_skip(offset + 5, 2); // skip the R
+      ml_enc8(ml, offset, ML_VV_LT);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc16(ml, offset + 3, indexA);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
     }
   }
 
   function cr_8vv_isLte(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 4;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     let R = getDomainOrRestartForAlias(indexR, 4);
@@ -2389,20 +2393,18 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_8V_LTE);
-      cr_enc8(offset + 1, vA);
-      cr_enc16(offset + 2, indexB);
-      // len was 6 (1+1+2+2), now 4
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_8V_LTE);
+      ml_enc8(ml, offset + 1, vA);
+      ml_enc16(ml, offset + 2, indexB);
+      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte, with inverted args
-      cr_enc8(offset, ML_V8_LT);
-      cr_enc16(offset + 1, indexB);
-      cr_enc8(offset + 3, vA);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_V8_LT);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc8(ml, offset + 3, vA);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_8VV - SIZEOF_V8);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2415,20 +2417,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - A=1: A<=0=0, A<=1=1: B==R
         ASSERT(vA === 1, 'the path for A=0 is handled above');
 
-        cr_enc8(offset, ML_VV_EQ);
-        cr_enc16(offset + 1, indexB);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 5, 1);
+        ml_enc8(ml, offset, ML_VV_EQ);
+        ml_enc16(ml, offset + 1, indexB);
+        ml_enc16(ml, offset + 3, indexR);
+        ml_skip(ml, offset + 5, 1);
         pc = offset; // revisit
+      } else {
+        pc = offset + SIZEOF_8VV;
       }
     }
   }
 
   function cr_v8v_isLte(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let R = getDomainOrRestartForAlias(indexR, 4);
@@ -2456,20 +2463,18 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_V8_LTE);
-      cr_enc16(offset + 1, indexA);
-      cr_enc8(offset + 3, vB);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_V8_LTE);
+      ml_enc16(ml, offset + 1, indexA);
+      ml_enc8(ml, offset + 3, vB);
+      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte, inverted args
-      cr_enc8(offset, ML_8V_LT);
-      cr_enc8(offset + 1, vB);
-      cr_enc16(offset + 2, indexA);
-      // len was 6 (1+1+2+2), now 4, so noop2
-      cr_skip(offset + 4, 2);
+      ml_enc8(ml, offset, ML_8V_LT);
+      ml_enc8(ml, offset + 1, vB);
+      ml_enc16(ml, offset + 2, indexA);
+      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2482,20 +2487,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - B=1: 0<=B=1, 1<=B=1: R=1, remove constraint (already done above)
         ASSERT(vB === 0, 'the path for A=1 is handled above');
 
-        cr_enc8(offset, ML_VV_NEQ);
-        cr_enc16(offset + 1, indexA);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 5, 1);
+        ml_enc8(ml, offset, ML_VV_NEQ);
+        ml_enc16(ml, offset + 1, indexA);
+        ml_enc16(ml, offset + 3, indexR);
+        ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
         pc = offset; // revisit
+      } else {
+        pc = offset + SIZEOF_V8V;
       }
     }
   }
 
   function cr_vv8_isLte(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let indexB = cr_dec16();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);
@@ -2512,16 +2522,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
       // replace isLt with regular lt
-      cr_enc8(offset, ML_VV_LTE);
-      cr_skip(offset + 5, 1); // skip the R
+      ml_enc8(ml, offset, ML_VV_LTE);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte
-      cr_enc8(offset, ML_VV_LT);
-      cr_enc16(offset + 1, indexB);
-      cr_enc16(offset + 3, indexA);
-      cr_skip(offset + 5, 1); // skip the R
+      ml_enc8(ml, offset, ML_VV_LT);
+      ml_enc16(ml, offset + 1, indexB);
+      ml_enc16(ml, offset + 3, indexA);
+      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -2530,10 +2540,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   }
 
   function cr_88v_isLte(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let indexR = cr_dec16();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
 
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2551,14 +2564,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       domains[indexR] = R;
     }
 
-    cr_eliminate(offset, SIZEOF_88V);
+    ml_eliminate(ml, offset, SIZEOF_88V);
   }
 
   function cr_v88_isLte(ml) {
-    let offset = pc - 1;
-    let indexA = cr_dec16();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 4;
+    let indexA = ml_dec16(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2577,14 +2593,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!A) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_V88);
+    ml_eliminate(ml, offset, SIZEOF_V88);
   }
 
   function cr_8v8_isLte(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let indexB = cr_dec16();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 4;
+    let vA = ml_dec8(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2603,41 +2622,45 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!B) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_8V8);
+    ml_eliminate(ml, offset, SIZEOF_8V8);
   }
 
   function cr_888_isLte(ml) {
-    let offset = pc - 1;
-    let vA = cr_dec8();
-    let vB = cr_dec8();
-    let vR = cr_dec8();
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 2;
+    let offsetR = offset + 3;
+    let vA = ml_dec8(ml, offsetA);
+    let vB = ml_dec8(ml, offsetB);
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_888_isLte', vA, vB, vR);
 
     // just check
     if ((vA <= vB) !== (vR === 1)) return emptyDomain = true;
 
-    cr_eliminate(offset, SIZEOF_888);
+    ml_eliminate(ml, offset, SIZEOF_888);
   }
 
   function cr_sum(ml) {
-    let offset = pc - 1;
-    ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset+10));
-    let sumArgCount = cr_dec16();
-    let startSumArgCount = sumArgCount;
-    ASSERT_LOG2(' - ml for this sum:', ml.slice(offset, offset+SIZEOF_C8_COUNT + 2*sumArgCount+2));
-    let fixedConstant = cr_dec8();
-    let oplen = SIZEOF_C8_COUNT + sumArgCount * 2 + 2;
-    let varsOffset = offset + SIZEOF_C8_COUNT;
+    let offset = pc;
+    ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset + 10));
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let offsetConstant = offset + 3;
+    let fixedConstant = ml_dec8(ml, offsetConstant);
+    let oplen = SIZEOF_C8_COUNT + argCount * 2 + 2;
+    ASSERT_LOG2(' - ml for this sum:', ml.slice(offset, offset + oplen));
+    let offsetArgs = offset + SIZEOF_C8_COUNT;
+    let offsetR = offsetArgs + argCount * 2;
+    let indexR = ml_dec16(ml, offsetR);
 
-    let offsetR = varsOffset + sumArgCount * 2;
-    let indexR = cr_dec16pc(offsetR);
-    let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8_COUNT + sumArgCount * 2);
-    ASSERT_LOG2(' - offset R =', offsetR, 'indexR=',indexR, 'R=',domain__debug(R));
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8_COUNT + argCount * 2);
+    ASSERT_LOG2(' - offset R =', offsetR, 'indexR=', indexR, 'R=', domain__debug(R));
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_sum', sumArgCount, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(sumArgCount)).map((n, i, x) => (x=cr_dec16pc(varsOffset + i * 2))+'=>'+domain__debug(domains[x])).join(' '));
+    ASSERT_LOG2(' = cr_sum', argCount, 'x');
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
     ASSERT_LOG2(' - start loop, backwards');
 
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
@@ -2652,9 +2675,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let sumLo = 0;
     let sumHi = 0;
-    for (let i = sumArgCount - 1; i >= 0; --i) {
+    for (let i = argCount - 1; i >= 0; --i) {
       let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
-      let indexA = cr_dec16pc(offset + indexOffsetDelta);
+      let indexA = ml_dec16(ml, offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
@@ -2691,9 +2714,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let constantSum = 0;
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
-    for (let i = 0; i < sumArgCount; ++i) {
+    for (let i = 0; i < argCount; ++i) {
       let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
-      let indexA = cr_dec16pc(offset + indexOffsetDelta);
+      let indexA = ml_dec16(ml, offset + indexOffsetDelta);
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       let oA = A;
@@ -2717,13 +2740,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     }
 
-    ASSERT_LOG2(' -> There are now', constants, 'constants and', sumArgCount - constants, 'non-constants left. Constants sum to', constantSum);
-    ASSERT_LOG2(constants && !constantSum && (sumArgCount-constants) <= 2 ? ' - Dropping the zero-valued constants and rewriting the remaining args' : ' - No zero-valued constants to drop');
-    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(sumArgCount)).map((n, i) => domain__debug(domains[cr_dec16pc(varsOffset + i * 2)])).join(' '), ' Result:', domain__debug(R));
+    ASSERT_LOG2(' -> There are now', constants, 'constants and', argCount - constants, 'non-constants left. Constants sum to', constantSum);
+    ASSERT_LOG2(constants && !constantSum && (argCount - constants) <= 2 ? ' - Dropping the zero-valued constants and rewriting the remaining args' : ' - No zero-valued constants to drop');
+    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
-    if (sumArgCount - constants === (constantSum ? 1 : 2)) {
+    if (argCount - constants === (constantSum ? 1 : 2)) {
       ASSERT_LOG2(' - Two concrete vars/values left to sum, rewriting to a plus');
-      ASSERT_LOG2(' - Var 1 is the', var1, 'th arg and var 2 is', (constantSum ? 'the constant ' +constantSum : 'the '+var2+'th arg'));
+      ASSERT_LOG2(' - Var 1 is the', var1, 'th arg and var 2 is', (constantSum ? 'the constant ' + constantSum : 'the ' + var2 + 'th arg'));
       ASSERT(constantSum ? var2 === -1 : var2 >= 0, 'if there are non-zero constants there should not be a second non-constant here otherwise expecting a second var');
       // there are either two non-constants and no constants,
       // or one non-constant and some constants left
@@ -2732,53 +2755,50 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // compile a jmp for the unused var fields
 
       // TODO: note: use the plus opcode that accepts a literal
-      let newIndexA = cr_dec16pc(varsOffset + var1 * 2);
-      let newIndexB = constants ? getVar(addVar(undefined, constantSum, undefined, true)) : cr_dec16pc(varsOffset + var2 * 2);
+      let newIndexA = ml_dec16(ml, offsetArgs + var1 * 2);
+      let newIndexB = constants ? getVar(addVar(undefined, constantSum, undefined, true)) : ml_dec16(ml, offsetArgs + var2 * 2);
 
-      ASSERT(sumArgCount >= 2, 'need at least two vars to have enough space for a plus');
-      cr_enc8(offset, ML_PLUS);
-      cr_enc16(offset + 1, newIndexA);
-      cr_enc16(offset + 3, newIndexB);
-      cr_enc16(offset + 5, indexR);
-
-      cr_skip(offset + 7, (SIZEOF_C8_COUNT + sumArgCount * 2 + 2) - SIZEOF_VVV);
+      ASSERT(argCount >= 2, 'need at least two vars to have enough space for a plus');
+      ml_enc8(ml, offset, ML_PLUS);
+      ml_enc16(ml, offset + 1, newIndexA);
+      ml_enc16(ml, offset + 3, newIndexB);
+      ml_enc16(ml, offset + 5, indexR);
+      ml_skip(ml, offset + SIZEOF_VVV, oplen - SIZEOF_VVV);
 
       ASSERT_LOG2(' - Changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
       ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
-    } else if (!constantSum && (sumArgCount - constants) === 1) { // ignore the constants that are zero!
-      ASSERT_LOG2(' - One concrete vars/values left to sum (sum arg index',var1,'), rewriting to an eq');
+    } else if (!constantSum && (argCount - constants) === 1) { // ignore the constants that are zero!
+      ASSERT_LOG2(' - One concrete vars/values left to sum (sum arg index', var1, '), rewriting to an eq');
       // artifact; a sum with exactly one var is just an eq to R
       ASSERT(!constantSum && var1 >= 0 && var2 < 0, 'should have found exactly one var', 'constants:', constants, 'constantSum:', constantSum, 'var1:', var1, 'var2:', var2);
 
-      let newIndexA = cr_dec16pc(varsOffset + var1 * 2);
+      let newIndexA = ml_dec16(ml, offsetArgs + var1 * 2);
 
       // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
       if (minR === maxR) {
         ASSERT_LOG2(' - compiling ML_V8_EQ because R solved to', minR);
-        cr_enc8(offset, ML_V8_EQ);
-        cr_enc16(offset + 1, newIndexA);
-        ASSERT(minR <= 255, 'support 16bit if this fails');
-        cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
-
-        cr_skip(offset + 5, (SIZEOF_C8_COUNT + sumArgCount * 2 + 2) - SIZEOF_V8);
+        ml_enc8(ml, offset, ML_V8_EQ);
+        ml_enc16(ml, offset + 1, newIndexA);
+        ASSERT(minR <= 255, 'support 16bit if this fails'); // TODO: just support it by compiling it as a new anonymous (solved) var
+        ml_enc8(ml, offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
+        ml_skip(ml, offset + SIZEOF_V8, oplen - SIZEOF_V8);
       } else {
         ASSERT_LOG2(' - compiling ML_VV_EQ because R is not yet solved', minR, maxR);
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
         // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
-        cr_enc8(offset, ML_VV_EQ);
-        cr_enc16(offset + 1, newIndexA);
-        cr_enc16(offset + 3, indexR);
-
-        cr_skip(offset + 5, (SIZEOF_C8_COUNT + sumArgCount * 2 + 2) - SIZEOF_VV);
+        ml_enc8(ml, offset, ML_VV_EQ);
+        ml_enc16(ml, offset + 1, newIndexA);
+        ml_enc16(ml, offset + 3, indexR);
+        ml_skip(ml, offset + SIZEOF_VV, oplen - SIZEOF_VV);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
-    } else if (sumArgCount - constants === 0) {
+    } else if (argCount - constants === 0) {
       // eliminate. skip (count+1)*2+2 bytes
       ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
@@ -2790,58 +2810,63 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         domains[indexR] = R;
       }
 
-      cr_eliminate(offset, SIZEOF_C8_COUNT + sumArgCount * 2 + 2); // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+8bit+n*16bit+16bit
-      ASSERT_LOG2(' - ml now:', ml);
-      pc = offset + oplen;
+      ml_eliminate(ml, offset, SIZEOF_C8_COUNT + argCount * 2 + 2); // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+8bit+n*16bit+16bit
     } else if (constants) {
       ASSERT_LOG2(' - Unable to morph but there are', constants, 'constants to consolidate to value', constantSum + fixedConstant);
       ASSERT((constantSum + fixedConstant) < 256, 'TODO: support >8bit');
       // there are constants and they did not morph or eliminate the constraint; consolidate them.
-      cr_enc16(offset+1, sumArgCount - constants);
-      cr_enc8(offset + 3, constantSum + fixedConstant);
+      ml_enc16(ml, offset + 1, argCount - constants);
+      ml_enc8(ml, offset + 3, constantSum + fixedConstant);
       // loop through the constants and move non-constants to the left
       ASSERT_LOG2(' - Moving constants out...');
       let tgtIndex = 0;
-      for (let i=0; i<sumArgCount; ++i) {
+      for (let i = 0; i < argCount; ++i) {
         let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
-        let indexA = cr_dec16pc(offset + indexOffsetDelta);
+        let indexA = ml_dec16(ml, offset + indexOffsetDelta);
         let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
         ASSERT_LOG2('   - index:', indexA, 'domain:', domain__debug(A), 'constant:', domain_isSolved(A));
         ASSERT(A !== MINIMIZE_ALIASED, 'A didnt change so it shouldnt have been aliased since last explicit check');
         if (!domain_isSolved(A)) {
           ASSERT_LOG2('     - not a constant so moving 2 bytes from', offset + indexOffsetDelta, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
           // move forward (wont change anything until a constant was skipped...)
-          cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offset + indexOffsetDelta));
-          cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offset + indexOffsetDelta + 1));
+          ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta));
+          ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta + 1));
         }
       }
       ASSERT_LOG2(' - Non-constants should now all be moved to the left. Moving result var from', offsetR, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
-      cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offsetR));
-      cr_enc8(offset + SIZEOF_C8_COUNT + tgtIndex++, cr_dec8pc(offsetR+  1));
-      ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8_COUNT + (sumArgCount - constants) * 2 + 2);
+      ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offsetR));
+      ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offsetR + 1));
+      ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2);
       // now "blank out" the remainder
-      cr_skip(offset + SIZEOF_C8_COUNT + (sumArgCount - constants) * 2 + 2, constants * 2);
+      ml_skip(ml, offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2, constants * 2);
       pc = offset; // TODO: temp while debugging + oplen;
     } else {
-      ASSERT(sumArgCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', sumArgCount, 'constants', constants, 'count-constants', sumArgCount - constants, 'constantsum', constantSum);
+      ASSERT(argCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', argCount, 'constants', constants, 'count-constants', argCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + SIZEOF_C8_COUNT + sumArgCount * 2 + 2; // skip the 16bit indexes manually
+      pc = offset + SIZEOF_C8_COUNT + argCount * 2 + 2; // skip the 16bit indexes manually
     }
-    ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset+SIZEOF_C8_COUNT + 2*sumArgCount+2));
+    ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset + SIZEOF_C8_COUNT + 2 * argCount + 2));
   }
 
   function cr_product(ml) {
-    let offset = pc - 1;
-    let count = cr_dec16();
+    let offset = pc;
+    ASSERT_LOG2(' - parsing product:', ml.slice(offset, offset + 10));
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let argLen = argCount * 2;
+    let oplen = SIZEOF_COUNT + argLen + 2;
+    ASSERT_LOG2(' - ml for this product:', ml.slice(offset, offset + oplen));
+    let offsetArgs = offset + SIZEOF_COUNT;
+    let offsetR = offsetArgs + argLen;
+    let indexR = ml_dec16(ml, offsetR);
 
-    let indexR = cr_dec16pc(offset + 1 + 2 + count * 2);
-    let R = getDomainOrRestartForAlias(indexR);
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_product', count, 'x');
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => cr_dec16pc(pc + i * 2)));
-    ASSERT_LOG2('  -', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '));
+    ASSERT_LOG2(' = cr_product', argCount, 'x');
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
+    ASSERT_LOG2(' - start loop, backwards');
 
     // a product is basically a pyramid of muls; (A*B)*(C*D) etc
     // to prevent generating an array we'll decode every var during the loop...
@@ -2855,9 +2880,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let productLo = 1;
     let productHi = 1;
-    for (let i = count - 1; i >= 0; --i) {
-      let indexA = cr_dec16pc(pc + i * 2);
-      let A = getDomainOrRestartForAlias(indexA, 1 + 2 + i * 2);
+    for (let i = argCount - 1; i >= 0; --i) {
+      let indexA = ml_dec16(ml, offsetArgs + i * 2);
+      let A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+      ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       if (!A) return emptyDomain = true;
       let min = domain_min(A);
@@ -2892,8 +2918,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let constantsProduct = 1;
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
-    for (let i = 0; i < count; ++i) {
-      let indexA = cr_dec16pc(pc + i * 2);
+    for (let i = 0; i < argCount; ++i) {
+      let indexA = ml_dec16(ml, offsetArgs + i * 2);
       let A = getDomainOrRestartForAlias(indexA, 1 + 2 + i * 2);
       if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
       let oA = A;
@@ -2920,10 +2946,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     }
 
-    ASSERT_LOG2(' -> There are now', constants, 'constants and', count - constants, 'non-constants left. Constants mul to', constantsProduct);
-    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(count)).map((n, i) => domain__debug(domains[cr_dec16pc(pc + i * 2)])).join(' '), ' Result:', domain__debug(R));
+    ASSERT_LOG2(' -> There are now', constants, 'constants and', argCount - constants, 'non-constants left. Constants mul to', constantsProduct);
+    ASSERT_LOG2(' -> Result of vars: ', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])).join(' '), ' Result:', domain__debug(R));
 
-    if (count - constants === (constants ? 1 : 2)) {
+    if (argCount - constants === (constants ? 1 : 2)) {
       ASSERT(constants ? var2 === -1 : var2 >= 0, 'if there are constants there should not be a second non-constant here otherwise expecting a second var');
       // there are either two non-constants and no constants,
       // or one non-constant and some constants left
@@ -2932,51 +2958,48 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // compile a jmp for the unused var fields
 
       // TODO: note: use the mul opcode that accepts a literal
-      let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
-      let newIndexB = constants ? getVar(addVar(undefined, constantsProduct, undefined, true)) : cr_dec16pc(offset + 3 + var2 * 2);
+      let newIndexA = ml_dec16(ml, offsetArgs + var1 * 2);
+      let newIndexB = constants ? getVar(addVar(undefined, constantsProduct, undefined, true)) : ml_dec16(ml, offsetArgs + var2 * 2);
 
-      ASSERT(count >= 2, 'need at least two vars to have enough space for a plus');
-      cr_enc8(offset, ML_MUL);
-      cr_enc16(offset + 1, newIndexA);
-      cr_enc16(offset + 3, newIndexB);
-      cr_enc16(offset + 5, indexR);
+      ASSERT(argCount >= 2, 'need at least two vars to have enough space for a plus');
+      ml_enc8(ml, offset, ML_MUL);
+      ml_enc16(ml, offset + 1, newIndexA);
+      ml_enc16(ml, offset + 3, newIndexB);
+      ml_enc16(ml, offset + 5, indexR);
 
       // this distinct has at least two var args. a distinct of 2+ takes 1+2+n*2
       // bytes. a plus takes 1+2+2+2 bytes. so this morph should be fine.
-      // if the distinct had more than two vars, skip the rest.
-      ASSERT_LOG2(' - len=2 so just a noop2 for the count');
-      cr_skip(offset + 1 + 2 + 2 + 2, 2 + (count - 2) * 2);
+      ml_skip(ml, offset + SIZEOF_VVV, oplen - SIZEOF_VVV);
 
       ASSERT_LOG2(' - changed to a mul on index', newIndexA, 'and', (constants ? 'constant value ' + constantsProduct : 'index ' + newIndexB));
-      ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
-    } else if (!constants && count === 1) {
+    } else if (!constants && argCount === 1) {
       // artifact; a product with exactly one var is just an eq to R
       ASSERT(!constants && var1 >= 0 && var2 < 0, 'should have found exactly one var');
 
-      let newIndexA = cr_dec16pc(offset + 3 + var1 * 2);
+      let newIndexA = ml_dec16(ml, offsetArgs + var1 * 2);
 
       // if R is a constant we use ML_V8_EQ and otherwise ML_VV_EQ
       if (minR === maxR) {
-        cr_enc8(offset, ML_V8_EQ);
-        cr_enc16(offset + 1, newIndexA);
-        cr_enc8(offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
-        cr_skip(offset + 1 + 2 + 1, 3);
+        ml_enc8(ml, offset, ML_V8_EQ);
+        ml_enc16(ml, offset + 1, newIndexA);
+        ml_enc8(ml, offset + 3, minR); // this can fail if R solved to >255.. that requires 16 or 32bit support here
+        ml_skip(ml, offset + SIZEOF_V8, oplen - SIZEOF_V8);
       } else {
         // the len of this sum is op+len+var+R or 1 + 2 + 2 + 2 = 7. the len
         // of an eq is 5 (1+2+2) so just replace it and append a noop2 to it
-        cr_enc8(offset, ML_VV_EQ);
-        cr_enc16(offset + 1, newIndexA);
-        cr_enc16(offset + 3, indexR);
-        cr_skip(offset + 1 + 2 + 2, 2);
+        ml_enc8(ml, offset, ML_VV_EQ);
+        ml_enc16(ml, offset + 1, newIndexA);
+        ml_enc16(ml, offset + 3, indexR);
+        ml_skip(ml, offset + SIZEOF_VV, oplen - SIZEOF_VV);
       }
 
       ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
-    } else if (count - constants === 0) {
+    } else if (argCount - constants === 0) {
       // eliminate. skip (count+1)*2+2 bytes
       ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
@@ -2987,29 +3010,22 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         change = true;
         domains[indexR] = R;
       }
-      let delta = 1 + 2 + count * 2 + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
-      cr_eliminate(offset, delta);
-      ASSERT_LOG2(' - ml now:', ml);
-      pc = offset + delta;
+      let delta = SIZEOF_COUNT + argLen + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit
+      ml_eliminate(ml, offset, delta);
     } else {
-      ASSERT(count - constants > 2, 'There no other valid options here');
+      ASSERT(argCount - constants > 2, 'There no other valid options here');
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + 1 + 2 + count * 2 + 2; // skip the 16bit indexes manually
+      pc = offset + SIZEOF_COUNT + argLen + 2; // skip the 16bit indexes manually
     }
   }
-}
-
-function cr_stabilize(ml, domains) {
-
 }
 
 // BODY_STOP
 
 export {
- MINIMIZER_STABLE,
- MINIMIZER_SOLVED,
- MINIMIZER_REJECTED,
+  MINIMIZER_STABLE,
+  MINIMIZER_SOLVED,
+  MINIMIZER_REJECTED,
   cr_optimizeConstraints,
-  cr_stabilize,
 };

@@ -14,17 +14,20 @@ import {
   THROW,
 } from './helpers';
 import {
-  compilePropagators,
+  ml__debug,
+} from './ml';
+import {
   dslToMl,
+} from './dsltoml';
+import {
   mlToDsl,
-} from './compiler';
+} from './mltodsl';
 import {
   MINIMIZER_STABLE,
   MINIMIZER_SOLVED,
   MINIMIZER_REJECTED,
 
   cr_optimizeConstraints,
-  cr_stabilize,
 } from './minimizer';
 import {
   domain_createRange,
@@ -142,6 +145,7 @@ let Solver = solverSolver; // TEMP
 
 function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
+  console.log(ml__debug(mlConstraints, 0, -1, domains, names));
   // now we can access the ml in terms of bytes, jeuj
   let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias);
   if (state === MINIMIZER_SOLVED) {
@@ -154,10 +158,9 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
   }
   ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
   console.error('pre-optimization finished, not yet solved');
-  return;
-  THROW('fail for now');
-  let mlPropagators = compilePropagators(mlConstraints);
-  cr_stabilize(mlPropagators, domains);
+  //return;
+  //THROW('fail for now');
+  //let mlPropagators = compilePropagators(mlConstraints);
 }
 //function offspring(parent) {
 //  return parent.clone();

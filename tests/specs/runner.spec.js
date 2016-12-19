@@ -1787,13 +1787,31 @@ describe('src/runner.spec', function() {
         expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
       });
 
-      it('should rewrite special case to lt', function() {
+      // TODO: have the "throw" strat throw a message that reflects the current var state so we can verify that, at least
+      it.skip('should rewrite special case to A<R', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A [0 1]
           : B  1
           : R [1 2]
-          R = sum(A B) # [1 2] = [0 1] + 1 -> A < R
+          R = sum(A B)
+          # -> R = A + B
+          # -> A < R (because ∀ A + 1 ϵ R)
+          # (undetermined, either A=0,B=1 or A=1,B=2)
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+      });
+
+      // TODO: have the "throw" strat throw a message that reflects the current var state so we can verify that, at least
+      it.skip('should rewrite special case to B<R', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A 1
+          : B [0 1]
+          : R [1 2]
+          R = sum(A B)
+          # see test above
         `);
 
         expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
@@ -1811,8 +1829,8 @@ describe('src/runner.spec', function() {
         expect(solution).to.eql({A: 1, B: 0, R: 1}); // TODO: eliminate that temp var from showing up
       });
 
-
-      it('should reduce to plus and ignore the zeroes', function() {
+      // TODO: have the "throw" strat throw a message that reflects the current var state so we can verify that, at least
+      it.skip('should reduce to plus and ignore the zeroes', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A [0 1]
@@ -1829,11 +1847,11 @@ describe('src/runner.spec', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A [0 1]
-          : R [1 2]
+          : R [2 2]
           R = sum(A 1)
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, R: 2, __1: 1}); // TODO: eliminate that temp var from showing up
       });
     });
 
@@ -2241,9 +2259,9 @@ describe('src/runner.spec', function() {
       it('8vv reject', function() {
         let solution = solverSolver(`
           @custom var-strat throw
-          : B 21
+          : A 21
           : R 1
-          R = B ==? 22
+          R = A ==? 22
         `);
 
         expect(solution).to.equal(false);
@@ -2408,7 +2426,7 @@ describe('src/runner.spec', function() {
       });
 
       it('v8v reject', function() {
-          let solution = solverSolver(`
+        let solution = solverSolver(`
           @custom var-strat throw
           : B 21
           : R 0
@@ -2650,10 +2668,19 @@ describe('src/runner.spec', function() {
       it('888 pass', function() {
         let solution = solverSolver(`
           @custom var-strat throw
-          1 = 30 <? 300
+          1 = 30 <? 50
         `);
 
         expect(solution).to.eql({});
+      });
+
+      it('888 with large constant pass', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          1 = 30 <? 300
+        `);
+
+        expect(solution).to.eql({__1: 300});
       });
 
       it('888 reject', function() {
@@ -2797,7 +2824,7 @@ describe('src/runner.spec', function() {
       it('888 pass', function() {
         let solution = solverSolver(`
           @custom var-strat throw
-          1 = 30 <=? 300
+          1 = 30 <=? 54
         `);
 
         expect(solution).to.eql({});
@@ -3105,6 +3132,49 @@ describe('src/runner.spec', function() {
 
         expect(solution).to.equal(false);
       });
+    });
+  });
+
+  describe('optimize tricks', function() {
+
+    // TODO: let strat=throw emit a message that reflects state so we can check here
+    it.skip('should solve the count reflection when it cant pass', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 2]
+        : D [0 1]
+        C = A + B
+        D = C ==? 2
+        # and then
+        A == 1
+        # C should be reduced to [0 1]
+        # which means C ==? 2 is false
+        # so D = 0, constraint removed
+        # A=1,B=[0 1],C=[0,1],D=0
+      `);
+
+      expect(solution).to.eql({A: 21});
+    });
+
+    it('should solve the count reflection when it cant pass (weird)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 2]
+        C = A + B
+        B = C ==? 2
+        # ! B cant be higher than itself, but that's a difficult artifact to detect explicitly
+        A == 0
+        # C should be reduced to [0 1]
+        # which means C ==? 2 is false
+        # so B = 0, constraint removed
+        # this solves C to 0. finished
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
     });
   });
 });

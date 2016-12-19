@@ -1134,32 +1134,6 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_vvv2vv(ml, offset, opCode, indexA, indexB) {
-    ASSERT_LOG2(' -| cr_vvv2vv |', opCode, indexA, indexB);
-    ml_enc8(ml, offset, opCode);
-    ml_enc16(ml, offset + 1, indexA);
-    ml_enc16(ml, offset + 3, indexB);
-    ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
-  }
-
-  function cr_vvv2v8v(ml, offset, opCode, indexA, constant, indexR) {
-    ASSERT_LOG2(' -| cr_vvv2v8v |', opCode, indexA, constant, indexR);
-    ml_enc8(ml, offset, opCode);
-    ml_enc16(ml, offset + 1, indexA);
-    ml_enc8(ml, offset + 3, constant);
-    ml_enc16(ml, offset + 4, indexR);
-    ml_skip(ml, offset + SIZEOF_V8V, SIZEOF_VVV - SIZEOF_V8V);
-  }
-
-  function cr_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
-    ASSERT_LOG2(' -| cr_v8v2v88 |', opCode, indexA, vB, vR);
-    ml_enc8(ml, offset, opCode);
-    ml_enc16(ml, offset + 1, indexA);
-    ml_enc8(ml, offset + 3, vB);
-    ml_enc8(ml, offset + 4, vR);
-    ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
-  }
-
   function cr_minus(ml) {
     let offset = pc;
     let offsetA = offset + 1;
@@ -1235,19 +1209,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ml_eliminate(ml, offset, SIZEOF_VVV);
     } else if (domain_getValue(A) === 0) {
       ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
-      // rewrite to B == R
-      ml_enc8(offset, ML_VV_EQ);
-      ml_enc16(offset + 1, indexR);
-      //ml_enc16(offset+3, indexB); // already the case
-      ml_skip(ml, offset + 5, 2);
+      cr_vvv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
       pc = offset; // revisit
     } else if (domain_getValue(B) === 0) {
       ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
-      // rewrite to A == R
-      ml_enc8(offset, ML_VV_EQ);
-      //ml_enc16(offset+1, indexA); // already the case
-      ml_enc16(offset + 3, indexR);
-      ml_skip(ml, offset + 5, 2);
+      cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexR);
       pc = offset; // revisit
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -1554,17 +1520,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
     if (vR === 0) {
       ASSERT_LOG2(' ! vR=0 so changing iseq to neq and revisiting');
-      // compile a neq and restart
-      ml_enc8(ml, offset, ML_V8_NEQ);
-      ml_skip(ml, offset + SIZEOF_V8, 2);
+      cr_v8v2v8(ml, offset, ML_V8_NEQ, indexA, vB);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
       ASSERT_LOG2(' ! vR=1 so changing iseq to eq and revisiting');
-      // compile an eq and restart
-      ml_enc8(ml, offset, ML_V8_EQ);
-      ml_skip(ml, offset + SIZEOF_V8, 2);
+      cr_v8v2v8(ml, offset, ML_V8_EQ, indexA, vB);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1584,10 +1546,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (vB <= 1 && domain_max(A) === 1) {
         // - B=0: 0==B=1, 1==B=0: A!=R
         // - B=1: 0==B=0, 1==B=1: A==R
-        ml_enc8(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ);
-        ml_enc16(ml, offset + 1, indexA);
-        ml_enc16(ml, offset + 3, indexR);
-        ml_skip(ml, offset + 5, 1);
+        cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ, indexA, indexR);
         pc = offset; // revisit
       } else {
         pc = offset + SIZEOF_V8V;
@@ -1751,17 +1710,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vR = domain_getValue(R);
     if (vR === 0) {
       ASSERT_LOG2(' ! changing isneq to eq and revisiting');
-      // compile a neq and restart
-      ml_enc8(ml, offset, ML_VV_EQ);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+      cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexB);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
       ASSERT_LOG2(' ! changing isneq to neq and revisiting');
-      // compile an eq and restart
-      ml_enc8(ml, offset, ML_VV_NEQ);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+      cr_vvv2vv(ml, offset, ML_VV_NEQ, indexA, indexB);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1818,17 +1773,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vR = domain_getValue(R);
     if (vR === 0) {
       ASSERT_LOG2(' ! vR=0 so changing isneq to eq and revisiting');
-      // compile a neq and restart
-      ml_enc8(ml, offset, ML_V8_EQ);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+      cr_v8v2v8(ml, offset, ML_V8_EQ, indexA, vB);
       pc = offset; // make it repeat with the new neq
       return;
     }
     if (vR === 1) {
       ASSERT_LOG2(' ! vR=1 so changing isneq to neq and revisiting');
-      // compile an eq and restart
-      ml_enc8(ml, offset, ML_V8_NEQ);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+      cr_v8v2v8(ml, offset, ML_V8_NEQ, indexA, vB);
       pc = offset; // make it repeat with the new eq
       return;
     }
@@ -1844,10 +1795,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vB <= 1 && domain_max(A) === 1) {
       // - B=0: 0!=B=0, 1!=B=1: A==R
       // - B=1: 0!=B=1, 1!=B=0: A!=R
-      ml_enc8(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ);
-      ml_enc16(ml, offset + 1, indexA);
-      ml_enc16(ml, offset + 3, indexR);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
+      cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ, indexA, indexR);
       pc = offset; // revisit
     } else {
       pc = offset + SIZEOF_V8V;
@@ -2001,17 +1949,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_VV_LT);
-      ml_skip(ml, offset + 5, 2); // skip the R
+      cr_vvv2vv(ml, offset, ML_VV_LT, indexA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
+      cr_vvv2vv(ml, offset, ML_VV_LTE, indexB, indexA);
       // replace isLt with a regular lte
-      ml_enc8(ml, offset, ML_VV_LTE);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc16(ml, offset + 3, indexA);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2054,19 +1997,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_8V_LT);
-      ml_enc8(ml, offset + 1, vA);
-      ml_enc16(ml, offset + 2, indexB);
-      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
+      cr_8vv28v(ml, offset, ML_8V_LT, vA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
-      // replace isLt with a regular lte, with inverted args
-      ml_enc8(ml, offset, ML_V8_LTE);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc8(ml, offset + 3, vA);
-      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
+      cr_8vv2v8(ml, offset, ML_V8_LTE, indexB, vA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2078,11 +2013,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - A=0: A<0=0, A<1=1: B=R
         // - A=1: A<0=0, A<1=0: R=0, remove constraint (already done above)
         ASSERT(vA === 0, 'the path for A=1 is handled above');
-
-        ml_enc8(offset, ML_VV_EQ);
-        ml_enc16(offset + 1, indexB);
-        ml_enc16(offset + 3, indexR);
-        ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
+        cr_8vv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
       } else {
         pc = offset + SIZEOF_8VV;
@@ -2124,19 +2055,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_V8_LT);
-      ml_enc16(ml, offset + 1, indexA);
-      ml_enc8(ml, offset + 3, vB);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+      cr_v8v2v8(ml, offset, ML_V8_LT, indexA, vB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
-      // replace isLt with a regular lte, inverted args
-      ml_enc8(ml, offset, ML_8V_LTE);
-      ml_enc8(ml, offset + 1, vB);
-      ml_enc16(ml, offset + 2, indexA);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+      cr_v8v28v(ml, offset, ML_8V_LTE, vB, indexA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2148,11 +2071,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - B=0: 0<B=0, 1<B=0: R=0, remove constraint (already done above)
         // - B=1: 0<B=1, 1<B=0: A!=R
         ASSERT(vB === 0, 'the path for B=0 is handled above');
-
-        ml_enc8(offset, ML_VV_NEQ);
-        ml_enc16(offset + 1, indexA);
-        ml_enc16(offset + 3, indexR);
-        ml_skip(ml, offset + 5, 1);
+        cr_v8v2vv(ml, offset, ML_VV_NEQ, indexA, indexR);
         pc = offset; // revisit
       } else {
         pc = offset + SIZEOF_V8V;
@@ -2183,17 +2102,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_VV_LT);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
+      cr_vv82vv(ml, offset, ML_VV_LT, indexA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place');
-      // replace isLt with a regular lte
-      ml_enc8(ml, offset, ML_VV_LTE);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc16(ml, offset + 3, indexA);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
+      cr_vv82vv(ml, offset, ML_VV_LTE, indexB, indexA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -2339,17 +2252,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_VV_LTE);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV); // skip the R
+      cr_vvv2vv(ml, offset, ML_VV_LTE, indexA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
       // replace isLt with a regular lte
-      ml_enc8(ml, offset, ML_VV_LT);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc16(ml, offset + 3, indexA);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV); // skip the R
+      cr_vvv2vv(ml, offset, ML_VV_LT, indexB, indexA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2392,37 +2300,24 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_8V_LTE);
-      ml_enc8(ml, offset + 1, vA);
-      ml_enc16(ml, offset + 2, indexB);
-      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
+      cr_8vv28v(ml, offset, ML_8V_LTE, vA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
-      // replace isLt with a regular lte, with inverted args
-      ml_enc8(ml, offset, ML_V8_LT);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc8(ml, offset + 3, vA);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_8VV - SIZEOF_V8);
+      cr_8vv2v8(ml, offset, ML_V8_LT, indexB, vA);
       pc = offset; // make it repeat with the new lt
     } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
-
       // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
       if (vA <= 1 && domain_max(B) === 1) {
         // - A=0: A<=0=1, A<=1=1: R=1, remove constraint (Already done above)
         // - A=1: A<=0=0, A<=1=1: B==R
         ASSERT(vA === 1, 'the path for A=0 is handled above');
-
-        ml_enc8(ml, offset, ML_VV_EQ);
-        ml_enc16(ml, offset + 1, indexB);
-        ml_enc16(ml, offset + 3, indexR);
-        ml_skip(ml, offset + 5, 1);
+        cr_8vv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
       } else {
+        ASSERT_LOG2(' - not only jumps...');
+        onlyJumps = false;
         pc = offset + SIZEOF_8VV;
       }
     }
@@ -2462,19 +2357,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_V8_LTE);
-      ml_enc16(ml, offset + 1, indexA);
-      ml_enc8(ml, offset + 3, vB);
-      ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+      cr_v8v2v8(ml, offset, ML_V8_LTE, indexA, vB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
-      // replace isLt with a regular lte, inverted args
-      ml_enc8(ml, offset, ML_8V_LT);
-      ml_enc8(ml, offset + 1, vB);
-      ml_enc16(ml, offset + 2, indexA);
-      ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
+      cr_v8v28v(ml, offset, ML_8V_LT, vB, indexA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(' - not only jumps...');
@@ -2486,11 +2373,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - B=0: 0<=B=1, 1<=B=0: B!=R
         // - B=1: 0<=B=1, 1<=B=1: R=1, remove constraint (already done above)
         ASSERT(vB === 0, 'the path for A=1 is handled above');
-
-        ml_enc8(ml, offset, ML_VV_NEQ);
-        ml_enc16(ml, offset + 1, indexA);
-        ml_enc16(ml, offset + 3, indexR);
-        ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
+        cr_v8v2vv(ml, offset, ML_VV_NEQ, indexA, indexR);
         pc = offset; // revisit
       } else {
         pc = offset + SIZEOF_V8V;
@@ -2521,17 +2404,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // in this context, the inverse for lt is an lte with swapped args
     if (vR === 1) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place');
-      // replace isLt with regular lt
-      ml_enc8(ml, offset, ML_VV_LTE);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
+      cr_vv82vv(ml, offset, ML_VV_LTE, indexA, indexB);
       pc = offset; // make it repeat with the new lt
     } else if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place');
-      // replace isLt with a regular lte
-      ml_enc8(ml, offset, ML_VV_LT);
-      ml_enc16(ml, offset + 1, indexB);
-      ml_enc16(ml, offset + 3, indexA);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV); // skip the R
+      cr_vv82vv(ml, offset, ML_VV_LTE, indexB, indexA);
       pc = offset; // make it repeat with the new lt
     } else {
       ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
@@ -3019,6 +2896,88 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       pc = offset + SIZEOF_COUNT + argLen + 2; // skip the 16bit indexes manually
     }
   }
+}
+
+function cr_vvv2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| cr_vvv2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+}
+
+function cr_vvv2v8v(ml, offset, opCode, indexA, constant, indexR) {
+  ASSERT_LOG2(' -| cr_vvv2v8v |', opCode, indexA, constant, indexR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, constant);
+  ml_enc16(ml, offset + 4, indexR);
+  ml_skip(ml, offset + SIZEOF_V8V, SIZEOF_VVV - SIZEOF_V8V);
+}
+
+function cr_vv82vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| cr_vv82vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
+}
+
+function cr_8vv2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| cr_8vv2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
+}
+
+function cr_8vv2v8(ml, offset, opCode, indexA, vB) {
+  ASSERT_LOG2(' -| cr_8vv2v8 |', opCode, indexA, vB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_8VV - SIZEOF_V8);
+}
+
+function cr_8vv28v(ml, offset, opCode, vA, indexB) {
+  ASSERT_LOG2(' -| cr_8vv28v |', opCode, vA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc8(ml, offset + 1, vA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
+}
+
+function cr_v8v2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| cr_v8v2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
+}
+
+function cr_v8v2v8(ml, offset, opCode, indexA, vB) {
+  ASSERT_LOG2(' -| cr_v8v2v8 |', opCode, indexA, vB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+}
+
+function cr_v8v28v(ml, offset, opCode, vA, indexB) {
+  ASSERT_LOG2(' -| cr_v8v2v8 |', opCode, vA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc8(ml, offset + 1, vA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
+}
+
+function cr_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
+  ASSERT_LOG2(' -| cr_v8v2v88 |', opCode, indexA, vB, vR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_enc8(ml, offset + 4, vR);
+  ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
 }
 
 // BODY_STOP

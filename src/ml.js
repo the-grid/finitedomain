@@ -222,7 +222,7 @@ function ml_enc8(ml, pc, num) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
-  ASSERT((num >> 0) <= 0xff, 'Only encode 8bit values');
+  ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values');
   ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc);
   ASSERT(num >= 0, 'only expecting non-negative nums');
   ml[pc] = num;

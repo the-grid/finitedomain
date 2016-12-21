@@ -15,6 +15,7 @@ import {
 } from './helpers';
 import {
   ml__debug,
+  ml_countConstraints,
 } from './ml';
 import {
   dslToMl,
@@ -30,6 +31,7 @@ import {
   cr_optimizeConstraints,
 } from './minimizer';
 import {
+  domain__debug,
   domain_createRange,
   domain_createValue,
   domain_getValue,
@@ -122,7 +124,12 @@ function solverSolver(dsl) {
   if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias);
   if (state === MINIMIZER_REJECTED) return false;
 
-  if (input.varstrat === 'throw') THROW('Forcing a choice with strat=throw');
+  if (input.varstrat === 'throw') {
+    // the stats are for tests. dist will never even have this so this should be fine.
+    // it's very difficult to ensure optimizations work properly otherwise
+    ASSERT(false, `Forcing a choice with strat=throw; debug: ${vars.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + vars[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} `);
+    THROW('Forcing a choice with strat=throw');
+  }
   //
   //let stack = [root];
   //do {

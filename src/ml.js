@@ -187,7 +187,7 @@ function ml_sizeof(ml, offset) {
       return -1;
 
     case ML_JMP:
-      return SIZEOF_V;
+      return SIZEOF_V + ml.readUInt16BE(offset + 1);
     case ML_NOOP:
       return 1;
     case ML_NOOP2:
@@ -302,6 +302,47 @@ function ml_pump(ml, offset, from, to, len) {
     ml[fromOffset++] = ml[fromTo++];
   }
 }
+
+function ml_countConstraints(ml) {
+  let pc = 0;
+  let constraints = 0;
+
+  while (pc < ml.length) {
+    let pcStart = pc;
+    let op = ml[pc];
+    switch (op) {
+      case ML_UNUSED:
+        return THROW('mlConstraints: zero op @', pcStart, 'Buffer(' + ml.toString('hex').replace(/(..)/g, '$1 ') + ')');
+
+      case ML_STOP:
+        return constraints;
+
+      case ML_NOOP:
+        ++pc;
+        break;
+      case ML_NOOP2:
+        pc += 2;
+        break;
+      case ML_NOOP3:
+        pc += 3;
+        break;
+      case ML_NOOP4:
+        pc += 4;
+        break;
+      case ML_JMP:
+        pc += 3 + ml.readUInt16BE(pc + 1);
+        break;
+
+      default:
+        let size = ml_sizeof(ml, pc); // throws if op is unknown
+        ++constraints;
+        pc += size;
+    }
+  }
+
+  THROW('ML OOB');
+}
+
 
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
@@ -541,7 +582,6 @@ function ml__debug(ml, offset, max, domains, names) {
       case ML_NOOP:
         rv.push('noop(1)');
         break;
-
       case ML_NOOP2:
         rv.push('noop(2)');
         break;
@@ -560,7 +600,7 @@ function ml__debug(ml, offset, max, domains, names) {
     }
 
     let size = ml_sizeof(ml, pc);
-    console.log('size was:', size, 'rv=', rv);
+    //console.log('size was:', size, 'rv=', rv);
     if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + size)].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' '));
     pc += size;
   }
@@ -645,6 +685,7 @@ export {
   SIZEOF_C8_COUNT,
 
   ml__debug,
+  ml_countConstraints,
   ml_dec8,
   ml_dec16,
   ml_enc8,

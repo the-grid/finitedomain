@@ -163,7 +163,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // caller should ensure to check return value and return on
     // a falsy result as well so the loop can restart.
     let aliasIndex = getAlias(index);
-    ASSERT_LOG2(' - alias(' + index + ') = ' + aliasIndex);
+    ASSERT_LOG2(' - alias(' + index + ') = ' + aliasIndex, 'writing to', lastPcOffset + argDelta, ' and hoping callsite will return');
     ASSERT(typeof aliasIndex === 'number' && aliasIndex >= 0, 'should have this alias');
     ml.writeUInt16BE(aliasIndex, lastPcOffset + argDelta);
     ASSERT(pc === lastPcOffset, 'expecting to restart'); // caller should stop and loop will restart this op with aliased index as if nothing happened
@@ -460,7 +460,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         default:
           THROW('unknown op: 0x' + op.toString(16));
       }
-      if (pc === pcStart) ASSERT_LOG2(' - restarting op from same pc...');
+      if (pc === pcStart) {
+        ASSERT_LOG2(' - restarting op from same pc...');
+      }
     }
     if (emptyDomain) return ops;
     return THROW('Derailed; expected to find STOP before EOF');
@@ -946,7 +948,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         // - compile a NOOP in the place of the last element
         ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', argCount, ')', i + 1 < argCount);
         for (let k = i + 1; k < argCount; ++k) {
-          ASSERT_LOG2('    - moving ', (k + 1) + 'th var');
+          ASSERT_LOG2('    - moving ', (k + 1) + 'th var at', offsetArgs + k * 2, 'and', offsetArgs + k * 2 + 1, 'sigh');
           ml[offsetArgs + k * 2] = ml[offsetArgs + (k + 1) * 2];
           ml[offsetArgs + k * 2 + 1] = ml[offsetArgs + (k + 1) * 2 + 1];
         }
@@ -2308,10 +2310,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     } else {
       // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
+      ASSERT_LOG2(' - result var was not solved');
       if (vA <= 1 && domain_max(B) === 1) {
         // - A=0: A<=0=1, A<=1=1: R=1, remove constraint (Already done above)
         // - A=1: A<=0=0, A<=1=1: B==R
         ASSERT(vA === 1, 'the path for A=0 is handled above');
+        ASSERT_LOG2(' - changing this isLte to an eq because A=1 and max(B)==1 so B==R');
         cr_8vv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
       } else {
@@ -2532,7 +2536,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexR = ml_dec16(ml, offsetR);
 
     let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8_COUNT + argCount * 2);
-    ASSERT_LOG2(' - offset R =', offsetR, 'indexR=', indexR, 'R=', domain__debug(R));
+    ASSERT_LOG2(' - offsets; R =', offsetR, 'indexR=', indexR, 'R=', domain__debug(R));
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_sum', argCount, 'x');
@@ -2926,7 +2930,7 @@ function cr_8vv2vv(ml, offset, opCode, indexA, indexB) {
   ASSERT_LOG2(' -| cr_8vv2vv |', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, indexB);
+  ml_enc16(ml, offset + 3, indexB);
   ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
 }
 
@@ -2950,7 +2954,7 @@ function cr_v8v2vv(ml, offset, opCode, indexA, indexB) {
   ASSERT_LOG2(' -| cr_v8v2vv |', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, indexB);
+  ml_enc16(ml, offset + 3, indexB);
   ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
 }
 

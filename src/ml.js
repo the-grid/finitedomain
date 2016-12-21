@@ -222,8 +222,8 @@ function ml_enc8(ml, pc, num) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
-  ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values');
-  ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc);
+  ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values', num, '0x' + num.toString(16));
+  ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc, ' ');
   ASSERT(num >= 0, 'only expecting non-negative nums');
   ml[pc] = num;
 }
@@ -296,10 +296,12 @@ function ml_jump(ml, offset, len) {
 }
 
 function ml_pump(ml, offset, from, to, len) {
+  ASSERT_LOG2(' - pumping from', offset + from, 'to', offset + to, '(len=', len, ')');
   let fromOffset = offset + from;
-  let fromTo = offset + to;
+  let toOffset = offset + to;
   for (let i = 0; i < len; ++i) {
-    ml[fromOffset++] = ml[fromTo++];
+    ASSERT_LOG2(' - pump', fromOffset, toOffset, '(1)');
+    ml[fromOffset++] = ml[toOffset++];
   }
 }
 
@@ -479,7 +481,7 @@ function ml__debug(ml, offset, max, domains, names) {
       case ML_88V_ISLTE:
         if (!name) name = '<=?';
         AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2);
-        rv.push(ml_index(pc + 3) + ' = ' + AB);
+        rv.push(ml_index(pc + 4) + ' = ' + AB);
         break;
 
       case ML_V88_ISEQ:
@@ -608,6 +610,15 @@ function ml__debug(ml, offset, max, domains, names) {
   return max === 1 ? rv[0] : ' ## ML Debug:\n' + rv.join('\n') + '\n ## End of ML Debug\n';
 }
 
+function ml_throw(ml, offset, msg) {
+  console.log('There was an ML related error...');
+  let before = ml.slice(Math.max(0, offset - 30), offset);
+  let after = ml.slice(offset, offset + 20);
+  console.log('ML at error (offset=' + offset + '):', before, after);
+  console.log(ml__debug(ml, offset, 1));
+  THROW(msg);
+}
+
 // BODY_STOP
 
 export {
@@ -691,8 +702,9 @@ export {
   ml_enc8,
   ml_enc16,
   ml_eliminate,
+  ml_jump,
   ml_pump,
   ml_sizeof,
   ml_skip,
-  ml_jump,
+  ml_throw,
 };

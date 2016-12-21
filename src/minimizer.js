@@ -102,7 +102,6 @@ import {
   domain_getValue,
   domain_intersection,
   domain_intersectionValue,
-  domain_isEmpty,
   domain_isSolved,
   domain_max,
   domain_min,
@@ -111,6 +110,7 @@ import {
   domain_removeLte,
   domain_removeLtUnsafe,
   domain_removeValue,
+  domain_sharesNoElements,
   domain_size,
 } from './domain';
 
@@ -618,8 +618,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
     // solved if the two domains (now) intersects to an empty domain
-    let R = domain_intersection(A, B);
-    if (domain_isEmpty(R)) {
+    if (domain_sharesNoElements(A, B)) {
       ASSERT_LOG2(' - No element overlapping between', indexA, 'and', indexB, '(', domain__debug(A), ' & ', domain__debug(B), ') so we can eliminate this neq');
       ml_eliminate(ml, offset, SIZEOF_VV);
     } else {

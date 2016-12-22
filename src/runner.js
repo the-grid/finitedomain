@@ -31,6 +31,9 @@ import {
   cr_optimizeConstraints,
 } from './minimizer';
 import {
+  deduper,
+} from './deduper';
+import {
   domain__debug,
   domain_createRange,
   domain_createValue,
@@ -112,17 +115,18 @@ function solverSolver(dsl) {
   console.time('- minimizing ml');
   let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias);
   console.timeEnd('- minimizing ml');
-//return
+
   console.time('ml->dsl:');
   let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias);
   console.timeEnd('ml->dsl:');
   console.log(newdsl);
 
-  //return
-
-  //let state = getState(domains);
   if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias);
   if (state === MINIMIZER_REJECTED) return false;
+
+  console.time('dedupe constraints:');
+  deduper(mlConstraints, vars, domains, getAlias);
+  console.timeEnd('dedupe constraints:');
 
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.

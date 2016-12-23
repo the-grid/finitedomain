@@ -93,7 +93,9 @@ function deduper(ml, vars, domains, getAlias) {
   ASSERT_LOG2(' ## pr_dedupe', ml);
   let pc = 0;
   let constraintHash = {}; // keys are A@B or R=A@B and the vars can be an index (as is) or a literal prefixed with #
+  let removed = 0;
   innerLoop();
+  ASSERT_LOG2(' - dedupe removed', removed, 'constraints');
   return constraintHash;
 
   function getDomainOrRestartForAlias(index, _max = 10) {
@@ -130,6 +132,7 @@ function deduper(ml, vars, domains, getAlias) {
     let kept = true;
     if (!constraintHash[key]) constraintHash[key] = 1;
     else {
+      ++removed;
       kept = false;
       ASSERT_LOG2(' - Constraint with key', key, 'already exists (#' + (constraintHash[key] + 1) + ') so eliminating the dupe');
       ++constraintHash[key];

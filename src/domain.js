@@ -127,8 +127,8 @@ function domain_bit_containsValue(domain, value) {
 function domain_str_containsValue(domain, value) {
   ASSERT_STRDOM(domain);
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-  ASSERT(value >= SUB);
-  ASSERT(value <= SUP);
+  ASSERT(value >= SUB, 'value must be >=SUB', value);
+  ASSERT(value <= SUP, 'value must be <=SUP', value);
 
   return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
@@ -2014,7 +2014,7 @@ function domain_createValue(value) {
 /**
  * @param {number} lo
  * @param {number} hi
- * @returns {$domain}
+ * @returns {$nordom}
  */
 function domain_createRange(lo, hi) {
   ASSERT(lo >= SUB, 'lo should be >= SUB', lo, hi);
@@ -2023,6 +2023,19 @@ function domain_createRange(lo, hi) {
   if (lo === hi) return domain_createValue(lo);
   if (hi <= SMALL_MAX_NUM) return domain_num_createRange(lo, hi);
   return domain_str_encodeRange(lo, hi);
+}
+/**
+ * Create a new domain by passing on the bounds. If the bounds are OOB they
+ * are trimmed. This can return the empty domain if both lo and hi are OOB.
+ *
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {$nordom}
+ */
+function domain_createRangeTrimmed(lo, hi) {
+  ASSERT(lo <= hi, 'should be lo<=hi', lo, hi);
+  if (hi < SUB || lo > SUP) return EMPTY;
+  return domain_createRange(Math.max(SUB, lo), Math.min(SUP, hi));
 }
 /**
  * @param {number} lo
@@ -2369,6 +2382,7 @@ export {
   domain_num_containsValue,
   domain_createEmpty,
   domain_createRange,
+  domain_createRangeTrimmed,
   domain_numnum_createRangeZeroToMax,
   domain_num_createRange,
   domain_createValue,

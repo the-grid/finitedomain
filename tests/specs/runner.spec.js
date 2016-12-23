@@ -612,7 +612,7 @@ describe('specs/runner.spec', function() {
         expect(solution).to.eql({A: 173745, B: 33, C: 5265, D: 27, E: 195});
       });
 
-      it('should work with all zeroes', function() {
+      it('should reject B=0', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A = 0
@@ -621,7 +621,7 @@ describe('specs/runner.spec', function() {
           C = A / B
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 0});
+        expect(solution).to.eql(false);
       });
     });
 
@@ -1788,7 +1788,7 @@ describe('specs/runner.spec', function() {
       });
 
       it('should rewrite special case to A<R', function() {
-        expect(_ => solverSolver(`
+        let solution = solverSolver(`
           @custom var-strat throw
           : A [0 1]
           : B  1
@@ -1797,18 +1797,23 @@ describe('specs/runner.spec', function() {
           # -> R = A + B
           # -> A < R (because ∀ A + 1 ϵ R)
           # (undetermined, either A=0,B=1 or A=1,B=2)
-        `)).to.throw(/strat=throw;.*:A:0,1:.*:R:1,2:/);
+          # the cutter will force A<R to A=0,B=1
+        `);
+
+        expect(solution).to.eql({A: 0, B: 1, R: 1, __1: 1});
       });
 
       it('should rewrite special case to B<R', function() {
-        expect(_ => solverSolver(`
+        let solution = solverSolver(`
           @custom var-strat throw
           : A 1
           : B [0 1]
           : R [1 2]
           R = sum(A B)
           # see test above
-        `)).to.throw(/strat=throw;.*:B:0,1:.*:R:1,2:/);
+        `);
+
+        expect(solution).to.eql({A: 1, B: 0, R: 1, __1: 1});
       });
 
       it('should eliminate the zeroes that occur twice', function() {
@@ -1824,14 +1829,18 @@ describe('specs/runner.spec', function() {
       });
 
       it('should reduce to plus and ignore the zeroes', function() {
-        expect(_ => solverSolver(`
+        let solution = solverSolver(`
           @custom var-strat throw
           : A [0 1]
           : B  0
           : C  1
           : R [1 2]
           R = sum(A B C B)
-        `)).to.throw(/strat=throw;.*:A:0,1:.*:R:1,2:/);
+          # becomes R = A + 1
+          # cutter will force a solution on that
+        `);
+
+        expect(solution).to.eql({A: 0, B: 0, C: 1, R: 1, __1: 1});
       });
 
       it('should accept constants in sum', function() {

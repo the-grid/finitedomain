@@ -3,9 +3,6 @@
 // or domains cut before actually generating their propagators
 
 import {
-  SUB,
-  SUP,
-
   ASSERT,
   ASSERT_LOG2,
   THROW,
@@ -98,6 +95,7 @@ import {
   domain__debug,
   domain_containsValue,
   domain_createRange,
+  domain_createRangeTrimmed,
   domain_createValue,
   domain_getValue,
   domain_intersection,
@@ -122,7 +120,7 @@ const MINIMIZER_REJECTED = 2;
 
 const MINIMIZE_ALIASED = false;
 
-function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias) {
+function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('sweeping');
   let change = true;
@@ -149,6 +147,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     console.log('   - ops this loop:', ops);
     if (emptyDomain) return MINIMIZER_REJECTED;
     if (onlyJumps) return MINIMIZER_SOLVED;
+
+    ASSERT_LOG2('intermediate state:');
+    ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
   }
   return MINIMIZER_STABLE;
 
@@ -511,6 +512,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
       ASSERT_LOG2(' - Mapping', indexB, 'to be an alias for', indexA);
       addAlias(indexB, indexA);
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - alias; ensuring', indexA, 'and', indexB, 'result in same value');
+        ASSERT_LOG2('   - domain =', domain__debug(domains[indexA]), 'forcing choice to min(d)=', domain_min(domains[indexA]));
+        // ensure A and B end up with the same value, regardless of how A is reduced
+        ASSERT(domains[indexB] === false, 'B should be marked as an alias');
+        domains[indexB] = domains[indexA] = domain_createValue(domain_min(domains[indexA]));
+      });
       domains[indexB] = false; // mark as aliased. this is not a change per se.
     }
 
@@ -1003,50 +1011,56 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_plus', '{', indexR, '} = {', indexA, '} ==? {', indexB, '} -->', domain__debug(R), '=', domain__debug(A), '==?', domain__debug(B));
     if (!A || !B || !R) return emptyDomain = true;
 
-    let oA = A;
-    let oB = B;
-    let oR = R;
-
     // note: A + B = C   ==>   <loA + loB, hiA + hiB>
     // but:  A - B = C   ==>   <loA - hiB, hiA - loB>   (so the lo/hi of B gets swapped!)
     // keep in mind that any number oob <sub,sup> gets pruned in either case
 
-    let minR = domain_min(R);
-    let maxR = domain_max(R);
-    A = domain_removeLtUnsafe(A, minR - domain_max(B));
-    A = domain_removeGtUnsafe(A, maxR - domain_min(B));
-    ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '-' + domain_max(B) + '=' + (minR - domain_max(B)) + ', ' + maxR + '-' + domain_min(B) + '=' + (maxR - domain_min(B)) + '>');
-    if (!A) return emptyDomain = true;
-    let minA = domain_min(A);
-    let maxA = domain_max(A);
-    B = domain_removeLtUnsafe(B, minR - maxA);
-    B = domain_removeGtUnsafe(B, maxR - minA);
-    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-    if (!B) return emptyDomain = true;
+    let minA;
+    let maxA;
     let minB = domain_min(B);
     let maxB = domain_max(B);
-    R = domain_removeLtUnsafe(R, minA + minB);
-    R = domain_removeGtUnsafe(R, maxA + maxB);
-    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-    if (!R) return emptyDomain = true;
-    if (oR !== R || oB !== B) {
+    let minR = domain_min(R);
+    let maxR = domain_max(R);
+
+    let oA, oB, oR;
+    let lo, hi;
+
+    let loops = 0;
+    do {
+      ++loops;
+      ASSERT_LOG2(' - plus propagation step...', loops);
+      oA = A;
+      oB = B;
+      oR = R;
+
+      lo = minR - maxB;
+      hi = maxR - minB;
+      A = domain_intersection(A, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated A:', domain__debug(oA), 'trimmed to', lo, hi, '(', minR, '-', maxB, ',', maxR, '-', minB, ')', '->', domain__debug(A));
+      if (!A) return emptyDomain = true;
+      minA = domain_min(A);
+      maxA = domain_max(A);
+
+      lo = minR - maxA;
+      hi = maxR - minA;
+      B = domain_intersection(B, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated B:', domain__debug(oB), 'trimmed to', lo, hi, '(', minR, '-', maxA, ',', maxR, '-', minA, ')', '->', domain__debug(B));
+      if (!B) return emptyDomain = true;
+      minB = domain_min(B);
+      maxB = domain_max(B);
+
+      lo = minA + minB;
+      hi = maxA + maxB;
+      R = domain_intersection(R, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated R:', domain__debug(oR), 'trimmed to', lo, hi, '(', minA, '+', minB, ',', maxA, '+', maxB, ')', '->', domain__debug(R));
+      if (!A) return emptyDomain = true;
       minR = domain_min(R);
       maxR = domain_max(R);
-      A = domain_removeLtUnsafe(A, minR - maxB);
-      A = domain_removeGtUnsafe(A, maxR - minB);
-      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-      if (!A) return emptyDomain = true;
-      if (oR !== R || oA !== A) {
-        B = domain_removeLtUnsafe(B, minR - domain_max(A));
-        B = domain_removeGtUnsafe(B, maxR - domain_min(A));
-        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-        if (!B) return emptyDomain = true;
-      }
-    }
+    } while (A !== oA || B !== oB || R !== oR);
 
-    ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '+', domain__debug(B));
+    ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
-    if (oA !== A || oB !== B || oR !== R) {
+    if (loops > 1) {
       change = true;
       domains[indexA] = A;
       domains[indexB] = B;
@@ -1152,51 +1166,59 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
-    let oA = A;
-    let oB = B;
-    let oR = R;
 
     // C = A - B   -> A = B + C, B = C - A
     // note: A - B = C   ==>   <loA - hiB, hiA - loB>
     // but:  A + B = C   ==>   <loA + loB, hiA + hiB>   (so the lo/hi of B gets swapped!)
-    // keep in mind that any number oob <sub,sup> gets pruned in either case
+    // keep in mind that any number oob <sub,sup> gets trimmed in either case.
+    // this trimming may affect "valid" numbers in the other domains so that needs back-propagation.
 
-    let minR = domain_min(R);
-    let maxR = domain_max(R);
-    A = domain_removeLtUnsafe(A, minR + domain_min(B));
-    A = domain_removeGtUnsafe(A, maxR + domain_max(B));
-    ASSERT_LOG2('    - updated A:', domain__debug(A), '<' + minR + '+' + domain_min(B) + '=' + (minR + domain_min(B)) + ', ' + maxR + '+' + domain_max(B) + '=' + (maxR + domain_max(B)) + '>');
-    if (!A) return emptyDomain = true;
-    let minA = domain_min(A);
-    let maxA = domain_max(A);
-    B = domain_removeLtUnsafe(B, minA - maxR);
-    B = domain_removeGtUnsafe(B, maxA - minR);
-    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-    if (!B) return emptyDomain = true;
+    let minA;
+    let maxA;
     let minB = domain_min(B);
     let maxB = domain_max(B);
-    R = domain_removeLtUnsafe(R, minA - maxB);
-    R = domain_removeGtUnsafe(R, maxA - minB);
-    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-    if (!R) return emptyDomain = true;
-    if (oR !== R || oB !== B) {
+    let minR = domain_min(R);
+    let maxR = domain_max(R);
+
+    let oA, oB, oR;
+    let lo, hi;
+
+    let loops = 0;
+    do {
+      ++loops;
+      ASSERT_LOG2(' - minus propagation step...', loops);
+      oA = A;
+      oB = B;
+      oR = R;
+
+      lo = minB + minR;
+      hi = maxB + maxR;
+      A = domain_intersection(A, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated A:', domain__debug(oA), 'trimmed to', lo, hi, '(', minB, '+', minR, ',', maxB, '+', maxR, ')', '->', domain__debug(A));
+      if (!A) return emptyDomain = true;
+      minA = domain_min(A);
+      maxA = domain_max(A);
+
+      lo = minA - maxR;
+      hi = maxA - minR;
+      B = domain_intersection(B, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated B:', domain__debug(oB), 'trimmed to', lo, hi, '(', minA, '-', maxR, ',', maxA, '-', minR, ')', '->', domain__debug(B));
+      if (!B) return emptyDomain = true;
+      minB = domain_min(B);
+      maxB = domain_max(B);
+
+      lo = minA - maxB;
+      hi = maxA - minB;
+      R = domain_intersection(R, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated R:', domain__debug(oR), 'trimmed to', lo, hi, '(', minA, '-', maxB, ',', maxA, '-', minB, ')', '->', domain__debug(R));
+      if (!A) return emptyDomain = true;
       minR = domain_min(R);
       maxR = domain_max(R);
-      A = domain_removeLtUnsafe(A, minR + minB);
-      A = domain_removeGtUnsafe(A, maxR + maxB);
-      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-      if (!A) return emptyDomain = true;
-      if (oR !== R || oA !== A) {
-        B = domain_removeLtUnsafe(B, domain_min(A) - maxR);
-        B = domain_removeGtUnsafe(B, domain_max(A) - minR);
-        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-        if (!B) return emptyDomain = true;
-      }
-    }
+    } while (A !== oA || B !== oB || R !== oR);
 
-    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
-    if (oA !== A || oB !== B || oR !== R) {
+    if (loops > 1) {
       change = true;
       domains[indexA] = A;
       domains[indexB] = B;
@@ -1205,14 +1227,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
 
-    if (domain_isSolved(R) && domain_isSolved(A)) {
+    if (domain_isSolved(R) && domain_isSolved(A)) { // minR==maxR&&minA==maxA
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
       ml_eliminate(ml, offset, SIZEOF_VVV);
-    } else if (domain_getValue(A) === 0) {
+    } else if (domain_getValue(A) === 0) { // maxA==0
       ASSERT_LOG2(' - A=0 so B==R, rewriting op to eq');
       cr_vvv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
       pc = offset; // revisit
-    } else if (domain_getValue(B) === 0) {
+    } else if (domain_getValue(B) === 0) { // maxB==0
       ASSERT_LOG2(' - B=0 so A==R, rewriting op to eq');
       cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexR);
       pc = offset; // revisit
@@ -1240,10 +1262,6 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
-    let oA = A;
-    let oB = B;
-    let oR = R;
-
     // C = A * B, B = C / A, A = C / B
     // note: A * B = C   ==>   <loA * loB, hiA * hiB>
     // but:  A / B = C   ==>   <loA / hiB, hiA / loB> and has rounding/div-by-zero issues! instead use "inv-mul" tactic
@@ -1251,46 +1269,59 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // when dividing "do the opposite" of integer multiplication. 5/4=[] because there is no int x st 4*x=5
     // only outer bounds are evaluated here...
 
-    let minR = domain_min(R);
-    let maxR = domain_max(R);
+
+    let minA;
+    let maxA;
     let minB = domain_min(B);
     let maxB = domain_max(B);
-    A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
-    A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
-    ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '/' + domain_max(B) + ')=' + Math.floor(minR / domain_max(B)) + ', ceil(' + maxR + '/' + domain_min(B) + ')=' + Math.ceil(maxR / domain_min(B)) + '>');
-    if (!A) return emptyDomain = true;
-    let minA = domain_min(A);
-    let maxA = domain_max(A);
-    B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
-    B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-    if (!B) return emptyDomain = true;
-    minB = domain_min(B);
-    maxB = domain_max(B);
-    R = domain_removeLtUnsafe(R, minA * minB);
-    R = domain_removeGtUnsafe(R, maxA * maxB);
-    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-    if (!R) return emptyDomain = true;
-    if (oR !== R || oB !== B) {
-      minR = domain_min(R);
-      maxR = domain_max(R);
-      A = domain_removeLtUnsafe(A, maxB ? Math.floor(minR / maxB) : SUB);
-      A = domain_removeGtUnsafe(A, minB ? Math.ceil(maxR / minB) : SUP);
-      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-      if (!A) return emptyDomain = true;
-      if (oR !== R || oA !== A) {
-        minA = domain_min(A);
-        maxA = domain_max(A);
-        B = domain_removeLtUnsafe(B, maxA ? Math.floor(minR / maxA) : SUB);
-        B = domain_removeGtUnsafe(B, minA ? Math.ceil(maxR / minA) : SUP);
-        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
+    let minR = domain_min(R);
+    let maxR = domain_max(R);
+
+    let oA, oB, oR;
+    let lo, hi;
+
+    let loops = 0;
+    do {
+      ++loops;
+      ASSERT_LOG2(' - mul propagation step...', loops);
+      oA = A;
+      oB = B;
+      oR = R;
+
+      if (maxB) { // this is for mul, not div! so r/0=a is actually a*0=r, so if B=0 then A can be anything.
+        lo = Math.ceil(minR / maxB);
+        hi = Math.floor(maxR / minB);
+        if (lo > hi) return emptyDomain = true; // 5/2=2.5, ceil(2.5)>floor(2.5). so in those cases the result is empty because there is no integer solution for n*2=5
+        A = domain_intersection(A, domain_createRangeTrimmed(lo, hi));
+        ASSERT_LOG2(' - Updated A:', domain__debug(oA), 'trimmed to', lo, hi, '(', minR, '/', maxB, ',', maxR, '/', minB, ')', '->', domain__debug(A));
+        if (!A) return emptyDomain = true;
+      }
+      minA = domain_min(A);
+      maxA = domain_max(A);
+
+      if (maxA) { // this is for mul, not div! so r/0=b is actually 0*b=r, so if A=0 then B can be anything.
+        lo = Math.ceil(minR / maxA);
+        hi = Math.floor(maxR / minA);
+        if (lo > hi) return emptyDomain = true; // 5/2=2.5, ceil(2.5)>floor(2.5). so in those cases the result is empty because there is no integer solution for n*2=5
+        B = domain_intersection(B, domain_createRangeTrimmed(lo, hi));
+        ASSERT_LOG2(' - Updated B:', domain__debug(oB), 'trimmed to', lo, hi, '(', minR, '/', maxA, ',', maxR, '/', minA, ')', '->', domain__debug(B));
         if (!B) return emptyDomain = true;
       }
-    }
+      minB = domain_min(B);
+      maxB = domain_max(B);
 
-    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+      lo = minA * minB;
+      hi = maxA * maxB;
+      R = domain_intersection(R, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated R:', domain__debug(oR), 'trimmed to', lo, hi, '(', minA, '*', minB, ',', maxA, '*', maxB, ')', '->', domain__debug(R));
+      if (!A) return emptyDomain = true;
+      minR = domain_min(R);
+      maxR = domain_max(R);
+    } while (A !== oA || B !== oB || R !== oR);
 
-    if (oA !== A || oB !== B || oR !== R) {
+    ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
+
+    if (loops > 1) {
       change = true;
       domains[indexA] = A;
       domains[indexB] = B;
@@ -1326,68 +1357,84 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A || !B || !R) return emptyDomain = true;
 
-    let oA = A;
-    let oB = B;
-    let oR = R;
-
     // R = A / B, A = R * B, B = A / R
-    // note: A * B = C   ==>   <loA * loB, hiA * hiB> and has rounding/div-by-zero issues!
-    // but:  A / B = C   ==>   <loA / hiB, hiA / loB> use "inv-div" tactic
-    // keep in mind that any number oob <sub,sup> gets pruned in either case. x/0=0
-    // when dividing do integer division where 4/2=2 and 4/3=[] and [1,2]/2=1 and [4,5]/3=[]
-    // if the divisor is solved to 0 the result is empty, otherwise; x / <0, y> = <0, SUP>
-    // only outer bounds are evaluated here...
+    // note:  A / B = C   ==>   <loA / hiB, hiA / loB> and has rounding/div-by-zero issues!
+    // but: A * B = C   ==>   <loA * loB, hiA * hiB> use "inv-div" tactic
+    // basically remove any value from the domains that can not lead to a valid integer result A/B=C
 
-    let minR = domain_min(R);
-    let maxR = domain_max(R);
-    let minB = domain_min(B);
-    let maxB = domain_max(B);
-    A = domain_removeLtUnsafe(A, minR * minB);
-    A = domain_removeGtUnsafe(A, maxR * maxB);
-    ASSERT_LOG2('    - updated A:', domain__debug(A), '<floor(' + minR + '*' + minB + ')=' + (minR * minB) + ', (' + maxR + '*' + maxB + ')=' + (maxR / maxB) + '>');
-    if (!A) return emptyDomain = true;
-    let minA = domain_min(A);
-    let maxA = domain_max(A);
-    B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
-    B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-    ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', minA, maxA);
-    if (!B) return emptyDomain = true;
-    minB = domain_min(B);
-    maxB = domain_max(B);
-    R = domain_removeLtUnsafe(R, maxB ? Math.floor(minA / maxB) : SUB);
-    R = domain_removeGtUnsafe(R, minB ? Math.ceil(maxA / minB) : SUP);
-    ASSERT_LOG2('    - updated R:', domain__debug(R), 'B minmax:', minB, maxB);
-    if (!R) return emptyDomain = true;
-    if (oR !== R || oB !== B) {
-      minR = domain_min(R);
-      maxR = domain_max(R);
-      A = domain_removeLtUnsafe(A, minR * minB);
-      A = domain_removeGtUnsafe(A, maxR * maxB);
-      ASSERT_LOG2('    - updated A:', domain__debug(A), 'R minmax:', minR, maxR);
-      if (!A) return emptyDomain = true;
-      if (oR !== R || oA !== A) {
-        minA = domain_min(A);
-        maxA = domain_max(A);
-        B = domain_removeLtUnsafe(B, maxR ? Math.floor(minA / maxR) : SUB);
-        B = domain_removeGtUnsafe(B, minR ? Math.ceil(maxA / minR) : SUP);
-        ASSERT_LOG2('    - updated B:', domain__debug(B), 'A minmax:', domain_min(A), domain_max(A));
-        if (!B) return emptyDomain = true;
-      }
+    let oA, oB, oR;
+
+    // first of all, the divisor cannot contain a zero since that always leads to a invalid result (NaN)
+    ASSERT_LOG2(' - Removing zero from B', domain__debug(B), ' -> ', domain__debug(domain_removeValue(B, 0)));
+    oB = B;
+    B = domain_removeValue(B, 0);
+    if (B !== oB) {
+      if (!B) return emptyDomain = true;
+      change = true;
+      domains[indexB] = B;
     }
 
-    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
+    let minA;
+    let maxA;
+    let minB = domain_min(B);
+    let maxB = domain_max(B);
+    let minR = domain_min(R);
+    let maxR = domain_max(R);
 
-    if (oA !== A || oB !== B || oR !== R) {
+    let lo, hi;
+
+    let loops = 0;
+    do {
+      ++loops;
+      ASSERT_LOG2(' - div propagation step...', loops);
+      oA = A;
+      oB = B;
+      oR = R;
+
+      lo = minB * minR;
+      hi = maxB * maxR;
+      A = domain_intersection(A, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated A:', domain__debug(oA), 'trimmed to', lo, hi, '(', minB, '*', minR, ',', maxB, '*', maxR, ')', '->', domain__debug(A));
+      if (!A) return emptyDomain = true;
+      minA = domain_min(A);
+      maxA = domain_max(A);
+
+      if (maxA) { // if maxA=0 then A=0 and 0/*=0 so B can be anything
+        lo = Math.ceil(minA / maxR);
+        hi = Math.floor(maxA / minR);
+        if (lo > hi) return emptyDomain = true; // 5/2=2.5, ceil(2.5)>floor(2.5). so in those cases the result is empty because there is no integer solution for n*2=5
+        B = domain_intersection(B, domain_createRangeTrimmed(lo, hi));
+        ASSERT_LOG2(' - Updated B:', domain__debug(oB), 'trimmed to', lo, hi, '(', minA, '/', maxR, ',', maxA, '/', minR, ')', '->', domain__debug(B));
+        if (!B) return emptyDomain = true;
+      }
+      minB = domain_min(B);
+      maxB = domain_max(B);
+
+      // A/B=R, B!=0, remove any ints that are lower than min/max and higher than max/min
+      // and hope that rounding errors between ints are not a problem here
+      lo = Math.ceil(minA / maxB);
+      hi = Math.floor(maxA / minB);
+      if (lo > hi) return emptyDomain = true; // 5/2=2.5, ceil(2.5)>floor(2.5). so in those cases the result is empty because there is no integer solution for n*2=5
+      R = domain_intersection(R, domain_createRangeTrimmed(lo, hi));
+      ASSERT_LOG2(' - Updated R:', domain__debug(oR), 'trimmed to', lo, hi, '(', minA, '/', maxB, ',', maxA, '/', minB, ')', '->', domain__debug(R));
+      if (!A) return emptyDomain = true;
+      minR = domain_min(R);
+      maxR = domain_max(R);
+    } while (A !== oA || B !== oB || R !== oR);
+
+    ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
+
+    if (loops > 1) {
       change = true;
       domains[indexA] = A;
       domains[indexB] = B;
       domains[indexR] = R;
     }
 
-    ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
+    ASSERT(((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2) || domain_getValue(A) === 0, 'if two vars are solved the third should be solved as well, unless A is 0 because then B can be anything');
 
     if (domain_isSolved(R) && domain_isSolved(A)) {
-      ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
+      ASSERT(domain_isSolved(B) || domain_getValue(A) === 0, 'if two are solved then all three must be solved or A is 0');
       ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
       ASSERT_LOG2(' - not only jumps...');

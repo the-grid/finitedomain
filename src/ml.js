@@ -345,6 +345,43 @@ function ml_countConstraints(ml) {
   THROW('ML OOB');
 }
 
+function ml_hasConstraint(ml) {
+  // technically this should be cheap; either the first
+  // op is a constraint or it's a jump directly to stop.
+  // (all jumps should be consolidated)
+  let pc = 0;
+
+  while (pc < ml.length) {
+    switch (ml[pc]) {
+      case ML_UNUSED:
+        return ml_throw('oops');
+
+      case ML_STOP:
+        return false;
+
+      case ML_NOOP:
+        ++pc;
+        break;
+      case ML_NOOP2:
+        pc += 2;
+        break;
+      case ML_NOOP3:
+        pc += 3;
+        break;
+      case ML_NOOP4:
+        pc += 4;
+        break;
+      case ML_JMP:
+        pc += 3 + ml.readUInt16BE(pc + 1);
+        break;
+
+      default:
+        return true;
+    }
+  }
+
+  THROW('ML OOB');
+}
 
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
@@ -702,6 +739,7 @@ export {
   ml_enc8,
   ml_enc16,
   ml_eliminate,
+  ml_hasConstraint,
   ml_jump,
   ml_pump,
   ml_sizeof,

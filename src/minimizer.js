@@ -123,22 +123,22 @@ const MINIMIZE_ALIASED = false;
 function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('sweeping');
-  let change = true;
+  let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;
   let lastPcOffset = 0;
   let lastOp = 0;
   let pc = 0;
   let loops = 0;
-  while (change) {
+  while (varChanged) {
     ++loops;
     //console.log('- looping', loops);
     console.time('-> loop ' + loops);
     ASSERT_LOG2('cr outer loop');
-    change = false;
+    varChanged = false;
     pc = 0;
     let ops = cr_innerLoop();
-    ASSERT_LOG2('changed?', change, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
+    ASSERT_LOG2('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) {
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
@@ -507,7 +507,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (A !== R || B !== R) {
         if (!R) return emptyDomain = true;
         domains[indexA] = R;
-        change = true;
+        varChanged = true;
       }
 
       ASSERT_LOG2(' - Mapping', indexB, 'to be an alias for', indexA);
@@ -549,7 +549,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (A !== oA) {
       ASSERT_LOG2(' - A (', indexA, ') updated to', domain__debug(A));
       domains[indexA] = A;
-      change = true;
+      varChanged = true;
     }
 
     // domain must be solved now since B was a literal (a solved constant)
@@ -595,7 +595,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (oB !== B) {
         ASSERT_LOG2(' - B (', indexB, ') was updated from', domain__debug(oB), 'to', domain__debug(B));
         if (!B) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexB] = B;
       }
     }
@@ -606,7 +606,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (A !== oA) {
         ASSERT_LOG2(' - A (', indexA, ') was updated from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexA] = A;
       }
     }
@@ -619,7 +619,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         if (oB !== B) {
           ASSERT_LOG2(' - B (', indexB, ') was updated in the rebound from', domain__debug(oB), 'to', domain__debug(B));
           if (!B) return emptyDomain = true;
-          change = true;
+          varChanged = true;
           domains[indexB] = B;
         }
       }
@@ -657,7 +657,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(A));
     if (A !== oA) {
       if (!A) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     ml_eliminate(ml, offset, SIZEOF_V8);
@@ -701,7 +701,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - updated A', domain__debug(A), 'max B=', domain_max(B));
       if (!A) return emptyDomain = true;
       domains[indexA] = A;
-      change = true;
+      varChanged = true;
     }
 
     let oB = B;
@@ -710,7 +710,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - updated B', domain__debug(B), 'min A=', domain_min(A));
       if (!B) return emptyDomain = true;
       domains[indexB] = B;
-      change = true;
+      varChanged = true;
       pc = offset; // repeat because B changed which may affect A
       return;
     }
@@ -747,7 +747,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (A !== oA) {
       if (!A) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     ml_eliminate(ml, offset, SIZEOF_V8);
@@ -772,7 +772,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(B));
     if (B !== oB) {
       if (!B) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     ml_eliminate(ml, offset, SIZEOF_8V);
@@ -816,7 +816,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - updated A', domain__debug(A), 'max B=', domain_max(B));
       if (!A) return emptyDomain = true;
       domains[indexA] = A;
-      change = true;
+      varChanged = true;
     }
 
     // A is (now) empty so just remove it
@@ -826,7 +826,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - updated B', domain__debug(B), 'max A=', domain_min(A));
       if (!B) return emptyDomain = true;
       domains[indexB] = B;
-      change = true;
+      varChanged = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
@@ -860,7 +860,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(A));
     if (A !== oA) {
       if (!A) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     ml_eliminate(ml, offset, SIZEOF_V8);
@@ -885,7 +885,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(B));
     if (B !== oB) {
       if (!B) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     ml_eliminate(ml, offset, SIZEOF_8V);
@@ -945,7 +945,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
             if (B !== oB) {
               ASSERT_LOG2('    -> changed B=', domain__debug(B));
               if (!B) return emptyDomain = true;
-              change = true;
+              varChanged = true;
             }
           }
         }
@@ -1061,7 +1061,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
     if (loops > 1) {
-      change = true;
+      varChanged = true;
       domains[indexA] = A;
       domains[indexB] = B;
       domains[indexR] = R;
@@ -1219,7 +1219,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
     if (loops > 1) {
-      change = true;
+      varChanged = true;
       domains[indexA] = A;
       domains[indexB] = B;
       domains[indexR] = R;
@@ -1322,7 +1322,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
     if (loops > 1) {
-      change = true;
+      varChanged = true;
       domains[indexA] = A;
       domains[indexB] = B;
       domains[indexR] = R;
@@ -1370,7 +1370,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     B = domain_removeValue(B, 0);
     if (B !== oB) {
       if (!B) return emptyDomain = true;
-      change = true;
+      varChanged = true;
       domains[indexB] = B;
     }
 
@@ -1425,7 +1425,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', 'A:', domain__debug(A), 'B:', domain__debug(B), 'R:', domain__debug(R));
 
     if (loops > 1) {
-      change = true;
+      varChanged = true;
       domains[indexA] = A;
       domains[indexB] = B;
       domains[indexR] = R;
@@ -1469,7 +1469,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (domain_containsValue(R, result)) {
         R = domains[indexR] = domain_createValue(result);
         remove = true;
-        change = true;
+        varChanged = true;
       } else {
         return emptyDomain = true;
       }
@@ -1478,7 +1478,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
         R = domains[indexR] = domain_createRange(0, 1);
         if (!R) return emptyDomain = true;
-        change = true;
+        varChanged = true;
       }
     }
 
@@ -1502,7 +1502,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - no overlap between', indexA, 'and', indexB, ' (', domain__debug(A), domain__debug(B), ') so R becomes 0 and constraint is removed');
       // B is solved but A doesn't contain that value, R becomes 0 and the constraint is removed
       R = domains[indexR] = domain_createValue(0);
-      change = true;
+      varChanged = true;
       remove = true;
     }
 
@@ -1562,7 +1562,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - R updated from', domain__debug(oR), 'to', domain__debug(R));
       if (!R) return emptyDomain = true;
       domains[indexR] = R;
-      change = true;
+      varChanged = true;
     }
 
     // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
@@ -1653,7 +1653,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vR = vA === vB ? 1 : 0;
     if (!domain_containsValue(R, vR)) return emptyDomain = true;
     R = domains[indexR] = domain_createValue(vR);
-    if (R !== oR) change = true;
+    if (R !== oR) varChanged = true;
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
@@ -1689,7 +1689,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (A !== oA) {
       ASSERT_LOG2(' - A (', indexA, ') changed from', domain__debug(oA), 'to', domain__debug(A));
       domains[indexA] = A;
-      change = true;
+      varChanged = true;
     }
 
     ASSERT_LOG2(' ->', vR, '=', domain__debug(A), '==?', vB);
@@ -1740,7 +1740,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (domain_containsValue(R, result)) {
         R = domains[indexR] = domain_createValue(result);
         remove = true;
-        change = true;
+        varChanged = true;
       } else {
         return emptyDomain = true;
       }
@@ -1750,7 +1750,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
         ASSERT(domain_min(R) === 0, 'should be min zero'); // TODO: why? we havent asserted it not being solved yet
         R = domains[indexR] = domain_createRange(0, 1);
-        change = true;
+        varChanged = true;
       }
     }
 
@@ -1804,7 +1804,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let result = vA !== vB ? 1 : 0;
       if (!domain_containsValue(R, result)) return emptyDomain = true;
       R = domains[indexR] = domain_createValue(result);
-      change = true;
+      varChanged = true;
 
       ml_eliminate(ml, offset, SIZEOF_V8V);
       return;
@@ -1815,7 +1815,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - Trimming R (', domain__debug(R), ') to bool');
       R = domains[indexR] = domain_createRange(0, 1); // TODO: we havent asserted R isnt solved so this isnt safe
       if (!R) return emptyDomain = true;
-      change = true;
+      varChanged = true;
     }
 
     let vR = domain_getValue(R);
@@ -1901,7 +1901,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vR = vA !== vB ? 1 : 0;
     if (!domain_containsValue(R, vR)) return emptyDomain = true;
     R = domains[indexR] = domain_createValue(vR);
-    if (R !== oR) change = true;
+    if (R !== oR) varChanged = true;
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
@@ -1936,7 +1936,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
     if (A !== oA) {
       domains[indexA] = A;
-      change = true;
+      varChanged = true;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
@@ -1988,7 +1988,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (domain_min(A) >= domain_max(B)) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2036,7 +2036,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (vA >= domain_max(B)) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2094,7 +2094,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (domain_min(A) >= vB) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2183,7 +2183,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     else R = domain_intersectionValue(R, 0);
     if (R !== oR) {
       if (!R) return emptyDomain = true;
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2291,7 +2291,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (domain_min(A) > domain_max(B)) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2339,7 +2339,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (vA > domain_max(B)) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2398,7 +2398,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       else if (domain_min(A) > vB) R = domain_createValue(vR = 0);
     }
     if (R !== oR) {
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2487,7 +2487,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     else R = domain_intersectionValue(R, 0);
     if (R !== oR) {
       if (!R) return emptyDomain = true;
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2624,7 +2624,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
     if (R !== oR) {
       if (!R) return emptyDomain = true;
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2653,7 +2653,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (A !== oA) {
         ASSERT_LOG2('   - updated', indexA, 'from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexA] = A;
       }
       let vA = domain_getValue(A);
@@ -2733,7 +2733,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (oR !== R) {
         ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
         if (!R) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexR] = R;
       }
 
@@ -2828,7 +2828,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
     if (R !== oR) {
       if (!R) return emptyDomain = true;
-      change = true;
+      varChanged = true;
       domains[indexR] = R;
     }
 
@@ -2859,7 +2859,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (A !== oA) {
         ASSERT_LOG2(' - updated domain from', domain__debug(oA), 'to', domain__debug(A));
         if (!A) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexA] = A;
       }
       let vA = domain_getValue(A);
@@ -2934,7 +2934,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       if (oR !== R) {
         ASSERT_LOG2(' - Updated R from', domain__debug(oR), 'to', domain__debug(R));
         if (!R) return emptyDomain = true;
-        change = true;
+        varChanged = true;
         domains[indexR] = R;
       }
       let delta = SIZEOF_COUNT + argLen + 2; // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+n*16bit+16bit

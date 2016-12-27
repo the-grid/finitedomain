@@ -75,7 +75,7 @@ import {
 
 // BODY_START
 
-function mlToDsl(ml, names, domains, getAlias, solveStack) {
+function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
   let pc = 0;
   let dsl = '';
 
@@ -84,21 +84,23 @@ function mlToDsl(ml, names, domains, getAlias, solveStack) {
   let aliases = 0;
   let solved = 0;
   domains.forEach((domain, index) => {
+    let str = '';
     if (domain === false) {
       ++aliases;
       let alias = getAlias(index);
-      arr[index] = '# var index ' + index + ' (' + names[index] + ') is aliased to index ' + alias + ' (' + names[alias] + ')';
+      str = '# var index ' + index + ' (' + names[index] + ') is aliased to index ' + alias + ' (' + names[alias] + ')';
     } else {
       ++varsLeft;
       let domain = domains[index];
       let v = domain_getValue(domain);
       if (v >= 0) {
         ++solved;
-        arr[index] = ': ' + names[index] + ' ' + v;
+        str = ': ' + names[index] + ' ' + v;
       } else {
-        arr[index] = ': ' + names[index] + ' [' + domain_toArr(domain) + ']';
+        str = ': ' + names[index] + ' [' + domain_toArr(domain) + ']';
       }
     }
+    arr[index] = str;
   });
   domains.forEach((domain, index) => {
     if (domain === false) {
@@ -110,6 +112,13 @@ function mlToDsl(ml, names, domains, getAlias, solveStack) {
       }
     }
   });
+  if (counts) {
+    domains.forEach((domain, index) => {
+      if (domain !== false) {
+        arr[index] += ' # counts = ' + counts[index];
+      }
+    });
+  }
   dsl = `
 # Vars:
 #   Total: ${varsLeft}x
@@ -146,7 +155,7 @@ ${arr.join('\n')}
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
 
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
-    s += '               # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b;
+    s += '               # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
     return s + '\n';
   }
 
@@ -161,7 +170,9 @@ ${arr.join('\n')}
 
     let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
     s = (lenc === 1 ? c : names[c]) + ' = ' + s;
-    s += '               # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b;
+    let ss = '';
+    if (counts) ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]);
+    s += '               # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b + ss;
     return s + '\n';
   }
 
@@ -427,6 +438,7 @@ ${arr.join('\n')}
         case ML_8V_SUM:
           ASSERT_LOG2(' ! sum');
           let indexes = '';
+          let scounts = '';
           let sums = '';
           let bug = '';
           let sumCount = cr_dec16();
@@ -439,16 +451,18 @@ ${arr.join('\n')}
               domain = domains[index];
             }
             indexes += index + ' ';
+            if (counts) scounts += counts[index] + ' ';
             sums += names[index] + ' ';
             bug += domain__debug(domain) + ' ';
           }
           let sumIndex = cr_dec16();
-          dsl += names[sumIndex] + ' = sum(' + sums + ') # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum(' + sumConstant + ', ' + bug + ') # indexes: ' + indexes + '\n';
+          dsl += names[sumIndex] + ' = sum(' + sums + ') # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum(' + sumConstant + ', ' + bug + ') # indexes: ' + indexes + (scounts ? ', counts: ' + scounts : '') + '\n';
           break;
 
         case ML_PRODUCT:
           ASSERT_LOG2(' ! product');
           let pindexes = '';
+          let pcounts = '';
           let products = '';
           let pbug = '';
           let productCount = cr_dec16();
@@ -460,11 +474,12 @@ ${arr.join('\n')}
               domain = domains[index];
             }
             pindexes += index + ' ';
+            if (counts) pcounts += counts[index] + ' ';
             products += names[index] + ' ';
             pbug += domain__debug(domain) + ' ';
           }
           let productIndex = cr_dec16();
-          dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + '\n';
+          dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + (pcounts ? ', counts: ' + pcounts : '') + '\n';
           break;
 
         case ML_NOOP:

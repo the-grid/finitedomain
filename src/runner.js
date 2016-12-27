@@ -51,6 +51,9 @@ import {
   trie_get,
   trie_has,
 } from './trie';
+import {
+  counter,
+} from './counter';
 
 // BODY_START
 
@@ -144,9 +147,9 @@ function solverSolver(dsl) {
   console.timeEnd('cut leaf constraint:');
 
   console.time('ml->dsl:');
-  let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
+  let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
   console.timeEnd('ml->dsl:');
-  ASSERT_LOG2(newdsl2);
+  console.log(newdsl2);
 
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   if (!ml_hasConstraint(mlConstraints)) return createSolution(vars, domains, getAlias, solveStack);

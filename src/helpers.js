@@ -39,7 +39,26 @@ const SMALL_MAX_NUM = 30;
 // (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
 const SOLVED_FLAG = 1 << 31 >>> 0; // the >>> makes it unsigned, we dont really need it but it may help perf a little (unsigned vs signed)
 
+
 // __REMOVE_BELOW_FOR_ASSERTS__
+
+// trace changes to vars in the system. not intended for prod.
+const TRACE_VAR_CHANGE_LOG = true;
+let tracer = [];
+function TRACE_ADD(index, from, to, reason) {
+  let text = `index=${index} : ${from} -> ${to} : ${reason}`;
+  if (TRACE_VAR_CHANGE_LOG) {
+    // trace all vars
+    return tracer.push(text);
+  } else {
+    // for trace per var
+    if (!tracer[index]) tracer[index] = [];
+    tracer[index].push(text);
+  }
+}
+function TRACE_GET() {
+  return tracer;
+}
 
 ASSERT(SMALL_MAX_NUM <= 30, 'cant be larger because then shifting fails above and elsewhere');
 ASSERT(NOT_FOUND === NO_SUCH_VALUE, 'keep not found constants equal to prevent confusion bugs');
@@ -224,4 +243,6 @@ export {
   ASSERT_STRDOM,
   ASSERT_VARDOMS_SLOW,
   THROW,
+  TRACE_ADD,
+  TRACE_GET,
 };

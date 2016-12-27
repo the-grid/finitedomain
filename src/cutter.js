@@ -80,6 +80,7 @@ import {
   ml__debug,
   ml_dec16,
   ml_eliminate,
+  ml_throw,
 } from './ml';
 import {
   domain__debug,
@@ -99,14 +100,21 @@ import {
 function cutter(ml, vars, domains, getAlias, solveStack) {
   ASSERT_LOG2('\n ## cutter', ml);
   let pc = 0;
-  let counts = new Array(domains.length).fill(0);
-  countLoop();
-  cutLoop();
-  //ASSERT_LOG2(' - cutter removed', removed, 'constraints');
+  let counts;
+  let lenBefore;
+  let removed;
+  do {
+    counts = new Array(domains.length).fill(0);
+    countLoop();
+    lenBefore = solveStack.length;
+    cutLoop();
+    removed = solveStack.length - lenBefore;
+    ASSERT_LOG2(' - cutter removed', removed, 'constraints');
+  } while (removed);
 
-  function getFinalIndex(index, _max = 10) {
+  function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
-    //ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domains[index]);
+    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domains[index]);
     if (domains[index] !== false) return index;
 
     // if the domain is falsy then there was an alias (or a bug)
@@ -115,7 +123,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     // a falsy result as well so the loop can restart.
     let aliasIndex = getAlias(index);
     ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
-    //ASSERT_LOG2(' - alias for', index, 'is', aliasIndex);
+    ASSERT_LOG2(' - alias for', index, 'is', aliasIndex);
     return getFinalIndex(aliasIndex, _max - 1);
   }
 
@@ -288,15 +296,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           break;
 
         default:
-          console.log('dsl thus far:');
-          console.log('unknown op: 0x' + op.toString(16) + ' @ ' + pc + ' / ' + ml.length);
-          //console.log(dsl);
-          //console.log('exiting now...');
-
-          console.log('ML_V8V_ISEQ is', ML_V8V_ISEQ, '0x' + ML_V8V_ISEQ.toString(16));
-          console.log('ML_JMP is', ML_JMP, '0x' + ML_JMP.toString(16));
-          console.log(ml.slice(pc - 30, pcStart), '|', ml.slice(pcStart, pc + 10));
-          return;
+          ml_throw(ml, pc, 'unknown op');
       }
     }
     THROW('ML OOB');
@@ -315,7 +315,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutNeq() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB);
+    ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', counts[indexA], counts[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -337,6 +337,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       });
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+    } else {
+      pc += SIZEOF_VV;
     }
   }
 
@@ -366,6 +368,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       });
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+    } else {
+      pc += SIZEOF_VV;
     }
   }
 
@@ -394,6 +398,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       });
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+    } else {
+      pc += SIZEOF_VV;
     }
   }
 /*
@@ -854,50 +860,50 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           return THROW('constraints with <= 1 var should be eliminated');
 
         case ML_DISTINCT:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) d', pc);
           let dlen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + dlen * 2;
           break;
 
         case ML_PLUS:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) +', pc);
           pc += SIZEOF_VVV;
           //cutPlus();
           break;
         case ML_MINUS:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) -', pc);
           pc += SIZEOF_VVV;
           //cutMinus();
           break;
         case ML_MUL:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) *', pc);
           pc += SIZEOF_VVV;
           //cutMul();
           break;
         case ML_DIV:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) /', pc);
           pc += SIZEOF_VVV;
           //cutDiv();
           break;
 
 
         case ML_VVV_ISEQ:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) =?', pc);
           pc += SIZEOF_VVV;
           //cutIsEq();
           break;
         case ML_VVV_ISNEQ:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) !?', pc);
           pc += SIZEOF_VVV;
           //cutIsNeq();
           break;
         case ML_VVV_ISLT:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) <?', pc);
           pc += SIZEOF_VVV;
           //cutIsLt();
           break;
         case ML_VVV_ISLTE:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) <=?', pc);
           pc += SIZEOF_VVV;
           //cutIsLte();
           break;
@@ -906,7 +912,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         case ML_V8V_ISNEQ:
         case ML_V8V_ISLT:
         case ML_V8V_ISLTE:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) v8v', pc);
           pc += SIZEOF_V8V;
           break;
 
@@ -914,13 +920,13 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         case ML_VV8_ISNEQ:
         case ML_VV8_ISLT:
         case ML_VV8_ISLTE:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) vv8', pc);
           pc += SIZEOF_VV8;
           break;
 
         case ML_8VV_ISLT:
         case ML_8VV_ISLTE:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) 8vv', pc);
           pc += SIZEOF_8VV;
           break;
 
@@ -941,13 +947,13 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           return THROW('constraints with <= 1 var should be eliminated');
 
         case ML_8V_SUM:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) s', pc);
           let slen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_C8_COUNT + slen * 2 + 2;
           break;
 
         case ML_PRODUCT:
-          console.log('(todo)');
+          ASSERT_LOG2('(todo) p', pc);
           let plen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
@@ -977,17 +983,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           break;
 
         default:
-          console.log('dsl thus far:');
-          console.log('unknown op: 0x' + op.toString(16) + ' @ ' + pc + ' / ' + ml.length);
-          //console.log(dsl);
-          //console.log('exiting now...');
-
-          console.log('ML_V8V_ISEQ is', ML_V8V_ISEQ, '0x' + ML_V8V_ISEQ.toString(16));
-          console.log('ML_JMP is', ML_JMP, '0x' + ML_JMP.toString(16));
-          console.log(ml.slice(pc - 30, pcStart), '|', ml.slice(pcStart, pc + 10));
-          return;
+          ml_throw('unknown op', pc);
       }
     }
+    ASSERT_LOG2('the implicit end; ml desynced');
     THROW('ML OOB');
   }
 }

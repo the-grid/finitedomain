@@ -300,7 +300,12 @@ module.exports = function () {
       console.log(' - removing ' + match.length + 'b/'+code.length+'b for asserts');
       return '';
     });
+    var len = code.length;
     code = code.replace(/^\s*ASSERT.*$/gm, '');
+    if (code.length-len) console.log(' - removed', len-code.length, 'bytes of asserts');
+    len = code.length;
+    code = code.replace(/^\s*TRACE.*$/gm, '');
+    if (code.length-len) console.log(' - removed', len-code.length, 'bytes of traces');
     return code;
   }
   function removeDists(code) {

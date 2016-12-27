@@ -124,13 +124,15 @@ function solverSolver(dsl) {
   let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
   console.timeEnd('- minimizing ml');
 
-  console.time('ml->dsl:');
-  let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias);
-  console.timeEnd('ml->dsl:');
-  console.log(newdsl);
+  if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
+    console.time('ml->dsl:');
+    let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
+    console.timeEnd('ml->dsl:');
+    console.log(newdsl);
 
-  if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
-  if (state === MINIMIZER_REJECTED) return false;
+    if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
+    if (state === MINIMIZER_REJECTED) return false;
+  }
 
   console.time('dedupe constraints:');
   deduper(mlConstraints, vars, domains, getAlias);
@@ -141,7 +143,7 @@ function solverSolver(dsl) {
   console.timeEnd('cut leaf constraint:');
 
   console.time('ml->dsl:');
-  let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias);
+  let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
   console.timeEnd('ml->dsl:');
   console.log(newdsl2);
 
@@ -161,7 +163,7 @@ let Solver = solverSolver; // TEMP
 
 function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
-  console.log(ml__debug(mlConstraints, 0, -1, domains, names));
+  console.log(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
   let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack);
   if (state === MINIMIZER_SOLVED) {

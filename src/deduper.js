@@ -465,16 +465,7 @@ function deduper(ml, vars, domains, getAlias) {
           break;
 
         default:
-          console.log('dsl thus far:');
-          console.log('unknown op: 0x' + op.toString(16) + ' @ ' + pc + ' / ' + ml.length);
-          //console.log(dsl);
-          //console.log('exiting now...');
-
-          console.log('ML_V8V_ISEQ is', ML_V8V_ISEQ, '0x' + ML_V8V_ISEQ.toString(16));
-          console.log('ML_JMP is', ML_JMP, '0x' + ML_JMP.toString(16));
-          console.log(ml.slice(pc - 30, pcStart), '|', ml.slice(pcStart, pc + 10));
-          return true;
-        // THROW();
+          ml_throw('unknown op', pc);
       }
     }
     THROW('ML OOB');

@@ -69,25 +69,13 @@ import {
   ML_NOOP3,
   ML_NOOP4,
   ML_STOP,
-  //
-  //SIZEOF_VV,
-  //SIZEOF_8V,
-  //SIZEOF_V8,
-  //SIZEOF_88,
-  //SIZEOF_VVV,
-  //SIZEOF_8VV,
-  //SIZEOF_V8V,
-  //SIZEOF_VV8,
-  //SIZEOF_88V,
-  //SIZEOF_V88,
-  //SIZEOF_8V8,
-  //SIZEOF_888,
-  //SIZEOF_COUNT,
+
+  ml_throw,
 } from './ml';
 
 // BODY_START
 
-function mlToDsl(ml, names, domains, getAlias) {
+function mlToDsl(ml, names, domains, getAlias, solveStack) {
   let pc = 0;
   let dsl = '';
 
@@ -122,7 +110,17 @@ function mlToDsl(ml, names, domains, getAlias) {
       }
     }
   });
-  dsl = '# Vars (' + varsLeft + ' vars of which ' + solved + ' solved, additionally ' + aliases + ' aliases):\n' + arr.join('\n') + '\n\n';
+  dsl = `
+# Vars:
+#   Total: ${varsLeft}x
+#    - Solved: ${solved}x
+#    - Deferred: ${solveStack.length}x
+#    - To actively solve: ${varsLeft - solved - solveStack.length}
+#   Aliases: ${aliases}x
+# Var decls:
+${arr.join('\n')}
+
+`;
 
   dsl += '# Constraints:\n';
   cr_innerLoop();
@@ -491,16 +489,7 @@ function mlToDsl(ml, names, domains, getAlias) {
           break;
 
         default:
-          console.log('dsl thus far:');
-          console.log('unknown op: 0x' + op.toString(16) + ' @ ' + pc + ' / ' + ml.length);
-          //console.log(dsl);
-          //console.log('exiting now...');
-
-          console.log('ML_V8V_ISEQ is', ML_V8V_ISEQ, '0x' + ML_V8V_ISEQ.toString(16));
-          console.log('ML_JMP is', ML_JMP, '0x' + ML_JMP.toString(16));
-          console.log(ml.slice(pc - 30, pcStart), '|', ml.slice(pcStart, pc + 10));
-          return true;
-        // THROW();
+          ml_throw('unknown op', pc);
       }
     }
   }

@@ -55,7 +55,8 @@ import {
 // BODY_START
 
 function solverSolver(dsl) {
-  console.time('solverSolver');
+  console.log('<solverSolver>');
+  console.time('</solverSolver>');
   ASSERT_LOG2(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
   let varTrie = trie_create();
@@ -128,7 +129,7 @@ function solverSolver(dsl) {
     console.time('ml->dsl:');
     let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
     console.timeEnd('ml->dsl:');
-    console.log(newdsl);
+    ASSERT_LOG2(newdsl);
 
     if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
     if (state === MINIMIZER_REJECTED) return false;
@@ -145,11 +146,12 @@ function solverSolver(dsl) {
   console.time('ml->dsl:');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
   console.timeEnd('ml->dsl:');
-  console.log(newdsl2);
+  ASSERT_LOG2(newdsl2);
 
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   if (!ml_hasConstraint(mlConstraints)) return createSolution(vars, domains, getAlias, solveStack);
 
+  console.timeEnd('</solverSolver>');
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
@@ -163,7 +165,7 @@ let Solver = solverSolver; // TEMP
 
 function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
-  console.log(ml__debug(mlConstraints, 0, 20, domains, names));
+  ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
   let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack);
   if (state === MINIMIZER_SOLVED) {

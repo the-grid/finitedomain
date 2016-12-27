@@ -51,7 +51,60 @@ describe('specs/cutter.spec', function() {
 
     expect(solution).to.eql({A: 11, B: 11});
   });
-/*
+
+  it('should iseq', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A *
+      : B 11
+      : C *
+      C = A ==? B
+      A > 10
+    `);
+
+    expect(solution).to.eql({A: 11, B: 11, C: 1});
+  });
+
+  it('should isneq', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A *
+      : B 11
+      : C *
+      C = A !=? B
+      A > 10
+    `);
+
+    expect(solution).to.eql({A: 11, B: 11, C: 0});
+  });
+
+  it('should islt', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A *
+      : B 11
+      : C *
+      C = A <? B
+      A != B
+    `);
+
+    expect(solution).to.eql({A: 0, B: 11, C: 1});
+  });
+
+  it('should islte', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A *
+      : B 11
+      : C *
+      C = A <=? B
+      A != B
+    `);
+
+    expect(solution).to.eql({A: 0, B: 11, C: 1});
+  });
+
+  /*
 
   describe('plus', function(){
 

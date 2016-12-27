@@ -214,7 +214,7 @@ function ml_dec16(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   let n = ml.readUInt16BE(pc); // (ml[pc++] << 8) | ml[pc];
-  ASSERT_LOG2(' . dec16pc decoding', ml[pc - 1] << 8, 'from', pc, 'and', ml[pc], 'from', pc + 1, '-->', n);
+  ASSERT_LOG2(' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '-->', n);
   return n;
 }
 

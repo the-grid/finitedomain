@@ -52,7 +52,7 @@ describe('specs/cutter.spec', function() {
     expect(solution).to.eql({A: 11, B: 11});
   });
 
-  it('should iseq', function() {
+  it('should iseq 888', function() {
     let solution = solverSolver(`
       @custom var-strat throw
       : A *
@@ -63,6 +63,17 @@ describe('specs/cutter.spec', function() {
     `);
 
     expect(solution).to.eql({A: 11, B: 11, C: 1});
+  });
+
+  it('should iseq v8v', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 2]
+      : C [0 1]
+      C = A ==? 2
+    `);
+
+    expect(solution).to.eql({A: 0, C: 0});
   });
 
   it('should isneq', function() {

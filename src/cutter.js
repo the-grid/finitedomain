@@ -63,17 +63,10 @@ import {
   ML_STOP,
 
   SIZEOF_VV,
-  SIZEOF_8V,
-  SIZEOF_V8,
-  SIZEOF_88,
   SIZEOF_VVV,
   SIZEOF_8VV,
   SIZEOF_V8V,
   SIZEOF_VV8,
-  SIZEOF_88V,
-  SIZEOF_V88,
-  SIZEOF_8V8,
-  SIZEOF_888,
   SIZEOF_COUNT,
   SIZEOF_C8_COUNT,
 
@@ -94,8 +87,10 @@ import {
   domain_removeLte,
   domain_removeGtUnsafe,
   domain_removeLtUnsafe,
-
 } from './domain';
+import {
+  counter,
+} from './counter';
 
 // BODY_START
 
@@ -106,8 +101,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   let lenBefore;
   let removed;
   do {
-    counts = new Array(domains.length).fill(0);
-    countLoop();
+    counts = counter(ml, vars, domains, getAlias);
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
@@ -127,181 +121,6 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
     ASSERT_LOG2(' - alias for', index, 'is', aliasIndex);
     return getFinalIndex(aliasIndex, _max - 1);
-  }
-
-  function count(delta) {
-    let n = ml_dec16(ml, pc + delta);
-    ASSERT(n < domains.length, 'should be a valid index', n);
-    let index = getFinalIndex(n);
-    ASSERT(index < domains.length, 'should be a valid index', index);
-    ++counts[index];
-  }
-
-  function countLoop() {
-    pc = 0;
-    ASSERT_LOG2(' - countLoop');
-    while (pc < ml.length) {
-      let pcStart = pc;
-      let op = ml[pc];
-      ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
-      switch (op) {
-        case ML_VV_EQ:
-        case ML_VV_NEQ:
-        case ML_VV_LT:
-        case ML_VV_LTE:
-          count(1);
-          count(3);
-          pc += SIZEOF_VV;
-          break;
-
-        case ML_V8_EQ:
-        case ML_V8_NEQ:
-        case ML_V8_LT:
-        case ML_V8_LTE:
-          count(1);
-          pc += SIZEOF_V8;
-          break;
-
-        case ML_8V_LT:
-        case ML_8V_LTE:
-          count(2);
-          pc += SIZEOF_8V;
-          break;
-
-        case ML_88_EQ:
-        case ML_88_NEQ:
-        case ML_88_LT:
-        case ML_88_LTE:
-          pc += SIZEOF_88;
-          break;
-
-        case ML_DISTINCT:
-          // note: distinct cant have multiple counts of same var because that would reject
-          let dlen = ml_dec16(ml, pc + 1);
-          for (let i = 0; i < dlen; ++i) {
-            count(3 + i * 2);
-          }
-          pc += SIZEOF_COUNT + dlen * 2;
-          break;
-
-        case ML_PLUS:
-        case ML_MINUS:
-        case ML_MUL:
-        case ML_DIV:
-        case ML_VVV_ISEQ:
-        case ML_VVV_ISNEQ:
-        case ML_VVV_ISLT:
-        case ML_VVV_ISLTE:
-          count(1);
-          count(3);
-          count(5);
-          pc += SIZEOF_VVV;
-          break;
-
-        case ML_V8V_ISEQ:
-        case ML_V8V_ISNEQ:
-        case ML_V8V_ISLT:
-        case ML_V8V_ISLTE:
-          ASSERT_LOG2('islte');
-          count(1);
-          ASSERT_LOG2('- a');
-          count(3);
-          ASSERT_LOG2('- b');
-          pc += SIZEOF_V8V;
-          break;
-
-        case ML_VV8_ISEQ:
-        case ML_VV8_ISNEQ:
-        case ML_VV8_ISLT:
-        case ML_VV8_ISLTE:
-          count(1);
-          count(3);
-          pc += SIZEOF_VV8;
-          break;
-
-        case ML_8VV_ISLT:
-        case ML_8VV_ISLTE:
-          count(2);
-          count(4);
-          pc += SIZEOF_8VV;
-          break;
-
-        case ML_88V_ISEQ:
-        case ML_88V_ISNEQ:
-        case ML_88V_ISLT:
-        case ML_88V_ISLTE:
-          count(3);
-          pc += SIZEOF_88V;
-          break;
-
-        case ML_V88_ISEQ:
-        case ML_V88_ISNEQ:
-        case ML_V88_ISLT:
-        case ML_V88_ISLTE:
-          count(1);
-          pc += SIZEOF_V88;
-          break;
-
-        case ML_8V8_ISLT:
-        case ML_8V8_ISLTE:
-          count(2);
-          pc += SIZEOF_8V8;
-          break;
-
-        case ML_888_ISEQ:
-        case ML_888_ISNEQ:
-        case ML_888_ISLT:
-        case ML_888_ISLTE:
-          pc += SIZEOF_888;
-          break;
-
-        case ML_8V_SUM:
-          // TODO: count multiple occurrences of same var once
-          let slen = ml_dec16(ml, pc + 1);
-          for (let i = 0; i < slen; ++i) {
-            count(4 + i * 2);
-          }
-          pc += SIZEOF_C8_COUNT + slen * 2 + 2;
-          break;
-
-        case ML_PRODUCT:
-          // TODO: count multiple occurrences of same var once
-          let plen = ml_dec16(ml, pc + 1);
-          for (let i = 0; i < plen; ++i) {
-            count(3 + i * 2);
-          }
-          pc += SIZEOF_COUNT + plen * 2 + 2;
-          break;
-
-        case ML_UNUSED:
-          return THROW(' ! compiler problem @', pcStart);
-
-        case ML_STOP:
-          return;
-
-        case ML_JMP:
-          let delta = ml_dec16(ml, pc + 1);
-          pc += 3 + delta;
-          break;
-
-        case ML_NOOP:
-          ++pc;
-          break;
-        case ML_NOOP2:
-          pc += 2;
-          break;
-        case ML_NOOP3:
-          pc += 3;
-          break;
-        case ML_NOOP4:
-          pc += 4;
-          break;
-
-        default:
-          ml_throw(ml, pc, 'unknown op');
-      }
-    }
-    THROW('ML OOB');
   }
 
   function force(varIndex) {
@@ -828,18 +647,19 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
   function cutIsEq(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsEq', offset, sizeof, lenA, lenB, lenR);
+    ASSERT(1 + lenA + lenB + lenR === sizeof, 'expecting this sizeof');
     if (lenR === 2) {
       let indexR = ml_dec16(ml, offset + 1 + lenA + lenB);
       ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
-        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : ml_dec16(ml, 1 + offset);
+        let indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : ml_dec16(ml, offset + 1);
         let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : ml_dec16(ml, offset + 1 + lenA);
         ASSERT_LOG2('   - R is a leaf var');
         solveStack.push(_ => {
           ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
-          let vA = force(indexA);
-          let vB = force(indexB);
+          let vA = lenA === 1 ? indexA : force(indexA);
+          let vB = lenB === 1 ? indexB : force(indexB);
           let vR = vA === vB ? 1 : 0;
           ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, vR, domain__debug(domains[indexR]));
           domains[indexR] = domain_createValue(vR);
@@ -865,8 +685,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT_LOG2('   - R is a leaf var');
           solveStack.push(_ => {
             ASSERT_LOG2(' - cut isneq R;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
-            let vA = force(indexA);
-            let vB = force(indexB);
+            let vA = lenA === 1 ? indexA : force(indexA);
+            let vB = lenB === 1 ? indexB : force(indexB);
             let vR = vA !== vB ? 1 : 0;
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', vA, vB, vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
@@ -893,8 +713,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT_LOG2('   - R is a leaf var');
           solveStack.push(_ => {
             ASSERT_LOG2(' - cut islt R;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
-            let vA = force(indexA);
-            let vB = force(indexB);
+            let vA = lenA === 1 ? indexA : force(indexA);
+            let vB = lenB === 1 ? indexB : force(indexB);
             let vR = vA < vB ? 1 : 0;
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
@@ -921,8 +741,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT_LOG2('   - R is a leaf var');
           solveStack.push(_ => {
             ASSERT_LOG2(' - cut islte R;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
-            let vA = force(indexA);
-            let vB = force(indexB);
+            let vA = lenA === 1 ? indexA : force(indexA);
+            let vB = lenB === 1 ? indexB : force(indexB);
             let vR = vA <= vB ? 1 : 0;
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<=?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
@@ -935,7 +755,107 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     }
     pc = offset + sizeof;
   }
+/*
+  function cutPlus(ml, offset) {
+    ASSERT_LOG2(' -- cutPlus', offset);
+    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
+    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
+    if (counts[indexR] === 1) {
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 1 + 2);
+      ASSERT_LOG2('   - R is a leaf var');
+      solveStack.push(_ => {
+        ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let vB = force(indexB);
+        let vR = vA + vB;
+        ASSERT(Number.isInteger(vR), 'should be integer result');
+        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
+        domains[indexR] = domain_createValue(vR);
+      });
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      --counts[indexA];
+      --counts[indexB];
+    }
+    pc = offset + SIZEOF_VVV;
+  }
 
+  function cutMinus(ml, offset) {
+    ASSERT_LOG2(' -- cutMinus', offset);
+    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
+    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
+    if (counts[indexR] === 1) {
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 1 + 2);
+      ASSERT_LOG2('   - R is a leaf var');
+      solveStack.push(_ => {
+        ASSERT_LOG2(' - cut minus R;', indexR, '=', indexA, '-', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '-', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let vB = force(indexB);
+        let vR = vA - vB;
+        ASSERT(Number.isInteger(vR), 'should be integer result');
+        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A-B=R', vA, vB, vR, domain__debug(domains[indexR]));
+        domains[indexR] = domain_createValue(vR);
+      });
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      --counts[indexA];
+      --counts[indexB];
+    }
+    pc = offset + SIZEOF_VVV;
+  }
+
+  function cutMul(ml, offset) {
+    ASSERT_LOG2(' -- cutMul', offset);
+    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
+    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
+    if (counts[indexR] === 1) {
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 1 + 2);
+      ASSERT_LOG2('   - R is a leaf var');
+      solveStack.push(_ => {
+        ASSERT_LOG2(' - cut mul R;', indexR, '=', indexA, '*', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '*', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let vB = force(indexB);
+        let vR = vA * vB;
+        ASSERT(Number.isInteger(vR), 'should be integer multiplication');
+        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A*B=R', vA, vB, vR, domain__debug(domains[indexR]));
+        domains[indexR] = domain_createValue(vR);
+      });
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      --counts[indexA];
+      --counts[indexB];
+    }
+    pc = offset + SIZEOF_VVV;
+  }
+
+  function cutDiv(ml, offset) {
+    ASSERT_LOG2(' -- cutDiv', offset);
+    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
+    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
+    if (counts[indexR] === 1) {
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 1 + 2);
+      ASSERT_LOG2('   - R is a leaf var');
+      solveStack.push(_ => {
+        ASSERT_LOG2(' - cut div R;', indexR, '=', indexA, '/', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '/', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let vB = force(indexB);
+        let vR = vA / vB;
+        ASSERT(Number.isInteger(vR), 'should be integer division', vA, '/', vB, '=', vR);
+        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A/B=R', vA, vB, vR, domain__debug(domains[indexR]));
+        domains[indexR] = domain_createValue(vR);
+      });
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      --counts[indexA];
+      --counts[indexB];
+    }
+    pc = offset + SIZEOF_VVV;
+  }
+*/
   function cutLoop() {
     ASSERT_LOG2(' - cutLoop');
     pc = 0;
@@ -978,26 +898,21 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           break;
 
         case ML_PLUS:
-          ASSERT_LOG2('(todo) +', pc);
           pc += SIZEOF_VVV;
-          //cutPlus();
+          //cutPlus(ml, pc);
           break;
         case ML_MINUS:
-          ASSERT_LOG2('(todo) -', pc);
           pc += SIZEOF_VVV;
-          //cutMinus();
+          //cutMinus(ml, pc);
           break;
         case ML_MUL:
-          ASSERT_LOG2('(todo) *', pc);
           pc += SIZEOF_VVV;
-          //cutMul();
+          //cutMul(ml, pc);
           break;
         case ML_DIV:
-          ASSERT_LOG2('(todo) /', pc);
           pc += SIZEOF_VVV;
-          //cutDiv();
+          //cutDiv(ml, pc);
           break;
-
 
         case ML_VVV_ISEQ:
           cutIsEq(ml, pc, SIZEOF_VVV, 2, 2, 2);

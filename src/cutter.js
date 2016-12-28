@@ -55,6 +55,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -1063,6 +1066,84 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     pc += SIZEOF_C8_COUNT + len * 2 + 2;
   }
 
+  function cutOr() {
+    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
+    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    ASSERT_LOG2(' - cutOr', indexA, '|', indexB, 'counts:', counts[indexA], counts[indexB]);
+
+    if (counts[indexA] === 1) {
+      ASSERT_LOG2('   - A is a leaf var');
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut or A;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
+        let A = domains[indexA];
+        let vB = force(indexB);
+        ASSERT(domain_min(A) === 0 && domain_max(A) > 0, 'A should contain zero and non-zero');
+        if (vB === 0) domains[indexA] = domain_removeValue(A, 0);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' | ' + indexB));
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
+      --counts[indexB];
+    } else if (counts[indexB] === 1) {
+      ASSERT_LOG2('   - B is a leaf var');
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut or B;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let B = domains[indexB];
+        ASSERT(domain_min(B) === 0 && domain_max(B) > 0, 'B should contain zero and non-zero');
+        if (vA === 0) domains[indexB] = domain_removeValue(B, 0);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' | ' + indexB));
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
+      --counts[indexB];
+    } else {
+      pc += SIZEOF_VV;
+    }
+  }
+
+  function cutXor() {
+    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
+    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    ASSERT_LOG2(' - cutXor', indexA, '^', indexB, 'counts:', counts[indexA], counts[indexB]);
+
+    if (counts[indexA] === 1) {
+      ASSERT_LOG2('   - A is a leaf var');
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut xor A;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
+        let A = domains[indexA];
+        let vB = force(indexB);
+        ASSERT(domain_min(A) === 0 && domain_max(A) > 0, 'A should contain zero and non-zero');
+        if (vB === 0) domains[indexA] = domain_removeValue(A, 0);
+        else domains[indexA] = domain_createValue(0);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' ^ ' + indexB));
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
+      --counts[indexB];
+    } else if (counts[indexB] === 1) {
+      ASSERT_LOG2('   - B is a leaf var');
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut xor B;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
+        let vA = force(indexA);
+        let B = domains[indexB];
+        ASSERT(domain_min(B) === 0 && domain_max(B) > 0, 'B should contain zero and non-zero');
+        if (vA === 0) domains[indexB] = domain_removeValue(B, 0);
+        else domains[indexB] = domain_createValue(0);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' ^ ' + indexB));
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
+      --counts[indexB];
+    } else {
+      pc += SIZEOF_VV;
+    }
+  }
+
 /*
 
   function cutMinus(ml, offset) {
@@ -1262,6 +1343,15 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT_LOG2('(todo) p', pc);
           let plen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + plen * 2 + 2;
+          break;
+
+        case ML_VV_AND:
+          return THROW('ands should be solved and eliminated');
+        case ML_VV_OR:
+          cutOr();
+          break;
+        case ML_VV_XOR:
+          cutXor();
           break;
 
         case ML_UNUSED:

@@ -58,6 +58,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_STOP,
   //
   //SIZEOF_VV,
@@ -561,6 +564,57 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           ml += encode8bit(ML_88_LTE) + encode8bit(B) + encode8bit(A);
           break;
 
+        case 'V&V':
+          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
+          break;
+        case '8&V':
+          A = addVar(undefined, A, false, true);
+          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
+          break;
+        case 'V&8':
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
+          break;
+        case '8&8':
+          A = addVar(undefined, A, false, true);
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
+          break;
+
+        case 'V|V':
+          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
+          break;
+        case '8|V':
+          A = addVar(undefined, A, false, true);
+          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
+          break;
+        case 'V|8':
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
+          break;
+        case '8|8':
+          A = addVar(undefined, A, false, true);
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
+          break;
+
+        case 'V^V':
+          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
+          break;
+        case '8^V':
+          A = addVar(undefined, A, false, true);
+          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
+          break;
+        case 'V^8':
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
+          break;
+        case '8^8':
+          A = addVar(undefined, A, false, true);
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
+          break;
+
         default:
           THROW('Unknown constraint op: [' + cop + ']');
       }
@@ -751,6 +805,15 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           return '>=';
         }
         return '>';
+      case '&':
+        skip();
+        return '&';
+      case '|':
+        skip();
+        return '|';
+      case '^':
+        skip();
+        return '^';
       case '#':
         THROW('Expected to parse a cop but found a comment instead');
         break;

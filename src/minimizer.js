@@ -59,6 +59,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -453,6 +456,21 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         case ML_PRODUCT:
           ASSERT_LOG2('- product @', pcStart);
           cr_product(ml);
+          break;
+
+        case ML_VV_AND:
+          ASSERT_LOG2('- and @', pcStart);
+          cr_vv_and(ml);
+          break;
+
+        case ML_VV_OR:
+          ASSERT_LOG2('- or @', pcStart);
+          cr_vv_or(ml);
+          break;
+
+        case ML_VV_XOR:
+          ASSERT_LOG2('- xor @', pcStart);
+          cr_vv_xor(ml);
           break;
 
         case ML_NOOP:
@@ -2942,6 +2960,118 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       onlyJumps = false;
       pc = offset + SIZEOF_COUNT + argLen + 2; // skip the 16bit indexes manually
     }
+  }
+
+  function cr_vv_and(ml) {
+    // remove zero from A and B and remove constraint
+    // (this is basically an alias for A>=1,B>=1 for the sake of consistency)
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+
+    let oA = getDomainOrRestartForAlias(indexA, 1);
+    let oB = getDomainOrRestartForAlias(indexB, 3);
+    if (oA === MINIMIZE_ALIASED || oB === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = cr_vv_and', indexA, indexB, domain__debug(A), domain__debug(B));
+
+    let A = domain_removeValue(oA, 0);
+    let B = domain_removeValue(oB, 0);
+    if (setDomain(indexA, A, 'AND A') || setDomain(indexB, B, 'AND B')) return;
+
+    ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+  }
+
+  function cr_vv_or(ml) {
+    // remove constraint when A or B has no zero
+    // when A or B solves to zero remove zero from the other and remove constraint
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = cr_vv_or', indexA, indexB, domain__debug(A), domain__debug(B));
+
+    if (domain_getValue(A) === 0) {
+      ASSERT_LOG2(' - A=0 so remove 0 from B', domain__debug(B), '->', domain__debug(domain_removeValue(B, 0)));
+      let oB = B;
+      B = domain_removeValue(oB, 0);
+      if (B !== oB) {
+        if (setDomain(indexB, B, 'OR B')) return;
+      }
+      ml_eliminate(ml, offset, SIZEOF_VV);
+    } else if (domain_getValue(B) === 0) {
+      ASSERT_LOG2(' - B=0 so remove 0 from A', domain__debug(A), '->', domain__debug(domain_removeValue(A, 0)));
+      let oA = A;
+      A = domain_removeValue(A, 0);
+      if (A !== oA) {
+        if (setDomain(indexA, A, 'OR A')) return;
+      }
+      ml_eliminate(ml, offset, SIZEOF_VV);
+    } else if (domain_min(A) > 0 || domain_min(B) > 0) {
+      ASSERT_LOG2(' - at least A or B has no zeroes so remove constraint');
+      ml_eliminate(ml, offset, SIZEOF_VV);
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+      pc = offset + SIZEOF_VV;
+    }
+  }
+
+  function cr_vv_xor(ml) {
+    // fail if either A and B solve to zero or both solve to non-zero
+    // remove when either solves to zero and the other has no zero
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    let hasZeroA = domain_min(A) === 0;
+    let hasZeroB = domain_min(B) === 0;
+    if (hasZeroA !== hasZeroB) {
+      // the one that has a zero must solve to zero
+      setDomain(hasZeroA ? indexA : indexB, domain_createValue(0), 'xor');
+
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    // ok so either A and B both do or dont contain a zero
+    if (!hasZeroA) {
+      // reject because neither has zero but at least must have to satisfy the xor
+      setEmpty(indexA, 'xor(A,B) failed');
+      setEmpty(indexB, 'xor(A,B) failed');
+      return;
+    }
+
+    // last case; both have zero. if one is solved, remove it from the other. otherwise leave it for now.
+    if (domain_isSolved(A)) {
+      if (setDomain(indexB, domain_removeValue(B, 0), 'A=0 xor B')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    if (domain_isSolved(B)) {
+      if (setDomain(indexA, domain_removeValue(A, 0), 'B=0 xor A')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VV;
   }
 }
 

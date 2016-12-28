@@ -50,7 +50,7 @@ mode:
   `constraints`
   `propagators`
 varstmt:
-  `:` ident [`=`] domain [aliases] mods
+  `:` idents [`=`] domain [aliases] mods
 aliases:
   alias [aliases]
 alias:
@@ -132,6 +132,9 @@ cop: // constraining op, has no result
   `<=`
   `>`
   `>=`
+  `&`
+  `|`
+  `^`
 grouping:
   `(` vexpr `)`
   `(` grouping `)`

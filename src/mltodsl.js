@@ -63,6 +63,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -88,8 +91,8 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
     let str = '';
     if (domain === false) {
       ++aliases;
-      let alias = getAlias(index);
-      str = '# var index ' + index + ' (' + names[index] + ') is aliased to index ' + alias + ' (' + names[alias] + ')';
+      //let alias = getAlias(index);
+      //str = '# var index ' + index + ' (' + names[index] + ') is aliased to index ' + alias + ' (' + names[alias] + ')';
     } else {
       ++varsLeft;
       let domain = domains[index];
@@ -202,13 +205,13 @@ ${arr.join('\n')}
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
-          dsl += '# STOP\n';
+          //dsl += '# STOP\n';
           return;
 
         case ML_JMP:
           let delta = cr_dec16();
           ASSERT_LOG2(' ! jmp', delta);
-          dsl += '# JMP ' + delta + '\n';
+          //dsl += '# JMP ' + delta + '\n';
           pc += delta;
           break;
 
@@ -498,23 +501,36 @@ ${arr.join('\n')}
           dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + (pcounts ? ', counts: ' + counts[productIndex] + ' = product(' + pcounts + ')' : '') + '\n';
           break;
 
+        case ML_VV_AND:
+          ASSERT_LOG2(' ! and vv');
+          dsl += cr_decAb(2, 2, '&');
+          break;
+        case ML_VV_OR:
+          ASSERT_LOG2(' ! or vv');
+          dsl += cr_decAb(2, 2, '|');
+          break;
+        case ML_VV_XOR:
+          ASSERT_LOG2(' ! xor vv');
+          dsl += cr_decAb(2, 2, '^');
+          break;
+
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');
-          dsl += '# NOOP \n';
+          //dsl += '# NOOP \n';
           pc = pcStart + 1;
           break;
         case ML_NOOP2:
           ASSERT_LOG2(' ! noop 2');
-          dsl += '# NOOP 2\n';
+          //dsl += '# NOOP 2\n';
           pc = pcStart + 2;
           break;
         case ML_NOOP3:
           ASSERT_LOG2(' ! noop 3');
-          dsl += '# NOOP 3\n';
+          //dsl += '# NOOP 3\n';
           pc = pcStart + 3;
           break;
         case ML_NOOP4:
-          dsl += '# NOOP 4\n';
+          //dsl += '# NOOP 4\n';
           ASSERT_LOG2(' ! noop 4');
           pc = pcStart + 4;
           break;

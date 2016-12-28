@@ -55,6 +55,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -439,6 +442,15 @@ function deduper(ml, vars, domains, getAlias) {
           product();
           break;
 
+        case ML_VV_AND:
+          keyVV('&');
+          break;
+        case ML_VV_OR:
+          keyVV('|');
+          break;
+        case ML_VV_XOR:
+          keyVV('^');
+          break;
 
         case ML_UNUSED:
           return THROW(' ! compiler problem @', pcStart);

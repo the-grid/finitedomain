@@ -55,6 +55,9 @@ import {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -126,6 +129,9 @@ function counter(ml, vars, domains, getAlias) {
         case ML_VV_NEQ:
         case ML_VV_LT:
         case ML_VV_LTE:
+        case ML_VV_AND:
+        case ML_VV_OR:
+        case ML_VV_XOR:
           count(1);
           count(3);
           pc += SIZEOF_VV;

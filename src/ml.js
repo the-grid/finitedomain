@@ -76,6 +76,11 @@ const ML_PLUS = ml_opcodeCounter++;
 const ML_MINUS = ml_opcodeCounter++;
 const ML_MUL = ml_opcodeCounter++;
 const ML_DIV = ml_opcodeCounter++;
+
+const ML_VV_AND = ml_opcodeCounter++;
+const ML_VV_OR = ml_opcodeCounter++;
+const ML_VV_XOR = ml_opcodeCounter++;
+
 const ML_JMP = ml_opcodeCounter++;
 const ML_NOOP = ml_opcodeCounter++;
 const ML_NOOP2 = ml_opcodeCounter++;
@@ -107,6 +112,9 @@ function ml_sizeof(ml, offset) {
     case ML_VV_NEQ:
     case ML_VV_LT:
     case ML_VV_LTE:
+    case ML_VV_AND:
+    case ML_VV_OR:
+    case ML_VV_XOR:
       return SIZEOF_VV;
 
     case ML_UNUSED:
@@ -422,6 +430,15 @@ function ml__debug(ml, offset, max, domains, names) {
       /* fall-through */
       case ML_VV_LTE:
         if (!name) name = '<=';
+      /* fall-through */
+      case ML_VV_AND:
+        if (!name) name = '&';
+      /* fall-through */
+      case ML_VV_OR:
+        if (!name) name = '|';
+      /* fall-through */
+      case ML_VV_XOR:
+        if (!name) name = '^';
         rv.push(ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3));
         break;
 
@@ -709,6 +726,11 @@ export {
   ML_MINUS,
   ML_MUL,
   ML_DIV,
+
+  ML_VV_AND,
+  ML_VV_OR,
+  ML_VV_XOR,
+
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,

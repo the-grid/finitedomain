@@ -2611,8 +2611,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // that (if the result is max 10 then inputs can be pruned of any value > 10)
     // we cant really do anything else
 
-    let sumLo = 0;
-    let sumHi = 0;
+    let sumLo = fixedConstant;
+    let sumHi = fixedConstant;
     for (let i = argCount - 1; i >= 0; --i) {
       let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
       let indexA = ml_dec16(ml, offset + indexOffsetDelta);

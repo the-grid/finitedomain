@@ -962,6 +962,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
     pc = offset + sizeof;
   }
+
   function cutPlus(ml, offset) {
     ASSERT_LOG2(' -- cutPlus', offset);
     // note: we cant simply eliminate leaf vars because they still constrain
@@ -1011,6 +1012,57 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     }
     pc = offset + SIZEOF_VVV;
   }
+
+  function cutSum(ml, offset) {
+    let len = ml_dec16(ml, pc + 1);
+    ASSERT(len > 2, 'should have at least three args or otherwise the minifier would have morphed it');
+
+    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + len * 2));
+
+    if (counts[indexR] === 1) {
+      let C = ml_dec8(ml, offset + 1 + 2); // constant
+      let lo = C;
+      let hi = C;
+      for (let i = 0; i < len; ++i) {
+        let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+        let domain = domains[index];
+        lo += domain_min(domain);
+        hi += domain_max(domain);
+      }
+
+      let R = domains[indexR];
+      ASSERT(domain_min(R) >= lo, 'R should be minimized');
+      ASSERT(domain_max(R) <= hi, 'R should be minimized');
+
+      if (R === domain_createRange(lo, hi)) {
+        // all possible outcomes of summing any element in the sum args are part of R so
+        // R is a leaf and the args arent bound by it so we can safely remove the sum
+
+        // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
+        let args = [];
+        for (let i = 0; i < len; ++i) {
+          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          args.push(index);
+          --counts[index];
+        }
+
+        ASSERT_LOG2('   - R is a leaf var that wraps all bounds', indexR, args, domain__debug(R));
+
+        solveStack.push(_ => {
+          ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
+          let vR = C + args.map(force).reduce((a, b) => a + b);
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'R should already have been reduced to a domain that is valid within any outcome of the sum', vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+        ml_eliminate(ml, pc, SIZEOF_C8_COUNT + len * 2 + 2);
+        --counts[indexR]; // args already done in above loop
+      }
+    }
+
+    pc += SIZEOF_C8_COUNT + len * 2 + 2;
+  }
+
 /*
 
   function cutMinus(ml, offset) {
@@ -1203,9 +1255,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           return THROW('constraints with <= 1 var should be eliminated');
 
         case ML_8V_SUM:
-          ASSERT_LOG2('(todo) s', pc);
-          let slen = ml_dec16(ml, pc + 1);
-          pc += SIZEOF_C8_COUNT + slen * 2 + 2;
+          cutSum(ml, pc);
           break;
 
         case ML_PRODUCT:

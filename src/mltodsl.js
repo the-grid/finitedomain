@@ -472,7 +472,7 @@ ${arr.join('\n')}
             bug += domain__debug(domain) + ' ';
           }
           let sumIndex = cr_dec16();
-          dsl += names[sumIndex] + ' = sum(' + sums + ') # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum(' + sumConstant + ', ' + bug + ') # indexes: ' + indexes + (scounts ? ', counts: ' + scounts : '') + '\n';
+          dsl += names[sumIndex] + ' = sum(' + sums + ') # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum(' + sumConstant + ', ' + bug + ') # indexes: ' + indexes + (scounts ? ', counts: ' + counts[sumIndex] + ' = sum(' + scounts + ')' : '') + '\n';
           break;
 
         case ML_PRODUCT:
@@ -495,7 +495,7 @@ ${arr.join('\n')}
             pbug += domain__debug(domain) + ' ';
           }
           let productIndex = cr_dec16();
-          dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + (pcounts ? ', counts: ' + pcounts : '') + '\n';
+          dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + (pcounts ? ', counts: ' + counts[productIndex] + ' = product(' + pcounts + ')' : '') + '\n';
           break;
 
         case ML_NOOP:

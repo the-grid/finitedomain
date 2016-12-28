@@ -115,6 +115,53 @@ describe('specs/cutter.spec', function() {
     expect(solution).to.eql({A: 0, B: 11, C: 1});
   });
 
+  describe('sum', function() {
+
+    it('should remove simple bool case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [0 3]
+        R = sum(A B C)
+      `);
+
+      // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0});
+    });
+
+    it('should remove simple bool and constant case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [4 7]
+        R = sum(A 4 B C)
+      `);
+
+      // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 4, __1: 4});
+    });
+
+    it('should remove if R wraps whole range', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 2 2]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        : R [0 5]
+        R = sum(A B C D)
+      `);
+
+      // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
+      expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, R: 0});
+    });
+  });
+
+
   /*
 
   describe('plus', function(){

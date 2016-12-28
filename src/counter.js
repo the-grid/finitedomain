@@ -238,6 +238,7 @@ function counter(ml, vars, domains, getAlias) {
           for (let i = 0; i < slen; ++i) {
             count(4 + i * 2);
           }
+          count(4 + slen * 2); // R
           pc += SIZEOF_C8_COUNT + slen * 2 + 2;
           break;
 
@@ -247,6 +248,7 @@ function counter(ml, vars, domains, getAlias) {
           for (let i = 0; i < plen; ++i) {
             count(3 + i * 2);
           }
+          count(3 + plen * 2); // R
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
 

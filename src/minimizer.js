@@ -1484,6 +1484,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     } else {
       if (domain_max(R) > 1) {
+        if (domain_min(R) > 1) return setEmpty(indexR, 'iseq; R was not boolable');
         ASSERT(domain_min(R) === 0, 'domain should not be solved to 1 yet');
         R = domain_createRange(0, 1);
         if (setDomain(indexR, R, 'isEq removing non-bools from R')) return;
@@ -1515,8 +1516,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       remove = true;
     }
 
-    ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
-
+    ASSERT(domain_min(R) === 0 && domain_max(R) === 1, 'R should be a bool at this point');
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     if (remove) {
@@ -1552,6 +1552,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       return;
     }
 
+    if (domain_min(R) > 0) return setEmpty(indexR, 'isEq v8v R');
+
     // okay, R isnt solved (yet)
     let remove = false;
     let oR = R;
@@ -1562,8 +1564,6 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // A and B are solved and A contains B so R=1
       R = domain_createValue(vR = 1);
       remove = true;
-    } else if (domain_min(R) > 1) {
-      return setEmpty(indexR, 'isEq v8v R');
     } else if (domain_max(R) > 1) {
       R = domain_createRange(0, 1);
     }

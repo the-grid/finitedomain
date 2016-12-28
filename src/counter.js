@@ -110,7 +110,7 @@ function counter(ml, vars, domains, getAlias) {
     let n = ml_dec16(ml, pc + delta);
     ASSERT(n < domains.length, 'should be a valid index', n);
     let index = getFinalIndex(n);
-    ASSERT(index < domains.length, 'should be a valid index', index);
+    ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
     ++counts[index];
   }
 

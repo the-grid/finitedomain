@@ -83,6 +83,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
   let varsLeft = 0;
   let aliases = 0;
   let solved = 0;
+  let unsolved = 0;
   domains.forEach((domain, index) => {
     let str = '';
     if (domain === false) {
@@ -97,6 +98,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
         ++solved;
         str = ': ' + names[index] + ' ' + v;
       } else {
+        ++unsolved;
         str = ': ' + names[index] + ' [' + domain_toArr(domain) + ']';
       }
     }
@@ -119,13 +121,27 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       }
     });
   }
+
+  //let x = {};
+  //solveStack.forEach(f => {
+  //  let _t = f._target;
+  //  ASSERT(typeof _t === 'number' && _t >= 0 && _t < domains.length, 'sigh');
+  //  if (x[_t]) {
+  //    console.log(x[_t].toString(), f.toString());
+  //    console.log(x[_t]._meta, f._meta);
+  //    throw new Error('stop solve stack contains dupes');
+  //  }
+  //  x[_t] = f;
+  //});
+
   dsl = `
-# Vars:
-#   Total: ${varsLeft}x
-#    - Solved: ${solved}x
-#    - Deferred: ${solveStack.length}x
-#    - To actively solve: ${varsLeft - solved - solveStack.length}
-#   Aliases: ${aliases}x
+# Vars: ${domains.length} x
+#   Aliases: ${aliases} x
+#   Domained: ${varsLeft} x
+#    - Solved: ${solved} x
+#    - Unsolved: ${unsolved} x
+#      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
+#      - To solve: ${unsolved - (solveStack.length - aliases)} x
 # Var decls:
 ${arr.join('\n')}
 

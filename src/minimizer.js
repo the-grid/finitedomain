@@ -540,6 +540,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ASSERT(domains[indexB] === false, 'B should be marked as an alias');
         domains[indexB] = domains[indexA] = domain_createValue(domain_min(domains[indexA]));
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'alias(' + indexA + ' -> ' + indexB + ')'));
       domains[indexB] = false; // mark as aliased. this is not a change per se.
     }
 

@@ -140,24 +140,30 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         ASSERT_LOG2(' - cut neq A;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
         domains[indexA] = domain_removeValue(A, vB);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
       ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
       --counts[indexB];
     } else if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         ASSERT_LOG2(' - cut neq B;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let B = domains[indexB];
         domains[indexB] = domain_removeValue(B, vA);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+      --counts[indexB];
     } else {
       pc += SIZEOF_VV;
     }
@@ -170,25 +176,31 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         ASSERT_LOG2(' - cut lt A;', indexA, '<', indexB, '  ->  ', domain__debug(domains[indexA]), '<', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
         ASSERT_LOG2('   - Setting', indexA, '(', domain__debug(A), ') to be lt', indexB, '(', vB, ')');
         domains[indexA] = domain_removeGte(A, vB);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = vars[indexA] + ' < ' + vars[indexB]));
       ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
       --counts[indexB];
     } else if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         let vA = force(indexA);
         let B = domains[indexB];
         ASSERT_LOG2(' - cut lt B; Setting', indexA, '(', vA, ') to be lt', indexB, '(', domain__debug(B), ')');
         domains[indexB] = domain_removeLte(B, vA);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' < ' + indexB));
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+      --counts[indexB];
     } else {
       pc += SIZEOF_VV;
     }
@@ -201,24 +213,30 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
         domains[indexA] = domain_removeGtUnsafe(A, vB);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' <= ' + indexB));
       ml_eliminate(ml, pc, SIZEOF_VV);
+      --counts[indexA];
       --counts[indexB];
     } else if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
+      solveStack.push(domains => {
         ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let B = domains[indexB];
         domains[indexB] = domain_removeLtUnsafe(B, vA);
       });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexA} <= ${indexB}`));
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
+      --counts[indexB];
     } else {
       pc += SIZEOF_VV;
     }
@@ -649,14 +667,14 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT_LOG2(' -- cutIsEq', offset, sizeof, lenA, lenB, lenR);
     ASSERT(1 + lenA + lenB + lenR === sizeof, 'expecting this sizeof');
     if (lenR === 2) {
-      let indexR = ml_dec16(ml, offset + 1 + lenA + lenB);
+      let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
       ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
-        let indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : ml_dec16(ml, offset + 1);
-        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : ml_dec16(ml, offset + 1 + lenA);
+        let indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
+        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
         ASSERT_LOG2('   - R is a leaf var');
-        solveStack.push(_ => {
+        solveStack.push(domains => {
           ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
           let vA = lenA === 1 ? indexA : force(indexA);
           let vB = lenB === 1 ? indexB : force(indexB);
@@ -664,26 +682,60 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, vR, domain__debug(domains[indexR]));
           domains[indexR] = domain_createValue(vR);
         });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} ==? ${indexB}`));
         ml_eliminate(ml, pc, sizeof);
         --counts[indexA];
         --counts[indexB];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
       }
     }
+
+    ASSERT(lenA === 2, 'we normalize constants for iseq');
+    if (lenB === 1) {
+      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexA] === 1) {
+        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
+        // we assume that A contains a valid value for B and both cases C=0 and C=1
+        let A = domains[indexA];
+        let vB = ml_dec8(ml, offset + 1 + 2);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut iseq A;', indexR, '=', indexA, '==? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '==?', vB);
+          let vR = force(indexR);
+          ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
+          ASSERT(domain_containsValue(A, vB), 'A should be able to reflect R=1 with B');
+          domains[indexA] = vR ? domain_createValue(vB) : domain_removeValue(A, vB);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} ==? L${vB}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexA];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
     pc = offset + sizeof;
   }
 
   function cutIsNeq(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsNeq', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
-      let indexR = ml_dec16(ml, offset + 1 + lenA + lenB);
+      let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
       ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
-        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : ml_dec16(ml, 1 + offset);
-        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : ml_dec16(ml, offset + 1 + lenA);
+        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
+        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
         if (counts[indexR] === 1) {
           ASSERT_LOG2('   - R is a leaf var');
-          solveStack.push(_ => {
+          solveStack.push(domains => {
             ASSERT_LOG2(' - cut isneq R;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
             let vA = lenA === 1 ? indexA : force(indexA);
             let vB = lenB === 1 ? indexB : force(indexB);
@@ -691,27 +743,61 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', vA, vB, vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
           });
+          ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+          ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} !=? ${indexB}`));
           ml_eliminate(ml, pc, sizeof);
           --counts[indexA];
           --counts[indexB];
+          --counts[indexR];
+          pc = offset + sizeof;
+          return;
         }
       }
     }
+
+    ASSERT(lenA === 2, 'we normalize constants for isneq');
+    if (lenB === 1) {
+      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexA] === 1) {
+        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
+        // we assume that A contains a valid value for B and both cases C=0 and C=1
+        let A = domains[indexA];
+        let vB = ml_dec8(ml, offset + 1 + 2);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut isneq A;', indexR, '=', indexA, '!=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '!=?', vB);
+          let vR = force(indexR);
+          ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
+          ASSERT(domain_containsValue(A, vB), 'A should be able to reflect R=1 with B');
+          domains[indexA] = vR ? domain_removeValue(A, vB) : domain_createValue(vB);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} !=? L${vB}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexA];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
     pc = offset + sizeof;
   }
 
   function cutIsLt(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsLt', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
-      let indexR = ml_dec16(ml, offset + 1 + lenA + lenB);
+      let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
       ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
-        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : ml_dec16(ml, 1 + offset);
-        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : ml_dec16(ml, offset + 1 + lenA);
+        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
+        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
         if (counts[indexR] === 1) {
           ASSERT_LOG2('   - R is a leaf var');
-          solveStack.push(_ => {
+          solveStack.push(domains => {
             ASSERT_LOG2(' - cut islt R;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
             let vA = lenA === 1 ? indexA : force(indexA);
             let vB = lenB === 1 ? indexB : force(indexB);
@@ -719,27 +805,85 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
           });
+          ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+          ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} <? ${indexB}`));
           ml_eliminate(ml, pc, sizeof);
           --counts[indexA];
           --counts[indexB];
+          --counts[indexR];
         }
       }
     }
+
+    if (lenB === 1) {
+      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexA] === 1) {
+        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
+        // we assume that A contains a valid value for B and both cases C=0 and C=1
+        let A = domains[indexA];
+        let vB = ml_dec8(ml, offset + 1 + 2);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<?', vB);
+          let vR = force(indexR);
+          ASSERT(domain_removeGte(A, vB), 'A should be able to reflect R=0 with B');
+          ASSERT(domain_removeLtUnsafe(A, vB), 'A should be able to reflect R=1 with B');
+          domains[indexA] = vR ? domain_removeGte(A, vB) : domain_removeLtUnsafe(A, vB);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} <? L${vB}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexA];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
+    if (lenA === 1) {
+      let indexB = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexB] === 1) {
+        // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
+        // we assume that B contains a valid value for A and both cases C=0 and C=1
+        let B = domains[indexB];
+        let vA = ml_dec8(ml, offset + 1);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 1 + 2));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut islt B;', indexR, '= c <?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<?', domain__debug(B));
+          let vR = force(indexR);
+          ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
+          ASSERT(domain_removeGte(B, vA), 'B should be able to reflect R=1 with A');
+          domains[indexB] = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = L${vA} <? ${vars[indexB]}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexB];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
     pc = offset + sizeof;
   }
 
   function cutIsLte(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsLte', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
-      let indexR = ml_dec16(ml, offset + 1 + lenA + lenB);
+      let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
       ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
-        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : ml_dec16(ml, 1 + offset);
-        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : ml_dec16(ml, offset + 1 + lenA);
+        let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
+        let indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
         if (counts[indexR] === 1) {
           ASSERT_LOG2('   - R is a leaf var');
-          solveStack.push(_ => {
+          solveStack.push(domains => {
             ASSERT_LOG2(' - cut islte R;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
             let vA = lenA === 1 ? indexA : force(indexA);
             let vB = lenB === 1 ? indexB : force(indexB);
@@ -747,12 +891,73 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
             ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<=?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
             domains[indexR] = domain_createValue(vR);
           });
+          ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+          ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} <=? ${indexB}`));
           ml_eliminate(ml, pc, sizeof);
           --counts[indexA];
           --counts[indexB];
+          --counts[indexR];
+          pc = offset + sizeof;
+          return;
         }
       }
     }
+
+    if (lenB === 1) {
+      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexA] === 1) {
+        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
+        // we assume that A contains a valid value for B and both cases C=0 and C=1
+        let A = domains[indexA];
+        let vB = ml_dec8(ml, offset + 1 + 2);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<=?', vB);
+          let vR = force(indexR);
+          ASSERT(domain_removeGtUnsafe(A, vB), 'A should be able to reflect R=0 with B');
+          ASSERT(domain_removeLte(A, vB), 'A should be able to reflect R=1 with B');
+          domains[indexA] = vR ? domain_removeGtUnsafe(A, vB) : domain_removeLte(A, vB);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} <=? L${vB}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexA];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
+    if (lenA === 1) {
+      let indexB = getFinalIndex(ml_dec16(ml, offset + 1));
+      if (counts[indexB] === 1) {
+        // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
+        // we assume that B contains a valid value for A and both cases C=0 and C=1
+        let B = domains[indexB];
+        let vA = ml_dec8(ml, offset + 1);
+        let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 1 + 2));
+
+        ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut islt B;', indexR, '= c <=?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<=?', domain__debug(B));
+          let vR = force(indexR);
+          ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
+          ASSERT(domain_removeGte(B, vA), 'B should be able to reflect R=1 with A');
+          domains[indexB] = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = L${vA} <=? ${vars[indexB]}`));
+        ml_eliminate(ml, offset, sizeof);
+        --counts[indexB];
+        --counts[indexR];
+        pc = offset + sizeof;
+        return;
+      }
+    }
+
+
     pc = offset + sizeof;
   }
 /*
@@ -949,9 +1154,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           break;
 
         case ML_8VV_ISLT:
+          cutIsLt(ml, pc, SIZEOF_8VV, 1, 2, 2);
+          break;
         case ML_8VV_ISLTE:
-          ASSERT_LOG2('(todo) 8vv', pc);
-          pc += SIZEOF_8VV;
+          cutIsLte(ml, pc, SIZEOF_8VV, 1, 2, 2);
           break;
 
         case ML_88V_ISEQ:

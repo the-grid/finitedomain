@@ -80,7 +80,9 @@ import {
   domain__debug,
   domain_containsValue,
   domain_createValue,
+  domain_createRange,
   domain_min,
+  domain_max,
   domain_getValue,
   domain_removeValue,
   domain_removeGte,
@@ -960,31 +962,56 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
     pc = offset + sizeof;
   }
-/*
   function cutPlus(ml, offset) {
     ASSERT_LOG2(' -- cutPlus', offset);
+    // note: we cant simply eliminate leaf vars because they still constrain
+    // the allowed distance between the other two variables and if you
+    // eliminate this constraint, that limitation is not enforced anymore.
     let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
     ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
     ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
     if (counts[indexR] === 1) {
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 1 + 2);
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA + vB;
-        ASSERT(Number.isInteger(vR), 'should be integer result');
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
+      // even though R is a dud, it cant be plainly eliminated!
+      // however, if the range of R wraps the complete range of
+      // A+B then that means the distance between A and B is not
+      // restricted and we can defer this constraint, anyways.
+      // (this could happen when C=A+B with C=*)
+      // note that since R is a leaf var it cant be constrained
+      // any further except by this constraint, so it cannot be
+      // the case that another constraint invalidates this step.
+
+      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      let indexB = getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+      let A = domains[indexA];
+      let B = domains[indexB];
+      let R = domains[indexR];
+
+      // you could also simply add the domains and check if the result intersected with R equals the result.
+      let lo = domain_min(A) + domain_min(B);
+      let hi = domain_max(A) + domain_max(B);
+      ASSERT(domain_min(R) >= lo, 'should be minified');
+      ASSERT(domain_max(R) <= hi, 'should be minified');
+      if (R === domain_createRange(lo, hi)) {
+        // regardless of A and B, every addition between them is contained in R
+        // this means we can eliminate R safely without breaking minimal distance A B
+        ASSERT_LOG2('   - R is a leaf var');
+        solveStack.push(_ => {
+          ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
+          let vA = force(indexA);
+          let vB = force(indexB);
+          let vR = vA + vB;
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+        ml_eliminate(ml, pc, SIZEOF_VVV);
+        --counts[indexA];
+        --counts[indexB];
+      }
     }
     pc = offset + SIZEOF_VVV;
   }
+/*
 
   function cutMinus(ml, offset) {
     ASSERT_LOG2(' -- cutMinus', offset);
@@ -1103,8 +1130,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           break;
 
         case ML_PLUS:
-          pc += SIZEOF_VVV;
-          //cutPlus(ml, pc);
+          cutPlus(ml, pc);
           break;
         case ML_MINUS:
           pc += SIZEOF_VVV;

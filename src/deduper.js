@@ -58,6 +58,8 @@ import {
   ML_VV_AND,
   ML_VV_OR,
   ML_VV_XOR,
+  ML_VV_NAND,
+  ML_VV_XNOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -450,6 +452,12 @@ function deduper(ml, vars, domains, getAlias) {
           break;
         case ML_VV_XOR:
           keyVV('^');
+          break;
+        case ML_VV_NAND:
+          keyVV('!&');
+          break;
+        case ML_VV_XNOR:
+          keyVV('!^');
           break;
 
         case ML_UNUSED:

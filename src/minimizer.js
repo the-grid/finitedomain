@@ -62,6 +62,8 @@ import {
   ML_VV_AND,
   ML_VV_OR,
   ML_VV_XOR,
+  ML_VV_NAND,
+  ML_VV_XNOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -179,7 +181,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   function setDomain(index, domain, desc) {
     TRACE_ADD(index, domain__debug(domains[index]), domain__debug(domain), '(name=' + names[index] + ') ' + desc + '; ml: ' + ml__debug(ml, pc, 1));
     ASSERT_LOG2(' - {', index, '} updated from', domain__debug(domains[index]), 'to', domain__debug(domain));
-    ASSERT(!domain || domain_intersection(domains[index], domain), 'should add new values to a domain, only remove them', 'index=', index, 'old=', domain__debug(domains[index]), 'new=', domain__debug(domain), 'desc=', desc);
+    ASSERT(!domain || domain_intersection(domains[index], domain), 'should never add new values to a domain, only remove them', 'index=', index, 'old=', domain__debug(domains[index]), 'new=', domain__debug(domain), 'desc=', desc);
     domains[index] = domain;
     if (domain) varChanged = true;
     else emptyDomain = true;
@@ -471,6 +473,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         case ML_VV_XOR:
           ASSERT_LOG2('- xor @', pcStart);
           cr_vv_xor(ml);
+          break;
+
+        case ML_VV_NAND:
+          ASSERT_LOG2('- nand @', pcStart);
+          cr_vv_nand(ml);
+          break;
+
+        case ML_VV_XNOR:
+          ASSERT_LOG2('- xnor @', pcStart);
+          cr_vv_xnor(ml);
           break;
 
         case ML_NOOP:
@@ -3065,6 +3077,89 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
     if (domain_isSolved(B)) {
       if (setDomain(indexA, domain_removeValue(A, 0), 'B=0 xor A')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VV;
+  }
+
+  function cr_vv_nand(ml) {
+    // fail if A and B solve to non-zero
+    // remove when either solves to zero
+    // when either has no zero, set other to zero and remove constraint
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    if (domain_min(A) > 0) {
+      // -> B=0
+      if (setDomain(indexB, domain_removeGte(B, 1), 'nand')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    if (domain_min(B) > 0) {
+      // -> A=0
+      if (setDomain(indexA, domain_removeGte(A, 1), 'nand')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    // note: at this point A and B both have a zero. if either is solved, it is
+    // solved to zero and we remove the constraint. otherwise neither is solved
+    // (they'd have zero and something non-zero) and we ignore now
+    if (A === domain_createValue(0) || B === domain_createValue(0)) {
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VV;
+  }
+
+  function cr_vv_xnor(ml) {
+    // fail if A and B both solve to zero or both to non-zero
+    // when either solves to zero also solve the other to zero and remove constraint
+    // when either has no zero, remove zero from the other and remove constraint
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    if (domain_min(A) > 0) {
+      // -> B>0
+      if (setDomain(indexB, domain_removeValue(B, 0), 'xnor')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    if (domain_min(B) > 0) {
+      // -> A>0
+      if (setDomain(indexA, domain_removeValue(A, 0), 'xnor')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    // note: at this point A and B both have a zero. if either is solved, it is
+    // solved to zero, set the other to zero and remove the constraint.
+    if (A === domain_createValue(0)) {
+      if (setDomain(indexB, domain_removeGte(B, 1), 'xnor')) return;
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+    if (B === domain_createValue(0)) {
+      if (setDomain(indexA, domain_removeGte(A, 1), 'xnor')) return;
       ml_eliminate(ml, offset, SIZEOF_VV);
       return;
     }

@@ -66,6 +66,8 @@ import {
   ML_VV_AND,
   ML_VV_OR,
   ML_VV_XOR,
+  ML_VV_NAND,
+  ML_VV_XNOR,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -512,6 +514,14 @@ ${arr.join('\n')}
         case ML_VV_XOR:
           ASSERT_LOG2(' ! xor vv');
           dsl += cr_decAb(2, 2, '^');
+          break;
+        case ML_VV_NAND:
+          ASSERT_LOG2(' ! nand vv');
+          dsl += cr_decAb(2, 2, '!&');
+          break;
+        case ML_VV_XNOR:
+          ASSERT_LOG2(' ! xnor vv');
+          dsl += cr_decAb(2, 2, '!^');
           break;
 
         case ML_NOOP:

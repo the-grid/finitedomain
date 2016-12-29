@@ -61,6 +61,8 @@ import {
   ML_VV_AND,
   ML_VV_OR,
   ML_VV_XOR,
+  ML_VV_NAND,
+  ML_VV_XNOR,
   ML_STOP,
   //
   //SIZEOF_VV,
@@ -615,6 +617,40 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
           break;
 
+        case 'V!&V':
+          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
+          break;
+        case '8!&V':
+          A = addVar(undefined, A, false, true);
+          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
+          break;
+        case 'V!&8':
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
+          break;
+        case '8!&8':
+          A = addVar(undefined, A, false, true);
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
+          break;
+
+        case 'V!^V':
+          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
+          break;
+        case '8!^V':
+          A = addVar(undefined, A, false, true);
+          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
+          break;
+        case 'V!^8':
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
+          break;
+        case '8!^8':
+          A = addVar(undefined, A, false, true);
+          B = addVar(undefined, B, false, true);
+          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
+          break;
+
         default:
           THROW('Unknown constraint op: [' + cop + ']');
       }
@@ -789,6 +825,14 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
         if (read() === '=') {
           skip();
           return '!=';
+        }
+        if (read() === '&') {
+          skip();
+          return '!&';
+        }
+        if (read() === '^') {
+          skip();
+          return '!^';
         }
         return '!';
       case '<':

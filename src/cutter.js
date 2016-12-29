@@ -78,6 +78,7 @@ import {
   ml_dec16,
   ml_eliminate,
   ml_throw,
+  ml_vvv2vv,
 } from './ml';
 import {
   domain__debug,
@@ -1011,6 +1012,29 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         ml_eliminate(ml, pc, SIZEOF_VVV);
         --counts[indexA];
         --counts[indexB];
+        --counts[indexR];
+        pc = offset + SIZEOF_VVV;
+        return;
+      }
+      if (R === domain_createRange(1, 2) && A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) {
+        ASSERT_LOG2('   - R is a leaf var');
+        solveStack.push(_ => {
+          ASSERT_LOG2(' - cut plus R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
+          let vA = force(indexA);
+          let vB = force(indexB);
+          let vR = vA + vB;
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+        ASSERT_LOG2(' - Rewrite to A|B');
+        // rewrite to `A | B` (inclusive OR)
+        // R can later reflect the result
+        // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
+        ml_vvv2vv(ml, offset, ML_VV_OR, indexA, indexB);
+        --counts[indexR];
+        pc = offset; // revisit...
+        return;
       }
     }
     pc = offset + SIZEOF_VVV;

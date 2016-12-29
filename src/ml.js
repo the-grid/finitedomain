@@ -391,6 +391,14 @@ function ml_hasConstraint(ml) {
   THROW('ML OOB');
 }
 
+function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| ml_vvv2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+}
+
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
@@ -767,4 +775,5 @@ export {
   ml_sizeof,
   ml_skip,
   ml_throw,
+  ml_vvv2vv,
 };

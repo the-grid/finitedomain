@@ -39,4 +39,20 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 0, R: 1});
     });
   });
+
+  describe('plus', function() {
+
+    it('should rewrite 12=01+01 to OR', function() {
+      // if A and B are max 1 and C is 12 then one must be one but both may be on
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : R [1 2]
+        R = A + B
+      `);
+
+      expect(solution).to.eql({A: 1, B: 0, R: 1});
+    });
+  });
 });

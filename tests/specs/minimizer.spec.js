@@ -38,6 +38,89 @@ describe('specs/minimizer.spec', function() {
       // R is leaf, constraint cut away, R's reflection is deferred, A becomes free, so it solves
       expect(solution).to.eql({A: 0, R: 1});
     });
+
+    it('should rewrite [01]=[00xx]==?x to XNOR', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 2 2]
+        : R [0 1]
+        R = A ==? 2
+      `);
+
+      expect(solution).to.eql({A: 0, R: 0});
+    });
+
+    it('should rewrite [01]=[00xx]==?x to XNOR', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 2000 2000]
+        : B = 2000
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 2000, R: 0});
+    });
+
+    it('should rewrite [01]=[00xx]==?x to XNOR', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A = 2000
+        : B [0 0 2000 2000]
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 2000, B: 0, R: 0});
+    });
+
+    it('should not even consider weird domain values sans 1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A = [0 1]
+        : B [0 0 2000 2000]
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 1});
+    });
+
+    it('should not even consider weird domain values lt 1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A = [0 1]
+        : B [2 2000]
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: [2, 2000], R: 0});
+    });
+
+    it('should not even consider weird domain values sans 0', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A = [0 1]
+        : B [1 2000]
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 1, R: 0});
+    });
+
+    it('should not even consider weird domain values bool', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A = [0 1]
+        : B [0 2000]
+        : R [0 1]
+        R = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 1});
+    });
   });
 
   describe('plus', function() {

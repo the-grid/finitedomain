@@ -1019,7 +1019,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         return;
       }
       if (R === domain_createRange(1, 2) && A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) {
-        ASSERT_LOG2('   - R is a leaf var');
+        ASSERT_LOG2('   - R is a leaf var; [12]=[01]+[01] is actually an OR');
         solveStack.push(_ => {
           ASSERT_LOG2(' - cut plus R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
@@ -1034,6 +1034,26 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         // R can later reflect the result
         // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
         ml_vvv2vv(ml, offset, ML_VV_OR, indexA, indexB);
+        --counts[indexR];
+        pc = offset; // revisit...
+        return;
+      }
+      if (R === domain_createRange(0, 1) && A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) { // more generic... max(R)<max(A)+max(B) and size(A)=2 and size(B)=2 and min(A)=0 and min(B)=0 (in that case also optimize the forcing if already non-zero)
+        ASSERT_LOG2('   - R is a leaf var; [01]=[01]+[01] is actually a NAND');
+        solveStack.push(_ => {
+          ASSERT_LOG2(' - cut plus R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
+          let vA = force(indexA);
+          let vB = force(indexB);
+          let vR = vA + vB;
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+        ASSERT_LOG2(' - Rewrite to A!&B');
+        // rewrite to `A !& B` (not AND) to enforce that they can't both be 1 (... "non-zero")
+        // R can later reflect the result
+        // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
+        ml_vvv2vv(ml, offset, ML_VV_NAND, indexA, indexB);
         --counts[indexR];
         pc = offset; // revisit...
         return;

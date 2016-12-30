@@ -90,10 +90,11 @@ import {
 // BODY_START
 
 function counter(ml, vars, domains, getAlias) {
-  ASSERT_LOG2('\n ## cutter', ml);
+  ASSERT_LOG2('\n ## counter', ml);
   let pc = 0;
   let counts = new Array(domains.length).fill(0);
   countLoop();
+  ASSERT_LOG2(' - There are', counts.filter(c => !c).length, 'dead vars,', counts.filter(c => c === 1).length, 'leaf vars, and', counts.filter(c => c > 1).length, 'other vars');
   return counts;
 
   function getFinalIndex(index, _max = 50) {

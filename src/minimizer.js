@@ -1773,17 +1773,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
-    let remove = false;
     if (domain_getValue(A) >= 0 && domain_getValue(B) >= 0) {
       ASSERT_LOG2(' - A and B are solved so we can determine R');
       let result = A !== B ? 1 : 0;
       if (domain_containsValue(R, result)) {
         R = domain_createValue(result);
         if (setDomain(indexR, R, 'isNeq A eq B = R')) return;
-        remove = true;
-      } else {
-        return setEmpty(indexR, 'isNeq; A and B are solved but R did not contain result');
+        ml_eliminate(ml, offset, SIZEOF_VVV);
+        return;
       }
+      return setEmpty(indexR, 'isNeq; A and B are solved but R did not contain result');
     } else {
       if (domain_min(R) > 1) return setEmpty(indexR, 'isNeq; R doesnt have bools');
       if (domain_max(R) > 1) {
@@ -1809,16 +1808,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
-
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
-
-    if (remove) {
-      ml_eliminate(ml, offset, SIZEOF_VVV);
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
-      pc = offset + SIZEOF_VVV;
-    }
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VVV;
   }
 
   function cr_v8v_isNeq(ml) {

@@ -87,6 +87,7 @@ import {
   domain_containsValue,
   domain_createValue,
   domain_createRange,
+  domain_intersection,
   domain_min,
   domain_max,
   domain_getValue,
@@ -96,6 +97,7 @@ import {
   domain_removeGtUnsafe,
   domain_removeLtUnsafe,
 } from './domain';
+import domain_plus from './domain_plus';
 import {
   counter,
 } from './counter';
@@ -107,14 +109,18 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   let pc = 0;
   let counts;
   let lenBefore;
+  let emptyDomain = false;
   let removed;
   do {
+    ASSERT_LOG2(' # outer cutloop');
     counts = counter(ml, vars, domains, getAlias);
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
-    ASSERT_LOG2(' - cutter removed', removed, 'constraints');
-  } while (removed);
+    ASSERT_LOG2(' - cutter removed', removed, 'constraints, emptyDomain =', emptyDomain);
+  } while (removed && !emptyDomain);
+
+  return emptyDomain;
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
@@ -249,427 +255,6 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       pc += SIZEOF_VV;
     }
   }
-/*
-  function cutPlus() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutPlus', indexR, '=', indexA, '+', indexB);
-    // R = A + B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut plus A;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        let vA = vR - vB;
-        ASSERT(Number.isInteger(vA), 'the subtraction should result in an integer', vA);
-        ASSERT(vA >= SUB, 'A B and R should already have been reduced to domains that are valid within A+B=R');
-        ASSERT(domain_containsValue(domains[indexA], vA), 'resulting value should exist within domain');
-        domains[indexA] = domain_createValue(vA);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut plus B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        let vB = vR - vA;
-        ASSERT(Number.isInteger(vB), 'the subtraction should result in an integer', vB);
-        ASSERT(vB >= SUB, 'A B and R should already have been reduced to domains that are valid within A+B=R');
-        ASSERT(domain_containsValue(domains[indexB], vB), 'resulting value should exist within domain');
-        domains[indexB] = domain_createValue(vB);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA + vB;
-        ASSERT(Number.isInteger(vR), 'the addition should result in an integer', vR);
-        ASSERT(vR <= SUP, 'A B and R should already have been reduced to domains that are valid within A+B=R');
-        ASSERT(domain_containsValue(domains[indexR], vR), 'resulting value should exist within domain');
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutMinus() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutMinus', indexR, '=', indexA, '-', indexB);
-    // R = A - B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut minus A;', indexR, '=', indexA, '-', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '-', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        let vA = vR + vB;
-        ASSERT(Number.isInteger(vA), 'the addition should result in an integer', vA);
-        ASSERT(vA <= SUP, 'A B and R should already have been reduced to domains that are valid within A-B=R');
-        ASSERT(domain_containsValue(domains[indexA], vA), 'resulting value should exist within domain');
-        domains[indexA] = domain_createValue(vA);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut minus B;', indexR, '=', indexA, '-', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '-', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        let vB = vA - vR;
-        ASSERT(Number.isInteger(vB), 'the subtraction should result in an integer', vB);
-        ASSERT(vB <= SUP, 'A B and R should already have been reduced to domains that are valid within A-B=R');
-        ASSERT(domain_containsValue(domains[indexB], vB), 'resulting value should exist within domain');
-        domains[indexB] = domain_createValue(vB);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut minus R;', indexR, '=', indexA, '-', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '-', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA - vB;
-        ASSERT(Number.isInteger(vR), 'the subtraction should result in an integer', vR);
-        ASSERT(vR >= SUB, 'A B and R should already have been reduced to domains that are valid within A-B=R');
-        ASSERT(domain_containsValue(domains[indexR], vR), 'resulting value should exist within domain');
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutMul() {
-    // TODO: verify this is acting properly around edge cases (*0)
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutMul', indexR, '=', indexA, '*', indexB);
-    // R = A * B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut mul A;', indexR, '=', indexA, '*', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '*', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        let vA = vB ? vR / vB : domain_min(domains[indexA]);
-        ASSERT(Number.isInteger(vA), 'the division should result in an integer', vA); // note: non-OOB div cant be OOB
-        ASSERT(domain_containsValue(domains[indexA], vA), 'A B and R should already have been reduced to domains that are valid within A*B=R', vA, vB, vR, domain__debug(domains[indexA]));
-        domains[indexA] = domain_createValue(vA);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut mul B;', indexR, '=', indexA, '*', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '*', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        let vB = vA ? vR / vA : domain_min(domains[indexB]);
-        ASSERT(Number.isInteger(vB), 'the division should result in an integer', vB); // note: non-OOB div cant be OOB
-        ASSERT(domain_containsValue(domains[indexB], vB), 'A B and R should already have been reduced to domains that are valid within A*B=R', vA, vB, vR, domain__debug(domains[indexB]));
-        domains[indexB] = domain_createValue(vB);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut mul R;', indexR, '=', indexA, '*', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '*', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA * vB;
-        ASSERT(Number.isInteger(vR), 'the multiplication should result in an integer', vR);
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A*B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutDiv() {
-    // TODO: verify this is acting properly around edge cases (/0)
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutDiv', indexR, '=', indexA, '/', indexB);
-    // R = A / B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut div A;', indexR, '=', indexA, '/', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '/', domain__debug(domains[indexB]));
-        let vR = force(indexR);
-        if (vR === 0) {
-          ASSERT(domain_containsValue(domains[indexA], 0), 'if R contains 0 then A must also contain 0');
-          domains[indexA] = domain_createValue(0); // 0/B=0 regardless of B so dont force B here
-        } else {
-          let vB = force(indexB);
-          let vA = vR * vB;
-          ASSERT(Number.isInteger(vA), 'the division should result in an integer', vR);
-          ASSERT(domain_containsValue(domains[indexA], vA), 'A B and R should already have been reduced to domains that are valid within A/B=R', vA, vB, vR, domain__debug(domains[indexA]));
-          domains[indexA] = domain_createValue(vA);
-        }
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut div B;', indexR, '=', indexA, '/', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '/', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        if (vA !== 0) { // 0/B=0 regardless of B so dont update B here
-          let vB = vA * vR;
-          ASSERT(vR !== 0, 'if A isnt 0 then R isnt 0 either');
-          ASSERT(Number.isInteger(vA), 'the division should result in an integer', vR);
-          ASSERT(domain_containsValue(domains[indexB], vB), 'A B and R should already have been reduced to domains that are valid within A/B=R', vA, vB, vR, domain__debug(domains[indexB]));
-          domains[indexB] = domain_createValue(vB);
-        }
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut div R;', indexR, '=', indexA, '/', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '/', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        if (vA === 0) {
-          ASSERT(domain_containsValue(domains[indexR], 0), 'if A=0 then R must contain 0 as well');
-          domains[indexR] = domain_createValue(0); // no need to update B so dont force it
-        } else {
-          let vB = force(indexB);
-          let vR = vA / vB;
-          ASSERT(Number.isInteger(vA), 'the division should result in an integer', vR);
-          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A/B=R', vA, vB, vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
-        }
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-
-  function cutIsEq() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutIsEq', indexR, '=', indexA, '==?', indexB);
-    // R = A ==? B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut iseq A;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        let newA = vR ? domain_createValue(vB) : domain_removeValue(domains[indexA], vB);
-        ASSERT(vR ? domain_containsValue(domains[A], vB) : newA, 'A B and R should already have been reduced to domains that are valid within A==?B=R', newA, vB, vR, domain__debug(domains[indexA]), vR ? domain_containsValue(domains[A], vB) : newA);
-        domains[indexA] = newA;
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut iseq B;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        let newB = vR ? domain_createValue(vA) : domain_removeValue(domains[indexB], vA);
-        ASSERT(vR ? domain_containsValue(domains[B], vA) : newB, 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, newB, vR, domain__debug(domains[indexB]));
-        domains[indexB] = newB;
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA === vB ? 1 : 0;
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutIsNeq() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutIsNeq', indexR, '=', indexA, '!=?', indexB);
-    // R = A !=? B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut isneq A;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        let newA = vR ? domain_removeValue(domains[indexA], vB) : domain_createValue(vB);
-        ASSERT(vR ? newA : domain_containsValue(domains[indexA], vB), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', domain__debug(newA), vB, vR, domain__debug(domains[indexA]));
-        domains[indexA] = newA;
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut isneq B;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        let newB = vR ? domain_removeValue(domains[indexB], vA) : domain_createValue(vA);
-        ASSERT(vR ? newB : domain_containsValue(domains[indexB], vA), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', vA, domain__debug(newB), vR, domain__debug(domains[indexA]));
-        domains[indexB] = newB;
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut isneq R;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA !== vB ? 1 : 0;
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutIsLt() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutIsLt', indexR, '=', indexA, '<?', indexB);
-    // R = A <? B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        ASSERT(vR ? domain_min(domains[indexA]) < domain_max(domains[indexB]) : domain_max(domains[indexA]) >= domain_min(domains[indexB]), 'A B and R should already have been reduced to domains that are valid within A<?B=R');
-        domains[indexA] = vR ? domain_removeGte(domains[indexA], vB) : domain_removeLtUnsafe(domains[indexA], vB);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islt B;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        ASSERT(vR ? domain_min(domains[indexA]) < domain_max(domains[indexB]) : domain_max(domains[indexA]) >= domain_min(domains[indexB]), 'A B and R should already have been reduced to domains that are valid within A<?B=R');
-        domains[indexA] = vR ? domain_removeGte(domains[indexB], vA) : domain_removeLtUnsafe(domains[indexB], vA);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islt R;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        ASSERT(domain_containsValue(domains[indexR], vA < vB ? 1 : 0), 'A B and R should already have been reduced to domains that are valid within A<?B=R');
-        domains[indexR] = domain_createValue(vA < vB ? 1 : 0);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-
-  function cutIsLte() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
-    ASSERT_LOG2(' - cutIsLte', indexR, '=', indexA, '<=?', indexB);
-    // R = A <? B
-
-    if (counts[indexA] === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islte A;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
-        let vB = force(indexB);
-        let vR = force(indexR);
-        ASSERT(vR ? domain_min(domains[indexA]) <= domain_max(domains[indexB]) : domain_max(domains[indexA]) > domain_min(domains[indexB]), 'A B and R should already have been reduced to domains that are valid within A<=?B=R');
-        domains[indexA] = vR ? domain_removeGtUnsafe(domains[indexA], vB) : domain_removeLte(domains[indexA], vB);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexB] === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islte B;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vR = force(indexR);
-        ASSERT(vR ? domain_min(domains[indexA]) <= domain_max(domains[indexB]) : domain_max(domains[indexA]) > domain_min(domains[indexB]), 'A B and R should already have been reduced to domains that are valid within A<=?B=R');
-        domains[indexA] = vR ? domain_removeGtUnsafe(domains[indexB], vA) : domain_removeLte(domains[indexB], vA);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexB];
-      --counts[indexR];
-    } else if (counts[indexR] === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut islte R;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        ASSERT(domain_containsValue(domains[indexR], vA < vB ? 1 : 0), 'A B and R should already have been reduced to domains that are valid within A<=?B=R');
-        domains[indexR] = domain_createValue(vA < vB ? 1 : 0);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-  }
-  */
 
   function cutIsEq(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsEq', offset, sizeof, lenA, lenB, lenR);
@@ -974,10 +559,18 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     // note: we cant simply eliminate leaf vars because they still constrain
     // the allowed distance between the other two variables and if you
     // eliminate this constraint, that limitation is not enforced anymore.
-    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
+    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 2));
     ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
     ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
+    if (cutPlusR(offset, indexR)) return;
+    if (cutPlusAB(offset, indexR, 'A', 1, 'B', 1 + 2)) return;
+    if (cutPlusAB(offset, indexR, 'B', 1 + 2, 'A', 1)) return;
+    pc = offset + SIZEOF_VVV;
+  }
+  function cutPlusR(offset, indexR) {
+    ASSERT_LOG2(' - cutPlusR', offset, indexR, 'count=', counts[indexR]);
     if (counts[indexR] === 1) {
+      ASSERT_LOG2('   - R is a leaf var');
       // even though R is a dud, it cant be plainly eliminated!
       // however, if the range of R wraps the complete range of
       // A+B then that means the distance between A and B is not
@@ -992,6 +585,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       let A = domains[indexA];
       let B = domains[indexB];
       let R = domains[indexR];
+      ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '+', domain__debug(B));
 
       // you could also simply add the domains and check if the result intersected with R equals the result.
       let lo = domain_min(A) + domain_min(B);
@@ -1001,7 +595,6 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       if (R === domain_createRange(lo, hi)) {
         // regardless of A and B, every addition between them is contained in R
         // this means we can eliminate R safely without breaking minimal distance A B
-        ASSERT_LOG2('   - R is a leaf var');
         solveStack.push(_ => {
           ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
@@ -1016,10 +609,11 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         --counts[indexB];
         --counts[indexR];
         pc = offset + SIZEOF_VVV;
-        return;
+        return true;
       }
+
       if (R === domain_createRange(1, 2) && A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) {
-        ASSERT_LOG2('   - R is a leaf var; [12]=[01]+[01] is actually an OR');
+        ASSERT_LOG2('   - [12]=[01]+[01] is actually an OR');
         solveStack.push(_ => {
           ASSERT_LOG2(' - cut plus R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
@@ -1036,10 +630,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         ml_vvv2vv(ml, offset, ML_VV_OR, indexA, indexB);
         --counts[indexR];
         pc = offset; // revisit...
-        return;
+        return true;
       }
       if (R === domain_createRange(0, 1) && A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) { // more generic... max(R)<max(A)+max(B) and size(A)=2 and size(B)=2 and min(A)=0 and min(B)=0 (in that case also optimize the forcing if already non-zero)
-        ASSERT_LOG2('   - R is a leaf var; [01]=[01]+[01] is actually a NAND');
+        ASSERT_LOG2('   - [01]=[01]+[01] is actually a NAND');
         solveStack.push(_ => {
           ASSERT_LOG2(' - cut plus R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
@@ -1056,10 +650,47 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         ml_vvv2vv(ml, offset, ML_VV_NAND, indexA, indexB);
         --counts[indexR];
         pc = offset; // revisit...
-        return;
+        return true;
       }
     }
-    pc = offset + SIZEOF_VVV;
+    return false;
+  }
+  function cutPlusAB(offset, indexR, X, deltaX, Y, deltaY) {
+    ASSERT_LOG2(' - _cutPlusAB:', X, Y, offset, indexR, deltaX, deltaY);
+    let indexA = getFinalIndex(ml_dec16(ml, offset + deltaX));
+    if (counts[indexA] === 1) {
+      let A = domains[indexA];
+      let indexB = getFinalIndex(ml_dec16(ml, offset + deltaY));
+      let B = domains[indexB];
+      let vB = domain_getValue(B);
+      ASSERT_LOG2('   -', X, ' is a leaf var, ', Y, '=', domain__debug(B));
+      if (vB >= 0) {
+        let oR = domains[indexR];
+        ASSERT_LOG2('   - and', Y, 'is solved to', vB, 'so intersect R to ' + X + '+' + vB + ', defer ' + X + ', and eliminate the constraint');
+        let R = domain_intersection(domain_plus(A, B), oR);
+        if (R !== oR) {
+          ASSERT_LOG2(' - intersecting R with ' + X + '+vB', domain__debug(oR), 'n', (domain__debug(A) + '+' + domain__debug(B) + '=' + domain__debug(domain_plus(A, B))), '->', domain__debug(R));
+          if (!R) return emptyDomain = true;
+          domains[indexR] = R;
+        }
+        solveStack.push(_ => {
+          ASSERT_LOG2(' - cut plus R=' + X + '+c;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
+          let vA = force(indexA);
+          let vB = force(indexB);
+          let vR = vA + vB;
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+        ml_eliminate(ml, pc, SIZEOF_VVV);
+        --counts[indexA];
+        --counts[indexB];
+        --counts[indexR];
+        pc = offset + SIZEOF_VVV;
+        return true;
+      }
+    }
+    return false;
   }
 
   function cutSum(ml, offset) {
@@ -1272,87 +903,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     }
   }
 
-/*
-
-  function cutMinus(ml, offset) {
-    ASSERT_LOG2(' -- cutMinus', offset);
-    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
-    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
-    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
-    if (counts[indexR] === 1) {
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 1 + 2);
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut minus R;', indexR, '=', indexA, '-', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '-', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA - vB;
-        ASSERT(Number.isInteger(vR), 'should be integer result');
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A-B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-    pc = offset + SIZEOF_VVV;
-  }
-
-  function cutMul(ml, offset) {
-    ASSERT_LOG2(' -- cutMul', offset);
-    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
-    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
-    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
-    if (counts[indexR] === 1) {
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 1 + 2);
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut mul R;', indexR, '=', indexA, '*', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '*', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA * vB;
-        ASSERT(Number.isInteger(vR), 'should be integer multiplication');
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A*B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-    pc = offset + SIZEOF_VVV;
-  }
-
-  function cutDiv(ml, offset) {
-    ASSERT_LOG2(' -- cutDiv', offset);
-    let indexR = ml_dec16(ml, offset + 1 + 2 + 2);
-    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
-    ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
-    if (counts[indexR] === 1) {
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 1 + 2);
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(_ => {
-        ASSERT_LOG2(' - cut div R;', indexR, '=', indexA, '/', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '/', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = force(indexB);
-        let vR = vA / vB;
-        ASSERT(Number.isInteger(vR), 'should be integer division', vA, '/', vB, '=', vR);
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A/B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      --counts[indexA];
-      --counts[indexB];
-    }
-    pc = offset + SIZEOF_VVV;
-  }
-*/
   function cutLoop() {
-    ASSERT_LOG2(' - cutLoop');
+    ASSERT_LOG2('\n - inner cutLoop');
     pc = 0;
-    while (pc < ml.length) {
+    while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
       ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
@@ -1515,6 +1069,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         default:
           ml_throw('unknown op', pc);
       }
+    }
+    if (emptyDomain) {
+      ASSERT_LOG2('Ended up with an empty domain');
+      return;
     }
     ASSERT_LOG2('the implicit end; ml desynced');
     THROW('ML OOB');

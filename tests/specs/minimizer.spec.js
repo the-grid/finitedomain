@@ -121,6 +121,18 @@ describe('specs/minimizer.spec', function() {
 
       expect(solution).to.eql({A: 0, B: 0, R: 1});
     });
+
+    it('should not rewrite to div because of this case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 5]
+        : C [0 1]
+        C = A ==? 5
+        A = 4
+      `);
+
+      expect(solution).to.eql({A: 4, C: 0});
+    });
   });
 
   describe('plus', function() {
@@ -136,6 +148,81 @@ describe('specs/minimizer.spec', function() {
       `);
 
       expect(solution).to.eql({A: 1, B: 0, R: 1});
+    });
+
+    it('should not rewrite [01]=[12]+1 to LT', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : C [1 2]
+        C = A + 1
+      `);
+
+      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+    });
+
+    it('should not rewrite [0055]=[1166]+1 to LT lr', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : C [1 1 6 6]
+        C = A + 1
+      `);
+
+      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+    });
+
+    it('should not rewrite [0055]=[1166]+1 to LT rl', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : C [1 1 6 6]
+        C = 1 + A
+      `);
+
+      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+    });
+
+    it('should not fall into this trap for [01]=[12]+1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : C [1 2]
+        C = A + 1
+        # 0 < 2 but wont satisfy A < C
+        A = 0
+        C = 2
+      `);
+
+      expect(solution).to.eql(false);
+    });
+
+    it('should not fall into this trap for [01]=1+[12]', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : C [1 2]
+        C = 1 + A
+        # 0 < 2 but wont satisfy A < C
+        A = 0
+        C = 2
+      `);
+
+      expect(solution).to.eql(false);
+    });
+
+    it('should not fall into this trap for [0055]=[1166]+1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : C [1 1 6 6]
+        C = A + 1
+        # 0 < 6 but wont satisfy A < C
+        A = 0
+        C = 6
+      `);
+
+      expect(solution).to.eql(false);
     });
   });
 });

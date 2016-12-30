@@ -1099,7 +1099,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       setDomain(indexA, A, 'plus A');
       setDomain(indexB, B, 'plus B');
       setDomain(indexR, R, 'plus R');
-      if (!A || !B || !R) return;
+      ASSERT(A && B && R, 'would have exited early if domains were emptied');
     }
 
     ASSERT((domain_isSolved(A) + domain_isSolved(B) + domain_isSolved(R)) !== 2, 'if two vars are solved the third should be solved as well');
@@ -1108,78 +1108,44 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
       ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
-      let vA = domain_getValue(A);
-      if (vA >= 0) {
-        ASSERT(!domain_isSolved(B) && !domain_isSolved(R), 'case checked earlier');
-        if (vA === 0) {
-          ASSERT_LOG2(' - A=0 so B+0==R, rewriting op to eq');
-          // rewrite to B == R
-          cr_vvv2vv(ml, offset, ML_VV_EQ, indexR, indexB);
-          pc = offset; // revisit
-        } else {
-          let sizeB = domain_size(B);
-          let sizeR = domain_size(R);
-          maxB = domain_max(B);
-          if (sizeB === 2 && sizeR === 2 && maxB === domain_min(R)) {
-            ASSERT_LOG2(' - A is solved, size(B)=size(R)=2 and max(B)=min(R), so B<R');
-            cr_vvv2vv(ml, offset, ML_VV_LT, indexB, indexR);
-            pc = offset; // revisit
-          } else if (maxB <= 1 && domain_size(R) === 2) {
-            ASSERT(domain_max(R) > 1, 'if B <= 1 then R must be >1 because R=B+A and A is non-zero and B is not solved (both checked above) so R must be at least [1,2]');
-            // B = R ==? A or B = R !=? A, that depends on max(R)==A
-            ASSERT_LOG2(' - A>0,B<=1,size(R)=2. Morphing to iseq: ', (domain_max(R) === vA ? 'B = R ==? A' : 'B = R !=? A'), '->', domain__debug(B), '=', domain__debug(R), (domain_max(R) === vA ? '==?' : '!=?'), vA);
-            cr_vvv2v8v(ml, offset, domain_max(R) === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexR, vA, indexB);
-            pc = offset; // revisit (dont think we need to...)
-          } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
-            // A = R ==? B or A = R !=? B, that depends on max(B)==A
-            ASSERT_LOG2(' - A>0 R<=1 and size(B)=2. Morphing to iseq: ', (maxB === vA ? 'R = B ==? A' : 'R = B !=? A'), '->', domain__debug(R), '=', domain__debug(B), (maxB === vA ? '==?' : '!=?'), vA);
-            cr_vvv2v8v(ml, offset, maxB === vA ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexB, vA, indexR);
-            pc = offset; // revisit (dont think we need to...)
-          } else {
-            ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
-            onlyJumps = false;
-            pc = offset + SIZEOF_VVV;
-          }
-        }
-      } else {
-        let vB = domain_getValue(B);
-        if (vB >= 0) {
-          ASSERT(!domain_isSolved(A) && !domain_isSolved(R), 'case checked earlier');
-          if (vB === 0) {
-            ASSERT_LOG2(' - B=0 so A+0==R, rewriting op to eq');
-            // rewrite to A == R
-            cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexR);
-            pc = offset; // revisit
-          } else {
-            let sizeA = domain_size(A);
-            let sizeR = domain_size(R);
-            maxA = domain_max(A);
-            if (sizeA === 2 && sizeR === 2 && maxA === domain_min(R)) {
-              ASSERT_LOG2(' - B is solved, size(A)=size(R)=2 and max(A)=min(R), so A<R');
-              cr_vvv2vv(ml, offset, ML_VV_LT, indexA, indexR);
-              pc = offset; // revisit
-            } else if (domain_max(A) <= 1 && domain_size(R) === 2) {
-              ASSERT(domain_max(R) > 1, 'if A <= 1 then R must be >1 because R=A+B and B is non-zero and A is not solved (both checked above) so R must be at least [1,2]');
-              // A = R ==? B or A = R !=? B, that depends on max(R)==B
-              ASSERT_LOG2(' - B>0,A<=1,size(R)=2. Morphing to iseq: ', (domain_max(R) === vB ? 'A = R ==? B' : 'A = R !=? B'), '->', domain__debug(A), '=', domain__debug(R), (domain_max(R) === vB ? '==?' : '!=?'), vB);
-              cr_vvv2v8v(ml, offset, domain_max(R) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexR, vB, indexA);
-              pc = offset; // revisit (dont think we need to...)
-            } else if (domain_max(R) <= 1 && domain_size(B) === 2) {
-              // A = R ==? B or A = R !=? B, that depends on max(A)==B
-              ASSERT_LOG2(' - B>0,R<=1,size(R)=2. Morphing to iseq: ', (domain_max(A) === vB ? 'R = A ==? B' : 'R = A !=? B'), '->', domain__debug(R), '=', domain__debug(A), (domain_max(A) === vB ? '==?' : '!=?'), vB);
-              cr_vvv2v8v(ml, offset, domain_max(A) === vB ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexA, vB, indexR);
-              pc = offset; // revisit (dont think we need to...)
-            } else {
-              ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
-              onlyJumps = false;
-              pc = offset + SIZEOF_VVV;
-            }
-          }
-        } else {
-          ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
-          onlyJumps = false;
-          pc = offset + SIZEOF_VVV;
-        }
+      if (cr_plusAB(offset, indexA, indexB, indexR, A, B, R, 'A', 'B')) return;
+      if (cr_plusAB(offset, indexB, indexA, indexR, B, A, R, 'B', 'A')) return;
+
+      ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
+      onlyJumps = false;
+      pc = offset + SIZEOF_VVV;
+    }
+  }
+  function cr_plusAB(offset, indexX, indexY, indexR, X, Y, R, nameX, nameY) {
+    ASSERT(!domain_isSolved(X) || !domain_isSolved(Y) || !domain_isSolved(R), 'at least two vars arent solved');
+    ASSERT_LOG2(' - cr_plusAB', nameX, nameY, domain__debug(R), '=', domain__debug(X), '+', domain__debug(Y));
+    let vX = domain_getValue(X);
+    if (vX >= 0) {
+      // note Y and R are _not_ solved here
+      if (vX === 0) {
+        ASSERT_LOG2(' -', nameX, '=0 so ', nameY, '0==R, rewriting op to eq');
+        // rewrite to Y == R
+        cr_vvv2vv(ml, offset, ML_VV_EQ, indexR, indexY);
+        pc = offset; // revisit
+        return true;
+      }
+
+      let maxB = domain_max(Y);
+      if (maxB <= 1 && domain_size(R) === 2 && vX < 0xff) {
+        ASSERT(domain_max(R) > 1, 'if', nameY, '<= 1 then R must be >1 because R=B+A and ', nameX, ' is non-zero and', nameY, 'is not solved (both checked above) so R must be at least [1,2]');
+        // B = R ==? A or B = R !=? A, that depends on max(R)==A
+        ASSERT_LOG2(' -', nameX, '>0,', nameY, '<=1,size(R)=2. Morphing to iseq: ', (domain_max(R) === vX ? nameY + ' = R ==? ' + nameX : nameY + ' = R !=? ' + nameX), '->', domain__debug(Y), '=', domain__debug(R), (domain_max(R) === vX ? '==?' : '!=?'), vX);
+        cr_vvv2v8v(ml, offset, domain_max(R) === vX ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexR, vX, indexY);
+        pc = offset; // revisit (dont think we need to...)
+        return true;
+      }
+
+      if (domain_max(R) <= 1 && domain_size(Y) === 2) {
+        // A = R ==? B or A = R !=? B, that depends on max(B)==A
+        ASSERT_LOG2(' - A>0 R<=1 and size(B)=2. Morphing to iseq: ', (maxB === vX ? 'R = B ==? A' : 'R = B !=? A'), '->', domain__debug(R), '=', domain__debug(Y), (maxB === vX ? '==?' : '!=?'), vX);
+        cr_vvv2v8v(ml, offset, maxB === vX ? ML_V8V_ISEQ : ML_V8V_ISNEQ, indexY, vX, indexR);
+        pc = offset; // revisit (dont think we need to...)
+        return true;
       }
     }
   }

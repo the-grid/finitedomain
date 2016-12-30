@@ -81,6 +81,7 @@ import {
 // BODY_START
 
 function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
+  ASSERT_LOG2('\n## mlToDsl');
   const DEBUG = true;
   let pc = 0;
   let dsl = '';

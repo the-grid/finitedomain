@@ -78,6 +78,7 @@ function solverSolver(dsl) {
     }
     if (name === undefined) {
       name = '__' + (++anonCounter);
+      ASSERT_LOG2(' - Adding anonymous var for dom=', domain, '->', name);
     }
     if (typeof domain === 'number') {
       domain = domain_createValue(domain);
@@ -143,8 +144,9 @@ function solverSolver(dsl) {
   console.timeEnd('dedupe constraints:');
 
   console.time('cut leaf constraint:');
-  cutter(mlConstraints, vars, domains, getAlias, solveStack);
+  let cutFailed = cutter(mlConstraints, vars, domains, getAlias, solveStack);
   console.timeEnd('cut leaf constraint:');
+  if (cutFailed) return false;
 
   console.time('ml->dsl:');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));

@@ -450,6 +450,14 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return String.fromCharCode(num);
   }
 
+  function encodeNameOrLiteral(name, addVar) {
+    if (typeof name === 'number') {
+      ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
+      name = addVar(undefined, name, false, true);
+    }
+    return encodeName(name);
+  }
+
   function encodeName(name) {
     if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
     ASSERT_LOG2('encoding name:', name);
@@ -484,190 +492,179 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       parseAssignment(A);
     } else if (cop) {
       let B = parseVexpr();
-      // literals are only supported as 8bit values, otherwise just compile it as a solved var
-      let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
-      let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
-      switch (codeA + cop + codeB) {
-        case 'V==V':
-          ml += encode8bit(ML_VV_EQ) + encodeName(A) + encodeName(B);
-          break;
-        case 'V==8':
-          ml += encode8bit(ML_V8_EQ) + encodeName(A) + encode8bit(B);
-          break;
-        case '8==V':
-          ml += encode8bit(ML_V8_EQ) + encodeName(B) + encode8bit(A);
-          break;
-        case '8==8':
-          ml += encode8bit(ML_88_EQ) + encode8bit(A) + encode8bit(B);
-          break;
-
-        case 'V!=V':
-          ml += encode8bit(ML_VV_NEQ) + encodeName(A) + encodeName(B);
-          break;
-        case 'V!=8':
-          ml += encode8bit(ML_V8_NEQ) + encodeName(A) + encode8bit(B);
-          break;
-        case '8!=V':
-          ml += encode8bit(ML_V8_NEQ) + encodeName(B) + encode8bit(A);
-          break;
-        case '8!=8':
-          ml += encode8bit(ML_88_NEQ) + encode8bit(A) + encode8bit(B);
-          break;
-
-        case 'V<V':
-          ml += encode8bit(ML_VV_LT) + encodeName(A) + encodeName(B);
-          break;
-        case 'V<8':
-          ml += encode8bit(ML_V8_LT) + encodeName(A) + encode8bit(B);
-          break;
-        case '8<V':
-          ml += encode8bit(ML_8V_LT) + encode8bit(A) + encodeName(B);
-          break;
-        case '8<8':
-          ml += encode8bit(ML_88_LT) + encode8bit(A) + encode8bit(B);
-          break;
-
-        case 'V<=V':
-          ml += encode8bit(ML_VV_LTE) + encodeName(A) + encodeName(B);
-          break;
-        case 'V<=8':
-          ml += encode8bit(ML_V8_LTE) + encodeName(A) + encode8bit(B);
-          break;
-        case '8<=V':
-          ml += encode8bit(ML_8V_LTE) + encode8bit(A) + encodeName(B);
-          break;
-        case '8<=8':
-          ml += encode8bit(ML_88_LTE) + encode8bit(A) + encode8bit(B);
-          break;
-
-        case 'V>V':
-          ml += encode8bit(ML_VV_LT) + encodeName(B) + encodeName(A);
-          break;
-        case 'V>8':
-          ml += encode8bit(ML_8V_LT) + encode8bit(B) + encodeName(A);
-          break;
-        case '8>V':
-          ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
-          break;
-        case '8>8':
-          ml += encode8bit(ML_88_LT) + encode8bit(B) + encode8bit(A);
-          break;
-
-        case 'V>=V':
-          ml += encode8bit(ML_VV_LTE) + encodeName(B) + encodeName(A);
-          break;
-        case 'V>=8':
-          ml += encode8bit(ML_8V_LTE) + encode8bit(B) + encodeName(A);
-          break;
-        case '8>=V':
-          ml += encode8bit(ML_V8_LTE) + encodeName(B) + encode8bit(A);
-          break;
-        case '8>=8':
-          ml += encode8bit(ML_88_LTE) + encode8bit(B) + encode8bit(A);
-          break;
-
-        case 'V&V':
-          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
-          break;
-        case '8&V':
-          A = addVar(undefined, A, false, true);
-          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
-          break;
-        case 'V&8':
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
-          break;
-        case '8&8':
-          A = addVar(undefined, A, false, true);
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
-          break;
-
-        case 'V|V':
-          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
-          break;
-        case '8|V':
-          A = addVar(undefined, A, false, true);
-          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
-          break;
-        case 'V|8':
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
-          break;
-        case '8|8':
-          A = addVar(undefined, A, false, true);
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
-          break;
-
-        case 'V^V':
-          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
-          break;
-        case '8^V':
-          A = addVar(undefined, A, false, true);
-          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
-          break;
-        case 'V^8':
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
-          break;
-        case '8^8':
-          A = addVar(undefined, A, false, true);
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
-          break;
-
-        case 'V!&V':
-          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
-          break;
-        case '8!&V':
-          A = addVar(undefined, A, false, true);
-          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
-          break;
-        case 'V!&8':
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
-          break;
-        case '8!&8':
-          A = addVar(undefined, A, false, true);
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
-          break;
-
-        case 'V!^V':
-          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
-          break;
-        case '8!^V':
-          A = addVar(undefined, A, false, true);
-          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
-          break;
-        case 'V!^8':
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
-          break;
-        case '8!^8':
-          A = addVar(undefined, A, false, true);
-          B = addVar(undefined, B, false, true);
-          ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
-          break;
-
-        default:
-          THROW('Unknown constraint op: [' + cop + ']');
-      }
+      compileVoidConstraint(A, cop, B);
     }
 
     expectEol();
   }
 
+  function compileVoidConstraint(A, cop, B) {
+    // literals are only supported as 8bit values, otherwise just compile it as a solved var
+    let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
+    let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
+    switch (codeA + cop + codeB) {
+      case 'V==V':
+        ml += encode8bit(ML_VV_EQ) + encodeName(A) + encodeName(B);
+        break;
+      case 'V==8':
+        ml += encode8bit(ML_V8_EQ) + encodeName(A) + encode8bit(B);
+        break;
+      case '8==V':
+        ml += encode8bit(ML_V8_EQ) + encodeName(B) + encode8bit(A);
+        break;
+      case '8==8':
+        ml += encode8bit(ML_88_EQ) + encode8bit(A) + encode8bit(B);
+        break;
+
+      case 'V!=V':
+        ml += encode8bit(ML_VV_NEQ) + encodeName(A) + encodeName(B);
+        break;
+      case 'V!=8':
+        ml += encode8bit(ML_V8_NEQ) + encodeName(A) + encode8bit(B);
+        break;
+      case '8!=V':
+        ml += encode8bit(ML_V8_NEQ) + encodeName(B) + encode8bit(A);
+        break;
+      case '8!=8':
+        ml += encode8bit(ML_88_NEQ) + encode8bit(A) + encode8bit(B);
+        break;
+
+      case 'V<V':
+        ml += encode8bit(ML_VV_LT) + encodeName(A) + encodeName(B);
+        break;
+      case 'V<8':
+        ml += encode8bit(ML_V8_LT) + encodeName(A) + encode8bit(B);
+        break;
+      case '8<V':
+        ml += encode8bit(ML_8V_LT) + encode8bit(A) + encodeName(B);
+        break;
+      case '8<8':
+        ml += encode8bit(ML_88_LT) + encode8bit(A) + encode8bit(B);
+        break;
+
+      case 'V<=V':
+        ml += encode8bit(ML_VV_LTE) + encodeName(A) + encodeName(B);
+        break;
+      case 'V<=8':
+        ml += encode8bit(ML_V8_LTE) + encodeName(A) + encode8bit(B);
+        break;
+      case '8<=V':
+        ml += encode8bit(ML_8V_LTE) + encode8bit(A) + encodeName(B);
+        break;
+      case '8<=8':
+        ml += encode8bit(ML_88_LTE) + encode8bit(A) + encode8bit(B);
+        break;
+
+      case 'V>V':
+        ml += encode8bit(ML_VV_LT) + encodeName(B) + encodeName(A);
+        break;
+      case 'V>8':
+        ml += encode8bit(ML_8V_LT) + encode8bit(B) + encodeName(A);
+        break;
+      case '8>V':
+        ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
+        break;
+      case '8>8':
+        ml += encode8bit(ML_88_LT) + encode8bit(B) + encode8bit(A);
+        break;
+
+      case 'V>=V':
+        ml += encode8bit(ML_VV_LTE) + encodeName(B) + encodeName(A);
+        break;
+      case 'V>=8':
+        ml += encode8bit(ML_8V_LTE) + encode8bit(B) + encodeName(A);
+        break;
+      case '8>=V':
+        ml += encode8bit(ML_V8_LTE) + encodeName(B) + encode8bit(A);
+        break;
+      case '8>=8':
+        ml += encode8bit(ML_88_LTE) + encode8bit(B) + encode8bit(A);
+        break;
+
+      case 'V&V':
+        ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeName(A);
+        break;
+      case '8&V':
+        ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeNameOrLiteral(A);
+        break;
+      case 'V&8':
+        ml += encode8bit(ML_VV_AND) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case '8&8':
+        ml += encode8bit(ML_VV_AND) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        break;
+
+      case 'V|V':
+        ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeName(A);
+        break;
+      case '8|V':
+        ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeNameOrLiteral(A);
+        break;
+      case 'V|8':
+        ml += encode8bit(ML_VV_OR) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case '8|8':
+        ml += encode8bit(ML_VV_OR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        break;
+
+      case 'V^V':
+        ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeName(A);
+        break;
+      case '8^V':
+        ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeNameOrLiteral(A);
+        break;
+      case 'V^8':
+        ml += encode8bit(ML_VV_XOR) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case '8^8':
+        ml += encode8bit(ML_VV_XOR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        break;
+
+      case 'V!&V':
+        ml += encode8bit(ML_VV_NAND) + encodeName(B) + encodeName(A);
+        break;
+      case '8!&V':
+        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case 'V!&8':
+        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case '8!&8':
+        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        break;
+
+      case 'V!^V':
+        ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeName(A);
+        break;
+      case '8!^V':
+        ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeNameOrLiteral(A);
+        break;
+      case 'V!^8':
+        ml += encode8bit(ML_VV_XNOR) + encodeNameOrLiteral(B) + encodeName(A);
+        break;
+      case '8!^8':
+        ml += encode8bit(ML_VV_XNOR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        break;
+
+      default:
+        THROW('Unknown constraint op: [' + cop + ']');
+    }
+  }
+
   function parseAssignment(C) {
     if (typeof C === 'string' && nameToIndex(C) < 0) addVar(C);
+    else if (typeof C === 'number' && C > 0xff) C = addVar(undefined, C, false, true);
     ASSERT(typeof C === 'number' || nameToIndex(C) >= 0, 'C should be resolvable now');
 
     let A = parseVexpr(C);
     skipWhitespaces();
     let c = read();
-    if (isEof() || isNewline(c) || isComment(c)) return A; // any group without "top-level" op (`A=(B+C)`), or sum() etc
-    return parseAssignRest(A, C);
+    if (isEof() || isNewline(c) || isComment(c)) {
+      // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
+      compileVoidConstraint(A, '==', C);
+    } else {
+      parseAssignRest(A, C);
+    }
   }
 
   function parseAssignRest(A, C) {
@@ -792,16 +789,16 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           case '>=?':
             return _parseAssignRest(B, '<=?', A, C);
           case '+':
-            ml += encode8bit(ML_PLUS) + encodeName(A) + encodeName(B) + encodeName(C);
+            ml += encode8bit(ML_PLUS) + encodeNameOrLiteral(A, addVar) + encodeNameOrLiteral(B, addVar) + encodeNameOrLiteral(C, addVar);
             break;
           case '-':
-            ml += encode8bit(ML_MINUS) + encodeName(A) + encodeName(B) + encodeName(C);
+            ml += encode8bit(ML_MINUS) + encodeNameOrLiteral(A, addVar) + encodeNameOrLiteral(B, addVar) + encodeNameOrLiteral(C, addVar);
             break;
           case '*':
-            ml += encode8bit(ML_MUL) + encodeName(A) + encodeName(B) + encodeName(C);
+            ml += encode8bit(ML_MUL) + encodeNameOrLiteral(A, addVar) + encodeNameOrLiteral(B, addVar) + encodeNameOrLiteral(C, addVar);
             break;
           case '/':
-            ml += encode8bit(ML_DIV) + encodeName(A) + encodeName(B) + encodeName(C);
+            ml += encode8bit(ML_DIV) + encodeNameOrLiteral(A, addVar) + encodeNameOrLiteral(B, addVar) + encodeNameOrLiteral(C, addVar);
             break;
           default:
             if (rop !== undefined) THROW('Unknown rop: `' + rop + '`');

@@ -158,4 +158,96 @@ describe('specs/minimizer.spec', function() {
     test('[10 20]', '[5 10]', {A: [10, 20], B: [5, 10]});
   });
 
+  it('should parse literals in the math ops', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 1]
+      : B [0 1]
+      : C [0 1]
+
+      A = B + C
+      1 = B + C
+      A = 1 + C
+      A = B + 1
+      1 = 1 + C
+      A = 1 + 1
+      1 = B + 1
+      1 = 1 + 1
+
+      A = B - C
+      1 = B - C
+      A = 1 - C
+      A = B - 1
+      1 = 1 - C
+      A = 1 - 1
+      1 = B - 1
+      1 = 1 - 1
+
+      A = B * C
+      1 = B * C
+      A = 1 * C
+      A = B * 1
+      1 = 1 * C
+      A = 1 * 1
+      1 = B * 1
+      1 = 1 * 1
+
+      A = B / C
+      1 = B / C
+      A = 1 / C
+      A = B / 1
+      1 = 1 / C
+      A = 1 / 1
+      1 = B / 1
+      1 = 1 / 1
+    `);
+
+    expect(solution).to.eql(false);
+  });
+
+  describe('regular assignment', function() {
+
+    it('regression; parser was blackholing literal assignments', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : C [1 2]
+        A = 0
+        C = 2
+      `);
+
+      expect(solution).to.eql({A: 0, C: 2});
+    });
+
+    it('regression; parser was blackholing regular assignments', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : C 2
+        A = C
+      `);
+
+      expect(solution).to.eql({A: 2, C: 2});
+    });
+
+    it('should not ignore unsolvable sum assignment', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        A = sum(1 2 3 20)
+      `);
+
+      expect(solution).to.eql(false);
+    });
+
+    it('should not ignore solvable sum assignment', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 50]
+        A = sum(1 2 3 20)
+      `);
+
+      expect(solution).to.eql({A: 26, __1: 1, __2: 2, __3: 3, __4: 20});
+    });
+  });
 });

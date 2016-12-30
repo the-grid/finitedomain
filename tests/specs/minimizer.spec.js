@@ -225,4 +225,17 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql(false);
     });
   });
+
+  describe('neq', function() {
+
+    it('should fail contradictions', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        A != A
+      `);
+
+      expect(solution).to.eql(false);
+    });
+  });
 });

@@ -560,19 +560,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         if (!R) return;
       }
 
-      ASSERT_LOG2(' - Mapping', indexB, 'to be an alias for', indexA);
-      TRACE_ADD(indexB, domain__debug(B), domain__debug(R), 'now alias of ' + indexA + ' because of eq');
       addAlias(indexB, indexA);
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - alias; ensuring', indexA, 'and', indexB, 'result in same value');
-        ASSERT_LOG2('   - domain =', domain__debug(domains[indexA]), 'forcing choice to min(d)=', domain_min(domains[indexA]));
-        // ensure A and B end up with the same value, regardless of how A is reduced
-        ASSERT(domains[indexB] === false, 'B should be marked as an alias');
-        domains[indexB] = domains[indexA] = domain_createValue(domain_min(domains[indexA]));
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'alias(' + indexA + ' -> ' + indexB + ')'));
-      domains[indexB] = false; // mark as aliased. this is not a change per se.
     }
 
     // the vars are now intersected and aliased. we can remove this constraint.
@@ -667,6 +655,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         }
       }
     }
+    // artifact case can happen after certain morphs
+    if (indexA === indexB) return setEmpty(indexA, 'contraction A != A');
 
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B));
 
@@ -1863,21 +1853,32 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
 
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
-
-    ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
-    ASSERT_LOG2(' - not only jumps...');
-    onlyJumps = false;
+    ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '!=?', vB);
+    ASSERT(domain_max(A) !== 0, 'if max(A) were zero then it would be solved and that case is caught above');
 
     // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
-    ASSERT(domain_max(A) !== 0, 'if max(A) were zero then it would be solved and that case is caught above');
     if (vB <= 1 && domain_max(A) === 1) {
       // - B=0: 0!=B=0, 1!=B=1: A==R
       // - B=1: 0!=B=1, 1!=B=0: A!=R
       cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ, indexA, indexR);
       pc = offset; // revisit
-    } else {
-      pc = offset + SIZEOF_V8V;
+      return;
     }
+
+    if (domain_size(A) === 2) {
+      // if this isneq is checking one of the two values in A then normalize it to an iseq for the other value
+      // this way the deduper may catch this case and discover an implicit alias
+      // [1 2] !=? 1   ->  [0 1] ==? 2
+      // [1 2] !=? 2   ->  [0 1] ==? 1
+      ASSERT_LOG2(' - Normalizing isNeq to equivalent isEq, looking for', domain_getValue(domain_removeValue(A, vB)), 'instead of', vB);
+      cr_v8v2v8v(ml, offset, ML_V8V_ISEQ, indexA, domain_getValue(domain_removeValue(A, vB)), indexR);
+      pc = offset; // revisit
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_V8V;
   }
 
   function cr_vv8_isNeq(ml) {
@@ -3233,6 +3234,14 @@ function cr_v8v2v8(ml, offset, opCode, indexA, vB) {
   ml_enc16(ml, offset + 1, indexA);
   ml_enc8(ml, offset + 3, vB);
   ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+}
+
+function cr_v8v2v8v(ml, offset, opCode, indexA, vB, indexR) {
+  ASSERT_LOG2(' -| cr_v8v2v8v |', opCode, indexA, vB, indexR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_enc16(ml, offset + 4, indexR);
 }
 
 function cr_v8v28v(ml, offset, opCode, vA, indexB) {

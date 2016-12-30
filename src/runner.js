@@ -12,6 +12,7 @@ import {
   ASSERT,
   ASSERT_LOG2,
   THROW,
+  TRACE_ADD,
 } from './helpers';
 import {
   ml__debug,
@@ -42,6 +43,7 @@ import {
   domain_createRange,
   domain_createValue,
   domain_getValue,
+  domain_min,
   domain_arrToSmallest,
   domain_toArr,
 } from './domain';
@@ -102,6 +104,19 @@ function solverSolver(dsl) {
   function addAlias(indexOld, indexNew) {
     ASSERT(indexOld !== indexNew, 'cant make an alias for itself');
     aliases[indexOld] = indexNew;
+
+    ASSERT_LOG2(' - Mapping', indexOld, 'to be an alias for', indexNew);
+    TRACE_ADD(indexOld, domain__debug(domains[indexOld]), domain__debug(domains[indexNew]), 'now alias of ' + indexNew);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - alias; ensuring', indexNew, 'and', indexOld, 'result in same value');
+      ASSERT_LOG2('   - domain =', domain__debug(domains[indexNew]), 'forcing choice to min(d)=', domain_min(domains[indexNew]));
+      // ensure A and B end up with the same value, regardless of how A is reduced
+      ASSERT(domains[indexOld] === false, 'B should be marked as an alias');
+      domains[indexOld] = domains[indexNew] = domain_createValue(domain_min(domains[indexNew]));
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexOld));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'alias(' + indexNew + ' -> ' + indexOld + ')'));
+    domains[indexOld] = false; // mark as aliased. this is not a change per se.
   }
 
   function getAlias(index) {
@@ -124,24 +139,29 @@ function solverSolver(dsl) {
   let mls = input.ml;
   let mlConstraints = Buffer.from(mls, 'binary');
 
-  ASSERT_LOG2('Minimizing ML...');
-  console.time('- minimizing ml');
-  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
-  console.timeEnd('- minimizing ml');
+  let deduperAddedAlias;
+  do {
+    ASSERT_LOG2('Minimizing ML...');
+    console.time('- minimizing ml');
+    let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
+    console.timeEnd('- minimizing ml');
 
-  if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
-    console.time('ml->dsl:');
-    let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
-    console.timeEnd('ml->dsl:');
-    ASSERT_LOG2(newdsl);
+    if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
+      console.time('ml->dsl:');
+      let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
+      console.timeEnd('ml->dsl:');
+      ASSERT_LOG2(newdsl);
 
-    if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
-    if (state === MINIMIZER_REJECTED) return false;
-  }
+      if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
+      if (state === MINIMIZER_REJECTED) return false;
+    }
 
-  console.time('dedupe constraints:');
-  deduper(mlConstraints, vars, domains, getAlias);
-  console.timeEnd('dedupe constraints:');
+    console.time('dedupe constraints:');
+    deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
+    console.timeEnd('dedupe constraints:');
+  } while (deduperAddedAlias > 0);
+
+  if (deduperAddedAlias < 0) return false; // a contradiction was found... weird! but possible.
 
   console.time('cut leaf constraint:');
   let cutFailed = cutter(mlConstraints, vars, domains, getAlias, solveStack);
@@ -182,7 +202,7 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
     return state;
   }
   ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
-  console.error('pre-optimization finished, not yet solved');
+  ASSERT_LOG2('pre-optimization finished, not yet solved');
 }
 function createSolution(vars, domains, getAlias, solveStack) {
   ASSERT_LOG2('- createSolution()');

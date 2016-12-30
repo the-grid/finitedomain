@@ -15,4 +15,46 @@ describe('specs/deduper.spec', function() {
 
     expect(solution).to.eql({A: 1, B: 0});
   });
+
+  it('should remove duplicate iseq', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 1]
+      : B [0 1]
+      C = A ==? B
+      D = A ==? B
+    `);
+    // note: deduper will remove one dupe and then cutter will remove the remaining one (but wouldnt otherwise)
+
+    expect(solution).to.eql({A: 0, B: 0, C: 1, D: 1});
+  });
+
+
+  it('should remove pseudo duplicate iseq/isneq', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [2 3]
+      C = A ==? 2
+      D = A !=? 3
+      # in this particular case A==?x is equal to A!=?y because A only contains [x x y y]
+      # this should lead to conclude C=D,C=A==?x
+    `);
+
+    // this'll work even without deduping due to the cutter
+    expect(solution).to.eql({A: 2, C: 1, D: 1});
+  });
+
+  it('should reject when a dupe vv8 reifier has different constant', function() {
+    // it's an artifact edge case that we can't just ignore
+
+    // if this breaks the output probably changed or the engine improved; this case should result in `false`
+    expect(_ => solverSolver(`
+      @custom var-strat throw
+      : A *
+      : B *
+      0 = A ==? B
+      1 = A ==? B
+      # oops
+    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:0,100000000: 1:B:???');
+  });
 });

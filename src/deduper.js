@@ -74,11 +74,6 @@ import {
   SIZEOF_VVV,
   SIZEOF_8VV,
   SIZEOF_V8V,
-  SIZEOF_VV8,
-  SIZEOF_88V,
-  SIZEOF_V88,
-  SIZEOF_8V8,
-  SIZEOF_888,
   SIZEOF_COUNT,
   SIZEOF_C8_COUNT,
 
@@ -94,16 +89,19 @@ import {
 
 // BODY_START
 
-function deduper(ml, vars, domains, getAlias) {
-  ASSERT_LOG2(' ## pr_dedupe', ml);
+function deduper(ml, vars, domains, getAlias, addAlias) {
+  ASSERT_LOG2('\n ## pr_dedupe', ml);
   let pc = 0;
   let constraintHash = {}; // keys are A@B or R=A@B and the vars can be an index (as is) or a literal prefixed with #
   let removed = 0;
+  let aliased = 0;
+  let emptyDomain = false;
   innerLoop();
-  ASSERT_LOG2(' - dedupe removed', removed, 'constraints');
-  return constraintHash;
+  ASSERT_LOG2(' - dedupe removed', removed, 'constraints, aliased', aliased, 'result vars');
 
-  function getDomainOrRestartForAlias(index, _max = 10) {
+  return emptyDomain ? -1 : aliased; // if aliases were created the minifier will want another go.
+
+  function getUnaliasedDomain(index, _max = 10) {
     if (_max <= 0) THROW('damnit');
     //ASSERT_LOG2('getDomainOrRestartForAlias: ' + index + ' -> ' + domains[index]);
     let D = domains[index];
@@ -116,7 +114,7 @@ function deduper(ml, vars, domains, getAlias) {
     let aliasIndex = getAlias(index);
     ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
     //ASSERT_LOG2('->', aliasIndex);
-    return getDomainOrRestartForAlias(aliasIndex, _max - 1);
+    return getUnaliasedDomain(aliasIndex, _max - 1);
   }
 
   function part8(delta) {
@@ -125,7 +123,7 @@ function deduper(ml, vars, domains, getAlias) {
 
   function partV(delta) {
     let A = ml_dec16(ml, pc + delta);
-    let domain = getDomainOrRestartForAlias(A, pc + delta);
+    let domain = getUnaliasedDomain(A, pc + delta);
     if (!domain && domain !== 0) {
       ml_throw(ml, pc, 'unknown domain...');
     }
@@ -133,18 +131,18 @@ function deduper(ml, vars, domains, getAlias) {
     return (vA >= 0 ? '#' + vA : A);
   }
 
-  function dedupe(key, oplen) {
-    let kept = true;
-    if (!constraintHash[key]) constraintHash[key] = 1;
-    else {
+  function dedupe(key, oplen, value = 1) {
+    let knownValue = constraintHash[key];
+    if (knownValue === undefined) {
+      constraintHash[key] = value;
+    } else {
       ++removed;
-      kept = false;
       ASSERT_LOG2(' - Constraint with key', key, 'already exists (#' + (constraintHash[key] + 1) + ') so eliminating the dupe');
       ++constraintHash[key];
       ml_eliminate(ml, pc, oplen);
     }
     pc += oplen;
-    return kept;
+    return knownValue;
   }
 
   function keyVV(op) {
@@ -182,43 +180,50 @@ function deduper(ml, vars, domains, getAlias) {
   }
 
   function keyVVV(op) {
-    let key = partV(1) + op + partV(3) + '=' + partV(5);
-    dedupe(key, SIZEOF_VVV);
+    // if r1=a@b is a dupe of r2=a@b then r1==r2
+    // however, note that a==b is not a dupe of a==?b
+
+    let opkey = partV(1) + op + partV(3);
+    ASSERT_LOG2('keyVVV', op, [opkey]);
+    let R = ml_dec16(ml, pc + 5);
+    let alias = dedupe(opkey, SIZEOF_VVV, R);
+    if (alias) {
+      ASSERT_LOG2(' - deduping vvv constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
+      // this constraint has been removed. the alias of R is returned
+      addAlias(R, alias);
+      ++aliased;
+    }
   }
 
   function key8VV(op) {
-    let key = part8(1) + op + partV(2) + '=' + partV(4);
-    dedupe(key, SIZEOF_8VV);
+    // if r1=a@b is a dupe of r2=a@b then r1==r2
+    // however, note that a==b is not a dupe of a==?b
+
+    let opkey = part8(1) + op + partV(2);
+    ASSERT_LOG2('key8VV', op, [opkey]);
+    let R = ml_dec16(ml, pc + 4);
+    let alias = dedupe(opkey, SIZEOF_8VV, R);
+    if (alias) {
+      ASSERT_LOG2(' - deduping 8vv constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
+      // this constraint has been removed. the alias of R is returned
+      addAlias(R, alias);
+      ++aliased;
+    }
   }
 
   function keyV8V(op) {
-    let key = partV(1) + op + part8(3) + '=' + partV(4);
-    dedupe(key, SIZEOF_V8V);
-  }
-
-  function keyVV8(op) {
-    let key = partV(1) + op + partV(3) + '=' + part8(5);
-    dedupe(key, SIZEOF_VV8);
-  }
-
-  function key88V(op) {
-    let key = part8(1) + op + part8(2) + '=' + partV(3);
-    dedupe(key, SIZEOF_88V);
-  }
-
-  function key8V8(op) {
-    let key = part8(1) + op + partV(2) + '=' + part8(4);
-    dedupe(key, SIZEOF_8V8);
-  }
-
-  function keyV88(op) {
-    let key = partV(1) + op + part8(3) + '=' + part8(4);
-    dedupe(key, SIZEOF_V88);
-  }
-
-  function key888(op) {
-    let key = part8(1) + op + part8(2) + '=' + part8(3);
-    dedupe(key, SIZEOF_888);
+    // if r1=a@b is a dupe of r2=a@b then r1==r2
+    // however, note that a==b is not a dupe of a==?b
+    let opkey = partV(1) + op + part8(3);
+    ASSERT_LOG2('keyV8V', op, [opkey]);
+    let R = ml_dec16(ml, pc + 4);
+    let alias = dedupe(opkey, SIZEOF_V8V, R);
+    if (alias) {
+      ASSERT_LOG2(' - deduping v8v constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
+      // this constraint has been removed. the alias of R is returned
+      addAlias(R, alias);
+      ++aliased;
+    }
   }
 
   function sum() {
@@ -245,7 +250,7 @@ function deduper(ml, vars, domains, getAlias) {
   }
 
   function innerLoop() {
-    while (pc < ml.length) {
+    while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
       ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
@@ -332,44 +337,12 @@ function deduper(ml, vars, domains, getAlias) {
           keyV8V('==?');
           break;
 
-        case ML_VV8_ISEQ:
-          keyVV8('==?');
-          break;
-
-        case ML_88V_ISEQ:
-          key88V('==?');
-          break;
-
-        case ML_V88_ISEQ:
-          keyV88('==?');
-          break;
-
-        case ML_888_ISEQ:
-          key888('==?');
-          break;
-
         case ML_VVV_ISNEQ:
           keyVVV('!=?');
           break;
 
         case ML_V8V_ISNEQ:
           keyV8V('!=?');
-          break;
-
-        case ML_VV8_ISNEQ:
-          keyVV8('!=?');
-          break;
-
-        case ML_88V_ISNEQ:
-          key88V('!=?');
-          break;
-
-        case ML_V88_ISNEQ:
-          keyV88('!=?');
-          break;
-
-        case ML_888_ISNEQ:
-          key888('!=?');
           break;
 
         case ML_VVV_ISLT:
@@ -384,26 +357,6 @@ function deduper(ml, vars, domains, getAlias) {
           keyV8V('<?');
           break;
 
-        case ML_VV8_ISLT:
-          keyVV8('<?');
-          break;
-
-        case ML_88V_ISLT:
-          key88V('<?');
-          break;
-
-        case ML_V88_ISLT:
-          keyV88('<?');
-          break;
-
-        case ML_8V8_ISLT:
-          key8V8('<?');
-          break;
-
-        case ML_888_ISLT:
-          key888('<?');
-          break;
-
         case ML_VVV_ISLTE:
           keyVVV('<=?');
           break;
@@ -416,25 +369,25 @@ function deduper(ml, vars, domains, getAlias) {
           keyV8V('<=?');
           break;
 
+        case ML_VV8_ISEQ:
+        case ML_88V_ISEQ:
+        case ML_V88_ISEQ:
+        case ML_888_ISEQ:
+        case ML_VV8_ISNEQ:
+        case ML_88V_ISNEQ:
+        case ML_V88_ISNEQ:
+        case ML_888_ISNEQ:
+        case ML_VV8_ISLT:
+        case ML_88V_ISLT:
+        case ML_V88_ISLT:
+        case ML_8V8_ISLT:
+        case ML_888_ISLT:
         case ML_VV8_ISLTE:
-          keyVV8('<=?');
-          break;
-
         case ML_88V_ISLTE:
-          key88V('<=?');
-          break;
-
         case ML_V88_ISLTE:
-          keyV88('<=?');
-          break;
-
         case ML_8V8_ISLTE:
-          key8V8('<=?');
-          break;
-
         case ML_888_ISLTE:
-          key888('<=?');
-          break;
+          return THROW('if two vars are solved then the constraint is solved and should have been removed');
 
         case ML_8V_SUM:
           sum();

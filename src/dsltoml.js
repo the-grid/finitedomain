@@ -98,6 +98,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     valstrat: 'default',
   };
   let ml = '';
+  let constraintCount = 0;
 
   let pointer = 0;
   let len = str.length;
@@ -105,6 +106,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   while (!isEof()) parseStatement();
 
   ret.ml = ml + encode8bit(ML_STOP);
+  console.log('# dslToMl: parsed', constraintCount, 'constraints');
   return ret;
 
   function read() {
@@ -499,6 +501,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function compileVoidConstraint(A, cop, B) {
+    ++constraintCount;
     // literals are only supported as 8bit values, otherwise just compile it as a solved var
     let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
     let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
@@ -676,6 +679,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function _parseAssignRest(A, rop, B, C) {
+    ++constraintCount;
     // literals are only supported as 8bit values, otherwise just compile it as a solved var
     let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
     let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
@@ -927,6 +931,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function parseDistinct() {
+    ++constraintCount;
     pointer += 9;
     skipWhitespaces();
     let vals = parseVexpList();
@@ -1017,6 +1022,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function parseSum(result) {
+    ++constraintCount;
     is('(', 'sum call opener');
     skipWhitespaces();
     let refs = parseVexpList();
@@ -1036,6 +1042,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function parseProduct(result) {
     // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
+    ++constraintCount;
     is('(', 'product call opener');
     skipWhitespaces();
     let refs = parseVexpList();

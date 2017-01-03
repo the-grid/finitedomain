@@ -176,7 +176,11 @@ ${arr.join('\n')}
     let s;
     if (DEBUG) {
       s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
-      s += '               # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
+      s += ' '.repeat(Math.max(45 - s.length, 0));
+      s +=
+        '   # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += ' '.repeat(Math.max(110 - s.length, 0));
+      s += '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
     } else {
       s = (lena === 1 ? a : '$' + a.toString(36)) + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36));
     }
@@ -196,9 +200,15 @@ ${arr.join('\n')}
     if (DEBUG) {
       s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
       s = (lenc === 1 ? c : names[c]) + ' = ' + s;
+      s += ' '.repeat(Math.max(45 - s.length, 0));
       let ss = '';
-      if (counts) ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]);
-      s += '               # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b])) + '    # args: ' + c + ' = ' + a + ' @ ' + b + ss;
+      if (counts) {
+        ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]);
+      }
+      s += '   # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += ' '.repeat(Math.max(110 - s.length, 0));
+      s +=
+        '    # args: ' + c + ' = ' + a + ' @ ' + b + ss;
     } else {
       s = (lenc === 1 ? c : '$' + c.toString(36)) + ' = ' + (lena === 1 ? a : '$' + a.toString(36)) + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36));
     }

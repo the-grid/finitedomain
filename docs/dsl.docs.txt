@@ -114,6 +114,10 @@ nulcall:
 valcall:
   `sum(` expressions `)`
   `product(` expressions `)`
+  `all(` expressions `)`
+  `nall(` expressions `)`
+  `all?(` expressions `)`
+  `nall?(` expressions `)`
 rop: // reflecting op (not a constraint on its own, but enforces result var state)
   `==?`
   `!=?`

@@ -17,6 +17,7 @@ import {
 import {
   ml__debug,
   ml_countConstraints,
+  ml_getOpList,
   ml_hasConstraint,
 } from './ml';
 import {
@@ -51,7 +52,6 @@ import {
   trie_add,
   trie_create,
   trie_get,
-  trie_has,
 } from './trie';
 import {
   counter,
@@ -72,8 +72,8 @@ function solverSolver(dsl) {
 
   let anonCounter = 0;
 
-  function addVar(name, domain, mod, arti) {
-    if (mod) THROW('implement me (var mod)');
+  function addVar(name, domain, modifier, returnName, returnIndex) {
+    if (modifier) THROW('implement me (var mod)');
     if (typeof name === 'number') {
       domain = name;
       name = undefined;
@@ -89,12 +89,13 @@ function solverSolver(dsl) {
     } else {
       domain = domain_arrToSmallest(domain);
     }
-    if (!trie_has(varTrie, name)) {
-      trie_add(varTrie, name, vars.length);
-      vars.push(name);
-      domains.push(domain);
-    }
-    if (arti) return name; // return a name when explicitly asked for.
+
+    let newIndex = vars.length;
+    trie_add(varTrie, name, newIndex);
+    vars.push(name);
+    domains.push(domain);
+    if (returnIndex) return newIndex;
+    if (returnName) return name; // return a name when explicitly asked for.
   }
 
   function getVar(name) {
@@ -168,6 +169,10 @@ function solverSolver(dsl) {
   console.timeEnd('cut leaf constraint:');
   if (cutFailed) return false;
 
+  console.time('- minimizing ml, again');
+  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
+  console.timeEnd('- minimizing ml, again', state);
+
   console.time('ml->dsl:');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
   console.timeEnd('ml->dsl:');
@@ -180,7 +185,7 @@ function solverSolver(dsl) {
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
-    ASSERT(false, `Forcing a choice with strat=throw; debug: ${vars.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + vars[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} `);
+    ASSERT(false, `Forcing a choice with strat=throw; debug: ${vars.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + vars[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(mlConstraints)} `);
     THROW('Forcing a choice with strat=throw');
   }
   THROW('implement me (solve minimized problem)');

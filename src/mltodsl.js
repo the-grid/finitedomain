@@ -13,7 +13,7 @@ import {
   domain_toArr,
 } from './domain';
 import {
-  ML_UNUSED,
+  ML_START,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -56,6 +56,10 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -87,6 +91,10 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
   let dsl = '';
 
   if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], '$' + a[1].toString(36)]));
+
+  let allParts = [];
+  let partsPerVar = [];
+  cr_innerLoop();
 
   if (DEBUG) {
     let arr = [];
@@ -141,7 +149,18 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 #      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
 #      - To solve: ${unsolved - (solveStack.length - aliases)} x
 # Var decls:
-${arr.join('\n')}
+${
+  arr
+    .map((s, varIndex) =>
+      s && (
+        s +
+        '\n ## ' +
+        (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
+      )
+    )
+    .filter((a, i) => domains[i] !== false && (!counts || counts[i] > 0))
+    .join('\n')
+}
 
 `;
   } else {
@@ -150,8 +169,7 @@ ${arr.join('\n')}
     dsl += '\n\n';
   }
 
-  dsl += '# Constraints:\n';
-  cr_innerLoop();
+  dsl += '# Constraints:\n' + allParts.join('');
   return dsl;
 
   function cr_dec8() {
@@ -173,18 +191,24 @@ ${arr.join('\n')}
     if (lena === 2 && domains[a] === false) a = getAlias(a);
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
 
-    let s;
     if (DEBUG) {
-      s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
+      if (lena === 2) {
+        if (!partsPerVar[a]) partsPerVar[a] = [];
+        partsPerVar[a].push(allParts.length);
+      }
+      if (lenb === 2) {
+        if (!partsPerVar[b]) partsPerVar[b] = [];
+        partsPerVar[b].push(allParts.length);
+      }
+
+      let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
       s += ' '.repeat(Math.max(45 - s.length, 0));
-      s +=
-        '   # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += '   # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
       s += ' '.repeat(Math.max(110 - s.length, 0));
-      s += '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
+      return s + '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '') + ' \n';
     } else {
-      s = (lena === 1 ? a : '$' + a.toString(36)) + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36));
+      return (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
     }
-    return s + '\n';
   }
 
   function cr_decAbc(lena, lenb, lenc, op) {
@@ -198,383 +222,476 @@ ${arr.join('\n')}
 
     let s = '';
     if (DEBUG) {
+      if (lena === 2) {
+        if (!partsPerVar[a]) partsPerVar[a] = [];
+        partsPerVar[a].push(allParts.length);
+      }
+      if (lenb === 2) {
+        if (!partsPerVar[b]) partsPerVar[b] = [];
+        partsPerVar[b].push(allParts.length);
+      }
+      if (lenc === 2) {
+        if (!partsPerVar[c]) partsPerVar[c] = [];
+        partsPerVar[c].push(allParts.length);
+      }
+
       s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
       s = (lenc === 1 ? c : names[c]) + ' = ' + s;
       s += ' '.repeat(Math.max(45 - s.length, 0));
       let ss = '';
       if (counts) {
-        ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]);
+        ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) + ' ';
       }
       s += '   # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
       s += ' '.repeat(Math.max(110 - s.length, 0));
-      s +=
-        '    # args: ' + c + ' = ' + a + ' @ ' + b + ss;
+      return s + '    # args: ' + c + ' = ' + a + ' @ ' + b + ss + '\n';
     } else {
-      s = (lenc === 1 ? c : '$' + c.toString(36)) + ' = ' + (lena === 1 ? a : '$' + a.toString(36)) + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36));
+      return (lenc === 1 ? c : '$' + c.toString(36) + '$') + ' = ' + (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
     }
-    return s + '\n';
+  }
+
+  function m2d_listVoid(callName) {
+    let argCount = cr_dec16();
+    let indexes = '';
+    let counters = '';
+    let argNames = '';
+    let debugs = '';
+    for (let i = 0; i < argCount; ++i) {
+      let index = cr_dec16();
+
+
+      let domain = domains[index];
+      if (domain === false) {
+        index = getAlias(index);
+        domain = domains[index];
+      }
+      if (DEBUG) {
+        if (!partsPerVar[index]) partsPerVar[index] = [];
+        partsPerVar[index].push(allParts.length);
+
+        indexes += index + ' ';
+        if (counts) counters += counts[index] + ' ';
+        argNames += names[index] + ' ';
+        debugs += domain__debug(domain) + ' ';
+      } else {
+        argNames += '$' + index.toString(36) + ' ';
+      }
+    }
+    if (DEBUG) {
+      let s = callName + '( ' + argNames + ')';
+      s += ' '.repeat(Math.max(45 - s.length, 0));
+      s += '   # ' + callName + '( ' + debugs + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 0));
+      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + callName + '( ' + counters + ')' : '') + '\n';
+    } else {
+      return callName + '( ' + argNames + ')\n';
+    }
+  }
+
+  function m2d_listResult(callName) {
+    let args = cr_dec16();
+    return m2d_listResultBody(callName, args);
+  }
+
+  function m2d_listResultBody(callName, argCount) {
+    let indexes = '';
+    let counters = '';
+    let argNames = '';
+    let debugs = '';
+    for (let i = 0; i < argCount; ++i) {
+      let index = cr_dec16();
+      let domain = domains[index];
+      if (domain === false) {
+        index = getAlias(index);
+        domain = domains[index];
+      }
+      if (DEBUG) {
+        if (!partsPerVar[index]) partsPerVar[index] = [];
+        partsPerVar[index].push(allParts.length);
+
+        indexes += index + ' ';
+        if (counts) counters += counts[index] + ' ';
+        argNames += names[index] + ' ';
+        debugs += domain__debug(domain) + ' ';
+      } else {
+        argNames += '$' + index.toString(36) + ' ';
+      }
+    }
+    let indexR = cr_dec16();
+    if (DEBUG) {
+      if (!partsPerVar[indexR]) partsPerVar[indexR] = [];
+      partsPerVar[indexR].push(allParts.length);
+      let s = names[indexR] + ' = ' + callName + '( ' + argNames + ')';
+      s += ' '.repeat(Math.max(45 - s.length, 0));
+      s += '   # ' + domain__debug(domains[indexR]) + ' = ' + callName + '( ' + debugs + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 0));
+      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + counts[indexR] + ' = ' + callName + '( ' + counters + ')' : '') + '\n';
+    } else {
+      return '$' + indexR.toString(36) + ' = ' + callName + '( ' + argNames + ')\n';
+    }
+  }
+
+  function m2d_sum() {
+    let indexes = '';
+    let scounts = '';
+    let bug = '';
+    let sumCount = cr_dec16();
+    let sumConstant = cr_dec8();
+    let sums = sumConstant ? sumConstant + ' ' : '';
+    for (let i = 0; i < sumCount; ++i) {
+      let index = cr_dec16();
+      let domain = domains[index];
+      if (domain === false) {
+        index = getAlias(index);
+        domain = domains[index];
+      }
+      if (DEBUG) {
+        if (!partsPerVar[index]) partsPerVar[index] = [];
+        partsPerVar[index].push(allParts.length);
+        indexes += index + ' ';
+        if (counts) scounts += counts[index] + ' ';
+        sums += names[index] + ' ';
+        bug += domain__debug(domain) + ' ';
+      } else {
+        sums += '$' + index.toString(36) + ' ';
+      }
+    }
+    let sumIndex = cr_dec16();
+    if (DEBUG) {
+      if (!partsPerVar[sumIndex]) partsPerVar[sumIndex] = [];
+      partsPerVar[sumIndex].push(allParts.length);
+      let s = names[sumIndex] + ' = sum( ' + sums + ')';
+      s += ' '.repeat(Math.max(45 - s.length, 0));
+      s += '   # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum( ' + bug + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 0));
+      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + counts[sumIndex] + ' = sum( ' + scounts + ')' : '') + '\n';
+    } else {
+      return '$' + sumIndex.toString(36) + ' = sum(' + sums + ')\n';
+    }
   }
 
   function cr_innerLoop() {
     while (pc < ml.length) {
       let pcStart = pc;
       let op = ml[pc++];
+      let part = '';
       switch (op) {
-        case ML_UNUSED:
-          return THROW(' ! compiler problem @', pcStart);
+        case ML_START:
+          if (pc !== 0) {
+            return THROW(' ! compiler problem @', pcStart);
+          }
+          ++pc;
+          break;
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
-          //dsl += '# STOP\n';
           return;
 
         case ML_JMP:
           let delta = cr_dec16();
           ASSERT_LOG2(' ! jmp', delta);
-          //dsl += '# JMP ' + delta + '\n';
           pc += delta;
           break;
 
         case ML_VV_EQ:
           ASSERT_LOG2(' ! eq vv');
-          dsl += cr_decAb(2, 2, '==');
+          part = cr_decAb(2, 2, '==');
           break;
 
         case ML_V8_EQ:
           ASSERT_LOG2(' ! eq v8');
-          dsl += cr_decAb(2, 1, '==');
+          part = cr_decAb(2, 1, '==');
           break;
 
         case ML_88_EQ:
           ASSERT_LOG2(' ! eq 88');
-          dsl += cr_decAb(1, 1, '==');
+          part = cr_decAb(1, 1, '==');
           break;
 
         case ML_VV_NEQ:
           ASSERT_LOG2(' ! neq vv');
-          dsl += cr_decAb(2, 2, '!=');
+          part = cr_decAb(2, 2, '!=');
           break;
 
         case ML_V8_NEQ:
           ASSERT_LOG2(' ! neq v8');
-          dsl += cr_decAb(2, 1, '!=');
+          part = cr_decAb(2, 1, '!=');
           break;
 
         case ML_88_NEQ:
           ASSERT_LOG2(' ! neq 88');
-          dsl += cr_decAb(1, 1, '!=');
+          part = cr_decAb(1, 1, '!=');
           break;
 
         case ML_VV_LT:
           ASSERT_LOG2(' ! lt vv');
-          dsl += cr_decAb(2, 2, '<');
+          part = cr_decAb(2, 2, '<');
           break;
 
         case ML_V8_LT:
           ASSERT_LOG2(' ! lt v8');
-          dsl += cr_decAb(2, 1, '<');
+          part = cr_decAb(2, 1, '<');
           break;
 
         case ML_8V_LT:
           ASSERT_LOG2(' ! lt 8v');
-          dsl += cr_decAb(1, 2, '<');
+          part = cr_decAb(1, 2, '<');
           break;
 
         case ML_88_LT:
           ASSERT_LOG2(' ! lt 88');
-          dsl += cr_decAb(1, 1, '<');
+          part = cr_decAb(1, 1, '<');
           break;
 
         case ML_VV_LTE:
           ASSERT_LOG2(' ! lte vv');
-          dsl += cr_decAb(2, 2, '<=');
+          part = cr_decAb(2, 2, '<=');
           break;
 
         case ML_V8_LTE:
           ASSERT_LOG2(' ! lte v8');
-          dsl += cr_decAb(2, 1, '<=');
+          part = cr_decAb(2, 1, '<=');
           break;
 
         case ML_8V_LTE:
           ASSERT_LOG2(' ! lte 8v');
-          dsl += cr_decAb(1, 2, '<=');
+          part = cr_decAb(1, 2, '<=');
           break;
 
         case ML_88_LTE:
           ASSERT_LOG2(' ! lte 88');
-          dsl += cr_decAb(1, 1, '<=');
+          part = cr_decAb(1, 1, '<=');
+          break;
+
+        case ML_NALL:
+          ASSERT_LOG2(' ! nall');
+          part = m2d_listVoid('nall');
+          break;
+
+        case ML_ISALL:
+          ASSERT_LOG2(' ! isall');
+          part = m2d_listResult('isall');
+          break;
+
+        case ML_ISALL2:
+          ASSERT_LOG2(' ! isall2');
+          part = m2d_listResultBody('isall', 2); // body of a VVV is same as the body of an arg counted
+          break;
+
+        case ML_ISNALL:
+          ASSERT_LOG2(' ! isnall');
+          part = m2d_listResult('isnall');
           break;
 
         case ML_DISTINCT:
           ASSERT_LOG2(' ! distinct');
-          dsl += 'distinct(';
-          for (let i = 0, count = cr_dec16(); i < count; ++i) {
-            dsl += cr_dec16() + ' ';
-          }
-          dsl += ')\n';
+          part = m2d_listVoid('distinct');
           break;
 
         case ML_PLUS:
           ASSERT_LOG2(' ! plus');
-          dsl += cr_decAbc(2, 2, 2, '+');
+          part = cr_decAbc(2, 2, 2, '+');
           break;
 
         case ML_MINUS:
           ASSERT_LOG2(' ! minus');
-          dsl += cr_decAbc(2, 2, 2, '-');
+          part = cr_decAbc(2, 2, 2, '-');
           break;
 
         case ML_MUL:
           ASSERT_LOG2(' ! mul');
-          dsl += cr_decAbc(2, 2, 2, '*');
+          part = cr_decAbc(2, 2, 2, '*');
           break;
 
         case ML_DIV:
           ASSERT_LOG2(' ! div');
-          dsl += cr_decAbc(2, 2, 2, '/');
+          part = cr_decAbc(2, 2, 2, '/');
           break;
 
         case ML_VVV_ISEQ:
           ASSERT_LOG2(' ! iseq vvv');
-          dsl += cr_decAbc(2, 2, 2, '==?');
+          part = cr_decAbc(2, 2, 2, '==?');
           break;
 
         case ML_V8V_ISEQ:
           ASSERT_LOG2(' ! iseq v8v');
-          dsl += cr_decAbc(2, 1, 2, '==?');
+          part = cr_decAbc(2, 1, 2, '==?');
           break;
 
         case ML_VV8_ISEQ:
           ASSERT_LOG2(' ! iseq vv8');
-          dsl += cr_decAbc(2, 2, 1, '==?');
+          part = cr_decAbc(2, 2, 1, '==?');
           break;
 
         case ML_88V_ISEQ:
           ASSERT_LOG2(' ! iseq 88v');
-          dsl += cr_decAbc(1, 1, 2, '==?');
+          part = cr_decAbc(1, 1, 2, '==?');
           break;
 
         case ML_V88_ISEQ:
           ASSERT_LOG2(' ! iseq v88');
-          dsl += cr_decAbc(2, 1, 1, '==?');
+          part = cr_decAbc(2, 1, 1, '==?');
           break;
 
         case ML_888_ISEQ:
           ASSERT_LOG2(' ! iseq 888');
-          dsl += cr_decAbc(1, 1, 1, '==?');
+          part = cr_decAbc(1, 1, 1, '==?');
           break;
 
         case ML_VVV_ISNEQ:
           ASSERT_LOG2(' ! isneq vvv');
-          dsl += cr_decAbc(2, 2, 2, '!=?');
+          part = cr_decAbc(2, 2, 2, '!=?');
           break;
 
         case ML_V8V_ISNEQ:
           ASSERT_LOG2(' ! isneq v8v');
-          dsl += cr_decAbc(2, 1, 2, '!=?');
+          part = cr_decAbc(2, 1, 2, '!=?');
           break;
 
         case ML_VV8_ISNEQ:
           ASSERT_LOG2(' ! isneq vv8');
-          dsl += cr_decAbc(2, 2, 1, '!=?');
+          part = cr_decAbc(2, 2, 1, '!=?');
           break;
 
         case ML_88V_ISNEQ:
           ASSERT_LOG2(' ! isneq 88v');
-          dsl += cr_decAbc(1, 1, 2, '!=?');
+          part = cr_decAbc(1, 1, 2, '!=?');
           break;
 
         case ML_V88_ISNEQ:
           ASSERT_LOG2(' ! isneq v88');
-          dsl += cr_decAbc(2, 1, 1, '!=?');
+          part = cr_decAbc(2, 1, 1, '!=?');
           break;
 
         case ML_888_ISNEQ:
           ASSERT_LOG2(' ! isneq 888');
-          dsl += cr_decAbc(1, 1, 1, '!=?');
+          part = cr_decAbc(1, 1, 1, '!=?');
           break;
 
         case ML_VVV_ISLT:
           ASSERT_LOG2(' ! islt vvv');
-          dsl += cr_decAbc(2, 2, 2, '<?');
+          part = cr_decAbc(2, 2, 2, '<?');
           break;
 
         case ML_8VV_ISLT:
           ASSERT_LOG2(' ! islt 8vv');
-          dsl += cr_decAbc(1, 2, 2, '<?');
+          part = cr_decAbc(1, 2, 2, '<?');
           break;
 
         case ML_V8V_ISLT:
           ASSERT_LOG2(' ! islt v8v');
-          dsl += cr_decAbc(2, 1, 2, '<?');
+          part = cr_decAbc(2, 1, 2, '<?');
           break;
 
         case ML_VV8_ISLT:
           ASSERT_LOG2(' ! islt vv8');
-          dsl += cr_decAbc(2, 2, 1, '<?');
+          part = cr_decAbc(2, 2, 1, '<?');
           break;
 
         case ML_88V_ISLT:
           ASSERT_LOG2(' ! islt 88v');
-          dsl += cr_decAbc(1, 1, 2, '<?');
+          part = cr_decAbc(1, 1, 2, '<?');
           break;
 
         case ML_V88_ISLT:
           ASSERT_LOG2(' ! islt v88');
-          dsl += cr_decAbc(2, 1, 1, '<?');
+          part = cr_decAbc(2, 1, 1, '<?');
           break;
 
         case ML_8V8_ISLT:
           ASSERT_LOG2(' ! islt 8v8');
-          dsl += cr_decAbc(1, 2, 1, '<?');
+          part = cr_decAbc(1, 2, 1, '<?');
           break;
 
         case ML_888_ISLT:
           ASSERT_LOG2(' ! islt 888');
-          dsl += cr_decAbc(1, 1, 1, '<?');
+          part = cr_decAbc(1, 1, 1, '<?');
           break;
 
         case ML_VVV_ISLTE:
           ASSERT_LOG2(' ! islte vvv');
-          dsl += cr_decAbc(2, 2, 2, '<=?');
+          part = cr_decAbc(2, 2, 2, '<=?');
           break;
 
         case ML_8VV_ISLTE:
           ASSERT_LOG2(' ! islte 8vv');
-          dsl += cr_decAbc(1, 2, 2, '<=?');
+          part = cr_decAbc(1, 2, 2, '<=?');
           break;
 
         case ML_V8V_ISLTE:
           ASSERT_LOG2(' ! islte v8v');
-          dsl += cr_decAbc(2, 1, 2, '<=?');
+          part = cr_decAbc(2, 1, 2, '<=?');
           break;
 
         case ML_VV8_ISLTE:
           ASSERT_LOG2(' ! islte vv8');
-          dsl += cr_decAbc(2, 2, 1, '<=?');
+          part = cr_decAbc(2, 2, 1, '<=?');
           break;
 
         case ML_88V_ISLTE:
           ASSERT_LOG2(' ! islte 88v');
-          dsl += cr_decAbc(1, 1, 2, '<=?');
+          part = cr_decAbc(1, 1, 2, '<=?');
           break;
 
         case ML_V88_ISLTE:
           ASSERT_LOG2(' ! islte v88');
-          dsl += cr_decAbc(2, 1, 1, '<=?');
+          part = cr_decAbc(2, 1, 1, '<=?');
           break;
 
         case ML_8V8_ISLTE:
           ASSERT_LOG2(' ! islte 8v8');
-          dsl += cr_decAbc(1, 2, 1, '<=?');
+          part = cr_decAbc(1, 2, 1, '<=?');
           break;
 
         case ML_888_ISLTE:
           ASSERT_LOG2(' ! islte 888');
-          dsl += cr_decAbc(1, 1, 1, '<=?');
+          part = cr_decAbc(1, 1, 1, '<=?');
           break;
 
         case ML_8V_SUM:
           ASSERT_LOG2(' ! sum');
-          let indexes = '';
-          let scounts = '';
-          let sums = '';
-          let bug = '';
-          let sumCount = cr_dec16();
-          let sumConstant = cr_dec8();
-          for (let i = 0; i < sumCount; ++i) {
-            let index = cr_dec16();
-            let domain = domains[index];
-            if (domain === false) {
-              index = getAlias(index);
-              domain = domains[index];
-            }
-            if (DEBUG) {
-              indexes += index + ' ';
-              if (counts) scounts += counts[index] + ' ';
-              sums += names[index] + ' ';
-              bug += domain__debug(domain) + ' ';
-            } else {
-              sums += '$' + index.toString(36) + ' ';
-            }
-          }
-          let sumIndex = cr_dec16();
-          if (DEBUG) {
-            dsl += names[sumIndex] + ' = sum(' + sums + ') # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum(' + sumConstant + ', ' + bug + ') # indexes: ' + indexes + (scounts ? ', counts: ' + counts[sumIndex] + ' = sum(' + scounts + ')' : '') + '\n';
-          } else {
-            dsl += '$' + sumIndex.toString(36) + ' = sum(' + sums + ')\n';
-          }
+          part = m2d_sum();
           break;
 
         case ML_PRODUCT:
           ASSERT_LOG2(' ! product');
-          let pindexes = '';
-          let pcounts = '';
-          let products = '';
-          let pbug = '';
-          let productCount = cr_dec16();
-          for (let i = 0; i < productCount; ++i) {
-            let index = cr_dec16();
-            let domain = domains[index];
-            if (domain === false) {
-              index = getAlias(index);
-              domain = domains[index];
-            }
-            if (DEBUG) {
-              pindexes += index + ' ';
-              if (counts) pcounts += counts[index] + ' ';
-              products += names[index] + ' ';
-              pbug += domain__debug(domain) + ' ';
-            } else {
-              products += '$' + index.toString(36) + ' ';
-            }
-          }
-          let productIndex = cr_dec16();
-          if (DEBUG) {
-            dsl += names[productIndex] + ' = product(' + products + ') # ' + domain__debug(domains[productIndex]) + ' = product(' + pbug + ') # indexes: ' + pindexes + (pcounts ? ', counts: ' + counts[productIndex] + ' = product(' + pcounts + ')' : '') + '\n';
-          } else {
-            dsl += '$' + productIndex.toString(36) + ' = product(' + products + ')\n';
-          }
+          part = m2d_listResult('product');
           break;
 
         case ML_VV_AND:
           ASSERT_LOG2(' ! and vv');
-          dsl += cr_decAb(2, 2, '&');
+          part = cr_decAb(2, 2, '&');
           break;
         case ML_VV_OR:
           ASSERT_LOG2(' ! or vv');
-          dsl += cr_decAb(2, 2, '|');
+          part = cr_decAb(2, 2, '|');
           break;
         case ML_VV_XOR:
           ASSERT_LOG2(' ! xor vv');
-          dsl += cr_decAb(2, 2, '^');
+          part = cr_decAb(2, 2, '^');
           break;
         case ML_VV_NAND:
           ASSERT_LOG2(' ! nand vv');
-          dsl += cr_decAb(2, 2, '!&');
+          part = cr_decAb(2, 2, '!&');
           break;
         case ML_VV_XNOR:
           ASSERT_LOG2(' ! xnor vv');
-          dsl += cr_decAb(2, 2, '!^');
+          part = cr_decAb(2, 2, '!^');
           break;
 
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');
-          //dsl += '# NOOP \n';
           pc = pcStart + 1;
           break;
         case ML_NOOP2:
           ASSERT_LOG2(' ! noop 2');
-          //dsl += '# NOOP 2\n';
           pc = pcStart + 2;
           break;
         case ML_NOOP3:
           ASSERT_LOG2(' ! noop 3');
-          //dsl += '# NOOP 3\n';
           pc = pcStart + 3;
           break;
         case ML_NOOP4:
-          //dsl += '# NOOP 4\n';
           ASSERT_LOG2(' ! noop 4');
           pc = pcStart + 4;
           break;
@@ -582,6 +699,7 @@ ${arr.join('\n')}
         default:
           ml_throw('unknown op', pc);
       }
+      allParts.push(part);
     }
   }
 }

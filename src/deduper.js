@@ -5,7 +5,7 @@ import {
 } from './helpers';
 
 import {
-  ML_UNUSED,
+  ML_START,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -48,6 +48,10 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -146,36 +150,33 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
   }
 
   function keyVV(op) {
-    let key = partV(1) + op + partV(3);
+    let key = op + ':' + partV(1) + ',' + partV(3);
     dedupe(key, SIZEOF_VV);
   }
 
   function key8V(op) {
-    let key = part8(1) + op + partV(2);
+    let key = op + ':' + part8(1) + ',' + partV(2);
     dedupe(key, SIZEOF_8V);
   }
 
   function keyV8(op) {
-    let key = partV(1) + op + partV(3);
+    let key = op + ':' + partV(1) + ',' + partV(3);
     dedupe(key, SIZEOF_V8);
   }
 
   function key88(op) {
-    let key = part8(1) + op + part8(2);
+    let key = op + ':' + part8(1) + ',' + part8(2);
     dedupe(key, SIZEOF_88);
   }
 
-  function distinct() {
-    // i think it's unlikely that this is worth checking
-    // let's do it anyways for the sake of consistency
-
+  function keyNonValueList(type) {
     let key = [];
     let len = ml_dec16(ml, pc + 1);
     for (let i = 0; i < len; ++i) {
       key.push(partV(3 + i * 2));
     }
 
-    key = 'distinct|' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
+    key = type + ':' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
     dedupe(key, SIZEOF_COUNT + len * 2);
   }
 
@@ -183,7 +184,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
     // if r1=a@b is a dupe of r2=a@b then r1==r2
     // however, note that a==b is not a dupe of a==?b
 
-    let opkey = partV(1) + op + partV(3);
+    let opkey = op + ':' + partV(1) + ',' + partV(3);
     ASSERT_LOG2('keyVVV', op, [opkey]);
     let R = ml_dec16(ml, pc + 5);
     let alias = dedupe(opkey, SIZEOF_VVV, R);
@@ -199,7 +200,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
     // if r1=a@b is a dupe of r2=a@b then r1==r2
     // however, note that a==b is not a dupe of a==?b
 
-    let opkey = part8(1) + op + partV(2);
+    let opkey = op + ':' + part8(1) + ',' + partV(2);
     ASSERT_LOG2('key8VV', op, [opkey]);
     let R = ml_dec16(ml, pc + 4);
     let alias = dedupe(opkey, SIZEOF_8VV, R);
@@ -214,7 +215,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
   function keyV8V(op) {
     // if r1=a@b is a dupe of r2=a@b then r1==r2
     // however, note that a==b is not a dupe of a==?b
-    let opkey = partV(1) + op + part8(3);
+    let opkey = op + ':' + partV(1) + ',' + part8(3);
     ASSERT_LOG2('keyV8V', op, [opkey]);
     let R = ml_dec16(ml, pc + 4);
     let alias = dedupe(opkey, SIZEOF_V8V, R);
@@ -234,26 +235,42 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
       key.push(partV(4 + i * 2));
     }
 
-    key = 'sum|' + c + '|' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',') + '=' + partV(4 + len * 2);
-    dedupe(key, SIZEOF_C8_COUNT + len * 2 + 2);
+    key = 'sum:' + (c ? c + ',' : '') + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
+    ASSERT_LOG2('key sum:', [key]);
+    let R = ml_dec16(ml, pc + SIZEOF_C8_COUNT + len * 2);
+    let alias = dedupe(key, SIZEOF_C8_COUNT + len * 2 + 2, R);
+    if (alias) {
+      ASSERT_LOG2(' - deduping sum constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
+      // this constraint has been removed. the alias of R is returned
+      addAlias(R, alias);
+      ++aliased;
+    }
   }
 
-  function product() {
+  function keyValueList(type) {
     let len = ml_dec16(ml, pc + 1);
     let key = [];
     for (let i = 0; i < len; ++i) {
-      key.push(partV(3 + i * 2));
+      key.push(partV(SIZEOF_COUNT + i * 2));
     }
 
-    key = 'product|' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',') + '=' + partV(3 + len * 2);
-    dedupe(key, SIZEOF_COUNT + len * 2 + 2);
+    key = type + ':' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
+    ASSERT_LOG2('key', type, ':', [key]);
+    let R = ml_dec16(ml, pc + SIZEOF_COUNT + len * 2);
+    let alias = dedupe(key, SIZEOF_COUNT + len * 2 + 2, R);
+    if (alias) {
+      ASSERT_LOG2(' - deduping', type, 'constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
+      // this constraint has been removed. the alias of R is returned
+      addAlias(R, alias);
+      ++aliased;
+    }
   }
 
   function innerLoop() {
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- DD pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
         case ML_VV_EQ:
           keyVV('==');
@@ -309,8 +326,24 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           key88('<=');
           break;
 
+        case ML_NALL:
+          keyNonValueList('nall');
+          break;
+
+        case ML_ISALL:
+          keyValueList('isall');
+          break;
+
+        case ML_ISALL2:
+          keyVVV('isall');
+          break;
+
+        case ML_ISNALL:
+          keyValueList('isnall');
+          break;
+
         case ML_DISTINCT:
-          distinct();
+          keyNonValueList('distinct');
           break;
 
         case ML_PLUS:
@@ -394,7 +427,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           break;
 
         case ML_PRODUCT:
-          product();
+          keyValueList('product');
           break;
 
         case ML_VV_AND:
@@ -413,8 +446,10 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           keyVV('!^');
           break;
 
-        case ML_UNUSED:
-          return THROW(' ! compiler problem @', pcStart);
+        case ML_START:
+          if (pc !== 0) return THROW(' ! compiler problem @', pcStart);
+          ++pc;
+          break;
 
         case ML_STOP:
           return constraintHash;

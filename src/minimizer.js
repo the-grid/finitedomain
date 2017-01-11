@@ -9,7 +9,7 @@ import {
   TRACE_ADD,
 } from './helpers';
 import {
-  ML_UNUSED,
+  ML_START,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -52,6 +52,10 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -207,9 +211,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
       ASSERT_LOG2('# CRc[' + pcStart + ']:', op, '(0x' + op.toString(16) + ')');
       switch (op) {
-        case ML_UNUSED:
-          ASSERT_LOG2('reading a op=zero which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
-          return THROW(' ! optimizer problem @', pc);
+        case ML_START:
+          if (pc !== 0) {
+            ASSERT_LOG2('reading a op=zero which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
+            return THROW(' ! optimizer problem @', pc);
+          }
+          ++pc;
+          break;
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
@@ -283,6 +291,26 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         case ML_88_LTE:
           ASSERT_LOG2('- lte 88 @', pcStart);
           cr_88_lte(ml);
+          break;
+
+        case ML_NALL:
+          ASSERT_LOG2('- nall @', pcStart);
+          cr_nall(ml);
+          break;
+
+        case ML_ISALL:
+          ASSERT_LOG2('- isall @', pcStart);
+          cr_isAll(ml);
+          break;
+
+        case ML_ISALL2:
+          ASSERT_LOG2('- isall2 @', pcStart);
+          cr_isAll2(ml);
+          break;
+
+        case ML_ISNALL:
+          ASSERT_LOG2('- isnall @', pcStart);
+          cr_isNall(ml);
           break;
 
         case ML_DISTINCT:
@@ -927,6 +955,238 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vA > vB) return setEmpty(-1, 'lte but literals ' + vA + ' > ' + vB + ' so fail');
 
     ml_eliminate(ml, offset, SIZEOF_88);
+  }
+
+  function cr_nall(ml) {
+    let offset = pc;
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let offsetArgs = offset + SIZEOF_COUNT;
+
+    ASSERT_LOG2(' = cr_nall', argCount, 'x');
+    ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => ml_dec16(ml, offsetArgs + i * 2)));
+    ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])));
+
+    if (!argCount) return setEmpty(-1, 'nall without args is probably a bug');
+    let countStart = argCount;
+    let lastIndex;
+
+    // a nall only ensures at least one of its arg solves to zero
+    for (let i = argCount - 1; i >= 0; --i) {
+      lastIndex = ml_dec16(ml, offsetArgs + i * 2);
+
+      let A = getDomainOrRestartForAlias(lastIndex, SIZEOF_COUNT + i * 2);
+      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+      ASSERT_LOG2('  - loop i=', i, 'index=', lastIndex, 'domain=', domain__debug(A));
+      if (!A) return setEmpty(lastIndex, 'bad state in a nall arg');
+
+      if (domain_min(A) > 0) {
+        // remove var from list
+        ASSERT_LOG2(' - domain contains no zero so remove var from this constraint');
+
+        // now
+        // - move all indexes bigger than the current back one position
+        // - compile the new count back in
+        // - compile a NOOP in the place of the last element
+        ASSERT_LOG2('  - moving further domains one space forward (from ', i + 1, ' / ', argCount, ')', i + 1 < argCount);
+        for (let k = i + 1; k < argCount; ++k) {
+          ASSERT_LOG2('    - moving ', (k + 1) + 'th var at', offsetArgs + k * 2, 'and', offsetArgs + k * 2 + 1, 'sigh');
+          ml[offsetArgs + k * 2] = ml[offsetArgs + (k + 1) * 2];
+          ml[offsetArgs + k * 2 + 1] = ml[offsetArgs + (k + 1) * 2 + 1];
+        }
+        --argCount;
+      } else if (A === domain_createValue(0)) {
+        // remove constraint
+        ASSERT_LOG2(' - domain solved to zero so constraint is satisfied');
+        ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * countStart);
+        pc = offset; // revisit
+      } else {
+        // A contains a 0 and is unsolved
+        ASSERT_LOG2(' - domain contains zero and is not solved so leave it alone');
+      }
+    }
+
+    if (argCount === 0) {
+      // this is a bad state: all vars were removed from this constraint which means no var (left) had a zero
+      // empty the last var and reject
+      return setEmpty(lastIndex, 'nall; at least one arg must be zero');
+    } else if (argCount === 1) {
+      // force set last index to zero and remove constraint. this should not reject (because then the var would have been removed above)
+      if (setDomain(lastIndex, domain_createValue(0))) return;
+      ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * countStart);
+      pc = offset; // revisit
+    } else if (argCount === 2) {
+      // recompile as nand
+      // list of vars should not have any holes (not even after elimination above) so we can just copy them.
+      // ml len of this nall should be 7 bytes (op=1, count=2, A=2, B=2)
+      // note: skip the count when reading!
+      ml_enc8(ml, offset, ML_VV_NAND);
+      ml_pump(ml, offsetCount, 0, 2, 4); // copies the first arg over count and the second arg over the first
+      // this should open up at least 2 bytes, maybe more, so skip anything from the old op right after the new op
+      ml_skip(ml, offset + SIZEOF_VV, (SIZEOF_COUNT + 2 * countStart) - SIZEOF_VV);
+      ASSERT_LOG2(' - changed to a nand');
+      pc = offset; // revisit
+    } else {
+      ASSERT_LOG2(' - not only jumps...');
+      onlyJumps = false;
+      pc = offset + SIZEOF_COUNT + countStart * 2;
+    }
+  }
+
+  function cr_isAll(ml) {
+    let offset = pc;
+    ASSERT_LOG2(' - parsing cr_isAll');
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let argLen = argCount * 2;
+    let oplen = SIZEOF_COUNT + argLen + 2;
+    ASSERT_LOG2(' - ml for this isAll:', ml.slice(offset, offset + oplen));
+    let offsetArgs = offset + SIZEOF_COUNT;
+    let offsetR = offsetArgs + argLen;
+    let indexR = ml_dec16(ml, offsetR);
+
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = cr_isAll', argCount, 'x');
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
+
+    if (!R) return setEmpty(indexR, 'isall; R bad state');
+
+    let vR = domain_getValue(R);
+    if (vR === 0) {
+      // compile to nall and revisit
+      ml_enc8(ml, offset, ML_NALL);
+      ml_jump(ml, offset, 2); // difference between nall and isAll is the result var (16bit)
+    } else if (vR === 1) {
+      // remove zero from all and eliminate
+      for (let i = argCount - 1; i >= 0; --i) {
+        let indexA = ml_dec16(ml, offsetArgs + i * 2);
+        let A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+        if (!A) return setEmpty(indexA, 'isall; bad state');
+        if (setDomain(indexA, domain_removeValue(A, 0))) return;
+      }
+      ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
+    } else if (vR > 1) {
+      return setEmpty(indexR, 'result var must be a bool');
+    } else if (domain_max(R) > 1) {
+      setDomain(indexR, domain_removeGtUnsafe(R, 1));
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_COUNT + argCount * 2 + 2;
+  }
+
+  function cr_isAll2(ml) {
+    // fixed two placed vv isall
+
+    let offset = pc;
+    let offsetA = offset + 1;
+    let offsetB = offset + 3;
+    let offsetR = offset + 5;
+    let indexA = ml_dec16(ml, offsetA);
+    let indexB = ml_dec16(ml, offsetB);
+    let indexR = ml_dec16(ml, offsetR);
+
+    let A = getDomainOrRestartForAlias(indexA, 1);
+    let B = getDomainOrRestartForAlias(indexB, 3);
+    let R = getDomainOrRestartForAlias(indexR, 5);
+    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = cr_isAll2', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    if (!A) return setEmpty(indexA, 'isEq bad state A');
+    if (!B) return setEmpty(indexB, 'isEq bad state B');
+    if (!R) return setEmpty(indexR, 'isEq bad state R');
+
+    let vR = domain_getValue(R);
+    if (vR === 1) {
+      setDomain(indexA, domain_removeValue(A, 0));
+      setDomain(indexB, domain_removeValue(B, 0));
+      ml_eliminate(ml, offset, SIZEOF_VVV);
+      pc = offset;
+      return;
+    }
+    if (vR === 0) {
+      if (domain_min(A) > 0 || domain_min(B) > 0) {
+        ml_eliminate(ml, offset, SIZEOF_VVV);
+        pc = offset;
+        return;
+      } else {
+        setEmpty(indexA, 'isall rejected on R=0');
+        setEmpty(indexA, 'isall rejected on R=0');
+        return;
+      }
+    }
+
+    if (A === domain_createValue(0) || B === domain_createValue(0)) {
+      ASSERT(R === domain_createRange(0, 1), 'R should be bool');
+      setDomain(R, domain_createValue(0));
+      ml_eliminate(ml, offset, SIZEOF_VVV);
+      pc = offset;
+      return;
+    }
+    if (domain_min(A) > 0 && domain_min(B) > 0) {
+      ASSERT(R === domain_createRange(0, 1), 'R should be bool');
+      setDomain(R, domain_createValue(1));
+      ml_eliminate(ml, offset, SIZEOF_VVV);
+      pc = offset;
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VVV;
+  }
+
+  function cr_isNall(ml) {
+    let offset = pc;
+    ASSERT_LOG2(' - parsing cr_isNll');
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let argLen = argCount * 2;
+    let oplen = SIZEOF_COUNT + argLen + 2;
+    ASSERT_LOG2(' - ml for this isNall:', ml.slice(offset, offset + oplen));
+    let offsetArgs = offset + SIZEOF_COUNT;
+    let offsetR = offsetArgs + argLen;
+    let indexR = ml_dec16(ml, offsetR);
+
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = cr_isNall', argCount, 'x');
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
+
+    if (!R) return setEmpty(indexR, 'isnall; R bad state');
+
+    let vR = domain_getValue(R);
+    if (vR === 0) {
+      // remove zero from all and eliminate
+      for (let i = argCount - 1; i >= 0; --i) {
+        let indexA = ml_dec16(ml, offsetArgs + i * 2);
+        let A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+        if (!A) return setEmpty(indexA, 'isnall; bad state');
+        if (setDomain(indexA, domain_removeValue(A, 0))) return;
+      }
+      ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
+    } else if (vR === 1) {
+      // compile to nall and revisit
+      ml_enc8(ml, offset, ML_NALL);
+      ml_jump(ml, offset, 2); // difference between nall and isNall is the result var (16bit)
+    } else if (vR > 1) {
+      return setEmpty(indexR, 'result var must be a bool');
+    } else if (domain_max(R) > 1) {
+      setDomain(indexR, domain_removeGtUnsafe(R, 1));
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_COUNT + argCount * 2 + 2;
   }
 
   function cr_distinct(ml) {

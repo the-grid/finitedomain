@@ -159,9 +159,85 @@ describe('specs/cutter.spec', function() {
       // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
       expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, R: 0});
     });
+
+    it('should rewrite a leaf isnall to nall', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        : R [0 3] # n-1
+        R = sum(A B C D)
+      `)).to.throw(/strat=throw; .*, 1 constraints, .* ops: nall/);
+    });
+
+    it('should detect trivial isall patterns', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        R = sum(A B C)
+        S = R ==? 3
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 11131
+    });
+
+    it('should detect reverse trivial isall patterns', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        S = R ==? 3
+        R = sum(A B C)
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 11131
+    });
   });
 
+  describe('plus', function() {
 
+    it('should rewrite combined isAll to a leaf var', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        R = A + B
+        S = R ==? 2
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
+    });
+
+    it('should isall leaf case be reversable', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        S = R ==? 2
+        R = A + B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
+    });
+  });
+
+  it.skip('should reduce double isnall as nall', function() {
+    let solution = solverSolver(`
+        @custom var-strat throw
+        : a, b, c, d, e, f [0 1]
+        A = all?(a b c)
+        B = all?(d e f)
+        nall(A B)
+        # -> nall(a b c d e f)
+      `);
+
+    expect(solution).to.eql({});
+  });
   /*
 
   describe('plus', function(){

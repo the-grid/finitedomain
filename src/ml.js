@@ -16,7 +16,7 @@ let ml_opcodeCounter = 0;
 // - an 8bit literal signified by 8
 // - a 16bit literal signified by F
 
-const ML_UNUSED = ml_opcodeCounter++;
+const ML_START = ml_opcodeCounter++;
 
 const ML_VV_EQ = ml_opcodeCounter++;
 const ML_V8_EQ = ml_opcodeCounter++;
@@ -68,6 +68,11 @@ const ML_V88_ISLTE = ml_opcodeCounter++;
 const ML_8V8_ISLTE = ml_opcodeCounter++;
 const ML_888_ISLTE = ml_opcodeCounter++;
 
+const ML_NALL = ml_opcodeCounter++;
+const ML_ISALL = ml_opcodeCounter++;
+const ML_ISALL2 = ml_opcodeCounter++;
+const ML_ISNALL = ml_opcodeCounter++;
+
 const ML_8V_SUM = ml_opcodeCounter++; // constant: 8bit literal, result: var
 
 const ML_PRODUCT = ml_opcodeCounter++;
@@ -91,6 +96,8 @@ const ML_NOOP4 = ml_opcodeCounter++;
 const ML_STOP = 0xff;
 
 ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
+ASSERT(ML_START === 0);
+ASSERT(ML_STOP === 0xff);
 
 const SIZEOF_V = 1 + 2;
 const SIZEOF_VV = 1 + 2 + 2;
@@ -121,7 +128,9 @@ function ml_sizeof(ml, offset) {
     case ML_VV_XNOR:
       return SIZEOF_VV;
 
-    case ML_UNUSED:
+    case ML_START:
+      return 1;
+
     case ML_V8_EQ:
     case ML_V8_NEQ:
     case ML_V8_LT:
@@ -186,9 +195,18 @@ function ml_sizeof(ml, offset) {
     case ML_8V8_ISLTE:
       return SIZEOF_8V8;
 
+    case ML_NALL:
     case ML_DISTINCT:
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2;
       return -1;
+
+    case ML_ISALL:
+    case ML_ISNALL:
+      if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
+      return -1;
+
+    case ML_ISALL2:
+      return SIZEOF_VVV;
 
     case ML_8V_SUM:
       if (ml && offset >= 0) return SIZEOF_C8_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
@@ -325,8 +343,10 @@ function ml_countConstraints(ml) {
     let pcStart = pc;
     let op = ml[pc];
     switch (op) {
-      case ML_UNUSED:
-        return THROW('mlConstraints: zero op @', pcStart, 'Buffer(' + ml.toString('hex').replace(/(..)/g, '$1 ') + ')');
+      case ML_START:
+        if (pc !== 0) return THROW('mlConstraints: zero op @', pcStart, 'Buffer(' + ml.toString('hex').replace(/(..)/g, '$1 ') + ')');
+        ++pc;
+        break;
 
       case ML_STOP:
         return constraints;
@@ -365,8 +385,9 @@ function ml_hasConstraint(ml) {
 
   while (pc < ml.length) {
     switch (ml[pc]) {
-      case ML_UNUSED:
-        return ml_throw('oops');
+      case ML_START:
+        if (pc !== 0) return ml_throw('oops');
+        break;
 
       case ML_STOP:
         return false;
@@ -403,6 +424,14 @@ function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
   ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
 }
 
+function ml_vvv2vvv(ml, offset, opCode, indexA, indexB, indexR) {
+  ASSERT_LOG2(' -| cr_vvv2vvv |', opCode, indexA, indexB, indexR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_enc16(ml, offset + 5, indexR);
+}
+
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
@@ -427,9 +456,12 @@ function ml__debug(ml, offset, max, domains, names) {
     let name = '';
     /* eslint-disable no-fallthrough */// should have an option to allow it when explicitly stated like below...
     switch (ml[pc]) {
-      case ML_UNUSED:
-        rv.push('unused_error(0)');
-        return rv.join('\n');
+      case ML_START:
+        if (pc !== 0) {
+          rv.push('unused_error(0)');
+          return rv.join('\n');
+        }
+        break;
 
       case ML_VV_EQ:
         name = '==';
@@ -622,16 +654,38 @@ function ml__debug(ml, offset, max, domains, names) {
       case ML_PRODUCT:
         name = 'product';
       /* fall-through */
-      case ML_DISTINCT:
-        if (!name) name = 'distinct';
+      case ML_ISALL:
+        if (!name) name = 'isall';
+      /* fall-through */
+      case ML_ISNALL:
+        if (!name) name = 'isnall';
         let vars = '';
         let varcount = ml_16(pc + 1);
         for (let i = 0; i < varcount; ++i) {
           vars += ml_index(pc + SIZEOF_COUNT + i * 2) + ' ';
         }
         vars = name + '(' + vars + ')';
-        if (name === 'product') vars = ml_index(pc + SIZEOF_COUNT + varcount * 2) + ' = ' + vars;
+        vars = ml_index(pc + SIZEOF_COUNT + varcount * 2) + ' = ' + vars;
         rv.push(vars);
+        break;
+
+      case ML_NALL:
+        name = 'nall';
+      /* fall-through */
+      case ML_DISTINCT:
+        if (!name) name = 'distinct';
+        let xvars = '';
+        let xvarcount = ml_16(pc + 1);
+        for (let i = 0; i < xvarcount; ++i) {
+          xvars += ml_index(pc + SIZEOF_COUNT + i * 2) + ' ';
+        }
+        xvars = name + '(' + xvars + ')';
+        rv.push(xvars);
+        break;
+
+      case ML_ISALL2:
+        AB = 'isAll( ' + ml_index(pc + 1) + ' , ' + ml_index(pc + 3) + ' ) # (isall2)';
+        rv.push(ml_index(pc + 5) + ' = ' + AB);
         break;
 
       case ML_PLUS:
@@ -670,7 +724,7 @@ function ml__debug(ml, offset, max, domains, names) {
         break;
 
       default:
-        THROW('add me');
+        THROW('add me [pc=' + pc + ', op=' + ml[pc] + ']');
     }
 
     let size = ml_sizeof(ml, pc);
@@ -683,18 +737,151 @@ function ml__debug(ml, offset, max, domains, names) {
 }
 
 function ml_throw(ml, offset, msg) {
-  console.log('There was an ML related error...');
+  console.error('There was an ML related error...');
   let before = ml.slice(Math.max(0, offset - 30), offset);
   let after = ml.slice(offset, offset + 20);
-  console.log('ML at error (offset=' + offset + '):', before, after);
-  console.log(ml__debug(ml, offset, 1));
+  console.error('ML at error (offset=' + offset + '):', before, after);
+  console.error(ml__debug(ml, offset, 1));
   THROW(msg);
+}
+
+function ml_getOpList(ml) {
+  let pc = 0;
+  let rv = [];
+  while (pc < ml.length) {
+    switch (ml[pc]) {
+      case ML_START:
+        if (pc !== 0) {
+          rv.push('error(0)');
+          return rv.join(',');
+        }
+        break;
+
+      case ML_VV_EQ:
+      case ML_V8_EQ:
+      case ML_88_EQ:
+        rv.push('eq');
+        break;
+      case ML_VV_NEQ:
+      case ML_V8_NEQ:
+      case ML_88_NEQ:
+        rv.push('neq');
+        break;
+      case ML_VV_LT:
+      case ML_V8_LT:
+      case ML_8V_LT:
+      case ML_88_LT:
+        rv.push('lt');
+        break;
+      case ML_VV_LTE:
+      case ML_V8_LTE:
+      case ML_88_LTE:
+      case ML_8V_LTE:
+        rv.push('lte');
+        break;
+      case ML_VV_AND:
+        rv.push('and');
+        break;
+      case ML_VV_OR:
+        rv.push('or');
+        break;
+      case ML_VV_XOR:
+        rv.push('xor');
+        break;
+      case ML_VV_NAND:
+        rv.push('nand');
+        break;
+      case ML_VV_XNOR:
+        rv.push('xnor');
+        break;
+
+      case ML_VVV_ISEQ:
+      case ML_V8V_ISEQ:
+      case ML_VV8_ISEQ:
+      case ML_88V_ISEQ:
+      case ML_V88_ISEQ:
+      case ML_888_ISEQ:
+        rv.push('iseq');
+        break;
+
+      case ML_VVV_ISNEQ:
+      case ML_V8V_ISNEQ:
+      case ML_88V_ISNEQ:
+      case ML_VV8_ISNEQ:
+      case ML_V88_ISNEQ:
+      case ML_888_ISNEQ:
+        rv.push('isneq');
+        break;
+
+      case ML_VVV_ISLT:
+      case ML_V8V_ISLT:
+      case ML_VV8_ISLT:
+      case ML_88V_ISLT:
+      case ML_V88_ISLT:
+      case ML_888_ISLT:
+      case ML_8VV_ISLT:
+      case ML_8V8_ISLT:
+        rv.push('lt');
+        break;
+
+      case ML_VVV_ISLTE:
+      case ML_V8V_ISLTE:
+      case ML_VV8_ISLTE:
+      case ML_88V_ISLTE:
+      case ML_V88_ISLTE:
+      case ML_888_ISLTE:
+      case ML_8VV_ISLTE:
+      case ML_8V8_ISLTE:
+        rv.push('lte');
+        break;
+
+      case ML_8V_SUM:
+        rv.push('sum');
+        break;
+      case ML_PRODUCT:
+        rv.push('product');
+        break;
+      case ML_ISALL:
+        rv.push('isall');
+        break;
+      case ML_ISNALL:
+        rv.push('isnall');
+        break;
+
+      case ML_NALL:
+        rv.push('nall');
+        break;
+      case ML_DISTINCT:
+        rv.push('distinct');
+        break;
+
+      case ML_ISALL2:
+        rv.push('isall2');
+        break;
+
+      case ML_PLUS:
+        rv.push('plus');
+        break;
+      case ML_MINUS:
+        rv.push('minus');
+        break;
+      case ML_MUL:
+        rv.push('mul');
+        break;
+      case ML_DIV:
+        rv.push('div');
+        break;
+    }
+
+    pc += ml_sizeof(ml, pc);
+  }
+
+  return rv.join(',');
 }
 
 // BODY_STOP
 
 export {
-  ML_UNUSED,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -737,6 +924,10 @@ export {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -756,6 +947,7 @@ export {
   ML_NOOP2,
   ML_NOOP3,
   ML_NOOP4,
+  ML_START,
   ML_STOP,
 
   SIZEOF_V,
@@ -775,6 +967,7 @@ export {
   SIZEOF_C8_COUNT,
 
   ml__debug,
+  ml_getOpList,
   ml_countConstraints,
   ml_dec8,
   ml_dec16,
@@ -788,4 +981,5 @@ export {
   ml_skip,
   ml_throw,
   ml_vvv2vv,
+  ml_vvv2vvv,
 };

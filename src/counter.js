@@ -5,7 +5,7 @@ import {
 } from './helpers';
 
 import {
-  ML_UNUSED,
+  ML_START,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -48,6 +48,10 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -86,10 +90,20 @@ import {
   ml_dec16,
   ml_throw,
 } from './ml';
+import {
+  domain__debug,
+} from './domain';
 
 // BODY_START
 
-function counter(ml, vars, domains, getAlias) {
+/**
+ * @param {Buffer} ml
+ * @param {string[]} vars
+ * @param {$nordom} domains
+ * @param {Function} getAlias
+ * @param {number[]} [lastOffset]
+ */
+function counter(ml, vars, domains, getAlias, lastOffset) {
   ASSERT_LOG2('\n ## counter', ml);
   let pc = 0;
   let counts = new Array(domains.length).fill(0);
@@ -99,7 +113,7 @@ function counter(ml, vars, domains, getAlias) {
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domains[index]);
+    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
     if (domains[index] !== false) return index;
 
     // if the domain is falsy then there was an alias (or a bug)
@@ -118,6 +132,7 @@ function counter(ml, vars, domains, getAlias) {
     let index = getFinalIndex(n);
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
     ++counts[index];
+    if (lastOffset) lastOffset[index] = pc;
   }
 
   function countLoop() {
@@ -126,7 +141,7 @@ function counter(ml, vars, domains, getAlias) {
     while (pc < ml.length) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
         case ML_VV_EQ:
         case ML_VV_NEQ:
@@ -163,6 +178,7 @@ function counter(ml, vars, domains, getAlias) {
           pc += SIZEOF_88;
           break;
 
+        case ML_NALL:
         case ML_DISTINCT:
           // note: distinct cant have multiple counts of same var because that would reject
           let dlen = ml_dec16(ml, pc + 1);
@@ -172,6 +188,7 @@ function counter(ml, vars, domains, getAlias) {
           pc += SIZEOF_COUNT + dlen * 2;
           break;
 
+        case ML_ISALL2:
         case ML_PLUS:
         case ML_MINUS:
         case ML_MUL:
@@ -253,6 +270,8 @@ function counter(ml, vars, domains, getAlias) {
           pc += SIZEOF_C8_COUNT + slen * 2 + 2;
           break;
 
+        case ML_ISALL:
+        case ML_ISNALL:
         case ML_PRODUCT:
           // TODO: count multiple occurrences of same var once
           let plen = ml_dec16(ml, pc + 1);
@@ -263,8 +282,10 @@ function counter(ml, vars, domains, getAlias) {
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
 
-        case ML_UNUSED:
-          return THROW(' ! compiler problem @', pcStart);
+        case ML_START:
+          if (pc !== 0) return THROW(' ! compiler problem @', pcStart);
+          ++pc;
+          break;
 
         case ML_STOP:
           return;

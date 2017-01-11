@@ -5,7 +5,7 @@ import {
 } from './helpers';
 
 import {
-  ML_UNUSED,
+  ML_START,
   ML_VV_EQ,
   ML_V8_EQ,
   ML_88_EQ,
@@ -48,6 +48,10 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISALL2,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -78,9 +82,13 @@ import {
   ml__debug,
   ml_dec8,
   ml_dec16,
+  ml_enc8,
+  ml_enc16,
   ml_eliminate,
+  ml_jump,
   ml_throw,
   ml_vvv2vv,
+  ml_vvv2vvv,
 } from './ml';
 import {
   domain__debug,
@@ -107,24 +115,27 @@ import {
 function cutter(ml, vars, domains, getAlias, solveStack) {
   ASSERT_LOG2('\n ## cutter', ml);
   let pc = 0;
+  let lastOffset;
   let counts;
   let lenBefore;
   let emptyDomain = false;
   let removed;
+  let loops = 0;
   do {
-    ASSERT_LOG2(' # outer cutloop');
-    counts = counter(ml, vars, domains, getAlias);
+    ASSERT_LOG2(' # outer cutloop', loops);
+    lastOffset = new Array(domains.length).fill(0); // offset of op containing var; only tag the last occurrence of a var. so zero is never actually used here for count>1
+    counts = counter(ml, vars, domains, getAlias, lastOffset);
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
-    ASSERT_LOG2(' - cutter removed', removed, 'constraints, emptyDomain =', emptyDomain);
+    ASSERT_LOG2(' - cutter outer loop', loops, 'removed', removed, 'constraints, emptyDomain =', emptyDomain);
   } while (removed && !emptyDomain);
 
   return emptyDomain;
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domains[index]);
+    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
     if (domains[index] !== false) return index;
 
     // if the domain is falsy then there was an alias (or a bug)
@@ -138,6 +149,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   }
 
   function force(varIndex) {
+    ASSERT(domains[varIndex] !== false, 'TOFIX: resolve aliases in solveStack');
     let v = domain_getValue(domains[varIndex]);
     if (v < 0) {
       ASSERT_LOG2('   - forcing index', varIndex, 'to min(' + domain__debug(domains[varIndex]) + '):', domain_min(domains[varIndex]));
@@ -550,7 +562,6 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       }
     }
 
-
     pc = offset + sizeof;
   }
 
@@ -652,6 +663,38 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         pc = offset; // revisit...
         return true;
       }
+    } else if (counts[indexR] === 2) {
+      // scan for pattern (R = A+B) & (S = R==?2) -> S = isAll(A B). a bit tedious to scan for but worth it.
+      let otherOffset = lastOffset[indexR];
+      ASSERT(otherOffset > 0, 'offset should exist and cant be the first op');
+      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getFinalIndex(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === 2) {
+        // okay the "other side" is checking whether the result is 2 so if the two plus args are bools we can reduce
+
+        let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+        let indexB = getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+        let A = domains[indexA];
+        let B = domains[indexB];
+        ASSERT_LOG2(' ->', domain__debug(domains[indexR]), '=', domain__debug(A), '+', domain__debug(B));
+        ASSERT(A === domain_createRange(0, 1) && B === domain_createRange(0, 1), 'I think this has to be the case now? R should minmax the args and neither arg can be solved so they must be bools');
+        if (A === domain_createRange(0, 1) && B === domain_createRange(0, 1)) {
+          ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
+          // match. rewrite plus isAll and remove the isEq. adjust counts accordingly
+          let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
+          ASSERT(domains[indexS] === domain_createRange(0, 1), 'S should be a bool');
+
+          solveStack.push(domains => {
+            ASSERT_LOG2(' - cut plus -> isAll; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
+            ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) === 2, 'R should have all values');
+            domains[indexR] = domain_createValue(force(indexA) + force(indexB));
+          });
+
+          // for the record, _this_ is why ML_ISALL2 exists at all. we cant use ML_ISALL because it has a larger footprint than ML_PLUS
+          ml_vvv2vvv(ml, offset, ML_ISALL2, indexA, indexB, indexS);
+          ml_eliminate(ml, otherOffset, SIZEOF_V8V);
+          // R=A+B, S=R==?2  ->  S=isall(A,B). so only the count for R is reduced
+          counts[indexR] -= 2;
+        }
+      }
     }
     return false;
   }
@@ -673,7 +716,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           if (!R) return emptyDomain = true;
           domains[indexR] = R;
         }
-        solveStack.push(_ => {
+        solveStack.push(domains => {
           ASSERT_LOG2(' - cut plus R=' + X + '+c;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
           let vB = force(indexB);
@@ -700,14 +743,19 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + len * 2));
 
     if (counts[indexR] === 1) {
+      let allBool = true; // all args [01]? used later
       let C = ml_dec8(ml, offset + 1 + 2); // constant
       let lo = C;
       let hi = C;
       for (let i = 0; i < len; ++i) {
         let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
         let domain = domains[index];
-        lo += domain_min(domain);
-        hi += domain_max(domain);
+        let min = domain_min(domain);
+        let max = domain_max(domain);
+        ASSERT(min < max, 'arg should not be solved here (minimizer should take care of that)');
+        lo += min;
+        hi += max;
+        if (lo !== 0 || max !== 1) allBool = false;
       }
 
       let R = domains[indexR];
@@ -728,7 +776,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
 
         ASSERT_LOG2('   - R is a leaf var that wraps all bounds', indexR, args, domain__debug(R));
 
-        solveStack.push(_ => {
+        solveStack.push(domains => {
           ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
           let vR = C + args.map(force).reduce((a, b) => a + b);
           ASSERT(Number.isInteger(vR), 'should be integer result');
@@ -737,6 +785,99 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         });
         ml_eliminate(ml, pc, SIZEOF_C8_COUNT + len * 2 + 2);
         --counts[indexR]; // args already done in above loop
+
+        pc = offset;
+        return;
+      }
+
+      // if R is [0, n-1] and all args are [0, 1] then rewrite to a NALL
+      if (allBool && lo === 0 && R === domain_createRange(0, hi - 1)) {
+        // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
+        let args = [];
+        for (let i = 0; i < len; ++i) {
+          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          args.push(index);
+          --counts[index];
+        }
+
+        ASSERT_LOG2('   - R is a isNall leaf var, rewriting to NALL', indexR, args, domain__debug(R));
+
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
+          let vR = C + args.map(force).reduce((a, b) => a + b);
+          ASSERT(Number.isInteger(vR), 'should be integer result');
+          ASSERT(domain_containsValue(domains[indexR], vR), 'R should already have been reduced to a domain that is valid within any outcome of the sum', vR, domain__debug(domains[indexR]));
+          domains[indexR] = domain_createValue(vR);
+        });
+
+        // from sum to nall.
+        ml_enc8(ml, offset, ML_NALL);
+        ml_enc16(ml, offset + 1, len);
+        for (let i = 0; i < len; ++i) {
+          ml_enc16(ml, offset + 3 + i * 2, args[i]);
+        }
+        ml_jump(ml, offset + 3 + len * 2, 3); // result var (16bit) and the constant (8bit). for the rest nall is same as sum
+        pc = offset; // revisit
+        return;
+      }
+    } else if (counts[indexR] === 2) {
+      let C = ml_dec8(ml, offset + 1 + 2); // constant
+      // scan for pattern (R = A+B) & (S = R==?2) -> S = isAll(A B). a bit tedious to scan for but worth it.
+      let otherOffset = lastOffset[indexR];
+      ASSERT(otherOffset > 0, 'offset should exist and cant be the first op');
+      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getFinalIndex(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === (C + len)) {
+        // okay the "other side" is checking whether the result is max so if all the args are bools we can reduce
+
+        let args = [];
+        let allBools = true;
+        for (let i = 0; i < len; ++i) {
+          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          let domain = domains[index];
+          if (domain !== domain_createRange(0, 1)) {
+            allBools = false;
+            break;
+          }
+          args.push(index);
+        }
+
+        if (allBools) {
+          ASSERT_LOG2(' - found isAll pattern, rewriting sum and eliminating isEq');
+
+          // ok, we replace the sum and isEq with `S = isAll(args)`
+          // the sum has the biggest footprint so the isall will fit with one byte to spare
+
+          let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 3));
+          ASSERT(domains[indexS] === domain_createRange(0, 1), 'S should be a bool');
+
+          solveStack.push(domains => {
+            ASSERT_LOG2(' - cut sum -> isAll');
+            let vR = 0;
+            for (let i = 0; i < len; ++i) {
+              let vN = force(args[i]);
+              ASSERT(vN === 0 || vN === 1, 'should be booly');
+              if (vN) ++vR;
+            }
+            ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) === len, 'R should have all values');
+            domains[indexR] = domain_createValue(vR);
+          });
+
+          // isall has no constant so we must move all args one to the left
+          ml_enc8(ml, offset, ML_ISALL);
+          ml_enc16(ml, offset + 1, len);
+          for (let i = 0; i < len; ++i) {
+            ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, ml_dec16(ml, offset + SIZEOF_C8_COUNT + i * 2));
+          }
+          ml_enc16(ml, offset + SIZEOF_COUNT + len * 2, indexS);
+          ml_jump(ml, offset + SIZEOF_COUNT + len * 2 + 2, SIZEOF_C8_COUNT - SIZEOF_COUNT); // the difference in op footprint is the 8bit constant
+
+          // remove the iseq, regardless
+          ml_eliminate(ml, otherOffset, SIZEOF_V8V);
+
+          // R=sum(args), S=R==?2  ->  S=isall(args). so only the count for R is reduced
+          counts[indexR] -= 2;
+          pc = offset; // revisit
+          return;
+        }
       }
     }
 
@@ -903,13 +1044,111 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     }
   }
 
+  function cutIsAll() {
+    let len = ml_dec16(ml, pc + 1);
+    let indexR = getFinalIndex(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
+    ASSERT_LOG2(' - cutIsAll', indexR, '->', counts[indexR], 'x');
+
+    if (counts[indexR] === 1) {
+      ASSERT_LOG2('   - R is a leaf var');
+
+      let args = [];
+      for (let i = 0; i < len; ++i) {
+        args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
+      }
+
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut isall R; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', args.map(index => domain__debug(domains[index])), ')');
+        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values', domain__debug(domains[indexR]));
+
+        let vR = 1;
+        for (let i = 0; i < len; ++i) {
+          if (force(args[i]) === 0) {
+            vR = 0;
+            break;
+          }
+        }
+
+        domains[indexR] = domain_createValue(vR);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + args + ')'));
+      ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
+      --counts[indexR];
+      for (let i = 0; i < len; ++i) --counts[args[i]];
+    } else {
+      pc += SIZEOF_COUNT + len * 2 + 2;
+    }
+  }
+
+  function cutIsAll2() {
+    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
+    ASSERT_LOG2(' - cutIsAll2', indexR, '->', counts[indexR], 'x');
+
+    if (counts[indexR] === 1) {
+      let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
+      let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+      ASSERT_LOG2('   - R is a leaf var');
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut isall2 R; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
+        let vR = (force(indexA) === 0 || force(indexB) === 0) ? 0 : 1;
+        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should be bool');
+        domains[indexR] = domain_createValue(vR);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + indexA + ',' + indexB + ')'));
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      --counts[indexA];
+      --counts[indexB];
+    } else {
+      pc += SIZEOF_VVV;
+    }
+  }
+
+  function cutIsNall() {
+    let len = ml_dec16(ml, pc + 1);
+    let indexR = getFinalIndex(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
+    ASSERT_LOG2(' - cutIsNall', indexR, '->', counts[indexR], 'x');
+
+    if (counts[indexR] === 1) {
+      ASSERT_LOG2('   - R is a leaf var');
+
+      let args = [];
+      for (let i = 0; i < len; ++i) {
+        args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
+      }
+
+      solveStack.push(domains => {
+        ASSERT_LOG2(' - cut isnall R; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isNall(', args.map(index => domain__debug(domains[index])), ')');
+        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values');
+
+        let vR = 0;
+        for (let i = 0; i < len; ++i) {
+          if (force(args[i]) === 0) {
+            vR = 1;
+            break;
+          }
+        }
+
+        domains[indexR] = domain_createValue(vR);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isnall(' + args + ')'));
+      ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
+      --counts[indexR];
+      for (let i = 0; i < len; ++i) --counts[args[i]];
+    } else {
+      pc += SIZEOF_COUNT + len * 2 + 2;
+    }
+  }
+
   function cutLoop() {
     ASSERT_LOG2('\n - inner cutLoop');
     pc = 0;
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- CL pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
         case ML_VV_EQ:
           return THROW('eqs should be aliased and eliminated');
@@ -938,10 +1177,23 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
         case ML_88_LTE:
           return THROW('constraints with <= 1 var should be eliminated');
 
+        case ML_NALL:
         case ML_DISTINCT:
           ASSERT_LOG2('(todo) d', pc);
           let dlen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + dlen * 2;
+          break;
+
+        case ML_ISALL:
+          cutIsAll();
+          break;
+
+        case ML_ISNALL:
+          cutIsNall();
+          break;
+
+        case ML_ISALL2:
+          cutIsAll2();
           break;
 
         case ML_PLUS:
@@ -1042,8 +1294,10 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           cutXnor();
           break;
 
-        case ML_UNUSED:
-          return THROW(' ! compiler problem @', pcStart);
+        case ML_START:
+          if (pc !== 0) return THROW(' ! compiler problem @', pcStart);
+          ++pc;
+          break;
 
         case ML_STOP:
           return;

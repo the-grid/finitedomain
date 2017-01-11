@@ -51,6 +51,9 @@ import {
   ML_V88_ISLTE,
   ML_8V8_ISLTE,
   ML_888_ISLTE,
+  ML_NALL,
+  ML_ISALL,
+  ML_ISNALL,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -63,6 +66,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_START,
   ML_STOP,
   //
   //SIZEOF_VV,
@@ -98,6 +102,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     valstrat: 'default',
   };
   let ml = '';
+  encode8bit(ML_START);
   let constraintCount = 0;
 
   let pointer = 0;
@@ -197,8 +202,17 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   function parseVar() {
     skip(); // is(':')
     skipWhitespaces();
-    let name = parseIdentifier();
+    let nameNames = parseIdentifier();
     skipWhitespaces();
+    if (read() === ',') {
+      nameNames = [nameNames];
+      while (!isEof() && read() === ',') {
+        skip();
+        skipWhitespaces();
+        nameNames.push(parseIdentifier());
+        skipWhitespaces();
+      }
+    }
     let domain = parseDomain();
     skipWhitespaces();
     let alts;
@@ -210,7 +224,20 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     let mod = parseModifier();
     expectEol();
 
-    addVar(name, domain, mod);
+    if (typeof nameNames === 'string') {
+      if (nameToIndex(nameNames) >= 0) {
+        return THROW('Dont declare a var after using it');
+      }
+      addVar(nameNames, domain, mod);
+    } else {
+      nameNames.map(name => {
+        if (nameToIndex(name) >= 0) {
+          return THROW('Dont declare a var after using it');
+        }
+        addVar(name, domain, mod);
+      });
+    }
+
     if (alts) THROW('implement me (var alias)'); // alts.map(name => addVar(name, domain, mod));
   }
 
@@ -464,13 +491,15 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
     ASSERT_LOG2('encoding name:', name);
     ASSERT_LOG2('to index', nameToIndex(name));
+    let index = nameToIndex(name);
+    if (index < 0) index = addVar(name, undefined, false, false, true);
     return encode16bit(nameToIndex(name));
   }
 
   function encode16bit(index) {
     ASSERT_LOG2('encode16bit:', index, '->', index >> 8, index & 0xff);
     ASSERT(typeof index === 'number', 'Encoding 16bit num', index);
-    ASSERT(index >= 0, 'OOB number');
+    ASSERT(index >= 0, 'OOB index', index);
     ASSERT(index <= 0xffff, 'implement 32bit index support if this breaks', index);
     let s = String.fromCharCode(index >> 8, index & 0xff);
     if (s.length === 1) return '\0' + s;
@@ -660,13 +689,16 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     ASSERT(typeof C === 'number' || nameToIndex(C) >= 0, 'C should be resolvable now');
 
     let A = parseVexpr(C);
-    skipWhitespaces();
-    let c = read();
-    if (isEof() || isNewline(c) || isComment(c)) {
-      // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
-      compileVoidConstraint(A, '==', C);
-    } else {
-      parseAssignRest(A, C);
+    // compilation may have already happened. in that case A is C (and it's a noop either way)
+    if (typeof A === 'number' || A !== C) {
+      skipWhitespaces();
+      let c = read();
+      if (isEof() || isNewline(c) || isComment(c)) {
+        // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
+        compileVoidConstraint(A, '==', C);
+      } else {
+        parseAssignRest(A, C);
+      }
     }
   }
 
@@ -924,21 +956,22 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function parseUexpr() {
     // it's not very efficient (we could parse an ident before and check that result here) but it'll work for now
-    if (str.slice(pointer, pointer + 9) === 'distinct(') parseDistinct();
+    if (str.slice(pointer, pointer + 9) === 'distinct(') parseCalledListConstraint(ML_DISTINCT, 9);
+    else if (str.slice(pointer, pointer + 5) === 'nall(') parseCalledListConstraint(ML_NALL, 5);
     else return false;
 
     return true;
   }
 
-  function parseDistinct() {
+  function parseCalledListConstraint(opcode, delta) {
     ++constraintCount;
-    pointer += 9;
+    pointer += delta;
     skipWhitespaces();
     let vals = parseVexpList();
-    ASSERT(vals.length <= 255, 'dont do distincts with more than 255 vars :('); // sum(0..255)=32385
-    ml += encode8bit(ML_DISTINCT) + encode16bit(vals.length) + vals.map(encodeName).join('');
+    ASSERT(vals.length <= 255, 'dont do lists with more than 255 vars :(');
+    ml += encode8bit(opcode) + encode16bit(vals.length) + vals.map(encodeName).join('');
     skipWhitespaces();
-    is(')', 'distinct call closer');
+    is(')', 'parseCalledListConstraint call closer');
     expectEol();
   }
 
@@ -974,9 +1007,13 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       let ident = parseIdentifier();
 
       if (read() === '(') {
-        if (ident === 'sum') v = parseSum(resultVar);
-        else if (ident === 'product') v = parseProduct(resultVar);
+        if (ident === 'sum') parseSum(resultVar);
+        else if (ident === 'product') parseArgs(ML_PRODUCT, resultVar);
+        else if (ident === 'nall') parseArgs(ML_NALL, resultVar);
+        else if (ident === 'all?') parseArgs(ML_ISALL, resultVar);
+        else if (ident === 'nall?') parseArgs(ML_ISNALL, resultVar);
         else THROW('Unknown constraint func: ' + ident);
+        v = resultVar; // compilation already happened. callsites should prevent compiling X==X
       } else {
         v = ident;
       }
@@ -1014,7 +1051,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function parseNumber() {
     let start = pointer;
-    while (read() >= '0' && read() <= '9') skip();
+    while (!isEof() && read() >= '0' && read() <= '9') skip();
     if (start === pointer) {
       THROW('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + '][' + read() + ']');
     }
@@ -1040,14 +1077,14 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return result;
   }
 
-  function parseProduct(result) {
+  function parseArgs(op, result) {
     // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
     ++constraintCount;
-    is('(', 'product call opener');
+    is('(', 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    ASSERT_LOG2('parseProduct refs:', refs, 'result:', result, nameToIndex(result));
-    ml += encode8bit(ML_PRODUCT) + encode16bit(refs.length) + refs.map(r => {
+    ASSERT_LOG2('parseArgs refs:', refs, 'result:', result, nameToIndex(result));
+    ml += encode8bit(op) + encode16bit(refs.length) + refs.map(r => {
       if (typeof r === 'number') {
         // have to make temp var for this :(
         r = addVar(undefined, r, false, true);
@@ -1055,13 +1092,13 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       return encodeName(r);
     }).join('') + encodeName(result);
     skipWhitespaces();
-    is(')', 'product closer');
+    is(')', 'args closer');
     return result;
   }
 
   function parseNumstr() {
     let start = pointer;
-    while (read() >= '0' && read() <= '9') skip();
+    while (!isEof() && read() >= '0' && read() <= '9') skip();
     return str.slice(start, pointer);
   }
 

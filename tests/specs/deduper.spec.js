@@ -55,6 +55,45 @@ describe('specs/deduper.spec', function() {
       0 = A ==? B
       1 = A ==? B
       # oops
-    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:0,100000000: 1:B:???');
+    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:: 1:B:???');
+  });
+
+  it('should alias two sums', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      : C [0 10]
+      D = sum(A B C)
+      E = sum(A B C)
+    `);
+
+    // D==E
+    expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0}); // implicit choices through solveStack pick zero first
+  });
+
+  it('should alias two products', function() {
+    expect(_ => solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      : C [0 10]
+      D = product(A B C)
+      E = product(A B C)
+      # D==E
+    `)).to.throw(/debug: 5 vars, 1 constraints, current domain state: 0:A:0,10: 1:B:0,10: 2:C:0,10: 3:D:0,1000: 4:E:\?\?\? ops: product/);
+  });
+
+  it('should alias a sum with a plus', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      D = sum(A B)
+      E = A + B
+    `);
+
+    // D==E
+    expect(solution).to.eql({A: 0, B: 0, D: 0, E: 0});
   });
 });

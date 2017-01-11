@@ -250,4 +250,41 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 26, __1: 1, __2: 2, __3: 3, __4: 20});
     });
   });
+
+  describe('all nall', function() {
+
+    it('should support nall', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        nall(A B C)
+      `)).to.throw(/debug: 3 vars, 1 constraints, current domain state: 0:A:0,1: 1:B:0,1: 2:C:0,1 ops: nall/); // if this fails check if its just the message
+    });
+
+    it('should support isall', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        D = all?(A B C)
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], D: 0});
+    });
+
+    it('should support isnall', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        D = nall?(A B C)
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], D: 1});
+    });
+  });
 });

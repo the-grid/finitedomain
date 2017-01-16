@@ -73,6 +73,7 @@ function solverSolver(dsl) {
   let anonCounter = 0;
 
   function addVar(name, domain, modifier, returnName, returnIndex) {
+    ASSERT_LOG2('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
     if (modifier) THROW('implement me (var mod)');
     if (typeof name === 'number') {
       domain = name;

@@ -283,9 +283,9 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
           ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
           let vA = lenA === 1 ? indexA : force(indexA);
           let vB = lenB === 1 ? indexB : force(indexB);
-          let vR = vA === vB ? 1 : 0;
-          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
+          let matches = vA === vB ? 1 : 0;
+          ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) > 0, 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, matches, domain__debug(domains[indexR]));
+          domains[indexR] = matches ? domain_removeValue(domains[indexR], 0) : domain_createValue(0);
         });
         ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
         ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} ==? ${indexB}`));

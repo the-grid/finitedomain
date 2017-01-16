@@ -83,6 +83,11 @@ import {
   //SIZEOF_888,
   //SIZEOF_COUNT,
 } from './ml';
+import {
+  domain_createRange,
+  domain_createValue,
+  domain_toArr,
+} from './domain';
 
 // BODY_START
 
@@ -683,22 +688,38 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     }
   }
 
-  function parseAssignment(C) {
-    if (typeof C === 'string' && nameToIndex(C) < 0) addVar(C);
-    else if (typeof C === 'number' && C > 0xff) C = addVar(undefined, C, false, true);
-    ASSERT(typeof C === 'number' || nameToIndex(C) >= 0, 'C should be resolvable now');
+  function createResultVar(from, forceBool, noLit) {
+    ASSERT_LOG2('createResultVar', from, forceBool, noLit);
+    ASSERT(typeof from === 'string' || typeof from === 'number' || from === undefined, 'input can only be a string (name) or number (literal) or undefined (new var reflects result for something else)');
 
+    if (from === undefined) {
+      return addVar(undefined, forceBool ? [0, 1] : undefined, false, true);
+    }
+
+    if (typeof from === 'number') {
+      // a literal that is >1 where a bool is expected will always result in a problem (bad input problem)
+      if (forceBool && from > 1) return addVar(undefined, [], false, true);
+      // only supporting literals of 8bit. in some cases literals still need to become temp anon vars when the op doesnt have a lit version for it.
+      if (from > 0xff || noLit) return addVar(undefined, (forceBool && from > 1) ? [] : domain_createValue(from), false, true);
+      return from;
+    }
+
+    if (nameToIndex(from) < 0) return addVar(from, forceBool ? domain_toArr(domain_createRange(0, 1)) : undefined, false, true);
+    return from;
+  }
+
+  function parseAssignment(C) {
     let A = parseVexpr(C);
-    // compilation may have already happened. in that case A is C (and it's a noop either way)
-    if (typeof A === 'number' || A !== C) {
-      skipWhitespaces();
-      let c = read();
-      if (isEof() || isNewline(c) || isComment(c)) {
-        // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
+    skipWhitespaces();
+    let c = read();
+    if (isEof() || isNewline(c) || isComment(c)) {
+      // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
+      if (A !== C) {
+        C = createResultVar(C); // wont change for 8bit literals or existing vars
         compileVoidConstraint(A, '==', C);
-      } else {
-        parseAssignRest(A, C);
       }
+    } else {
+      parseAssignRest(A, C);
     }
   }
 
@@ -712,10 +733,14 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function _parseAssignRest(A, rop, B, C) {
     ++constraintCount;
+
+    // force fresh reifier result vars to a bool
+    C = createResultVar(C, rop[rop.length - 1] === '?'); // wont change for 8bit literals or existing vars
+
     // literals are only supported as 8bit values, otherwise just compile it as a solved var
     let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
     let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
-    let codeC = typeof C === 'number' ? C <= 0xff ? '8' : (C = addVar(undefined, C, false, true), 'V') : 'V';
+    let codeC = typeof C === 'number' ? '8' : 'V'; // check already done above
 
     switch (codeA + rop + codeB + codeC) {
       case 'V==?VV':
@@ -1007,13 +1032,11 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       let ident = parseIdentifier();
 
       if (read() === '(') {
-        if (ident === 'sum') parseSum(resultVar);
-        else if (ident === 'product') parseArgs(ML_PRODUCT, resultVar);
-        else if (ident === 'nall') parseArgs(ML_NALL, resultVar);
-        else if (ident === 'all?') parseArgs(ML_ISALL, resultVar);
-        else if (ident === 'nall?') parseArgs(ML_ISNALL, resultVar);
+        if (ident === 'sum') v = parseSum(resultVar);
+        else if (ident === 'product') v = parseArgs(ML_PRODUCT, resultVar);
+        else if (ident === 'all?') v = parseArgs(ML_ISALL, resultVar, true);
+        else if (ident === 'nall?') v = parseArgs(ML_ISNALL, resultVar, true);
         else THROW('Unknown constraint func: ' + ident);
-        v = resultVar; // compilation already happened. callsites should prevent compiling X==X
       } else {
         v = ident;
       }
@@ -1063,7 +1086,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     is('(', 'sum call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
+    result = createResultVar(result, false, true);
     ASSERT_LOG2('parseSum refs:', refs, 'result:', result, nameToIndex(result));
     ml += encode8bit(ML_8V_SUM) + encode16bit(refs.length) + encode8bit(0) + refs.map(r => {
       if (typeof r === 'number') {
@@ -1077,13 +1100,13 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return result;
   }
 
-  function parseArgs(op, result) {
-    // TOFIX: result can be undefined (used to be anon var magically but will have to do this manually now)
+  function parseArgs(op, result, defaultBoolResult) {
     ++constraintCount;
     is('(', 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    ASSERT_LOG2('parseArgs refs:', refs, 'result:', result, nameToIndex(result));
+    result = createResultVar(result, defaultBoolResult, true);
+    ASSERT_LOG2('parseArgs refs:', refs, 'result:', result, nameToIndex(result), 'defaultBoolResult:', defaultBoolResult);
     ml += encode8bit(op) + encode16bit(refs.length) + refs.map(r => {
       if (typeof r === 'number') {
         // have to make temp var for this :(

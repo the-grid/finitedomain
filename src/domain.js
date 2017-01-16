@@ -47,6 +47,9 @@ const STR_RANGE_SIZE = 4;
 const EMPTY = 0;
 const EMPTY_STR = '';
 
+const DOM_ZERO = domain_createValue(0);
+const DOM_BOOL = domain_createRange(0, 1);
+
 /**
  * Append given range to the end of given domain. Does not
  * check if the range belongs there! Dumbly appends.
@@ -1388,6 +1391,26 @@ function domain_isEmpty(domain) {
 }
 
 /**
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_isZero(domain) {
+  ASSERT_NORDOM(domain);
+  return domain === DOM_ZERO;
+}
+/**
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_hasNoZero(domain) {
+  ASSERT_NORDOM(domain);
+  return domain_min(domain) > 0;
+}
+function domain_isBool(domain) {
+  return domain === DOM_BOOL;
+}
+
+/**
  * Remove all values from domain that are greater
  * than or equal to given value
  *
@@ -2392,12 +2415,15 @@ export {
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
+  domain_hasNoZero,
   domain_intersection,
   domain_intersectionValue,
   domain_invMul,
   domain_invMulValue,
+  domain_isBool,
   domain_isEmpty,
   domain_isSolved,
+  domain_isZero,
   domain_max,
   domain_middleElement,
   domain_min,

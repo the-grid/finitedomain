@@ -52,12 +52,12 @@ describe('specs/cutter.spec', function() {
     expect(solution).to.eql({A: 11, B: 11});
   });
 
-  it('should iseq 888', function() {
+  it('should iseq vvv', function() {
     let solution = solverSolver(`
       @custom var-strat throw
       : A *
       : B 11
-      : C *
+      : C [0 1]
       C = A ==? B
       A > 10
     `);

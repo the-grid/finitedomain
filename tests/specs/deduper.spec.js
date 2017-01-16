@@ -55,7 +55,7 @@ describe('specs/deduper.spec', function() {
       0 = A ==? B
       1 = A ==? B
       # oops
-    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:: 1:B:???');
+    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:: 1:B:??? ops: neq'); // it should actually resolve this... (it ends with x != x) and maybe a future fix will resolve this to reject
   });
 
   it('should alias two sums', function() {

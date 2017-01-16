@@ -632,6 +632,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 5
           : B 5
+          : C [0 1]
           C = A ==? B
         `);
 
@@ -643,6 +644,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 5
           : B 6
+          : C [0 1]
           C = A ==? B
         `);
 

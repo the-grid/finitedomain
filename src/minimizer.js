@@ -109,9 +109,12 @@ import {
   domain_createRangeTrimmed,
   domain_createValue,
   domain_getValue,
+  domain_hasNoZero,
   domain_intersection,
   domain_intersectionValue,
+  domain_isBool,
   domain_isSolved,
+  domain_isZero,
   domain_max,
   domain_min,
   domain_removeGte,
@@ -996,7 +999,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
           ml[offsetArgs + k * 2 + 1] = ml[offsetArgs + (k + 1) * 2 + 1];
         }
         --argCount;
-      } else if (A === domain_createValue(0)) {
+      } else if (domain_isZero(A)) {
         // remove constraint
         ASSERT_LOG2(' - domain solved to zero so constraint is satisfied');
         ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * countStart);
@@ -1054,12 +1057,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!R) return setEmpty(indexR, 'isall; R bad state');
 
-    let vR = domain_getValue(R);
-    if (vR === 0) {
+    if (domain_isZero(R)) {
+      ASSERT_LOG2(' - R is 0 so recompile to nall and revisit');
       // compile to nall and revisit
       ml_enc8(ml, offset, ML_NALL);
       ml_jump(ml, offset, 2); // difference between nall and isAll is the result var (16bit)
-    } else if (vR === 1) {
+      pc = offset;
+      return;
+    }
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' - R is non-zero so remove zero from all args and eliminate');
       // remove zero from all and eliminate
       for (let i = argCount - 1; i >= 0; --i) {
         let indexA = ml_dec16(ml, offsetArgs + i * 2);
@@ -1070,10 +1077,8 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         if (setDomain(indexA, domain_removeValue(A, 0))) return;
       }
       ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
-    } else if (vR > 1) {
-      return setEmpty(indexR, 'result var must be a bool');
-    } else if (domain_max(R) > 1) {
-      setDomain(indexR, domain_removeGtUnsafe(R, 1));
+      pc = offset;
+      return;
     }
 
     ASSERT_LOG2(' - not only jumps...');
@@ -1102,15 +1107,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
-    let vR = domain_getValue(R);
-    if (vR === 1) {
+    if (domain_isZero(R)) {
       setDomain(indexA, domain_removeValue(A, 0));
       setDomain(indexB, domain_removeValue(B, 0));
       ml_eliminate(ml, offset, SIZEOF_VVV);
       pc = offset;
       return;
     }
-    if (vR === 0) {
+    if (domain_hasNoZero(R)) {
       if (domain_min(A) > 0 || domain_min(B) > 0) {
         ml_eliminate(ml, offset, SIZEOF_VVV);
         pc = offset;
@@ -1122,16 +1126,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
     }
 
-    if (A === domain_createValue(0) || B === domain_createValue(0)) {
-      ASSERT(R === domain_createRange(0, 1), 'R should be bool');
+    if (domain_isZero(A) || domain_isZero(B)) {
+      ASSERT(domain_min(R) === 0 && domain_max(R) > 0, 'R should be booly');
       setDomain(R, domain_createValue(0));
       ml_eliminate(ml, offset, SIZEOF_VVV);
       pc = offset;
       return;
     }
-    if (domain_min(A) > 0 && domain_min(B) > 0) {
+    if (domain_hasNoZero(A) && domain_hasNoZero(B)) {
       ASSERT(R === domain_createRange(0, 1), 'R should be bool');
-      setDomain(R, domain_createValue(1));
+      setDomain(R, domain_removeValue(R, 0));
       ml_eliminate(ml, offset, SIZEOF_VVV);
       pc = offset;
       return;
@@ -1162,8 +1166,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!R) return setEmpty(indexR, 'isnall; R bad state');
 
-    let vR = domain_getValue(R);
-    if (vR === 0) {
+    if (domain_isZero(R)) {
       // remove zero from all and eliminate
       for (let i = argCount - 1; i >= 0; --i) {
         let indexA = ml_dec16(ml, offsetArgs + i * 2);
@@ -1174,14 +1177,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         if (setDomain(indexA, domain_removeValue(A, 0))) return;
       }
       ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
-    } else if (vR === 1) {
+      pc = offset;
+      return;
+    }
+    if (domain_hasNoZero(R)) {
       // compile to nall and revisit
       ml_enc8(ml, offset, ML_NALL);
       ml_jump(ml, offset, 2); // difference between nall and isNall is the result var (16bit)
-    } else if (vR > 1) {
-      return setEmpty(indexR, 'result var must be a bool');
-    } else if (domain_max(R) > 1) {
-      setDomain(indexR, domain_removeGtUnsafe(R, 1));
+      pc = offset;
+      return;
     }
 
     ASSERT_LOG2(' - not only jumps...');
@@ -1717,42 +1721,35 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let vA = domain_getValue(A);
     let vB = domain_getValue(B);
+
     if (vA >= 0 && vB >= 0) {
       ASSERT_LOG2(' - A and B are solved so we can determine R');
-      let result = A === B ? 1 : 0;
-      if (domain_containsValue(R, result)) {
-        R = domain_createValue(result);
-        if (setDomain(indexR, R, 'isEq')) return;
-        ml_eliminate(ml, offset, SIZEOF_VVV);
-        return;
+
+      if (A === B) {
+        if (setDomain(indexR, domain_removeValue(R, 0), 'iseq R: A==B')) return;
       } else {
-        return setEmpty(indexR, 'iseq; R rejected because it did not match state; ' + indexA + ' ==? ' + indexB + ' = ' + indexR);
+        if (setDomain(indexR, domain_intersectionValue(R, 0), 'iseq R: A!=B')) return;
       }
-    } else {
-      if (domain_max(R) > 1) {
-        if (domain_min(R) > 1) return setEmpty(indexR, 'iseq; R was not boolable');
-        ASSERT(domain_min(R) === 0, 'domain should not be solved to 1 yet');
-        R = domain_createRange(0, 1);
-        if (setDomain(indexR, R, 'isEq removing non-bools from R')) return;
-      }
+
+      ml_eliminate(ml, offset, SIZEOF_VVV);
+      return;
     }
 
-    // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
-    let vR = domain_getValue(R);
-    if (vR === 0) {
+    // A and B arent both solved. check R. it ends up either zero or non-zero (but not necessarily 1)
+    // note that R doesnt need to completely solve for iseq. we only care about "is zero" or "has no zero".
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       cr_vvv2vv(ml, offset, ML_VV_NEQ, indexA, indexB);
       pc = offset; // make it repeat with the new neq
       return;
     }
-    if (vR === 1) {
+    if (domain_hasNoZero(R)) {
       ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexB);
       pc = offset; // make it repeat with the new eq
       return;
     }
 
-    ASSERT(domain_min(R) === 0 && domain_max(R) === 1, 'R wasnt solved so it must be a bool domain at this point');
     if (domain_max(A) < domain_min(B) || domain_min(A) > domain_max(B)) {
       ASSERT_LOG2(' - no overlap between', indexA, 'and', indexB, ' (', domain__debug(A), domain__debug(B), ') so R becomes 0 and constraint is removed');
       // B is solved but A doesn't contain that value, R becomes 0 and the constraint is removed
@@ -1763,44 +1760,47 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       return;
     }
 
-    // if A=[0 1], B=0|1, R=[0 1] we can recompile this to NEQ or EQ
-    if (vA >= 0 && vA <= 1 && domain_max(B) === 1) {
-      // - A=0: 0==A=1, 1==A=0: B!=R
-      // - A=1: 0==A=0, 1==A=1: B==R
-      cr_vvv2vv(ml, offset, vA === 0 ? ML_VV_NEQ : ML_VV_EQ, indexB, indexR);
-      pc = offset; // revisit
-      return;
-    }
-    if (vB >= 0 && vB <= 1 && domain_max(A) === 1) {
-      // - B=0: 0==B=1, 1==B=0: A!=R
-      // - B=1: 0==B=0, 1==B=1: A==R
-      cr_vvv2vv(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ, indexA, indexR);
-      pc = offset; // revisit
-      return;
-    }
-
-    if (vB >= 0) {
-      // check for [01]=[00xx]==?x because in that case we can rewrite it to a XNOR
-      if (A === domain_intersection(domain_intersection(domain_createRange(0, vB), domain_createValue(0)), domain_createValue(vB))) { // dont use range! unless A=[0,1]. note: we want 0..n without 1..n-1
-        // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
-        ASSERT_LOG2(' ! [01]=[00xx]==?x so morphing to XNOR and revisiting');
-        cr_vvv2vv(ml, offset, ML_VV_XNOR, indexA, indexR);
+    // there are some bool-domain-specific tricks we can apply
+    if (domain_isBool(R)) {
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to NEQ or EQ
+      if (vA >= 0 && vA <= 1 && domain_isBool(B)) {
+        // - A=0: 0==A=1, 1==A=0: B!=R
+        // - A=1: 0==A=0, 1==A=1: B==R
+        cr_vvv2vv(ml, offset, vA === 0 ? ML_VV_NEQ : ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
         return;
       }
-    }
-    if (vA >= 0) {
-      // check for [01]=x==?[00xx] because in that case we can rewrite it to a XNOR
-      if (B === domain_intersection(domain_intersection(domain_createRange(0, vA), domain_createValue(0)), domain_createValue(vA))) { // dont use range! unless A=[0,1]. note: we want 0..n without 1..n-1
-        // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
-        ASSERT_LOG2(' ! [01]=x==?[00xx] so morphing to XNOR and revisiting');
-        cr_vvv2vv(ml, offset, ML_VV_XNOR, indexB, indexR);
+      if (vB >= 0 && vB <= 1 && domain_isBool(A)) {
+        // - B=0: 0==B=1, 1==B=0: A!=R
+        // - B=1: 0==B=0, 1==B=1: A==R
+        cr_vvv2vv(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ, indexA, indexR);
         pc = offset; // revisit
         return;
       }
+
+      if (vB >= 0) {
+        // check for [01]=[00xx]==?x because in that case we can rewrite it to a XNOR
+        if (domain_min(A) === 0 && domain_max(A) === vB && domain_size(A) === 2) {
+          // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
+          ASSERT_LOG2(' ! [01]=[00xx]==?x so morphing to XNOR and revisiting');
+          cr_vvv2vv(ml, offset, ML_VV_XNOR, indexA, indexR);
+          pc = offset; // revisit
+          return;
+        }
+      }
+      if (vA >= 0) {
+        // check for [01]=x==?[00xx] because in that case we can rewrite it to a XNOR
+        if (domain_min(B) === 0 && domain_max(B) === vA && domain_size(B) === 2) {
+          // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
+          ASSERT_LOG2(' ! [01]=x==?[00xx] so morphing to XNOR and revisiting');
+          cr_vvv2vv(ml, offset, ML_VV_XNOR, indexB, indexR);
+          pc = offset; // revisit
+          return;
+        }
+      }
     }
 
-    ASSERT(domain_min(R) === 0 && domain_max(R) === 1, 'R should be a bool at this point', domain__debug(R));
+    ASSERT(domain_min(R) === 0 && domain_max(R) > 0, 'R should be a booly at this point', domain__debug(R));
     ASSERT_LOG2(' ->', domain__debug(A), domain__debug(B), domain__debug(R));
 
     ASSERT_LOG2(' - not only jumps...');
@@ -1825,39 +1825,24 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
-    let vR = domain_getValue(R);
-    if (vR >= 0) {
-      cr_v8v2v88(ml, offset, ML_V88_ISEQ, indexA, vB, vR);
-      pc = offset; // revisit
-      return;
-    }
-
-    if (domain_min(R) > 0) return setEmpty(indexR, 'isEq v8v R');
-
-    // okay, R isnt solved (yet)
     let oR = R;
     if (!domain_containsValue(A, vB)) {
-      R = domain_createValue(vR = 0);
+      R = domain_removeGtUnsafe(R, 0);
     } else if (domain_isSolved(A)) {
-      // A and B are solved and A contains B so R=1
-      R = domain_createValue(vR = 1);
-    } else if (domain_max(R) > 1) {
-      R = domain_createRange(0, 1);
+      // A and B are solved and A contains B so R>0
+      R = domain_removeValue(R, 0);
     }
 
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'isEq A eq lit resolved')) return;
-    }
+    if (R !== oR && setDomain(indexR, R, 'isEq A eq lit resolved')) return;
 
-    // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
-    if (vR === 0) {
-      ASSERT_LOG2(' ! vR=0 so changing iseq to neq and revisiting');
+    if (domain_isZero(R)) {
+      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
       cr_v8v2v8(ml, offset, ML_V8_NEQ, indexA, vB);
       pc = offset; // make it repeat with the new neq
       return;
     }
-    if (vR === 1) {
-      ASSERT_LOG2(' ! vR=1 so changing iseq to eq and revisiting');
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
       cr_v8v2v8(ml, offset, ML_V8_EQ, indexA, vB);
       pc = offset; // make it repeat with the new eq
       return;
@@ -1866,23 +1851,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT(domain_min(R) === 0 && domain_max(R) >= 1, 'R should be boolable at this point');
     ASSERT_LOG2(' ->', domain__debug(A), vB, domain__debug(R));
 
-    // if A=[0 1], B=0|1, R=[0 1] we can recompile this to NEQ or EQ
-    ASSERT(domain_max(A) !== 0, 'if it were zero then it would be solved and that case is caught above');
-    if (vB <= 1 && domain_max(A) === 1) {
-      // - B=0: 0==B=1, 1==B=0: A!=R
-      // - B=1: 0==B=0, 1==B=1: A==R
-      cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ, indexA, indexR);
-      pc = offset; // revisit
-      return;
-    }
+    if (domain_isBool(R)) {
+      ASSERT(!domain_isSolved(A), 'if it were solved that case is caught above');
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to NEQ or EQ
+      if (vB <= 1 && domain_isBool(A)) {
+        // - B=0: 0==B=1, 1==B=0: A!=R
+        // - B=1: 0==B=0, 1==B=1: A==R
+        cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_NEQ : ML_VV_EQ, indexA, indexR);
+        pc = offset; // revisit
+        return;
+      }
 
-    // check for [01]=[00xx]==?x because in that case we can rewrite it to a XNOR
-    if (domain_min(A) === 0 && domain_max(A) === vB && domain_size(A) === 2) {
-      // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
-      ASSERT_LOG2(' ! [01]=[00xx]==?x so morphing to XNOR and revisiting');
-      cr_v8v2vv(ml, offset, ML_VV_XNOR, indexA, indexR);
-      pc = offset; // revisit
-      return;
+      // check for [01]=[00xx]==?x because in that case we can rewrite it to a XNOR
+      if (domain_min(A) === 0 && domain_max(A) === vB && domain_size(A) === 2) {
+        // [0,1] = [0,0, vB,vB] ==? vB    ->   (R=0 & A=0) | (R=1 & A=vB)  --> XNOR
+        ASSERT_LOG2(' ! [01]=[00xx]==?x so morphing to XNOR and revisiting');
+        cr_v8v2vv(ml, offset, ML_VV_XNOR, indexA, indexR);
+        pc = offset; // revisit
+        return;
+      }
     }
 
     ASSERT_LOG2(' - not only jumps...');
@@ -1899,7 +1886,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     // we know R is solved so just recompile it to eq or neq
     if (vR === 0) {
-      ASSERT_LOG2(' ! changing iseq to neq and revisiting');
+      ASSERT_LOG2(' ! R=0 changing iseq to neq and revisiting');
       // compile a neq and restart
       ml_enc8(ml, offset, ML_VV_NEQ);
       ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
@@ -1907,17 +1894,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       return;
     }
 
-    if (vR === 1) {
-      ASSERT_LOG2(' ! changing iseq to eq and revisiting');
-      // compile an eq and restart
-      ml_enc8(ml, offset, ML_VV_EQ);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
-      pc = offset; // make it repeat with the new eq
-      return;
-    }
-
-    // it's technically possible to input a problem where the result var is solved to a non-bool value...
-    return setEmpty(-1, 'literal R wasnt 0 or 1 but ' + vR);
+    // otherwise R must be non-zero
+    ASSERT_LOG2(' ! R>0 changing iseq to eq and revisiting');
+    // compile an eq and restart
+    ml_enc8(ml, offset, ML_VV_EQ);
+    ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
+    pc = offset; // make it repeat with the new eq
   }
 
   function cr_88v_isEq(ml) {
@@ -1937,17 +1919,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' - A and B are solved so we can determine R');
 
-    let oR = R;
-    let vR = vA === vB ? 1 : 0;
-    if (!domain_containsValue(R, vR)) return setEmpty(indexR, 'isEq; R was solved according to the literals but did not contain that value');
-    R = domain_createValue(vR);
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'isEq lit eq lit')) return;
+    if (vA === vB) {
+      if (setDomain(indexR, domain_removeValue(R, 0))) return;
+    } else {
+      if (setDomain(indexR, domain_removeGtUnsafe(R, 0))) return;
     }
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
     ml_eliminate(ml, offset, SIZEOF_88V);
+    pc = offset;
   }
 
   function cr_v88_isEq(ml) {
@@ -1964,25 +1945,19 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' = cr_v88_isEq', vR, '= {', indexA, '} ==?', vB, ' --> ', vR, '=', domain__debug(A), '==?', vB);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
-    if (vR > 1) return setEmpty(-1, 'isEq; literal R was >1');
 
     ASSERT_LOG2(' - B and R are solved so we can determine A');
 
-    let oA = A;
-    if (vR === 1) {
-      if (!domain_containsValue(A, vB)) return setEmpty(indexA, 'isEq; literal R is 1 but A did not contain literal B');
-      A = domain_createValue(vB);
+    if (vR === 0) {
+      if (setDomain(indexA, domain_removeValue(A, vB))) return;
     } else {
-      A = domain_removeValue(A, vB);
-      if (!A) return setEmpty(indexA, 'isEq; literal R is 0 but A only contained literal B');
-    }
-    if (A !== oA) {
-      if (setDomain(indexA, A, 'isEq A eq lit = lit')) return;
+      if (setDomain(indexA, domain_intersectionValue(A, vB))) return;
     }
 
     ASSERT_LOG2(' ->', vR, '=', domain__debug(A), '==?', vB);
 
     ml_eliminate(ml, offset, SIZEOF_V88);
+    pc = offset;
   }
 
   function cr_888_isEq(ml) {
@@ -1996,12 +1971,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
     ASSERT_LOG2(' - already resolved, only need to verify it');
-    if (vR > 1) return setEmpty(-1, 'isEq 888 R is >1');
 
     // isEq !== shouldEq
-    if ((vA === vB) !== (vR === 1)) return setEmpty(-1, 'isEq 888 did not match');
+    if ((vA === vB) !== (vR > 0)) return setEmpty(-1, 'isEq 888 did not match');
 
     ml_eliminate(ml, offset, SIZEOF_888);
+    pc = offset;
   }
 
   function cr_vvv_isNeq(ml) {
@@ -2023,35 +1998,28 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
-    if (domain_getValue(A) >= 0 && domain_getValue(B) >= 0) {
+    if (domain_isSolved(A) && domain_isSolved(B)) {
       ASSERT_LOG2(' - A and B are solved so we can determine R');
-      let result = A !== B ? 1 : 0;
-      if (domain_containsValue(R, result)) {
-        R = domain_createValue(result);
-        if (setDomain(indexR, R, 'isNeq A eq B = R')) return;
-        ml_eliminate(ml, offset, SIZEOF_VVV);
-        return;
+      if (A === B) {
+        if (setDomain(indexR, domain_removeGtUnsafe(R, 0))) return;
+      } else {
+        if (setDomain(indexR, domain_removeValue(R, 0))) return;
       }
-      return setEmpty(indexR, 'isNeq; A and B are solved but R did not contain result');
-    } else {
-      if (domain_min(R) > 1) return setEmpty(indexR, 'isNeq; R doesnt have bools');
-      if (domain_max(R) > 1) {
-        ASSERT(domain_min(R) === 0, 'should be min zero'); // TODO: why? we havent asserted it not being solved yet
-        R = domain_createRange(0, 1);
-        if (setDomain(indexR, R, 'isNeq A eq B = R')) return;
-      }
+      ml_eliminate(ml, offset, SIZEOF_VVV);
+      pc = offset;
+      return;
     }
 
-    // R should be 0 if A==B. R should be 1 if A!==B. R can only end up <= 1.
-    let vR = domain_getValue(R);
-    if (vR === 0) {
-      ASSERT_LOG2(' ! changing isneq to eq and revisiting');
+    // R should be 0 if A==B. R should be >0 if A!==B
+    if (domain_isZero(R)) {
+      ASSERT_LOG2(' ! R=0, changing isneq to eq and revisiting');
       cr_vvv2vv(ml, offset, ML_VV_EQ, indexA, indexB);
       pc = offset; // make it repeat with the new neq
       return;
     }
-    if (vR === 1) {
-      ASSERT_LOG2(' ! changing isneq to neq and revisiting');
+
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! R>0, changing isneq to neq and revisiting');
       cr_vvv2vv(ml, offset, ML_VV_NEQ, indexA, indexB);
       pc = offset; // make it repeat with the new eq
       return;
@@ -2083,30 +2051,25 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let vA = domain_getValue(A);
     if (vA >= 0) {
-      let result = vA !== vB ? 1 : 0;
-      if (!domain_containsValue(R, result)) return setEmpty(indexR, 'isNeq; A is lit B but R cant reflect it');
-      R = domain_createValue(result);
-      if (setDomain(indexR, R, 'isNeq A eq lit = R')) return;
+      ASSERT_LOG2(' - A and B are solved so we can determine R');
+      if (vA === vB) {
+        if (setDomain(indexR, domain_removeGtUnsafe(R, 0))) return;
+      } else {
+        if (setDomain(indexR, domain_removeValue(R, 0))) return;
+      }
       ml_eliminate(ml, offset, SIZEOF_V8V);
+      pc = offset;
       return;
     }
 
-    if (domain_max(R) > 1) {
-      if (domain_min(R) > 1) return setEmpty(indexR, 'isNeq; R has no bools');
-      ASSERT(domain_min(R) === 0, 'or die');
-      R = domain_createRange(0, 1); // TODO: we havent asserted R isnt solved so this isnt safe
-      if (setDomain(indexR, R, 'isNeq trimming non-bools')) return;
-    }
-
-    let vR = domain_getValue(R);
-    if (vR === 0) {
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! vR=0 so changing isneq to eq and revisiting');
       cr_v8v2v8(ml, offset, ML_V8_EQ, indexA, vB);
       pc = offset; // make it repeat with the new neq
       return;
     }
-    if (vR === 1) {
-      ASSERT_LOG2(' ! vR=1 so changing isneq to neq and revisiting');
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! vR>0 so changing isneq to neq and revisiting');
       cr_v8v2v8(ml, offset, ML_V8_NEQ, indexA, vB);
       pc = offset; // make it repeat with the new eq
       return;
@@ -2116,20 +2079,24 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '!=?', vB);
     ASSERT(domain_max(A) !== 0, 'if max(A) were zero then it would be solved and that case is caught above');
 
-    // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
-    if (vB <= 1 && domain_max(A) === 1) {
-      // - B=0: 0!=B=0, 1!=B=1: A==R
-      // - B=1: 0!=B=1, 1!=B=0: A!=R
-      cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ, indexA, indexR);
-      pc = offset; // revisit
-      return;
+    if (domain_isBool(R)) {
+      // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
+      ASSERT(!domain_isSolved(A), 'A isnt solved, so if max <= 1 then A is a bool and not zero');
+      if (vB <= 1 && domain_isBool(A)) {
+        // - B=0: 0!=B=0, 1!=B=1: A==R
+        // - B=1: 0!=B=1, 1!=B=0: A!=R
+        cr_v8v2vv(ml, offset, vB === 0 ? ML_VV_EQ : ML_VV_NEQ, indexA, indexR);
+        pc = offset; // revisit
+        return;
+      }
     }
 
     if (domain_size(A) === 2) {
+      ASSERT(domain_containsValue(A, vB), 'if the domain did not contain value of B then R would be solved already');
       // if this isneq is checking one of the two values in A then normalize it to an iseq for the other value
       // this way the deduper may catch this case and discover an implicit alias
-      // [1 2] !=? 1   ->  [0 1] ==? 2
-      // [1 2] !=? 2   ->  [0 1] ==? 1
+      // [1 2] !=? 1   ->  [1 2] ==? 2
+      // [1 2] !=? 2   ->  [1 2] ==? 1
       ASSERT_LOG2(' - Normalizing isNeq to equivalent isEq, looking for', domain_getValue(domain_removeValue(A, vB)), 'instead of', vB);
       cr_v8v2v8v(ml, offset, ML_V8V_ISEQ, indexA, domain_getValue(domain_removeValue(A, vB)), indexR);
       pc = offset; // revisit
@@ -2143,32 +2110,27 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
   function cr_vv8_isNeq(ml) {
     let offset = pc;
-    let offsetR = offset + 4;
-    let vR = ml_dec16(ml, offsetR);
+    let offsetR = offset + 5;
+    let vR = ml_dec8(ml, offsetR);
 
     ASSERT_LOG2(' = cr_vv8_isNeq', vR, 'immediately recompile to neq or eq');
 
     // we know R is solved so just recompile it to eq or neq
     if (vR === 0) {
-      ASSERT_LOG2(' ! changing isneq to eq and revisiting');
-      // compile a neq and restart
+      ASSERT_LOG2(' ! R=0 changing isneq to eq and revisiting');
+      // compile an eq and restart
       ml_enc8(ml, offset, ML_VV_EQ);
       ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
       pc = offset; // make it repeat with the new neq
       return;
     }
 
-    if (vR === 1) {
-      ASSERT_LOG2(' ! changing isneq to neq and revisiting');
-      // compile an eq and restart
-      ml_enc8(ml, offset, ML_VV_NEQ);
-      ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
-      pc = offset; // make it repeat with the new eq
-      return;
-    }
-
-    // it's technically possible to input a problem where the result var is solved to a non-bool value...
-    return setEmpty(-1, 'isNeq; literal R is >1');
+    ASSERT_LOG2(' ! R>0 changing isneq to neq and revisiting');
+    // compile a neq and restart
+    ml_enc8(ml, offset, ML_VV_NEQ);
+    ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
+    pc = offset; // make it repeat with the new eq
+    return;
   }
 
   function cr_88v_isNeq(ml) {
@@ -2188,17 +2150,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' - A and B are solved so we can determine R');
 
-    let oR = R;
-    let vR = vA !== vB ? 1 : 0;
-    if (!domain_containsValue(R, vR)) return setEmpty(indexR, 'isNeq; R cant reflect literals A!=B');
-    R = domain_createValue(vR);
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'isNeq lit eq lit = R')) return;
+    if (vA === vB) {
+      if (setDomain(indexR, domain_intersectionValue(R, 0))) return;
+    } else {
+      if (setDomain(indexR, domain_removeValue(R, 0))) return;
     }
 
     ASSERT_LOG2(' ->', vA, vB, domain__debug(R));
 
     ml_eliminate(ml, offset, SIZEOF_88V);
+    pc = offset;
   }
 
   function cr_v88_isNeq(ml) {
@@ -2219,20 +2180,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     ASSERT_LOG2(' - B and R are solved so we can determine A');
 
-    let oA = A;
-    if (vR === 1) {
-      A = domain_removeValue(A, vB);
-      if (!A) return setEmpty(indexA, 'isNeq; A must eq B but doesnt have it');
+    if (vR === 0) {
+      if (setDomain(indexA, domain_intersectionValue(A, vB))) return;
     } else {
-      if (!domain_containsValue(A, vB)) return setEmpty(indexA, 'isNeq; A cant have B but only has B');
-      A = domain_createValue(vB);
-    }
-    if (A !== oA) {
-      if (setDomain(indexA, A, 'isNeq A eq lit = lit')) return;
+      if (setDomain(indexA, domain_removeValue(A, vB))) return;
     }
 
     ASSERT_LOG2(' ->', domain__debug(A), vB, vR);
     ml_eliminate(ml, offset, SIZEOF_V88);
+    pc = offset;
   }
 
   function cr_888_isNeq(ml) {
@@ -2249,7 +2205,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (vR > 1) return setEmpty(-1, 'isNeq; literal 888 R > 1');
 
     // isNeq !== shouldNeq
-    if ((vA !== vB) !== (vR === 1)) return setEmpty(-1, 'isNeq; 888 fails');
+    if ((vA !== vB) !== (vR > 0)) return setEmpty(-1, 'isNeq; 888 fails');
 
     ml_eliminate(ml, offset, SIZEOF_888);
   }
@@ -2274,34 +2230,36 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
-      // if R isn't set you can't really update A or B. so we don't.
-      if (domain_max(A) < domain_min(B)) R = domain_createValue(vR = 1);
-      else if (domain_min(A) >= domain_max(B)) R = domain_createValue(vR = 0);
+
+    if (!domain_isSolved(R)) {
+      if (domain_max(A) < domain_min(B)) R = domain_removeValue(R, 0);
+      else if (domain_min(A) >= domain_max(B)) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (!setDomain(indexR, R, 'islt; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && !setDomain(indexR, R, 'islt; solving R because A < B or A >= B')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place for', indexA, 'and', indexB);
-      cr_vvv2vv(ml, offset, ML_VV_LT, indexA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place', indexB, 'and', indexA);
       cr_vvv2vv(ml, offset, ML_VV_LTE, indexB, indexA);
       // replace isLt with a regular lte
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
-      pc = offset + SIZEOF_VVV;
+      return;
     }
+
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place for', indexA, 'and', indexB);
+      cr_vvv2vv(ml, offset, ML_VV_LT, indexA, indexB);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VVV;
   }
 
   function cr_8vv_isLt(ml) {
@@ -2322,44 +2280,48 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
-      // if R isn't set you can't really update A or B. so we don't.
-      if (vA < domain_min(B)) R = domain_createValue(vR = 1);
-      else if (vA >= domain_max(B)) R = domain_createValue(vR = 0);
+
+    if (!domain_isSolved(R)) {
+      if (vA < domain_min(B)) R = domain_removeValue(R, 0);
+      else if (vA >= domain_max(B)) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (!setDomain(indexR, R, 'islt; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && !setDomain(indexR, R, 'islt; solving R because A < B or A >= B')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place', vA, 'and', indexB);
-      cr_8vv28v(ml, offset, ML_8V_LT, vA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
-      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place', vA, 'and', indexB);
+
+    if (domain_isZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place', indexB, 'and', vA);
       cr_8vv2v8(ml, offset, ML_V8_LTE, indexB, vA);
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
+      return;
+    }
 
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place for', vA, 'and', indexB);
+      cr_8vv28v(ml, offset, ML_8V_LT, vA, indexB);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
+
+    if (domain_isBool(R)) {
       // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
-      if (vA <= 1 && domain_max(B) === 1) {
+      if (vA <= 1 && domain_isBool(B)) {
         // - A=0: A<0=0, A<1=1: B=R
         // - A=1: A<0=0, A<1=0: R=0, remove constraint (already done above)
         ASSERT(vA === 0, 'the path for A=1 is handled above');
         cr_8vv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
-      } else {
-        pc = offset + SIZEOF_8VV;
+        return;
       }
     }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_8VV;
   }
 
   function cr_v8v_isLt(ml) {
@@ -2380,47 +2342,51 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
-      // if R isn't set you can't really update A or B. so we don't.
-      if (domain_max(A) < vB) R = domain_createValue(vR = 1);
-      else if (domain_min(A) >= vB) R = domain_createValue(vR = 0);
+
+    if (!domain_isSolved(R)) {
+      if (domain_max(A) < vB) R = domain_removeValue(R, 0);
+      else if (domain_min(A) >= vB) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (!setDomain(indexR, R, 'islt; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && !setDomain(indexR, R, 'islt; solving R because A < B or A >= B')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
+
+    if (domain_isZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place', vB, 'and', indexA);
+      cr_v8v28v(ml, offset, ML_8V_LTE, vB, indexA);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
+
+    if (domain_hasNoZero(R)) {
       ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place for', indexA, 'and', vB);
       cr_v8v2v8(ml, offset, ML_V8_LT, indexA, vB);
       pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
-      ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place for', vB, 'and', indexA);
-      cr_v8v28v(ml, offset, ML_8V_LTE, vB, indexA);
-      pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
+      return;
+    }
 
+    if (domain_isBool(R)) {
       // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(A) !== 0, 'if max(A) were zero then R would be solved and that case is caught above');
-      if (vB <= 1 && domain_max(A) === 1) {
+      if (vB <= 1 && domain_isBool(A)) {
         // - B=0: 0<B=0, 1<B=0: R=0, remove constraint (already done above)
         // - B=1: 0<B=1, 1<B=0: A!=R
         ASSERT(vB === 0, 'the path for B=0 is handled above');
         cr_v8v2vv(ml, offset, ML_VV_NEQ, indexA, indexR);
         pc = offset; // revisit
-      } else {
-        pc = offset + SIZEOF_V8V;
+        return;
       }
     }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isLt(ml) { // TODO: remove A and B fetches; they are unused here
+  function cr_vv8_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2429,31 +2395,23 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexB = ml_dec16(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    let A = getDomainOrRestartForAlias(indexA, 1);
-    let B = getDomainOrRestartForAlias(indexB, 3);
-    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
-
-    ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, domain__debug(A), domain__debug(B), vR);
-    if (!A) return setEmpty(indexA, 'isEq bad state A');
-    if (!B) return setEmpty(indexB, 'isEq bad state B');
+    ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, vR);
 
     // R is solved so just replace the reifier by its non-reifier component
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place', indexA, 'and', indexB);
-      cr_vv82vv(ml, offset, ML_VV_LT, indexA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+    if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lte with swapped args in its place for', indexB, 'and', indexA);
       cr_vv82vv(ml, offset, ML_VV_LTE, indexB, indexA);
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
-      return setEmpty(-1, 'isLt; literal R > 1');
+      return;
     }
+
+    ASSERT_LOG2(' ! result var solved to 1 so compiling an lt in its place', indexA, 'and', indexB);
+    cr_vv82vv(ml, offset, ML_VV_LT, indexA, indexB);
+    pc = offset; // make it repeat with the new lt
   }
 
   function cr_88v_isLt(ml) {
@@ -2469,18 +2427,16 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = cr_88v_isLt', indexR, vA, vB, domain__debug(R));
-    if (!R) return setEmpty(indexR, 'isEq bad state R');
+    if (!R) return setEmpty(indexR, 'isLt bad state R');
 
-    // we know A and B so determine R and remove constraint
-    let oR = R;
-    if (vA < vB) R = domain_intersectionValue(R, 1);
-    else R = domain_intersectionValue(R, 0);
-
-    if (R !== oR) {
-      if (!setDomain(indexR, R, 'isLt; solving R with two literals')) return;
+    if (vA < vB) {
+      if (setDomain(indexR, domain_removeValue(R, 0), 'isLt; solving R with two literals')) return;
+    } else {
+      if (setDomain(indexR, domain_removeGtUnsafe(R, 0), 'isLt; solving R with two literals')) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_88V);
+    pc = offset;
   }
 
   function cr_v88_isLt(ml) {
@@ -2498,18 +2454,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
 
-    let oA = A;
-
-    // we know B and R so determine B and remove constraint
-    if (vR === 1) A = domain_removeGte(A, vB);
-    else if (vR === 0) A = domain_removeLtUnsafe(A, vB);
-    else return setEmpty(-1, 'isLt; literal R > 1');
-
-    if (A !== oA) {
-      if (setDomain(indexA, A, 'islt; solving A with two literals')) return;
+    if (vR === 0) {
+      if (setDomain(indexA, domain_removeLtUnsafe(A, vB))) return;
+    } else {
+      if (setDomain(indexA, domain_removeGte(A, vB))) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_V88);
+    pc = offset;
   }
 
   function cr_8v8_isLt(ml) {
@@ -2527,18 +2479,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_8v8_isLt', indexB, vA, domain__debug(B), vR);
     if (!B) return setEmpty(indexB, 'isEq bad state B');
 
-    let oB = B;
-
-    // we know A and R so determine B and remove constraint
-    if (vR === 1) B = domain_removeLte(B, vA);
-    else if (vR === 0) B = domain_removeGtUnsafe(B, vA);
-    else return setEmpty(-1, 'isLt; literal R > 1');
-
-    if (B !== oB) {
-      if (setDomain(indexB, B, 'islt; solving B with two literals')) return;
+    if (vR === 0) {
+      if (setDomain(indexB, domain_removeGtUnsafe(B, vA))) return;
+    } else {
+      if (setDomain(indexB, domain_removeLte(B, vA))) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_8V8);
+    pc = offset;
   }
 
   function cr_888_isLt(ml) {
@@ -2553,7 +2501,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_888_isLt', vA, '<?', vB, '=', vR);
 
     // just check
-    if ((vA < vB) !== (vR === 1)) return setEmpty(-1, 'isLt; 888 failed');
+    if ((vA < vB) !== (vR > 0)) return setEmpty(-1, 'isLt; 888 failed');
 
     ml_eliminate(ml, offset, SIZEOF_888);
   }
@@ -2578,34 +2526,35 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
+
+    if (!domain_isSolved(R)) {
       // if R isn't set you can't really update A or B. so we don't.
-      if (domain_max(A) <= domain_min(B)) R = domain_createValue(vR = 1);
-      else if (domain_min(A) > domain_max(B)) R = domain_createValue(vR = 0);
+      if (domain_max(A) <= domain_min(B)) R = domain_removeValue(R, 0);
+      else if (domain_min(A) > domain_max(B)) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', indexB);
-      cr_vvv2vv(ml, offset, ML_VV_LTE, indexA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place', indexB, 'and', indexA);
       // replace isLt with a regular lte
       cr_vvv2vv(ml, offset, ML_VV_LT, indexB, indexA);
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
-      pc = offset + SIZEOF_VVV;
+      return;
     }
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', indexB);
+      cr_vvv2vv(ml, offset, ML_VV_LTE, indexA, indexB);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_VVV;
   }
 
   function cr_8vv_isLte(ml) {
@@ -2626,45 +2575,49 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
+
+    if (!domain_isSolved(R)) {
       // if R isn't set you can't really update A or B. so we don't.
-      if (vA <= domain_min(B)) R = domain_createValue(vR = 1);
-      else if (vA > domain_max(B)) R = domain_createValue(vR = 0);
+      if (vA <= domain_min(B)) R = domain_removeValue(R, 0);
+      else if (vA > domain_max(B)) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place for', vA, 'and', indexB);
-      cr_8vv28v(ml, offset, ML_8V_LTE, vA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place', indexB, 'and', vA);
       cr_8vv2v8(ml, offset, ML_V8_LT, indexB, vA);
       pc = offset; // make it repeat with the new lt
-    } else {
+      return;
+    }
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place for', vA, 'and', indexB);
+      cr_8vv28v(ml, offset, ML_8V_LTE, vA, indexB);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
+
+    if (domain_isBool(R)) {
       // if A=0|1, B=[0 1], R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(B) !== 0, 'if max(B) were zero then R would be solved and that case is caught above');
       ASSERT_LOG2(' - result var was not solved');
-      if (vA <= 1 && domain_max(B) === 1) {
+      if (vA <= 1 && domain_isBool(B)) {
         // - A=0: A<=0=1, A<=1=1: R=1, remove constraint (Already done above)
         // - A=1: A<=0=0, A<=1=1: B==R
         ASSERT(vA === 1, 'the path for A=0 is handled above');
         ASSERT_LOG2(' - changing this isLte to an eq because A=1 and max(B)==1 so B==R');
         cr_8vv2vv(ml, offset, ML_VV_EQ, indexB, indexR);
         pc = offset; // revisit
-      } else {
-        ASSERT_LOG2(' - not only jumps...');
-        onlyJumps = false;
-        pc = offset + SIZEOF_8VV;
+        return;
       }
     }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_8VV;
   }
 
   function cr_v8v_isLte(ml) {
@@ -2685,47 +2638,50 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     let oR = R;
-    R = domain_removeGtUnsafe(R, 1);
-    let vR = domain_getValue(R);
-    if (vR < 0) {
+
+    if (!domain_isSolved(R)) {
       // if R isn't set you can't really update A or B. so we don't.
-      if (domain_max(A) <= vB) R = domain_createValue(vR = 1);
-      else if (domain_min(A) > vB) R = domain_createValue(vR = 0);
+      if (domain_max(A) <= vB) R = domain_removeValue(R, 0);
+      else if (domain_min(A) > vB) R = domain_removeGtUnsafe(R, 0);
     }
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
-    }
+
+    if (R !== oR && setDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', vB);
-      cr_v8v2v8(ml, offset, ML_V8_LTE, indexA, vB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+    if (domain_isZero(R)) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place', vB, 'and', indexA);
       cr_v8v28v(ml, offset, ML_8V_LT, vB, indexA);
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(' - not only jumps...');
-      onlyJumps = false;
+      return;
+    }
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', vB);
+      cr_v8v2v8(ml, offset, ML_V8_LTE, indexA, vB);
+      pc = offset; // make it repeat with the new lt
+      return;
+    }
 
+    if (domain_isBool(R)) {
       // if A=[0 1], B=0|1, R=[0 1] we can recompile this to a simpler op
       ASSERT(domain_max(A) !== 0, 'if max(A) were zero then R would be solved and that case is caught above');
-      if (vB <= 1 && domain_max(A) === 1) {
+      if (vB <= 1 && domain_isBool(A)) {
         // - B=0: 0<=B=1, 1<=B=0: B!=R
         // - B=1: 0<=B=1, 1<=B=1: R=1, remove constraint (already done above)
         ASSERT(vB === 0, 'the path for A=1 is handled above');
         cr_v8v2vv(ml, offset, ML_VV_NEQ, indexA, indexR);
         pc = offset; // revisit
-      } else {
-        pc = offset + SIZEOF_V8V;
+        return;
       }
     }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isLte(ml) { // TODO: remove A and B fetches; they are unused here
+  function cr_vv8_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2734,31 +2690,23 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexB = ml_dec16(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    let A = getDomainOrRestartForAlias(indexA, 1);
-    let B = getDomainOrRestartForAlias(indexB, 3);
-    if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
-
-    ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, domain__debug(A), domain__debug(B), vR);
-    if (!A) return setEmpty(indexA, 'isEq bad state A');
-    if (!B) return setEmpty(indexB, 'isEq bad state B');
+    ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, vR);
 
     // R is solved so just replace the reifier by its non-reifier component
 
     // if R is solved replace this isLt with an lt or "gt" and repeat.
     // the appropriate op can then prune A and B accordingly.
     // in this context, the inverse for lt is an lte with swapped args
-    if (vR === 1) {
-      ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', indexB);
-      cr_vv82vv(ml, offset, ML_VV_LTE, indexA, indexB);
-      pc = offset; // make it repeat with the new lt
-    } else if (vR === 0) {
+    if (vR === 0) {
       ASSERT_LOG2(' ! result var solved to 0 so compiling an lt with swapped args in its place', indexB, 'and', indexA);
       cr_vv82vv(ml, offset, ML_VV_LTE, indexB, indexA);
       pc = offset; // make it repeat with the new lt
-    } else {
-      ASSERT_LOG2(vR > 1, 'possible artifact but unresolvable regardless');
-      return setEmpty(-1, 'lte; literal R > 1');
+      return;
     }
+
+    ASSERT_LOG2(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', indexB);
+    cr_vv82vv(ml, offset, ML_VV_LT, indexA, indexB);
+    pc = offset; // make it repeat with the new lt
   }
 
   function cr_88v_isLte(ml) {
@@ -2773,19 +2721,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_88v_isLte', vA, vB, domain__debug(R));
-    if (!R) return setEmpty(indexR, 'isEq bad state R');
+    ASSERT_LOG2(' = cr_88v_isLte', indexR, vA, vB, domain__debug(R));
+    if (!R) return setEmpty(indexR, 'isLte bad state R');
 
-    // we know A and B so determine R and remove constraint
-    let oR = R;
-    if (vA <= vB) R = domain_intersectionValue(R, 1);
-    else R = domain_intersectionValue(R, 0);
-
-    if (R !== oR) {
-      if (setDomain(indexR, R, 'islte; solving R because two literals A and B are solved')) return;
+    if (vA <= vB) {
+      if (setDomain(indexR, domain_removeValue(R, 0), 'isLte; solving R with two literals')) return;
+    } else {
+      if (setDomain(indexR, domain_removeGtUnsafe(R, 0), 'isLte; solving R with two literals')) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_88V);
+    pc = offset;
   }
 
   function cr_v88_isLte(ml) {
@@ -2803,18 +2749,15 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_v88_isLte', indexA, domain__debug(A), vB, vR);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
 
-    let oA = A;
-
     // we know A and R so determine B and remove constraint
-    if (vR === 1) A = domain_removeGtUnsafe(A, vB);
-    else if (vR === 0) A = domain_removeLte(A, vB);
-    else return setEmpty(-1, 'islte; literal R > 1');
-
-    if (A !== oA) {
-      if (setDomain(indexA, A, 'islte; solving R because literals B and R are solved')) return;
+    if (vR === 0) {
+      if (setDomain(indexA, domain_removeLte(A, vB))) return;
+    } else {
+      if (setDomain(indexA, domain_removeGtUnsafe(A, vB))) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_V88);
+    pc = offset;
   }
 
   function cr_8v8_isLte(ml) {
@@ -2832,18 +2775,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_8v8_isLte', indexB, vA, domain__debug(B), vR);
     if (!B) return setEmpty(indexB, 'isEq bad state B');
 
-    let oB = B;
-
-    // we know A and R so determine B and remove constraint
-    if (vR === 1) B = domain_removeLtUnsafe(B, vA);
-    else if (vR === 0) B = domain_removeGte(B, vA);
-    else return setEmpty(-1, 'islte; literal R > 1');
-
-    if (B !== oB) {
-      if (setDomain(indexB, B, 'islte; solving R because literals A and R are solved')) return;
+    if (vR === 0) {
+      if (setDomain(indexB, domain_removeGte(B, vA))) return;
+    } else {
+      if (setDomain(indexB, domain_removeLtUnsafe(B, vA))) return;
     }
 
     ml_eliminate(ml, offset, SIZEOF_8V8);
+    pc = offset;
   }
 
   function cr_888_isLte(ml) {
@@ -2858,9 +2797,10 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' = cr_888_isLte', vA, vB, vR);
 
     // just check
-    if ((vA <= vB) !== (vR === 1)) return setEmpty(-1, 'islte; 888 failed');
+    if ((vA <= vB) !== (vR > 0)) return setEmpty(-1, 'islte; 888 failed');
 
     ml_eliminate(ml, offset, SIZEOF_888);
+    pc = offset;
   }
 
   function cr_sum(ml) {
@@ -3020,7 +2960,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // eliminate. skip (count+1)*2+2 bytes
       ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
-      R = domain_intersection(R, domain_createValue(constantSum));
+      R = domain_intersectionValue(R, constantSum);
       if (oR !== R) {
         if (setDomain(indexR, R, 'sum; solved R because all args are constants (now)')) return;
       }
@@ -3215,7 +3155,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       // eliminate. skip (count+1)*2+2 bytes
       ASSERT_LOG2(' - eliminating constraint since all vars are constants');
       oR = R;
-      R = domain_intersection(R, domain_createValue(constantsProduct));
+      R = domain_intersectionValue(R, constantsProduct);
       if (oR !== R) {
         if (!R) return setEmpty(indexR, 'product; solved R because only constants are left');
       }
@@ -3374,7 +3314,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     // note: at this point A and B both have a zero. if either is solved, it is
     // solved to zero and we remove the constraint. otherwise neither is solved
     // (they'd have zero and something non-zero) and we ignore now
-    if (A === domain_createValue(0) || B === domain_createValue(0)) {
+    if (domain_isZero(A) || domain_isZero(B)) {
       ml_eliminate(ml, offset, SIZEOF_VV);
       return;
     }
@@ -3414,12 +3354,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
     // note: at this point A and B both have a zero. if either is solved, it is
     // solved to zero, set the other to zero and remove the constraint.
-    if (A === domain_createValue(0)) {
+    if (domain_isZero(A)) {
       if (setDomain(indexB, domain_removeGte(B, 1), 'xnor')) return;
       ml_eliminate(ml, offset, SIZEOF_VV);
       return;
     }
-    if (B === domain_createValue(0)) {
+    if (domain_isZero(B)) {
       if (setDomain(indexA, domain_removeGte(A, 1), 'xnor')) return;
       ml_eliminate(ml, offset, SIZEOF_VV);
       return;
@@ -3512,14 +3452,14 @@ function cr_v8v28v(ml, offset, opCode, vA, indexB) {
   ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
 }
 
-function cr_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
-  ASSERT_LOG2(' -| cr_v8v2v88 |', opCode, indexA, vB, vR);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, vB);
-  ml_enc8(ml, offset + 4, vR);
-  ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
-}
+//function cr_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
+//  ASSERT_LOG2(' -| cr_v8v2v88 |', opCode, indexA, vB, vR);
+//  ml_enc8(ml, offset, opCode);
+//  ml_enc16(ml, offset + 1, indexA);
+//  ml_enc8(ml, offset + 3, vB);
+//  ml_enc8(ml, offset + 4, vR);
+//  ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
+//}
 
 // BODY_STOP
 

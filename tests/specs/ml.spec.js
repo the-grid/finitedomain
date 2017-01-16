@@ -287,4 +287,174 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], D: 1});
     });
   });
+
+  describe('eq reifier with booleanesque', function() {
+
+    it('should solve implicit case to boolean (C=0)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [15 20]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
+    });
+
+    it('should solve implicit case to boolean (C=1)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        # C should be implicitly defined as a bool (!), not sub/sup
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: 1}); // C:[1,SUP] is NOT valid here... dsl2ml should create C as bool
+    });
+
+    it('should work when result is explicitly bool (C=0)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [15 20]
+        : C [0 1]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
+    });
+
+    it('should work when result is explicitly bool (C=1)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [0 1]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: 1});
+    });
+
+    it('should work when result is explicitly [0 10] (C=0)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [15 20]
+        : C [0 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
+    });
+
+    it('should work when result is explicitly [0 10] (C=1)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [0 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: [1, 10]});
+    });
+
+    it('should work when result is explicitly two values without 1 (C=0)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [15 20]
+        : C [0 0 4 4]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
+    });
+
+    it('should work when result is explicitly two values without 1 (C=4)', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [0 0 4 4]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: 4});
+    });
+
+    it('should work when result is explicitly [0 0] v1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [15 20]
+        : C [0 0]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
+    });
+
+    it('should work when result is explicitly [0 0] v2', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [0 0]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: [6, 10], B: 5, C: 0});
+    });
+
+    it('should work when result is explicitly [1 10] v1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 16]
+        : B [15 20]
+        : C [1 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 15, B: 15, C: [1, 10]});
+    });
+
+    it('should work when result is explicitly [1 10] v2', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [1 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: [1, 10]});
+    });
+
+    it('should work when result is explicitly [5 10] v1', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 16]
+        : B [15 20]
+        : C [5 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 15, B: 15, C: [5, 10]});
+    });
+
+    it('should work when result is explicitly [5 10] v2', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [5 10]
+        : C [5 10]
+        C = A ==? B
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: [5, 10]});
+    });
+  });
 });

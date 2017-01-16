@@ -87,10 +87,16 @@ import {
 function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
   ASSERT_LOG2('\n## mlToDsl');
   const DEBUG = true;
+  const HASH_NAMES = true;
   let pc = 0;
   let dsl = '';
 
-  if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], '$' + a[1].toString(36)]));
+  function toName(index) {
+    if (HASH_NAMES) return '_' + index.toString(36) + '_';
+    return names[index];
+  }
+
+  //if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], '$' + a[1].toString(36)]));
 
   let allParts = [];
   let partsPerVar = [];
@@ -106,18 +112,16 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       let str = '';
       if (domain === false) {
         ++aliases;
-        //let alias = getAlias(index);
-        //str = '# var index ' + index + ' (' + names[index] + ') is aliased to index ' + alias + ' (' + names[alias] + ')';
       } else {
         ++varsLeft;
         let domain = domains[index];
         let v = domain_getValue(domain);
         if (v >= 0) {
           ++solved;
-          str = ': ' + names[index] + ' ' + v;
+          str = ': ' + toName(index) + ' ' + v;
         } else {
           ++unsolved;
-          str = ': ' + names[index] + ' [' + domain_toArr(domain) + ']';
+          str = ': ' + toName(index) + ' [' + domain_toArr(domain) + ']';
         }
       }
       arr[index] = str;
@@ -126,9 +130,9 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       if (domain === false) {
         let alias = getAlias(index);
         if (arr[alias][arr[alias].length - 1] === ')') {
-          arr[alias] = arr[alias].slice(0, -1) + ' ' + names[index] + ')';
+          arr[alias] = arr[alias].slice(0, -1) + ' ' + toName(index) + ')';
         } else {
-          arr[alias] += ' alias(' + names[index] + ')';
+          arr[alias] += ' alias(' + toName(index) + ')';
         }
       }
     });
@@ -201,11 +205,16 @@ ${
         partsPerVar[b].push(allParts.length);
       }
 
-      let s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
-      s += ' '.repeat(Math.max(45 - s.length, 0));
-      s += '   # ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
-      s += ' '.repeat(Math.max(110 - s.length, 0));
-      return s + '    # args: ' + a + ', ' + b + (counts ? ', counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '') + ' \n';
+      let s = (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b));
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# args: ' + a + ', ' + b;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += (counts ? '# counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
+      s += ' \n';
+
+      return s;
     } else {
       return (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
     }
@@ -235,16 +244,17 @@ ${
         partsPerVar[c].push(allParts.length);
       }
 
-      s = (lena === 1 ? a : names[a]) + ' ' + op + ' ' + (lenb === 1 ? b : names[b]);
-      s = (lenc === 1 ? c : names[c]) + ' = ' + s;
-      s += ' '.repeat(Math.max(45 - s.length, 0));
-      let ss = '';
-      if (counts) {
-        ss += ', counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) + ' ';
-      }
-      s += '   # ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
-      s += ' '.repeat(Math.max(110 - s.length, 0));
-      return s + '    # args: ' + c + ' = ' + a + ' @ ' + b + ss + '\n';
+      s = (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b));
+      s = (lenc === 1 ? c : toName(c)) + ' = ' + s;
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# args: ' + c + ' = ' + a + ' @ ' + b;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += counts ? '# counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) + ' ' : '';
+      s += '\n';
+
+      return s;
     } else {
       return (lenc === 1 ? c : '$' + c.toString(36) + '$') + ' = ' + (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
     }
@@ -271,18 +281,23 @@ ${
 
         indexes += index + ' ';
         if (counts) counters += counts[index] + ' ';
-        argNames += names[index] + ' ';
+        argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += '$' + index.toString(36) + ' ';
+        argNames += toName(index) + ' ';
       }
     }
     if (DEBUG) {
       let s = callName + '( ' + argNames + ')';
-      s += ' '.repeat(Math.max(45 - s.length, 0));
-      s += '   # ' + callName + '( ' + debugs + ') ';
-      s += ' '.repeat(Math.max(110 - s.length, 0));
-      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + callName + '( ' + counters + ')' : '') + '\n';
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# ' + callName + '( ' + debugs + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# indexes: ' + indexes;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += (counts ? '# counts: ' + callName + '( ' + counters + ')' : '');
+      s += '\n';
+
+      return s;
     } else {
       return callName + '( ' + argNames + ')\n';
     }
@@ -311,21 +326,26 @@ ${
 
         indexes += index + ' ';
         if (counts) counters += counts[index] + ' ';
-        argNames += names[index] + ' ';
+        argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += '$' + index.toString(36) + ' ';
+        argNames += toName(index) + ' ';
       }
     }
     let indexR = cr_dec16();
     if (DEBUG) {
       if (!partsPerVar[indexR]) partsPerVar[indexR] = [];
       partsPerVar[indexR].push(allParts.length);
-      let s = names[indexR] + ' = ' + callName + '( ' + argNames + ')';
-      s += ' '.repeat(Math.max(45 - s.length, 0));
-      s += '   # ' + domain__debug(domains[indexR]) + ' = ' + callName + '( ' + debugs + ') ';
-      s += ' '.repeat(Math.max(110 - s.length, 0));
-      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + counts[indexR] + ' = ' + callName + '( ' + counters + ')' : '') + '\n';
+      let s = toName(indexR) + ' = ' + callName + '( ' + argNames + ')';
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# ' + domain__debug(domains[indexR]) + ' = ' + callName + '( ' + debugs + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# indexes: ' + indexes;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += (counts ? '# counts: ' + counts[indexR] + ' = ' + callName + '( ' + counters + ')' : '');
+      s += '\n';
+
+      return s;
     } else {
       return '$' + indexR.toString(36) + ' = ' + callName + '( ' + argNames + ')\n';
     }
@@ -350,7 +370,7 @@ ${
         partsPerVar[index].push(allParts.length);
         indexes += index + ' ';
         if (counts) scounts += counts[index] + ' ';
-        sums += names[index] + ' ';
+        sums += toName(index) + ' ';
         bug += domain__debug(domain) + ' ';
       } else {
         sums += '$' + index.toString(36) + ' ';
@@ -360,11 +380,16 @@ ${
     if (DEBUG) {
       if (!partsPerVar[sumIndex]) partsPerVar[sumIndex] = [];
       partsPerVar[sumIndex].push(allParts.length);
-      let s = names[sumIndex] + ' = sum( ' + sums + ')';
-      s += ' '.repeat(Math.max(45 - s.length, 0));
-      s += '   # constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum( ' + bug + ') ';
-      s += ' '.repeat(Math.max(110 - s.length, 0));
-      return s + '   # indexes: ' + indexes + (counts ? ', counts: ' + counts[sumIndex] + ' = sum( ' + scounts + ')' : '') + '\n';
+      let s = toName(sumIndex) + ' = sum( ' + sums + ')';
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum( ' + bug + ') ';
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# indexes: ' + indexes;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += (counts ? '# counts: ' + counts[sumIndex] + ' = sum( ' + scounts + ')' : '');
+      s += '\n';
+
+      return s;
     } else {
       return '$' + sumIndex.toString(36) + ' = sum(' + sums + ')\n';
     }

@@ -432,6 +432,88 @@ function ml_vvv2vvv(ml, offset, opCode, indexA, indexB, indexR) {
   ml_enc16(ml, offset + 5, indexR);
 }
 
+function ml_vvv2v8v(ml, offset, opCode, indexA, constant, indexR) {
+  ASSERT_LOG2(' -| ml_vvv2v8v |', opCode, indexA, constant, indexR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, constant);
+  ml_enc16(ml, offset + 4, indexR);
+  ml_skip(ml, offset + SIZEOF_V8V, SIZEOF_VVV - SIZEOF_V8V);
+}
+
+function ml_vv82vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| ml_vv82vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
+}
+
+function ml_8vv2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| ml_8vv2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
+}
+
+function ml_8vv2v8(ml, offset, opCode, indexA, vB) {
+  ASSERT_LOG2(' -| ml_8vv2v8 |', opCode, indexA, vB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_8VV - SIZEOF_V8);
+}
+
+function ml_8vv28v(ml, offset, opCode, vA, indexB) {
+  ASSERT_LOG2(' -| ml_8vv28v |', opCode, vA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc8(ml, offset + 1, vA);
+  ml_enc16(ml, offset + 2, indexB);
+  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
+}
+
+function ml_v8v2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| ml_v8v2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
+}
+
+function ml_v8v2v8(ml, offset, opCode, indexA, vB) {
+  ASSERT_LOG2(' -| ml_v8v2v8 |', opCode, indexA, vB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
+}
+
+function ml_v8v2v8v(ml, offset, opCode, indexA, vB, indexR) {
+  ASSERT_LOG2(' -| ml_v8v2v8v |', opCode, indexA, vB, indexR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_enc16(ml, offset + 4, indexR);
+}
+
+function ml_v8v28v(ml, offset, opCode, vA, indexB) {
+  ASSERT_LOG2(' -| ml_v8v2v8 |', opCode, vA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc8(ml, offset + 1, vA);
+  ml_enc16(ml, offset + 2, indexB);
+  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
+}
+
+function ml_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
+  ASSERT_LOG2(' -| ml_v8v2v88 |', opCode, indexA, vB, vR);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc8(ml, offset + 3, vB);
+  ml_enc8(ml, offset + 4, vR);
+  ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
+}
+
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
@@ -982,4 +1064,14 @@ export {
   ml_throw,
   ml_vvv2vv,
   ml_vvv2vvv,
+  ml_vvv2v8v,
+  ml_8vv2vv,
+  ml_8vv2v8,
+  ml_8vv28v,
+  ml_v8v2vv,
+  ml_v8v28v,
+  ml_v8v2v8,
+  ml_v8v2v8v,
+  ml_v8v2v88,
+  ml_vv82vv,
 };

@@ -101,7 +101,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
   let aliased = 0;
   let emptyDomain = false;
   innerLoop();
-  ASSERT_LOG2(' - dedupe removed', removed, 'constraints, aliased', aliased, 'result vars');
+  console.log(' - dedupe removed', removed, 'constraints and aliased', aliased, 'result vars');
 
   return emptyDomain ? -1 : aliased; // if aliases were created the minifier will want another go.
 

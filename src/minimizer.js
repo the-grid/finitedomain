@@ -97,6 +97,7 @@ import {
   ml_enc8,
   ml_enc16,
   ml_eliminate,
+  ml_heapSort16bitInline,
   ml_pump,
   ml_skip,
   ml_jump,
@@ -144,7 +145,7 @@ const MINIMIZER_REJECTED = 2;
 
 const MINIMIZE_ALIASED = false;
 
-function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
+function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('sweeping');
   let varChanged = true;
@@ -154,6 +155,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
   let lastOp = 0;
   let pc = 0;
   let loops = 0;
+  let constraints = 0; // count a constraint going forward, ignore jumps, reduce when restarting from same pc
   while (varChanged) {
     ++loops;
     //console.log('- looping', loops);
@@ -161,6 +163,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2('cr outer loop');
     varChanged = false;
     pc = 0;
+    constraints = 0;
     let ops = cr_innerLoop();
     ASSERT_LOG2('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) {
@@ -168,12 +171,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       console.error('Empty domain, problem rejected');
     }
     console.timeEnd('-> loop ' + loops);
-    console.log('   - ops this loop:', ops);
+    console.log('   - ops this loop:', ops, 'constraints:', constraints);
     if (emptyDomain) return MINIMIZER_REJECTED;
     if (onlyJumps) return MINIMIZER_SOLVED;
 
     ASSERT_LOG2('intermediate state:');
     ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
+    firstRun = false;
   }
   return MINIMIZER_STABLE;
 
@@ -217,6 +221,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     onlyJumps = true;
     while (pc < ml.length && !emptyDomain) {
       ++ops;
+      ++constraints;
       let pcStart = pc;
       lastPcOffset = pc;
       let op = ml[pc];
@@ -230,10 +235,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
             return THROW(' ! optimizer problem @', pc);
           }
           ++pc;
+          --constraints; // not a constraint
           break;
 
         case ML_STOP:
           ASSERT_LOG2(' ! good end @', pcStart);
+          --constraints; // not a constraint
           return ops;
 
         case ML_VV_EQ:
@@ -529,23 +536,28 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         case ML_NOOP:
           ASSERT_LOG2('- noop @', pc);
           cr_moveTo(ml, pc, 1);
+          --constraints; // not a constraint
           break;
         case ML_NOOP2:
           ASSERT_LOG2('- noop2 @', pc);
           cr_moveTo(ml, pc, 2);
+          --constraints; // not a constraint
           break;
         case ML_NOOP3:
           ASSERT_LOG2('- noop3 @', pc);
           cr_moveTo(ml, pc, 3);
+          --constraints; // not a constraint
           break;
         case ML_NOOP4:
           ASSERT_LOG2('- noop4 @', pc);
           cr_moveTo(ml, pc, 4);
+          --constraints; // not a constraint
           break;
         case ML_JMP:
           ASSERT_LOG2('- jmp @', pc);
           let delta = ml_dec16(ml, pc + 1);
           cr_moveTo(ml, pc, SIZEOF_V + delta);
+          --constraints; // not a constraint
           break;
 
         default:
@@ -553,6 +565,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       }
       if (pc === pcStart) {
         ASSERT_LOG2(' - restarting op from same pc...');
+        --constraints; // constraint may have been eliminated
       }
     }
     if (emptyDomain) return ops;
@@ -984,6 +997,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let countStart = argCount;
     let lastIndex;
 
+    // sort the args
+    if (firstRun) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
+
     // a nall only ensures at least one of its arg solves to zero
     for (let i = argCount - 1; i >= 0; --i) {
       lastIndex = ml_dec16(ml, offsetArgs + i * 2);
@@ -1066,6 +1084,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
 
     if (!R) return setEmpty(indexR, 'isall; R bad state');
+
+    // sort the args
+    if (firstRun) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
 
     if (domain_isZero(R)) {
       ASSERT_LOG2(' - R is 0 so recompile to nall and revisit');
@@ -1175,6 +1198,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
 
     if (!R) return setEmpty(indexR, 'isnall; R bad state');
+
+    // sort the args
+    if (firstRun) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
 
     if (domain_isZero(R)) {
       // remove zero from all and eliminate
@@ -2836,6 +2864,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     if (!R) return setEmpty(indexR, 'sum; R bad state');
 
+    // sort the args
+    if (firstRun) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
+    }
+
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
     // to prevent generating an array we'll decode every var during the loop...
     // we loop back to front because we're splicing out vars while looping
@@ -2933,7 +2966,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ml_enc16(ml, offset + 5, indexR);
       ml_skip(ml, offset + SIZEOF_VVV, oplen - SIZEOF_VVV);
 
-      ASSERT_LOG2(' - Changed to a plus to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
+      ASSERT_LOG2(' - Changed to a plus on index', newIndexA, 'and', (constants ? 'constant value ' + constantSum : 'index ' + newIndexB));
       ASSERT_LOG2(' - ml now:', ml);
       // revisit immediately
       pc = offset;
@@ -2962,7 +2995,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ml_skip(ml, offset + SIZEOF_VV, oplen - SIZEOF_VV);
       }
 
-      ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
+      ASSERT_LOG2(' - changed to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;
@@ -3004,7 +3037,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2);
       // now "blank out" the remainder
       ml_skip(ml, offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2, constants * 2);
-      pc = offset; // TODO: temp while debugging + oplen;
+      pc = offset; // the freshly compiled jump may clobber the offset+len part if it were a jump so restart and take the jump
     } else {
       ASSERT(argCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', argCount, 'constants', constants, 'count-constants', argCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
@@ -3034,6 +3067,11 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' - start loop, backwards');
 
     if (!R) return setEmpty(indexR, 'product; R bad state');
+
+    // sort the args
+    if (firstRun) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
+    }
 
     // a product is basically a pyramid of muls; (A*B)*(C*D) etc
     // to prevent generating an array we'll decode every var during the loop...
@@ -3157,7 +3195,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
         ml_skip(ml, offset + SIZEOF_VV, oplen - SIZEOF_VV);
       }
 
-      ASSERT_LOG2(' - changed to a product to an eq on index', newIndexA, 'and index ' + indexR);
+      ASSERT_LOG2(' - changed to an eq on index', newIndexA, 'and index ' + indexR);
       ASSERT_LOG2(' - ml now:', ml);
       // revisit it immediately
       pc = offset;

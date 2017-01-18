@@ -142,10 +142,11 @@ function solverSolver(dsl) {
   let mlConstraints = Buffer.from(mls, 'binary');
 
   let deduperAddedAlias;
+  let firstLoop = true;
   do {
     ASSERT_LOG2('Minimizing ML...');
     console.time('- minimizing ml');
-    let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
+    let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
     console.timeEnd('- minimizing ml');
 
     if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
@@ -161,6 +162,7 @@ function solverSolver(dsl) {
     console.time('dedupe constraints:');
     deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
     console.timeEnd('dedupe constraints:');
+    firstLoop = false;
   } while (deduperAddedAlias > 0);
 
   if (deduperAddedAlias < 0) return false; // a contradiction was found... weird! but possible.
@@ -171,18 +173,23 @@ function solverSolver(dsl) {
   if (cutFailed) return false;
 
   console.time('- minimizing ml, again');
-  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack);
+  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, false);
   console.timeEnd('- minimizing ml, again', state);
 
   console.time('ml->dsl:');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
   console.timeEnd('ml->dsl:');
-  console.log(newdsl2);
 
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
-  if (!ml_hasConstraint(mlConstraints)) return createSolution(vars, domains, getAlias, solveStack);
+  let solution;
+  if (!ml_hasConstraint(mlConstraints)) solution = createSolution(vars, domains, getAlias, solveStack);
 
   console.timeEnd('</solverSolver>');
+
+  console.log(newdsl2);
+
+  if (solution) return solution;
+
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
@@ -194,11 +201,11 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack) {
+function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
   ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
-  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, solveStack);
+  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
   if (state === MINIMIZER_SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
     return state;

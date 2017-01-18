@@ -96,4 +96,15 @@ describe('specs/deduper.spec', function() {
     // D==E
     expect(solution).to.eql({A: 0, B: 0, D: 0, E: 0});
   });
+
+  it('should eliminate double nalls', function() {
+    expect(_ => solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      : C [0 10]
+      nall(A B C)
+      nall(A B C)
+    `)).to.throw('debug: 3 vars, 1 constraints, current domain state: 0:A:0,10: 1:B:0,10: 2:C:0,10 ops: nall');
+  });
 });

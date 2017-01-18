@@ -1,7 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import solverSolver from '../../src/runner';
+import {
+  ml_heapSort16bitInline,
+} from '../../src/ml';
 
-describe('specs/minimizer.spec', function() {
+describe('specs/ml.spec', function() {
 
   describe('AND', function() {
 
@@ -457,4 +460,43 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 5, B: 5, C: [5, 10]});
     });
   });
+
+  describe('ml_heapSort16bitInline', function() {
+
+    it('should work with empty buffer', function() {
+      let buf = new Buffer(0);
+      ml_heapSort16bitInline(buf, 0, 0);
+
+      expect(buf).to.eql(new Buffer(0));
+    });
+
+    it('should work with empty list', function() {
+      let buf = Buffer.from('foobar', 'binary');
+      ml_heapSort16bitInline(buf, 0, 0);
+
+      expect(buf).to.eql(Buffer.from('foobar', 'binary')); // [ar, fo, ob], unchanged because len=0
+    });
+
+    it('should sort the foobar', function() {
+      let buf = Buffer.from('foobar', 'binary');
+      ml_heapSort16bitInline(buf, 0, 3);
+
+      expect(buf).to.eql(Buffer.from('arfoob', 'binary')); // [ar, fo, ob]
+    });
+
+    it('should sort the foobar offset 1 till end', function() {
+      let buf = Buffer.from('\xfffoobar', 'binary');
+      ml_heapSort16bitInline(buf, 1, 3);
+
+      expect(buf).to.eql(Buffer.from('\xffarfoob', 'binary')); // [255, ar, fo, ob]
+    });
+
+    it('should sort the foobar offset 1 with suffix', function() {
+      let buf = Buffer.from('\xfffoobar\xfe', 'binary');
+      ml_heapSort16bitInline(buf, 1, 3);
+
+      expect(buf).to.eql(Buffer.from('\xffarfoob\xfe', 'binary')); // [255, ar, fo, ob, 254]
+    });
+  });
+
 });

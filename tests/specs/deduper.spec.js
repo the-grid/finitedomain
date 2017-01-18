@@ -16,6 +16,19 @@ describe('specs/deduper.spec', function() {
     expect(solution).to.eql({A: 1, B: 0});
   });
 
+  it('should detect swapped duplicate constraints', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 1]
+      : B [0 1]
+      A != B
+      B != A
+    `);
+    // note: deduper will remove one dupe and then cutter will remove the remaining one (but wouldnt otherwise)
+
+    expect(solution).to.eql({A: 1, B: 0});
+  });
+
   it('should remove duplicate iseq', function() {
     let solution = solverSolver(`
       @custom var-strat throw
@@ -29,6 +42,19 @@ describe('specs/deduper.spec', function() {
     expect(solution).to.eql({A: 0, B: 0, C: 1, D: 1});
   });
 
+
+  it('should remove swapped duplicate iseq', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 1]
+      : B [0 1]
+      C = A ==? B
+      D = B ==? A
+    `);
+    // note: deduper will remove one dupe and then cutter will remove the remaining one (but wouldnt otherwise)
+
+    expect(solution).to.eql({A: 0, B: 0, C: 1, D: 1});
+  });
 
   it('should remove pseudo duplicate iseq/isneq', function() {
     let solution = solverSolver(`
@@ -106,5 +132,30 @@ describe('specs/deduper.spec', function() {
       nall(A B C)
       nall(A B C)
     `)).to.throw('debug: 3 vars, 1 constraints, current domain state: 0:A:0,10: 1:B:0,10: 2:C:0,10 ops: nall');
+  });
+
+  it('should eliminate swapped double nalls', function() {
+    expect(_ => solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      : C [0 10]
+      nall(A B C)
+      nall(B C A)
+    `)).to.throw('debug: 3 vars, 1 constraints, current domain state: 0:A:0,10: 1:B:0,10: 2:C:0,10 ops: nall');
+  });
+
+  it('should dedupe a contrived dupe', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      : C [0 10]
+      A != C
+      distinct(C B A)
+      B == 5 # should remove B from the distinct, which should morph to a C != A
+    `);
+
+    expect(solution).to.eql({A: [1, 10], B: 5, C: 0});
   });
 });

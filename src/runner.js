@@ -31,7 +31,7 @@ import {
   MINIMIZER_SOLVED,
   MINIMIZER_REJECTED,
 
-  cr_optimizeConstraints,
+  min_optimizeConstraints,
 } from './minimizer';
 import {
   deduper,
@@ -205,7 +205,7 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
   ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
   ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
-  let state = cr_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
+  let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
   if (state === MINIMIZER_SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
     return state;

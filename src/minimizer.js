@@ -145,8 +145,8 @@ const MINIMIZER_REJECTED = 2;
 
 const MINIMIZE_ALIASED = false;
 
-function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
-  ASSERT_LOG2('cr_optimizeConstraints', ml, domains.map(domain__debug));
+function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
+  ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('sweeping');
   let varChanged = true;
   let onlyJumps = true;
@@ -164,7 +164,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     varChanged = false;
     pc = 0;
     constraints = 0;
-    let ops = cr_innerLoop();
+    let ops = min_innerLoop();
     ASSERT_LOG2('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
     if (emptyDomain) {
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
@@ -216,7 +216,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     if (index >= 0) setDomain(index, domain_createEmpty(), 'explicitly empty' + (desc ? '; ' + desc : ''));
   }
 
-  function cr_innerLoop() {
+  function min_innerLoop() {
     let ops = 0;
     onlyJumps = true;
     while (pc < ml.length && !emptyDomain) {
@@ -245,318 +245,318 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
         case ML_VV_EQ:
           ASSERT_LOG2('- eq vv @', pcStart);
-          cr_vv_eq(ml);
+          min_vv_eq(ml);
           break;
 
         case ML_V8_EQ:
           ASSERT_LOG2('- eq v8 @', pcStart);
-          cr_v8_eq(ml);
+          min_v8_eq(ml);
           break;
 
         case ML_88_EQ:
           ASSERT_LOG2('- eq 88 @', pcStart);
-          cr_88_eq(ml);
+          min_88_eq(ml);
           break;
 
         case ML_VV_NEQ:
           ASSERT_LOG2('- neq vv @', pcStart);
-          cr_vv_neq(ml);
+          min_vv_neq(ml);
           break;
 
         case ML_V8_NEQ:
           ASSERT_LOG2('- neq v8 @', pcStart);
-          cr_v8_neq(ml);
+          min_v8_neq(ml);
           break;
 
         case ML_88_NEQ:
           ASSERT_LOG2('- neq 88 @', pcStart);
-          cr_88_neq(ml);
+          min_88_neq(ml);
           break;
 
         case ML_VV_LT:
           ASSERT_LOG2('- lt vv @', pcStart);
-          cr_vv_lt(ml);
+          min_vv_lt(ml);
           break;
 
         case ML_V8_LT:
           ASSERT_LOG2('- lt v8 @', pcStart);
-          cr_v8_lt(ml);
+          min_v8_lt(ml);
           break;
 
         case ML_8V_LT:
           ASSERT_LOG2('- lt 8v @', pcStart);
-          cr_8v_lt(ml);
+          min_8v_lt(ml);
           break;
 
         case ML_88_LT:
           ASSERT_LOG2('- lt 88 @', pcStart);
-          cr_88_lt(ml);
+          min_88_lt(ml);
           break;
 
         case ML_VV_LTE:
           ASSERT_LOG2('- lte vv @', pcStart);
-          cr_vv_lte(ml);
+          min_vv_lte(ml);
           break;
 
         case ML_V8_LTE:
           ASSERT_LOG2('- lte v8 @', pcStart);
-          cr_v8_lte(ml);
+          min_v8_lte(ml);
           break;
 
         case ML_8V_LTE:
           ASSERT_LOG2('- lte 8v @', pcStart);
-          cr_8v_lte(ml);
+          min_8v_lte(ml);
           break;
 
         case ML_88_LTE:
           ASSERT_LOG2('- lte 88 @', pcStart);
-          cr_88_lte(ml);
+          min_88_lte(ml);
           break;
 
         case ML_NALL:
           ASSERT_LOG2('- nall @', pcStart);
-          cr_nall(ml);
+          min_nall(ml);
           break;
 
         case ML_ISALL:
           ASSERT_LOG2('- isall @', pcStart);
-          cr_isAll(ml);
+          min_isAll(ml);
           break;
 
         case ML_ISALL2:
           ASSERT_LOG2('- isall2 @', pcStart);
-          cr_isAll2(ml);
+          min_isAll2(ml);
           break;
 
         case ML_ISNALL:
           ASSERT_LOG2('- isnall @', pcStart);
-          cr_isNall(ml);
+          min_isNall(ml);
           break;
 
         case ML_DISTINCT:
           ASSERT_LOG2('- distinct @', pcStart);
-          cr_distinct(ml);
+          min_distinct(ml);
           break;
 
         case ML_PLUS:
           ASSERT_LOG2('- plus @', pcStart);
-          cr_plus(ml);
+          min_plus(ml);
           break;
 
         case ML_MINUS:
           ASSERT_LOG2('- minus @', pcStart);
-          cr_minus(ml);
+          min_minus(ml);
           break;
 
         case ML_MUL:
           ASSERT_LOG2('- mul @', pcStart);
-          cr_mul(ml);
+          min_mul(ml);
           break;
 
         case ML_DIV:
           ASSERT_LOG2('- div @', pcStart);
-          cr_div(ml);
+          min_div(ml);
           break;
 
         case ML_VVV_ISEQ:
           ASSERT_LOG2('- iseq vvv @', pcStart);
-          cr_vvv_isEq(ml);
+          min_vvv_isEq(ml);
           break;
 
         case ML_V8V_ISEQ:
           ASSERT_LOG2('- iseq v8v @', pcStart);
-          cr_v8v_isEq(ml);
+          min_v8v_isEq(ml);
           break;
 
         case ML_VV8_ISEQ:
           ASSERT_LOG2('- iseq vv8 @', pcStart);
-          cr_vv8_isEq(ml);
+          min_vv8_isEq(ml);
           break;
 
         case ML_88V_ISEQ:
           ASSERT_LOG2('- iseq 88v @', pcStart);
-          cr_88v_isEq(ml);
+          min_88v_isEq(ml);
           break;
 
         case ML_V88_ISEQ:
           ASSERT_LOG2('- iseq v88 @', pcStart);
-          cr_v88_isEq(ml);
+          min_v88_isEq(ml);
           break;
 
         case ML_888_ISEQ:
           ASSERT_LOG2('- iseq 888 @', pcStart);
-          cr_888_isEq(ml);
+          min_888_isEq(ml);
           break;
 
         case ML_VVV_ISNEQ:
           ASSERT_LOG2('- isneq vvv @', pcStart);
-          cr_vvv_isNeq(ml);
+          min_vvv_isNeq(ml);
           break;
 
         case ML_V8V_ISNEQ:
           ASSERT_LOG2('- isneq v8v @', pcStart);
-          cr_v8v_isNeq(ml);
+          min_v8v_isNeq(ml);
           break;
 
         case ML_VV8_ISNEQ:
           ASSERT_LOG2('- isneq vv8 @', pcStart);
-          cr_vv8_isNeq(ml);
+          min_vv8_isNeq(ml);
           break;
 
         case ML_88V_ISNEQ:
           ASSERT_LOG2('- isneq 88v @', pcStart);
-          cr_88v_isNeq(ml);
+          min_88v_isNeq(ml);
           break;
 
         case ML_V88_ISNEQ:
           ASSERT_LOG2('- isneq v88 @', pcStart);
-          cr_v88_isNeq(ml);
+          min_v88_isNeq(ml);
           break;
 
         case ML_888_ISNEQ:
           ASSERT_LOG2('- isneq 888 @', pcStart);
-          cr_888_isNeq(ml);
+          min_888_isNeq(ml);
           break;
 
         case ML_VVV_ISLT:
           ASSERT_LOG2('- islt vvv @', pcStart);
-          cr_vvv_isLt(ml);
+          min_vvv_isLt(ml);
           break;
 
         case ML_8VV_ISLT:
           ASSERT_LOG2('- islt 8vv @', pcStart);
-          cr_8vv_isLt(ml);
+          min_8vv_isLt(ml);
           break;
 
         case ML_V8V_ISLT:
           ASSERT_LOG2('- islt v8v @', pcStart);
-          cr_v8v_isLt(ml);
+          min_v8v_isLt(ml);
           break;
 
         case ML_VV8_ISLT:
           ASSERT_LOG2('- islt vv8 @', pcStart);
-          cr_vv8_isLt(ml);
+          min_vv8_isLt(ml);
           break;
 
         case ML_88V_ISLT:
           ASSERT_LOG2('- islt 88v @', pcStart);
-          cr_88v_isLt(ml);
+          min_88v_isLt(ml);
           break;
 
         case ML_V88_ISLT:
           ASSERT_LOG2('- islt v88 @', pcStart);
-          cr_v88_isLt(ml);
+          min_v88_isLt(ml);
           break;
 
         case ML_8V8_ISLT:
           ASSERT_LOG2('- islt 8v8 @', pcStart);
-          cr_8v8_isLt(ml);
+          min_8v8_isLt(ml);
           break;
 
         case ML_888_ISLT:
           ASSERT_LOG2('- islt 888 @', pcStart);
-          cr_888_isLt(ml);
+          min_888_isLt(ml);
           break;
 
         case ML_VVV_ISLTE:
           ASSERT_LOG2('- islte vvv @', pcStart);
-          cr_vvv_isLte(ml);
+          min_vvv_isLte(ml);
           break;
 
         case ML_8VV_ISLTE:
           ASSERT_LOG2('- islte 8vv @', pcStart);
-          cr_8vv_isLte(ml);
+          min_8vv_isLte(ml);
           break;
 
         case ML_V8V_ISLTE:
           ASSERT_LOG2('- islte v8v @', pcStart);
-          cr_v8v_isLte(ml);
+          min_v8v_isLte(ml);
           break;
 
         case ML_VV8_ISLTE:
           ASSERT_LOG2('- islte vv8 @', pcStart);
-          cr_vv8_isLte(ml);
+          min_vv8_isLte(ml);
           break;
 
         case ML_88V_ISLTE:
           ASSERT_LOG2('- islte 88v @', pcStart);
-          cr_88v_isLte(ml);
+          min_88v_isLte(ml);
           break;
 
         case ML_V88_ISLTE:
           ASSERT_LOG2('- islte v88 @', pcStart);
-          cr_v88_isLte(ml);
+          min_v88_isLte(ml);
           break;
 
         case ML_8V8_ISLTE:
           ASSERT_LOG2('- islte 8v8 @', pcStart);
-          cr_8v8_isLte(ml);
+          min_8v8_isLte(ml);
           break;
 
         case ML_888_ISLTE:
           ASSERT_LOG2('- islte 888 @', pcStart);
-          cr_888_isLte(ml);
+          min_888_isLte(ml);
           break;
 
         case ML_8V_SUM:
           ASSERT_LOG2('- sum @', pcStart);
-          cr_sum(ml);
+          min_sum(ml);
           break;
 
         case ML_PRODUCT:
           ASSERT_LOG2('- product @', pcStart);
-          cr_product(ml);
+          min_product(ml);
           break;
 
         case ML_VV_AND:
           ASSERT_LOG2('- and @', pcStart);
-          cr_vv_and(ml);
+          min_vv_and(ml);
           break;
 
         case ML_VV_OR:
           ASSERT_LOG2('- or @', pcStart);
-          cr_vv_or(ml);
+          min_vv_or(ml);
           break;
 
         case ML_VV_XOR:
           ASSERT_LOG2('- xor @', pcStart);
-          cr_vv_xor(ml);
+          min_vv_xor(ml);
           break;
 
         case ML_VV_NAND:
           ASSERT_LOG2('- nand @', pcStart);
-          cr_vv_nand(ml);
+          min_vv_nand(ml);
           break;
 
         case ML_VV_XNOR:
           ASSERT_LOG2('- xnor @', pcStart);
-          cr_vv_xnor(ml);
+          min_vv_xnor(ml);
           break;
 
         case ML_NOOP:
           ASSERT_LOG2('- noop @', pc);
-          cr_moveTo(ml, pc, 1);
+          min_moveTo(ml, pc, 1);
           --constraints; // not a constraint
           break;
         case ML_NOOP2:
           ASSERT_LOG2('- noop2 @', pc);
-          cr_moveTo(ml, pc, 2);
+          min_moveTo(ml, pc, 2);
           --constraints; // not a constraint
           break;
         case ML_NOOP3:
           ASSERT_LOG2('- noop3 @', pc);
-          cr_moveTo(ml, pc, 3);
+          min_moveTo(ml, pc, 3);
           --constraints; // not a constraint
           break;
         case ML_NOOP4:
           ASSERT_LOG2('- noop4 @', pc);
-          cr_moveTo(ml, pc, 4);
+          min_moveTo(ml, pc, 4);
           --constraints; // not a constraint
           break;
         case ML_JMP:
           ASSERT_LOG2('- jmp @', pc);
           let delta = ml_dec16(ml, pc + 1);
-          cr_moveTo(ml, pc, SIZEOF_V + delta);
+          min_moveTo(ml, pc, SIZEOF_V + delta);
           --constraints; // not a constraint
           break;
 
@@ -572,7 +572,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     return THROW('Derailed; expected to find STOP before EOF');
   }
 
-  function cr_moveTo(ml, offset, len) {
+  function min_moveTo(ml, offset, len) {
     ASSERT_LOG2(' - trying to move from', offset, 'to', offset + len, 'delta = ', len);
     switch (ml_dec8(ml, offset + len)) {
       case ML_NOOP:
@@ -590,7 +590,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_vv_eq() {
+  function min_vv_eq() {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -602,7 +602,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       let B = getDomainOrRestartForAlias(indexB, 3);
       if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-      ASSERT_LOG2(' = cr_vv_eq', indexA, indexB, domain__debug(A), domain__debug(B));
+      ASSERT_LOG2(' = min_vv_eq', indexA, indexB, domain__debug(A), domain__debug(B));
       if (!A) return setEmpty(indexA, 'bad state');
       if (!B) return setEmpty(indexB, 'bad state');
 
@@ -621,7 +621,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_VV);
   }
 
-  function cr_v8_eq(ml) {
+  function min_v8_eq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -629,7 +629,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vB = ml_dec8(ml, offsetB);
 
     let A = getDomainOrRestartForAlias(indexA, 1);
-    ASSERT_LOG2(' = cr_v8_eq', indexA, domain__debug(A), vB);
+    ASSERT_LOG2(' = min_v8_eq', indexA, domain__debug(A), vB);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     if (!A) return setEmpty(indexA, 'bad state');
@@ -649,7 +649,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
-  function cr_88_eq(ml) {
+  function min_88_eq(ml) {
     // (artifact) either remove constraint if they are equal or reject if they are not
 
     let offset = pc;
@@ -658,14 +658,14 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vA = ml_dec8(ml, offsetA);
     let vB = ml_dec8(ml, offsetB);
 
-    ASSERT_LOG2(' = cr_88_eq', vA, vB);
+    ASSERT_LOG2(' = min_88_eq', vA, vB);
 
     if (vA !== vB) return setEmpty(-1, 'literals ' + vA + '!=' + vB + ' so fail');
 
     ml_eliminate(ml, offset, SIZEOF_88);
   }
 
-  function cr_vv_neq(ml) {
+  function min_vv_neq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -676,7 +676,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_neq', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = min_vv_neq', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A) return setEmpty(indexA, 'bad state');
     if (!B) return setEmpty(indexB, 'bad state');
 
@@ -725,7 +725,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_v8_neq(ml) {
+  function min_v8_neq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -735,7 +735,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8_neq', indexA, domain__debug(A), vB);
+    ASSERT_LOG2(' = min_v8_neq', indexA, domain__debug(A), vB);
     if (!A) return setEmpty(indexA, 'bad state');
 
     // remove the literal from A and remove constraint
@@ -750,21 +750,21 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
-  function cr_88_neq(ml) {
+  function min_88_neq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
     let vA = ml_dec8(ml, offsetA);
     let vB = ml_dec8(ml, offsetB);
 
-    ASSERT_LOG2(' = cr_88_neq', vA, vB);
+    ASSERT_LOG2(' = min_88_neq', vA, vB);
 
     if (vA === vB) return setEmpty(-1, 'neq but literals ' + vA + ' == ' + vB + 'so fail');
 
     ml_eliminate(ml, offset, SIZEOF_88);
   }
 
-  function cr_vv_lt(ml) {
+  function min_vv_lt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -775,7 +775,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_lt {', indexA, '} < {', indexB, '}   -->  ', domain__debug(A), '<', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_lt {', indexA, '} < {', indexB, '}   -->  ', domain__debug(A), '<', domain__debug(B));
     if (!A) return setEmpty(indexA, 'bad state');
     if (!B) return setEmpty(indexB, 'bad state');
 
@@ -809,7 +809,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_v8_lt(ml) {
+  function min_v8_lt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -819,7 +819,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8_lt', indexA, domain__debug(A), vB);
+    ASSERT_LOG2(' = min_v8_lt', indexA, domain__debug(A), vB);
     if (!A) return setEmpty(indexA, 'bad state');
     if (domain_min(A) >= vB) return setEmpty(indexA, 'lt but min(A)<lit(' + vB + ')');
 
@@ -835,7 +835,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
-  function cr_8v_lt(ml) {
+  function min_8v_lt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -845,7 +845,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8v_lt', vA, indexB, domain__debug(B));
+    ASSERT_LOG2(' = min_8v_lt', vA, indexB, domain__debug(B));
     if (!B) return setEmpty(indexB, 'bad state');
     if (vA >= domain_max(B)) return setEmpty(indexB, 'lt but max(B)>=lit(' + vA + ')');
 
@@ -860,20 +860,20 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_8V);
   }
 
-  function cr_88_lt(ml) {
+  function min_88_lt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
     let vA = ml_dec8(ml, offsetA);
     let vB = ml_dec8(ml, offsetB);
 
-    ASSERT_LOG2(' = cr_88_lt', vA, vB);
+    ASSERT_LOG2(' = min_88_lt', vA, vB);
     if (vA >= vB) return setEmpty(-1, 'lt but literals ' + vA + ' >= ' + vB + ' so fail');
 
     ml_eliminate(ml, offset, SIZEOF_88);
   }
 
-  function cr_vv_lte(ml) {
+  function min_vv_lte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -884,7 +884,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_lte', indexA, indexB, domain__debug(A), domain__debug(B));
+    ASSERT_LOG2(' = min_vv_lte', indexA, indexB, domain__debug(A), domain__debug(B));
     if (!A) return setEmpty(indexA, 'bad state');
     if (!B) return setEmpty(indexB, 'bad state');
 
@@ -920,7 +920,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_v8_lte(ml) {
+  function min_v8_lte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -930,7 +930,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8_lte', indexA, domain__debug(A), vB);
+    ASSERT_LOG2(' = min_v8_lte', indexA, domain__debug(A), vB);
     if (!A) return setEmpty(indexA, 'bad state');
     if (domain_max(A) > vB) return setEmpty(indexA, 'lte but A > ' + vB + ' so fail');
 
@@ -945,7 +945,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_V8);
   }
 
-  function cr_8v_lte(ml) {
+  function min_8v_lte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -955,7 +955,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8v_lte', vA, '->', indexB, '<=', domain__debug(B));
+    ASSERT_LOG2(' = min_8v_lte', vA, '->', indexB, '<=', domain__debug(B));
     if (!B) return setEmpty(indexB, 'bad state');
     if (vA > domain_min(B)) return setEmpty(indexB, 'lte but ' + vA + ' > B so fail');
 
@@ -970,26 +970,26 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_8V);
   }
 
-  function cr_88_lte(ml) {
+  function min_88_lte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
     let vA = ml_dec8(ml, offsetA);
     let vB = ml_dec8(ml, offsetB);
 
-    ASSERT_LOG2(' = cr_88_lte', vA, vB);
+    ASSERT_LOG2(' = min_88_lte', vA, vB);
     if (vA > vB) return setEmpty(-1, 'lte but literals ' + vA + ' > ' + vB + ' so fail');
 
     ml_eliminate(ml, offset, SIZEOF_88);
   }
 
-  function cr_nall(ml) {
+  function min_nall(ml) {
     let offset = pc;
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let offsetArgs = offset + SIZEOF_COUNT;
 
-    ASSERT_LOG2(' = cr_nall', argCount, 'x');
+    ASSERT_LOG2(' = min_nall', argCount, 'x');
     ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => ml_dec16(ml, offsetArgs + i * 2)));
     ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])));
 
@@ -1065,9 +1065,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_isAll(ml) {
+  function min_isAll(ml) {
     let offset = pc;
-    ASSERT_LOG2(' - parsing cr_isAll');
+    ASSERT_LOG2(' - parsing min_isAll');
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let argLen = argCount * 2;
@@ -1080,7 +1080,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_isAll', argCount, 'x');
+    ASSERT_LOG2(' = min_isAll', argCount, 'x');
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
 
     if (!R) return setEmpty(indexR, 'isall; R bad state');
@@ -1119,7 +1119,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_COUNT + argCount * 2 + 2;
   }
 
-  function cr_isAll2(ml) {
+  function min_isAll2(ml) {
     // fixed two placed vv isall
 
     let offset = pc;
@@ -1135,7 +1135,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_isAll2', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_isAll2', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
@@ -1179,9 +1179,9 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VVV;
   }
 
-  function cr_isNall(ml) {
+  function min_isNall(ml) {
     let offset = pc;
-    ASSERT_LOG2(' - parsing cr_isNll');
+    ASSERT_LOG2(' - parsing min_isNll');
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let argLen = argCount * 2;
@@ -1194,7 +1194,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_isNall', argCount, 'x');
+    ASSERT_LOG2(' = min_isNall', argCount, 'x');
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
 
     if (!R) return setEmpty(indexR, 'isnall; R bad state');
@@ -1231,13 +1231,13 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_COUNT + argCount * 2 + 2;
   }
 
-  function cr_distinct(ml) {
+  function min_distinct(ml) {
     let offset = pc;
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let offsetArgs = offset + SIZEOF_COUNT;
 
-    ASSERT_LOG2(' = cr_distinct', argCount, 'x');
+    ASSERT_LOG2(' = min_distinct', argCount, 'x');
     ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => ml_dec16(ml, offsetArgs + i * 2)));
     ASSERT_LOG2('  -', Array.from(Array(argCount)).map((n, i) => domain__debug(domains[ml_dec16(ml, offsetArgs + i * 2)])));
 
@@ -1319,7 +1319,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_plus(ml) {
+  function min_plus(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1333,7 +1333,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_plus', '{', indexR, '} = {', indexA, '} ==? {', indexB, '} -->', domain__debug(R), '=', domain__debug(A), '==?', domain__debug(B));
+    ASSERT_LOG2(' = min_plus', '{', indexR, '} = {', indexA, '} ==? {', indexB, '} -->', domain__debug(R), '=', domain__debug(A), '==?', domain__debug(B));
     if (!A) return setEmpty(indexA, 'plus bad state A');
     if (!B) return setEmpty(indexB, 'plus bad state B');
     if (!R) return setEmpty(indexR, 'plus bad state R');
@@ -1400,17 +1400,17 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
       ASSERT(domain_isSolved(B), 'if two are solved then all three must be solved');
       ml_eliminate(ml, offset, SIZEOF_VVV);
     } else {
-      if (cr_plusAB(offset, indexA, indexB, indexR, A, B, R, 'A', 'B')) return;
-      if (cr_plusAB(offset, indexB, indexA, indexR, B, A, R, 'B', 'A')) return;
+      if (min_plusAB(offset, indexA, indexB, indexR, A, B, R, 'A', 'B')) return;
+      if (min_plusAB(offset, indexB, indexA, indexR, B, A, R, 'B', 'A')) return;
 
       ASSERT_LOG2(' - not only jumps..., new pc =', offset + SIZEOF_VVV);
       onlyJumps = false;
       pc = offset + SIZEOF_VVV;
     }
   }
-  function cr_plusAB(offset, indexX, indexY, indexR, X, Y, R, nameX, nameY) {
+  function min_plusAB(offset, indexX, indexY, indexR, X, Y, R, nameX, nameY) {
     ASSERT(!domain_isSolved(X) || !domain_isSolved(Y) || !domain_isSolved(R), 'at least two vars arent solved');
-    ASSERT_LOG2(' - cr_plusAB', nameX, nameY, domain__debug(R), '=', domain__debug(X), '+', domain__debug(Y));
+    ASSERT_LOG2(' - min_plusAB', nameX, nameY, domain__debug(R), '=', domain__debug(X), '+', domain__debug(Y));
     let vX = domain_getValue(X);
     if (vX >= 0) {
       // note Y and R are _not_ solved here
@@ -1442,7 +1442,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_minus(ml) {
+  function min_minus(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1456,7 +1456,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_minus', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'plus bad state A');
     if (!B) return setEmpty(indexB, 'plus bad state B');
     if (!R) return setEmpty(indexR, 'plus bad state R');
@@ -1539,7 +1539,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_mul(ml) {
+  function min_mul(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1553,7 +1553,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'plus bad state A');
     if (!B) return setEmpty(indexB, 'plus bad state B');
     if (!R) return setEmpty(indexR, 'plus bad state R');
@@ -1635,7 +1635,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_div(ml) {
+  function min_div(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1649,7 +1649,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_mul', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'plus bad state A');
     if (!B) return setEmpty(indexB, 'plus bad state B');
     if (!R) return setEmpty(indexR, 'plus bad state R');
@@ -1738,7 +1738,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_vvv_isEq(ml) {
+  function min_vvv_isEq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1752,7 +1752,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vvv_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_vvv_isEq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
@@ -1846,7 +1846,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VVV;
   }
 
-  function cr_v8v_isEq(ml) {
+  function min_v8v_isEq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1857,7 +1857,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let R = getDomainOrRestartForAlias(indexR, 4);
-    ASSERT_LOG2(' = cr_v8v_isEq', '{', indexR, '} = {', indexA, '} ==?', vB, '-->', domain__debug(R), '=', domain__debug(A), '==?', vB);
+    ASSERT_LOG2(' = min_v8v_isEq', '{', indexR, '} = {', indexA, '} ==?', vB, '-->', domain__debug(R), '=', domain__debug(A), '==?', vB);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     if (!A) return setEmpty(indexA, 'isEq bad state A');
@@ -1915,12 +1915,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isEq(ml) {
+  function min_vv8_isEq(ml) {
     let offset = pc;
     let offsetR = offset + 5;
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_vv8_isEq', vR, 'immediately recompile to eq or neq');
+    ASSERT_LOG2(' = min_vv8_isEq', vR, 'immediately recompile to eq or neq');
 
     // we know R is solved so just recompile it to eq or neq
     if (vR === 0) {
@@ -1940,7 +1940,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset; // make it repeat with the new eq
   }
 
-  function cr_88v_isEq(ml) {
+  function min_88v_isEq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -1952,7 +1952,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_88v_isEq', indexR, vA, vB, domain__debug(R));
+    ASSERT_LOG2(' = min_88v_isEq', indexR, vA, vB, domain__debug(R));
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     ASSERT_LOG2(' - A and B are solved so we can determine R');
@@ -1969,7 +1969,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_v88_isEq(ml) {
+  function min_v88_isEq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -1981,7 +1981,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v88_isEq', vR, '= {', indexA, '} ==?', vB, ' --> ', vR, '=', domain__debug(A), '==?', vB);
+    ASSERT_LOG2(' = min_v88_isEq', vR, '= {', indexA, '} ==?', vB, ' --> ', vR, '=', domain__debug(A), '==?', vB);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
 
     ASSERT_LOG2(' - B and R are solved so we can determine A');
@@ -1998,7 +1998,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_888_isEq(ml) {
+  function min_888_isEq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2007,7 +2007,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vB = ml_dec8(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
+    ASSERT_LOG2(' = min_888_isEq', vA, vB, vR);
     ASSERT_LOG2(' - already resolved, only need to verify it');
 
     // isEq !== shouldEq
@@ -2017,7 +2017,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_vvv_isNeq(ml) {
+  function min_vvv_isNeq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2031,7 +2031,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_isNeq', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
@@ -2070,7 +2070,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VVV;
   }
 
-  function cr_v8v_isNeq(ml) {
+  function min_v8v_isNeq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2083,7 +2083,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8v_isNeq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' = min_v8v_isNeq', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
@@ -2146,12 +2146,12 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isNeq(ml) {
+  function min_vv8_isNeq(ml) {
     let offset = pc;
     let offsetR = offset + 5;
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_vv8_isNeq', vR, 'immediately recompile to neq or eq');
+    ASSERT_LOG2(' = min_vv8_isNeq', vR, 'immediately recompile to neq or eq');
 
     // we know R is solved so just recompile it to eq or neq
     if (vR === 0) {
@@ -2171,7 +2171,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     return;
   }
 
-  function cr_88v_isNeq(ml) {
+  function min_88v_isNeq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2183,7 +2183,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_88v_isNeq', indexR, vA, vB, domain__debug(R));
+    ASSERT_LOG2(' = min_88v_isNeq', indexR, vA, vB, domain__debug(R));
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
     ASSERT_LOG2(' - A and B are solved so we can determine R');
@@ -2200,7 +2200,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_v88_isNeq(ml) {
+  function min_v88_isNeq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2212,7 +2212,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v88_isNeq', indexA, domain__debug(A), vB, vR);
+    ASSERT_LOG2(' = min_v88_isNeq', indexA, domain__debug(A), vB, vR);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (vR > 1) return setEmpty(indexA, 'isNeq; literal R > 1');
 
@@ -2229,7 +2229,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_888_isNeq(ml) {
+  function min_888_isNeq(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2238,7 +2238,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vB = ml_dec8(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_888_isEq', vA, vB, vR);
+    ASSERT_LOG2(' = min_888_isEq', vA, vB, vR);
     ASSERT_LOG2(' - already resolved, only need to verify it');
     if (vR > 1) return setEmpty(-1, 'isNeq; literal 888 R > 1');
 
@@ -2248,7 +2248,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_888);
   }
 
-  function cr_vvv_isLt(ml) {
+  function min_vvv_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2262,7 +2262,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vvv_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_vvv_isLt', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
@@ -2300,7 +2300,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VVV;
   }
 
-  function cr_8vv_isLt(ml) {
+  function min_8vv_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2313,7 +2313,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8vv_isLt', indexB, indexR, vA, domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_8vv_isLt', indexB, indexR, vA, domain__debug(B), domain__debug(R));
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
@@ -2362,7 +2362,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_8VV;
   }
 
-  function cr_v8v_isLt(ml) {
+  function min_v8v_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2375,7 +2375,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8v_isLt', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' = min_v8v_isLt', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
@@ -2424,7 +2424,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isLt(ml) {
+  function min_vv8_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2433,7 +2433,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexB = ml_dec16(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_vv8_isLt', indexA, indexB, vR);
+    ASSERT_LOG2(' = min_vv8_isLt', indexA, indexB, vR);
 
     // R is solved so just replace the reifier by its non-reifier component
 
@@ -2452,7 +2452,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset; // make it repeat with the new lt
   }
 
-  function cr_88v_isLt(ml) {
+  function min_88v_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2464,7 +2464,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_88v_isLt', indexR, vA, vB, domain__debug(R));
+    ASSERT_LOG2(' = min_88v_isLt', indexR, vA, vB, domain__debug(R));
     if (!R) return setEmpty(indexR, 'isLt bad state R');
 
     if (vA < vB) {
@@ -2477,7 +2477,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_v88_isLt(ml) {
+  function min_v88_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2489,7 +2489,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v88_isLt', indexA, domain__debug(A), vB, vR);
+    ASSERT_LOG2(' = min_v88_isLt', indexA, domain__debug(A), vB, vR);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
 
     if (vR === 0) {
@@ -2502,7 +2502,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_8v8_isLt(ml) {
+  function min_8v8_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2514,7 +2514,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8v8_isLt', indexB, vA, domain__debug(B), vR);
+    ASSERT_LOG2(' = min_8v8_isLt', indexB, vA, domain__debug(B), vR);
     if (!B) return setEmpty(indexB, 'isEq bad state B');
 
     if (vR === 0) {
@@ -2527,7 +2527,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_888_isLt(ml) {
+  function min_888_isLt(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2536,7 +2536,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vB = ml_dec8(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_888_isLt', vA, '<?', vB, '=', vR);
+    ASSERT_LOG2(' = min_888_isLt', vA, '<?', vB, '=', vR);
 
     // just check
     if ((vA < vB) !== (vR > 0)) return setEmpty(-1, 'isLt; 888 failed');
@@ -2544,7 +2544,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_888);
   }
 
-  function cr_vvv_isLte(ml) {
+  function min_vvv_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2558,7 +2558,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 5);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vvv_isLte', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
+    ASSERT_LOG2(' = min_vvv_isLte', indexA, indexB, indexR, domain__debug(A), domain__debug(B), domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
@@ -2595,7 +2595,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VVV;
   }
 
-  function cr_8vv_isLte(ml) {
+  function min_8vv_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2608,7 +2608,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (B === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8vv_isLte', indexB, indexR, '->', vA, '<=?', domain__debug(B), '=', domain__debug(R));
+    ASSERT_LOG2(' = min_8vv_isLte', indexB, indexR, '->', vA, '<=?', domain__debug(B), '=', domain__debug(R));
     if (!B) return setEmpty(indexB, 'isEq bad state B');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
@@ -2658,7 +2658,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_8VV;
   }
 
-  function cr_v8v_isLte(ml) {
+  function min_v8v_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2671,7 +2671,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 4);
     if (A === MINIMIZE_ALIASED || R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v8v_isLte', indexA, indexR, domain__debug(A), vB, domain__debug(R));
+    ASSERT_LOG2(' = min_v8v_isLte', indexA, indexR, domain__debug(A), vB, domain__debug(R));
     if (!A) return setEmpty(indexA, 'isEq bad state A');
     if (!R) return setEmpty(indexR, 'isEq bad state R');
 
@@ -2719,7 +2719,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_V8V;
   }
 
-  function cr_vv8_isLte(ml) {
+  function min_vv8_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2728,7 +2728,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let indexB = ml_dec16(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_vv8_isLte', indexA, indexB, vR);
+    ASSERT_LOG2(' = min_vv8_isLte', indexA, indexB, vR);
 
     // R is solved so just replace the reifier by its non-reifier component
 
@@ -2747,7 +2747,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset; // make it repeat with the new lt
   }
 
-  function cr_88v_isLte(ml) {
+  function min_88v_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2759,7 +2759,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, 3);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_88v_isLte', indexR, vA, vB, domain__debug(R));
+    ASSERT_LOG2(' = min_88v_isLte', indexR, vA, vB, domain__debug(R));
     if (!R) return setEmpty(indexR, 'isLte bad state R');
 
     if (vA <= vB) {
@@ -2772,7 +2772,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_v88_isLte(ml) {
+  function min_v88_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 3;
@@ -2784,7 +2784,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let A = getDomainOrRestartForAlias(indexA, 1);
     if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_v88_isLte', indexA, domain__debug(A), vB, vR);
+    ASSERT_LOG2(' = min_v88_isLte', indexA, domain__debug(A), vB, vR);
     if (!A) return setEmpty(indexA, 'isEq bad state A');
 
     // we know A and R so determine B and remove constraint
@@ -2798,7 +2798,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_8v8_isLte(ml) {
+  function min_8v8_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2810,7 +2810,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 2);
     if (B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_8v8_isLte', indexB, vA, domain__debug(B), vR);
+    ASSERT_LOG2(' = min_8v8_isLte', indexB, vA, domain__debug(B), vR);
     if (!B) return setEmpty(indexB, 'isEq bad state B');
 
     if (vR === 0) {
@@ -2823,7 +2823,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_888_isLte(ml) {
+  function min_888_isLte(ml) {
     let offset = pc;
     let offsetA = offset + 1;
     let offsetB = offset + 2;
@@ -2832,7 +2832,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let vB = ml_dec8(ml, offsetB);
     let vR = ml_dec8(ml, offsetR);
 
-    ASSERT_LOG2(' = cr_888_isLte', vA, vB, vR);
+    ASSERT_LOG2(' = min_888_isLte', vA, vB, vR);
 
     // just check
     if ((vA <= vB) !== (vR > 0)) return setEmpty(-1, 'islte; 888 failed');
@@ -2841,7 +2841,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset;
   }
 
-  function cr_sum(ml) {
+  function min_sum(ml) {
     let offset = pc;
     ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset + 10));
     let offsetCount = offset + 1;
@@ -2858,7 +2858,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' - offsets; R =', offsetR, 'indexR=', indexR, 'R=', domain__debug(R));
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_sum', argCount, 'x');
+    ASSERT_LOG2(' = min_sum', argCount, 'x');
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
     ASSERT_LOG2(' - start loop, backwards');
 
@@ -3047,7 +3047,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset + SIZEOF_C8_COUNT + 2 * argCount + 2));
   }
 
-  function cr_product(ml) {
+  function min_product(ml) {
     let offset = pc;
     ASSERT_LOG2(' - parsing product:', ml.slice(offset, offset + 10));
     let offsetCount = offset + 1;
@@ -3062,7 +3062,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_product', argCount, 'x');
+    ASSERT_LOG2(' = min_product', argCount, 'x');
     ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
     ASSERT_LOG2(' - start loop, backwards');
 
@@ -3217,7 +3217,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_vv_and(ml) {
+  function min_vv_and(ml) {
     // remove zero from A and B and remove constraint
     // (this is basically an alias for A>=1,B>=1 for the sake of consistency)
     let offset = pc;
@@ -3230,7 +3230,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let oB = getDomainOrRestartForAlias(indexB, 3);
     if (oA === MINIMIZE_ALIASED || oB === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_and', indexA, '&', indexB, ' -> ', domain__debug(A), '&', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_and', indexA, '&', indexB, ' -> ', domain__debug(A), '&', domain__debug(B));
 
     let A = domain_removeValue(oA, 0);
     let B = domain_removeValue(oB, 0);
@@ -3241,7 +3241,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     ml_eliminate(ml, offset, SIZEOF_VV);
   }
 
-  function cr_vv_or(ml) {
+  function min_vv_or(ml) {
     // remove constraint when A or B has no zero
     // when A or B solves to zero remove zero from the other and remove constraint
     let offset = pc;
@@ -3254,7 +3254,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_or', indexA, '|', indexB, ' -> ', domain__debug(A), '|', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_or', indexA, '|', indexB, ' -> ', domain__debug(A), '|', domain__debug(B));
 
     if (domain_getValue(A) === 0) {
       ASSERT_LOG2(' - A=0 so remove 0 from B', domain__debug(B), '->', domain__debug(domain_removeValue(B, 0)));
@@ -3282,7 +3282,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     }
   }
 
-  function cr_vv_xor(ml) {
+  function min_vv_xor(ml) {
     // fail if either A and B solve to zero or both solve to non-zero
     // remove when either solves to zero and the other has no zero
     let offset = pc;
@@ -3295,7 +3295,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_xor', indexA, '^', indexB, ' -> ', domain__debug(A), '^', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_xor', indexA, '^', indexB, ' -> ', domain__debug(A), '^', domain__debug(B));
 
     let hasZeroA = domain_min(A) === 0;
     let hasZeroB = domain_min(B) === 0;
@@ -3331,7 +3331,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VV;
   }
 
-  function cr_vv_nand(ml) {
+  function min_vv_nand(ml) {
     // fail if A and B solve to non-zero
     // remove when either solves to zero
     // when either has no zero, set other to zero and remove constraint
@@ -3345,7 +3345,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_nand', indexA, '!&', indexB, ' -> ', domain__debug(A), '!&', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_nand', indexA, '!&', indexB, ' -> ', domain__debug(A), '!&', domain__debug(B));
 
     if (domain_min(A) > 0) {
       // -> B=0
@@ -3372,7 +3372,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     pc = offset + SIZEOF_VV;
   }
 
-  function cr_vv_xnor(ml) {
+  function min_vv_xnor(ml) {
     // fail if A and B both solve to zero or both to non-zero
     // when either solves to zero also solve the other to zero and remove constraint
     // when either has no zero, remove zero from the other and remove constraint
@@ -3386,7 +3386,7 @@ function cr_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, ge
     let B = getDomainOrRestartForAlias(indexB, 3);
     if (A === MINIMIZE_ALIASED || B === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
-    ASSERT_LOG2(' = cr_vv_xnor', indexA, '!^', indexB, ' -> ', domain__debug(A), '!^', domain__debug(B));
+    ASSERT_LOG2(' = min_vv_xnor', indexA, '!^', indexB, ' -> ', domain__debug(A), '!^', domain__debug(B));
 
     if (domain_min(A) > 0) {
       // -> B>0
@@ -3425,5 +3425,5 @@ export {
   MINIMIZER_STABLE,
   MINIMIZER_SOLVED,
   MINIMIZER_REJECTED,
-  cr_optimizeConstraints,
+  min_optimizeConstraints,
 };

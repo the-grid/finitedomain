@@ -128,7 +128,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
-    ASSERT_LOG2(' - cutter outer loop', loops, 'removed', removed, 'constraints, emptyDomain =', emptyDomain);
+    console.log(' - cutter outer loop', loops, 'removed', removed, 'constraints, emptyDomain =', emptyDomain);
+    ++loops;
   } while (removed && !emptyDomain);
 
   return emptyDomain;

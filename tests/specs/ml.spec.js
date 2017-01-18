@@ -52,7 +52,7 @@ describe('specs/ml.spec', function() {
       });
     }
 
-    test('[0 1]', '[0 1]', {A: 0, B: 1}); // note: it will first force solve A to min(A)=0 so then B must be 1.
+    test('[0 1]', '[0 1]', {A: 1, B: 0}); // note: it will defer A and force solve B to min before solving A
     test('0', '[0 1]', {A: 0, B: 1});
     test('[0 1]', '0', {A: 1, B: 0});
     test('1', '[0 1]', {A: 1, B: [0, 1]});
@@ -83,7 +83,7 @@ describe('specs/ml.spec', function() {
       });
     }
 
-    test('[0 1]', '[0 1]', {A: 0, B: 1});
+    test('[0 1]', '[0 1]', {A: 1, B: 0}); // note: it will defer A and force solve B to min before solving A
     test('0', '[0 1]', {A: 0, B: 1});
     test('[0 1]', '0', {A: 1, B: 0});
     test('1', '[0 1]', {A: 1, B: 0});
@@ -114,7 +114,7 @@ describe('specs/ml.spec', function() {
       });
     }
 
-    test('[0 1]', '[0 1]', {A: 0, B: [0, 1]});
+    test('[0 1]', '[0 1]', {A: [0, 1], B: 0}); // note: it will defer A and force solve B to min before solving A
     test('0', '[0 1]', {A: 0, B: [0, 1]});
     test('[0 1]', '0', {A: [0, 1], B: 0});
     test('1', '[0 1]', {A: 1, B: 0});

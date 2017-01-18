@@ -47,8 +47,8 @@ const STR_RANGE_SIZE = 4;
 const EMPTY = 0;
 const EMPTY_STR = '';
 
-const DOM_ZERO = domain_createValue(0);
-const DOM_BOOL = domain_createRange(0, 1);
+let DOM_ZERO;
+let DOM_BOOL;
 
 /**
  * Append given range to the end of given domain. Does not
@@ -1396,6 +1396,7 @@ function domain_isEmpty(domain) {
  */
 function domain_isZero(domain) {
   ASSERT_NORDOM(domain);
+  if (DOM_ZERO === undefined) DOM_ZERO = domain_createValue(0);
   return domain === DOM_ZERO;
 }
 /**
@@ -1407,6 +1408,7 @@ function domain_hasNoZero(domain) {
   return domain_min(domain) > 0;
 }
 function domain_isBool(domain) {
+  if (DOM_BOOL === undefined) DOM_BOOL = domain_createRange(0, 1);
   return domain === DOM_BOOL;
 }
 
@@ -2029,8 +2031,8 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
  * @returns {$domain} will be a soldom
  */
 function domain_createValue(value) {
-  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range', value);
-  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range', value);
+  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range', SUB, '<=', value);
+  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range', SUP, '>=', value);
 
   return (value | SOLVED_FLAG) >>> 0;
 }

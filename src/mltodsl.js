@@ -100,7 +100,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 
   let allParts = [];
   let partsPerVar = [];
-  cr_innerLoop();
+  m2d_innerLoop();
 
   if (DEBUG) {
     let arr = [];
@@ -176,21 +176,21 @@ ${
   dsl += '# Constraints:\n' + allParts.join('');
   return dsl;
 
-  function cr_dec8() {
+  function m2d_dec8() {
     ASSERT(pc < ml.length, 'OOB');
     ASSERT_LOG2(' . dec8 decoding', ml[pc], 'from', pc);
     return ml[pc++];
   }
 
-  function cr_dec16() {
+  function m2d_dec16() {
     ASSERT(pc < ml.length - 1, 'OOB');
     ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 8) | ml[pc++];
   }
 
-  function cr_decAb(lena, lenb, op) {
-    let a = (lena === 1 ? cr_dec8() : cr_dec16());
-    let b = (lenb === 1 ? cr_dec8() : cr_dec16());
+  function m2d_decAb(lena, lenb, op) {
+    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
+    let b = (lenb === 1 ? m2d_dec8() : m2d_dec16());
 
     if (lena === 2 && domains[a] === false) a = getAlias(a);
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
@@ -220,10 +220,10 @@ ${
     }
   }
 
-  function cr_decAbc(lena, lenb, lenc, op) {
-    let a = (lena === 1 ? cr_dec8() : cr_dec16());
-    let b = (lenb === 1 ? cr_dec8() : cr_dec16());
-    let c = (lenc === 1 ? cr_dec8() : cr_dec16());
+  function m2d_decAbc(lena, lenb, lenc, op) {
+    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
+    let b = (lenb === 1 ? m2d_dec8() : m2d_dec16());
+    let c = (lenc === 1 ? m2d_dec8() : m2d_dec16());
 
     if (lena === 2 && domains[a] === false) a = getAlias(a);
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
@@ -261,13 +261,13 @@ ${
   }
 
   function m2d_listVoid(callName) {
-    let argCount = cr_dec16();
+    let argCount = m2d_dec16();
     let indexes = '';
     let counters = '';
     let argNames = '';
     let debugs = '';
     for (let i = 0; i < argCount; ++i) {
-      let index = cr_dec16();
+      let index = m2d_dec16();
 
 
       let domain = domains[index];
@@ -304,7 +304,7 @@ ${
   }
 
   function m2d_listResult(callName) {
-    let args = cr_dec16();
+    let args = m2d_dec16();
     return m2d_listResultBody(callName, args);
   }
 
@@ -314,7 +314,7 @@ ${
     let argNames = '';
     let debugs = '';
     for (let i = 0; i < argCount; ++i) {
-      let index = cr_dec16();
+      let index = m2d_dec16();
       let domain = domains[index];
       if (domain === false) {
         index = getAlias(index);
@@ -332,7 +332,7 @@ ${
         argNames += toName(index) + ' ';
       }
     }
-    let indexR = cr_dec16();
+    let indexR = m2d_dec16();
     if (DEBUG) {
       if (!partsPerVar[indexR]) partsPerVar[indexR] = [];
       partsPerVar[indexR].push(allParts.length);
@@ -355,11 +355,11 @@ ${
     let indexes = '';
     let scounts = '';
     let bug = '';
-    let sumCount = cr_dec16();
-    let sumConstant = cr_dec8();
+    let sumCount = m2d_dec16();
+    let sumConstant = m2d_dec8();
     let sums = sumConstant ? sumConstant + ' ' : '';
     for (let i = 0; i < sumCount; ++i) {
-      let index = cr_dec16();
+      let index = m2d_dec16();
       let domain = domains[index];
       if (domain === false) {
         index = getAlias(index);
@@ -376,7 +376,7 @@ ${
         sums += '$' + index.toString(36) + ' ';
       }
     }
-    let sumIndex = cr_dec16();
+    let sumIndex = m2d_dec16();
     if (DEBUG) {
       if (!partsPerVar[sumIndex]) partsPerVar[sumIndex] = [];
       partsPerVar[sumIndex].push(allParts.length);
@@ -395,7 +395,7 @@ ${
     }
   }
 
-  function cr_innerLoop() {
+  function m2d_innerLoop() {
     while (pc < ml.length) {
       let pcStart = pc;
       let op = ml[pc++];
@@ -413,79 +413,79 @@ ${
           return;
 
         case ML_JMP:
-          let delta = cr_dec16();
+          let delta = m2d_dec16();
           ASSERT_LOG2(' ! jmp', delta);
           pc += delta;
           break;
 
         case ML_VV_EQ:
           ASSERT_LOG2(' ! eq vv');
-          part = cr_decAb(2, 2, '==');
+          part = m2d_decAb(2, 2, '==');
           break;
 
         case ML_V8_EQ:
           ASSERT_LOG2(' ! eq v8');
-          part = cr_decAb(2, 1, '==');
+          part = m2d_decAb(2, 1, '==');
           break;
 
         case ML_88_EQ:
           ASSERT_LOG2(' ! eq 88');
-          part = cr_decAb(1, 1, '==');
+          part = m2d_decAb(1, 1, '==');
           break;
 
         case ML_VV_NEQ:
           ASSERT_LOG2(' ! neq vv');
-          part = cr_decAb(2, 2, '!=');
+          part = m2d_decAb(2, 2, '!=');
           break;
 
         case ML_V8_NEQ:
           ASSERT_LOG2(' ! neq v8');
-          part = cr_decAb(2, 1, '!=');
+          part = m2d_decAb(2, 1, '!=');
           break;
 
         case ML_88_NEQ:
           ASSERT_LOG2(' ! neq 88');
-          part = cr_decAb(1, 1, '!=');
+          part = m2d_decAb(1, 1, '!=');
           break;
 
         case ML_VV_LT:
           ASSERT_LOG2(' ! lt vv');
-          part = cr_decAb(2, 2, '<');
+          part = m2d_decAb(2, 2, '<');
           break;
 
         case ML_V8_LT:
           ASSERT_LOG2(' ! lt v8');
-          part = cr_decAb(2, 1, '<');
+          part = m2d_decAb(2, 1, '<');
           break;
 
         case ML_8V_LT:
           ASSERT_LOG2(' ! lt 8v');
-          part = cr_decAb(1, 2, '<');
+          part = m2d_decAb(1, 2, '<');
           break;
 
         case ML_88_LT:
           ASSERT_LOG2(' ! lt 88');
-          part = cr_decAb(1, 1, '<');
+          part = m2d_decAb(1, 1, '<');
           break;
 
         case ML_VV_LTE:
           ASSERT_LOG2(' ! lte vv');
-          part = cr_decAb(2, 2, '<=');
+          part = m2d_decAb(2, 2, '<=');
           break;
 
         case ML_V8_LTE:
           ASSERT_LOG2(' ! lte v8');
-          part = cr_decAb(2, 1, '<=');
+          part = m2d_decAb(2, 1, '<=');
           break;
 
         case ML_8V_LTE:
           ASSERT_LOG2(' ! lte 8v');
-          part = cr_decAb(1, 2, '<=');
+          part = m2d_decAb(1, 2, '<=');
           break;
 
         case ML_88_LTE:
           ASSERT_LOG2(' ! lte 88');
-          part = cr_decAb(1, 1, '<=');
+          part = m2d_decAb(1, 1, '<=');
           break;
 
         case ML_NALL:
@@ -515,162 +515,162 @@ ${
 
         case ML_PLUS:
           ASSERT_LOG2(' ! plus');
-          part = cr_decAbc(2, 2, 2, '+');
+          part = m2d_decAbc(2, 2, 2, '+');
           break;
 
         case ML_MINUS:
           ASSERT_LOG2(' ! minus');
-          part = cr_decAbc(2, 2, 2, '-');
+          part = m2d_decAbc(2, 2, 2, '-');
           break;
 
         case ML_MUL:
           ASSERT_LOG2(' ! mul');
-          part = cr_decAbc(2, 2, 2, '*');
+          part = m2d_decAbc(2, 2, 2, '*');
           break;
 
         case ML_DIV:
           ASSERT_LOG2(' ! div');
-          part = cr_decAbc(2, 2, 2, '/');
+          part = m2d_decAbc(2, 2, 2, '/');
           break;
 
         case ML_VVV_ISEQ:
           ASSERT_LOG2(' ! iseq vvv');
-          part = cr_decAbc(2, 2, 2, '==?');
+          part = m2d_decAbc(2, 2, 2, '==?');
           break;
 
         case ML_V8V_ISEQ:
           ASSERT_LOG2(' ! iseq v8v');
-          part = cr_decAbc(2, 1, 2, '==?');
+          part = m2d_decAbc(2, 1, 2, '==?');
           break;
 
         case ML_VV8_ISEQ:
           ASSERT_LOG2(' ! iseq vv8');
-          part = cr_decAbc(2, 2, 1, '==?');
+          part = m2d_decAbc(2, 2, 1, '==?');
           break;
 
         case ML_88V_ISEQ:
           ASSERT_LOG2(' ! iseq 88v');
-          part = cr_decAbc(1, 1, 2, '==?');
+          part = m2d_decAbc(1, 1, 2, '==?');
           break;
 
         case ML_V88_ISEQ:
           ASSERT_LOG2(' ! iseq v88');
-          part = cr_decAbc(2, 1, 1, '==?');
+          part = m2d_decAbc(2, 1, 1, '==?');
           break;
 
         case ML_888_ISEQ:
           ASSERT_LOG2(' ! iseq 888');
-          part = cr_decAbc(1, 1, 1, '==?');
+          part = m2d_decAbc(1, 1, 1, '==?');
           break;
 
         case ML_VVV_ISNEQ:
           ASSERT_LOG2(' ! isneq vvv');
-          part = cr_decAbc(2, 2, 2, '!=?');
+          part = m2d_decAbc(2, 2, 2, '!=?');
           break;
 
         case ML_V8V_ISNEQ:
           ASSERT_LOG2(' ! isneq v8v');
-          part = cr_decAbc(2, 1, 2, '!=?');
+          part = m2d_decAbc(2, 1, 2, '!=?');
           break;
 
         case ML_VV8_ISNEQ:
           ASSERT_LOG2(' ! isneq vv8');
-          part = cr_decAbc(2, 2, 1, '!=?');
+          part = m2d_decAbc(2, 2, 1, '!=?');
           break;
 
         case ML_88V_ISNEQ:
           ASSERT_LOG2(' ! isneq 88v');
-          part = cr_decAbc(1, 1, 2, '!=?');
+          part = m2d_decAbc(1, 1, 2, '!=?');
           break;
 
         case ML_V88_ISNEQ:
           ASSERT_LOG2(' ! isneq v88');
-          part = cr_decAbc(2, 1, 1, '!=?');
+          part = m2d_decAbc(2, 1, 1, '!=?');
           break;
 
         case ML_888_ISNEQ:
           ASSERT_LOG2(' ! isneq 888');
-          part = cr_decAbc(1, 1, 1, '!=?');
+          part = m2d_decAbc(1, 1, 1, '!=?');
           break;
 
         case ML_VVV_ISLT:
           ASSERT_LOG2(' ! islt vvv');
-          part = cr_decAbc(2, 2, 2, '<?');
+          part = m2d_decAbc(2, 2, 2, '<?');
           break;
 
         case ML_8VV_ISLT:
           ASSERT_LOG2(' ! islt 8vv');
-          part = cr_decAbc(1, 2, 2, '<?');
+          part = m2d_decAbc(1, 2, 2, '<?');
           break;
 
         case ML_V8V_ISLT:
           ASSERT_LOG2(' ! islt v8v');
-          part = cr_decAbc(2, 1, 2, '<?');
+          part = m2d_decAbc(2, 1, 2, '<?');
           break;
 
         case ML_VV8_ISLT:
           ASSERT_LOG2(' ! islt vv8');
-          part = cr_decAbc(2, 2, 1, '<?');
+          part = m2d_decAbc(2, 2, 1, '<?');
           break;
 
         case ML_88V_ISLT:
           ASSERT_LOG2(' ! islt 88v');
-          part = cr_decAbc(1, 1, 2, '<?');
+          part = m2d_decAbc(1, 1, 2, '<?');
           break;
 
         case ML_V88_ISLT:
           ASSERT_LOG2(' ! islt v88');
-          part = cr_decAbc(2, 1, 1, '<?');
+          part = m2d_decAbc(2, 1, 1, '<?');
           break;
 
         case ML_8V8_ISLT:
           ASSERT_LOG2(' ! islt 8v8');
-          part = cr_decAbc(1, 2, 1, '<?');
+          part = m2d_decAbc(1, 2, 1, '<?');
           break;
 
         case ML_888_ISLT:
           ASSERT_LOG2(' ! islt 888');
-          part = cr_decAbc(1, 1, 1, '<?');
+          part = m2d_decAbc(1, 1, 1, '<?');
           break;
 
         case ML_VVV_ISLTE:
           ASSERT_LOG2(' ! islte vvv');
-          part = cr_decAbc(2, 2, 2, '<=?');
+          part = m2d_decAbc(2, 2, 2, '<=?');
           break;
 
         case ML_8VV_ISLTE:
           ASSERT_LOG2(' ! islte 8vv');
-          part = cr_decAbc(1, 2, 2, '<=?');
+          part = m2d_decAbc(1, 2, 2, '<=?');
           break;
 
         case ML_V8V_ISLTE:
           ASSERT_LOG2(' ! islte v8v');
-          part = cr_decAbc(2, 1, 2, '<=?');
+          part = m2d_decAbc(2, 1, 2, '<=?');
           break;
 
         case ML_VV8_ISLTE:
           ASSERT_LOG2(' ! islte vv8');
-          part = cr_decAbc(2, 2, 1, '<=?');
+          part = m2d_decAbc(2, 2, 1, '<=?');
           break;
 
         case ML_88V_ISLTE:
           ASSERT_LOG2(' ! islte 88v');
-          part = cr_decAbc(1, 1, 2, '<=?');
+          part = m2d_decAbc(1, 1, 2, '<=?');
           break;
 
         case ML_V88_ISLTE:
           ASSERT_LOG2(' ! islte v88');
-          part = cr_decAbc(2, 1, 1, '<=?');
+          part = m2d_decAbc(2, 1, 1, '<=?');
           break;
 
         case ML_8V8_ISLTE:
           ASSERT_LOG2(' ! islte 8v8');
-          part = cr_decAbc(1, 2, 1, '<=?');
+          part = m2d_decAbc(1, 2, 1, '<=?');
           break;
 
         case ML_888_ISLTE:
           ASSERT_LOG2(' ! islte 888');
-          part = cr_decAbc(1, 1, 1, '<=?');
+          part = m2d_decAbc(1, 1, 1, '<=?');
           break;
 
         case ML_8V_SUM:
@@ -685,23 +685,23 @@ ${
 
         case ML_VV_AND:
           ASSERT_LOG2(' ! and vv');
-          part = cr_decAb(2, 2, '&');
+          part = m2d_decAb(2, 2, '&');
           break;
         case ML_VV_OR:
           ASSERT_LOG2(' ! or vv');
-          part = cr_decAb(2, 2, '|');
+          part = m2d_decAb(2, 2, '|');
           break;
         case ML_VV_XOR:
           ASSERT_LOG2(' ! xor vv');
-          part = cr_decAb(2, 2, '^');
+          part = m2d_decAb(2, 2, '^');
           break;
         case ML_VV_NAND:
           ASSERT_LOG2(' ! nand vv');
-          part = cr_decAb(2, 2, '!&');
+          part = m2d_decAb(2, 2, '!&');
           break;
         case ML_VV_XNOR:
           ASSERT_LOG2(' ! xnor vv');
-          part = cr_decAb(2, 2, '!^');
+          part = m2d_decAb(2, 2, '!^');
           break;
 
         case ML_NOOP:

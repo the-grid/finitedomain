@@ -995,7 +995,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     if (!argCount) return setEmpty(-1, 'nall without args is probably a bug');
     let countStart = argCount;
-    let lastIndex;
+    let lastIndex = -1;
 
     // sort the args
     if (firstRun) {
@@ -1003,18 +1003,23 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     }
 
     // a nall only ensures at least one of its arg solves to zero
+    let aliased = false;
     for (let i = argCount - 1; i >= 0; --i) {
-      lastIndex = ml_dec16(ml, offsetArgs + i * 2);
+      let indexA;
+      let A;
 
-      let A = getDomainOrRestartForAlias(lastIndex, SIZEOF_COUNT + i * 2);
-      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+      do {
+        indexA = ml_dec16(ml, offsetArgs + i * 2);
+        A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        if (A === MINIMIZE_ALIASED) aliased = true;
+      } while (A === MINIMIZE_ALIASED);
 
-      ASSERT_LOG2('  - loop i=', i, 'index=', lastIndex, 'domain=', domain__debug(A));
-      if (!A) return setEmpty(lastIndex, 'bad state in a nall arg');
+      ASSERT_LOG2('  - loop i=', i, 'index=', indexA, 'domain=', domain__debug(A));
+      if (!A) return setEmpty(indexA, 'bad state in a nall arg');
 
-      if (domain_min(A) > 0) {
+      if (domain_min(A) > 0 || lastIndex === indexA) {
         // remove var from list
-        ASSERT_LOG2(' - domain contains no zero so remove var from this constraint');
+        ASSERT_LOG2(lastIndex === indexA ? ' - removing redundant dupe var from nall' : ' - domain contains no zero so remove var from this constraint');
 
         // now
         // - move all indexes bigger than the current back one position
@@ -1035,7 +1040,13 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       } else {
         // A contains a 0 and is unsolved
         ASSERT_LOG2(' - domain contains zero and is not solved so leave it alone');
+        lastIndex = indexA;
       }
+    }
+
+    if (aliased) {
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+      // lets not rerun the dupe var checks for this edge case ... i may regret this decision though.
     }
 
     if (argCount === 0) {
@@ -1167,6 +1178,13 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     let indexA = ml_dec16(ml, offsetA);
     let indexB = ml_dec16(ml, offsetB);
     let indexR = ml_dec16(ml, offsetR);
+
+    if (indexB < indexA) {
+      ASSERT_LOG2(' = min_isAll2, normalizing args', indexA, indexB, indexR);
+      ml_enc16(ml, offsetA, indexB);
+      ml_enc16(ml, offsetB, indexA);
+      return;
+    }
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);

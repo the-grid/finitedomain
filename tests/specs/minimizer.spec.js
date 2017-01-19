@@ -316,4 +316,58 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 1, B: 5, C: 0, R: 1});
     });
   });
+
+  describe.only('nall', function() {
+
+    it('should remove dupes', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 6]
+        : B [5 8 10 42]
+        nall(A A B)
+      `);
+
+      expect(solution).to.eql({A: 0, B: [5, 8, 10, 42]});
+    });
+
+    it('should resolve a nall with only a dupe', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 6]
+        nall(A A)
+      `);
+
+      expect(solution).to.eql({A: 0});
+    });
+
+    it('should dedupe three dupes', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 6]
+        nall(A A A)
+      `);
+
+      expect(solution).to.eql({A: 0});
+    });
+
+    it('should accept three dupes of zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0]
+        nall(A A A)
+      `);
+
+      expect(solution).to.eql({A: 0});
+    });
+
+    it('should reject three dupes of non-zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [5 5]
+        nall(A A A)
+      `);
+
+      expect(solution).to.eql(false);
+    });
+  });
 });

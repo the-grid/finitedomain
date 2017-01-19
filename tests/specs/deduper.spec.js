@@ -81,7 +81,7 @@ describe('specs/deduper.spec', function() {
       0 = A ==? B
       1 = A ==? B
       # oops
-    `)).to.throw('debug: 2 vars, 1 constraints, current domain state: 0:A:: 1:B:??? ops: neq'); // it should actually resolve this... (it ends with x != x) and maybe a future fix will resolve this to reject
+    `)).to.throw(/debug: 2 vars, 1 constraints.* ops: neq /); // it should actually resolve this... (it ends with x != x) and maybe a future fix will resolve this to reject
   });
 
   it('should alias two sums', function() {
@@ -157,5 +157,29 @@ describe('specs/deduper.spec', function() {
     `);
 
     expect(solution).to.eql({A: [1, 10], B: 5, C: 0});
+  });
+
+  it('should completely remove a deduped nall if there is a dupe nand as well', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      nall(A A B)
+      A !& B
+    `);
+
+    expect(solution).to.eql({A: [0, 10], B: 0});
+  });
+
+  it('should dedupe nand', function() {
+    let solution = solverSolver(`
+      @custom var-strat throw
+      : A [0 10]
+      : B [0 10]
+      A !& B
+      A !& B
+    `);
+
+    expect(solution).to.eql({A: [0, 10], B: 0});
   });
 });

@@ -238,6 +238,86 @@ describe('specs/cutter.spec', function() {
 
     expect(solution).to.eql({});
   });
+
+  describe('xnor booly', function() {
+
+    it('should solve the base case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 8
+        A !^ C
+
+        # prevent trivial elimination
+        X = A + B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0, X: 0});
+    });
+
+    it('should eliminate xnor when the arg is booly', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 8
+        A !^ C
+
+        # prevent trivial elimination
+        A != B
+      `)).to.throw(/debug: .* ops: iseq,neq/);
+      // note: this may change/improve but the relevant part is that the xnor is gone!
+    });
+
+    it('should eliminate xnor when the other arg is booly', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 8
+        C !^ A
+
+        # prevent trivial elimination
+        A != B
+      `)).to.throw(/debug: .* ops: iseq,neq/);
+      // note: this may change/improve but the relevant part is that the xnor is gone!
+    });
+
+    it('should eliminate xnor when both args are booly', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 8
+        C !^ A
+
+        # prevent trivial elimination
+        nall(A C)
+      `)).to.throw(/debug: .* ops: nand/);
+      // note: this may change/improve but the relevant part is that the xnor is gone!
+    });
+
+    it('should not apply trick to non-boolys', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 8
+        A !^ C
+
+        # prevent trivial elimination
+        distinct(A  B  C)
+      `)).to.throw(/debug: .* ops: iseq,xnor,distinct/);
+    });
+  });
+
+
   /*
 
   describe('plus', function(){

@@ -143,38 +143,37 @@ function solverSolver(dsl) {
 
   let deduperAddedAlias;
   let firstLoop = true;
+  let cutLoops = 0;
   do {
-    ASSERT_LOG2('Minimizing ML...');
-    console.time('- minimizing ml');
-    let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
-    console.timeEnd('- minimizing ml');
+    do {
+      ASSERT_LOG2('Minimizing ML...');
+      console.time('- minimizing ml');
+      let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
+      console.timeEnd('- minimizing ml');
 
-    if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
-      console.time('ml->dsl:');
-      let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
-      console.timeEnd('ml->dsl:');
-      ASSERT_LOG2(newdsl);
+      if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
+        console.time('ml->dsl:');
+        let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
+        console.timeEnd('ml->dsl:');
+        ASSERT_LOG2(newdsl);
 
-      if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
-      if (state === MINIMIZER_REJECTED) return false;
-    }
+        if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
+        if (state === MINIMIZER_REJECTED) return false;
+      }
 
-    console.time('dedupe constraints:');
-    deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
-    console.timeEnd('dedupe constraints:');
-    firstLoop = false;
-  } while (deduperAddedAlias > 0);
+      console.time('dedupe constraints:');
+      deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
+      console.timeEnd('dedupe constraints:');
+      firstLoop = false;
+    } while (deduperAddedAlias > 0);
 
-  if (deduperAddedAlias < 0) return false; // a contradiction was found... weird! but possible.
+    if (deduperAddedAlias < 0) return false; // a contradiction was found... weird! but possible.
 
-  console.time('cut leaf constraint:');
-  let cutFailed = cutter(mlConstraints, vars, domains, getAlias, solveStack);
-  console.timeEnd('cut leaf constraint:');
-  if (cutFailed) return false;
-
-  console.time('- minimizing ml, again');
-  let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, false);
-  console.timeEnd('- minimizing ml, again', state);
+    console.time('cut leaf constraint:');
+    cutLoops = cutter(mlConstraints, vars, domains, addAlias, getAlias, solveStack);
+    console.timeEnd('cut leaf constraint:');
+    if (cutLoops < 0) return false;
+  } while (cutLoops > 1);
 
   console.time('ml->dsl:');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
@@ -218,10 +217,7 @@ function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAl
   ASSERT_LOG2('pre-optimization finished, not yet solved');
 }
 function createSolution(vars, domains, getAlias, solveStack) {
-  ASSERT_LOG2('- createSolution()');
-  let solution = {};
-  solveStack.reverse().forEach(f => f(domains));
-  vars.forEach((name, index) => {
+  function getDomain(index) {
     let d = domains[index];
     while (d === false) {
       ASSERT_LOG2('   - createSolution;', index, 'is an aliased because the domain is', d);
@@ -229,7 +225,13 @@ function createSolution(vars, domains, getAlias, solveStack) {
       ASSERT_LOG2('   -> alias:', index);
       d = domains[index];
     }
-
+    return d;
+  }
+  ASSERT_LOG2('- createSolution()');
+  let solution = {};
+  solveStack.reverse().forEach(f => f(domains, getDomain));
+  vars.forEach((name, index) => {
+    let d = getDomain(index);
     let v = domain_getValue(domains[index]);
     if (v >= 0) d = v;
     else d = domain_toArr(d);

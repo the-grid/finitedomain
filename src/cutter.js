@@ -96,6 +96,7 @@ import {
   domain_createValue,
   domain_createRange,
   domain_intersection,
+  domain_isBool,
   domain_min,
   domain_max,
   domain_getValue,
@@ -112,10 +113,11 @@ import {
 
 // BODY_START
 
-function cutter(ml, vars, domains, getAlias, solveStack) {
+function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('\n ## cutter', ml);
   let pc = 0;
   let lastOffset;
+  let onlyAsBool;
   let counts;
   let lenBefore;
   let emptyDomain = false;
@@ -124,7 +126,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   do {
     ASSERT_LOG2(' # outer cutloop', loops);
     lastOffset = new Array(domains.length).fill(0); // offset of op containing var; only tag the last occurrence of a var. so zero is never actually used here for count>1
-    counts = counter(ml, vars, domains, getAlias, lastOffset);
+    onlyAsBool = new Array(domains.length).fill(1); // track whether this var was only used as a zero-nonzero bool. we can do certain replacements in that case.
+    counts = counter(ml, vars, domains, getAlias, lastOffset, onlyAsBool);
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
@@ -132,7 +135,8 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ++loops;
   } while (removed && !emptyDomain);
 
-  return emptyDomain;
+  if (emptyDomain) return -1;
+  return loops;
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
@@ -163,7 +167,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutNeq() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', counts[indexA], counts[indexB]);
+    ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', counts[indexA], counts[indexB], 'booly:', onlyAsBool[indexA], onlyAsBool[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -274,7 +278,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT(1 + lenA + lenB + lenR === sizeof, 'expecting this sizeof');
     if (lenR === 2) {
       let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
-      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR], 'booly:', onlyAsBool[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
         let indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
@@ -334,7 +338,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT_LOG2(' -- cutIsNeq', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
       let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
-      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR], 'booly:', onlyAsBool[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
         let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
@@ -396,7 +400,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT_LOG2(' -- cutIsLt', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
       let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
-      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR], 'booly:', onlyAsBool[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
         let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
@@ -482,7 +486,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     ASSERT_LOG2(' -- cutIsLte', offset, sizeof, lenA, lenB, lenR);
     if (lenR === 2) {
       let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
-      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+      ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR], 'booly:', onlyAsBool[indexR]);
       ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
       if (counts[indexR] === 1) {
         let indexA = lenA === 1 ? ml_dec8(ml, 1 + offset) : getFinalIndex(ml_dec16(ml, 1 + offset));
@@ -572,7 +576,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
     // the allowed distance between the other two variables and if you
     // eliminate this constraint, that limitation is not enforced anymore.
     let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 2));
-    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR]);
+    ASSERT_LOG2('   - indexR=', indexR, 'counts:', counts[indexR], 'booly:', onlyAsBool[indexR]);
     ASSERT(typeof counts[indexR] === 'number', 'expecting valid offset');
     if (cutPlusR(offset, indexR)) return;
     if (cutPlusAB(offset, indexR, 'A', 1, 'B', 1 + 2)) return;
@@ -888,7 +892,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutOr() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutOr', indexA, '|', indexB, 'counts:', counts[indexA], counts[indexB]);
+    ASSERT_LOG2(' - cutOr', indexA, '|', indexB, 'counts:', counts[indexA], counts[indexB], 'booly:', onlyAsBool[indexA], onlyAsBool[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -926,7 +930,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutXor() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutXor', indexA, '^', indexB, 'counts:', counts[indexA], counts[indexB]);
+    ASSERT_LOG2(' - cutXor', indexA, '^', indexB, 'counts:', counts[indexA], counts[indexB], 'booly:', onlyAsBool[indexA], onlyAsBool[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -966,7 +970,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutNand() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutNand', indexA, '!&', indexB, 'counts:', counts[indexA], counts[indexB]);
+    ASSERT_LOG2(' - cutNand', indexA, '!&', indexB, 'counts:', counts[indexA], counts[indexB], 'booly:', onlyAsBool[indexA], onlyAsBool[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -1006,7 +1010,7 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
   function cutXnor() {
     let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
-    ASSERT_LOG2(' - cutXnor', indexA, '!^', indexB, 'counts:', counts[indexA], counts[indexB]);
+    ASSERT_LOG2(' - cutXnor', indexA, '!^', indexB, 'counts:', counts[indexA], counts[indexB], 'booly:', onlyAsBool[indexA], onlyAsBool[indexB]);
 
     if (counts[indexA] === 1) {
       ASSERT_LOG2('   - A is a leaf var');
@@ -1040,6 +1044,52 @@ function cutter(ml, vars, domains, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
+    } else if (onlyAsBool[indexA] || onlyAsBool[indexB]) {
+      // A or B is only used as a boolean (in the zero-nonzero sense, not strictly 0,1)
+      // the xnor basically says that if one is zero the other one is too, and otherwise neither is zero
+      // cominbing that with the knowledge that both vars are only used for zero-nonzero, one can be
+      // considered a pseudo-alias for the other. we replace it with the other var and defer solving it.
+      // when possible, pick a strictly boolean domain because it's more likely to allow new tricks.
+      // note that for the bool, the actual value is irrelevant. whether it's 1 or 5, the ops will
+      // normalize this to zero and non-zero anyways. and by assertion there are no other ops.
+
+      ASSERT_LOG2(' - found bool-eq in a xnor:', indexA, '!^', indexB, '->', onlyAsBool[indexA], onlyAsBool[indexB]);
+
+      // ok, a little tricky, but we're going to consider the bool to be a full alias of the other var
+      // only when creating a solution, we will override the value and apply the boolean-esque value
+      // to the bool var and assign it either its zero or nonzero value.
+
+      let bA = onlyAsBool[indexA];
+      let bB = onlyAsBool[indexB];
+      let indexE = indexB;
+      let indexK = indexA;
+      if (!bB || (bA && domain_isBool(domains[indexA]))) {
+        indexE = indexA;
+        indexK = indexB;
+      }
+      let E = domains[indexE]; // remember what E was because it will be replaced by false to mark it an alias
+      ASSERT_LOG2(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]), 'replacing', indexE, 'with', indexK);
+
+      solveStack.push((domains, getDomain) => {
+        ASSERT_LOG2(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
+        ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
+        let vK = force(indexK);
+        if (vK === 0) domains[indexE] = domain_removeGtUnsafe(E, 0);
+        else domains[indexE] = domain_removeValue(E, 0);
+      });
+      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexE));
+      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !^ ' + indexB));
+
+      // note: addAlias will push a defer as well. since the defers are resolved in reverse order,
+      // we must call addAlias after adding our own defer, otherwise our change will be lost.
+      addAlias(indexE, indexK);
+
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      // we can add the count of E to that of K and subtract two for eliminating this constraint
+      counts[indexK] += counts[indexE] - 2;
+      counts[indexE] = 0;
+
+      return;
     } else {
       pc += SIZEOF_VV;
     }

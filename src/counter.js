@@ -102,8 +102,9 @@ import {
  * @param {$nordom} domains
  * @param {Function} getAlias
  * @param {number[]} [lastOffset]
+ * @param {number[]} [onlyAsBool]
  */
-function counter(ml, vars, domains, getAlias, lastOffset) {
+function counter(ml, vars, domains, getAlias, lastOffset, onlyAsBool) {
   ASSERT_LOG2('\n ## counter', ml);
   let pc = 0;
   let counts = new Array(domains.length).fill(0);
@@ -126,13 +127,14 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
     return getFinalIndex(aliasIndex, _max - 1);
   }
 
-  function count(delta) {
+  function count(delta, asBool) {
     let n = ml_dec16(ml, pc + delta);
     ASSERT(n < domains.length, 'should be a valid index', n);
     let index = getFinalIndex(n);
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
     ++counts[index];
     if (lastOffset) lastOffset[index] = pc;
+    if (onlyAsBool && !asBool) onlyAsBool[index] = 0;
   }
 
   function countLoop() {
@@ -147,13 +149,18 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_VV_NEQ:
         case ML_VV_LT:
         case ML_VV_LTE:
+          count(1, false);
+          count(3, false);
+          pc += SIZEOF_VV;
+          break;
+
         case ML_VV_AND:
         case ML_VV_OR:
         case ML_VV_XOR:
         case ML_VV_NAND:
         case ML_VV_XNOR:
-          count(1);
-          count(3);
+          count(1, true);
+          count(3, true);
           pc += SIZEOF_VV;
           break;
 
@@ -161,13 +168,13 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_V8_NEQ:
         case ML_V8_LT:
         case ML_V8_LTE:
-          count(1);
+          count(1, false);
           pc += SIZEOF_V8;
           break;
 
         case ML_8V_LT:
         case ML_8V_LTE:
-          count(2);
+          count(2, false);
           pc += SIZEOF_8V;
           break;
 
@@ -179,27 +186,46 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
           break;
 
         case ML_NALL:
+          let nlen = ml_dec16(ml, pc + 1);
+          for (let i = 0; i < nlen; ++i) {
+            count(3 + i * 2, true);
+          }
+          pc += SIZEOF_COUNT + nlen * 2;
+          break;
+
         case ML_DISTINCT:
-          // note: distinct cant have multiple counts of same var because that would reject
+          // note: distinct "cant" have multiple counts of same var because that would reject
           let dlen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < dlen; ++i) {
-            count(3 + i * 2);
+            count(3 + i * 2, false);
           }
           pc += SIZEOF_COUNT + dlen * 2;
           break;
 
         case ML_ISALL2:
-        case ML_PLUS:
-        case ML_MINUS:
-        case ML_MUL:
-        case ML_DIV:
+          count(1, true);
+          count(3, true);
+          count(5, true);
+          pc += SIZEOF_VVV;
+          break;
+
         case ML_VVV_ISEQ:
         case ML_VVV_ISNEQ:
         case ML_VVV_ISLT:
         case ML_VVV_ISLTE:
-          count(1);
-          count(3);
-          count(5);
+          count(1, false);
+          count(3, false);
+          count(5, true);
+          pc += SIZEOF_VVV;
+          break;
+
+        case ML_PLUS:
+        case ML_MINUS:
+        case ML_MUL:
+        case ML_DIV:
+          count(1, false);
+          count(3, false);
+          count(5, false);
           pc += SIZEOF_VVV;
           break;
 
@@ -207,11 +233,8 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_V8V_ISNEQ:
         case ML_V8V_ISLT:
         case ML_V8V_ISLTE:
-          ASSERT_LOG2('islte');
-          count(1);
-          ASSERT_LOG2('- a');
-          count(4);
-          ASSERT_LOG2('- b');
+          count(1, false);
+          count(4, true);
           pc += SIZEOF_V8V;
           break;
 
@@ -219,15 +242,15 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_VV8_ISNEQ:
         case ML_VV8_ISLT:
         case ML_VV8_ISLTE:
-          count(1);
-          count(3);
+          count(1, false);
+          count(3, false);
           pc += SIZEOF_VV8;
           break;
 
         case ML_8VV_ISLT:
         case ML_8VV_ISLTE:
-          count(2);
-          count(4);
+          count(2, false);
+          count(4, true);
           pc += SIZEOF_8VV;
           break;
 
@@ -235,7 +258,7 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_88V_ISNEQ:
         case ML_88V_ISLT:
         case ML_88V_ISLTE:
-          count(3);
+          count(3, true);
           pc += SIZEOF_88V;
           break;
 
@@ -243,13 +266,13 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
         case ML_V88_ISNEQ:
         case ML_V88_ISLT:
         case ML_V88_ISLTE:
-          count(1);
+          count(1, false);
           pc += SIZEOF_V88;
           break;
 
         case ML_8V8_ISLT:
         case ML_8V8_ISLTE:
-          count(2);
+          count(2, false);
           pc += SIZEOF_8V8;
           break;
 
@@ -264,21 +287,29 @@ function counter(ml, vars, domains, getAlias, lastOffset) {
           // TODO: count multiple occurrences of same var once
           let slen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < slen; ++i) {
-            count(4 + i * 2);
+            count(4 + i * 2, false);
           }
-          count(4 + slen * 2); // R
+          count(4 + slen * 2, false); // R
           pc += SIZEOF_C8_COUNT + slen * 2 + 2;
           break;
 
         case ML_ISALL:
         case ML_ISNALL:
+          let ilen = ml_dec16(ml, pc + 1);
+          for (let i = 0; i < ilen; ++i) {
+            count(3 + i * 2, true);
+          }
+          count(3 + ilen * 2, true); // R
+          pc += SIZEOF_COUNT + ilen * 2 + 2;
+          break;
+
         case ML_PRODUCT:
           // TODO: count multiple occurrences of same var once
           let plen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < plen; ++i) {
-            count(3 + i * 2);
+            count(3 + i * 2, false);
           }
-          count(3 + plen * 2); // R
+          count(3 + plen * 2, false); // R
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
 

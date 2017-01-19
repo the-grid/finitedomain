@@ -317,7 +317,7 @@ describe('specs/minimizer.spec', function() {
     });
   });
 
-  describe.only('nall', function() {
+  describe('nall', function() {
 
     it('should remove dupes', function() {
       let solution = solverSolver(`

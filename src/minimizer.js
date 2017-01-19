@@ -201,7 +201,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
   function setDomain(index, domain, desc) {
     TRACE_ADD(index, domain__debug(domains[index]), domain__debug(domain), '(name=' + names[index] + ') ' + desc + '; ml: ' + ml__debug(ml, pc, 1));
-    ASSERT_LOG2(' - {', index, '} updated from', domain__debug(domains[index]), 'to', domain__debug(domain));
+    ASSERT_LOG2(' - setDomain; {', index, '} updated from', domain__debug(domains[index]), 'to', domain__debug(domain));
     ASSERT(!domain || domain_intersection(domains[index], domain), 'should never add new values to a domain, only remove them', 'index=', index, 'old=', domain__debug(domains[index]), 'new=', domain__debug(domain), 'desc=', desc);
     domains[index] = domain;
     if (domain) varChanged = true;
@@ -1219,7 +1219,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
   function min_isNall(ml) {
     let offset = pc;
-    ASSERT_LOG2(' - parsing min_isNll');
+    ASSERT_LOG2(' - parsing min_isNall');
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let argLen = argCount * 2;
@@ -1237,11 +1237,6 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     if (!R) return setEmpty(indexR, 'isnall; R bad state');
 
-    // sort the args
-    if (firstRun) {
-      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
-    }
-
     if (domain_isZero(R)) {
       // remove zero from all and eliminate
       for (let i = argCount - 1; i >= 0; --i) {
@@ -1253,14 +1248,56 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
         if (setDomain(indexA, domain_removeValue(A, 0))) return;
       }
       ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
-      pc = offset;
       return;
     }
     if (domain_hasNoZero(R)) {
       // compile to nall and revisit
       ml_enc8(ml, offset, ML_NALL);
-      ml_jump(ml, offset, 2); // difference between nall and isNall is the result var (16bit)
-      pc = offset;
+      ml_jump(ml, offset + SIZEOF_COUNT + argCount * 2, 2); // difference between nall and isNall is the result var (16bit)
+      return;
+    }
+
+    // R is unresolved. check whether R can be determined
+    let aliased = false;
+    let allNonZero = true;
+    let someAreZero = false;
+    for (let i = argCount - 1; i >= 0; --i) {
+      let indexA;
+      let A;
+
+      do {
+        indexA = ml_dec16(ml, offsetArgs + i * 2);
+        A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) aliased = true; // there was an alias; reorder args
+      } while (A === MINIMIZE_ALIASED);
+
+      // reflect isNall,
+      // R=0 when all args have no zero
+      // R>0 when at least one arg is zero
+
+      if (domain_isZero(A)) {
+        someAreZero = true;
+      } else if (!domain_hasNoZero(A)) {
+        // A has zero and isnt solved (So has non-zero too); R is unsolved
+        allNonZero = false;
+      }
+    }
+
+    // sort the args if visiting for the first time or when aliases were recompiled
+    if (firstRun || aliased) {
+      ASSERT_LOG2(' - sorting isall args', firstRun, aliased);
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
+
+    if (someAreZero || allNonZero) {
+      ASSERT_LOG2(' - R can be solved, restarting to finalize', someAreZero, allNonZero);
+      if (someAreZero) {
+        if (setDomain(indexR, domain_removeValue(R, 0))) return;
+      } else {
+        if (setDomain(indexR, domain_intersectionValue(R, 0))) return;
+      }
+      // restart op. R is solved now and the above code will resolve it.
       return;
     }
 

@@ -231,7 +231,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       switch (op) {
         case ML_START:
           if (pc !== 0) {
-            ASSERT_LOG2('reading a op=zero which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
+            ASSERT_LOG2('reading a op=zero at position ' + pc + ' which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
             return THROW(' ! optimizer problem @', pc);
           }
           ++pc;
@@ -1031,7 +1031,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
         // remove constraint
         ASSERT_LOG2(' - domain solved to zero so constraint is satisfied');
         ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * countStart);
-        pc = offset; // revisit
+        return;
       } else {
         // A contains a 0 and is unsolved
         ASSERT_LOG2(' - domain contains zero and is not solved so leave it alone');
@@ -1081,21 +1081,15 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = min_isAll', argCount, 'x');
-    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => '{' + (x = ml_dec16(ml, offsetArgs + i * 2)) + '=' + domain__debug(domains[x]) + '}').join(' '));
 
     if (!R) return setEmpty(indexR, 'isall; R bad state');
 
-    // sort the args
-    if (firstRun) {
-      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
-    }
-
     if (domain_isZero(R)) {
-      ASSERT_LOG2(' - R is 0 so recompile to nall and revisit');
+      ASSERT_LOG2(' - R is 0 so morph to nall and revisit');
       // compile to nall and revisit
       ml_enc8(ml, offset, ML_NALL);
-      ml_jump(ml, offset, 2); // difference between nall and isAll is the result var (16bit)
-      pc = offset;
+      ml_jump(ml, offset + SIZEOF_COUNT + argCount * 2, 2); // difference between nall and isAll is the result var (16bit)
       return;
     }
     if (domain_hasNoZero(R)) {
@@ -1111,6 +1105,50 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       }
       ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
       pc = offset;
+      return;
+    }
+
+    // R is unresolved. check whether R can be determined
+    let aliased = false;
+    let allNonZero = true;
+    let someAreZero = false;
+    for (let i = argCount - 1; i >= 0; --i) {
+      let indexA;
+      let A;
+
+      do {
+        indexA = ml_dec16(ml, offsetArgs + i * 2);
+        A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) aliased = true; // there was an alias; reorder args
+      } while (A === MINIMIZE_ALIASED);
+
+      // reflect isAll,
+      // R=0 when at least one arg is zero
+      // R>0 when all args have no zero
+
+      if (domain_isZero(A)) {
+        someAreZero = true;
+      } else if (!domain_hasNoZero(A)) {
+        // A has zero and isnt solved (So has non-zero too); R is unsolved
+        allNonZero = false;
+      }
+    }
+
+    // sort the args if visiting for the first time or when aliases were recompiled
+    if (firstRun || aliased) {
+      ASSERT_LOG2(' - sorting isall args', firstRun, aliased);
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
+
+    if (someAreZero || allNonZero) {
+      ASSERT_LOG2(' - R can be solved, restarting to finalize', someAreZero, allNonZero);
+      if (someAreZero) {
+        if (setDomain(indexR, domain_intersectionValue(R, 0))) return;
+      } else {
+        if (allNonZero) if (setDomain(indexR, domain_removeValue(R, 0))) return;
+      }
+      // restart op. R is solved now and the above code will resolve it.
       return;
     }
 
@@ -1195,7 +1233,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
     ASSERT_LOG2(' = min_isNall', argCount, 'x');
-    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => (x = ml_dec16(ml, offsetArgs + i * 2)) + '=>' + domain__debug(domains[x])).join(' '));
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => '{' + (x = ml_dec16(ml, offsetArgs + i * 2)) + '=' + domain__debug(domains[x]) + '}').join(' '));
 
     if (!R) return setEmpty(indexR, 'isnall; R bad state');
 

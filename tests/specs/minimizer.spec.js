@@ -238,4 +238,44 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql(false);
     });
   });
+
+  describe('isall', function() {
+
+    it('should solve if all args are non-zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 6]
+        : B [5 8 10 42]
+        : C [20 20]
+        R = all?(A B C)
+      `);
+
+      expect(solution).to.eql({A: [1, 6], B: [5, 8, 10, 42], C: 20, R: 1});
+    });
+
+    it('should solve if at least one arg is zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 6]
+        : B [5 8 10 42]
+        : C [0 0]
+        R = all?(A B C)
+      `);
+
+      expect(solution).to.eql({A: [1, 6], B: [5, 8, 10, 42], C: 0, R: 0});
+    });
+
+    it('should solve by defer if unsolved immediately', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 6]
+        : B [5 8 10 42]
+        : C [0 10] # this prevents solving because R can still go either way
+        R = all?(A B C)
+      `);
+
+      expect(solution).to.eql({A: 1, B: 5, C: 0, R: 0});
+    });
+
+  });
 });

@@ -965,7 +965,8 @@ function ml_heapSort16bitInline(ml, offset, len) {
   ASSERT(typeof offset === 'number' && (offset === 0 || (offset > 0 && offset < ml.length)), 'valid offset', ml.length, offset, len);
   ASSERT(typeof len === 'number' && (len === 0 || (len > 0 && offset + len * 2 <= ml.length)), 'valid count', ml.length, offset, len);
 
-  ASSERT_LOG2('     ml_heapSort16bitInline', ml.slice(offset, len * 2), offset, len);
+  ASSERT_LOG2('     ml_heapSort16bitInline', ml.slice(offset, offset + len * 2), offset, len);
+  ASSERT_LOG2('     - values before:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
 
   if (len <= 1) return; // finished this branch
 
@@ -973,12 +974,14 @@ function ml_heapSort16bitInline(ml, offset, len) {
 
   let end = len - 1;
   while (end > 0) {
-    ASSERT_LOG2('     - storing first elemement (biggest) last and reducing len');
+    ASSERT_LOG2('     - swapping first elemement (should be biggest of values left to do) [', ml.readUInt16BE(offset), '] with last [', ml.readUInt16BE(offset + end * 2), '] and reducing end [', end, '->', end - 1, ']');
     ml_swap16(ml, offset, offset + end * 2);
-    ASSERT_LOG2('     - buffer now:', ml.slice(offset, len * 2));
+    ASSERT_LOG2('     - (total) buffer now: Buffer(', [].map.call(ml.slice(offset, offset + len * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
     --end;
-    ml_heapSift(ml, offset, 0, end);
+    ml_heapRepair(ml, offset, 0, end);
   }
+
+  ASSERT_LOG2('     - values after:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
 }
 function ml_heapParent(index) {
   return Math.floor((index - 1) / 2);
@@ -990,59 +993,64 @@ function ml_heapRight(index) {
   return index * 2 + 2;
 }
 function ml_heapify(ml, offset, len) {
-  ASSERT_LOG2('     - ml_heapify', ml.slice(offset, len * 2), offset, len);
+  ASSERT_LOG2('     - ml_heapify', ml.slice(offset, offset + len * 2), offset, len);
 
   let start = ml_heapParent(len - 1);
   while (start >= 0) {
-    ml_heapSift(ml, offset, start, len - 1);
+    ml_heapRepair(ml, offset, start, len - 1);
     --start; // wont this cause it to do it redundantly twice?
   }
-}
-function ml_heapSift(ml, offset, startIndex, endIndex) {
-  ASSERT_LOG2('     - ml_heapSift', ml.slice(offset + startIndex * 2, (endIndex - startIndex + 1) * 2), offset, startIndex, endIndex);
 
+  ASSERT_LOG2('     - ml_heapify end');
+}
+function ml_heapRepair(ml, offset, startIndex, endIndex) {
+  ASSERT_LOG2('     - ml_heapRepair', offset, startIndex, endIndex, 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
   let parentIndex = startIndex;
   let parentValue = ml_dec16(ml, offset + parentIndex * 2);
   let leftIndex = ml_heapLeft(parentIndex);
   ASSERT_LOG2('     -- first leftIndex=', leftIndex, 'end=', endIndex);
 
   while (leftIndex <= endIndex) {
-    ASSERT_LOG2('       - sift loop. indexes; parent=', parentIndex, 'left=', leftIndex, 'right=', ml_heapRight(parentIndex), 'values; parent=', ml.readUInt16BE(offset + parentIndex * 2), ' left=', ml.readUInt16BE(offset + leftIndex * 2), ' right=', ml_heapRight(parentIndex) <= endIndex ? ml.readUInt16BE(offset + ml_heapRight(parentIndex) * 2) : 'void');
+    ASSERT_LOG2('       - sift loop. indexes; parent=', parentIndex, 'left=', leftIndex, 'right=', ml_heapRight(parentIndex), 'values; parent=', ml.readUInt16BE(offset + parentIndex * 2) + '/' + parentValue, ' left=', ml.readUInt16BE(offset + leftIndex * 2), ' right=', ml_heapRight(parentIndex) <= endIndex ? ml.readUInt16BE(offset + ml_heapRight(parentIndex) * 2) : 'void');
     let leftValue = ml_dec16(ml, offset + leftIndex * 2);
     let swapIndex = parentIndex;
     let swapValue = parentValue;
 
-    if (parentValue < leftValue) {
+    ASSERT_LOG2('         - swap<left?', swapValue, leftValue, swapValue < leftValue ? 'yes' : 'no');
+    if (swapValue < leftValue) {
       swapIndex = leftIndex;
       swapValue = leftValue;
     }
 
     let rightIndex = ml_heapRight(parentIndex);
+    ASSERT_LOG2('         - right index', rightIndex, '<=', endIndex, rightIndex <= endIndex ? 'yes it has a right child' : 'no right child');
     if (rightIndex <= endIndex) {
       let rightValue = ml_dec16(ml, offset + rightIndex * 2);
+      ASSERT_LOG2('         - swap<right?', swapValue, rightValue);
       if (swapValue < rightValue) {
         swapIndex = rightIndex;
         swapValue = rightValue;
       }
     }
 
-    ASSERT_LOG2('         - result; parent=', parentIndex, 'swap=', swapIndex, 'parent=', parentValue, 'values; swap=', swapValue, (swapIndex === parentIndex ? 'finished, parent=swap' : 'should swap'));
+    ASSERT_LOG2('           - result; parent=', parentIndex, 'swap=', swapIndex, ', values; parent=', parentValue, ', swap=', swapValue, '->', (swapIndex === parentIndex ? 'finished, parent=swap' : 'should swap'));
 
     if (swapIndex === parentIndex) {
-      ASSERT_LOG2('     - ml_heapSift end:', ml.slice(offset + startIndex * 2, (endIndex - startIndex + 1) * 2));
+      ASSERT_LOG2('     - ml_heapRepair end early:', 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
       return;
     }
     // "swap"
     ml_enc16(ml, offset + parentIndex * 2, swapValue);
     ml_enc16(ml, offset + swapIndex * 2, parentValue);
+    ASSERT_LOG2('             - setting parent to index=', swapIndex, ', value=', swapValue);
     parentIndex = swapIndex;
-    parentValue = swapValue;
+    // note: parentValue remains the same because the swapped child becomes the new parent and it gets the old parent value
 
     leftIndex = ml_heapLeft(parentIndex);
-    ASSERT_LOG2('         - next left:', leftIndex, 'end:', endIndex);
+    ASSERT_LOG2('           - next left:', leftIndex, 'end:', endIndex);
   }
 
-  ASSERT_LOG2('     - ml_heapSift end:', ml.slice(offset + startIndex * 2, (endIndex - startIndex + 1) * 2));
+  ASSERT_LOG2('     - ml_heapRepair end:', ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2));
 }
 function ml_swap16(ml, indexA, indexB) {
   let A = ml_dec16(ml, indexA);

@@ -497,6 +497,21 @@ describe('specs/ml.spec', function() {
 
       expect(buf).to.eql(Buffer.from('\xffarfoob\xfe', 'binary')); // [255, ar, fo, ob, 254]
     });
+
+    it('should sort the sum args in this regression', function() {
+      let buf = Buffer.from('\x18\x20\x17\x9b\x17\x62\x17\xc1\x17\xe7\x17\xfa\x17\x75\x17\x88', 'binary');
+      ml_heapSort16bitInline(buf, 0, 8);
+
+      expect(buf).to.eql(Buffer.from('\x17\x62\x17\x75\x17\x88\x17\x9b\x17\xc1\x17\xe7\x17\xfa\x18\x20', 'binary'));
+    });
+
+    it('should not copy child value to parent value in heap sort', function() {
+      let buf = Buffer.from('\x00\x06\x00\x03\x00\x01\x00\x04\x00\x05\x00\x02', 'binary');
+      ml_heapSort16bitInline(buf, 0, 6);
+
+      // it's mainly testing a a regression
+      expect(buf).to.eql(Buffer.from('\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06', 'binary'));
+    });
   });
 
 });

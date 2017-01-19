@@ -147,7 +147,7 @@ const MINIMIZE_ALIASED = false;
 
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
-  console.log('sweeping');
+  console.log('minimize sweep');
   let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;
@@ -2843,13 +2843,13 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
   function min_sum(ml) {
     let offset = pc;
-    ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset + 10));
+    ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset + 10), firstRun);
     let offsetCount = offset + 1;
     let argCount = ml_dec16(ml, offsetCount);
     let offsetConstant = offset + 3;
     let fixedConstant = ml_dec8(ml, offsetConstant);
     let oplen = SIZEOF_C8_COUNT + argCount * 2 + 2;
-    ASSERT_LOG2(' - ml for this sum:', ml.slice(offset, offset + oplen));
+    ASSERT_LOG2(' - ml for this sum:', [].map.call(ml.slice(offset, offset + oplen), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '));
     let offsetArgs = offset + SIZEOF_C8_COUNT;
     let offsetR = offsetArgs + argCount * 2;
     let indexR = ml_dec16(ml, offsetR);
@@ -2864,11 +2864,6 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     if (!R) return setEmpty(indexR, 'sum; R bad state');
 
-    // sort the args
-    if (firstRun) {
-      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
-    }
-
     // a sum is basically a pyramid of plusses; (A+B)+(C+D) etc
     // to prevent generating an array we'll decode every var during the loop...
     // we loop back to front because we're splicing out vars while looping
@@ -2881,17 +2876,31 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     let sumLo = fixedConstant;
     let sumHi = fixedConstant;
+    let hadAlias = false;
     for (let i = argCount - 1; i >= 0; --i) {
+      let indexA;
+      let A;
       let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
-      let indexA = ml_dec16(ml, offset + indexOffsetDelta);
-      let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
-      ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
-      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+      do {
+        indexA = ml_dec16(ml, offset + indexOffsetDelta);
+        A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
+        ASSERT_LOG2('   - sum arg:', i, 'index:', indexA, 'domain:', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) hadAlias = true; // resort args afterwards
+      } while (A === MINIMIZE_ALIASED);
+
       if (!A) return setEmpty(indexA, 'sum arg; bad state');
       let min = domain_min(A);
       let max = domain_max(A);
       sumLo += min;
       sumHi += max;
+    }
+
+    // sort the args if visiting for the first time or when aliases were recompiled
+    if (firstRun || hadAlias) {
+      ASSERT_LOG2(' - sorting sum args, ml before:', ml.slice(offset, offset + SIZEOF_C8_COUNT + argCount * 2 + 2));
+      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
+      ASSERT_LOG2(' - sum args after sorting:', ml.slice(offset, offset + SIZEOF_C8_COUNT + argCount * 2 + 2));
     }
 
     ASSERT_LOG2(' - total min=', sumLo, ', max=', sumHi, '. applying bounds to this R:', domain__debug(R));
@@ -2918,11 +2927,18 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     let constantSum = 0;
     let var1 = -1; // for 1 and 2 var optim, track which vars were non-constants
     let var2 = -1;
+    let lastVarIndex = -1; // remove dupes. list is assumed ordered so we can simply check neighbors
     for (let i = 0; i < argCount; ++i) {
       let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
       let indexA = ml_dec16(ml, offset + indexOffsetDelta);
+      if (indexA < lastVarIndex) THROW('sum list should be normalized... current=', indexA, ', next=', lastVarIndex, ', firstRun=', firstRun, ', hadAlias=', hadAlias);
+      lastVarIndex = indexA;
+
       let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
-      if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+      if (A === MINIMIZE_ALIASED) {
+        // between the above loop and this one there's nothing that casues aliases so this cant happen
+        return THROW('not expecting aliases here');
+      }
       let oA = A;
       A = domain_removeLtUnsafe(A, minR - (sumHi - domain_max(A)));
       A = domain_removeGtUnsafe(A, maxR - (sumLo - domain_min(A)));

@@ -96,15 +96,19 @@ import {
 
 // BODY_START
 
+const COUNT_NONE = 0;
+const COUNT_BOOLY = 1 << 0;
+const COUNT_ISALL_RESULT = 1 << 1;
+
 /**
  * @param {Buffer} ml
  * @param {string[]} vars
  * @param {$nordom} domains
  * @param {Function} getAlias
  * @param {number[]} [lastOffset]
- * @param {number[]} [onlyAsBool]
+ * @param {number[]} [varMeta]
  */
-function counter(ml, vars, domains, getAlias, lastOffset, onlyAsBool) {
+function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
   ASSERT_LOG2('\n ## counter', ml);
   let pc = 0;
   let counts = new Array(domains.length).fill(0);
@@ -134,7 +138,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, onlyAsBool) {
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
     ++counts[index];
     if (lastOffset) lastOffset[index] = pc;
-    if (onlyAsBool && !asBool) onlyAsBool[index] = 0;
+    if (varMeta && !asBool) varMeta[index] = (varMeta[index] | COUNT_BOOLY) ^ COUNT_BOOLY; // remove booly flag without changing other flags
   }
 
   function countLoop() {
@@ -350,5 +354,9 @@ function counter(ml, vars, domains, getAlias, lastOffset, onlyAsBool) {
 // BODY_STOP
 
 export {
+  COUNT_NONE,
+  COUNT_BOOLY,
+  COUNT_ISALL_RESULT,
+
   counter,
 };

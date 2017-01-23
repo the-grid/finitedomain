@@ -96,11 +96,14 @@ import {
 
 // BODY_START
 
-const COUNT_NONE = 0;
-const COUNT_BOOLY = 1 << 0;
-const COUNT_ISALL_RESULT = 1 << 1;
-const COUNT_NEQ = 1 << 2;
-const COUNT_LTE_RHS = 1 << 3;
+let flagCounter = 0;
+const COUNT_NONE = flagCounter++;
+const COUNT_BOOLY = 1 << flagCounter++;
+const COUNT_ISALL_RESULT = 1 << flagCounter++;
+const COUNT_NEQ = 1 << flagCounter++;
+const COUNT_LTE_LHS = 1 << flagCounter++;
+const COUNT_LTE_RHS = 1 << flagCounter++;
+const COUNT_NAND = 1 << flagCounter++;
 
 /**
  * @param {Buffer} ml
@@ -161,7 +164,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
           break;
 
         case ML_VV_LTE:
-          count(1, false);
+          count(1, false, COUNT_LTE_LHS);
           count(3, false, COUNT_LTE_RHS);
           pc += SIZEOF_VV;
           break;
@@ -176,10 +179,15 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
         case ML_VV_AND:
         case ML_VV_OR:
         case ML_VV_XOR:
-        case ML_VV_NAND:
         case ML_VV_XNOR:
           count(1, true);
           count(3, true);
+          pc += SIZEOF_VV;
+          break;
+
+        case ML_VV_NAND:
+          count(1, true, COUNT_NAND);
+          count(3, true, COUNT_NAND);
           pc += SIZEOF_VV;
           break;
 
@@ -374,8 +382,10 @@ export {
   COUNT_NONE,
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
-  COUNT_NEQ,
   COUNT_LTE_RHS,
+  COUNT_LTE_LHS,
+  COUNT_NAND,
+  COUNT_NEQ,
 
   counter,
 };

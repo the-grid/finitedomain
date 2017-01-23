@@ -117,7 +117,9 @@ import domain_plus from './domain_plus';
 import {
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
+  COUNT_LTE_LHS,
   COUNT_LTE_RHS,
+  COUNT_NAND,
   COUNT_NEQ,
 
   counter,
@@ -305,6 +307,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
+    if (counts[indexA] === 2) {
+      if (varMeta[indexA] & COUNT_NAND) {
+        // note: must be indexA
+        if (doNandLte(indexA, pc, 'lte')) return;
+      }
+    }
+
     if (counts[indexB] === 2) {
       if (varMeta[indexB] & COUNT_ISALL_RESULT) {
         // note: MUST be indexB because the trick doesn't work for indexA
@@ -484,14 +493,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
 
       ASSERT_LOG2(' - checking neq offset', ml_dec8(ml, neqOffset) === ML_VV_NEQ, ', indexA =', indexA);
-      // there are two isalls, need special paths because of different footprints
       if (ml_dec8(ml, neqOffset) === ML_VV_NEQ) {
         let left = getFinalIndex(ml_dec16(ml, neqOffset + 1));
         let right = getFinalIndex(ml_dec16(ml, neqOffset + 3));
 
         ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
         if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
-          console.error('this happened');
           ASSERT_LOG2(' - ok, rewriting the lte, eliminating the neq, and defering', sharedVarIndex);
           let indexB = sharedVarIndex === left ? right : left;
 
@@ -506,6 +513,63 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
             domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], vB);
           });
 
+          counts[sharedVarIndex] -= 2;
+          addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function doNandLte(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doNandLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    if (!addrTracker[sharedVarIndex]) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    // this should be `A <= B, A !& C`. A is a leaf var, eliminate both constraints and defer A.
+
+    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
+    let nandOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+
+    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
+    if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
+      ASSERT(ml_dec16(ml, lteOffset + 1) === sharedVarIndex, 'shared var should be left var of the lte');
+
+      let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
+
+      ASSERT_LOG2(' - checking nand offset', ml_dec8(ml, nandOffset) === ML_VV_NAND, ', indexA =', indexB);
+      if (ml_dec8(ml, nandOffset) === ML_VV_NAND) {
+        let left = getFinalIndex(ml_dec16(ml, nandOffset + 1));
+        let right = getFinalIndex(ml_dec16(ml, nandOffset + 3));
+
+        ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexB]), domain__debug(domains[left]), domain__debug(domains[right]));
+        if (domain_isBool(domains[indexB]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+          ASSERT_LOG2(' - ok, eliminating constraints, deferring', sharedVarIndex);
+
+          let indexA = sharedVarIndex === left ? right : left;
+
+          ml_eliminate(ml, nandOffset, SIZEOF_VV);
+          ml_eliminate(ml, lteOffset, SIZEOF_VV);
+
+          ASSERT_LOG2(' - A is a leaf constraint, defer it', sharedVarIndex);
+
+          solveStack.push(domains => {
+            ASSERT_LOG2(' - nand + lte;', indexA, '!&', sharedVarIndex, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[sharedVarIndex]));
+            ASSERT_LOG2(' - nand + lte;', sharedVarIndex, '<=', indexB, '  ->  ', domain__debug(domains[sharedVarIndex]), '<=', domain__debug(domains[indexB]));
+            let vA = force(indexA);
+            let vB = force(indexB);
+            // if vA is non-zero then sharedVarIndex must be zero, otherwise it must be lte B
+            domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], vA ? 0 : vB);
+          });
+
+          // we eliminated both constraints so all vars involved decount
+          --counts[indexA];
+          --counts[indexB];
           counts[sharedVarIndex] -= 2;
           addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
           return true;
@@ -1230,7 +1294,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut nand B;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
@@ -1245,9 +1312,18 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    if (counts[indexA] === 2 && (varMeta[indexA] & COUNT_LTE_LHS)) {
+      if (doNandLte(indexA, pc, 'nand')) return;
+    }
+
+    if (counts[indexB] === 2 && (varMeta[indexB] & COUNT_LTE_LHS)) {
+      if (doNandLte(indexB, pc, 'nand')) return;
+    }
+
+    pc += SIZEOF_VV;
   }
 
   function cutXnor() {

@@ -364,6 +364,20 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nand,plus /);
     });
 
+    it('should rewrite swapped base case of an lte and neq to a nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        B != C
+        A <= B
+        # -> A !& C
+
+        A = A + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: nand,plus /);
+    });
+
     it('should not do lte+neq trick for lhs of lte', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
@@ -384,12 +398,70 @@ describe('specs/cutter.spec', function() {
         : A [0 1]
         : B [0 2]
         : C [0 1]
-        B <= A
+        A <= B
         B != C
         # -> A !& C
 
         A = A + C # prevent trivial defer of the vars
       `)).to.throw(/ops: lte,neq,plus /);
+    });
+  });
+
+  describe('lte+nand', function() {
+
+    it('should eliminate base case of an lte and nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A <= B
+        A !& C
+        # -> A is leaf var
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: plus /);
+    });
+
+    it('should eliminate swapped base case of an lte and nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A !& C
+        A <= B
+        # -> A is leaf var
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: plus /);
+    });
+
+    it('should not do lte+neq trick for rhs of lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A !& C
+        B <= A
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: nand,lte,plus /);
+    });
+
+    it('should not do lte+neq trick for non bools', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 2]
+        : C [0 1]
+        A <= B
+        A !& C
+        # -> A !& C
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: lte,nand,plus /);
     });
   });
 

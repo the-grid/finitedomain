@@ -561,7 +561,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
           break;
 
         default:
-          THROW('unknown op: 0x' + op.toString(16));
+          THROW('(mn) unknown op: 0x' + op.toString(16), ' at', pc);
       }
       if (pc === pcStart) {
         ASSERT_LOG2(' - restarting op from same pc...');

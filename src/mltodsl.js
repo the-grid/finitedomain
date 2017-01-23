@@ -402,10 +402,9 @@ ${
       let part = '';
       switch (op) {
         case ML_START:
-          if (pc !== 0) {
+          if (pc !== 1) { // pc is already incremented...
             return THROW(' ! compiler problem @', pcStart);
           }
-          ++pc;
           break;
 
         case ML_STOP:
@@ -722,7 +721,7 @@ ${
           break;
 
         default:
-          ml_throw('unknown op', pc);
+          ml_throw('(m2d) unknown op', pc, ' at', pc);
       }
       allParts.push(part);
     }

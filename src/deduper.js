@@ -473,7 +473,7 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           break;
 
         default:
-          ml_throw('unknown op', pc);
+          ml_throw('(dd) unknown op', pc);
       }
     }
     THROW('ML OOB');

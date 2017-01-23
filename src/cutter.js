@@ -85,8 +85,15 @@ import {
   ml_enc8,
   ml_enc16,
   ml_eliminate,
+  ml_getOpSizeSlow,
+  ml_getRecycleOffset,
   ml_jump,
+  ml_recycleVV,
   ml_throw,
+  ml_validateSkeleton,
+
+  ml_cr2vv,
+  ml_vv2vv,
   ml_vvv2vv,
   ml_vvv2vvv,
 } from './ml';
@@ -108,9 +115,8 @@ import {
 } from './domain';
 import domain_plus from './domain_plus';
 import {
-  //COUNT_NONE,
   COUNT_BOOLY,
-  //COUNT_ISALL_RESULT,
+  COUNT_ISALL_RESULT,
 
   counter,
 } from './counter';
@@ -122,20 +128,21 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   let pc = 0;
   let lastOffset;
   let varMeta;
+  let addrTracker = {}; // track op offsets for certain cases
   let counts;
   let lenBefore;
   let emptyDomain = false;
   let removed;
   let loops = 0;
   do {
-    ASSERT_LOG2(' # outer cutloop', loops);
+    ASSERT_LOG2(' # start cutter outer loop', loops);
     lastOffset = new Array(domains.length).fill(0); // offset of op containing var; only tag the last occurrence of a var. so zero is never actually used here for count>1
     varMeta = new Array(domains.length).fill(COUNT_BOOLY); // track certain properties of each var, is it a booly, used in an isall, etc. cutter can use these stats for cutting decisions.
     counts = counter(ml, vars, domains, getAlias, lastOffset, varMeta);
     lenBefore = solveStack.length;
     cutLoop();
     removed = solveStack.length - lenBefore;
-    console.log(' - cutter outer loop', loops, 'removed', removed, 'constraints, emptyDomain =', emptyDomain);
+    console.log(' - end cutter outer loop', loops, ', removed', removed, ', constraints, emptyDomain =', emptyDomain);
     ++loops;
   } while (removed && !emptyDomain);
 
@@ -147,7 +154,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
     if (domains[index] !== false) return index;
 
-    // if the domain is falsy then there was an alias (or a bug)
+    // if the domain is falsy then there was an alias 6sx(or a bug)
     // write the alias back to ML and restart the current op
     // caller should ensure to check return value and return on
     // a falsy result as well so the loop can restart.
@@ -223,7 +230,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         let vA = force(indexA);
@@ -236,9 +246,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    pc += SIZEOF_VV;
   }
 
   function cutLte() {
@@ -259,7 +270,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
@@ -272,9 +286,160 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    if (counts[indexB] === 2 && (varMeta[indexB] & COUNT_ISALL_RESULT)) {
+      // note: MUST be indexB because the trick doesn't work for indexA
+      if (doIsAllLte(indexB, pc, 'lte')) return;
+    }
+
+    pc += SIZEOF_VV;
+  }
+
+  function doIsAllLte(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doIsAllLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    if (!addrTracker[sharedVarIndex]) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = pc;
+      return false;
+    }
+
+    // we can replace an isall and lte with ltes on the args of the isall
+    // B = isall(C D), A <= B  ->   A <= C, A <= D
+    // (where B is sharedVarIndex)
+    // the isall args are assumed to be booly (containing both zero and non-zero)
+    // A <= B meaning A is 0 when B is 0. B is 0 when C or D is 0 and non-zero
+    // otherwise. so A <= C or A <= D should force A to match A <= B.
+
+    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
+    let isallOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+
+    // first check whether the saved offset is still valid (it may have been eliminated, although
+    // I don't think that's possible with the currently code so the check may be redundant)
+
+    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
+    if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
+      ASSERT(ml_dec16(ml, lteOffset + 3) === sharedVarIndex, 'shared var should be right var of the lte');
+
+      let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
+
+      ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexA =', indexA);
+      // there are two isalls, need special paths because of different footprints
+      if (ml_dec8(ml, isallOffset) === ML_ISALL) {
+        let len = ml_dec16(ml, isallOffset + 1);
+        ASSERT(ml_dec16(ml, isallOffset + 3 + len * 2) === sharedVarIndex, 'shared var should be R of the isall');
+
+        // 2 ltes fit perfectly in the space we have available
+        if (len === 2) {
+          let left = getFinalIndex(ml_dec16(ml, isallOffset + 3));
+          let right = getFinalIndex(ml_dec16(ml, isallOffset + 5));
+
+          // validate domains. for now, only apply the trick on strict bools [0 1]
+          ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
+          if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+            // compile A<=left and A<=right over the existing two offsets
+            ml_vv2vv(ml, lteOffset, ML_VV_LTE, indexA, left);
+            ml_cr2vv(ml, isallOffset, len, ML_VV_LTE, indexA, right);
+
+            return doIsAllLteDeferShared(sharedVarIndex, indexA);
+          }
+        } else if (len < 100) {
+          ASSERT_LOG2(' - Attempting to recycle space to stuff', len, 'lte constraints');
+          // we have to recycle some space now. 100 is an arbitrary upper bound. the actual bound is the available space to recycle
+
+          // start by collecting len recycled spaces
+          let bin = []; // rare case of using an array inside this lib...
+          let leftToStore = len;
+          let lteSize = SIZEOF_VV; // lte vv
+          let nextOffset = 0;
+          let spaceLeft = 0;
+          let nextSize = 0;
+          do {
+            if (spaceLeft < lteSize) {
+              nextOffset = ml_getRecycleOffset(ml, nextOffset + nextSize, lteSize);
+              ASSERT_LOG2('     - Got a new recyclable offset:', nextOffset);
+              if (nextOffset === undefined) {
+                // not enough spaces to recycle to fill our need; we can't rewrite this one
+                ASSERT_LOG2('     - There is not enough space to recycle; bailing this morph');
+                return false;
+              }
+              nextSize = ml_getOpSizeSlow(ml, nextOffset); // probably larger than requested because jumps are consolidated
+              spaceLeft = nextSize;
+              ASSERT_LOG2('     - It has', nextSize, 'bytes of free space');
+
+              bin.push(nextOffset);
+            }
+            spaceLeft -= lteSize;
+            --leftToStore;
+            ASSERT_LOG2('   - Space left at', nextOffset, 'after compiling the LTE:', spaceLeft, ', LTEs left to store:', leftToStore);
+          } while (leftToStore > 0);
+
+          ASSERT_LOG2(' - Found', bin.length, 'jumps (', bin, ') which can host the', len, 'lte constraints. Compiling them now');
+
+          let recycleOffset;
+          let currentSize = 0;
+          for (let i = 0; i < len; ++i) {
+            ASSERT_LOG2('   - Compiling an lte to offset=', recycleOffset, 'with remaining size=', currentSize);
+            if (currentSize < SIZEOF_VV) {
+              recycleOffset = bin.pop(); // note: doing it backwards means we may not deplete the bin if the last space can host more lte's than were left to assign in the last loop. but that's fine either way.
+              currentSize = ml_getOpSizeSlow(ml, recycleOffset);
+              ASSERT_LOG2('   - Fetched next space from bin; offset=', recycleOffset, 'with size=', currentSize);
+            }
+            let indexB = ml_dec16(ml, isallOffset + 1 + i * 2);
+            ASSERT_LOG2('- Compiling LTE in recycled space', offset, 'on AB', indexA, indexB);
+            ml_recycleVV(ml, recycleOffset, ML_VV_LTE, indexA, indexB);
+            recycleOffset += SIZEOF_VV;
+            currentSize -= SIZEOF_VV;
+
+            ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
+          }
+
+          // TODO: we could recycle these addresses immediately. slightly more efficient and may cover the edge case where there otherwise wouldnt be enough space.
+          ml_eliminate(ml, isallOffset, SIZEOF_COUNT + len * 2 + 2);
+          ml_eliminate(ml, lteOffset, SIZEOF_VV);
+
+          ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
+          return doIsAllLteDeferShared(sharedVarIndex, indexA);
+        }
+      }
+
+      ASSERT_LOG2(' - checking isall offset for other op', ml_dec8(ml, isallOffset) === ML_ISALL2, ', indexA =', indexA);
+      if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
+        ASSERT(ml_dec16(ml, isallOffset + 5) === sharedVarIndex, 'var should be R of the isall');
+        let left = getFinalIndex(ml_dec16(ml, isallOffset + 1));
+        let right = getFinalIndex(ml_dec16(ml, isallOffset + 3));
+
+        // validate domains. for now, only apply the trick on strict bools [0 1]
+        ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
+        if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+          // compile A<=left and A<=right over the existing two offsets
+          ml_vv2vv(ml, lteOffset, ML_VV_LTE, sharedVarIndex, left);
+          ml_vvv2vv(ml, isallOffset, ML_VV_LTE, sharedVarIndex, right);
+
+          return doIsAllLteDeferShared(sharedVarIndex, indexA);
+        }
+      }
+    }
+
+    ASSERT_LOG2(' - did not eliminate anything');
+    return false;
+  }
+  function doIsAllLteDeferShared(sharedVarIndex, lteIndex) {
+    ASSERT_LOG2('   - deferring', sharedVarIndex, 'will be gt', lteIndex);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - isall + lte;', lteIndex, '<=', sharedVarIndex, '  ->  ', domain__debug(domains[lteIndex]), '<=', domain__debug(domains[sharedVarIndex]));
+      let vA = force(lteIndex);
+      domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], vA);
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = sharedVarIndex));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${lteIndex} <= ${sharedVarIndex}`));
+
+    counts[sharedVarIndex] -= 2;
+    addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+
+    // revisit this op, it is now an lte
+    return true;
   }
 
   function cutIsEq(ml, offset, sizeof, lenA, lenB, lenR) {
@@ -1131,9 +1296,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
       --counts[indexR];
       for (let i = 0; i < len; ++i) --counts[args[i]];
-    } else {
-      pc += SIZEOF_COUNT + len * 2 + 2;
+
+      return;
     }
+
+    if (counts[indexR] === 2) {
+      if (doIsAllLte(indexR, pc, 'isall')) return;
+    }
+
+    pc += SIZEOF_COUNT + len * 2 + 2;
   }
 
   function cutIsAll2() {
@@ -1155,9 +1326,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VVV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VVV;
+
+      return;
     }
+
+    if (counts[indexR] === 2) {
+      if (doIsAllLte(indexR, pc, 'isall')) return;
+    }
+
+    pc += SIZEOF_VVV;
   }
 
   function cutIsNall() {
@@ -1203,7 +1380,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CL pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
         case ML_VV_EQ:
           return THROW('eqs should be aliased and eliminated');
@@ -1376,7 +1553,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           break;
 
         default:
-          ml_throw('unknown op', pc);
+          //console.error('(cut) unknown op', pc,' at', pc,'ctrl+c now or log will fill up');
+          //while (true) console.log('beep');
+          ml_throw('(cut) unknown op', pc);
       }
     }
     if (emptyDomain) {

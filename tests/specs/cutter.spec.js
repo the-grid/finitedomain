@@ -317,6 +317,37 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('lte + isall trick', function() {
+
+    it('should morph the basic case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        C = all?(A B)
+        D <= C
+        # -->  D <= A, D <= B
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: 0, D: 0});
+    });
+
+    it('should morph three args if there is enough space', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, X [0 1]
+        : M = 1
+        X = all?(A B C)
+        D <= X
+        # -->  D <= A, D <= B, D <= C
+        M == M      # recycle-able space after eliminating the tautology
+        M == M      # recycle-able space after eliminating the tautology
+        M == M      # recycle-able space after eliminating the tautology
+        M == M      # recycle-able space after eliminating the tautology
+        A = B + D   # prevent abd from being leafs
+      `)).to.throw(/ops: lte,lte,lte,plus /);
+    });
+  });
+
 
   /*
 

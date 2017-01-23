@@ -115,8 +115,8 @@ const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
 const SIZEOF_C8_COUNT = 1 + 2 + 1; // + 2*count
 
-function ml_sizeof(ml, offset) {
-  switch (ml[offset]) {
+function ml_sizeof(ml, offset, op) {
+  switch (op) {
     case ML_VV_EQ:
     case ML_VV_NEQ:
     case ML_VV_LT:
@@ -229,7 +229,9 @@ function ml_sizeof(ml, offset) {
     case ML_STOP:
       return 1;
     default:
-      THROW('unknown op: ' + ml[offset]);
+      //console.log('(ml) unknown op', op,' at', offset,'ctrl+c now or log will fill up');
+      //while (true) console.error('ctrl+c me');
+      THROW('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
   }
 }
 
@@ -368,7 +370,7 @@ function ml_countConstraints(ml) {
         break;
 
       default:
-        let size = ml_sizeof(ml, pc); // throws if op is unknown
+        let size = ml_sizeof(ml, pc, op); // throws if op is unknown
         ++constraints;
         pc += size;
     }
@@ -387,6 +389,7 @@ function ml_hasConstraint(ml) {
     switch (ml[pc]) {
       case ML_START:
         if (pc !== 0) return ml_throw('oops');
+        ++pc;
         break;
 
       case ML_STOP:
@@ -414,6 +417,23 @@ function ml_hasConstraint(ml) {
   }
 
   THROW('ML OOB');
+}
+
+function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
+  // "count with result" (not like sum, which is c8r)
+  ASSERT_LOG2(' -| ml_cr2vv |', len, opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  let oldLen = SIZEOF_COUNT + len * 2 + 2;
+  ml_skip(ml, offset + oldLen, oldLen - SIZEOF_VV);
+}
+
+function ml_vv2vv(ml, offset, opCode, indexA, indexB) {
+  ASSERT_LOG2(' -| ml_vv2vv |', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
 }
 
 function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
@@ -514,6 +534,72 @@ function ml_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
   ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
 }
 
+function walk(ml, offset, callback) {
+  let len = ml.length;
+  let op = ml[offset];
+  while (offset < len) {
+    op = ml[offset];
+    ASSERT(offset === 0 || op !== ML_START, 'should not see op=0 unless offset=0', offset);
+    let r = callback(ml, offset, op);
+    if (r !== undefined) return r;
+    offset += ml_sizeof(ml, offset, op);
+  }
+}
+
+function ml_validateSkeleton(ml) {
+  ASSERT_LOG2('--- ml_validateSkeleton');
+  let started = false;
+  let stopped = false;
+  walk(ml, 0, (ml, offset, op) => {
+    if (op === ML_START && offset === 0) started = true;
+    if (op === ML_START && offset !== 0) THROW('ml_validateSkeleton: Found ML_START at offset', offset);
+    if (op === ML_STOP) stopped = true;
+    else if (stopped) THROW('ml_validateSkeleton: Should stop after encountering a stop but did not');
+  });
+
+  if (!started || !stopped) THROW('ml_validateSkeleton: Did not find a ML_START or ML_STOP');
+}
+
+function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
+  ASSERT_LOG2(' - ml_getRecycleOffset looking for at least', requiredSize, 'bytes of free space');
+  // find a jump which covers at least the requiredSize
+  return walk(ml, fromOffset, (ml, offset, op) => {
+    ASSERT_LOG2('   - considering op', op, 'at', offset);
+    if (op === ML_JMP) {
+      let size = ml_getOpSizeSlow(ml, offset);
+      ASSERT_LOG2('   - found jump of', size, 'bytes at', offset + ', wanted', requiredSize, (requiredSize <= size ? ' so is ok!' : ' so is too small'));
+      if (size >= requiredSize) return offset;
+    }
+  });
+}
+
+function ml_getOpSizeSlow(ml, offset) {
+  ASSERT(offset < ml.length, 'ml_getOpSizeSlow OOB');
+  // this is much slower compared to using the constants because it has to read from the ML
+  // this function exists to suplement recycling, where you must read the size of the jump
+  // otherwise you won't know how much space is left after recycling
+  let size = ml_sizeof(ml, offset, ml[offset]);
+  ASSERT_LOG2(' - ml_getOpSizeSlow', offset, ml.length, '-->', size);
+  return size;
+}
+
+function ml_recycleVV(ml, offset, op, indexA, indexB) {
+  ASSERT(ml_dec8(ml, offset) === ML_JMP, 'expecting to recycle a space that starts with a jump');
+  ASSERT(ml_dec16(ml, offset + 1) >= 2, 'a vv should fit');
+  ASSERT_LOG2('- ml_recycleVV', offset, op, indexA, indexB);
+
+  let currentSize = SIZEOF_V + ml_dec16(ml, offset + 1);
+  let remainsEmpty = currentSize - SIZEOF_VV;
+  if (remainsEmpty < 0) THROW('recycled OOB');
+  ASSERT_LOG2('- putting a vv', op, 'at', offset, 'of size', currentSize, 'leaving', remainsEmpty, 'for a jump');
+
+  ml_enc8(ml, offset, op);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+
+  if (remainsEmpty) ml_skip(ml, offset + SIZEOF_VV, remainsEmpty);
+}
+
 function ml__debug(ml, offset, max, domains, names) {
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
@@ -536,8 +622,9 @@ function ml__debug(ml, offset, max, domains, names) {
   let rv = [];
   while (count++ < max && pc < ml.length) {
     let name = '';
+    let op = ml[pc];
     /* eslint-disable no-fallthrough */// should have an option to allow it when explicitly stated like below...
-    switch (ml[pc]) {
+    switch (op) {
       case ML_START:
         if (pc !== 0) {
           rv.push('unused_error(0)');
@@ -808,7 +895,7 @@ function ml__debug(ml, offset, max, domains, names) {
         THROW('add me [pc=' + pc + ', op=' + ml[pc] + ']');
     }
 
-    let size = ml_sizeof(ml, pc);
+    let size = ml_sizeof(ml, pc, op);
     //console.log('size was:', size, 'rv=', rv);
     if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + size)].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' '));
     pc += size;
@@ -830,7 +917,8 @@ function ml_getOpList(ml) {
   let pc = 0;
   let rv = [];
   while (pc < ml.length) {
-    switch (ml[pc]) {
+    let op = ml[pc];
+    switch (op) {
       case ML_START:
         if (pc !== 0) {
           rv.push('error(0)');
@@ -954,7 +1042,7 @@ function ml_getOpList(ml) {
         break;
     }
 
-    pc += ml_sizeof(ml, pc);
+    pc += ml_sizeof(ml, pc, op);
   }
 
   return rv.join(',');
@@ -1154,13 +1242,20 @@ export {
   ml_enc8,
   ml_enc16,
   ml_eliminate,
+  ml_getRecycleOffset,
+  ml_getOpSizeSlow,
   ml_hasConstraint,
   ml_heapSort16bitInline,
   ml_jump,
   ml_pump,
+  ml_recycleVV,
   ml_sizeof,
   ml_skip,
   ml_throw,
+  ml_validateSkeleton,
+
+  ml_cr2vv,
+  ml_vv2vv,
   ml_vvv2vv,
   ml_vvv2vvv,
   ml_vvv2v8v,

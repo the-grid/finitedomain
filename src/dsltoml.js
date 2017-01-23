@@ -107,7 +107,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     valstrat: 'default',
   };
   let ml = '';
-  encode8bit(ML_START);
+  ml += encode8bit(ML_START);
   let constraintCount = 0;
 
   let pointer = 0;

@@ -1,7 +1,16 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import solverSolver from '../../src/runner';
 import {
+  ML_VV_LTE,
+  ML_JMP,
+  ML_START,
+  ML_STOP,
+
+  ml_enc8,
+  ml_enc16,
+  ml_getRecycleOffset,
   ml_heapSort16bitInline,
+  ml_recycleVV,
 } from '../../src/ml';
 
 describe('specs/ml.spec', function() {
@@ -511,6 +520,130 @@ describe('specs/ml.spec', function() {
 
       // it's mainly testing a a regression
       expect(buf).to.eql(Buffer.from('\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06', 'binary'));
+    });
+  });
+
+  describe('recycle', function() {
+
+    it('should get an empty offset of exact requested size', function() {
+      let ml = new Buffer(7);
+      ml_enc8(ml, 0, ML_START);
+      ml_enc8(ml, 1, ML_JMP);
+      ml_enc16(ml, 2, 2);
+      ml_enc8(ml, 6, ML_STOP);
+      let offset = ml_getRecycleOffset(ml, 0, 5);
+
+      // note: the first will be considered ML_START so the next will be targeted
+      expect(offset).to.eql(1);
+    });
+
+    it('should get an empty offset even if its bigger', function() {
+      let ml = new Buffer(7);
+      ml_enc8(ml, 0, ML_START);
+      ml_enc8(ml, 1, ML_JMP);
+      ml_enc16(ml, 2, 2);
+      ml_enc8(ml, 6, ML_STOP);
+      let offset = ml_getRecycleOffset(ml, 0, 5);
+
+      // note: the first will be considered ML_START so the next will be targeted
+      expect(offset).to.eql(1);
+    });
+
+    it('should fail if there is no empty offset', function() {
+      let ml = new Buffer(10);
+      ml_enc8(ml, 0, ML_START);
+      ml_enc8(ml, 1, ML_JMP);
+      ml_enc16(ml, 2, 5);
+      ml_enc8(ml, 9, ML_STOP);
+      let offset = ml_getRecycleOffset(ml, 0, 9);
+
+      // since the first viable offset would be pos=1 and that only has 9 spaces, the search should fail
+      expect(offset).to.eql(undefined);
+    });
+
+    it('should skip an offset if its too small and still return the next one if its big enough', function() {
+      let ml = new Buffer(30);
+      ml_enc8(ml, 0, ML_START);
+      ml_enc8(ml, 1, ML_JMP);
+      ml_enc16(ml, 2, 5);
+      ml_enc8(ml, 9, ML_JMP);
+      ml_enc16(ml, 10, 18);
+      ml_enc8(ml, 29, ML_STOP);
+      let offset = ml_getRecycleOffset(ml, 0, 9);
+
+      // since the first viable offset would be pos=1 and that only has 9 spaces, the search should fail
+      expect(offset).to.eql(9);
+    });
+  });
+
+  describe('ml_recycleVV', function() {
+
+    it('should compile an lte', function() {
+      let init = new Buffer(30);
+      init.fill(0);
+      ml_enc8(init, 0, ML_START);
+      ml_enc8(init, 1, ML_JMP);
+      ml_enc16(init, 2, 5);
+      ml_enc8(init, 9, ML_JMP);
+      ml_enc16(init, 10, 17);
+      ml_enc8(init, 29, ML_STOP);
+
+      // the recycle should get the second jump (len=3+17), then use that to compile in a LTE (len=5) and a jump for the remaining space (len=3+12)
+      let expected = Buffer.from(init);
+      ml_enc8(expected, 9, ML_VV_LTE);
+      ml_enc16(expected, 10, 1);
+      ml_enc16(expected, 12, 2);
+      ml_enc8(expected, 14, ML_JMP);
+      ml_enc16(expected, 15, 12);
+
+      //console.log('------ start');
+      let ml = Buffer.from(init);
+      let offset = ml_getRecycleOffset(ml, 0, 9);
+      ml_recycleVV(ml, offset, ML_VV_LTE, 1, 2);
+
+      //console.log('');
+      //console.log('init:', init);
+      //console.log('have:', ml);
+      //console.log('want:', expected);
+
+      // since the first viable offset would be pos=1 and that only has 9 spaces, the search should fail
+      expect(ml).to.eql(expected);
+    });
+
+    it('should compile two ltes', function() {
+      let init = new Buffer(30);
+      init.fill(0);
+      ml_enc8(init, 0, ML_START);
+      ml_enc8(init, 1, ML_JMP);
+      ml_enc16(init, 2, 5);
+      ml_enc8(init, 9, ML_JMP);
+      ml_enc16(init, 10, 17);
+      ml_enc8(init, 29, ML_STOP);
+
+      // the recycle should get the second jump (len=3+17), then use that to compile in a LTE (len=5) and a jump for the remaining space (len=3+12)
+      let expected = Buffer.from(init);
+      ml_enc8(expected, 9, ML_VV_LTE);
+      ml_enc16(expected, 10, 1);
+      ml_enc16(expected, 12, 2);
+      ml_enc8(expected, 14, ML_VV_LTE);
+      ml_enc16(expected, 15, 1);
+      ml_enc16(expected, 17, 2);
+      ml_enc8(expected, 19, ML_JMP);
+      ml_enc16(expected, 20, 7);
+
+      //console.log('------ start');
+      let ml = Buffer.from(init);
+      let offset = ml_getRecycleOffset(ml, 0, 9);
+      ml_recycleVV(ml, offset, ML_VV_LTE, 1, 2);
+      ml_recycleVV(ml, offset + 5, ML_VV_LTE, 1, 2);
+
+      //console.log('');
+      //console.log('init:', init);
+      //console.log('have:', ml);
+      //console.log('want:', expected);
+
+      // since the first viable offset would be pos=1 and that only has 9 spaces, the search should fail
+      expect(ml).to.eql(expected);
     });
   });
 

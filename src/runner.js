@@ -175,13 +175,15 @@ function solverSolver(dsl) {
     if (cutLoops < 0) return false;
   } while (cutLoops > 1);
 
-  console.time('ml->dsl:');
+  console.time('ml->dsl (final):');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
-  console.timeEnd('ml->dsl:');
+  console.timeEnd('ml->dsl (final):');
 
+  console.time('generating solution:');
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
   if (!ml_hasConstraint(mlConstraints)) solution = createSolution(vars, domains, getAlias, solveStack);
+  console.timeEnd('generating solution:');
 
   console.timeEnd('</solverSolver>');
 

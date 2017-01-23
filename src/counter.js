@@ -131,14 +131,17 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
     return getFinalIndex(aliasIndex, _max - 1);
   }
 
-  function count(delta, asBool) {
+  function count(delta, asBool, isAllResult) {
     let n = ml_dec16(ml, pc + delta);
     ASSERT(n < domains.length, 'should be a valid index', n);
     let index = getFinalIndex(n);
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
     ++counts[index];
     if (lastOffset) lastOffset[index] = pc;
-    if (varMeta && !asBool) varMeta[index] = (varMeta[index] | COUNT_BOOLY) ^ COUNT_BOOLY; // remove booly flag without changing other flags
+    if (varMeta) {
+      if (!asBool) varMeta[index] = (varMeta[index] | COUNT_BOOLY) ^ COUNT_BOOLY; // remove booly flag without changing other flags
+      if (isAllResult) varMeta[index] |= COUNT_ISALL_RESULT;
+    }
   }
 
   function countLoop() {
@@ -209,7 +212,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
         case ML_ISALL2:
           count(1, true);
           count(3, true);
-          count(5, true);
+          count(5, true, true);
           pc += SIZEOF_VVV;
           break;
 
@@ -303,7 +306,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
           for (let i = 0; i < ilen; ++i) {
             count(3 + i * 2, true);
           }
-          count(3 + ilen * 2, true); // R
+          count(3 + ilen * 2, true, op === ML_ISALL); // R
           pc += SIZEOF_COUNT + ilen * 2 + 2;
           break;
 
@@ -344,7 +347,9 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
           break;
 
         default:
-          ml_throw(ml, pc, 'unknown op');
+          //console.error('(cnt) unknown op', pc,' at', pc,'ctrl+c now or log will fill up');
+          //while (true) console.log('beep');
+          ml_throw(ml, pc, '(cnt) unknown op');
       }
     }
     THROW('ML OOB');

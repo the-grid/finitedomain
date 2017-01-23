@@ -317,7 +317,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte + isall trick', function() {
+  describe('lte_rhs+isall_r trick', function() {
 
     it('should morph the basic case', function() {
       let solution = solverSolver(`
@@ -348,7 +348,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte+neq', function() {
+  describe('lte_rhs+neq trick', function() {
 
     it('should rewrite base case of an lte and neq to a nand', function() {
       expect(_ => solverSolver(`
@@ -407,7 +407,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte+nand', function() {
+  describe('lte_lhs+nand trick', function() {
 
     it('should eliminate base case of an lte and nand', function() {
       expect(_ => solverSolver(`
@@ -465,6 +465,81 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('lte_lhs+isall_r trick', function() {
+
+    it('should eliminate base case of an lte-lhs and isall-r', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        A <= B
+        A = all?(C D)
+        # -> nall(B C D)
+
+        B = C + D # prevent trivial defer of the vars
+      `)).to.throw(/ops: nall,plus /);
+    });
+
+    it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        A = all?(C D)
+        A <= B
+        # -> nall(B C D)
+
+        B = C + D # prevent trivial defer of the vars
+      `)).to.throw(/ops: nall,plus /);
+    });
+
+    it('should not do lte-lhs + isall-r trick for rhs of lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        A = all?(C D)
+        B <= A
+        # will apply the lte-rhs + isall-r trick instead (B <= C, B <= D)
+
+        B = C + D # prevent trivial defer of the vars
+      `)).to.throw(/ops: lte,lte,plus /);
+    });
+
+    it('should not do lte_lhs+neq trick for non bools', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 2]
+        : C [0 1]
+        : D [0 1]
+        A <= B
+        A = all?(C D)
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: lte,isall,plus /);
+    });
+
+    it('should work with more than two args to isall', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C, D, E, F [0 1]
+        A <= B
+        A = all?(C D E F)
+        # -> nall(B C D E F)
+
+        B = sum(C D E F) # prevent trivial defer of the vars
+      `)).to.throw(/ops: nall,sum /);
+    });
+  });
   /*
 
   describe('plus', function(){

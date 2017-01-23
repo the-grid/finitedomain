@@ -231,6 +231,7 @@ function ml_sizeof(ml, offset, op) {
     default:
       //console.log('(ml) unknown op', op,' at', offset,'ctrl+c now or log will fill up');
       //while (true) console.error('ctrl+c me');
+      ASSERT_LOG2('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
       THROW('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
   }
 }
@@ -421,16 +422,16 @@ function ml_hasConstraint(ml) {
 
 function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
   // "count with result" (not like sum, which is c8r)
-  ASSERT_LOG2(' -| ml_cr2vv |', len, opCode, indexA, indexB);
+  ASSERT_LOG2(' -| ml_cr2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
   let oldLen = SIZEOF_COUNT + len * 2 + 2;
-  ml_skip(ml, offset + oldLen, oldLen - SIZEOF_VV);
+  ml_skip(ml, offset + SIZEOF_VV, oldLen - SIZEOF_VV);
 }
 
 function ml_vv2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_vv2vv |', opCode, indexA, indexB);
+  ASSERT_LOG2(' -| ml_vv2vv | from', offset, ', op=', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
@@ -581,6 +582,27 @@ function ml_getOpSizeSlow(ml, offset) {
   let size = ml_sizeof(ml, offset, ml[offset]);
   ASSERT_LOG2(' - ml_getOpSizeSlow', offset, ml.length, '-->', size);
   return size;
+}
+
+function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
+  // explicitly rewrite a count with len=3
+  ASSERT(ml_dec8(ml, offset) === ML_JMP, 'expecting to recycle a space that starts with a jump');
+  ASSERT(ml_dec16(ml, offset + 1) >= 6, 'a c3 should fit'); // op + len + 3*2
+  ASSERT_LOG2('- ml_recycleC3 | offset=', offset, ', op=', op, indexA, indexB, indexC);
+
+  let currentSize = SIZEOF_V + ml_dec16(ml, offset + 1);
+  let newSize = SIZEOF_COUNT + 6;
+  let remainsEmpty = currentSize - newSize;
+  if (remainsEmpty < 0) THROW('recycled OOB');
+  ASSERT_LOG2('- putting a c3', op, 'at', offset, ', old size=', currentSize, ', new size=', newSize, ', leaving', remainsEmpty, 'for a jump');
+
+  ml_enc8(ml, offset, op);
+  ml_enc16(ml, offset + 1, 3);
+  ml_enc16(ml, offset + 3, indexA);
+  ml_enc16(ml, offset + 5, indexB);
+  ml_enc16(ml, offset + 7, indexC);
+
+  if (remainsEmpty) ml_skip(ml, offset + newSize, remainsEmpty);
 }
 
 function ml_recycleVV(ml, offset, op, indexA, indexB) {
@@ -1248,6 +1270,7 @@ export {
   ml_heapSort16bitInline,
   ml_jump,
   ml_pump,
+  ml_recycleC3,
   ml_recycleVV,
   ml_sizeof,
   ml_skip,

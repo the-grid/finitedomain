@@ -348,6 +348,50 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('lte+neq', function() {
+
+    it('should rewrite base case of an lte and neq to a nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A <= B
+        B != C
+        # -> A !& C
+
+        A = A + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: nand,plus /);
+    });
+
+    it('should not do lte+neq trick for lhs of lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        B <= A
+        B != C
+        # -> A !& C
+
+        A = A + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: lte,neq,plus /);
+    });
+
+    it('should not do lte+neq trick for non bools', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 2]
+        : C [0 1]
+        B <= A
+        B != C
+        # -> A !& C
+
+        A = A + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: lte,neq,plus /);
+    });
+  });
 
   /*
 

@@ -117,6 +117,8 @@ import domain_plus from './domain_plus';
 import {
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
+  COUNT_LTE_RHS,
+  COUNT_NEQ,
 
   counter,
 } from './counter';
@@ -180,7 +182,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
     ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', counts[indexA], counts[indexB], 'meta:', varMeta[indexA], varMeta[indexB]);
 
-    if (counts[indexA] === 1) {
+    let countsA = counts[indexA];
+    let countsB = counts[indexB];
+
+    if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut neq A;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
@@ -193,7 +198,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+    if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut neq B;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
@@ -206,9 +213,18 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    if (countsA === 2 && (varMeta[indexA] & COUNT_LTE_RHS)) {
+      if (doNeqLte(indexA, pc, 'neq')) return;
+    }
+
+    if (countsB === 2 && (varMeta[indexB] & COUNT_LTE_RHS)) {
+      if (doNeqLte(indexB, pc, 'neq')) return;
+    }
+
+    pc += SIZEOF_VV;
   }
 
   function cutLt() {
@@ -289,9 +305,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexB] === 2 && (varMeta[indexB] & COUNT_ISALL_RESULT)) {
-      // note: MUST be indexB because the trick doesn't work for indexA
-      if (doIsAllLte(indexB, pc, 'lte')) return;
+    if (counts[indexB] === 2) {
+      if (varMeta[indexB] & COUNT_ISALL_RESULT) {
+        // note: MUST be indexB because the trick doesn't work for indexA
+        if (doIsAllLte(indexB, pc, 'lte')) return;
+      }
+      if (varMeta[indexB] & COUNT_NEQ) {
+        // note: MUST be indexB because the trick doesn't work for indexA
+        if (doNeqLte(indexB, pc, 'lte')) return;
+      }
     }
 
     pc += SIZEOF_VV;
@@ -301,7 +323,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2('doIsAllLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     if (!addrTracker[sharedVarIndex]) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
-      addrTracker[sharedVarIndex] = pc;
+      addrTracker[sharedVarIndex] = offset;
       return false;
     }
 
@@ -440,6 +462,58 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     // revisit this op, it is now an lte
     return true;
+  }
+
+  function doNeqLte(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doNeqLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    if (!addrTracker[sharedVarIndex]) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    // this should be `A <= B, B != C`, morph one constraint into `A !& C`, eliminate the other constraint, and defer B
+
+    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
+    let neqOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+
+    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
+    if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
+      ASSERT(ml_dec16(ml, lteOffset + 3) === sharedVarIndex, 'shared var should be right var of the lte');
+
+      let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
+
+      ASSERT_LOG2(' - checking neq offset', ml_dec8(ml, neqOffset) === ML_VV_NEQ, ', indexA =', indexA);
+      // there are two isalls, need special paths because of different footprints
+      if (ml_dec8(ml, neqOffset) === ML_VV_NEQ) {
+        let left = getFinalIndex(ml_dec16(ml, neqOffset + 1));
+        let right = getFinalIndex(ml_dec16(ml, neqOffset + 3));
+
+        ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
+        if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+          console.error('this happened');
+          ASSERT_LOG2(' - ok, rewriting the lte, eliminating the neq, and defering', sharedVarIndex);
+          let indexB = sharedVarIndex === left ? right : left;
+
+          ml_vv2vv(ml, lteOffset, ML_VV_NAND, indexA, indexB);
+          ml_eliminate(ml, neqOffset, SIZEOF_VV);
+
+          // only B is cut out, defer it
+
+          solveStack.push(domains => {
+            ASSERT_LOG2(' - neq + lte;', indexB, '!=', sharedVarIndex, '  ->  ', domain__debug(domains[indexB]), '!=', domain__debug(domains[sharedVarIndex]));
+            let vB = force(indexB);
+            domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], vB);
+          });
+
+          counts[sharedVarIndex] -= 2;
+          addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   function cutIsEq(ml, offset, sizeof, lenA, lenB, lenR) {

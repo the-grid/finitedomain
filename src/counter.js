@@ -99,6 +99,8 @@ import {
 const COUNT_NONE = 0;
 const COUNT_BOOLY = 1 << 0;
 const COUNT_ISALL_RESULT = 1 << 1;
+const COUNT_NEQ = 1 << 2;
+const COUNT_LTE_RHS = 1 << 3;
 
 /**
  * @param {Buffer} ml
@@ -131,7 +133,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
     return getFinalIndex(aliasIndex, _max - 1);
   }
 
-  function count(delta, asBool, isAllResult) {
+  function count(delta, asBool, metaFlags) {
     let n = ml_dec16(ml, pc + delta);
     ASSERT(n < domains.length, 'should be a valid index', n);
     let index = getFinalIndex(n);
@@ -140,7 +142,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
     if (lastOffset) lastOffset[index] = pc;
     if (varMeta) {
       if (!asBool) varMeta[index] = (varMeta[index] | COUNT_BOOLY) ^ COUNT_BOOLY; // remove booly flag without changing other flags
-      if (isAllResult) varMeta[index] |= COUNT_ISALL_RESULT;
+      if (metaFlags) varMeta[index] |= metaFlags;
     }
   }
 
@@ -152,10 +154,20 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
       let op = ml[pc];
       ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
-        case ML_VV_EQ:
         case ML_VV_NEQ:
-        case ML_VV_LT:
+          count(1, false, COUNT_NEQ);
+          count(3, false, COUNT_NEQ);
+          pc += SIZEOF_VV;
+          break;
+
         case ML_VV_LTE:
+          count(1, false);
+          count(3, false, COUNT_LTE_RHS);
+          pc += SIZEOF_VV;
+          break;
+
+        case ML_VV_EQ:
+        case ML_VV_LT:
           count(1, false);
           count(3, false);
           pc += SIZEOF_VV;
@@ -212,7 +224,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
         case ML_ISALL2:
           count(1, true);
           count(3, true);
-          count(5, true, true);
+          count(5, true, COUNT_ISALL_RESULT);
           pc += SIZEOF_VVV;
           break;
 
@@ -306,7 +318,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
           for (let i = 0; i < ilen; ++i) {
             count(3 + i * 2, true);
           }
-          count(3 + ilen * 2, true, op === ML_ISALL); // R
+          count(3 + ilen * 2, true, op === ML_ISALL ? COUNT_ISALL_RESULT : 0); // R
           pc += SIZEOF_COUNT + ilen * 2 + 2;
           break;
 
@@ -362,6 +374,8 @@ export {
   COUNT_NONE,
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
+  COUNT_NEQ,
+  COUNT_LTE_RHS,
 
   counter,
 };

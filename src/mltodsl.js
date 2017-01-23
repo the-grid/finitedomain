@@ -144,6 +144,26 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       });
     }
 
+    let varDecls = arr
+      .map((s, varIndex) => {
+        if (!s) return '';
+
+        let ops = (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => {
+          let m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )(nall|distinct|sum|product|all\?|nall\?)\(/);
+          if (!m) m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )?(?:_\w+_|\d+) (\S+) (?:_\w+_|\d+)/);
+          if (m) return m[1];
+          else return '???';
+        }).sort().join(' ') + ' $'));
+
+        return (
+          s + '  # ops: ' + ops +
+          '\n ## ' +
+          (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
+        );
+      })
+      .filter((a, i) => domains[i] !== false && (!counts || counts[i] > 0))
+      .join('\n');
+
     dsl = `
 # Vars: ${domains.length} x
 #   Aliases: ${aliases} x
@@ -153,18 +173,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 #      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
 #      - To solve: ${unsolved - (solveStack.length - aliases)} x
 # Var decls:
-${
-  arr
-    .map((s, varIndex) =>
-      s && (
-        s +
-        '\n ## ' +
-        (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
-      )
-    )
-    .filter((a, i) => domains[i] !== false && (!counts || counts[i] > 0))
-    .join('\n')
-}
+${varDecls}
 
 `;
   } else {
@@ -494,17 +503,17 @@ ${
 
         case ML_ISALL:
           ASSERT_LOG2(' ! isall');
-          part = m2d_listResult('isall');
+          part = m2d_listResult('all?');
           break;
 
         case ML_ISALL2:
           ASSERT_LOG2(' ! isall2');
-          part = m2d_listResultBody('isall', 2); // body of a VVV is same as the body of an arg counted
+          part = m2d_listResultBody('all?', 2); // body of a VVV is same as the body of an arg counted
           break;
 
         case ML_ISNALL:
           ASSERT_LOG2(' ! isnall');
-          part = m2d_listResult('isnall');
+          part = m2d_listResult('nall?');
           break;
 
         case ML_DISTINCT:

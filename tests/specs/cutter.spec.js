@@ -621,4 +621,35 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('2xlte trick', function() {
+
+    it('should eliminate base case a double lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A <= B
+        A <= C
+        # -> A is a leaf var, eliminate the constraints
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: plus /);
+    });
+
+    it('should eliminate swapped base case a double lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A <= C
+        A <= B
+        # -> A is a leaf var, eliminate the constraints
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: plus /);
+    });
+  });
+
 });

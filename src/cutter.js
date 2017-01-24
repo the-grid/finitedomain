@@ -123,6 +123,7 @@ import {
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
   COUNT_LTE_LHS,
+  COUNT_LTE_LHS_TWICE,
   COUNT_LTE_RHS,
   COUNT_NALL,
   COUNT_NAND,
@@ -322,6 +323,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (varMeta[indexA] & COUNT_ISALL_RESULT) {
         if (doIsAllLteLhs(indexA, pc, 'lte')) return;
       }
+
+      if (varMeta[indexA] & COUNT_LTE_LHS_TWICE) {
+        if (doLteTwice(indexA, pc)) return;
+      }
     }
 
     if (counts[indexB] === 2) {
@@ -336,6 +341,83 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     pc += SIZEOF_VV;
+  }
+
+  function doLteTwice(sharedVarIndex, offset) {
+    ASSERT_LOG2('doLteTwice', sharedVarIndex, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now (offset=', offset, ')');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherOffset === offset) {
+      ASSERT_LOG2(' - same addr, probably from previous loop');
+      return false;
+    }
+
+    if (!domain_isBool(domains[getFinalIndex(sharedVarIndex)])) {
+      ASSERT_LOG2(' - shared var is not a bool, cant apply trick'); // can but wont
+      addrTracker[sharedVarIndex] = 0;
+      return false;
+    }
+
+    let lteOffset1 = offset;
+    let lteOffset2 = otherOffset;
+
+    if (ml_dec8(ml, lteOffset1) !== ML_VV_LTE) {
+      ASSERT_LOG2(' - offset1 wasnt lte');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    if (ml_dec8(ml, lteOffset2) !== ML_VV_LTE) {
+      ASSERT_LOG2(' - offset2 wasnt lte');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    if (ml_dec16(ml, lteOffset1 + 1) !== sharedVarIndex) {
+      ASSERT_LOG2(' - indexA of 1 wasnt the shared index');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    if (ml_dec16(ml, lteOffset2 + 1) !== sharedVarIndex) {
+      ASSERT_LOG2(' - indexA of 2 wasnt the shared index');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+
+    let indexB1 = getFinalIndex(ml_dec16(ml, lteOffset1 + 3));
+    let indexB2 = getFinalIndex(ml_dec16(ml, lteOffset2 + 3));
+
+    if (domain_max(domains[indexB1]) > 1 || domain_max(domains[indexB2]) > 1) {
+      ASSERT_LOG2(' - only works on boolean domains'); // well not only, but there are some edge cases otherwise
+      addrTracker[sharedVarIndex] = 0;
+      return false;
+    }
+
+    // okay, two lte with the left being the shared index
+    // the shared index is a leaf var, eliminate them both
+
+    ml_eliminate(ml, lteOffset1, SIZEOF_VV);
+    ml_eliminate(ml, lteOffset2, SIZEOF_VV);
+
+    ASSERT_LOG2(' - A is a leaf constraint, defer it', sharedVarIndex);
+
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - 2xlte;1;', sharedVarIndex, '!&', indexB1, '  ->  ', domain__debug(domains[sharedVarIndex]), '<=', domain__debug(domains[indexB1]));
+      ASSERT_LOG2(' - 2xlte;2;', sharedVarIndex, '!&', indexB2, '  ->  ', domain__debug(domains[sharedVarIndex]), '<=', domain__debug(domains[indexB2]));
+
+      domains[sharedVarIndex] = domain_removeGtUnsafe(domain_removeGtUnsafe(domains[sharedVarIndex], force(indexB1)), force(indexB2));
+    });
+
+    --counts[indexB1];
+    --counts[indexB2];
+    counts[sharedVarIndex] -= 2;
+    addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+    return true;
   }
 
   function doIsAllLteRhs(sharedVarIndex, offset, forOp) {

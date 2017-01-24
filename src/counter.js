@@ -101,6 +101,7 @@ const COUNT_NONE = flagCounter++;
 const COUNT_BOOLY = 1 << flagCounter++;
 const COUNT_ISALL_RESULT = 1 << flagCounter++;
 const COUNT_LTE_LHS = 1 << flagCounter++;
+const COUNT_LTE_LHS_TWICE = 1 << flagCounter++; // set when wanting to set COUNT_LTE_LHS when that's already set
 const COUNT_LTE_RHS = 1 << flagCounter++;
 const COUNT_NALL = 1 << flagCounter++;
 const COUNT_NAND = 1 << flagCounter++;
@@ -146,7 +147,11 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
     if (lastOffset) lastOffset[index] = pc;
     if (varMeta) {
       if (!asBool) varMeta[index] = (varMeta[index] | COUNT_BOOLY) ^ COUNT_BOOLY; // remove booly flag without changing other flags
-      if (metaFlags) varMeta[index] |= metaFlags;
+      if (metaFlags) {
+        // TODO: this twice thing is temporary until I come up with a more generic way of counting multiple occurrences of the same op efficiently
+        if (metaFlags === COUNT_LTE_LHS && (varMeta[index] & COUNT_LTE_LHS)) varMeta[index] |= COUNT_LTE_LHS_TWICE;
+        else varMeta[index] |= metaFlags;
+      }
     }
   }
 
@@ -383,8 +388,9 @@ export {
   COUNT_NONE,
   COUNT_BOOLY,
   COUNT_ISALL_RESULT,
-  COUNT_LTE_RHS,
+  COUNT_LTE_LHS_TWICE,
   COUNT_LTE_LHS,
+  COUNT_LTE_RHS,
   COUNT_NALL,
   COUNT_NAND,
   COUNT_NEQ,

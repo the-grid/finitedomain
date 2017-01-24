@@ -225,12 +225,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (countsA === 2 && (varMeta[indexA] & COUNT_LTE_RHS)) {
-      if (doNeqLte(indexA, pc, 'neq')) return;
+    if (countsA === 2) {
+      if ((varMeta[indexA] & COUNT_LTE_LHS) && doNeqLteLhs(indexA, pc, 'neq')) return;
+      if ((varMeta[indexA] & COUNT_LTE_RHS) && doNeqLteRhs(indexA, pc, 'neq')) return;
     }
 
-    if (countsB === 2 && (varMeta[indexB] & COUNT_LTE_RHS)) {
-      if (doNeqLte(indexB, pc, 'neq')) return;
+    if (countsB === 2) {
+      if ((varMeta[indexB] & COUNT_LTE_LHS) && doNeqLteLhs(indexB, pc, 'neq')) return;
+      if ((varMeta[indexB] & COUNT_LTE_RHS) && doNeqLteRhs(indexB, pc, 'neq')) return;
     }
 
     pc += SIZEOF_VV;
@@ -327,6 +329,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (varMeta[indexA] & COUNT_LTE_LHS_TWICE) {
         if (doLteTwice(indexA, pc)) return;
       }
+
+      if ((varMeta[indexA] & COUNT_NEQ) && doNeqLteLhs(indexA, pc, 'lte')) return;
     }
 
     if (counts[indexB] === 2) {
@@ -336,7 +340,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       }
       if (varMeta[indexB] & COUNT_NEQ) {
         // note: MUST be indexB because the trick doesn't work for indexA
-        if (doNeqLte(indexB, pc, 'lte')) return;
+        if (doNeqLteRhs(indexB, pc, 'lte')) return;
       }
     }
 
@@ -721,8 +725,77 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function doNeqLte(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doNeqLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function doNeqLteLhs(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doNeqLteLhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (offset === otherOffset) {
+      ASSERT_LOG2(' - same offset, probably from previous loop');
+      return false;
+    }
+
+    // this should be `A <= B, A != C`, morph one constraint into `A | C`, eliminate the other constraint, and defer A
+
+    let lteOffset = forOp === 'lte' ? offset : otherOffset;
+    let neqOffset = forOp === 'lte' ? otherOffset : offset;
+
+    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
+    if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
+      if (ml_dec16(ml, lteOffset + 1) !== sharedVarIndex) {
+        ASSERT_LOG2(' - shared var should be left var of the lte but wasnt');
+        addrTracker[sharedVarIndex] = offset;
+        return false;
+      }
+
+      let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
+
+      ASSERT_LOG2(' - checking neq offset', ml_dec8(ml, neqOffset) === ML_VV_NEQ, ', indexB =', indexB);
+      if (ml_dec8(ml, neqOffset) === ML_VV_NEQ) {
+        ASSERT_LOG2(' - rewriting A <= B, A != C  ->  B !& C');
+        let left = getFinalIndex(ml_dec16(ml, neqOffset + 1));
+        let right = getFinalIndex(ml_dec16(ml, neqOffset + 3));
+
+        let indexC = left;
+        if (indexC === sharedVarIndex) {
+          indexC = right;
+        } else if (right !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var should be part of the neq but wasnt');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
+
+        ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexB]), domain__debug(domains[left]), domain__debug(domains[right]));
+        if (domain_isBool(domains[indexB]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+          ASSERT_LOG2(' - ok, rewriting the lte, eliminating the neq, and defering', sharedVarIndex);
+
+          ml_vv2vv(ml, lteOffset, ML_VV_OR, indexB, indexC);
+          ml_eliminate(ml, neqOffset, SIZEOF_VV);
+
+          // only A is cut out, defer it
+
+          solveStack.push(domains => {
+            ASSERT_LOG2(' - neq + lte_lhs;', sharedVarIndex, '!=', indexB, '  ->  ', domain__debug(domains[sharedVarIndex]), '!=', domain__debug(domains[indexB]));
+            let vB = force(indexB);
+            domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], vB);
+          });
+
+          counts[sharedVarIndex] -= 2;
+          addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function doNeqLteRhs(sharedVarIndex, offset, forOp) {
+    //throw 'foxme';
+    ASSERT_LOG2('doNeqLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     if (!addrTracker[sharedVarIndex]) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
       addrTracker[sharedVarIndex] = offset;

@@ -389,7 +389,7 @@ describe('specs/cutter.spec', function() {
         # -> A !& C
 
         A = A + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: lte,neq,plus /);
+      `)).to.throw(/ops: or,plus /); // tackled by different trick
     });
 
     it('should not do lte+neq trick for non bools', function() {
@@ -652,4 +652,34 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('lte_lhs+neq trick', function() {
+
+    it('should eliminate base case an lte_lhs and neq', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A <= B
+        A != C
+        # -> B | C, A is a leaf
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: or,plus /);
+    });
+
+    it('should eliminate swapped base case an lte_lhs and neq', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        A != C
+        A <= B
+        # -> B | C, A is a leaf
+
+        B = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: or,plus /);
+    });
+  });
 });

@@ -338,9 +338,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function doIsAllLteRhs(sharedVarIndex, offset, forOp) {
     ASSERT_LOG2('doIsAllLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
-    if (!addrTracker[sharedVarIndex]) {
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now (offset=', offset, ')', forOp);
       addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherOffset === offset) {
+      ASSERT_LOG2(' - same addr, probably from previous loop');
       return false;
     }
 
@@ -351,15 +356,19 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // A <= B meaning A is 0 when B is 0. B is 0 when C or D is 0 and non-zero
     // otherwise. so A <= C or A <= D should force A to match A <= B.
 
-    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
-    let isallOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+    let lteOffset = forOp === 'lte' ? offset : otherOffset;
+    let isallOffset = forOp === 'lte' ? otherOffset : offset;
 
     // first check whether the saved offset is still valid (it may have been eliminated, although
     // I don't think that's possible with the currently code so the check may be redundant)
 
     ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
     if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
-      ASSERT(ml_dec16(ml, lteOffset + 3) === sharedVarIndex, 'shared var should be right var of the lte');
+      if (ml_dec16(ml, lteOffset + 3) !== sharedVarIndex) {
+        ASSERT_LOG2(' - shared var was not right var of the lte, this is probably an old addr');
+        addrTracker[sharedVarIndex] = offset;
+        return false;
+      }
 
       let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
 
@@ -367,7 +376,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       // there are two isalls, need special paths because of different footprints
       if (ml_dec8(ml, isallOffset) === ML_ISALL) {
         let len = ml_dec16(ml, isallOffset + 1);
-        ASSERT(ml_dec16(ml, isallOffset + 3 + len * 2) === sharedVarIndex, 'shared var should be R of the isall');
+
+        if (ml_dec16(ml, isallOffset + 3 + len * 2) !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var was not result var of the isall, this is probably an old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
 
         ASSERT_LOG2(' - rewriting B=isall(C D), A <= B  ->  A <= C, A <= D');
 
@@ -447,7 +461,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
       ASSERT_LOG2(' - checking isall offset for other op', ml_dec8(ml, isallOffset) === ML_ISALL2, ', indexA =', indexA);
       if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
-        ASSERT(ml_dec16(ml, isallOffset + 5) === sharedVarIndex, 'var should be R of the isall');
+        if (ml_dec16(ml, isallOffset + 5) !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var was not result var of the isall, this is probably an old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
         let left = getFinalIndex(ml_dec16(ml, isallOffset + 1));
         let right = getFinalIndex(ml_dec16(ml, isallOffset + 3));
 
@@ -461,6 +479,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           return doIsAllLteRhsDeferShared(sharedVarIndex, indexA);
         }
       }
+
+      ASSERT_LOG2(' - known addr was not an isall, this is probably an old addr');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
     }
 
     ASSERT_LOG2(' - did not eliminate anything');
@@ -485,28 +507,40 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function doIsAllLteLhs(sharedVarIndex, offset, forOp) {
     ASSERT_LOG2('doIsAllLteLhs', sharedVarIndex, domain__debug(domains[sharedVarIndex]), forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
-    if (!addrTracker[sharedVarIndex]) {
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
       addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherOffset === offset) {
+      ASSERT_LOG2(' - same addr, probably from previous loop');
       return false;
     }
 
     // this should be `A <= B, A = all?(C D ...)`. A is a leaf var, the other vars become a nall
     // put the nall in place of the isall. should have sufficient space. eliminate the lte.
 
-    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
-    let isallOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+    let lteOffset = forOp === 'lte' ? offset : otherOffset;
+    let isallOffset = forOp === 'lte' ? otherOffset : offset;
 
     ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
     if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
-      ASSERT(ml_dec16(ml, lteOffset + 1) === sharedVarIndex, 'shared var should be left var of the lte');
+      if (ml_dec16(ml, lteOffset + 1) !== sharedVarIndex) {
+        ASSERT_LOG2(' - shared var should be left var of the lte but wasnt, this is probably an old addr');
+        addrTracker[sharedVarIndex] = offset;
+      }
 
       let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
 
       ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexA =', indexB);
       if (ml_dec8(ml, isallOffset) === ML_ISALL) {
         let len = ml_dec16(ml, isallOffset + 1);
-        ASSERT(sharedVarIndex === ml_dec16(ml, isallOffset + 3 + len * 2), 'shared var should be R of isall');
+        if (sharedVarIndex !== ml_dec16(ml, isallOffset + 3 + len * 2)) {
+          ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
 
         ASSERT_LOG2(' - rewriting A <= B, A = isall(C D)  ->  nall(B C D)');
         ASSERT_LOG2(' - collecting', len, 'args and asserting strict boolean domains', domain_isBool(domains[sharedVarIndex]), domain__debug(domains[indexB]));
@@ -540,6 +574,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
         ASSERT_LOG2(' - isall2, need to recycle now because isall2 is a vvv (sizeof 7) and we need sizeof 9');
 
+        if (sharedVarIndex !== ml_dec16(ml, isallOffset + 5)) {
+          ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
+
         let leftIndex = getFinalIndex(ml_dec16(ml, isallOffset, 1));
         let rightIndex = getFinalIndex(ml_dec16(ml, isallOffset, 3));
 
@@ -558,6 +598,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           // remove the old ops
           ml_eliminate(ml, isallOffset, SIZEOF_VVV);
           ml_eliminate(ml, lteOffset, SIZEOF_VV);
+          addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
 
           return doIsAllLteLhsDeferShared(sharedVarIndex, indexB, [leftIndex, rightIndex]);
         }
@@ -649,13 +690,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function doIsAllNall(sharedVarIndex, offset, forOp) {
     ASSERT_LOG2('doIsAllNall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
-    let otherAddr = addrTracker[sharedVarIndex];
-    if (!otherAddr) {
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
       addrTracker[sharedVarIndex] = offset;
       return false;
     }
-    if (otherAddr === offset) {
+    if (otherOffset === offset) {
       //console.error('bla: _'+sharedVarIndex.toString(36)+'_', offset, forOp)
       ASSERT_LOG2(' - from same op, irrelevant?');
       return false;
@@ -666,8 +707,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // if R = 0 then the nall is already satisfied. the nall is not entirely redundant
     // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from it)
 
-    let nallOffset = forOp === 'nall' ? offset : otherAddr;
-    let isallOffset = forOp === 'nall' ? otherAddr : offset;
+    let nallOffset = forOp === 'nall' ? offset : otherOffset;
+    let isallOffset = forOp === 'nall' ? otherOffset : offset;
 
     ASSERT_LOG2(' - checking nall offset', ml_dec8(ml, nallOffset) === ML_NALL);
     if (ml_dec8(ml, nallOffset) === ML_NALL) {
@@ -684,7 +725,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           // letters; S = all?(A B), nall(S C D)   (where S = shared)
           let indexS = sharedVarIndex;
           if (ml_dec16(ml, isallOffset + 7) !== indexS) {
-            // this is NOT the isall we were looking at before because the shared index is not part of it
+            ASSERT_LOG2(' - this is NOT the isall we were looking at before because the shared index is not part of it');
             addrTracker[sharedVarIndex] = offset;
             return false;
           }
@@ -698,7 +739,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
             indexC = indexD;
             indexD = indexE;
           } else if (indexD !== indexS && indexE !== indexS) {
-            // this is NOT the nall we were looking at before because the shared index is not part of it
+            ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
             addrTracker[sharedVarIndex] = offset;
             return false;
           }
@@ -709,21 +750,25 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           if (indexA === indexC) {
             ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexA === indexD) {
             ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexB === indexC) {
             ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexB === indexD) {
             ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
         }
@@ -739,6 +784,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           // next; one of the two isalls must occur in the nall
           // letters; S = all?(A B), nall(S C D)   (where S = shared)
           let indexS = sharedVarIndex;
+          if (ml_dec16(ml, isallOffset + 5) !== indexS) {
+            ASSERT_LOG2(' - this is NOT the isall we were looking at before because the shared index is not part of it');
+            addrTracker[sharedVarIndex] = offset;
+            return false;
+          }
           let indexA = ml_dec16(ml, isallOffset + 1);
           let indexB = ml_dec16(ml, isallOffset + 3);
 
@@ -749,7 +799,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
             indexC = indexD;
             indexD = indexE;
           } else if (indexD !== indexS && indexE !== indexS) {
-            // this is NOT the nall we were looking at before because the shared index is not part of it
+            ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
             addrTracker[sharedVarIndex] = offset;
             return false;
           }
@@ -760,21 +810,25 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           if (indexA === indexC) {
             ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexA === indexD) {
             ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexB === indexC) {
             ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
           if (indexB === indexD) {
             ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
             ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
             return true;
           }
         }
@@ -786,20 +840,30 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function doNandLte(sharedVarIndex, offset, forOp) {
     ASSERT_LOG2('doNandLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
-    if (!addrTracker[sharedVarIndex]) {
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
       addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherOffset === offset) {
+      //console.error('bla: _'+sharedVarIndex.toString(36)+'_', offset, forOp)
+      ASSERT_LOG2(' - from same op, irrelevant?');
       return false;
     }
 
     // this should be `A <= B, A !& C`. A is a leaf var, eliminate both constraints and defer A.
 
-    let lteOffset = forOp === 'lte' ? offset : addrTracker[sharedVarIndex];
-    let nandOffset = forOp === 'lte' ? addrTracker[sharedVarIndex] : offset;
+    let lteOffset = forOp === 'lte' ? offset : otherOffset;
+    let nandOffset = forOp === 'lte' ? otherOffset : offset;
 
     ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
     if (ml_dec8(ml, lteOffset) === ML_VV_LTE) {
-      ASSERT(ml_dec16(ml, lteOffset + 1) === sharedVarIndex, 'shared var should be left var of the lte');
+      if (ml_dec16(ml, lteOffset + 1) !== sharedVarIndex) {
+        ASSERT_LOG2(' - shared var should be left var of the lte but wasnt, probably old addr');
+        addrTracker[sharedVarIndex] = offset;
+        return false;
+      }
 
       let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
 
@@ -808,6 +872,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ASSERT_LOG2(' - eliminating A <= B, B !& C');
         let left = getFinalIndex(ml_dec16(ml, nandOffset + 1));
         let right = getFinalIndex(ml_dec16(ml, nandOffset + 3));
+
+        if (left !== sharedVarIndex && right !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var should be part of the nand but wasnt, probably old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
 
         ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexB]), domain__debug(domains[left]), domain__debug(domains[right]));
         if (domain_isBool(domains[indexB]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {

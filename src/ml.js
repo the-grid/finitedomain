@@ -256,7 +256,7 @@ function ml_enc8(ml, pc, num) {
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
   ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values', num, '0x' + num.toString(16));
-  ASSERT_LOG2(' . enc8(' + num + ')', num, 'at', pc, ' ');
+  ASSERT_LOG2(' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ');
   ASSERT(num >= 0, 'only expecting non-negative nums');
   ml[pc] = num;
 }
@@ -266,7 +266,7 @@ function ml_enc16(ml, pc, num) {
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
   ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
-  ASSERT_LOG2(' - enc16(' + num + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+  ASSERT_LOG2(' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
   ASSERT(num >= 0, 'only expecting non-negative nums');
   // node 4.6 has no uint version and using writeInt16BE will cause problems, so:
   ml[pc++] = (num >> 8) & 0xff;
@@ -418,6 +418,16 @@ function ml_hasConstraint(ml) {
   }
 
   THROW('ML OOB');
+}
+
+function ml_c2vv(ml, offset, len, opCode, indexA, indexB) {
+  // "count without result" (distinct, nall, etc)
+  ASSERT_LOG2(' -| ml_c2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, indexA);
+  ml_enc16(ml, offset + 3, indexB);
+  let oldLen = SIZEOF_COUNT + len * 2;
+  ml_skip(ml, offset + SIZEOF_VV, oldLen - SIZEOF_VV);
 }
 
 function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
@@ -1277,6 +1287,7 @@ export {
   ml_throw,
   ml_validateSkeleton,
 
+  ml_c2vv,
   ml_cr2vv,
   ml_vv2vv,
   ml_vvv2vv,

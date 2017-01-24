@@ -540,416 +540,52 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nall,sum /);
     });
   });
-  /*
 
-  describe('plus', function(){
+  describe('isall_r+nall trick', function() {
 
-    it('should work A forced with a zero', function(){
-      let solution = solverSolver(`
+    it('should rewrite base case v1 of an isall and nall to a nand', function() {
+      expect(_ => solverSolver(`
         @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A + B
-        A > 10
-      `);
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        A = all?(B C)
+        nall(A B D)
+        # -> A = all?(B C), A !& D
+        # when A is 1, B and C are 1, so D must be 0 (for the nall)
+        # when A is 0, B or C is 0, so the nall is resolved
+        # when D is 1, A can't be 1 because then B is also one and the nall would break
 
-      expect(solution).to.eql({A: 11, B: 0, C: 11});
+        B = C + D # prevent trivial defer of the vars
+      `)).to.throw(/ops: isall,nand,plus /);
     });
 
-    it('should work A forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A + B
-      `);
+    describe('all variations of nall arg order', function() {
 
-      expect(solution).to.eql({A: 5, B: 1, C: 6});
-    });
+      function test(A, B, C) {
+        it('nall(' + A + ',' + B + ',' + C + ')', function() {
+          expect(_ => solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B [0 1]
+          : C [0 1]
+          : D [0 1]
+          A = all?(B C)
+          nall(${A} ${B} ${C})
 
-    it('should work B forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A + B
-        A > 10
-        C >= A
-      `);
+          B = C + D # prevent trivial defer of the vars
+        `)).to.throw(/ops: isall,nand,plus /);
+        });
+      }
 
-      expect(solution).to.eql({A: 11, B: 0, C: 11});
-    });
-
-    it('should work B forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A + B
-
-        A != C
-      `);
-
-      expect(solution).to.eql({A: 5, B: 1, C: 6});
-    });
-
-    it('should work C forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A + B
-        A > 10
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 11, B: 0, C: 11});
-    });
-
-    it('should work C forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [1 10]
-        C = A + B
-
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 1, C: 6});
+      test('A', 'B', 'D');
+      test('A', 'D', 'B');
+      test('B', 'A', 'D');
+      test('B', 'D', 'A');
+      test('D', 'A', 'B');
+      test('D', 'B', 'A');
     });
   });
 
-  describe('minus', function(){
-
-    it('should work A forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A - B
-        A > 10
-      `);
-
-      expect(solution).to.eql({A: 11, B: 11, C: 0});
-    });
-
-    it('should work A forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A - B
-      `);
-
-      expect(solution).to.eql({A: 6, B: 1, C: 5});
-    });
-
-    it('should still maintain proper distance between B and C', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [0 10]
-        C = A - B
-      `);
-
-      expect(solution).to.eql({A: 6, B: 1, C: 5});
-    });
-
-    it('should work B forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A - B
-        A > 10
-        C >= A
-      `);
-
-      expect(solution).to.eql({A: 11, B: 11, C: 0});
-    });
-
-    it('should work B forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A - B
-
-        A != C
-      `);
-
-      expect(solution).to.eql({A: 6, B: 1, C: 5});
-    });
-
-    it('should work C forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A - B
-        A > 10
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 11, B: 11, C: 0});
-    });
-
-    it('should work C forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [1 10]
-        C = A - B
-
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 1, C: 4});
-    });
-  });
-
-  describe('mul', function(){
-
-    it('should work A forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A * B
-        A > 10
-      `);
-
-      expect(solution).to.eql({A: 11, B: 0, C: 0});
-    });
-
-    it('should work A forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A - B
-      `);
-
-      expect(solution).to.eql({A: 6, B: 1, C: 5});
-    });
-
-    it('should work B forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A * B
-        A > 10
-        A != C
-      `);
-
-      expect(solution).to.eql({A: 11, B: 0, C: 0});
-    });
-
-    it('should work B forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [5 10]
-        C = A - B
-
-        A != C
-      `);
-
-      expect(solution).to.eql({A: 6, B: 1, C: 5});
-    });
-
-    it('should work C forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B *
-        : C *
-        C = A * B
-        A > 10
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 11, B: 0, C: 0});
-    });
-
-    it('should work C forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [1 10]
-        : C [1 10]
-        C = A - B
-
-        A != B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 1, C: 4});
-    });
-  });
-
-  describe('div', function(){
-
-    it('should reject a B=0', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B 0
-        : C *
-        C = A / B
-      `);
-
-      expect(solution).to.eql(false);
-    });
-
-    it('should work A forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B [0 1000]
-        : C *
-        C = A / B
-      `);
-
-      expect(solution).to.eql({A: 0, B: [1, 1000], C: 0});
-    });
-
-    it('should work A forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [5 10]
-        : C [1 10]
-        C = A / B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 5, C: 1});
-    });
-
-    it('should work B forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B [0 1000]
-        : C *
-        C = A / B
-        C >= A
-      `);
-
-      expect(solution).to.eql({A: 0, B: [1, 1000], C: 0});
-    });
-
-    it('should work B forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [5 10]
-        : C [1 10]
-        C = A / B
-
-        A != C
-      `);
-
-      expect(solution).to.eql({A: 5, B: 5, C: 1});
-    });
-
-    it('should work C forced with a zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A *
-        : B [0 1000]
-        : C *
-        C = A / B
-        A != B
-      `);
-
-      // note: B=1 because the != cut needs to force it, not the div. the div-cut still runs, which is being tested here
-      expect(solution).to.eql({A: 0, B: 1, C: 0});
-    });
-
-    it('should work C forced with a non-zero', function(){
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [5 10]
-        : C [1 10]
-        C = A / B
-
-        A >= B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 5, C: 1});
-    });
-  });
-
-  it('should isEq', function(){
-    let solution = solverSolver(`
-      @custom var-strat throw
-      : A *
-      : B *
-      : C *
-      C = A ==? B
-      A > 10
-    `);
-
-    expect(solution).to.eql({A: [11, 100000000], B: 0, C:0});
-  });
-
-  it('should isNeq', function(){
-    let solution = solverSolver(`
-      @custom var-strat throw
-      : A *
-      : B *
-      : C *
-      C = A !=? B
-      A > 10
-    `);
-
-    expect(solution).to.eql({A: [11, 100000000], B: 0, C:1});
-  });
-
-  it('should isLt', function(){
-    let solution = solverSolver(`
-      @custom var-strat throw
-      : A *
-      : B *
-      : C *
-      C = A <? B
-      A > 10
-    `);
-
-    expect(solution).to.eql({A: [1, 100000000], B: 0});
-  });
-
-  it('should isLte', function(){
-    let solution = solverSolver(`
-      @custom var-strat throw
-      : A *
-      : B *
-      : C *
-      C = A <=? B
-      A > 10
-    `);
-
-    expect(solution).to.eql({A: [1, 100000000], B: 0});
-  });
-*/
 });

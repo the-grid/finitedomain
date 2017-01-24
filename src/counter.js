@@ -100,10 +100,11 @@ let flagCounter = 0;
 const COUNT_NONE = flagCounter++;
 const COUNT_BOOLY = 1 << flagCounter++;
 const COUNT_ISALL_RESULT = 1 << flagCounter++;
-const COUNT_NEQ = 1 << flagCounter++;
 const COUNT_LTE_LHS = 1 << flagCounter++;
 const COUNT_LTE_RHS = 1 << flagCounter++;
+const COUNT_NALL = 1 << flagCounter++;
 const COUNT_NAND = 1 << flagCounter++;
+const COUNT_NEQ = 1 << flagCounter++;
 
 /**
  * @param {Buffer} ml
@@ -215,7 +216,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
         case ML_NALL:
           let nlen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < nlen; ++i) {
-            count(3 + i * 2, true);
+            count(3 + i * 2, true, COUNT_NALL);
           }
           pc += SIZEOF_COUNT + nlen * 2;
           break;
@@ -384,6 +385,7 @@ export {
   COUNT_ISALL_RESULT,
   COUNT_LTE_RHS,
   COUNT_LTE_LHS,
+  COUNT_NALL,
   COUNT_NAND,
   COUNT_NEQ,
 

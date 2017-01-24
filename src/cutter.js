@@ -93,6 +93,7 @@ import {
   ml_throw,
   ml_validateSkeleton,
 
+  ml_c2vv,
   ml_cr2vv,
   ml_vv2vv,
   ml_vvv2vv,
@@ -121,6 +122,7 @@ import {
   COUNT_ISALL_RESULT,
   COUNT_LTE_LHS,
   COUNT_LTE_RHS,
+  COUNT_NALL,
   COUNT_NAND,
   COUNT_NEQ,
 
@@ -638,6 +640,143 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           counts[sharedVarIndex] -= 2;
           addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
           return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function doIsAllNall(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doIsAllNall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    let otherAddr = addrTracker[sharedVarIndex];
+    if (!otherAddr) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherAddr === offset) {
+      //console.error('bla: _'+sharedVarIndex.toString(36)+'_', offset, forOp)
+      ASSERT_LOG2(' - from same op, irrelevant?');
+      return false;
+    }
+
+    // this should be `R = all?(A B), nall(R A D)`
+    // if R = 1 then A and B are 1, so the nall will have two 1's, meaning D must be 0
+    // if R = 0 then the nall is already satisfied. the nall is not entirely redundant
+    // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from it)
+
+    let nallOffset = forOp === 'nall' ? offset : otherAddr;
+    let isallOffset = forOp === 'nall' ? otherAddr : offset;
+
+    ASSERT_LOG2(' - checking nall offset', ml_dec8(ml, nallOffset) === ML_NALL);
+    if (ml_dec8(ml, nallOffset) === ML_NALL) {
+      ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL);
+      if (ml_dec8(ml, isallOffset) === ML_ISALL) {
+        ASSERT_LOG2(' - the ops match. now fingerprint them');
+        // initially, for this we need a nall of 3 and a isall of 2
+        let nallLen = ml_dec16(ml, nallOffset + 1);
+        let isallLen = ml_dec16(ml, isallOffset + 1);
+
+        if (nallLen === 3 && isallLen === 2) {
+          ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
+          // next; one of the two isalls must occur in the nall
+          // letters; S = all?(A B), nall(S C D)   (where S = shared)
+          let indexS = sharedVarIndex;
+          if (ml_dec16(ml, isallOffset + 7) !== indexS) {
+            // this is NOT the isall we were looking at before because the shared index is not part of it
+            addrTracker[sharedVarIndex] = offset;
+            return false;
+          }
+          let indexA = ml_dec16(ml, isallOffset + 3);
+          let indexB = ml_dec16(ml, isallOffset + 5);
+
+          let indexC = ml_dec16(ml, nallOffset + 3);
+          let indexD = ml_dec16(ml, nallOffset + 5);
+          let indexE = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
+          if (indexC === indexS) {
+            indexC = indexD;
+            indexD = indexE;
+          } else if (indexD !== indexS && indexE !== indexS) {
+            // this is NOT the nall we were looking at before because the shared index is not part of it
+            addrTracker[sharedVarIndex] = offset;
+            return false;
+          }
+
+          ASSERT_LOG2(' - nall(', indexS, indexC, indexD, ') and ', indexS, ' = all?(', indexA, indexB, ')');
+
+          // check if B or D is in the isall. apply morph by cutting out the one that matches
+          if (indexA === indexC) {
+            ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            return true;
+          }
+          if (indexA === indexD) {
+            ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            return true;
+          }
+          if (indexB === indexC) {
+            ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            return true;
+          }
+          if (indexB === indexD) {
+            ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            return true;
+          }
+        }
+      }
+      ASSERT_LOG2(' - checking isall2 offset', ml_dec8(ml, isallOffset) === ML_ISALL);
+      if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
+        ASSERT_LOG2(' - the ops match. now fingerprint them');
+        // initially, for this we need a nall of 3 and a isall of 2 (which the op tells us already)
+        let nallLen = ml_dec16(ml, nallOffset + 1);
+
+        if (nallLen === 3) {
+          ASSERT_LOG2(' - nall has 3 and isall2 ... 2 args, check if they share an arg');
+          // next; one of the two isalls must occur in the nall
+          // letters; S = all?(A B), nall(S C D)   (where S = shared)
+          let indexS = sharedVarIndex;
+          let indexA = ml_dec16(ml, isallOffset + 1);
+          let indexB = ml_dec16(ml, isallOffset + 3);
+
+          let indexC = ml_dec16(ml, nallOffset + 3);
+          let indexD = ml_dec16(ml, nallOffset + 5);
+          let indexE = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
+          if (indexC === indexS) {
+            indexC = indexD;
+            indexD = indexE;
+          } else if (indexD !== indexS && indexE !== indexS) {
+            // this is NOT the nall we were looking at before because the shared index is not part of it
+            addrTracker[sharedVarIndex] = offset;
+            return false;
+          }
+
+          ASSERT_LOG2(' - nall(', indexS, indexC, indexD, ') and ', indexS, ' = all?(', indexA, indexB, ')');
+
+          // check if B or D is in the isall. apply morph by cutting out the one that matches
+          if (indexA === indexC) {
+            ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            return true;
+          }
+          if (indexA === indexD) {
+            ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            return true;
+          }
+          if (indexB === indexC) {
+            ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
+            return true;
+          }
+          if (indexB === indexD) {
+            ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
+            ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
+            return true;
+          }
         }
       }
     }
@@ -1576,6 +1715,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     if (counts[indexR] === 2) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_COUNT + len * 2 + 2;
@@ -1607,6 +1747,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     if (counts[indexR] === 2) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_VVV;
@@ -1649,6 +1790,22 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
   }
 
+  function cutNall() {
+    let len = ml_dec16(ml, pc + 1);
+
+    for (let i = 0; i < len; ++i) {
+      let index = ml_dec16(ml, pc + 3 + i * 2);
+
+      if (counts[index] === 2) {
+        if (varMeta[index] & COUNT_ISALL_RESULT) {
+          if (doIsAllNall(index, pc, 'nall')) return;
+        }
+      }
+    }
+
+    pc += SIZEOF_COUNT + len * 2;
+  }
+
   function cutLoop() {
     ASSERT_LOG2('\n - inner cutLoop');
     pc = 0;
@@ -1658,7 +1815,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ASSERT_LOG2(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
       switch (op) {
         case ML_VV_EQ:
-          return THROW('eqs should be aliased and eliminated');
+          return ml_throw(ml, pc, 'eqs should be aliased and eliminated');
 
         case ML_VV_NEQ:
           cutNeq();
@@ -1682,9 +1839,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         case ML_V8_LTE:
         case ML_8V_LTE:
         case ML_88_LTE:
-          return THROW('constraints with <= 1 var should be eliminated');
+          return ml_throw(ml, pc, 'constraints with <= 1 var should be eliminated');
 
         case ML_NALL:
+          cutNall();
+          break;
+
         case ML_DISTINCT:
           ASSERT_LOG2('(todo) d', pc);
           let dlen = ml_dec16(ml, pc + 1);
@@ -1774,7 +1934,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         case ML_888_ISNEQ:
         case ML_888_ISLT:
         case ML_888_ISLTE:
-          return THROW('constraints with <= 1 var should be eliminated');
+          return ml_throw(ml, pc, 'constraints with <= 1 var should be eliminated');
 
         case ML_8V_SUM:
           cutSum(ml, pc);
@@ -1787,7 +1947,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           break;
 
         case ML_VV_AND:
-          return THROW('ands should be solved and eliminated');
+          return ml_throw(ml, pc, 'ands should be solved and eliminated');
         case ML_VV_OR:
           cutOr();
           break;
@@ -1802,7 +1962,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           break;
 
         case ML_START:
-          if (pc !== 0) return THROW(' ! compiler problem @', pcStart);
+          if (pc !== 0) return ml_throw(ml, pc, ' ! compiler problem @', pcStart);
           ++pc;
           break;
 
@@ -1830,7 +1990,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         default:
           //console.error('(cut) unknown op', pc,' at', pc,'ctrl+c now or log will fill up');
           //while (true) console.log('beep');
-          ml_throw('(cut) unknown op', pc);
+          ml_throw(ml, pc, '(cut) unknown op', pc);
       }
     }
     if (emptyDomain) {

@@ -1085,7 +1085,7 @@ function ml_heapSort16bitInline(ml, offset, len) {
   ASSERT(typeof offset === 'number' && (offset === 0 || (offset > 0 && offset < ml.length)), 'valid offset', ml.length, offset, len);
   ASSERT(typeof len === 'number' && (len === 0 || (len > 0 && offset + len * 2 <= ml.length)), 'valid count', ml.length, offset, len);
 
-  ASSERT_LOG2('     ml_heapSort16bitInline', ml.slice(offset, offset + len * 2), offset, len);
+  ASSERT_LOG2('     ml_heapSort16bitInline, len=', len, ', offset=', offset, ', buf=', ml.slice(offset, offset + len * 2));
   ASSERT_LOG2('     - values before:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
 
   if (len <= 1) return; // finished this branch

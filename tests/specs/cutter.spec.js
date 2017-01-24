@@ -588,4 +588,37 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('isall+nand trick', function() {
+
+    it('should eliminate base case of an lte-lhs and isall-r', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [0 1]
+        R = all?(A B)
+        R !& C
+        # -> nall(A B C)
+
+        A = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: nall,plus /);
+    });
+
+    it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [0 1]
+        R !& C
+        R = all?(A B)
+        # -> nall(A B C)
+
+        A = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: nall,plus /);
+    });
+  });
+
 });

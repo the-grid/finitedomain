@@ -87,6 +87,7 @@ import {
   ml_eliminate,
   ml_getOpSizeSlow,
   ml_getRecycleOffset,
+  ml_heapSort16bitInline,
   ml_jump,
   ml_recycleC3,
   ml_recycleVV,
@@ -104,6 +105,7 @@ import {
   domain_containsValue,
   domain_createValue,
   domain_createRange,
+  domain_hasNoZero,
   domain_intersection,
   domain_isBool,
   domain_isZero,
@@ -912,6 +914,182 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return false;
   }
 
+  function doNandIsall(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('doNandIsall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    let otherOffset = addrTracker[sharedVarIndex];
+    if (!otherOffset) {
+      ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
+      addrTracker[sharedVarIndex] = offset;
+      return false;
+    }
+    if (otherOffset === offset) {
+      ASSERT_LOG2(' - from same op, irrelevant?');
+      return false;
+    }
+
+    // this should be `R = all?(A B), R !& C. it rewrites to `nall(A B C)` and R is a leaf var
+
+    let nandOffset = forOp === 'nand' ? offset : otherOffset;
+    let isallOffset = forOp === 'nand' ? otherOffset : offset;
+
+    ASSERT_LOG2(' - checking nand offset', ml_dec8(ml, nandOffset) === ML_VV_NAND);
+    if (ml_dec8(ml, nandOffset) === ML_VV_NAND) {
+      let nandA = ml_dec16(ml, nandOffset + 1);
+      let nandB = ml_dec16(ml, nandOffset + 3);
+
+      let indexC = nandA;
+      if (nandA === sharedVarIndex) {
+        indexC = nandB;
+      } else if (nandB !== sharedVarIndex) {
+        ASSERT_LOG2(' - shared var should be part of the nand but wasnt, probably old addr');
+        addrTracker[sharedVarIndex] = offset;
+        return false;
+      }
+
+      indexC = getFinalIndex(indexC);
+
+      ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexC =', indexC);
+      if (ml_dec8(ml, isallOffset) === ML_ISALL) {
+        let len = ml_dec16(ml, isallOffset + 1);
+        if (ml_dec16(ml, isallOffset + SIZEOF_COUNT + len * 2) !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
+
+        let args = []; // rare reason for an array
+        for (let i = 0; i < len; ++i) {
+          let index = getFinalIndex(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
+          args.push(index);
+        }
+
+        ASSERT_LOG2(' - shared:', sharedVarIndex, ', nand args:', nandA, nandB, ', isall args:', args);
+
+        // move all vars to the nall
+        // the isall is a count with result. just replace the result with indexC, inc the len, and compile a nall instead
+        // then we'll want to sort the args
+
+        ml_enc8(ml, isallOffset, ML_NALL);
+        ml_enc16(ml, isallOffset + 1, len + 1);
+        ml_enc16(ml, isallOffset + SIZEOF_COUNT + len * 2, indexC);
+        ml_heapSort16bitInline(ml, isallOffset + SIZEOF_COUNT, len + 1);
+
+        // eliminate the old nand, we wont need it anymore
+        ml_eliminate(ml, nandOffset, SIZEOF_VV);
+
+        ASSERT_LOG2(' - R is a leaf constraint, defer it', sharedVarIndex);
+
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - nand + isall;', indexC, '!&', sharedVarIndex, '  ->  ', domain__debug(domains[indexC]), '!=', domain__debug(domains[sharedVarIndex]));
+          ASSERT_LOG2(' - nand + isall;', sharedVarIndex, '= all?(', args, ')  ->  ', domain__debug(domains[sharedVarIndex]), ' = all?(', args.map(index => domain__debug(domains[index])), ')');
+
+          // loop twice: once without forcing to scan for a zero or all-non-zero. second time forces all args.
+
+          let determined = true;
+          for (let i = 0; i < args.length; ++i) {
+            let index = args[i];
+            if (domain_isZero(domains[index])) {
+              domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], 0);
+              return; // done
+            }
+
+            if (!domain_hasNoZero(domains[index])) {
+              determined = false;
+              break;
+            }
+          }
+          if (!determined) {
+            for (let i = 0; i < args.length; ++i) {
+              if (force(args[i]) === 0) {
+                domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], 0);
+                return; // done
+              }
+            }
+          }
+          // either all args already were non-zero or none were zero when forced: isall holds so R>0
+          domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], 0);
+        });
+
+        // we eliminated R only
+        counts[sharedVarIndex] -= 2;
+        addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+        return true;
+      }
+
+      if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
+        let isallA = getFinalIndex(ml_dec16(ml, isallOffset + 1));
+        let isallB = getFinalIndex(ml_dec16(ml, isallOffset + 3));
+
+        if (ml_dec16(ml, isallOffset + 5) !== sharedVarIndex) {
+          ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
+          addrTracker[sharedVarIndex] = offset;
+          return false;
+        }
+
+        ASSERT_LOG2(' - shared:', sharedVarIndex, ', nand args:', nandA, nandB, ', isall args:', isallA, isallB);
+
+        // isall2 has 3 spots (sizeof=7). the nall requires a sizeof_count for len=3 (sizeof=9). we'll need to recycle
+        let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
+        if (recycleOffset === undefined) return false; // no free spot to compile this so skip it until we can morph
+
+        ASSERT_LOG2(' - Recycling', recycleOffset, 'to a nall(ABC) with len=3 (=9)');
+
+        // sort the args quickly
+        let index1 = isallA;
+        let index2 = isallB;
+        let index3 = indexC;
+        let t;
+        if (index1 > index2) {
+          t = index2;
+          index2 = index1;
+          index1 = t;
+        }
+        if (index1 > index3) {
+          t = index3;
+          index3 = index1;
+          index1 = t;
+        }
+        if (index2 > index3) {
+          t = index3;
+          index3 = index2;
+          index2 = t;
+        }
+
+        ml_recycleC3(ml, recycleOffset, ML_NALL, index1, index2, index3);
+        ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
+        // remove the old ops
+        ml_eliminate(ml, isallOffset, SIZEOF_VVV);
+        ml_eliminate(ml, nandOffset, SIZEOF_VV);
+
+        ASSERT_LOG2(' - R is a leaf constraint, defer it', sharedVarIndex);
+
+        solveStack.push(domains => {
+          ASSERT_LOG2(' - nand + isall;', indexC, '!&', sharedVarIndex, '  ->  ', domain__debug(domains[indexC]), '!=', domain__debug(domains[sharedVarIndex]));
+          ASSERT_LOG2(' - nand + isall;', sharedVarIndex, '= all?(', isallA, isallB, ')  ->  ', domain__debug(domains[sharedVarIndex]), ' = all?(', domain__debug(domains[isallA]), domain__debug(domains[isallB]), ')');
+
+          // loop twice: once without forcing to scan for a zero or all-non-zero. second time forces all args.
+
+          if (domain_isZero(domains[isallA]) || domain_isZero(domains[isallA])) {
+            domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], 0);
+          } else if (domain_hasNoZero(domains[isallA]) && domain_hasNoZero(domains[isallA])) {
+            domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], 0);
+          } else if (force(isallA) === 0 || force(isallA) === 0) {
+            domains[sharedVarIndex] = domain_removeGtUnsafe(domains[sharedVarIndex], 0);
+          } else {
+            domains[sharedVarIndex] = domain_removeValue(domains[sharedVarIndex], 0);
+          }
+        });
+
+        // we eliminated R only
+        counts[sharedVarIndex] -= 2;
+        addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   function cutIsEq(ml, offset, sizeof, lenA, lenB, lenR) {
     ASSERT_LOG2(' -- cutIsEq', offset, sizeof, lenA, lenB, lenR);
     ASSERT(1 + lenA + lenB + lenR === sizeof, 'expecting this sizeof');
@@ -1647,12 +1825,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexA] === 2 && (varMeta[indexA] & COUNT_LTE_LHS)) {
-      if (doNandLte(indexA, pc, 'nand')) return;
+    if (counts[indexA] === 2) {
+      if ((varMeta[indexA] & COUNT_LTE_LHS) && doNandLte(indexA, pc, 'nand')) return;
+      if ((varMeta[indexA] & COUNT_ISALL_RESULT) && doNandIsall(indexA, pc, 'nand')) return;
     }
 
-    if (counts[indexB] === 2 && (varMeta[indexB] & COUNT_LTE_LHS)) {
-      if (doNandLte(indexB, pc, 'nand')) return;
+    if (counts[indexB] === 2) {
+      if ((varMeta[indexB] & COUNT_LTE_LHS) && doNandLte(indexB, pc, 'nand')) return;
+      if ((varMeta[indexB] & COUNT_ISALL_RESULT) && doNandIsall(indexB, pc, 'nand')) return;
     }
 
     pc += SIZEOF_VV;
@@ -1786,6 +1966,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NAND) && doNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_COUNT + len * 2 + 2;
@@ -1818,6 +1999,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NAND) && doNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_VVV;

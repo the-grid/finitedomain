@@ -284,7 +284,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
     ASSERT_LOG2(' - cutLte', indexA, '<=', indexB);
 
-    if (counts[indexA] === 1) {
+    let countsA = counts[indexA];
+    let countsB = counts[indexB];
+
+    if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
@@ -300,7 +303,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexB] === 1) {
+    if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
@@ -316,14 +319,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexA] === 2) {
+    if (countsA === 2) {
       if ((varMeta[indexA] & COUNT_NAND) && trickNandLteLhs(indexA, pc, 'lte')) return;
       if ((varMeta[indexA] & COUNT_ISALL_RESULT) && trickIsallLteLhs(indexA, pc, 'lte')) return;
       if ((varMeta[indexA] & COUNT_LTE_LHS_TWICE) && trickLteTwice(indexA, pc, 'lte')) return;
       if ((varMeta[indexA] & COUNT_NEQ) && trickNeqLteLhs(indexA, pc, 'lte')) return;
     }
 
-    if (counts[indexB] === 2) {
+    if (countsB === 2) {
       if ((varMeta[indexB] & COUNT_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
       if ((varMeta[indexB] & COUNT_NEQ) && trickNeqLteRhs(indexB, pc, 'lte')) return;
     }
@@ -1030,7 +1033,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
     ASSERT_LOG2(' - cutNand', indexA, '!&', indexB, 'counts:', counts[indexA], counts[indexB], 'meta:', varMeta[indexA], varMeta[indexB]);
 
-    if (counts[indexA] === 1) {
+    let countsA = counts[indexA];
+    let countsB = counts[indexB];
+
+    if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut nand A;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
@@ -1048,7 +1054,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexB] === 1) {
+    if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut nand B;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
@@ -1066,12 +1072,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexA] === 2) {
+    if (countsA === 2) {
       if ((varMeta[indexA] & COUNT_LTE_LHS) && trickNandLteLhs(indexA, pc, 'nand')) return;
       if ((varMeta[indexA] & COUNT_ISALL_RESULT) && trickNandIsall(indexA, pc, 'nand')) return;
     }
 
-    if (counts[indexB] === 2) {
+    if (countsB === 2) {
       if ((varMeta[indexB] & COUNT_LTE_LHS) && trickNandLteLhs(indexB, pc, 'nand')) return;
       if ((varMeta[indexB] & COUNT_ISALL_RESULT) && trickNandIsall(indexB, pc, 'nand')) return;
     }
@@ -1172,7 +1178,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let indexR = getFinalIndex(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
     ASSERT_LOG2(' - cutIsAll', indexR, '->', counts[indexR], 'x');
 
-    if (counts[indexR] === 1) {
+    let countsR = counts[indexR];
+
+    if (countsR === 1) {
       ASSERT_LOG2('   - R is a leaf var');
 
       let args = [];
@@ -1203,7 +1211,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexR] === 2) {
+    if (countsR === 2) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
@@ -1217,7 +1225,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
     ASSERT_LOG2(' - cutIsAll2', indexR, '->', counts[indexR], 'x');
 
-    if (counts[indexR] === 1) {
+    let countsR = counts[indexR];
+
+    if (countsR === 1) {
       let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
       let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
       ASSERT_LOG2('   - R is a leaf var');
@@ -1236,7 +1246,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
-    if (counts[indexR] === 2) {
+    if (countsR === 2) {
       if ((varMeta[indexR] & COUNT_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((varMeta[indexR] & COUNT_NALL) && trickIsallNall(indexR, pc, 'isall')) return;

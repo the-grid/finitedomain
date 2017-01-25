@@ -889,13 +889,22 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           let indexA = ml_dec16(ml, isallOffset + 3);
           let indexB = ml_dec16(ml, isallOffset + 5);
 
-          let indexC = ml_dec16(ml, nallOffset + 3);
-          let indexD = ml_dec16(ml, nallOffset + 5);
-          let indexE = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
-          if (indexC === indexS) {
-            indexC = indexD;
-            indexD = indexE;
-          } else if (indexD !== indexS && indexE !== indexS) {
+          let indexC;
+          let indexD;
+
+          let indexN1 = ml_dec16(ml, nallOffset + 3);
+          let indexN2 = ml_dec16(ml, nallOffset + 5);
+          let indexN3 = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
+          if (indexN1 === indexS) {
+            indexC = indexN2;
+            indexD = indexN3;
+          } else if (indexN2 === indexS) {
+            indexC = indexN1;
+            indexD = indexN3;
+          } else if (indexN3 === indexS) {
+            indexC = indexN1;
+            indexD = indexN2;
+          } else {
             ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
             addrTracker[sharedVarIndex] = offset;
             return false;
@@ -949,13 +958,22 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           let indexA = ml_dec16(ml, isallOffset + 1);
           let indexB = ml_dec16(ml, isallOffset + 3);
 
-          let indexC = ml_dec16(ml, nallOffset + 3);
-          let indexD = ml_dec16(ml, nallOffset + 5);
-          let indexE = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
-          if (indexC === indexS) {
-            indexC = indexD;
-            indexD = indexE;
-          } else if (indexD !== indexS && indexE !== indexS) {
+          let indexC;
+          let indexD;
+
+          let indexN1 = ml_dec16(ml, nallOffset + 3);
+          let indexN2 = ml_dec16(ml, nallOffset + 5);
+          let indexN3 = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
+          if (indexN1 === indexS) {
+            indexC = indexN2;
+            indexD = indexN3;
+          } else if (indexN2 === indexS) {
+            indexC = indexN1;
+            indexD = indexN3;
+          } else if (indexN3 === indexS) {
+            indexC = indexN1;
+            indexD = indexN2;
+          } else {
             ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
             addrTracker[sharedVarIndex] = offset;
             return false;

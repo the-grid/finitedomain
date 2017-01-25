@@ -3456,6 +3456,12 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     ASSERT_LOG2(' = min_vv_nand', indexA, '!&', indexB, ' -> ', domain__debug(A), '!&', domain__debug(B));
 
+    if (indexA === indexB) {
+      setDomain(indexA, domain_removeGtUnsafe(A, 0), '`A !& A` means A is zero');
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      return;
+    }
+
     if (domain_min(A) > 0) {
       // -> B=0
       if (setDomain(indexB, domain_removeGte(B, 1), 'nand')) return;

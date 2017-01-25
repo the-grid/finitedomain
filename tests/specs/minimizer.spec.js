@@ -370,4 +370,39 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql(false);
     });
   });
+
+  describe('nand', function() {
+
+    it('should solve reflective nand to zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        A !& A
+      `);
+
+      expect(solution).to.eql({A: 0});
+    });
+
+    it('should reject reflective nand if it has no zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 10]
+        A !& A
+      `);
+
+      expect(solution).to.eql(false);
+    });
+
+    it('should reject reflective nand if it must be non-zero', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        A !& A
+        A > 0
+      `);
+
+      expect(solution).to.eql(false);
+    });
+  });
+
 });

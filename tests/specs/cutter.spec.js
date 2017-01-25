@@ -287,7 +287,7 @@ describe('specs/cutter.spec', function() {
       // note: this may change/improve but the relevant part is that the xnor is gone!
     });
 
-    it('should eliminate xnor when both args are booly', function() {
+    it('should eliminate xnor when both args are booly 8', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
@@ -295,11 +295,25 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         C = B ==? 8
         C !^ A
+        # -> should remove the !^
 
-        # prevent trivial elimination
-        nall(A C)
-      `)).to.throw(/debug: .* ops: nand/);
-      // note: this may change/improve but the relevant part is that the xnor is gone!
+        B = sum(A B) # prevent trivial elimination
+      `)).to.throw(/ops: iseq,plus /);
+    });
+
+    it('should eliminate xnor when both args are booly 5', function() {
+      //why solve if iseq 8 but not when iseq 5?
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : B [0 10]
+        : C [0 1]
+        C = B ==? 5
+        C !^ A
+        # -> should remove the !^
+
+        B = sum(A B) # prevent trivial elimination
+      `)).to.throw(/ops: iseq,plus /);
     });
 
     it('should not apply trick to non-boolys', function() {

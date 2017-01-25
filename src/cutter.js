@@ -729,7 +729,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         pc = offset; // revisit...
         return true;
       }
-    } else if (counts[indexR] === 2) {
+    }
+
+    if (counts[indexR] === 2) {
       // scan for pattern (R = A+B) & (S = R==?2) -> S = isAll(A B). a bit tedious to scan for but worth it.
       let otherOffset = lastOffset[indexR];
       ASSERT(otherOffset > 0, 'offset should exist and cant be the first op');
@@ -762,6 +764,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         }
       }
     }
+
     return false;
   }
   function cutPlusAB(offset, indexR, X, deltaX, Y, deltaY) {
@@ -886,7 +889,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         pc = offset; // revisit
         return;
       }
-    } else if (counts[indexR] === 2) {
+    }
+
+    if (counts[indexR] === 2) {
       let C = ml_dec8(ml, offset + 1 + 2); // constant
       // scan for pattern (R = A+B) & (S = R==?2) -> S = isAll(A B). a bit tedious to scan for but worth it.
       let otherOffset = lastOffset[indexR];
@@ -969,7 +974,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut or B;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
@@ -983,9 +991,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    pc += SIZEOF_VV;
   }
 
   function cutXor() {
@@ -1008,7 +1017,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut xor B;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
@@ -1023,9 +1035,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else {
-      pc += SIZEOF_VV;
+      return;
     }
+
+    pc += SIZEOF_VV;
   }
 
   function cutNand() {
@@ -1106,7 +1119,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if (counts[indexB] === 1) {
+      return;
+    }
+
+    if (counts[indexB] === 1) {
       ASSERT_LOG2('   - B is a leaf var');
       solveStack.push(domains => {
         ASSERT_LOG2(' - cut xnor B;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]));
@@ -1122,7 +1138,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       --counts[indexA];
       --counts[indexB];
-    } else if ((varMeta[indexA] & COUNT_BOOLY) || (varMeta[indexB] & COUNT_BOOLY)) {
+      return;
+    }
+
+    if ((varMeta[indexA] & COUNT_BOOLY) || (varMeta[indexB] & COUNT_BOOLY)) {
       // A or B is only used as a boolean (in the zero-nonzero sense, not strictly 0,1)
       // the xnor basically says that if one is zero the other one is too, and otherwise neither is zero
       // cominbing that with the knowledge that both vars are only used for zero-nonzero, one can be
@@ -1166,11 +1185,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       // we can add the count of E to that of K and subtract two for eliminating this constraint
       counts[indexK] += counts[indexE] - 2;
       counts[indexE] = 0;
-
       return;
-    } else {
-      pc += SIZEOF_VV;
     }
+
+    pc += SIZEOF_VV;
   }
 
   function cutIsAll() {
@@ -1288,9 +1306,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
       --counts[indexR];
       for (let i = 0; i < len; ++i) --counts[args[i]];
-    } else {
-      pc += SIZEOF_COUNT + len * 2 + 2;
+      return;
     }
+
+    pc += SIZEOF_COUNT + len * 2 + 2;
   }
 
   function cutNall() {
@@ -1300,9 +1319,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let index = ml_dec16(ml, pc + 3 + i * 2);
 
       if (counts[index] === 2) {
-        if (varMeta[index] & COUNT_ISALL_RESULT) {
-          if (trickIsallNall(index, pc, 'nall')) return;
-        }
+        if ((varMeta[index] & COUNT_ISALL_RESULT) && trickIsallNall(index, pc, 'nall')) return;
       }
     }
 

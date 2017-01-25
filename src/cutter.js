@@ -317,31 +317,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     if (counts[indexA] === 2) {
-      if (varMeta[indexA] & COUNT_NAND) {
-        // note: must be indexA
-        if (trickNandLteLhs(indexA, pc, 'lte')) return;
-      }
-
-      if (varMeta[indexA] & COUNT_ISALL_RESULT) {
-        if (trickIsallLteLhs(indexA, pc, 'lte')) return;
-      }
-
-      if (varMeta[indexA] & COUNT_LTE_LHS_TWICE) {
-        if (trickLteTwice(indexA, pc)) return;
-      }
-
+      if ((varMeta[indexA] & COUNT_NAND) && trickNandLteLhs(indexA, pc, 'lte')) return;
+      if ((varMeta[indexA] & COUNT_ISALL_RESULT) && trickIsallLteLhs(indexA, pc, 'lte')) return;
+      if ((varMeta[indexA] & COUNT_LTE_LHS_TWICE) && trickLteTwice(indexA, pc, 'lte')) return;
       if ((varMeta[indexA] & COUNT_NEQ) && trickNeqLteLhs(indexA, pc, 'lte')) return;
     }
 
     if (counts[indexB] === 2) {
-      if (varMeta[indexB] & COUNT_ISALL_RESULT) {
-        // note: MUST be indexB because the trick doesn't work for indexA
-        if (trickIsallLteRhs(indexB, pc, 'lte')) return;
-      }
-      if (varMeta[indexB] & COUNT_NEQ) {
-        // note: MUST be indexB because the trick doesn't work for indexA
-        if (trickNeqLteRhs(indexB, pc, 'lte')) return;
-      }
+      if ((varMeta[indexB] & COUNT_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
+      if ((varMeta[indexB] & COUNT_NEQ) && trickNeqLteRhs(indexB, pc, 'lte')) return;
     }
 
     pc += SIZEOF_VV;

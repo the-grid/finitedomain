@@ -96,7 +96,7 @@ describe('specs/cutter.spec', function() {
       : B 11
       : C *
       C = A <? B
-      A != B
+      @custom noleaf A B
     `);
 
     expect(solution).to.eql({A: 0, B: 11, C: 1});
@@ -109,7 +109,7 @@ describe('specs/cutter.spec', function() {
       : B 11
       : C *
       C = A <=? B
-      A != B
+      @custom noleaf A
     `);
 
     expect(solution).to.eql({A: 0, B: 11, C: 1});
@@ -125,6 +125,7 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         : R [0 3]
         R = sum(A B C)
+        @custom noleaf A B C
       `);
 
       // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
@@ -139,6 +140,7 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         : R [4 7]
         R = sum(A 4 B C)
+        @custom noleaf A B C
       `);
 
       // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
@@ -154,6 +156,7 @@ describe('specs/cutter.spec', function() {
         : D [0 1]
         : R [0 5]
         R = sum(A B C D)
+        @custom noleaf A B C D
       `);
 
       // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
@@ -169,7 +172,8 @@ describe('specs/cutter.spec', function() {
         : D [0 1]
         : R [0 3] # n-1
         R = sum(A B C D)
-      `)).to.throw(/strat=throw; .*, 1 constraints, .* ops: nall/);
+        @custom noleaf A B C D
+      `)).to.throw(/ops: nall /);
     });
 
     it('should detect trivial isall patterns', function() {
@@ -242,19 +246,15 @@ describe('specs/cutter.spec', function() {
   describe('xnor booly', function() {
 
     it('should solve the base case', function() {
-      let solution = solverSolver(`
+      expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
         : C [0 1]
         C = B ==? 8
         A !^ C
-
-        # prevent trivial elimination
-        X = A + B
-      `);
-
-      expect(solution).to.eql({A: 0, B: 0, C: 0, X: 0});
+        @custom noleaf A B
+      `)).to.throw(/ops: iseq /);
     });
 
     it('should eliminate xnor when the arg is booly', function() {
@@ -265,10 +265,8 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         C = B ==? 8
         A !^ C
-
-        # prevent trivial elimination
-        A != B
-      `)).to.throw(/debug: .* ops: iseq,neq/);
+        @custom noleaf A B
+      `)).to.throw(/debug: .* ops: iseq /);
       // note: this may change/improve but the relevant part is that the xnor is gone!
     });
 
@@ -280,10 +278,8 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         C = B ==? 8
         C !^ A
-
-        # prevent trivial elimination
-        A != B
-      `)).to.throw(/debug: .* ops: iseq,neq/);
+        @custom noleaf A B
+      `)).to.throw(/debug: .* ops: iseq /);
       // note: this may change/improve but the relevant part is that the xnor is gone!
     });
 
@@ -296,9 +292,8 @@ describe('specs/cutter.spec', function() {
         C = B ==? 8
         C !^ A
         # -> should remove the !^
-
-        B = sum(A B) # prevent trivial elimination
-      `)).to.throw(/ops: iseq,plus /);
+        @custom noleaf A B
+      `)).to.throw(/ops: iseq /);
     });
 
     it('should eliminate xnor when both args are booly 5', function() {
@@ -311,9 +306,8 @@ describe('specs/cutter.spec', function() {
         C = B ==? 5
         C !^ A
         # -> should remove the !^
-
-        B = sum(A B) # prevent trivial elimination
-      `)).to.throw(/ops: iseq,plus /);
+        @custom noleaf A B
+      `)).to.throw(/ops: iseq /);
     });
 
     it('should not apply trick to non-boolys', function() {
@@ -324,10 +318,8 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         C = B ==? 8
         A !^ C
-
-        # prevent trivial elimination
-        distinct(A  B  C)
-      `)).to.throw(/debug: .* ops: iseq,xnor,distinct/);
+        @custom noleaf A B C
+      `)).to.throw(/debug: .* ops: iseq,xnor /);
     });
   });
 
@@ -337,12 +329,11 @@ describe('specs/cutter.spec', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
-        C = all?(A B)
-        D <= C
-        # -->  D <= A, D <= B
-
-        D = A + B # prevent trivial leaf elimination
-      `)).to.throw(/ops: lte,lte,plus /);
+        R = all?(A B)
+        C <= R
+        # -->  C <= A, C <= B
+        @custom noleaf A B C
+      `)).to.throw(/ops: lte,lte /);
     });
 
     it('should morph three args if there is enough space', function() {
@@ -357,8 +348,57 @@ describe('specs/cutter.spec', function() {
         M == M      # recycle-able space after eliminating the tautology
         M == M      # recycle-able space after eliminating the tautology
         M == M      # recycle-able space after eliminating the tautology
-        A = B + D   # prevent abd from being leafs
-      `)).to.throw(/ops: lte,lte,lte,plus /);
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,lte /);
+    });
+
+    describe('should not morph the basic case if isall args are not boolean', function() {
+
+      function test(bools, nonbools) {
+        it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
+          expect(_ => solverSolver(`
+            @custom var-strat throw
+            : ${bools} [0 1]
+            : ${nonbools} [0 10]
+            R = all?(A B)
+            C <= R
+
+            @custom noleaf A B C
+          `)).to.throw(/ops: isall,lte /);
+        });
+      }
+
+      test('B,R,C', 'A');
+      test('A,R,C', 'B');
+      test('C,R', 'A,B');
+    });
+
+    describe('should not morph the multi-isall case if not boolean', function() {
+
+      function test(bools, nonbools) {
+        it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
+          expect(_ => solverSolver(`
+            @custom var-strat throw
+            : ${bools} [0 1]
+            : ${nonbools} [0 10]
+            : M = 1
+            X = all?(A B C)
+            D <= X
+            M == M      # recycle-able space after eliminating the tautology
+            M == M      # recycle-able space after eliminating the tautology
+            M == M      # recycle-able space after eliminating the tautology
+            M == M      # recycle-able space after eliminating the tautology
+            @custom noleaf A B C D
+          `)).to.throw(/ops: isall,lte /);
+        });
+      }
+
+      test('B,C,D,R', 'A');
+      test('A,C,D,R', 'B');
+      test('A,B,D,R', 'C');
+      test('C,D,R', 'A,B');
+      test('B,D,R', 'A,C');
+      test('D,R', 'A,B,C');
     });
   });
 
@@ -373,9 +413,8 @@ describe('specs/cutter.spec', function() {
         A <= B
         B != C
         # -> A !& C
-
-        A = A + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: nand,plus /);
+        @custom noleaf A C
+      `)).to.throw(/ops: nand /);
     });
 
     it('should rewrite swapped base case of an lte and neq to a nand', function() {
@@ -387,9 +426,8 @@ describe('specs/cutter.spec', function() {
         B != C
         A <= B
         # -> A !& C
-
-        A = A + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: nand,plus /);
+        @custom noleaf A C
+      `)).to.throw(/ops: nand /);
     });
 
     it('should not do lte+neq trick for lhs of lte', function() {
@@ -401,9 +439,8 @@ describe('specs/cutter.spec', function() {
         B <= A
         B != C
         # -> A !& C
-
-        A = A + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: or,plus /); // tackled by different trick
+        @custom noleaf A C
+      `)).to.throw(/ops: or /); // tackled by different trick
     });
 
     it('should not do lte+neq trick for non bools', function() {
@@ -415,16 +452,15 @@ describe('specs/cutter.spec', function() {
         A <= B
         B != C
         # -> A !& C
-
-        A = A + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: lte,neq,plus /);
+        @custom noleaf A C
+      `)).to.throw(/ops: lte,neq /);
     });
   });
 
   describe('lte_lhs+nand trick', function() {
 
     it('should eliminate base case of an lte and nand', function() {
-      expect(_ => solverSolver(`
+      let solution = solverSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -432,13 +468,14 @@ describe('specs/cutter.spec', function() {
         A <= B
         A !& C
         # -> A is leaf var
+        @custom noleaf B C
+      `);
 
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: plus /);
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
     });
 
     it('should eliminate swapped base case of an lte and nand', function() {
-      expect(_ => solverSolver(`
+      let solution = solverSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -446,9 +483,10 @@ describe('specs/cutter.spec', function() {
         A !& C
         A <= B
         # -> A is leaf var
+        @custom noleaf B C
+      `);
 
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: plus /);
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
     });
 
     it('should not do lte+neq trick for rhs of lte', function() {
@@ -459,9 +497,8 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         A !& C
         B <= A
-
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: nand,lte,plus /);
+        @custom noleaf B C
+      `)).to.throw(/ops: nand,lte /);
     });
 
     it('should not do lte+neq trick for non bools', function() {
@@ -473,9 +510,8 @@ describe('specs/cutter.spec', function() {
         A <= B
         A !& C
         # -> A !& C
-
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: lte,nand,plus /);
+        @custom noleaf B C
+      `)).to.throw(/ops: lte,nand /);
     });
   });
 
@@ -491,9 +527,8 @@ describe('specs/cutter.spec', function() {
         A <= B
         A = all?(C D)
         # -> nall(B C D)
-
-        B = C + D # prevent trivial defer of the vars
-      `)).to.throw(/ops: nall,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: nall /);
     });
 
     it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
@@ -506,9 +541,8 @@ describe('specs/cutter.spec', function() {
         A = all?(C D)
         A <= B
         # -> nall(B C D)
-
-        B = C + D # prevent trivial defer of the vars
-      `)).to.throw(/ops: nall,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: nall /);
     });
 
     it('should not do lte-lhs + isall-r trick for rhs of lte', function() {
@@ -520,9 +554,8 @@ describe('specs/cutter.spec', function() {
         : D [0 1]
         A = all?(C D)
         B <= A
-
-        B = C + D # prevent trivial defer of the vars
-      `)).to.throw(/ops: lte,lte,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,lte /);
     });
 
     it('should not do lte_lhs+neq trick for non bools', function() {
@@ -534,9 +567,8 @@ describe('specs/cutter.spec', function() {
         : D [0 1]
         A <= B
         A = all?(C D)
-
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: lte,isall,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,isall /);
     });
 
     it('should work with more than two args to isall', function() {
@@ -548,9 +580,8 @@ describe('specs/cutter.spec', function() {
         A <= B
         A = all?(C D E F)
         # -> nall(B C D E F)
-
-        B = sum(C D E F) # prevent trivial defer of the vars
-      `)).to.throw(/ops: nall,sum /);
+        @custom noleaf B C D E F
+      `)).to.throw(/ops: nall /);
     });
   });
 
@@ -569,9 +600,8 @@ describe('specs/cutter.spec', function() {
         # when A is 1, B and C are 1, so D must be 0 (for the nall)
         # when A is 0, B or C is 0, so the nall is resolved
         # when D is 1, A can't be 1 because then B is also one and the nall would break
-
-        B = C + D # prevent trivial defer of the vars
-      `)).to.throw(/ops: isall,nand,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: isall,nand /);
     });
 
     describe('all variations of nall arg order', function() {
@@ -587,8 +617,8 @@ describe('specs/cutter.spec', function() {
           A = all?(B C)
           nall(${A} ${B} ${C})
 
-          B = C + D # prevent trivial defer of the vars
-        `)).to.throw(/ops: isall,nand,plus /);
+          @custom noleaf B C D
+        `)).to.throw(/ops: isall,nand /);
         });
       }
 
@@ -614,8 +644,8 @@ describe('specs/cutter.spec', function() {
         R !& C
         # -> nall(A B C)
 
-        A = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: nall,plus /);
+        @custom noleaf A B C
+      `)).to.throw(/ops: nall /);
     });
 
     it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
@@ -628,16 +658,15 @@ describe('specs/cutter.spec', function() {
         R !& C
         R = all?(A B)
         # -> nall(A B C)
-
-        A = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: nall,plus /);
+        @custom noleaf A B C
+      `)).to.throw(/ops: nall /);
     });
   });
 
   describe('2xlte trick', function() {
 
     it('should eliminate base case a double lte', function() {
-      expect(_ => solverSolver(`
+      let solution = solverSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -645,13 +674,14 @@ describe('specs/cutter.spec', function() {
         A <= B
         A <= C
         # -> A is a leaf var, eliminate the constraints
+        @custom noleaf B C
+      `);
 
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: plus /);
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
     });
 
     it('should eliminate swapped base case a double lte', function() {
-      expect(_ => solverSolver(`
+      let solution = solverSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -659,9 +689,10 @@ describe('specs/cutter.spec', function() {
         A <= C
         A <= B
         # -> A is a leaf var, eliminate the constraints
+        @custom noleaf B C
+      `);
 
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: plus /);
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
     });
   });
 
@@ -676,9 +707,8 @@ describe('specs/cutter.spec', function() {
         A <= B
         A != C
         # -> B | C, A is a leaf
-
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: or,plus /);
+        @custom noleaf B C
+      `)).to.throw(/ops: or /);
     });
 
     it('should eliminate swapped base case an lte_lhs and neq', function() {
@@ -690,9 +720,8 @@ describe('specs/cutter.spec', function() {
         A != C
         A <= B
         # -> B | C, A is a leaf
-
-        B = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: or,plus /);
+        @custom noleaf B C
+      `)).to.throw(/ops: or /);
     });
   });
 });

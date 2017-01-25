@@ -1424,7 +1424,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // (where B is sharedVarIndex)
     // if A turns out to be a leaf var for only being lte_lhs then
     // everything will dissolve through another trick function
-    // the isall args are assumed to be booly (containing both zero and non-zero)
+    // (only) the isall args are assumed to be booly (containing both zero and non-zero)
     // A <= B meaning A is 0 when B is 0. B is 0 when C or D is 0 and non-zero
     // otherwise. so A <= C or A <= D should force A to match A <= B.
 
@@ -1462,9 +1462,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           let left = getFinalIndex(ml_dec16(ml, isallOffset + 3));
           let right = getFinalIndex(ml_dec16(ml, isallOffset + 5));
 
-          // validate domains. for now, only apply the trick on strict bools [0 1]
+          // validate domains. for now, only apply the trick on strict bools [0 1]. only required for the isall args.
           ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
-          if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+          if (domain_isBool(domains[left]) && domain_isBool(domains[right])) {
             // compile A<=left and A<=right over the existing two offsets
             ml_vv2vv(ml, lteOffset, ML_VV_LTE, indexA, left);
             ml_cr2vv(ml, isallOffset, len, ML_VV_LTE, indexA, right);
@@ -1504,6 +1504,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
           ASSERT_LOG2(' - Found', bin.length, 'jumps (', bin, ') which can host the', len, 'lte constraints. Compiling them now');
 
+          // confirm all isall args are bool
+          for (let i = 0; i < len; ++i) {
+            let indexB = getFinalIndex(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
+            if (domain_max(domains[indexB]) > 1) {
+              ASSERT_LOG2('     - not all isall args are bool so bailing this morph');
+              addrTracker[sharedVarIndex] = offset;
+              return false;
+            }
+          }
+
           let recycleOffset;
           let currentSize = 0;
           for (let i = 0; i < len; ++i) {
@@ -1513,7 +1523,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
               currentSize = ml_getOpSizeSlow(ml, recycleOffset);
               ASSERT_LOG2('   - Fetched next space from bin; offset=', recycleOffset, 'with size=', currentSize);
             }
-            let indexB = ml_dec16(ml, isallOffset + 1 + i * 2);
+            let indexB = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
             ASSERT_LOG2('- Compiling LTE in recycled space', recycleOffset, 'on AB', indexA, indexB);
             ml_recycleVV(ml, recycleOffset, ML_VV_LTE, indexA, indexB);
             recycleOffset += SIZEOF_VV;
@@ -1541,9 +1551,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let left = getFinalIndex(ml_dec16(ml, isallOffset + 1));
         let right = getFinalIndex(ml_dec16(ml, isallOffset + 3));
 
-        // validate domains. for now, only apply the trick on strict bools [0 1]
+        // validate domains. for now, only apply the trick on strict bools [0 1] for the isall args
         ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
-        if (domain_isBool(domains[indexA]) && domain_isBool(domains[left]) && domain_isBool(domains[right])) {
+        if (domain_isBool(domains[left]) && domain_isBool(domains[right])) {
           // compile A<=left and A<=right over the existing two offsets
           ml_vv2vv(ml, lteOffset, ML_VV_LTE, sharedVarIndex, left);
           ml_vvv2vv(ml, isallOffset, ML_VV_LTE, sharedVarIndex, right);

@@ -56,6 +56,7 @@ import {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -68,6 +69,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -89,7 +91,7 @@ import {
   SIZEOF_8V8,
   SIZEOF_888,
   SIZEOF_COUNT,
-  SIZEOF_C8_COUNT,
+  SIZEOF_C8,
 
   ml__debug,
   ml_dec8,
@@ -333,6 +335,11 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
           min_isNall(ml);
           break;
 
+        case ML_ISNONE:
+          ASSERT_LOG2('- isnone @', pcStart);
+          min_isNone(ml);
+          break;
+
         case ML_DISTINCT:
           ASSERT_LOG2('- distinct @', pcStart);
           min_distinct(ml);
@@ -531,6 +538,11 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
         case ML_VV_XNOR:
           ASSERT_LOG2('- xnor @', pcStart);
           min_vv_xnor(ml);
+          break;
+
+        case ML_DEBUG:
+          ASSERT_LOG2('- debug @', pc);
+          pc += SIZEOF_V;
           break;
 
         case ML_NOOP:
@@ -1315,6 +1327,88 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       } else {
         if (setDomain(indexR, domain_intersectionValue(R, 0))) return;
       }
+      // restart op. R is solved now and the above code will resolve it.
+      return;
+    }
+
+    ASSERT_LOG2(' - not only jumps...');
+    onlyJumps = false;
+    pc = offset + SIZEOF_COUNT + argCount * 2 + 2;
+  }
+
+  function min_isNone(ml) {
+    let offset = pc;
+    ASSERT_LOG2(' - parsing min_isNone');
+    let offsetCount = offset + 1;
+    let argCount = ml_dec16(ml, offsetCount);
+    let argLen = argCount * 2;
+    let oplen = SIZEOF_COUNT + argLen + 2;
+    ASSERT_LOG2(' - ml for this isNone:', ml.slice(offset, offset + oplen));
+    let offsetArgs = offset + SIZEOF_COUNT;
+    let offsetR = offsetArgs + argLen;
+    let indexR = ml_dec16(ml, offsetR);
+
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_COUNT + argLen);
+    if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
+
+    ASSERT_LOG2(' = min_isNone', argCount, 'x');
+    ASSERT_LOG2('  -> {' + indexR + '=' + domain__debug(R) + '} = ', Array.from(Array(argCount)).map((n, i, x) => '{' + (x = ml_dec16(ml, offsetArgs + i * 2)) + '=' + domain__debug(domains[x]) + '}').join(' '));
+
+    if (!R) return setEmpty(indexR, 'isnone; R bad state');
+
+    if (domain_hasNoZero(R)) {
+      ASSERT_LOG2('    - R already solved to nonzero so setting all args to zero');
+      // set all to zero and eliminate
+      for (let i = argCount - 1; i >= 0; --i) {
+        let indexA = ml_dec16(ml, offsetArgs + i * 2);
+        let A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('      - index=', indexA, 'dom=', domain__debug(A), '; forcing to zero');
+        if (A === MINIMIZE_ALIASED) return; // there was an alias; restart op
+        if (!A) return setEmpty(indexA, 'isnall; bad state');
+        if (setDomain(indexA, domain_removeGtUnsafe(A, 0))) return;
+      }
+      ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
+      return;
+    }
+
+    // R has a zero or is zero, determine whether there is any nonzero arg, or whether they are all zero
+    let aliased = false;
+    let allZero = true;
+    for (let i = argCount - 1; i >= 0; --i) {
+      let indexA;
+      let A;
+
+      do {
+        indexA = ml_dec16(ml, offsetArgs + i * 2);
+        A = getDomainOrRestartForAlias(indexA, SIZEOF_COUNT + i * 2);
+        ASSERT_LOG2('    - index=', indexA, 'dom=', domain__debug(A));
+        if (A === MINIMIZE_ALIASED) aliased = true; // there was an alias; reorder args
+      } while (A === MINIMIZE_ALIASED);
+
+      // reflect isNone,
+      // R=0 when at least one arg is nonzero
+      // R>0 when all args are zero
+
+      if (domain_hasNoZero(A)) {
+        ASSERT_LOG2('    - index=', indexA, ' is nonzero so R=0');
+        if (setDomain(indexA, domain_removeValue(A, 0))) return;
+        ml_eliminate(ml, offset, SIZEOF_COUNT + 2 * argCount + 2);
+      }
+      if (!domain_isZero(A)) {
+        // A has zero and isnt solved (So has non-zero too); R is unsolved
+        allZero = false;
+      }
+    }
+
+    // sort the args if visiting for the first time or when aliases were recompiled
+    if (firstRun || aliased) {
+      ASSERT_LOG2(' - sorting isall args', firstRun, aliased);
+      ml_heapSort16bitInline(ml, offset + SIZEOF_COUNT, argCount);
+    }
+
+    if (allZero) {
+      ASSERT_LOG2(' - all args are 0, R is solved to 1, restarting to finalize', allZero);
+      if (setDomain(indexR, domain_removeValue(R, 0))) return;
       // restart op. R is solved now and the above code will resolve it.
       return;
     }
@@ -2941,13 +3035,13 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     let argCount = ml_dec16(ml, offsetCount);
     let offsetConstant = offset + 3;
     let fixedConstant = ml_dec8(ml, offsetConstant);
-    let oplen = SIZEOF_C8_COUNT + argCount * 2 + 2;
+    let oplen = SIZEOF_C8 + argCount * 2 + 2;
     ASSERT_LOG2(' - ml for this sum:', [].map.call(ml.slice(offset, offset + oplen), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '));
-    let offsetArgs = offset + SIZEOF_C8_COUNT;
+    let offsetArgs = offset + SIZEOF_C8;
     let offsetR = offsetArgs + argCount * 2;
     let indexR = ml_dec16(ml, offsetR);
 
-    let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8_COUNT + argCount * 2);
+    let R = getDomainOrRestartForAlias(indexR, SIZEOF_C8 + argCount * 2);
     ASSERT_LOG2(' - offsets; R =', offsetR, 'indexR=', indexR, 'R=', domain__debug(R));
     if (R === MINIMIZE_ALIASED) return; // there was an alias; restart op
 
@@ -2973,7 +3067,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     for (let i = argCount - 1; i >= 0; --i) {
       let indexA;
       let A;
-      let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
+      let indexOffsetDelta = SIZEOF_C8 + i * 2;
 
       do {
         indexA = ml_dec16(ml, offset + indexOffsetDelta);
@@ -2991,9 +3085,9 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     // sort the args if visiting for the first time or when aliases were recompiled
     if (firstRun || hadAlias) {
-      ASSERT_LOG2(' - sorting sum args, ml before:', ml.slice(offset, offset + SIZEOF_C8_COUNT + argCount * 2 + 2));
-      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
-      ASSERT_LOG2(' - sum args after sorting:', ml.slice(offset, offset + SIZEOF_C8_COUNT + argCount * 2 + 2));
+      ASSERT_LOG2(' - sorting sum args, ml before:', ml.slice(offset, offset + SIZEOF_C8 + argCount * 2 + 2));
+      ml_heapSort16bitInline(ml, offset + SIZEOF_C8, argCount);
+      ASSERT_LOG2(' - sum args after sorting:', ml.slice(offset, offset + SIZEOF_C8 + argCount * 2 + 2));
     }
 
     ASSERT_LOG2(' - total min=', sumLo, ', max=', sumHi, '. applying bounds to this R:', domain__debug(R));
@@ -3022,7 +3116,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     let var2 = -1;
     let lastVarIndex = -1; // remove dupes. list is assumed ordered so we can simply check neighbors
     for (let i = 0; i < argCount; ++i) {
-      let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
+      let indexOffsetDelta = SIZEOF_C8 + i * 2;
       let indexA = ml_dec16(ml, offset + indexOffsetDelta);
       if (indexA < lastVarIndex) THROW('sum list should be normalized... current=', indexA, ', next=', lastVarIndex, ', firstRun=', firstRun, ', hadAlias=', hadAlias);
       lastVarIndex = indexA;
@@ -3117,7 +3211,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
         if (setDomain(indexR, R, 'sum; solved R because all args are constants (now)')) return;
       }
 
-      ml_eliminate(ml, offset, SIZEOF_C8_COUNT + argCount * 2 + 2); // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+8bit+n*16bit+16bit
+      ml_eliminate(ml, offset, SIZEOF_C8 + argCount * 2 + 2); // sizeof(op)=x; op+count+vars+result -> 8bit+16bit+8bit+n*16bit+16bit
     } else if (constants) {
       ASSERT_LOG2(' - Unable to morph but there are', constants, 'constants to consolidate to value', constantSum + fixedConstant);
       ASSERT((constantSum + fixedConstant) < 256, 'TODO: support >8bit');
@@ -3128,32 +3222,32 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       ASSERT_LOG2(' - Moving constants out...');
       let tgtIndex = 0;
       for (let i = 0; i < argCount; ++i) {
-        let indexOffsetDelta = SIZEOF_C8_COUNT + i * 2;
+        let indexOffsetDelta = SIZEOF_C8 + i * 2;
         let indexA = ml_dec16(ml, offset + indexOffsetDelta);
         let A = getDomainOrRestartForAlias(indexA, indexOffsetDelta);
         ASSERT_LOG2('   - index:', indexA, 'domain:', domain__debug(A), 'constant:', domain_isSolved(A));
         ASSERT(A !== MINIMIZE_ALIASED, 'A didnt change so it shouldnt have been aliased since last explicit check');
         if (!domain_isSolved(A)) {
-          ASSERT_LOG2('     - not a constant so moving 2 bytes from', offset + indexOffsetDelta, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
+          ASSERT_LOG2('     - not a constant so moving 2 bytes from', offset + indexOffsetDelta, 'to', offset + SIZEOF_C8 + tgtIndex);
           // move forward (wont change anything until a constant was skipped...)
-          ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta));
-          ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta + 1));
+          ml_enc8(ml, offset + SIZEOF_C8 + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta));
+          ml_enc8(ml, offset + SIZEOF_C8 + tgtIndex++, ml_dec8(ml, offset + indexOffsetDelta + 1));
         }
       }
-      ASSERT_LOG2(' - Non-constants should now all be moved to the left. Moving result var from', offsetR, 'to', offset + SIZEOF_C8_COUNT + tgtIndex);
-      ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offsetR));
-      ml_enc8(ml, offset + SIZEOF_C8_COUNT + tgtIndex++, ml_dec8(ml, offsetR + 1));
-      ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2);
+      ASSERT_LOG2(' - Non-constants should now all be moved to the left. Moving result var from', offsetR, 'to', offset + SIZEOF_C8 + tgtIndex);
+      ml_enc8(ml, offset + SIZEOF_C8 + tgtIndex++, ml_dec8(ml, offsetR));
+      ml_enc8(ml, offset + SIZEOF_C8 + tgtIndex++, ml_dec8(ml, offsetR + 1));
+      ASSERT_LOG2(' - Now blanking out', constants * 2, 'trailing empty bytes starting at', offset + SIZEOF_C8 + (argCount - constants) * 2 + 2);
       // now "blank out" the remainder
-      ml_skip(ml, offset + SIZEOF_C8_COUNT + (argCount - constants) * 2 + 2, constants * 2);
+      ml_skip(ml, offset + SIZEOF_C8 + (argCount - constants) * 2 + 2, constants * 2);
       pc = offset; // the freshly compiled jump may clobber the offset+len part if it were a jump so restart and take the jump
     } else {
       ASSERT(argCount - (constantSum ? constants : 0) > 1, 'There no other valid options here', 'count', argCount, 'constants', constants, 'count-constants', argCount - constants, 'constantsum', constantSum);
       ASSERT_LOG2(' - not only jumps...');
       onlyJumps = false;
-      pc = offset + SIZEOF_C8_COUNT + argCount * 2 + 2; // skip the 16bit indexes manually
+      pc = offset + SIZEOF_C8 + argCount * 2 + 2; // skip the 16bit indexes manually
     }
-    ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset + SIZEOF_C8_COUNT + 2 * argCount + 2));
+    ASSERT_LOG2(' - ml after sum:', ml.slice(offset, offset + SIZEOF_C8 + 2 * argCount + 2));
   }
 
   function min_product(ml) {
@@ -3179,7 +3273,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     // sort the args
     if (firstRun) {
-      ml_heapSort16bitInline(ml, offset + SIZEOF_C8_COUNT, argCount);
+      ml_heapSort16bitInline(ml, offset + SIZEOF_C8, argCount);
     }
 
     // a product is basically a pyramid of muls; (A*B)*(C*D) etc

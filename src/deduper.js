@@ -52,6 +52,7 @@ import {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -64,6 +65,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -71,6 +73,7 @@ import {
   ML_NOOP4,
   ML_STOP,
 
+  SIZEOF_V,
   SIZEOF_VV,
   SIZEOF_8V,
   SIZEOF_V8,
@@ -79,7 +82,7 @@ import {
   SIZEOF_8VV,
   SIZEOF_V8V,
   SIZEOF_COUNT,
-  SIZEOF_C8_COUNT,
+  SIZEOF_C8,
 
   ml__debug,
   ml_dec8,
@@ -237,8 +240,8 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
 
     key = 'sum:' + (c ? c + ',' : '') + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
     ASSERT_LOG2('key sum:', [key]);
-    let R = ml_dec16(ml, pc + SIZEOF_C8_COUNT + len * 2);
-    let alias = dedupe(key, SIZEOF_C8_COUNT + len * 2 + 2, R);
+    let R = ml_dec16(ml, pc + SIZEOF_C8 + len * 2);
+    let alias = dedupe(key, SIZEOF_C8 + len * 2 + 2, R);
     if (alias) {
       ASSERT_LOG2(' - deduping sum constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
       // this constraint has been removed. the alias of R is returned
@@ -340,6 +343,10 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
 
         case ML_ISNALL:
           keyValueList('isnall');
+          break;
+
+        case ML_ISNONE:
+          keyValueList('isnone');
           break;
 
         case ML_DISTINCT:
@@ -454,9 +461,13 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
         case ML_STOP:
           return constraintHash;
 
+        case ML_DEBUG:
+          pc += SIZEOF_V;
+          return;
+
         case ML_JMP:
           let delta = ml_dec16(ml, pc + 1);
-          pc += 3 + delta;
+          pc += SIZEOF_V + delta;
           break;
 
         case ML_NOOP:

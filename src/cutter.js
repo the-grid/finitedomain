@@ -52,6 +52,7 @@ import {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -64,6 +65,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -71,13 +73,14 @@ import {
   ML_NOOP4,
   ML_STOP,
 
+  SIZEOF_V,
   SIZEOF_VV,
   SIZEOF_VVV,
   SIZEOF_8VV,
   SIZEOF_V8V,
   SIZEOF_VV8,
   SIZEOF_COUNT,
-  SIZEOF_C8_COUNT,
+  SIZEOF_C8,
 
   ml__debug,
   ml_dec8,
@@ -817,7 +820,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let lo = C;
       let hi = C;
       for (let i = 0; i < len; ++i) {
-        let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+        let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
         let domain = domains[index];
         let min = domain_min(domain);
         let max = domain_max(domain);
@@ -838,7 +841,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
         let args = [];
         for (let i = 0; i < len; ++i) {
-          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
           args.push(index);
           --counts[index];
         }
@@ -852,7 +855,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ASSERT(domain_containsValue(domains[indexR], vR), 'R should already have been reduced to a domain that is valid within any outcome of the sum', vR, domain__debug(domains[indexR]));
           domains[indexR] = domain_createValue(vR);
         });
-        ml_eliminate(ml, pc, SIZEOF_C8_COUNT + len * 2 + 2);
+        ml_eliminate(ml, pc, SIZEOF_C8 + len * 2 + 2);
         --counts[indexR]; // args already done in above loop
 
         pc = offset;
@@ -883,9 +886,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_enc8(ml, offset, ML_NALL);
         ml_enc16(ml, offset + 1, len);
         for (let i = 0; i < len; ++i) {
-          ml_enc16(ml, offset + 3 + i * 2, args[i]);
+          ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, args[i]);
         }
-        ml_jump(ml, offset + 3 + len * 2, 3); // result var (16bit) and the constant (8bit). for the rest nall is same as sum
+        ml_jump(ml, offset + SIZEOF_COUNT + len * 2, 3); // result var (16bit) and the constant (8bit). for the rest nall is same as sum
         pc = offset; // revisit
         return;
       }
@@ -902,7 +905,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let args = [];
         let allBools = true;
         for (let i = 0; i < len; ++i) {
-          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
           let domain = domains[index];
           if (domain !== domain_createRange(0, 1)) {
             allBools = false;
@@ -936,10 +939,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_enc8(ml, offset, ML_ISALL);
           ml_enc16(ml, offset + 1, len);
           for (let i = 0; i < len; ++i) {
-            ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, ml_dec16(ml, offset + SIZEOF_C8_COUNT + i * 2));
+            ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
           }
           ml_enc16(ml, offset + SIZEOF_COUNT + len * 2, indexS);
-          ml_jump(ml, offset + SIZEOF_COUNT + len * 2 + 2, SIZEOF_C8_COUNT - SIZEOF_COUNT); // the difference in op footprint is the 8bit constant
+          ml_jump(ml, offset + SIZEOF_COUNT + len * 2 + 2, SIZEOF_C8 - SIZEOF_COUNT); // the difference in op footprint is the 8bit constant
 
           // remove the iseq, regardless
           ml_eliminate(ml, otherOffset, SIZEOF_V8V);
@@ -952,7 +955,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       }
     }
 
-    pc += SIZEOF_C8_COUNT + len * 2 + 2;
+    pc += SIZEOF_C8 + len * 2 + 2;
   }
 
   function cutOr() {
@@ -1419,6 +1422,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // we can replace an isall and lte with ltes on the args of the isall
     // B = isall(C D), A <= B  ->   A <= C, A <= D
     // (where B is sharedVarIndex)
+    // if A turns out to be a leaf var for only being lte_lhs then
+    // everything will dissolve through another trick function
     // the isall args are assumed to be booly (containing both zero and non-zero)
     // A <= B meaning A is 0 when B is 0. B is 0 when C or D is 0 and non-zero
     // otherwise. so A <= C or A <= D should force A to match A <= B.
@@ -2298,6 +2303,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           cutIsAll2();
           break;
 
+        case ML_ISNONE:
+          ASSERT_LOG2('(todo) none', pc);
+          let nlen = ml_dec16(ml, pc + 1);
+          pc += SIZEOF_COUNT + nlen * 2 + 2;
+          break;
+
         case ML_PLUS:
           cutPlus(ml, pc);
           break;
@@ -2404,9 +2415,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         case ML_STOP:
           return;
 
+        case ML_DEBUG:
+          pc += SIZEOF_V;
+          break;
+
         case ML_JMP:
           let delta = ml_dec16(ml, pc + 1);
-          pc += 3 + delta;
+          pc += SIZEOF_V + delta;
           break;
 
         case ML_NOOP:

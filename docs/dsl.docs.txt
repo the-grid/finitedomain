@@ -118,6 +118,7 @@ valcall:
   `nall(` expressions `)`
   `all?(` expressions `)`
   `nall?(` expressions `)`
+  `none?(` expressions `)`
 rop: // reflecting op (not a constraint on its own, but enforces result var state)
   `==?`
   `!=?`

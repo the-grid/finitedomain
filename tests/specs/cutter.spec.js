@@ -334,15 +334,15 @@ describe('specs/cutter.spec', function() {
   describe('lte_rhs+isall_r trick', function() {
 
     it('should morph the basic case', function() {
-      let solution = solverSolver(`
+      expect(_ => solverSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         C = all?(A B)
         D <= C
         # -->  D <= A, D <= B
-      `);
 
-      expect(solution).to.eql({A: 0, B: [0, 1], C: 0, D: 0});
+        D = A + B # prevent trivial leaf elimination
+      `)).to.throw(/ops: lte,lte,plus /);
     });
 
     it('should morph three args if there is enough space', function() {
@@ -520,7 +520,6 @@ describe('specs/cutter.spec', function() {
         : D [0 1]
         A = all?(C D)
         B <= A
-        # will apply the lte-rhs + isall-r trick instead (B <= C, B <= D)
 
         B = C + D # prevent trivial defer of the vars
       `)).to.throw(/ops: lte,lte,plus /);

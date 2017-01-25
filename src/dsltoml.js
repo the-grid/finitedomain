@@ -54,6 +54,7 @@ import {
   ML_NALL,
   ML_ISALL,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -68,6 +69,7 @@ import {
   ML_VV_XNOR,
   ML_START,
   ML_STOP,
+  ML_DEBUG,
   //
   //SIZEOF_VV,
   //SIZEOF_8V,
@@ -496,12 +498,19 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return encode16bit(nameToIndexSafe(name));
   }
 
-  function nameToIndexSafe(name) {
+  function encodeNameOrDie(name) {
+    return encode16bit(nameToIndexSafe(name, true));
+  }
+
+  function nameToIndexSafe(name, mustExist) {
     if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
     ASSERT_LOG2('encoding name:', name);
     ASSERT_LOG2('to index', nameToIndex(name));
     let index = nameToIndex(name);
-    if (index < 0) index = addVar(name, undefined, false, false, true);
+    if (index < 0) {
+      if (mustExist) THROW('Required var to be declared but it was not: [' + name + ']');
+      index = addVar(name, undefined, false, false, true);
+    }
     return index;
   }
 
@@ -1092,6 +1101,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
         else if (ident === 'product') v = parseArgs(ML_PRODUCT, resultVar);
         else if (ident === 'all?') v = parseArgs(ML_ISALL, resultVar, true);
         else if (ident === 'nall?') v = parseArgs(ML_ISNALL, resultVar, true);
+        else if (ident === 'none?') v = parseArgs(ML_ISNONE, resultVar, true);
         else THROW('Unknown constraint func: ' + ident);
       } else {
         v = ident;
@@ -1218,6 +1228,27 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return idents;
   }
 
+  function parseIdentsToEol() {
+    let idents = [];
+
+    while (true) {
+      skipWhitespaces();
+
+      let c = read();
+      if (isNewline(c)) break;
+
+      if (c === ',') {
+        skip();
+        skipWhitespaces();
+      }
+      let ident = parseIdentifier();
+      idents.push(ident);
+    }
+
+    if (!idents.length) THROW('Expected to parse a list of at least some identifiers but found none');
+    return idents;
+  }
+
   function readLine() {
     let offset = pointer;
     while (!isEof() && !isNewline(read())) skip();
@@ -1252,6 +1283,17 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           if (!ret.valdist) ret.valdist = {};
           ret.valdist[target] = JSON.parse(config);
           break;
+        case 'noleaf':
+          skipWhitespaces();
+
+          let idents = parseIdentsToEol();
+          for (let i = 0, len = idents.length; i < len; ++i) {
+            // debug vars are never considered leaf vars until we change that (to something else and update this to something that still does the same thing)
+            // this is for testing as a simple tool to prevent many trivial optimizations to kick in. it's not flawless.
+            ml += encode8bit(ML_DEBUG) + encodeNameOrDie(idents[i]);
+          }
+          break;
+
         default:
           THROW('Unsupported custom rule: ' + ident);
       }
@@ -1301,7 +1343,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     } else {
       is('(');
       let idents = parseIdentList();
-      if (idents.length) this.solver.config.targetedVars = idents;
+      this.solver.config.targetedVars = idents;
       is(')');
     }
     expectEol();

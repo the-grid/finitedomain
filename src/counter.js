@@ -52,6 +52,7 @@ import {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -64,6 +65,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -71,6 +73,7 @@ import {
   ML_NOOP4,
   ML_STOP,
 
+  SIZEOF_V,
   SIZEOF_VV,
   SIZEOF_8V,
   SIZEOF_V8,
@@ -84,7 +87,7 @@ import {
   SIZEOF_8V8,
   SIZEOF_888,
   SIZEOF_COUNT,
-  SIZEOF_C8_COUNT,
+  SIZEOF_C8,
 
   ml__debug,
   ml_dec16,
@@ -99,6 +102,7 @@ import {
 let flagCounter = 0;
 const COUNT_NONE = flagCounter++;
 const COUNT_BOOLY = 1 << flagCounter++;
+const COUNT_DEBUG = 1 << flagCounter++;
 const COUNT_ISALL_RESULT = 1 << flagCounter++;
 const COUNT_LTE_LHS = 1 << flagCounter++;
 const COUNT_LTE_LHS_TWICE = 1 << flagCounter++; // set when wanting to set COUNT_LTE_LHS when that's already set
@@ -323,7 +327,7 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
             count(4 + i * 2, false);
           }
           count(4 + slen * 2, false); // R
-          pc += SIZEOF_C8_COUNT + slen * 2 + 2;
+          pc += SIZEOF_C8 + slen * 2 + 2;
           break;
 
         case ML_ISALL:
@@ -334,6 +338,15 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
           }
           count(3 + ilen * 2, true, op === ML_ISALL ? COUNT_ISALL_RESULT : 0); // R
           pc += SIZEOF_COUNT + ilen * 2 + 2;
+          break;
+
+        case ML_ISNONE:
+          let mlen = ml_dec16(ml, pc + 1);
+          for (let i = 0; i < mlen; ++i) {
+            count(3 + i * 2, true);
+          }
+          count(3 + mlen * 2, true);
+          pc += SIZEOF_COUNT + mlen * 2 + 2;
           break;
 
         case ML_PRODUCT:
@@ -353,6 +366,11 @@ function counter(ml, vars, domains, getAlias, lastOffset, varMeta) {
 
         case ML_STOP:
           return;
+
+        case ML_DEBUG:
+          count(1, false, COUNT_DEBUG); // R
+          pc += SIZEOF_V;
+          break;
 
         case ML_JMP:
           let delta = ml_dec16(ml, pc + 1);

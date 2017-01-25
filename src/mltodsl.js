@@ -60,6 +60,7 @@ import {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -72,6 +73,7 @@ import {
   ML_VV_XOR,
   ML_VV_NAND,
   ML_VV_XNOR,
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -516,6 +518,11 @@ ${varDecls}
           part = m2d_listResult('nall?');
           break;
 
+        case ML_ISNONE:
+          ASSERT_LOG2(' ! isnone');
+          part = m2d_listResult('none?');
+          break;
+
         case ML_DISTINCT:
           ASSERT_LOG2(' ! distinct');
           part = m2d_listVoid('distinct');
@@ -712,6 +719,10 @@ ${varDecls}
           part = m2d_decAb(2, 2, '!^');
           break;
 
+        case ML_DEBUG:
+          ASSERT_LOG2(' ! debug');
+          part = '@custom noleaf _' + m2d_dec16().toString(36) + '_';
+          break;
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');
           pc = pcStart + 1;

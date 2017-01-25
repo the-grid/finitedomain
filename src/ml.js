@@ -72,6 +72,7 @@ const ML_NALL = ml_opcodeCounter++;
 const ML_ISALL = ml_opcodeCounter++;
 const ML_ISALL2 = ml_opcodeCounter++;
 const ML_ISNALL = ml_opcodeCounter++;
+const ML_ISNONE = ml_opcodeCounter++;
 
 const ML_8V_SUM = ml_opcodeCounter++; // constant: 8bit literal, result: var
 
@@ -88,6 +89,7 @@ const ML_VV_XOR = ml_opcodeCounter++;
 const ML_VV_NAND = ml_opcodeCounter++;
 const ML_VV_XNOR = ml_opcodeCounter++;
 
+const ML_DEBUG = ml_opcodeCounter++;
 const ML_JMP = ml_opcodeCounter++;
 const ML_NOOP = ml_opcodeCounter++;
 const ML_NOOP2 = ml_opcodeCounter++;
@@ -113,7 +115,7 @@ const SIZEOF_V88 = 1 + 2 + 1 + 1;
 const SIZEOF_8V8 = 1 + 1 + 2 + 1;
 const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
-const SIZEOF_C8_COUNT = 1 + 2 + 1; // + 2*count
+const SIZEOF_C8 = 1 + 2 + 1; // + 2*count
 
 function ml_sizeof(ml, offset, op) {
   switch (op) {
@@ -202,6 +204,7 @@ function ml_sizeof(ml, offset, op) {
 
     case ML_ISALL:
     case ML_ISNALL:
+    case ML_ISNONE:
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
       return -1;
 
@@ -209,13 +212,15 @@ function ml_sizeof(ml, offset, op) {
       return SIZEOF_VVV;
 
     case ML_8V_SUM:
-      if (ml && offset >= 0) return SIZEOF_C8_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
+      if (ml && offset >= 0) return SIZEOF_C8 + ml.readUInt16BE(offset + 1) * 2 + 2;
       return -1;
 
     case ML_PRODUCT:
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
       return -1;
 
+    case ML_DEBUG:
+      return SIZEOF_V;
     case ML_JMP:
       return SIZEOF_V + ml.readUInt16BE(offset + 1);
     case ML_NOOP:
@@ -843,10 +848,10 @@ function ml__debug(ml, offset, max, domains, names) {
         let varcount = ml_16(pc + 1);
         let sumconstant = ml_8(pc + 3);
         for (let i = 0; i < varcount; ++i) {
-          vars += ml_index(pc + SIZEOF_C8_COUNT + i * 2);
+          vars += ml_index(pc + SIZEOF_C8 + i * 2);
         }
         vars = name + '(' + sumconstant + ', ' + vars + ')';
-        vars = ml_index(pc + SIZEOF_C8_COUNT + varcount * 2) + ' = ' + vars;
+        vars = ml_index(pc + SIZEOF_C8 + varcount * 2) + ' = ' + vars;
         rv.push(vars);
         break;
       }
@@ -859,6 +864,9 @@ function ml__debug(ml, offset, max, domains, names) {
       /* fall-through */
       case ML_ISNALL:
         if (!name) name = 'isnall';
+      /* fall-through */
+      case ML_ISNONE:
+        if (!name) name = 'isnone';
         let vars = '';
         let varcount = ml_16(pc + 1);
         for (let i = 0; i < varcount; ++i) {
@@ -907,6 +915,9 @@ function ml__debug(ml, offset, max, domains, names) {
         rv.push('jmp(' + ml.readUInt16BE(pc + 1) + ')');
         break;
 
+      case ML_DEBUG:
+        rv.push('debug(' + ml.readUInt16BE(pc + 1) + ')');
+        break;
       case ML_NOOP:
         rv.push('noop(1)');
         break;
@@ -1047,6 +1058,9 @@ function ml_getOpList(ml) {
         break;
       case ML_ISNALL:
         rv.push('isnall');
+        break;
+      case ML_ISNONE:
+        rv.push('isnone');
         break;
 
       case ML_NALL:
@@ -1228,6 +1242,7 @@ export {
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
+  ML_ISNONE,
   ML_8V_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
@@ -1242,6 +1257,7 @@ export {
   ML_VV_NAND,
   ML_VV_XNOR,
 
+  ML_DEBUG,
   ML_JMP,
   ML_NOOP,
   ML_NOOP2,
@@ -1264,7 +1280,7 @@ export {
   SIZEOF_8V8,
   SIZEOF_888,
   SIZEOF_COUNT,
-  SIZEOF_C8_COUNT,
+  SIZEOF_C8,
 
   ml__debug,
   ml_getOpList,

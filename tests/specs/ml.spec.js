@@ -646,5 +646,4 @@ describe('specs/ml.spec', function() {
       expect(ml).to.eql(expected);
     });
   });
-
 });

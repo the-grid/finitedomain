@@ -226,13 +226,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     if (countsA === 2) {
-      if ((varMeta[indexA] & COUNT_LTE_LHS) && doNeqLteLhs(indexA, pc, 'neq')) return;
-      if ((varMeta[indexA] & COUNT_LTE_RHS) && doNeqLteRhs(indexA, pc, 'neq')) return;
+      if ((varMeta[indexA] & COUNT_LTE_LHS) && trickNeqLteLhs(indexA, pc, 'neq')) return;
+      if ((varMeta[indexA] & COUNT_LTE_RHS) && trickNeqLteRhs(indexA, pc, 'neq')) return;
     }
 
     if (countsB === 2) {
-      if ((varMeta[indexB] & COUNT_LTE_LHS) && doNeqLteLhs(indexB, pc, 'neq')) return;
-      if ((varMeta[indexB] & COUNT_LTE_RHS) && doNeqLteRhs(indexB, pc, 'neq')) return;
+      if ((varMeta[indexB] & COUNT_LTE_LHS) && trickNeqLteLhs(indexB, pc, 'neq')) return;
+      if ((varMeta[indexB] & COUNT_LTE_RHS) && trickNeqLteRhs(indexB, pc, 'neq')) return;
     }
 
     pc += SIZEOF_VV;
@@ -319,28 +319,28 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     if (counts[indexA] === 2) {
       if (varMeta[indexA] & COUNT_NAND) {
         // note: must be indexA
-        if (doNandLte(indexA, pc, 'lte')) return;
+        if (trickNandLteLhs(indexA, pc, 'lte')) return;
       }
 
       if (varMeta[indexA] & COUNT_ISALL_RESULT) {
-        if (doIsAllLteLhs(indexA, pc, 'lte')) return;
+        if (trickIsallLteLhs(indexA, pc, 'lte')) return;
       }
 
       if (varMeta[indexA] & COUNT_LTE_LHS_TWICE) {
-        if (doLteTwice(indexA, pc)) return;
+        if (trickLteTwice(indexA, pc)) return;
       }
 
-      if ((varMeta[indexA] & COUNT_NEQ) && doNeqLteLhs(indexA, pc, 'lte')) return;
+      if ((varMeta[indexA] & COUNT_NEQ) && trickNeqLteLhs(indexA, pc, 'lte')) return;
     }
 
     if (counts[indexB] === 2) {
       if (varMeta[indexB] & COUNT_ISALL_RESULT) {
         // note: MUST be indexB because the trick doesn't work for indexA
-        if (doIsAllLteRhs(indexB, pc, 'lte')) return;
+        if (trickIsallLteRhs(indexB, pc, 'lte')) return;
       }
       if (varMeta[indexB] & COUNT_NEQ) {
         // note: MUST be indexB because the trick doesn't work for indexA
-        if (doNeqLteRhs(indexB, pc, 'lte')) return;
+        if (trickNeqLteRhs(indexB, pc, 'lte')) return;
       }
     }
 
@@ -1083,13 +1083,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     if (counts[indexA] === 2) {
-      if ((varMeta[indexA] & COUNT_LTE_LHS) && doNandLte(indexA, pc, 'nand')) return;
-      if ((varMeta[indexA] & COUNT_ISALL_RESULT) && doNandIsall(indexA, pc, 'nand')) return;
+      if ((varMeta[indexA] & COUNT_LTE_LHS) && trickNandLteLhs(indexA, pc, 'nand')) return;
+      if ((varMeta[indexA] & COUNT_ISALL_RESULT) && trickNandIsall(indexA, pc, 'nand')) return;
     }
 
     if (counts[indexB] === 2) {
-      if ((varMeta[indexB] & COUNT_LTE_LHS) && doNandLte(indexB, pc, 'nand')) return;
-      if ((varMeta[indexB] & COUNT_ISALL_RESULT) && doNandIsall(indexB, pc, 'nand')) return;
+      if ((varMeta[indexB] & COUNT_LTE_LHS) && trickNandLteLhs(indexB, pc, 'nand')) return;
+      if ((varMeta[indexB] & COUNT_ISALL_RESULT) && trickNandIsall(indexB, pc, 'nand')) return;
     }
 
     pc += SIZEOF_VV;
@@ -1220,10 +1220,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     if (counts[indexR] === 2) {
-      if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_NAND) && doNandIsall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_COUNT + len * 2 + 2;
@@ -1253,10 +1253,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     if (counts[indexR] === 2) {
-      if ((varMeta[indexR] & COUNT_LTE_LHS) && doIsAllLteLhs(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_LTE_RHS) && doIsAllLteRhs(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_NALL) && doIsAllNall(indexR, pc, 'isall')) return;
-      if ((varMeta[indexR] & COUNT_NAND) && doNandIsall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
+      if ((varMeta[indexR] & COUNT_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_VVV;
@@ -1307,7 +1307,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
       if (counts[index] === 2) {
         if (varMeta[index] & COUNT_ISALL_RESULT) {
-          if (doIsAllNall(index, pc, 'nall')) return;
+          if (trickIsallNall(index, pc, 'nall')) return;
         }
       }
     }
@@ -1315,8 +1315,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     pc += SIZEOF_COUNT + len * 2;
   }
 
-  function doLteTwice(sharedVarIndex, offset) {
-    ASSERT_LOG2('doLteTwice', sharedVarIndex, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickLteTwice(sharedVarIndex, offset) {
+    ASSERT_LOG2('trickLteTwice', sharedVarIndex, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now (offset=', offset, ')');
@@ -1392,8 +1392,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function doIsAllLteRhs(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doIsAllLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickIsallLteRhs(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickIsallLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now (offset=', offset, ')', forOp);
@@ -1453,7 +1453,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
             ml_vv2vv(ml, lteOffset, ML_VV_LTE, indexA, left);
             ml_cr2vv(ml, isallOffset, len, ML_VV_LTE, indexA, right);
 
-            return doIsAllLteRhsDeferShared(sharedVarIndex, indexA);
+            return trickIsallLteRhsDeferShared(sharedVarIndex, indexA);
           }
         } else if (len < 100) {
           ASSERT_LOG2(' - Attempting to recycle space to stuff', len, 'lte constraints');
@@ -1511,7 +1511,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_eliminate(ml, lteOffset, SIZEOF_VV);
 
           ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
-          return doIsAllLteRhsDeferShared(sharedVarIndex, indexA);
+          return trickIsallLteRhsDeferShared(sharedVarIndex, indexA);
         }
       }
 
@@ -1532,7 +1532,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_vv2vv(ml, lteOffset, ML_VV_LTE, sharedVarIndex, left);
           ml_vvv2vv(ml, isallOffset, ML_VV_LTE, sharedVarIndex, right);
 
-          return doIsAllLteRhsDeferShared(sharedVarIndex, indexA);
+          return trickIsallLteRhsDeferShared(sharedVarIndex, indexA);
         }
       }
 
@@ -1544,7 +1544,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2(' - did not eliminate anything');
     return false;
   }
-  function doIsAllLteRhsDeferShared(sharedVarIndex, lteIndex) {
+  function trickIsallLteRhsDeferShared(sharedVarIndex, lteIndex) {
     ASSERT_LOG2('   - deferring', sharedVarIndex, 'will be gt', lteIndex);
     solveStack.push(domains => {
       ASSERT_LOG2(' - isall + lte;', lteIndex, '<=', sharedVarIndex, '  ->  ', domain__debug(domains[lteIndex]), '<=', domain__debug(domains[sharedVarIndex]));
@@ -1561,8 +1561,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function doIsAllLteLhs(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doIsAllLteLhs', sharedVarIndex, domain__debug(domains[sharedVarIndex]), forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickIsallLteLhs(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickIsallLteLhs', sharedVarIndex, domain__debug(domains[sharedVarIndex]), forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
@@ -1623,7 +1623,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_enc16(ml, isallOffset + 3 + len * 2, indexB);
           // and now the NALL should be `nall(indexB, args...)` with no space left
 
-          return doIsAllLteLhsDeferShared(sharedVarIndex, indexB, args);
+          return trickIsallLteLhsDeferShared(sharedVarIndex, indexB, args);
         }
       }
 
@@ -1656,15 +1656,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_eliminate(ml, lteOffset, SIZEOF_VV);
           addrTracker[sharedVarIndex] = 0; // just in case we start recycling space later
 
-          return doIsAllLteLhsDeferShared(sharedVarIndex, indexB, [leftIndex, rightIndex]);
+          return trickIsallLteLhsDeferShared(sharedVarIndex, indexB, [leftIndex, rightIndex]);
         }
       }
     }
 
     return false;
   }
-
-  function doIsAllLteLhsDeferShared(sharedVarIndex, indexB, args) {
+  function trickIsallLteLhsDeferShared(sharedVarIndex, indexB, args) {
     ASSERT_LOG2(' - A is a leaf constraint, defer it', sharedVarIndex);
 
     solveStack.push(domains => {
@@ -1693,8 +1692,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function doNeqLteLhs(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doNeqLteLhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickNeqLteLhs(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickNeqLteLhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
@@ -1761,9 +1760,9 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return false;
   }
 
-  function doNeqLteRhs(sharedVarIndex, offset, forOp) {
+  function trickNeqLteRhs(sharedVarIndex, offset, forOp) {
     //throw 'foxme';
-    ASSERT_LOG2('doNeqLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+    ASSERT_LOG2('trickNeqLteRhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     if (!addrTracker[sharedVarIndex]) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
       addrTracker[sharedVarIndex] = offset;
@@ -1813,8 +1812,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return false;
   }
 
-  function doIsAllNall(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doIsAllNall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickIsallNall(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickIsallNall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
@@ -1981,8 +1980,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return false;
   }
 
-  function doNandLte(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doNandLte', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickNandLteLhs(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickNandLteLhs', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');
@@ -2055,8 +2054,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return false;
   }
 
-  function doNandIsall(sharedVarIndex, offset, forOp) {
-    ASSERT_LOG2('doNandIsall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
+  function trickNandIsall(sharedVarIndex, offset, forOp) {
+    ASSERT_LOG2('trickNandIsall', sharedVarIndex, forOp, 'at', offset, 'and', addrTracker[sharedVarIndex]);
     let otherOffset = addrTracker[sharedVarIndex];
     if (!otherOffset) {
       ASSERT_LOG2(' - havent seen other offset yet, logging this one now');

@@ -102,6 +102,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 
   let allParts = [];
   let partsPerVar = [];
+  let constraintCount = 0;
   m2d_innerLoop();
 
   if (DEBUG) {
@@ -167,6 +168,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       .join('\n');
 
     dsl = `
+# Constraints: ${constraintCount} x
 # Vars: ${domains.length} x
 #   Aliases: ${aliases} x
 #   Domained: ${varsLeft} x
@@ -411,6 +413,21 @@ ${varDecls}
       let pcStart = pc;
       let op = ml[pc++];
       let part = '';
+
+      switch (op) {
+        case ML_START:
+        case ML_STOP:
+        case ML_DEBUG:
+        case ML_NOOP:
+        case ML_NOOP2:
+        case ML_NOOP3:
+        case ML_NOOP4:
+        case ML_JMP:
+          break;
+        default:
+          ++constraintCount;
+      }
+
       switch (op) {
         case ML_START:
           if (pc !== 1) { // pc is already incremented...

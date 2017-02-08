@@ -168,22 +168,28 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
     let index = getFinalIndex(n);
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
 
-
     let varOffset = getBountyOffset(index);
     ++bounty[varOffset];
 
-    ASSERT_LOG2(' > collect(', index, ',', metaFlags.toString(2), ') ->', bounty[varOffset + BOUNTY_LINK_COUNT], '|=', metaFlags, ' -> ', (bounty[varOffset + BOUNTY_LINK_COUNT] | metaFlags).toString(2));
+    let offsetFlags = varOffset + BOUNTY_LINK_COUNT;
+    ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
+    let currentFlags = bounty.readUInt16BE(offsetFlags);
+
+    ASSERT_LOG2(' > collect(', index, ',', metaFlags.toString(2), ') ->', currentFlags, '|=', metaFlags, ' -> ', (currentFlags | metaFlags).toString(2), 'from', offsetFlags);
 
     let offsetsOffset = getOffsetsOffset(index);
     for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
       let nextOffset = offsetsOffset + (i * 4);
+      ASSERT_LOG2('  - reading/writing from', nextOffset, 'i=', i);
       if (!bounty.readUInt32BE(nextOffset)) {
+        ASSERT_LOG2('  - putting at', nextOffset, 'i=', i);
         bounty.writeUInt32BE(pc, nextOffset);
         break;
       }
     }
 
-    bounty[varOffset + BOUNTY_LINK_COUNT] |= metaFlags;
+    ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
+    bounty.writeUInt16BE(currentFlags | metaFlags, offsetFlags);
   }
 
   function bountyLoop() {
@@ -487,7 +493,7 @@ function bounty_markVar(bounty, varIndex) {
 }
 
 function bounty_getMeta(bounty, varIndex) {
-  return bounty[varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT];
+  return bounty.readUInt16BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT);
 }
 
 function bounty_updateMeta(bounty, varIndex, newFlags) {

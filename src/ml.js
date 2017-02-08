@@ -1091,7 +1091,7 @@ function ml_getOpList(ml) {
     pc += ml_sizeof(ml, pc, op);
   }
 
-  return rv.join(',');
+  return rv.sort((a, b) => a < b ? -1 : 1).join(',');
 }
 
 function ml_heapSort16bitInline(ml, offset, len) {

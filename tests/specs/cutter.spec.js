@@ -498,7 +498,7 @@ describe('specs/cutter.spec', function() {
         A !& C
         B <= A
         @custom noleaf B C
-      `)).to.throw(/ops: nand,lte /);
+      `)).to.throw(/ops: lte,nand /);
     });
 
     it('should not do lte+neq trick for non bools', function() {
@@ -568,7 +568,7 @@ describe('specs/cutter.spec', function() {
         A <= B
         A = all?(C D)
         @custom noleaf B C D
-      `)).to.throw(/ops: lte,isall /);
+      `)).to.throw(/ops: isall,lte /);
     });
 
     it('should work with more than two args to isall', function() {
@@ -754,10 +754,9 @@ describe('specs/cutter.spec', function() {
     });
   });
 
+  describe('nand+neq+lte_lhs trick', function() {
 
-  describe.skip('nand+neq+lte_lhs trick', function() {
-
-    it('should eliminate base case an lte_lhs and neq', function() {
+    it('should eliminate base case a nand, neq, lte', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
@@ -766,9 +765,99 @@ describe('specs/cutter.spec', function() {
         A <= D
         # -> B <= C, D | C, A is leaf
 
-        B = B + D # prevent trivial defer of the vars
-        D = B + C # prevent trivial defer of the vars
-      `)).to.throw(/ops: or,plus /);
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate base case a reverse nand, neq, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        B !& A
+        A != C
+        A <= D
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate base case a nand, reverse neq, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A !& B
+        C != A
+        A <= D
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate base case a reverse nand, reverse neq, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        B !& A
+        C != A
+        A <= D
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate swapped base case a neq, nand, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A != C
+        A !& B
+        A <= D
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate swapped base case a neq, lte, nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A != C
+        A <= D
+        A !& B
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate swapped base case a lte, neq, nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A <= D
+        A != C
+        A !& B
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should eliminate swapped base case a lte, nand, neq', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A <= D
+        A !& B
+        A != C
+        # -> B <= C, D | C, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,or /);
     });
   });
 });

@@ -348,6 +348,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((metaB & BOUNTY_NEQ) && trickNeqLteRhs(indexB, pc, 'lte')) return;
     }
 
+    if (countsA === 3) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      // A !& B, A != C, A <= D   <-->   B <= C, D | C   with A being a leaf. if there are 3 occurrences and flags say lte, neq, and lte then we can apply the trick
+      if ((metaA === (BOUNTY_NAND | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY)) && trickNandNeqLte(indexA, pc)) return;
+    }
+
     pc += SIZEOF_VV;
   }
 
@@ -360,7 +366,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT(!void (indexA = getFinalIndex(ml_dec16(ml, offset + 1))));
     ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2))));
-    ASSERT_LOG2(' - cutIsEq', indexR, '=', indexA, '==?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' - cutIsEq', indexR, '=', indexA, '==?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
       indexA = getFinalIndex(ml_dec16(ml, offset + 1));
@@ -422,7 +428,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT(!void (indexA = getFinalIndex(ml_dec16(ml, offset + 1))));
     ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2))));
-    ASSERT_LOG2(' - cutIsNeq', indexR, '=', indexA, '!=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' - cutIsNeq', indexR, '=', indexA, '!=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
       indexA = getFinalIndex(ml_dec16(ml, offset + 1));
@@ -485,7 +491,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1))));
     ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA))));
-    ASSERT_LOG2(' - cutIsLt', indexR, '=', indexA, '<?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' - cutIsLt', indexR, '=', indexA, '<?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
       indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
@@ -576,7 +582,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1))));
     ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA))));
-    ASSERT_LOG2(' - cutIsLte', indexR, '=', indexA, '<=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' - cutIsLte', indexR, '=', indexA, '<=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
       indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
@@ -2321,6 +2327,88 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     return false;
+  }
+
+  function trickNandNeqLte(varIndex, offset) {
+    let offset1 = bounty_getOffset(bounty, varIndex, 0);
+    let offset2 = bounty_getOffset(bounty, varIndex, 1);
+    let offset3 = bounty_getOffset(bounty, varIndex, 2);
+
+    ASSERT(offset === offset1 || offset === offset2 || offset === offset3, 'expecting current offset to be one of the three offsets found', offset, varIndex);
+
+    bounty_markVar(bounty, varIndex); // happens in any code branch
+
+    // we need to verify that the pattern matches. it requires: A !& B, A != C, A <= D (where the position of A is irrelevant for neq and nand)
+
+    ASSERT_LOG2('trickNandNeqLte', varIndex, 'at', offset, 'and', offset1, '/', offset2, '/', offset3, 'metaFlags:', bounty_getMeta(bounty, varIndex));
+
+    // A !& B, A != C, A <= D   ->    B <= C, C | D
+
+    let op1 = ml_dec8(ml, offset1);
+    let op2 = ml_dec8(ml, offset2);
+    let op3 = ml_dec8(ml, offset3);
+
+    ASSERT((op1 === ML_VV_NAND ? op1 : op2 === ML_VV_NAND ? op2 : op3) === ML_VV_NAND, 'one should be nand');
+    ASSERT((op1 === ML_VV_NEQ ? op1 : op2 === ML_VV_NEQ ? op2 : op3) === ML_VV_NEQ, 'one should be neq');
+    ASSERT((op1 === ML_VV_LTE ? op1 : op2 === ML_VV_LTE ? op2 : op3) === ML_VV_LTE, 'one should be lte');
+
+    let nandOffset = op1 === ML_VV_NAND ? offset1 : op2 === ML_VV_NAND ? offset2 : op3 === ML_VV_NAND ? offset3 : -1;
+    let neqOffset = op1 === ML_VV_NEQ ? offset1 : op2 === ML_VV_NEQ ? offset2 : op3 === ML_VV_NEQ ? offset3 : -1;
+    let lteOffset = op1 === ML_VV_LTE ? offset1 : op2 === ML_VV_LTE ? offset2 : op3 === ML_VV_LTE ? offset3 : -1;
+
+    // i dont think this should be able to happen...? but let's be certain here
+    if (nandOffset === -1 || neqOffset === -1 || lteOffset === -1) {
+      ASSERT_LOG2(' - op missmatch, bailing', op1, op2, op3, 'should be', ML_VV_NAND, ML_VV_NEQ, ML_VV_LTE, 'offsets', offset1, offset2, offset3, 'into', nandOffset, neqOffset, lteOffset);
+      return false;
+    }
+
+    // verify each op. our var must appear there (and left for the LTE in particular)
+    // it's easier to just "brute force" check this rather than matching the passed on args
+
+    let nandIndexA = getFinalIndex(ml_dec16(ml, nandOffset + 1));
+    let nandIndexB = getFinalIndex(ml_dec16(ml, nandOffset + 3));
+    ASSERT_LOG2(' - nand indexes:', nandIndexA, '!&', nandIndexB);
+    let indexB = nandIndexA;
+    if (indexB === varIndex) {
+      indexB = nandIndexB;
+    } else if (nandIndexB !== varIndex) {
+      ASSERT_LOG2(' - nand var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+
+    let neqIndexA = getFinalIndex(ml_dec16(ml, neqOffset + 1));
+    let neqIndexB = getFinalIndex(ml_dec16(ml, neqOffset + 3));
+    ASSERT_LOG2(' - neq indexes:', neqIndexA, '!=', neqIndexB);
+    let indexC = neqIndexA;
+    if (indexC === varIndex) {
+      indexC = neqIndexB;
+    } else if (neqIndexB !== varIndex) {
+      ASSERT_LOG2(' - neq var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+
+    let lteIndexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
+    let lteIndexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
+    ASSERT_LOG2(' - lte indexes:', lteIndexA, '<=', lteIndexB);
+    if (lteIndexA !== varIndex) {
+      ASSERT_LOG2(' - lte var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+    let indexD = lteIndexB;
+
+    // okay. all ops match and varIndex is one of their ops. and the right op for lte. we have the other ops as well.
+    // rewrite the ops to B <= C, C | D, make A (=varIndex) the leaf var.
+    ASSERT_LOG2(' morphing nand and or, eliminating the lte', indexB, '<=', indexC, 'and', indexC, '|', indexD);
+
+    ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexB, indexC);
+    ml_vv2vv(ml, neqOffset, ML_VV_OR, indexC, indexD);
+    ml_eliminate(ml, lteOffset, SIZEOF_VV);
+
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    bounty_markVar(bounty, indexD);
+
+    return true;
   }
 
   function cutLoop() {

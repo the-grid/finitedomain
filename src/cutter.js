@@ -2365,6 +2365,21 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // verify each op. our var must appear there (and left for the LTE in particular)
     // it's easier to just "brute force" check this rather than matching the passed on args
 
+    let lteIndexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
+    let lteIndexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
+    ASSERT_LOG2(' - lte indexes:', lteIndexA, '<=', lteIndexB);
+    if (lteIndexA !== varIndex) {
+      ASSERT_LOG2(' - lte var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+    let indexD = lteIndexB;
+
+    // the ops for lte must be explicit bool
+    if (!domain_isBool(domains[lteIndexA]) || !domain_isBool(domains[lteIndexB])) {
+      ASSERT_LOG2(' - lte args arent bool, bailing', domain__debug(domains[lteIndexA]), domain__debug(domains[lteIndexB]));
+      return false;
+    }
+
     let nandIndexA = getFinalIndex(ml_dec16(ml, nandOffset + 1));
     let nandIndexB = getFinalIndex(ml_dec16(ml, nandOffset + 3));
     ASSERT_LOG2(' - nand indexes:', nandIndexA, '!&', nandIndexB);
@@ -2387,14 +2402,26 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return false;
     }
 
-    let lteIndexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
-    let lteIndexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
-    ASSERT_LOG2(' - lte indexes:', lteIndexA, '<=', lteIndexB);
-    if (lteIndexA !== varIndex) {
-      ASSERT_LOG2(' - lte var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
-      return false;
-    }
-    let indexD = lteIndexB;
+    ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
+
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - nand + neq + lte;', nandIndexA, '!&', nandIndexB, '  ->  ', domain__debug(domains[nandIndexA]), '!&', domain__debug(domains[nandIndexB]));
+      ASSERT_LOG2(' - nand + neq + lte;', neqIndexA, '!=', neqIndexB, '  ->  ', domain__debug(domains[neqIndexA]), '!=', domain__debug(domains[neqIndexB]));
+      ASSERT_LOG2(' - nand + neq + lte;', lteIndexA, '<=', lteIndexB, '  ->  ', domain__debug(domains[lteIndexA]), '<=', domain__debug(domains[lteIndexB]));
+
+      // this is a little complex because we need to apply all three constraints (none of them are strict enough)
+      let A = domains[varIndex];
+      let vB = force(indexB); // nand
+      let vC = force(indexC); // neq
+      let vD = force(indexD); // lte
+
+      if (vB) A = domain_removeGtUnsafe(A, 0);
+      else A = domain_removeValue(A, 0);
+      A = domain_removeValue(A, vC);
+      A = domain_removeGtUnsafe(A, vD);
+
+      domains[varIndex] = A;
+    });
 
     // okay. all ops match and varIndex is one of their ops. and the right op for lte. we have the other ops as well.
     // rewrite the ops to B <= C, C | D, make A (=varIndex) the leaf var.

@@ -633,7 +633,7 @@ describe('specs/cutter.spec', function() {
 
   describe('isall+nand trick', function() {
 
-    it('should eliminate base case of an lte-lhs and isall-r', function() {
+    it('should eliminate base case of an lte-lhs and nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -648,7 +648,22 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nall /);
     });
 
-    it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
+    it('should eliminate base case of an lte-lhs and reversed nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [0 1]
+        R = all?(A B)
+        C !& R
+        # -> nall(A B C)
+
+        @custom noleaf A B C
+      `)).to.throw(/ops: nall /);
+    });
+
+    it('should eliminate swapped base case of an lte-lhs and nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -656,6 +671,20 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         : R [0 1]
         R !& C
+        R = all?(A B)
+        # -> nall(A B C)
+        @custom noleaf A B C
+      `)).to.throw(/ops: nall /);
+    });
+
+    it('should eliminate swapped base case of an lte-lhs and reversed nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : R [0 1]
+        C !& R
         R = all?(A B)
         # -> nall(A B C)
         @custom noleaf A B C
@@ -722,6 +751,24 @@ describe('specs/cutter.spec', function() {
         # -> B | C, A is a leaf
         @custom noleaf B C
       `)).to.throw(/ops: or /);
+    });
+  });
+
+
+  describe.skip('nand+neq+lte_lhs trick', function() {
+
+    it('should eliminate base case an lte_lhs and neq', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A !& B
+        A != C
+        A <= D
+        # -> B <= C, D | C, A is leaf
+
+        B = B + D # prevent trivial defer of the vars
+        D = B + C # prevent trivial defer of the vars
+      `)).to.throw(/ops: or,plus /);
     });
   });
 });

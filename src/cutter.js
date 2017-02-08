@@ -350,6 +350,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 3) {
       let metaA = bounty_getMeta(bounty, indexA);
+      if (metaA === (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickNeqLteBoth(indexA, pc)) return;
       // A !& B, A != C, A <= D   <-->   B <= C, D | C   with A being a leaf. if there are 3 occurrences and flags say lte, neq, and lte then we can apply the trick
       if ((metaA === (BOUNTY_NAND | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY)) && trickNandNeqLte(indexA, pc)) return;
     }
@@ -2430,6 +2431,109 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexB, indexC);
     ml_vv2vv(ml, neqOffset, ML_VV_OR, indexC, indexD);
     ml_eliminate(ml, lteOffset, SIZEOF_VV);
+
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    bounty_markVar(bounty, indexD);
+
+    return true;
+  }
+
+  function trickNeqLteBoth(varIndex, lteLhsOffset) {
+    let offset1 = bounty_getOffset(bounty, varIndex, 0);
+    let offset2 = bounty_getOffset(bounty, varIndex, 1);
+    let offset3 = bounty_getOffset(bounty, varIndex, 2);
+
+    ASSERT(lteLhsOffset === offset1 || lteLhsOffset === offset2 || lteLhsOffset === offset3, 'expecting current offset to be one of the three offsets found', lteLhsOffset, varIndex);
+
+    bounty_markVar(bounty, varIndex); // happens in any code branch
+
+    // we need to verify that the pattern matches
+
+    ASSERT_LOG2('trickNeqLteBoth', varIndex, 'at', lteLhsOffset, 'and', offset1, '/', offset2, '/', offset3, 'metaFlags:', bounty_getMeta(bounty, varIndex));
+
+    // A <= B, A != C, D <= A   ->   B | C, B !& D
+
+    let op1 = ml_dec8(ml, offset1);
+    let op2 = ml_dec8(ml, offset2);
+    let op3 = ml_dec8(ml, offset3);
+
+    let neqOffset = op1 === ML_VV_NEQ ? offset1 : op2 === ML_VV_NEQ ? offset2 : op3 === ML_VV_NEQ ? offset3 : -1;
+    let lteRhsOffset = (op1 === ML_VV_LTE && offset1 !== lteLhsOffset) ? offset1 : (op2 === ML_VV_LTE && offset2 !== lteLhsOffset) ? offset2 : (op3 === ML_VV_LTE && offset3 !== lteLhsOffset) ? offset3 : -1;
+
+    // i dont think this should be able to happen...? but let's be certain here
+    if (neqOffset === -1 || lteRhsOffset === -1) {
+      ASSERT_LOG2(' - op missmatch, bailing', op1, op2, op3, 'should be', ML_VV_NEQ, ML_VV_LTE, ML_VV_LTE, 'offsets', offset1, offset2, offset3, 'into', neqOffset, lteLhsOffset, lteRhsOffset);
+      return false;
+    }
+
+    // verify each op. our var must appear there (in the correct position for LTE)
+    // it's easier to just "brute force" check this rather than matching the passed on args
+
+    let lteLhsIndexA = getFinalIndex(ml_dec16(ml, lteLhsOffset + 1));
+    let lteLhsIndexB = getFinalIndex(ml_dec16(ml, lteLhsOffset + 3));
+    ASSERT_LOG2(' - lte indexes:', lteLhsIndexA, '<=', lteLhsIndexB);
+    if (lteLhsIndexA !== varIndex) {
+      ASSERT_LOG2(' - lte var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+    let indexC = lteLhsIndexB;
+
+    let lteRhsIndexA = getFinalIndex(ml_dec16(ml, lteRhsOffset + 1));
+    let lteRhsIndexB = getFinalIndex(ml_dec16(ml, lteRhsOffset + 3));
+    ASSERT_LOG2(' - lte indexes:', lteRhsIndexA, '<=', lteRhsIndexB);
+    if (lteRhsIndexB !== varIndex) {
+      ASSERT_LOG2(' - lte var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+    let indexD = lteRhsIndexA;
+
+    let neqIndexA = getFinalIndex(ml_dec16(ml, neqOffset + 1));
+    let neqIndexB = getFinalIndex(ml_dec16(ml, neqOffset + 3));
+    ASSERT_LOG2(' - neq indexes:', neqIndexA, '!&', neqIndexB);
+    let indexB = neqIndexA;
+    if (indexB === varIndex) {
+      indexB = neqIndexB;
+    } else if (neqIndexB !== varIndex) {
+      ASSERT_LOG2(' - neq var missmatch, bailing', op1, op2, op3, offset1, offset2, offset3);
+      return false;
+    }
+
+    // all vars must be strict bools
+    if (!domain_isBool(domains[varIndex]) || !domain_isBool(domains[indexB]) || !domain_isBool(domains[indexC]) || !domain_isBool(domains[indexD])) {
+      ASSERT_LOG2(' - not all args are bool, bailing', domain__debug(domains[varIndex]), domain__debug(domains[indexB]), domain__debug(domains[indexC]), domain__debug(domains[indexD]));
+      return false;
+    }
+
+    // seems to be okay
+    // A <= B, A != C, D <= A   ->   B | C, B !& D
+
+    ASSERT_LOG2(' - morphing;   A <= B, A != C, D <= A   ->   B | C, B !& D');
+    ASSERT_LOG2(` - morphing;   ${varIndex} <= ${indexB}, ${varIndex} != ${indexC}, ${indexD} <= ${varIndex}   ->   ${indexB} | ${indexC}, ${indexB} !& ${indexD}`);
+
+    ml_vv2vv(ml, lteLhsOffset, ML_VV_OR, indexB, indexC);
+    ml_vv2vv(ml, lteRhsOffset, ML_VV_NAND, indexB, indexD);
+    ml_eliminate(ml, neqOffset, SIZEOF_VV);
+
+    ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
+
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - neq + lte + lte;', neqIndexA, '!=', neqIndexB, '  ->  ', domain__debug(domains[neqIndexA]), '!=', domain__debug(domains[neqIndexB]));
+      ASSERT_LOG2(' - neq + lte + lte;', lteLhsIndexA, '<=', lteLhsIndexB, '  ->  ', domain__debug(domains[lteLhsIndexA]), '<=', domain__debug(domains[lteLhsIndexB]));
+      ASSERT_LOG2(' - neq + lte + lte;', lteRhsIndexA, '<=', lteRhsIndexB, '  ->  ', domain__debug(domains[lteRhsIndexA]), '<=', domain__debug(domains[lteRhsIndexB]));
+
+      // this is a little complex because we need to apply all three constraints (none of them are strict enough)
+      let A = domains[varIndex];
+      let vB = force(indexB); // neq
+      let vC = force(indexC); // lte_lhs (this is the rhs)
+      let vD = force(indexD); // lte_rhs (this is the lhs)
+
+      A = domain_removeValue(A, vB);
+      A = domain_removeGtUnsafe(A, vC);
+      A = domain_removeLtUnsafe(A, vD);
+
+      domains[varIndex] = A;
+    });
 
     bounty_markVar(bounty, indexB);
     bounty_markVar(bounty, indexC);

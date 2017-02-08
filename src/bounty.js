@@ -511,6 +511,7 @@ function bounty_getOffset(bounty, varIndex, n) {
 export {
   BOUNTY_NONE,
   BOUNTY_NOT_BOOLY,
+  BOUNTY_OTHER,
   BOUNTY_OTHER_BOOLY,
   BOUNTY_OTHER_NONBOOLY,
 
@@ -521,7 +522,7 @@ export {
   BOUNTY_NAND,
   BOUNTY_NEQ,
 
-BOUNTY_MAX_OFFSETS_TO_TRACK,
+  BOUNTY_MAX_OFFSETS_TO_TRACK,
 
   bounty_collect,
   bounty_getCounts,

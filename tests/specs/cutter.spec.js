@@ -860,4 +860,59 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte,or /);
     });
   });
+
+  describe('neq+lte_lhs+lte_rhs trick', function() {
+
+    it('should eliminate base case neq, lte, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A != B
+        A <= C
+        D <= A
+        # -> B | C, B !& D, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: nand,or /);
+    });
+
+    it('should eliminate base case reversed neq, lte, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        B != A
+        A <= C
+        D <= A
+        # -> B | C, B !& D, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: nand,or /);
+    });
+
+    it('should eliminate base case lte, neq, lte', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A <= C
+        A != B
+        D <= A
+        # -> B | C, B !& D, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: nand,or /);
+    });
+
+    it('should eliminate base case lte, lte, neq', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        D <= A
+        A <= C
+        A != B
+        # -> B | C, B !& D, A is leaf
+
+        @custom noleaf B C D
+      `)).to.throw(/ops: nand,or /);
+    });
+  });
 });

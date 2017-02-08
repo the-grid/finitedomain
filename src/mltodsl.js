@@ -151,15 +151,17 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
       .map((s, varIndex) => {
         if (!s) return '';
 
+        let count = 0;
         let ops = (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => {
           let m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )(nall|distinct|sum|product|all\?|nall\?)\(/);
           if (!m) m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )?(?:_\w+_|\d+) (\S+) (?:_\w+_|\d+)/);
+          ++count;
           if (m) return m[1];
           else return '???';
-        }).sort().join(' ') + ' $'));
+        }).sort((a, b) => a < b ? -1 : 1).join(' ') + ' $'));
 
         return (
-          s + '  # ops: ' + ops +
+          s + '  # ' + count + 'x ops: ' + ops +
           '\n ## ' +
           (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
         );

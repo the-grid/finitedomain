@@ -307,7 +307,7 @@ function ml_jump(ml, offset, len) {
     case ML_JMP:
       let jmplen = ml_dec16(ml, offset + len + 1);
       ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
-      ASSERT_LOG2('  - jmp target is another jmp (jmp', jmplen, '), merging them');
+      ASSERT_LOG2('  - jmp target is another jmp (len =', SIZEOF_V + jmplen, '), merging them');
       return ml_jump(ml, offset, len + SIZEOF_V + jmplen);
   }
 
@@ -555,15 +555,15 @@ function walk(ml, offset, callback) {
   let op = ml[offset];
   while (offset < len) {
     op = ml[offset];
-    ASSERT(offset === 0 || op !== ML_START, 'should not see op=0 unless offset=0', offset);
+    ASSERT(offset === 0 || op !== ML_START, 'should not see op=0 unless offset=0', 'offset=', offset, 'ml=', ml);
     let r = callback(ml, offset, op);
     if (r !== undefined) return r;
     offset += ml_sizeof(ml, offset, op);
   }
 }
 
-function ml_validateSkeleton(ml) {
-  ASSERT_LOG2('--- ml_validateSkeleton');
+function ml_validateSkeleton(ml, msg) {
+  ASSERT_LOG2('--- ml_validateSkeleton', msg);
   let started = false;
   let stopped = false;
   walk(ml, 0, (ml, offset, op) => {
@@ -574,6 +574,7 @@ function ml_validateSkeleton(ml) {
   });
 
   if (!started || !stopped) THROW('ml_validateSkeleton: Did not find a ML_START or ML_STOP');
+  return true;
 }
 
 function ml_getRecycleOffset(ml, fromOffset, requiredSize) {

@@ -167,7 +167,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
+    ASSERT_LOG2('         getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
     if (domains[index] !== false) return index;
 
     // if the domain is falsy then there was an alias 6sx(or a bug)
@@ -1513,7 +1513,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
       ASSERT_LOG2(' - rewriting B=isall(C D), A <= B  ->  A <= C, A <= D');
 
-      // 2 ltes fit perfectly in the space we have available
+      // 2 ltes fit perfectly in the space we have available (sizeof(isall on 2)=9 + sizeof(lte)=5, sizeof(2xlte)=10)
       if (len === 2) {
         let left = getFinalIndex(ml_dec16(ml, isallOffset + 3));
         let right = getFinalIndex(ml_dec16(ml, isallOffset + 5));

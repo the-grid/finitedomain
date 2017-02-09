@@ -146,7 +146,7 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
 
   function getFinalIndex(index, _max = 50) {
     if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
+    ASSERT_LOG2('    getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
     if (domains[index] !== false) return index;
 
     // if the domain is falsy then there was an alias (or a bug)

@@ -934,4 +934,20 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nand,nand /);
     });
   });
+
+
+  describe('neq+or trick', function() {
+
+    it('should morph neq, or', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        A != B
+        A | C
+        # -> B <= C, A leaf
+
+        @custom noleaf B C
+      `)).to.throw(/ops: lte /);
+    });
+  });
 });

@@ -105,6 +105,7 @@ const BOUNTY_LTE_RHS = (1 << ++bounty_flagCounter) | BOUNTY_NOT_BOOLY;
 const BOUNTY_NALL = 1 << ++bounty_flagCounter;
 const BOUNTY_NAND = 1 << ++bounty_flagCounter;
 const BOUNTY_NEQ = (1 << ++bounty_flagCounter) | BOUNTY_NOT_BOOLY;
+const BOUNTY_OR = 1 << ++bounty_flagCounter;
 
 ASSERT(bounty_flagCounter <= 16, 'can only run with 16 flags, or must increase flag size');
 
@@ -228,8 +229,8 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           break;
 
         case ML_VV_OR:
-          collect(1, BOUNTY_OTHER_BOOLY);
-          collect(3, BOUNTY_OTHER_BOOLY);
+          collect(1, BOUNTY_OR);
+          collect(3, BOUNTY_OR);
           pc += SIZEOF_VV;
           break;
 
@@ -524,6 +525,7 @@ export {
   BOUNTY_NALL,
   BOUNTY_NAND,
   BOUNTY_NEQ,
+  BOUNTY_OR,
 
   BOUNTY_MAX_OFFSETS_TO_TRACK,
 

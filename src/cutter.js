@@ -131,6 +131,7 @@ import {
   BOUNTY_NAND,
   BOUNTY_NEQ,
   BOUNTY_NOT_BOOLY,
+  BOUNTY_OR,
 
   bounty_collect,
   bounty_getCounts,
@@ -141,6 +142,8 @@ import {
 
 
 // BODY_START
+
+const CUTTER_LTEOR = BOUNTY_LTE_LHS | BOUNTY_LTE_RHS | BOUNTY_OR;
 
 function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   ASSERT_LOG2('\n ## cutter', ml);
@@ -231,6 +234,24 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       return;
+    }
+
+    if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      if ((metaA & BOUNTY_NEQ) && (metaA & CUTTER_LTEOR)) {
+        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
+        metaA = (metaA | BOUNTY_NEQ | CUTTER_LTEOR) ^ (BOUNTY_NEQ | CUTTER_LTEOR); // remove neq and lte flags
+        if (!metaA && trickNeqOrLtes(indexA)) return;
+      }
+    }
+
+    if (countsB >= 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      let metaB = bounty_getMeta(bounty, indexB);
+      if ((metaB & BOUNTY_NEQ) && (metaB & CUTTER_LTEOR)) {
+        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
+        metaB = (metaB | BOUNTY_NEQ | CUTTER_LTEOR) ^ (BOUNTY_NEQ | CUTTER_LTEOR); // remove neq and lte flags
+        if (!metaB && trickNeqOrLtes(indexB)) return;
+      }
     }
 
     pc += SIZEOF_VV;
@@ -334,30 +355,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let metaB = bounty_getMeta(bounty, indexB);
       if ((metaB & BOUNTY_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
     }
-
+// TOFIX: eliminate trickNeqLteBoth
     if (countsA === 3) {
       let metaA = bounty_getMeta(bounty, indexA);
       if (metaA === (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickNeqLteBoth(indexA, pc)) return;
       // A !& B, A != C, A <= D   <-->   B <= C, D | C   with A being a leaf. if there are 3 occurrences and flags say lte, neq, and lte then we can apply the trick
       if ((metaA === (BOUNTY_NAND | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY)) && trickNandNeqLte(indexA, pc)) return;
-    }
-
-    if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if ((metaA & BOUNTY_NEQ) && (metaA & (BOUNTY_LTE_LHS | BOUNTY_LTE_RHS))) {
-        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
-        metaA = (metaA | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) ^ (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS); // remove neq and lte flags
-        if (!metaA && trickNeqLtes(indexA)) return;
-      }
-    }
-
-    if (countsB >= 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      let metaB = bounty_getMeta(bounty, indexB);
-      if ((metaB & BOUNTY_NEQ) && (metaB & (BOUNTY_LTE_LHS | BOUNTY_LTE_RHS))) {
-        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
-        metaB = (metaB | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) ^ (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS); // remove neq and lte flags
-        if (!metaB && trickNeqLtes(indexB)) return;
-      }
     }
 
     pc += SIZEOF_VV;
@@ -2425,20 +2428,22 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function trickNeqLtes(indexX) {
-    // X is used multiple times and only with neq's and lte's
-    // multiple neq's are unlikely at this point and the lte's
-    // can be rewritten to NAND if x is rhs and OR if x is lhs
-    // note: X is considered a leaf var, the rewrites use the
-    // other neq arg; Y.
+  function trickNeqOrLtes(indexX) {
+    // X is used multiple times and only with exactly one neq
+    // and multiple lte's and or's.
+    // multiple neq's should be eliminated elsewhere
+    // lte's are rewritten to NAND or OR, depending where X is
+    // or's are rewritten to LTE's
+    // X is considered a leaf var. rewrites use the other NEQ arg Y
 
     // A <= X, X != Y    ->    A !& Y
     // X <= A, X != Y    ->    A | Y
+    // X | A, X != Y     ->    Y <= A
     // (any number of lte's work the same)
 
     // first we need to validate. we can only have one neq
 
-    ASSERT_LOG2('trickNeqLtes', indexX);
+    ASSERT_LOG2('trickNeqOrLtes', indexX);
 
     bounty_markVar(bounty, indexX); // happens in any code branch
 
@@ -2452,6 +2457,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let neqOffset;
     let lhsOffsets = [];
     let rhsOffsets = [];
+    let orOffsets = [];
 
     let seenNeq = false;
     for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
@@ -2495,6 +2501,23 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
         seenNeq = true;
         neqOffset = offset;
+      } else if (op === ML_VV_OR) {
+        let indexT;
+        if (indexA === indexX) {
+          orOffsets.push(offset);
+          indexT = indexB;
+        } else if (indexB === indexX) {
+          orOffsets.push(offset);
+          indexT = indexA;
+        } else {
+          ASSERT_LOG2(' - lte without indexX (??), bailing');
+          return false;
+        }
+
+        if (!domain_isBool(domains[getFinalIndex(indexT)])) {
+          ASSERT_LOG2(' - found a non-bool or arg, bailing');
+          return false;
+        }
       } else {
         ASSERT_LOG2(' - found an op that wasnt neq or lte, bailing');
         return false;
@@ -2513,6 +2536,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2(' - pattern confirmed, morphing ltes, removing neq');
     ASSERT_LOG2(' - A <= X, X != Y    ->    A !& Y');
     ASSERT_LOG2(' - X <= A, X != Y    ->    A | Y');
+    ASSERT_LOG2(' - X | A, X != Y     ->    Y <= A');
 
     for (let i = 0, len = lhsOffsets.length; i < len; ++i) {
       // X <= A, X != Y    ->    A | Y
@@ -2535,6 +2559,17 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     ASSERT(ml_validateSkeleton(ml, 'check after rhs offsets'));
+
+    for (let i = 0, len = orOffsets.length; i < len; ++i) {
+      // X | A, X != Y    ->    Y <= A
+      let offset = orOffsets[i];
+      let index = ml_dec16(ml, offset + 1);
+      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      bounty_markVar(bounty, index);
+      ml_vv2vv(ml, offset, ML_VV_LTE, indexY, index);
+    }
+
+    ASSERT(ml_validateSkeleton(ml, 'check after or offsets'));
 
     ml_eliminate(ml, neqOffset, SIZEOF_VV);
     bounty_markVar(bounty, indexY);

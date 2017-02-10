@@ -162,6 +162,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ++loops;
   } while (removed && !emptyDomain);
 
+  ASSERT_LOG2('## exit cutter');
   if (emptyDomain) return -1;
   return loops;
 
@@ -230,18 +231,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       return;
-    }
-
-    if (countsA === 2) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if ((metaA & BOUNTY_LTE_LHS) && trickNeqLteLhs(indexA, pc, 'neq')) return;
-      if ((metaA & BOUNTY_LTE_RHS) && trickNeqLteRhs(indexA, pc, 'neq')) return;
-    }
-
-    if (countsB === 2) {
-      let metaB = bounty_getMeta(bounty, indexB);
-      if ((metaB & BOUNTY_LTE_LHS) && trickNeqLteLhs(indexB, pc, 'neq')) return;
-      if ((metaB & BOUNTY_LTE_RHS) && trickNeqLteRhs(indexB, pc, 'neq')) return;
     }
 
     pc += SIZEOF_VV;
@@ -339,13 +328,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((metaA & BOUNTY_ISALL_RESULT) && trickIsallLteLhs(indexA, pc, 'lte')) return;
       // note: if it wasnt 2x lte then the flag would contain, at least, another flag as well.
       if (metaA === (BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY) && trickLteLhsTwice(indexA, pc, 'lte', metaA)) return;
-      if ((metaA & BOUNTY_NEQ) && trickNeqLteLhs(indexA, pc, 'lte')) return;
     }
 
     if (countsB === 2) {
       let metaB = bounty_getMeta(bounty, indexB);
       if ((metaB & BOUNTY_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
-      if ((metaB & BOUNTY_NEQ) && trickNeqLteRhs(indexB, pc, 'lte')) return;
     }
 
     if (countsA === 3) {
@@ -355,9 +342,22 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((metaA === (BOUNTY_NAND | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY)) && trickNandNeqLte(indexA, pc)) return;
     }
 
-    if (countsB > 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+    if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      if ((metaA & BOUNTY_NEQ) && (metaA & (BOUNTY_LTE_LHS | BOUNTY_LTE_RHS))) {
+        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
+        metaA = (metaA | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) ^ (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS); // remove neq and lte flags
+        if (!metaA && trickNeqLtes(indexA)) return;
+      }
+    }
+
+    if (countsB >= 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
       let metaB = bounty_getMeta(bounty, indexB);
-      if (metaB === (BOUNTY_NEQ | BOUNTY_LTE_RHS) && trickNeqLtes(indexB)) return;
+      if ((metaB & BOUNTY_NEQ) && (metaB & (BOUNTY_LTE_LHS | BOUNTY_LTE_RHS))) {
+        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
+        metaB = (metaB | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) ^ (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS); // remove neq and lte flags
+        if (!metaB && trickNeqLtes(indexB)) return;
+      }
     }
 
     pc += SIZEOF_VV;
@@ -1784,128 +1784,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return true;
   }
 
-  function trickNeqLteLhs(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
-
-    bounty_markVar(bounty, varIndex); // happens in any code branch
-
-    // this should be `A <= B, A != C`, morph one constraint into `A | C`, eliminate the other constraint, and defer A
-
-    let lteOffset = (forOp === 'lte' && offset === offset1) ? offset1 : offset2;
-    let neqOffset = (forOp !== 'lte' && offset === offset1) ? offset1 : offset2;
-
-    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
-    if (ml_dec8(ml, lteOffset) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - op wasnt lte so bailing');
-      return false;
-    }
-
-    if (ml_dec16(ml, lteOffset + 1) !== varIndex) {
-      ASSERT_LOG2(' - shared var should be left var of the lte but wasnt');
-      return false;
-    }
-
-    let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
-
-    ASSERT_LOG2(' - checking neq offset', ml_dec8(ml, neqOffset) === ML_VV_NEQ, ', indexB =', indexB);
-    if (ml_dec8(ml, neqOffset) !== ML_VV_NEQ) {
-      ASSERT_LOG2(' - op wasnt neq so bailing');
-      return false;
-    }
-
-    ASSERT_LOG2(' - rewriting A <= B, A != C  ->  B !& C');
-    let left = getFinalIndex(ml_dec16(ml, neqOffset + 1));
-    let right = getFinalIndex(ml_dec16(ml, neqOffset + 3));
-
-    let indexC = left;
-    if (indexC === varIndex) {
-      indexC = right;
-    } else if (right !== varIndex) {
-      ASSERT_LOG2(' - shared var should be part of the neq but wasnt');
-      return false;
-    }
-
-    ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexB]), domain__debug(domains[left]), domain__debug(domains[right]));
-    if (!domain_isBool(domains[indexB]) || !domain_isBool(domains[left]) || !domain_isBool(domains[right])) {
-      ASSERT_LOG2(' - args werent bool so bailing', domain_isBool(domains[indexB]), domain_isBool(domains[left]), domain_isBool(domains[right]));
-      return false;
-    }
-    ASSERT_LOG2(' - ok, rewriting the lte, eliminating the neq, and defering', varIndex);
-
-    ml_vv2vv(ml, lteOffset, ML_VV_OR, indexB, indexC);
-    ml_eliminate(ml, neqOffset, SIZEOF_VV);
-
-    // only A is cut out, defer it
-
-    solveStack.push(domains => {
-      ASSERT_LOG2(' - neq + lte_lhs;', varIndex, '!=', indexB, '  ->  ', domain__debug(domains[varIndex]), '!=', domain__debug(domains[indexB]));
-      let vB = force(indexB);
-      domains[varIndex] = domain_removeValue(domains[varIndex], vB);
-    });
-
-    bounty_markVar(bounty, indexB);
-    bounty_markVar(bounty, indexC);
-    return true;
-  }
-
-  function trickNeqLteRhs(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
-
-    bounty_markVar(bounty, varIndex); // happens in any code branch
-
-    // this should be `A <= B, B != C`, morph one constraint into `A !& C`, eliminate the other constraint, and defer B
-
-    let lteOffset = (forOp === 'lte' && offset === offset1) ? offset1 : offset2;
-    let neqOffset = (forOp !== 'lte' && offset === offset1) ? offset1 : offset2;
-
-    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
-    if (ml_dec8(ml, lteOffset) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - op wasnt lte so bailing');
-      return false;
-    }
-    ASSERT(ml_dec16(ml, lteOffset + 3) === varIndex, 'shared var should be right var of the lte');
-
-    let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
-
-    ASSERT_LOG2(' - checking neq offset', ml_dec8(ml, neqOffset) === ML_VV_NEQ, ', indexA =', indexA);
-    if (ml_dec8(ml, neqOffset) !== ML_VV_NEQ) {
-      ASSERT_LOG2(' - op wasnt lte so bailing');
-      return false;
-    }
-
-    let left = getFinalIndex(ml_dec16(ml, neqOffset + 1));
-    let right = getFinalIndex(ml_dec16(ml, neqOffset + 3));
-
-    ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
-    if (!domain_isBool(domains[indexA]) || !domain_isBool(domains[left]) || !domain_isBool(domains[right])) {
-      ASSERT_LOG2(' - at least one arg non bool so bailing');
-      return false;
-    }
-
-    ASSERT_LOG2(' - ok, rewriting the lte, eliminating the neq, and defering', varIndex);
-    ASSERT_LOG2(' - rewriting A <= B, B != C  ->  A !& C');
-    let indexB = varIndex === left ? right : left;
-
-    ml_vv2vv(ml, lteOffset, ML_VV_NAND, indexA, indexB);
-    ml_eliminate(ml, neqOffset, SIZEOF_VV);
-
-    // only B is cut out, defer it
-
-    solveStack.push(domains => {
-      ASSERT_LOG2(' - neq + lte;', indexB, '!=', varIndex, '  ->  ', domain__debug(domains[indexB]), '!=', domain__debug(domains[varIndex]));
-      let vB = force(indexB);
-      domains[varIndex] = domain_removeValue(domains[varIndex], vB);
-    });
-
-    bounty_markVar(bounty, left);
-    bounty_markVar(bounty, right);
-    return true;
-  }
-
   function trickIsallNall(varIndex, offset, forOp) {
     let offset1 = bounty_getOffset(bounty, varIndex, 0);
     let offset2 = bounty_getOffset(bounty, varIndex, 1);
@@ -2548,7 +2426,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   }
 
   function trickNeqLtes(indexX) {
-    // TODO: eliminate trickNeqLteLhs and trickNeqLteRhs
     // X is used multiple times and only with neq's and lte's
     // multiple neq's are unlikely at this point and the lte's
     // can be rewritten to NAND if x is rhs and OR if x is lhs

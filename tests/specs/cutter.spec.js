@@ -430,19 +430,6 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nand /);
     });
 
-    it('should not do lte+neq trick for lhs of lte', function() {
-      expect(_ => solverSolver(`
-        @custom var-strat throw
-        : A [0 1]
-        : B [0 1]
-        : C [0 1]
-        B <= A
-        B != C
-        # -> A !& C
-        @custom noleaf A C
-      `)).to.throw(/ops: or /); // tackled by different trick
-    });
-
     it('should not do lte+neq trick for non bools', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw

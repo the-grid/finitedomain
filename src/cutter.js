@@ -123,14 +123,14 @@ import {
 import domain_plus from './domain_plus';
 
 import {
-  BOUNTY_NOT_BOOLY,
-
+  BOUNTY_MAX_OFFSETS_TO_TRACK,
   BOUNTY_ISALL_RESULT,
   BOUNTY_LTE_LHS,
   BOUNTY_LTE_RHS,
   BOUNTY_NALL,
   BOUNTY_NAND,
   BOUNTY_NEQ,
+  BOUNTY_NOT_BOOLY,
 
   bounty_collect,
   bounty_getCounts,
@@ -353,6 +353,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (metaA === (BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickNeqLteBoth(indexA, pc)) return;
       // A !& B, A != C, A <= D   <-->   B <= C, D | C   with A being a leaf. if there are 3 occurrences and flags say lte, neq, and lte then we can apply the trick
       if ((metaA === (BOUNTY_NAND | BOUNTY_NEQ | BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY)) && trickNandNeqLte(indexA, pc)) return;
+    }
+
+    if (countsB > 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      let metaB = bounty_getMeta(bounty, indexB);
+      if (metaB === (BOUNTY_NEQ | BOUNTY_LTE_RHS) && trickNeqLtes(indexB)) return;
     }
 
     pc += SIZEOF_VV;
@@ -2538,6 +2543,133 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     bounty_markVar(bounty, indexB);
     bounty_markVar(bounty, indexC);
     bounty_markVar(bounty, indexD);
+
+    return true;
+  }
+
+  function trickNeqLtes(indexX) {
+    // TODO: eliminate trickNeqLteLhs and trickNeqLteRhs
+    // X is used multiple times and only with neq's and lte's
+    // multiple neq's are unlikely at this point and the lte's
+    // can be rewritten to NAND if x is rhs and OR if x is lhs
+    // note: X is considered a leaf var, the rewrites use the
+    // other neq arg; Y.
+
+    // A <= X, X != Y    ->    A !& Y
+    // X <= A, X != Y    ->    A | Y
+    // (any number of lte's work the same)
+
+    // first we need to validate. we can only have one neq
+
+    ASSERT_LOG2('trickNeqLtes', indexX);
+
+    bounty_markVar(bounty, indexX); // happens in any code branch
+
+    if (!domain_isBool(domains[getFinalIndex(indexX)])) {
+      ASSERT_LOG2(' - X is non-bool, bailing');
+      return false;
+    }
+
+    // we need the offsets to eliminate them and to get the "other" var index for each
+    let indexY;
+    let neqOffset;
+    let lhsOffsets = [];
+    let rhsOffsets = [];
+
+    let seenNeq = false;
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
+
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 3);
+
+      let op = ml_dec8(ml, offset);
+      if (op === ML_VV_LTE) {
+        let indexT;
+        if (indexA === indexX) {
+          lhsOffsets.push(offset);
+          indexT = indexB;
+        } else if (indexB === indexX) {
+          rhsOffsets.push(offset);
+          indexT = indexA;
+        } else {
+          ASSERT_LOG2(' - lte without indexX (??), bailing');
+          return false;
+        }
+
+        if (!domain_isBool(domains[getFinalIndex(indexT)])) {
+          ASSERT_LOG2(' - found a non-bool lte arg, bailing');
+          return false;
+        }
+      } else if (op === ML_VV_NEQ) {
+        if (seenNeq) {
+          ASSERT_LOG2(' - found second neq, bailing');
+          return false;
+        }
+
+        if (indexA === indexX) {
+          indexY = indexB;
+        } else if (indexB === indexX) {
+          indexY = indexA;
+        } else {
+          return false;
+        }
+
+        seenNeq = true;
+        neqOffset = offset;
+      } else {
+        ASSERT_LOG2(' - found an op that wasnt neq or lte, bailing');
+        return false;
+      }
+    }
+
+    ASSERT_LOG2(' - collection complete; indexY =', indexY, ', neq offset =', neqOffset, ', lhs offsets:', lhsOffsets, ', rhs offsets:', rhsOffsets);
+
+    if (!seenNeq) {
+      ASSERT_LOG2(' - did not find neq, bailing');
+      return false;
+    }
+
+    // okay. pattern matches. do the rewrite
+
+    ASSERT_LOG2(' - pattern confirmed, morphing ltes, removing neq');
+    ASSERT_LOG2(' - A <= X, X != Y    ->    A !& Y');
+    ASSERT_LOG2(' - X <= A, X != Y    ->    A | Y');
+
+    for (let i = 0, len = lhsOffsets.length; i < len; ++i) {
+      // X <= A, X != Y    ->    A | Y
+      let offset = lhsOffsets[i];
+      let index = ml_dec16(ml, offset + 1);
+      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      bounty_markVar(bounty, index);
+      ml_vv2vv(ml, offset, ML_VV_OR, index, indexY);
+    }
+
+    ASSERT(ml_validateSkeleton(ml, 'check after lhs offsets'));
+
+    for (let i = 0, len = rhsOffsets.length; i < len; ++i) {
+      // X <= A, X != Y    ->    A | Y
+      let offset = rhsOffsets[i];
+      let index = ml_dec16(ml, offset + 1);
+      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      bounty_markVar(bounty, index);
+      ml_vv2vv(ml, offset, ML_VV_NAND, index, indexY);
+    }
+
+    ASSERT(ml_validateSkeleton(ml, 'check after rhs offsets'));
+
+    ml_eliminate(ml, neqOffset, SIZEOF_VV);
+    bounty_markVar(bounty, indexY);
+
+    ASSERT(ml_validateSkeleton(ml, 'make sure the morphs went okay'));
+
+    ASSERT_LOG2(' - X is a leaf constraint, defer it', indexX);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(domains[indexX]), '!=', domain__debug(domains[indexY]));
+
+      domains[indexX] = domain_removeValue(domains[indexX], force(indexY));
+    });
 
     return true;
   }

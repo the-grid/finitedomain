@@ -110,7 +110,7 @@ ASSERT(bounty_flagCounter <= 16, 'can only run with 16 flags, or must increase f
 
 const BOUNTY_LINK_COUNT = 1; // should it simply trunc over 255?
 const BOUNTY_META_FLAGS = 16; // steps of 8 (bits per byte)
-const BOUNTY_MAX_OFFSETS_TO_TRACK = 5;
+const BOUNTY_MAX_OFFSETS_TO_TRACK = 20; // perf case bounty size when this is: 5->1mb, 20->3mb
 
 const BOUNTY_SIZEOF_HEADER = BOUNTY_LINK_COUNT + (BOUNTY_META_FLAGS / 2);
 const BOUNTY_SIZEOF_OFFSETS = BOUNTY_MAX_OFFSETS_TO_TRACK * 4; // need to store 32bit per offset (more like 24 but whatever)
@@ -127,7 +127,10 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
   ASSERT_LOG2('\n ## bounty_collect', ml);
   let pc = 0;
 
-  if (!bounty) bounty = new Buffer(vars.length * BOUNTY_SIZEOF_VAR);
+  if (!bounty) {
+    bounty = new Buffer(vars.length * BOUNTY_SIZEOF_VAR);
+    console.log('Created bounty buffer. Size:', bounty.length);
+  }
   bounty.fill(0); // even for new buffer because they are not guaranteed to be zero filled (most like not)
 
   bountyLoop();

@@ -915,4 +915,36 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nand,or /);
     });
   });
+
+
+  describe('neq+lte++ trick', function() {
+
+    it('should morph neq, lte, lte with perfect fit', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : X, Y [0 1]
+        A <= X
+        B <= X
+        Y != X
+        # -> Y = none?(A B)  and X a leaf
+
+        @custom noleaf A B Y
+      `)).to.throw(/ops: nand,nand /);
+    });
+
+    it('should morph neq, lte, lte with room to spare', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : X, Y [0 1]
+        A <= X
+        B <= X
+        Y != X
+        # -> Y = none?(A B)  and X a leaf
+
+        @custom noleaf A B Y
+      `)).to.throw(/ops: nand,nand /);
+    });
+  });
 });

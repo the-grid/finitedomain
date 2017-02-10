@@ -629,6 +629,8 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       addAlias(indexB, indexA);
     }
 
+    ASSERT_LOG2(' - eliminating eq', indexA, indexB);
+
     // the vars are now intersected and aliased. we can remove this constraint.
     ml_eliminate(ml, offset, SIZEOF_VV);
   }

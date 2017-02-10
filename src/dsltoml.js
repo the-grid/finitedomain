@@ -69,8 +69,10 @@ import {
   ML_VV_XNOR,
   ML_START,
   ML_STOP,
+  ML_JMP,
   ML_DEBUG,
-  //
+
+  SIZEOF_V,
   //SIZEOF_VV,
   //SIZEOF_8V,
   //SIZEOF_V8,
@@ -1292,6 +1294,12 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
             // this is for testing as a simple tool to prevent many trivial optimizations to kick in. it's not flawless.
             ml += encode8bit(ML_DEBUG) + encodeNameOrDie(idents[i]);
           }
+          break;
+        case 'free':
+          skipWhitespaces();
+          let size = parseNumber();
+          ASSERT_LOG2('Found a jump of', size);
+          ml += encode8bit(ML_JMP) + encode16bit(size - SIZEOF_V) + '\0'.repeat(size - SIZEOF_V);
           break;
 
         default:

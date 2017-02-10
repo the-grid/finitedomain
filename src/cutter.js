@@ -1143,14 +1143,25 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       return;
     }
 
+    let metaA = bounty_getMeta(bounty, indexA);
+    let metaB = bounty_getMeta(bounty, indexB);
+
+    if (metaA === BOUNTY_NAND) {
+      // A is only used in nands. eliminate them all and defer A
+      if (trickNandOnly(indexA, pc)) return;
+    }
+
+    if (metaB === BOUNTY_NAND) {
+      // B is only used in nands. eliminate them all and defer B
+      if (trickNandOnly(indexB, pc)) return;
+    }
+
     if (countsA === 2) {
-      let metaA = bounty_getMeta(bounty, indexA);
       if ((metaA & BOUNTY_LTE_LHS) && trickNandLteLhs(indexA, pc, 'nand')) return;
       if ((metaA & BOUNTY_ISALL_RESULT) && trickNandIsall(indexA, pc, 'nand')) return;
     }
 
     if (countsB === 2) {
-      let metaB = bounty_getMeta(bounty, indexB);
       if ((metaB & BOUNTY_LTE_LHS) && trickNandLteLhs(indexB, pc, 'nand')) return;
       if ((metaB & BOUNTY_ISALL_RESULT) && trickNandIsall(indexB, pc, 'nand')) return;
     }
@@ -2394,6 +2405,66 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
       domains[indexX] = domain_removeValue(domains[indexX], force(indexY));
     });
+
+    return true;
+  }
+
+  function trickNandOnly(indexX) {
+    ASSERT_LOG2('trickNandOnly', indexX);
+
+    bounty_markVar(bounty, indexX); // happens in any code branch
+
+    let offsets = []; // to eliminate
+    let indexes = []; // to mark and to defer solve
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
+
+      let indexA = ml_dec16(ml, offset + 1);
+      let indexB = ml_dec16(ml, offset + 3);
+
+      let indexY = indexA;
+      if (indexY === indexX) {
+        indexY = indexB;
+      } else if (!indexB !== indexX) {
+        ASSERT_LOG2(' - a nand did not have the proper args (??), bailing');
+        return false;
+      }
+
+      offsets.push(offset);
+      indexes.push(indexY);
+    }
+
+    ASSERT_LOG2(' - collected offsets and vars:', offsets, indexes);
+
+    ASSERT_LOG2('   - B is a leaf var');
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - only nands;', indexes);
+
+      let X = domains[indexX];
+      if (!domain_isZero(X) && !domain_hasNoZero(X)) {
+        for (let i = 0; i < indexes.length; ++i) {
+          if (force(indexes[i]) > 0) {
+            domains[indexX] = domain_removeGtUnsafe(X, 0);
+            break;
+          }
+        }
+      }
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'nands only'));
+
+    ASSERT_LOG2(' - now remove the nands', offsets);
+
+    for (let i = 0; i < offsets.length; ++i) {
+      let offset = offsets[i];
+      let indexY = indexes[i];
+
+      ml_eliminate(ml, offset, SIZEOF_VV);
+      bounty_markVar(bounty, indexY);
+    }
+
+    ASSERT(ml_validateSkeleton(ml, 'make sure the elimination went okay'));
 
     return true;
   }

@@ -964,4 +964,21 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte /);
     });
   });
+
+  describe('nands only trick', function() {
+
+    it('should eliminate a var that is only used in nands', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        A !& B
+        A !& C
+        # -> A leaf, solved
+
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: 0, C: 0});
+    });
+  });
 });

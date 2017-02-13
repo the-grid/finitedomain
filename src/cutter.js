@@ -356,6 +356,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((metaB & BOUNTY_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
     }
 
+    if (countsA >= 3) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, pc)) return;
+    }
+
     pc += SIZEOF_VV;
   }
 
@@ -2420,6 +2425,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let offset = bounty_getOffset(bounty, indexX, i);
       if (!offset) break;
 
+      let opCode = ml_dec8(ml, offset);
+      if (opCode !== ML_VV_NAND) {
+        ASSERT_LOG2(' - opcode wasnt nand but was expecting only nands, bailing');
+        return false;
+      }
+
       let indexA = ml_dec16(ml, offset + 1);
       let indexB = ml_dec16(ml, offset + 3);
 
@@ -2467,6 +2478,98 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT(ml_validateSkeleton(ml, 'make sure the elimination went okay'));
 
     return true;
+  }
+
+  function trickOrLteLhsNands(indexX) {
+    ASSERT_LOG2('trickOrLteLhsNands', indexX);
+    // A !& X, X <= B, X | C    ->     B | C, A <= C
+
+    bounty_markVar(bounty, indexX); // happens in any code branch
+
+    let lteOffset;
+    let orOffset;
+    let nandOffsets = [];
+
+    let indexesA = [];
+    let indexB;
+    let indexC;
+
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
+
+      let indexL = ml_dec16(ml, offset + 1);
+      let indexR = ml_dec16(ml, offset + 3);
+
+      let indexY = indexL;
+      if (indexL === indexX) {
+        indexY = indexR;
+      } else if (indexR !== indexX) {
+        ASSERT_LOG2(' - op did not have our target var on either side, bailing');
+        return false;
+      }
+
+      let opCode = ml_dec8(ml, offset);
+      if (opCode === ML_VV_NAND) {
+        nandOffsets.push(offset);
+        indexesA.push(indexY);
+      } else if (opCode === ML_VV_OR) {
+        if (orOffset) {
+          ASSERT_LOG2(' - trick only supported with one OR, bailing');
+          return false;
+        }
+        orOffset = offset;
+        indexB = indexY;
+      } else if (opCode === ML_VV_LTE) {
+        if (lteOffset) {
+          ASSERT_LOG2(' - trick only supported with one LTE, bailing');
+          return false;
+        }
+        if (indexL !== indexX) {
+          ASSERT_LOG2(' - X must be lhs of LTE, bailing');
+          return false;
+        }
+        lteOffset = offset;
+        indexC = indexY;
+      }
+    }
+
+    ASSERT_LOG2(' - collection complete; or offset:', orOffset, ', indexB:', indexB, ', lte offset:', lteOffset, ', indexC:', indexC, ', nand offsets:', nandOffsets, ', indexesA:', indexesA);
+    ASSERT_LOG2(' - A !& X, X <= B, X | C    ->     B | C, A <= C');
+    ASSERT_LOG2(' - A !& X, D !& X, X <= B, X | C    ->     B | C, A <= C, D <= C');
+    // the A <= C for all nand args (all <= C)
+
+    ml_vv2vv(ml, lteOffset, ML_VV_OR, indexB, indexC);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    ml_eliminate(ml, orOffset, SIZEOF_VV);
+    for (let i = 0, len = indexesA.length; i < len; ++i) {
+      let indexA = indexesA[i];
+      ml_vv2vv(ml, nandOffsets[i], ML_VV_LTE, indexA, indexC);
+      bounty_markVar(bounty, indexA);
+    }
+
+    ASSERT_LOG2('   - X is a leaf var', indexX);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - or+lte+nands;', indexX);
+
+      let X = domains[indexX];
+      if (force(indexB) === 0) { // A<=B so if B is 0, A must also be 0
+        domains[indexX] = domain_removeGtUnsafe(X, 0);
+      } else if (force(indexC) === 0) { // X|C so if C is 0, X must be non-zero
+        domains[indexX] = domain_removeValue(X, 0);
+      } else {
+        // if any indexA is set, X must be zero
+        for (let i = 0, len = indexesA.length; i < len; ++i) {
+          if (force(indexesA[i]) > 0) {
+            domains[indexX] = domain_removeGtUnsafe(X, 0);
+            break;
+          }
+        }
+      }
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+lte+nands'));
   }
 
   function cutLoop() {

@@ -981,4 +981,36 @@ describe('specs/cutter.spec', function() {
       expect(solution).to.eql({A: [0, 1], B: 0, C: 0});
     });
   });
+
+  describe('nand+lte+or trick', function() {
+
+    it('should morph nand, lte, or', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, X [0 1]
+        A !& X
+        X <= B
+        X | C
+        # -> B | C, A <= C, with X a leaf. should work for any inpute lte that has x as lhs
+        # (because if X is 1, A is 0, C can be any. if X = 0, A can be either but C must be 1. so A <= C.
+
+        @custom noleaf A B C
+      `)).to.throw(/ops: lte,or /);
+    });
+
+    it('should morph nands, lte, or', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E, X [0 1]
+        A !& X
+        X <= B
+        X | C
+        D !& X
+        E !& X
+        # -> B | C, A <= C, D <= C, E <= C, with X a leaf
+
+        @custom noleaf A B C D E
+      `)).to.throw(/ops: lte,lte,lte,or /);
+    });
+  });
 });

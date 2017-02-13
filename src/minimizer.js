@@ -149,7 +149,7 @@ const MINIMIZE_ALIASED = false;
 
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
-  console.log('minimize sweep');
+  console.log('minimize sweep, ml len=', ml.length);
   let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;

@@ -205,35 +205,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
 
     if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - cut neq A;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vB = force(indexB);
-        domains[indexA] = domain_removeValue(A, vB);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      return;
+      return leafNeq(ml, indexA, indexB);
     }
 
     if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - cut neq B;', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let B = domains[indexB];
-        domains[indexB] = domain_removeValue(B, vA);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      return;
+      return leafNeq(ml, indexB, indexA);
     }
 
     if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
@@ -312,35 +288,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2(' - cutLte', indexA, '<=', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
 
     if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vB = force(indexB);
-        domains[indexA] = domain_removeGtUnsafe(A, vB);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' <= ' + indexB));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      return;
+      return leafLteLhs(ml, indexA, indexB);
     }
 
     if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let B = domains[indexB];
-        domains[indexB] = domain_removeLtUnsafe(B, vA);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexA} <= ${indexB}`));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      return;
+      return leafLteRhs(ml, indexA, indexB);
     }
 
     if (countsA === 2) {
@@ -1427,6 +1379,51 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     pc += SIZEOF_COUNT + len * 2;
+  }
+
+  function leafNeq(ml, indexA, indexB) {
+    ASSERT_LOG2('   - leafNeq; A is a leaf var, A != B,', indexA, '!=', indexB);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
+      let A = domains[indexA];
+      let vB = force(indexB);
+      domains[indexA] = domain_removeValue(A, vB);
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
+    ml_eliminate(ml, pc, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+  }
+
+  function leafLteLhs(ml, indexA, indexB) {
+    ASSERT_LOG2('   - A is a leaf var');
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
+      let A = domains[indexA];
+      let vB = force(indexB);
+      domains[indexA] = domain_removeGtUnsafe(A, vB);
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' <= ' + indexB));
+    ml_eliminate(ml, pc, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+  }
+
+  function leafLteRhs(ml, indexA, indexB) {
+    ASSERT_LOG2('   - B is a leaf var');
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
+      let vA = force(indexA);
+      let B = domains[indexB];
+      domains[indexB] = domain_removeLtUnsafe(B, vA);
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexA} <= ${indexB}`));
+    ml_eliminate(ml, pc, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
   }
 
   function trickLteLhsTwice(varIndex, offset, meta) {

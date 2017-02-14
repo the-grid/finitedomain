@@ -308,6 +308,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if ((metaB & BOUNTY_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
     }
 
+    if (countsA >= 2) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      if ((metaA & BOUNTY_ISALL_RESULT) && trickLteLhsIsallShared(indexA, pc)) return;
+    }
+
     if (countsA >= 3) {
       let metaA = bounty_getMeta(bounty, indexA);
       if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, pc)) return;
@@ -2225,6 +2230,96 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     return false;
+  }
+
+  function trickLteLhsIsallShared(indexX, lteOffset) {
+    // need to verify that the other lte arg is also an isall arg. it may very well not be.
+    // we also don't know which offset is going to be the isall (or isall2), so let's find that first
+
+    let indexY = ml_dec16(ml, lteOffset + 3);
+    ASSERT_LOG2('trickLteLhsIsallShared; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset);
+
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
+
+      let op = ml_dec8(ml, offset);
+      if (op === ML_ISALL) {
+        return _trickLteLhsIsallSharedIsall1(indexX, indexY, lteOffset, offset);
+      }
+      if (op === ML_ISALL2) {
+        return _trickLteLhsIsallSharedIsall2(indexX, indexY, lteOffset, offset);
+      }
+    }
+
+    return false;
+  }
+  function _trickLteLhsIsallSharedIsall1(indexX, indexY, lteOffset, isallOffset) {
+    ASSERT_LOG2(' - _trickLteLhsIsallSharedIsall1; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset, 'isallOffset=', isallOffset);
+
+    let count = ml_dec16(ml, isallOffset + 1);
+    let indexR = ml_dec16(ml, isallOffset + SIZEOF_COUNT + count * 2);
+
+    if (indexR !== indexX) {
+      ASSERT_LOG2(' - indexX was not indexR, bailing');
+      return false;
+    }
+
+    // search for indexY in the args of the isall
+
+    let found = false;
+    for (let i = 0; i < count; ++i) {
+      let index = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      if (index === indexY) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      ASSERT_LOG2(' - indexY was not part of the isall, bailing');
+      return false;
+    }
+
+    ASSERT_LOG2(' - Confirmed `A!&B, A=all?(A C)`, eliminating the nand');
+
+    // ok, just eliminate the nand. it is subsumed by the isall
+
+    ml_eliminate(ml, lteOffset, SIZEOF_VV);
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+
+    return true;
+  }
+
+  function _trickLteLhsIsallSharedIsall2(indexX, indexY, lteOffset, isallOffset) {
+    ASSERT_LOG2(' - _trickLteLhsIsallSharedIsall2; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset, 'isallOffset=', isallOffset);
+
+    let indexR = ml_dec16(ml, isallOffset + 5);
+
+    if (indexR !== indexX) {
+      ASSERT_LOG2(' - indexX was not indexR, bailing');
+      return false;
+    }
+
+    // search for indexY in the args of the isall
+
+    let indexA = ml_dec16(ml, isallOffset + 1);
+    let indexB = ml_dec16(ml, isallOffset + 3);
+
+    if (indexA !== indexY && indexB !== indexY) {
+      ASSERT_LOG2(' - indexY was not an isall arg, bailing');
+      return false;
+    }
+
+    // ok, just eliminate the nand. it is subsumed by the isall
+
+    ASSERT_LOG2(' - Confirmed `A!&B, A=all?(A C)`, eliminating the nand');
+
+    ml_eliminate(ml, lteOffset, SIZEOF_VV);
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+
+    return true;
   }
 
   function trickNeqElimination(indexX) {

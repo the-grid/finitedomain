@@ -903,7 +903,6 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-
   describe('neq+lte++ trick', function() {
 
     it('should morph neq, lte, lte with perfect fit', function() {
@@ -1054,6 +1053,23 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B C D
       `)).to.throw(/ops: lte,lte,nand,or /);
     });
+  });
 
+  describe.only('trick lte_lhs+isall with two shared vars', function() {
+
+    it('should remove lte if isall subsumes it', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(A B)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C X
+      `)).to.throw(/ops: isall /);
+    });
   });
 });

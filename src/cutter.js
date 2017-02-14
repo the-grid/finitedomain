@@ -361,6 +361,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, pc)) return;
     }
 
+    if (countsA >= 3) {
+      let metaA = bounty_getMeta(bounty, indexA);
+      if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickOrNandLteBoth(indexA, pc)) return;
+    }
+
     pc += SIZEOF_VV;
   }
 
@@ -2570,6 +2575,108 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     });
     ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
     ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+lte+nands'));
+  }
+
+  function trickOrNandLteBoth(indexX) {
+    ASSERT_LOG2('trickOrNandLteBoth', indexX);
+    // A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B
+    // if we can model `A !& C, A <= D` in one constraint then we should do so but I couldn't find one
+    // (when more lte's are added, that's the pattern we add for each)
+
+    bounty_markVar(bounty, indexX); // happens in any code branch
+
+    // we should have; lteRhs, lteLhs, nand, or
+    let lteLhsOffset;
+    let lteRhsOffset;
+    let orOffset;
+    let nandOffset;
+
+    let indexA;
+    let indexB;
+    let indexC;
+    let indexD;
+
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
+
+      let indexL = ml_dec16(ml, offset + 1);
+      let indexR = ml_dec16(ml, offset + 3);
+
+      let indexY = indexL;
+      if (indexL === indexX) {
+        indexY = indexR;
+      } else if (indexR !== indexX) {
+        ASSERT_LOG2(' - op did not have our target var on either side, bailing');
+        return false;
+      }
+
+      let opCode = ml_dec8(ml, offset);
+      if (opCode === ML_VV_NAND) {
+        if (nandOffset) {
+          ASSERT_LOG2(' - trick only supported with one NAND, bailing');
+          return false;
+        }
+        nandOffset = offset;
+        indexC = indexY;
+      } else if (opCode === ML_VV_OR) {
+        if (orOffset) {
+          ASSERT_LOG2(' - trick only supported with one OR, bailing');
+          return false;
+        }
+        orOffset = offset;
+        indexB = indexY;
+      } else if (opCode === ML_VV_LTE) {
+        if (indexL === indexX) { // lte_lhs
+          if (lteLhsOffset) {
+            ASSERT_LOG2(' - trick only supported with one LTE_lhs, bailing');
+            return false;
+          }
+          lteLhsOffset = offset;
+          indexD = indexY;
+        } else if (indexR === indexX) { // lte_rhs
+          if (lteRhsOffset) {
+            ASSERT_LOG2(' - trick only supported with one LTE_rhs, bailing');
+            return false;
+          }
+          lteRhsOffset = offset;
+          indexA = indexY;
+        } else {
+          ASSERT_LOG2(' - X not an arg of the lte, bailing');
+          return false;
+        }
+      }
+    }
+
+    ASSERT_LOG2(' - collection complete; or offsets:', lteLhsOffset, lteRhsOffset, orOffset, nandOffset, ', indexes:', indexA, indexB, indexC, indexD);
+    ASSERT_LOG2(' - A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B');
+
+    ml_vv2vv(ml, lteLhsOffset, ML_VV_NAND, indexA, indexC);
+    ml_vv2vv(ml, lteRhsOffset, ML_VV_OR, indexB, indexD);
+    ml_vv2vv(ml, orOffset, ML_VV_LTE, indexA, indexD);
+    ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexC, indexD);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    bounty_markVar(bounty, indexD);
+
+    ASSERT_LOG2('   - X is a leaf var', indexX);
+    solveStack.push(domains => {
+      ASSERT_LOG2(' - or+nand+lte_lhs+lte_rhs;', indexX);
+
+      let X = domains[indexX];
+      if (force(indexA) === 1) { // A<=X so if A is 1, X must also be 1
+        domains[indexX] = domain_removeValue(X, 0);
+      } else if (force(indexB) === 0) { // X|B so if B is 0, X must be non-zero
+        domains[indexX] = domain_removeValue(X, 0);
+      } else if (force(indexC) > 0) { // if indexA is set, X must be zero
+        domains[indexX] = domain_removeGtUnsafe(X, 0);
+      } else if (force(indexD) === 0) { // X<=D, if indexD is 0, X must be zero
+        domains[indexX] = domain_removeGtUnsafe(X, 0);
+      }
+    });
+    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
+    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+nand+lte_lhs+lte_rhs'));
   }
 
   function cutLoop() {

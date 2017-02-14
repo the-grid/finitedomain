@@ -1013,4 +1013,47 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte,lte,lte,or /);
     });
   });
+
+  describe('trick lte+lte+or+nand', function() {
+
+    it('should morph base case of lte_lhs, lte_rhs, or, nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B | X
+        C !& X
+        X <= D
+        # A <= X, B | X, !(C & X), X <= D
+        # ->   A !& C, B | D, A <= D, C <= B, X leaf
+
+        # A !& C, A <= D
+        # <->   (!A)|(C<D)  or  (!A->(C<D))  which we cant model properly in one constraint
+
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,or /);
+    });
+
+    it('should morph base case of lte_lhs, lte_lhs, lte_rhs, or, nand', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : X [0 1]
+        A <= X
+        E <= X
+        B | X
+        C !& X
+        X <= D
+        # A <= X, E <= X, B | X, !(C & X), X <= D
+        # ->   A !& C, E !& C, B | D, A <= D, E <= D, C <= B, X leaf
+
+        # A !& C, A <= D
+        # <->   (!A)|(C<D)  or  (!A->(C<D))  which we cant model properly in one constraint
+
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,or /);
+    });
+
+  });
 });

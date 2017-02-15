@@ -315,10 +315,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     if (countsA >= 3) {
       let metaA = bounty_getMeta(bounty, indexA);
       if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, pc)) return;
-    }
-
-    if (countsA >= 3) {
-      let metaA = bounty_getMeta(bounty, indexA);
       if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickOrNandLteBoth(indexA, pc)) return;
     }
 

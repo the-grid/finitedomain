@@ -620,7 +620,7 @@ describe('specs/cutter.spec', function() {
 
   describe('isall+nand trick', function() {
 
-    it('should eliminate base case of an lte-lhs and nand', function() {
+    it('should eliminate base case of an isall and nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -632,10 +632,11 @@ describe('specs/cutter.spec', function() {
         # -> nall(A B C)
 
         @custom noleaf A B C
+        @custom free 50
       `)).to.throw(/ops: nall /);
     });
 
-    it('should eliminate base case of an lte-lhs and reversed nand', function() {
+    it('should eliminate base case of an isall and reversed nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -647,10 +648,11 @@ describe('specs/cutter.spec', function() {
         # -> nall(A B C)
 
         @custom noleaf A B C
+        @custom free 50
       `)).to.throw(/ops: nall /);
     });
 
-    it('should eliminate swapped base case of an lte-lhs and nand', function() {
+    it('should eliminate swapped base case of an isall and nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -661,21 +663,84 @@ describe('specs/cutter.spec', function() {
         R = all?(A B)
         # -> nall(A B C)
         @custom noleaf A B C
+        @custom free 50
       `)).to.throw(/ops: nall /);
     });
 
-    it('should eliminate swapped base case of an lte-lhs and reversed nand', function() {
+    it('should eliminate swapped base case of an isall and reversed nand', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
-        : A [0 1]
-        : B [0 1]
-        : C [0 1]
+        : A, B, C [0 1]
         : R [0 1]
         C !& R
         R = all?(A B)
         # -> nall(A B C)
         @custom noleaf A B C
+        @custom free 50
       `)).to.throw(/ops: nall /);
+    });
+
+    it('should rewrite isall nand nand to nall nall', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A B)
+        # -> nall(A B C), nall(A B D), R = all?(A B)
+        @custom noleaf A B C D R
+        @custom free 100
+      `)).to.throw(/ops: isall,nall,nall /);
+    });
+
+    it('should not rewrite if there is no space', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A B)
+        # -> same because there is no space for the rewrite
+        @custom noleaf A B C D R
+        @custom free 0                 # redundant but for illustration
+
+      `)).to.throw(/ops: isall,nand,nand /);
+    });
+
+    it('should consider R a leaf after the rewrite', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : R [0 1]
+        C !& R
+        R = all?(A B)
+        # -> nall(A B C), R = all?(A B)
+        @custom noleaf A B C
+        @custom free 100
+      `)).to.throw(/ops: nall /);
+    });
+
+    it('should still solve R wrt isall even after eliminating it', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : R [0 1]
+        C !& R
+        R = all?(A B)
+
+        # if A&B then R=1
+        X = R + R
+        # its tricky because this problem may never even reach the nand+isall trick. difficult to test.
+        A == 1
+        B == 1
+
+        @custom noleaf A B C X
+        @custom free 50
+      `);
+
+      expect(solution).to.eql({A: 1, B: 1, C: 0, R: 1, X: 2});
     });
   });
 

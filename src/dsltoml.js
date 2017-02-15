@@ -69,6 +69,10 @@ import {
   ML_VV_XNOR,
   ML_START,
   ML_STOP,
+  ML_NOOP,
+  ML_NOOP2,
+  ML_NOOP3,
+  ML_NOOP4,
   ML_JMP,
   ML_DEBUG,
 
@@ -1299,7 +1303,26 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
           skipWhitespaces();
           let size = parseNumber();
           ASSERT_LOG2('Found a jump of', size);
-          ml += encode8bit(ML_JMP) + encode16bit(size - SIZEOF_V) + '\0'.repeat(size - SIZEOF_V);
+          switch (size) {
+            case 0:
+              break; // ignore. only expliclty illustrates no free space
+            case 1:
+              ml += encode8bit(ML_NOOP);
+              break;
+            case 2:
+              ml += encode8bit(ML_NOOP2);
+              break;
+            case 3:
+              ml += encode8bit(ML_NOOP3);
+              break;
+            case 4:
+              ml += encode8bit(ML_NOOP4);
+              break;
+            default:
+              ml += encode8bit(ML_JMP) + encode16bit(size - SIZEOF_V) + '\0'.repeat(size - SIZEOF_V);
+              break;
+
+          }
           break;
 
         default:

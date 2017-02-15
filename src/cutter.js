@@ -91,8 +91,8 @@ import {
   ml_getRecycleOffset,
   ml_heapSort16bitInline,
   ml_jump,
-  ml_recycleC3,
   ml_recycleVV,
+  ml_skip,
   ml_throw,
   ml_validateSkeleton,
 
@@ -153,17 +153,17 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   let lenBefore;
   let emptyDomain = false;
-  let removed;
+  let changes = 0;
   let loops = 0;
   do {
     ASSERT_LOG2(' # start cutter outer loop', loops);
     bounty = bounty_collect(ml, vars, domains, getAlias, bounty);
     lenBefore = solveStack.length;
+    changes = 0;
     cutLoop();
-    removed = solveStack.length - lenBefore;
-    console.log(' - end cutter outer loop', loops, ', removed', removed, ', constraints, emptyDomain =', emptyDomain);
+    console.log(' - end cutter outer loop', loops, ', removed:', solveStack.length - lenBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain);
     ++loops;
-  } while (removed && !emptyDomain);
+  } while (!emptyDomain && changes);
 
   ASSERT_LOG2('## exit cutter');
   if (emptyDomain) return -1;
@@ -193,6 +193,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       domains[varIndex] = domain_createValue(v);
     }
     return v;
+  }
+
+  function somethingChanged() {
+    ++changes;
   }
 
   function cutNeq() {
@@ -256,6 +260,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -272,6 +277,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -350,6 +356,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       bounty_markVar(bounty, indexR);
+      somethingChanged();
       return;
     }
 
@@ -376,6 +383,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -414,6 +422,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       bounty_markVar(bounty, indexR);
+      somethingChanged();
       return;
     }
 
@@ -439,6 +448,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -477,6 +487,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       bounty_markVar(bounty, indexR);
+      somethingChanged();
       return;
     }
 
@@ -503,6 +514,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -530,6 +542,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -538,7 +551,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   }
 
   function cutIsLte(ml, offset, sizeof, lenA, lenB) {
-    ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
+    ASSERT(1 + lenA + lenB + 2 === sizeof, 'expecting this sizeof', 1 + 2 + lenB + 2, sizeof, lenA, lenB);
     let indexA;
     let indexB;
     let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
@@ -568,6 +581,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       bounty_markVar(bounty, indexR);
+      somethingChanged();
       return;
     }
 
@@ -594,6 +608,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -621,6 +636,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_eliminate(ml, offset, sizeof);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return;
       }
     }
@@ -683,6 +699,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return true;
       }
 
@@ -705,6 +722,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
           ml_vvv2vv(ml, offset, ML_VV_OR, indexA, indexB);
           bounty_markVar(bounty, indexR);
+          somethingChanged();
           return true;
         }
 
@@ -726,6 +744,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
           ml_vvv2vv(ml, offset, ML_VV_NAND, indexA, indexB);
           bounty_markVar(bounty, indexR);
+          somethingChanged();
           return true;
         }
       }
@@ -765,6 +784,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           ml_eliminate(ml, otherOffset, SIZEOF_V8V);
           // R=A+B, S=R==?2  ->  S=isall(A,B). so only the count for R is reduced
           bounty_markVar(bounty, indexR);
+          somethingChanged();
+          return true;
         }
       }
     }
@@ -805,6 +826,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexR);
+        somethingChanged();
         return true;
       }
     }
@@ -861,6 +883,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
         ml_eliminate(ml, pc, SIZEOF_C8 + len * 2 + 2);
         bounty_markVar(bounty, indexR); // args already done in above loop
+        somethingChanged();
         return;
       }
 
@@ -891,6 +914,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         }
         ml_jump(ml, offset + SIZEOF_COUNT + len * 2, 3); // result var (16bit) and the constant (8bit). for the rest nall is same as sum
         bounty_markVar(bounty, indexR); // args already done in above loop
+        somethingChanged();
         return;
       }
     }
@@ -952,6 +976,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
           // R=sum(args), S=R==?2  ->  S=isall(args). so only the count for R is reduced
           bounty_markVar(bounty, indexR);
+          somethingChanged();
           return;
         }
       }
@@ -984,6 +1009,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1002,6 +1028,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1033,6 +1060,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1052,6 +1080,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1083,6 +1112,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1102,6 +1132,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1120,13 +1151,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 2) {
       if ((metaA & BOUNTY_LTE_LHS) && trickNandLteLhs(indexA, pc, 'nand')) return;
-      if ((metaA & BOUNTY_ISALL_RESULT) && trickNandIsall(indexA, pc, 'nand')) return;
     }
 
     if (countsB === 2) {
       if ((metaB & BOUNTY_LTE_LHS) && trickNandLteLhs(indexB, pc, 'nand')) return;
-      if ((metaB & BOUNTY_ISALL_RESULT) && trickNandIsall(indexB, pc, 'nand')) return;
     }
+
+    if ((metaA & BOUNTY_ISALL_RESULT) && trickNandIsall(indexA, indexB, pc)) return;
+    if ((metaB & BOUNTY_ISALL_RESULT) && trickNandIsall(indexB, indexA, pc)) return;
 
     pc += SIZEOF_VV;
   }
@@ -1157,6 +1189,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1177,6 +1210,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       ml_eliminate(ml, pc, SIZEOF_VV);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
+      somethingChanged();
       return;
     }
 
@@ -1226,6 +1260,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       // we can add the count of E to that of K and subtract two for eliminating this constraint (due to alias is now identity hence -2)
       bounty_markVar(bounty, indexK);
       bounty_markVar(bounty, indexE);
+      somethingChanged();
       return;
     }
 
@@ -1269,15 +1304,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       for (let i = 0; i < len; ++i) {
         bounty_markVar(bounty, args[i]);
       }
+      somethingChanged();
 
       return;
     }
 
     if (countsR === 2) {
       let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
-      if ((metaR & BOUNTY_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_COUNT + len * 2 + 2;
@@ -1307,14 +1341,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       bounty_markVar(bounty, indexR);
+      somethingChanged();
       return;
     }
 
     if (countsR === 2) {
       let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
-      if ((metaR & BOUNTY_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
     }
 
     pc += SIZEOF_VVV;
@@ -1357,6 +1390,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       for (let i = 0; i < len; ++i) {
         bounty_markVar(bounty, args[i]);
       }
+      somethingChanged();
       return;
     }
 
@@ -1392,6 +1426,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_eliminate(ml, pc, SIZEOF_VV);
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
+    somethingChanged();
   }
 
   function leafLteLhs(ml, indexA, indexB) {
@@ -1407,6 +1442,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_eliminate(ml, pc, SIZEOF_VV);
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
+    somethingChanged();
   }
 
   function leafLteRhs(ml, indexA, indexB) {
@@ -1422,6 +1458,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_eliminate(ml, pc, SIZEOF_VV);
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
+    somethingChanged();
   }
 
   function trickLteLhsTwice(varIndex, offset, meta) {
@@ -1429,8 +1466,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let offset2 = bounty_getOffset(bounty, varIndex, 1);
     ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex, meta);
 
-    // this var gets marked whether we return true or false so do it immediately
-    bounty_markVar(bounty, varIndex);
 
     ASSERT_LOG2('trickLteLhsTwice', varIndex, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', meta);
 
@@ -1477,21 +1512,21 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       domains[varIndex] = domain_removeGtUnsafe(domain_removeGtUnsafe(domains[varIndex], force(indexB1)), force(indexB2));
     });
 
+    bounty_markVar(bounty, varIndex);
     bounty_markVar(bounty, indexB1);
     bounty_markVar(bounty, indexB2);
+    somethingChanged();
     return true;
   }
 
-  function trickIsallLteRhs(varIndex, offset, forOp) {
+  function trickIsallLteRhs(varIndex, lteOffset) {
     let offset1 = bounty_getOffset(bounty, varIndex, 0);
     let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
+    ASSERT(lteOffset === offset1 || lteOffset === offset2, 'expecting current offset to be one of the two offsets found', lteOffset, varIndex);
 
-    ASSERT_LOG2('trickIsallLteRhs', varIndex, forOp, 'at', offset, '->', offset1, offset2);
+    ASSERT_LOG2('trickIsallLteRhs', varIndex, 'at', lteOffset, '->', offset1, offset2);
 
-    bounty_markVar(bounty, varIndex); // this happens for any code branch
-
-    return _trickIsallLteRhs(varIndex, (forOp === 'lte' && offset === offset1) ? offset1 : offset2, (forOp !== 'lte' && offset === offset1) ? offset1 : offset2);
+    return _trickIsallLteRhs(varIndex, lteOffset, lteOffset === offset1 ? offset2 : offset1);
   }
   function _trickIsallLteRhs(varIndex, lteOffset, isallOffset) {
     // we can replace an isall and lte with ltes on the args of the isall
@@ -1546,6 +1581,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           bounty_markVar(bounty, indexA);
           bounty_markVar(bounty, left); // C
           bounty_markVar(bounty, right); // D
+          bounty_markVar(bounty, varIndex);
+          somethingChanged();
 
           return trickIsallLteRhsDeferShared(varIndex, indexA);
         }
@@ -1616,6 +1653,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
         // the other vars were marked in the last loop
         bounty_markVar(bounty, indexA);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
 
         ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
         return trickIsallLteRhsDeferShared(varIndex, indexA);
@@ -1639,6 +1678,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         ml_vvv2vv(ml, isallOffset, ML_VV_LTE, varIndex, right);
         bounty_markVar(bounty, left);
         bounty_markVar(bounty, right);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
 
         return trickIsallLteRhsDeferShared(varIndex, indexA);
       }
@@ -1667,8 +1708,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let offset1 = bounty_getOffset(bounty, varIndex, 0);
     let offset2 = bounty_getOffset(bounty, varIndex, 1);
     ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
-
-    bounty_markVar(bounty, varIndex); // happens in any code branch
 
     ASSERT_LOG2('trickIsallNall', varIndex, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', bounty_getMeta(bounty, varIndex));
 
@@ -1738,6 +1777,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexD);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexA === indexD) {
@@ -1746,6 +1787,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexB === indexC) {
@@ -1754,6 +1797,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexD);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexB === indexD) {
@@ -1762,6 +1807,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
     }
@@ -1816,6 +1863,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexD);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexA === indexD) {
@@ -1824,6 +1873,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexB === indexC) {
@@ -1832,6 +1883,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
       if (indexB === indexD) {
@@ -1840,6 +1893,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, varIndex);
+        somethingChanged();
         return true;
       }
     }
@@ -1851,8 +1906,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     let offset1 = bounty_getOffset(bounty, varIndex, 0);
     let offset2 = bounty_getOffset(bounty, varIndex, 1);
     ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
-
-    bounty_markVar(bounty, varIndex); // happens in any code branch
 
     // this should be `A <= B, A !& C`. A is a leaf var, eliminate both constraints and defer A.
 
@@ -1914,182 +1967,124 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // we eliminated both constraints so all vars involved decount
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, varIndex);
+    somethingChanged();
     return true;
   }
 
-  function trickNandIsall(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
+  function trickNandIsall(indexX, indexY, nandOffset) {
+    // given is the nand offset. find the isall offset
 
-    bounty_markVar(bounty, varIndex); // happens in any code branch
+    ASSERT_LOG2('trickNandIsall; X !& B, X = all?(C D)   ->   nall(B C D)');
 
-    ASSERT_LOG2('trickNandIsall', varIndex, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', bounty_getMeta(bounty, varIndex));
+    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+      let offset = bounty_getOffset(bounty, indexX, i);
+      if (!offset) break;
 
-    // this should be `R = all?(A B), R !& C. it rewrites to `nall(A B C)` and R is a leaf var
-
-    let nandOffset = (forOp === 'nand' && offset === offset1) ? offset1 : offset2;
-    let isallOffset = (forOp !== 'nand' && offset === offset1) ? offset1 : offset2;
-
-    ASSERT_LOG2(' - checking nand offset', ml_dec8(ml, nandOffset) === ML_VV_NAND);
-    if (ml_dec8(ml, nandOffset) !== ML_VV_NAND) {
-      ASSERT_LOG2(' - op wasnt nand so bailing');
-      return false;
+      let op = ml_dec8(ml, offset);
+      if (op === ML_ISALL) {
+        return trickNandIsall1(indexX, indexY, nandOffset, offset);
+      } else if (op === ML_ISALL2) {
+        return trickNandIsall2(indexX, indexY, nandOffset, offset);
+      }
     }
-
-    let nandA = ml_dec16(ml, nandOffset + 1);
-    let nandB = ml_dec16(ml, nandOffset + 3);
-
-    let indexC = nandA;
-    if (nandA === varIndex) {
-      indexC = nandB;
-    } else if (nandB !== varIndex) {
-      ASSERT_LOG2(' - shared var should be part of the nand but wasnt, probably old addr');
-      return false;
-    }
-
-    indexC = getFinalIndex(indexC);
-
-    ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexC =', indexC);
-    if (ml_dec8(ml, isallOffset) === ML_ISALL) {
-      let len = ml_dec16(ml, isallOffset + 1);
-      if (ml_dec16(ml, isallOffset + SIZEOF_COUNT + len * 2) !== varIndex) {
-        ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
-        return false;
-      }
-
-      let args = []; // rare reason for an array
-      for (let i = 0; i < len; ++i) {
-        let index = getFinalIndex(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
-        args.push(index);
-        bounty_markVar(bounty, index);
-      }
-
-      ASSERT_LOG2(' - shared:', varIndex, ', nand args:', nandA, nandB, ', isall args:', args);
-      ASSERT_LOG2(' - morphing  `R = all?(A B), R !& C` to `nall(A B C)`');
-
-      // move all vars to the nall
-      // the isall is a count with result. just replace the result with indexC, inc the len, and compile a nall instead
-      // then we'll want to sort the args
-
-      ml_enc8(ml, isallOffset, ML_NALL);
-      ml_enc16(ml, isallOffset + 1, len + 1);
-      ml_enc16(ml, isallOffset + SIZEOF_COUNT + len * 2, indexC);
-      ml_heapSort16bitInline(ml, isallOffset + SIZEOF_COUNT, len + 1);
-
-      // eliminate the old nand, we wont need it anymore
-      ml_eliminate(ml, nandOffset, SIZEOF_VV);
-
-      ASSERT_LOG2(' - R is a leaf constraint, defer it', varIndex);
-
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - nand + isall;', indexC, '!&', varIndex, '  ->  ', domain__debug(domains[indexC]), '!=', domain__debug(domains[varIndex]));
-        ASSERT_LOG2(' - nand + isall;', varIndex, '= all?(', args, ')  ->  ', domain__debug(domains[varIndex]), ' = all?(', args.map(index => domain__debug(domains[index])), ')');
-
-        // loop twice: once without forcing to scan for a zero or all-non-zero. second time forces all args.
-
-        let determined = true;
-        for (let i = 0; i < args.length; ++i) {
-          let index = args[i];
-          if (domain_isZero(domains[index])) {
-            domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-            return; // done
-          }
-
-          if (!domain_hasNoZero(domains[index])) {
-            determined = false;
-            break;
-          }
-        }
-        if (!determined) {
-          for (let i = 0; i < args.length; ++i) {
-            if (force(args[i]) === 0) {
-              domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-              return; // done
-            }
-          }
-        }
-        // either all args already were non-zero or none were zero when forced: isall holds so R>0
-        domains[varIndex] = domain_removeValue(domains[varIndex], 0);
-      });
-
-      return true;
-    }
-
-    if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
-      let isallA = getFinalIndex(ml_dec16(ml, isallOffset + 1));
-      let isallB = getFinalIndex(ml_dec16(ml, isallOffset + 3));
-
-      if (ml_dec16(ml, isallOffset + 5) !== varIndex) {
-        ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
-        return false;
-      }
-
-      ASSERT_LOG2(' - shared:', varIndex, ', nand args:', nandA, nandB, ', isall args:', isallA, isallB);
-      ASSERT_LOG2(' - morphing  `R = all?(A B), R !& C` to `nall(A B C)`');
-
-      // isall2 has 3 spots (sizeof=7). the nall requires a sizeof_count for len=3 (sizeof=9). we'll need to recycle
-      let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
-      if (recycleOffset === undefined) {
-        ASSERT_LOG2(' - no free spot to compile this so skip it until we can morph');
-        return false;
-      }
-
-      ASSERT_LOG2(' - Recycling', recycleOffset, 'to a nall(ABC) with len=3 (=9)');
-
-      // sort the args quickly
-      let index1 = isallA;
-      let index2 = isallB;
-      let index3 = indexC;
-      let t;
-      if (index1 > index2) {
-        t = index2;
-        index2 = index1;
-        index1 = t;
-      }
-      if (index1 > index3) {
-        t = index3;
-        index3 = index1;
-        index1 = t;
-      }
-      if (index2 > index3) {
-        t = index3;
-        index3 = index2;
-        index2 = t;
-      }
-
-      ml_recycleC3(ml, recycleOffset, ML_NALL, index1, index2, index3);
-      ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
-      // remove the old ops
-      ml_eliminate(ml, isallOffset, SIZEOF_VVV);
-      ml_eliminate(ml, nandOffset, SIZEOF_VV);
-
-      ASSERT_LOG2(' - R is a leaf constraint, defer it', varIndex);
-
-      solveStack.push(domains => {
-        ASSERT_LOG2(' - nand + isall;', indexC, '!&', varIndex, '  ->  ', domain__debug(domains[indexC]), '!=', domain__debug(domains[varIndex]));
-        ASSERT_LOG2(' - nand + isall;', varIndex, '= all?(', isallA, isallB, ')  ->  ', domain__debug(domains[varIndex]), ' = all?(', domain__debug(domains[isallA]), domain__debug(domains[isallB]), ')');
-
-        // loop twice: once without forcing to scan for a zero or all-non-zero. second time forces all args.
-
-        if (domain_isZero(domains[isallA]) || domain_isZero(domains[isallA])) {
-          domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-        } else if (domain_hasNoZero(domains[isallA]) && domain_hasNoZero(domains[isallA])) {
-          domains[varIndex] = domain_removeValue(domains[varIndex], 0);
-        } else if (force(isallA) === 0 || force(isallA) === 0) {
-          domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-        } else {
-          domains[varIndex] = domain_removeValue(domains[varIndex], 0);
-        }
-      });
-
-      bounty_markVar(bounty, isallA);
-      bounty_markVar(bounty, isallB);
-      bounty_markVar(bounty, indexC);
-      return true;
-    }
-
+    ASSERT_LOG2(' - none of the tracked offsets was an isall, bailing');
     return false;
+  }
+  function trickNandIsall1(indexX, indexY, nandOffset, isallOffset) {
+    // morph the nand to a nall on Y and the args of the isall. keep the isall, remove the nand
+
+    ASSERT_LOG2(' - trickNandIsall1', indexX, indexY, nandOffset, isallOffset);
+
+    let count = ml_dec16(ml, isallOffset + 1);
+    let indexR = ml_dec16(ml, isallOffset + SIZEOF_COUNT + count * 2);
+    if (indexR !== indexX) {
+      ASSERT_LOG2(' - isall mismatch; indexR != indexX, bailing');
+      return false;
+    }
+
+    // the nall wont fit in the nand and we want to keep the isall, so we need more space
+    let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
+    if (recycleOffset === undefined) {
+      ASSERT_LOG2(' - no free spot to compile this so skip it until we can morph');
+      return false;
+    }
+    let recycleSize = ml_getOpSizeSlow(ml, recycleOffset);
+
+    ASSERT_LOG2(' - okay! R=X and we were able to recycle enough space. lets morph');
+
+    // note: the isall args remain the same. we only have to update the op (-> nall), count (-> +1), and R (-> Y)
+    // we must also sort the args afterwards
+
+    ml_enc8(ml, recycleOffset, ML_NALL);
+    ml_enc16(ml, recycleOffset + 1, count + 1);
+    // copy the isall args. also mark them
+    for (let i = 0; i < count; ++i) {
+      let index = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      ml_enc16(ml, recycleOffset + SIZEOF_COUNT + i * 2, index);
+      bounty_markVar(bounty, index);
+    }
+    ml_enc16(ml, recycleOffset + SIZEOF_COUNT + count * 2, indexY);
+    ml_heapSort16bitInline(ml, recycleOffset + SIZEOF_COUNT, count + 1);
+    let opsize = SIZEOF_COUNT + count * 2 + 2;
+    let skipSize = recycleSize - opsize;
+    if (skipSize) ml_skip(ml, recycleOffset + opsize, skipSize);
+    ASSERT(ml_validateSkeleton(ml, 'check isall1 to nall transform'));
+
+    ml_eliminate(ml, nandOffset, SIZEOF_VV);
+
+    // isall args are already marked. now mark the nand args too.
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    somethingChanged();
+
+    return true;
+  }
+  function trickNandIsall2(indexX, indexY, nandOffset, isallOffset) {
+    // combine nand and isall. morph the isall to a nall of all args except X. remove the nand
+
+    ASSERT_LOG2(' - trickNandIsall2', indexX, indexY, nandOffset, isallOffset);
+
+    let indexR = ml_dec16(ml, isallOffset + 5);
+    if (indexR !== indexX) {
+      ASSERT_LOG2(' - isall mismatch; indexR != indexX, bailing');
+      return false;
+    }
+
+    // isall2 has 3 spots (sizeof=7). the nall requires a sizeof_count for len=3 (sizeof=9). we'll need to recycle
+    let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
+    if (recycleOffset === undefined) {
+      ASSERT_LOG2(' - no free spot to compile this so skip it until we can morph');
+      return false;
+    }
+
+    let recycleSize = ml_getOpSizeSlow(ml, recycleOffset);
+
+    let indexA = ml_dec16(ml, isallOffset + 1);
+    let indexB = ml_dec16(ml, isallOffset + 3);
+
+    ASSERT(ml_validateSkeleton(ml, 'double check...'));
+    ml_enc8(ml, recycleOffset, ML_NALL);
+    ml_enc16(ml, recycleOffset + 1, 3);
+    ml_enc16(ml, recycleOffset + 3, indexY);
+    ml_enc16(ml, recycleOffset + 5, indexA);
+    ml_enc16(ml, recycleOffset + 7, indexB);
+    ml_heapSort16bitInline(ml, recycleOffset + SIZEOF_COUNT, 3);
+    let opsize = SIZEOF_COUNT + 3 * 2;
+    let skipSize = recycleSize - opsize;
+    if (skipSize) ml_skip(ml, recycleOffset + opsize, skipSize);
+    ASSERT(ml_validateSkeleton(ml, 'check isall2 to nall transform'));
+
+    ml_eliminate(ml, nandOffset, SIZEOF_VV);
+
+    // mark all affected vars as tainted.
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    somethingChanged();
+
+    return true;
   }
 
   function trickLteLhsIsallShared(indexX, lteOffset) {
@@ -2147,6 +2142,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_eliminate(ml, lteOffset, SIZEOF_VV);
     bounty_markVar(bounty, indexX);
     bounty_markVar(bounty, indexY);
+    somethingChanged();
 
     return true;
   }
@@ -2178,6 +2174,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_eliminate(ml, lteOffset, SIZEOF_VV);
     bounty_markVar(bounty, indexX);
     bounty_markVar(bounty, indexY);
+    somethingChanged();
 
     return true;
   }
@@ -2200,8 +2197,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // first we need to validate. we can only have one neq
 
     ASSERT_LOG2('trickNeqElimination', indexX);
-
-    bounty_markVar(bounty, indexX); // happens in any code branch
 
     if (!domain_isBool(domains[getFinalIndex(indexX)])) {
       ASSERT_LOG2(' - X is non-bool, bailing');
@@ -2357,7 +2352,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT(ml_validateSkeleton(ml, 'check after or offsets'));
 
     ml_eliminate(ml, neqOffset, SIZEOF_VV);
-    bounty_markVar(bounty, indexY);
 
     ASSERT(ml_validateSkeleton(ml, 'make sure the morphs went okay'));
 
@@ -2368,13 +2362,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       domains[indexX] = domain_removeValue(domains[indexX], force(indexY));
     });
 
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    somethingChanged();
     return true;
   }
 
   function trickNandOnly(indexX) {
     ASSERT_LOG2('trickNandOnly', indexX);
-
-    bounty_markVar(bounty, indexX); // happens in any code branch
 
     let offsets = []; // to eliminate
     let indexes = []; // to mark and to defer solve
@@ -2434,14 +2429,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT(ml_validateSkeleton(ml, 'make sure the elimination went okay'));
 
+    bounty_markVar(bounty, indexX);
+    somethingChanged();
+
     return true;
   }
 
   function trickOrLteLhsNands(indexX) {
     ASSERT_LOG2('trickOrLteLhsNands', indexX);
     // A !& X, X <= B, X | C    ->     B | C, A <= C
-
-    bounty_markVar(bounty, indexX); // happens in any code branch
 
     let lteOffset;
     let orOffset;
@@ -2497,8 +2493,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // the A <= C for all nand args (all <= C)
 
     ml_vv2vv(ml, lteOffset, ML_VV_OR, indexB, indexC);
-    bounty_markVar(bounty, indexB);
-    bounty_markVar(bounty, indexC);
     ml_eliminate(ml, orOffset, SIZEOF_VV);
     for (let i = 0, len = indexesA.length; i < len; ++i) {
       let indexA = indexesA[i];
@@ -2527,6 +2521,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     });
     ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
     ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+lte+nands'));
+
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    bounty_markVar(bounty, indexX);
+    somethingChanged();
+    return true;
   }
 
   function trickOrNandLteBoth(indexX) {
@@ -2534,8 +2534,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     // A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B
     // if we can model `A !& C, A <= D` in one constraint then we should do so but I couldn't find one
     // (when more lte's are added, that's the pattern we add for each)
-
-    bounty_markVar(bounty, indexX); // happens in any code branch
 
     // we should have; lteRhs, lteLhs, nand, or
     let lteLhsOffset;
@@ -2607,10 +2605,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_vv2vv(ml, lteRhsOffset, ML_VV_OR, indexB, indexD);
     ml_vv2vv(ml, orOffset, ML_VV_LTE, indexA, indexD);
     ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexC, indexD);
-    bounty_markVar(bounty, indexA);
-    bounty_markVar(bounty, indexB);
-    bounty_markVar(bounty, indexC);
-    bounty_markVar(bounty, indexD);
 
     ASSERT_LOG2('   - X is a leaf var', indexX);
     solveStack.push(domains => {
@@ -2629,6 +2623,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     });
     ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
     ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+nand+lte_lhs+lte_rhs'));
+
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexC);
+    bounty_markVar(bounty, indexD);
+    bounty_markVar(bounty, indexX);
+    somethingChanged();
+    return true;
   }
 
   function cutLoop() {

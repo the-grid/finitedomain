@@ -298,7 +298,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     if (countsA === 2) {
       let metaA = bounty_getMeta(bounty, indexA);
       if ((metaA & BOUNTY_NAND) && trickNandLteLhs(indexA, pc, 'lte')) return;
-      if ((metaA & BOUNTY_ISALL_RESULT) && trickIsallLteLhs(indexA, pc, 'lte')) return;
       // note: if it wasnt 2x lte then the flag would contain, at least, another flag as well.
       if (metaA === (BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY) && trickLteLhsTwice(indexA, pc, 'lte', metaA)) return;
     }
@@ -1280,7 +1279,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsR === 2) {
       let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
@@ -1318,7 +1316,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsR === 2) {
       let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_LTE_LHS) && trickIsallLteLhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_LTE_RHS) && trickIsallLteRhs(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
       if ((metaR & BOUNTY_NAND) && trickNandIsall(indexR, pc, 'isall')) return;
@@ -1667,139 +1664,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${lteIndex} <= ${varIndex}`));
 
     // revisit this op, it is now an lte
-    return true;
-  }
-
-  function trickIsallLteLhs(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
-
-    ASSERT_LOG2('trickIsallLteLhs', varIndex, forOp, 'at', offset, '->', offset1, offset2);
-
-    bounty_markVar(bounty, varIndex); // happens in any code branch
-
-    // this should be `A <= B, A = all?(C D ...)`. A is a leaf var, the other vars become a nall
-    // put the nall in place of the isall. should have sufficient space. eliminate the lte.
-
-    let lteOffset = (forOp === 'lte' && offset === offset1) ? offset1 : offset2;
-    let isallOffset = (forOp !== 'lte' && offset === offset1) ? offset1 : offset2;
-
-    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
-    if (ml_dec8(ml, lteOffset) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - did not match. bailing');
-      return false;
-    }
-
-    if (ml_dec16(ml, lteOffset + 1) !== varIndex) {
-      ASSERT_LOG2(' - shared var should be left var of the lte but wasnt, this is probably an old addr');
-      return false;
-    }
-
-    let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
-
-    ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexA =', indexB);
-    if (ml_dec8(ml, isallOffset) === ML_ISALL) {
-      let len = ml_dec16(ml, isallOffset + 1);
-      if (varIndex !== ml_dec16(ml, isallOffset + 3 + len * 2)) {
-        ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
-        return false;
-      }
-
-      ASSERT_LOG2(' - rewriting A <= B, A = isall(C D)  ->  nall(B C D)');
-      ASSERT_LOG2(' - collecting', len, 'args and asserting strict boolean domains', domain_isBool(domains[varIndex]), domain__debug(domains[indexB]));
-
-      let args = []; // rare array... but we need the indexes to defer the solution
-      for (let i = 0; i < len; ++i) {
-        let index = getFinalIndex(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
-        // only safe on bools (without more thorough complex checks)
-        if (!domain_isBool(domains[index])) {
-          ASSERT_LOG2(' - at least one arg wasnt bool. bailing');
-          return false;
-        }
-        args.push(index);
-      }
-
-      if (domain_isBool(domains[varIndex]) && domain_isBool(domains[indexB])) {
-        ASSERT_LOG2(' - ok, eliminating constraints, deferring', varIndex, '= nall(', indexB, args, ') --> ', domain__debug(domains[varIndex]), '= nall(', domain__debug(domains[indexB]), args.map(index => domain__debug(domains[index])), ')');
-
-        ml_eliminate(ml, lteOffset, SIZEOF_VV);
-
-        // rewrite the isall to a nall and be a little clever;
-        // we want the rhs of the LTE to be part of the nall and
-        // we want the original args of the isall to be part of the nall
-        // so all we have to do is copy the rhs over the result and extend
-        // the count by one, and replace the opcode of course.
-        ml_enc8(ml, isallOffset, ML_NALL);
-        ml_enc16(ml, isallOffset + 1, len + 1);
-        ml_enc16(ml, isallOffset + 3 + len * 2, indexB);
-        // and now the NALL should be `nall(indexB, args...)` with no space left
-
-        return trickIsallLteLhsDeferShared(varIndex, indexB, args);
-      }
-    }
-
-    if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
-      ASSERT_LOG2(' - isall2, need to recycle now because isall2 is a vvv (sizeof 7) and we need sizeof 9');
-
-      if (varIndex !== ml_dec16(ml, isallOffset + 5)) {
-        ASSERT_LOG2(' - shared var should be R of isall but wasnt, probably old addr');
-        return false;
-      }
-
-      let leftIndex = getFinalIndex(ml_dec16(ml, isallOffset, 1));
-      let rightIndex = getFinalIndex(ml_dec16(ml, isallOffset, 3));
-
-      if (domain_isBool(domains[varIndex]) && domain_isBool(domains[indexB]) && domain_isBool(domains[leftIndex]) && domain_isBool(domains[rightIndex])) {
-        ASSERT_LOG2(' - ok, eliminating constraints, deferring', varIndex, '= nall(', indexB, leftIndex, rightIndex, ') --> ', domain__debug(domains[varIndex]), '= nall(', domain__debug(domains[indexB]), domain__debug(domains[leftIndex]), domain__debug(domains[rightIndex]), ')');
-
-        // rewrite vvv to c with len=3
-        // this means the op grows in size so we must recycle
-        let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
-        if (recycleOffset === undefined) return; // no free spot to compile this so skip it until we can morph
-
-        ASSERT_LOG2(' - Recycling', recycleOffset, 'to a nall(ABC) with len=3 (=9)');
-
-        ml_recycleC3(ml, recycleOffset, ML_NALL, indexB, leftIndex, rightIndex);
-        ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
-        // remove the old ops
-        ml_eliminate(ml, isallOffset, SIZEOF_VVV);
-        ml_eliminate(ml, lteOffset, SIZEOF_VV);
-
-        return trickIsallLteLhsDeferShared(varIndex, indexB, [leftIndex, rightIndex]);
-      }
-    }
-
-    ASSERT_LOG2(' - no change');
-    return false;
-  }
-  function trickIsallLteLhsDeferShared(varIndex, indexB, args) {
-    ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
-
-    solveStack.push(domains => {
-      ASSERT_LOG2(' - isall + lte-lhs;', varIndex, args);
-      // if the lte rhs solved to zero, set the shared var to zero
-      // otherwise reflect the state if isall on the other args
-      if (domain_isZero(domains[indexB])) {
-        domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-      } else {
-        let hadZero = false;
-        for (let i = 0, len = args.length; i < len + 1; ++i) {
-          let index = getFinalIndex(args[i]);
-          if (force(index) === 0) {
-            domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], 0);
-            hadZero = true;
-            break;
-          }
-        }
-        if (!hadZero) domains[varIndex] = domain_removeValue(domains[varIndex], 0);
-      }
-    });
-
-    for (let i = 0, len = args.length; i < len; ++i) {
-      bounty_markVar(bounty, args[i]);
-    }
-    bounty_markVar(bounty, indexB);
     return true;
   }
 

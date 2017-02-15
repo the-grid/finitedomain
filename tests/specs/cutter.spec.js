@@ -502,7 +502,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte_lhs+isall_r trick', function() {
+  describe.skip('lte_lhs+isall_r trick', function() {
 
     it('should eliminate base case of an lte-lhs and isall-r', function() {
       expect(_ => solverSolver(`
@@ -1055,7 +1055,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe.only('trick lte_lhs+isall with two shared vars', function() {
+  describe('trick lte_lhs+isall with two shared vars', function() {
 
     it('should remove lte if isall subsumes it', function() {
       expect(_ => solverSolver(`

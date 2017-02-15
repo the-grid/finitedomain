@@ -574,6 +574,7 @@ function ml_validateSkeleton(ml, msg) {
   });
 
   if (!started || !stopped) THROW('ml_validateSkeleton: Did not find a ML_START or ML_STOP');
+  ASSERT_LOG2('--- PASS ml_validateSkeleton');
   return true;
 }
 
@@ -1116,7 +1117,7 @@ function ml_heapSort16bitInline(ml, offset, len) {
     ml_heapRepair(ml, offset, 0, end);
   }
 
-  ASSERT_LOG2('     - values after:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
+  ASSERT_LOG2('     - values after:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '), 'buf:', ml.slice(offset, offset + len * 2));
 }
 function ml_heapParent(index) {
   return Math.floor((index - 1) / 2);

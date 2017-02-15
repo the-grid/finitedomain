@@ -157,6 +157,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
           if (!m) m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )?(?:_\w+_|\d+) (\S+) (?:_\w+_|\d+)/);
           ++count;
           if (m) return m[1];
+          else if (allParts[partIndex].match(/^\s*nall\(/)) return 'nall';
           else return '???';
         }).sort((a, b) => a < b ? -1 : 1).join(' ') + ' $'));
 
@@ -740,7 +741,7 @@ ${varDecls}
 
         case ML_DEBUG:
           ASSERT_LOG2(' ! debug');
-          part = '@custom noleaf _' + m2d_dec16().toString(36) + '_';
+          part = '@custom noleaf _' + m2d_dec16().toString(36) + '_\n';
           break;
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');

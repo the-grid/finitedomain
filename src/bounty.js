@@ -112,9 +112,10 @@ ASSERT(bounty_flagCounter <= 16, 'can only run with 16 flags, or must increase f
 const BOUNTY_LINK_COUNT = 1; // should it simply trunc over 255?
 const BOUNTY_META_FLAGS = 16; // steps of 8 (bits per byte)
 const BOUNTY_MAX_OFFSETS_TO_TRACK = 20; // perf case bounty size when this is: 5->1mb, 20->3mb
+const BOUNTY_BYTES_PER_OFFSET = 4;
 
 const BOUNTY_SIZEOF_HEADER = BOUNTY_LINK_COUNT + (BOUNTY_META_FLAGS / 2);
-const BOUNTY_SIZEOF_OFFSETS = BOUNTY_MAX_OFFSETS_TO_TRACK * 4; // need to store 32bit per offset (more like 24 but whatever)
+const BOUNTY_SIZEOF_OFFSETS = BOUNTY_MAX_OFFSETS_TO_TRACK * BOUNTY_BYTES_PER_OFFSET; // need to store 32bit per offset (more like 24 but whatever)
 const BOUNTY_SIZEOF_VAR = BOUNTY_SIZEOF_HEADER + BOUNTY_SIZEOF_OFFSETS;
 
 /**
@@ -183,7 +184,7 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
 
     let offsetsOffset = getOffsetsOffset(index);
     for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
-      let nextOffset = offsetsOffset + (i * 4);
+      let nextOffset = offsetsOffset + (i * BOUNTY_BYTES_PER_OFFSET);
       ASSERT_LOG2('  - reading/writing from', nextOffset, 'i=', i);
       if (!bounty.readUInt32BE(nextOffset)) {
         ASSERT_LOG2('  - putting at', nextOffset, 'i=', i);
@@ -506,7 +507,7 @@ function bounty_updateMeta(bounty, varIndex, newFlags) {
 
 function bounty_getOffset(bounty, varIndex, n) {
   ASSERT(n < BOUNTY_MAX_OFFSETS_TO_TRACK, 'OOB, shouldnt exceed the max offset count');
-  return bounty.readUInt32BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_SIZEOF_HEADER + n * 4);
+  return bounty.readUInt32BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_SIZEOF_HEADER + n * BOUNTY_BYTES_PER_OFFSET);
 }
 
 

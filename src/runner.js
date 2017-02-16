@@ -6,6 +6,10 @@
 // exit
 
 import {
+  $CHANGED,
+  $REJECTED,
+  $SOLVED,
+  $STABLE,
   SUB,
   SUP,
 
@@ -26,9 +30,6 @@ import {
   mlToDsl,
 } from './mltodsl';
 import {
-  MINIMIZER_SOLVED,
-  MINIMIZER_REJECTED,
-
   min_run,
 } from './minimizer';
 import {
@@ -142,36 +143,42 @@ function solverSolver(dsl) {
   let deduperAddedAlias;
   let firstLoop = true;
   let cutLoops = 0;
-  do {
-    do {
-      ASSERT_LOG2('Minimizing ML...');
-      console.time('- minimizing ml');
-      let state = min_run(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
-      console.timeEnd('- minimizing ml');
+  let state = $CHANGED;
+  while (state === $CHANGED) {
+    ASSERT_LOG2('Minimizing ML...');
+    console.time('- minimizing ml');
+    state = min_run(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
+    console.timeEnd('- minimizing ml');
 
-      if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
-        console.time('ml->dsl:');
-        let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
-        console.timeEnd('ml->dsl:');
-        ASSERT_LOG2(newdsl);
-
-        if (state === MINIMIZER_SOLVED) return createSolution(vars, domains, getAlias, solveStack);
-        if (state === MINIMIZER_REJECTED) return false;
-      }
-
+    if (state === $CHANGED) {
       console.time('dedupe constraints:');
       deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
       console.timeEnd('dedupe constraints:');
-      firstLoop = false;
-    } while (deduperAddedAlias > 0);
 
-    if (deduperAddedAlias < 0) return false; // a contradiction was found... weird! but possible.
+      if (deduperAddedAlias < 0) state = $REJECTED; // a contradiction was found... weird! but possible.
+    }
 
-    console.time('cut leaf constraint:');
-    cutLoops = cutter(mlConstraints, vars, domains, addAlias, getAlias, solveStack);
-    console.timeEnd('cut leaf constraint:');
-    if (cutLoops < 0) return false;
-  } while (cutLoops > 1);
+    if (state === $CHANGED) {
+      console.time('cut leaf constraint:');
+      cutLoops = cutter(mlConstraints, vars, domains, addAlias, getAlias, solveStack);
+      console.timeEnd('cut leaf constraint:');
+
+      if (cutLoops < 0) return false;
+      else if (cutLoops > 1) state = $CHANGED;
+      else state = $STABLE;
+    }
+  }
+
+  if (state === $SOLVED || state === $REJECTED) {
+    console.time('ml->dsl:');
+    let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
+    console.timeEnd('ml->dsl:');
+    ASSERT_LOG2(newdsl);
+
+    if (state === $SOLVED) return createSolution(vars, domains, getAlias, solveStack);
+    if (state === $REJECTED) return false;
+  }
+
 
   console.time('ml->dsl (final):');
   let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));

@@ -3,6 +3,11 @@
 // or domains cut before actually generating their propagators
 
 import {
+  $CHANGED,
+  $REJECTED,
+  $SOLVED,
+  $STABLE,
+
   ASSERT,
   ASSERT_LOG2,
   THROW,
@@ -141,10 +146,6 @@ import {
 
 // BODY_START
 
-const MINIMIZER_STABLE = 0;
-const MINIMIZER_SOLVED = 1;
-const MINIMIZER_REJECTED = 2;
-
 const MINIMIZE_ALIASED = false;
 
 function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
@@ -152,16 +153,14 @@ function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAli
   ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
   let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
-  if (state === MINIMIZER_SOLVED) {
+  if (state === $SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
-    return state;
-  }
-  if (state === MINIMIZER_REJECTED) {
+  } else if (state === $REJECTED) {
     ASSERT_LOG2('minimizing rejected it!', state); // an empty domain was found or a literal failed a test
-    return state;
+  } else {
+    ASSERT_LOG2('pre-optimization finished, not yet solved');
   }
-  ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
-  ASSERT_LOG2('pre-optimization finished, not yet solved');
+  return state;
 }
 
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
@@ -191,14 +190,15 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     }
     console.timeEnd('-> loop ' + loops);
     console.log('   - ops this loop:', ops, 'constraints:', constraints);
-    if (emptyDomain) return MINIMIZER_REJECTED;
-    if (onlyJumps) return MINIMIZER_SOLVED;
+    if (emptyDomain) return $REJECTED;
+    if (onlyJumps) return $SOLVED;
 
     ASSERT_LOG2('intermediate state:');
     ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
     firstRun = false;
   }
-  return MINIMIZER_STABLE;
+  if (firstRun) return $STABLE;
+  return $CHANGED;
 
   function getDomainOrRestartForAlias(index, argDelta) {
     ASSERT(argDelta >= 0, 'expecting delta for compilation');
@@ -3650,10 +3650,6 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 // BODY_STOP
 
 export {
-  MINIMIZER_STABLE,
-  MINIMIZER_SOLVED,
-  MINIMIZER_REJECTED,
-
   min_run,
   min_optimizeConstraints,
 };

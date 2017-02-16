@@ -105,12 +105,12 @@ import {
  * @param {string} str
  * @param {Function} addVar
  * @param {Function} nameToIndex
- * @param {boolean} [_debug]
+ * @param {boolean} [_debug] Improved error reporting when true
  * @returns {string}
  */
 function dslToMl(str, addVar, nameToIndex, _debug) {
   let ret = {
-    ml: '',
+    mlString: '',
     varstrat: 'default',
     valstrat: 'default',
   };
@@ -123,7 +123,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   while (!isEof()) parseStatement();
 
-  ret.ml = ml + encode8bit(ML_STOP);
+  ret.mlString = ml + encode8bit(ML_STOP);
   console.log('# dslToMl: parsed', constraintCount, 'constraints');
   return ret;
 

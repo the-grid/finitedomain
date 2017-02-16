@@ -147,6 +147,23 @@ const MINIMIZER_REJECTED = 2;
 
 const MINIMIZE_ALIASED = false;
 
+function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
+  ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
+  ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
+  // now we can access the ml in terms of bytes, jeuj
+  let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
+  if (state === MINIMIZER_SOLVED) {
+    ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
+    return state;
+  }
+  if (state === MINIMIZER_REJECTED) {
+    ASSERT_LOG2('minimizing rejected it!', state); // an empty domain was found or a literal failed a test
+    return state;
+  }
+  ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
+  ASSERT_LOG2('pre-optimization finished, not yet solved');
+}
+
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
   console.log('minimize sweep, ml len=', ml.length);
@@ -3636,5 +3653,7 @@ export {
   MINIMIZER_STABLE,
   MINIMIZER_SOLVED,
   MINIMIZER_REJECTED,
+
+  min_run,
   min_optimizeConstraints,
 };

@@ -15,7 +15,6 @@ import {
   TRACE_ADD,
 } from './helpers';
 import {
-  ml__debug,
   ml_countConstraints,
   ml_getOpList,
   ml_hasConstraint,
@@ -27,11 +26,10 @@ import {
   mlToDsl,
 } from './mltodsl';
 import {
-  MINIMIZER_STABLE,
   MINIMIZER_SOLVED,
   MINIMIZER_REJECTED,
 
-  min_optimizeConstraints,
+  min_run,
 } from './minimizer';
 import {
   deduper,
@@ -138,7 +136,7 @@ function solverSolver(dsl) {
   let input = dslToMl(dsl, addVar, getVar);
   console.timeEnd(t);
 
-  let mls = input.ml;
+  let mls = input.mlString;
   let mlConstraints = Buffer.from(mls, 'binary');
 
   let deduperAddedAlias;
@@ -148,7 +146,7 @@ function solverSolver(dsl) {
     do {
       ASSERT_LOG2('Minimizing ML...');
       console.time('- minimizing ml');
-      let state = minimize(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
+      let state = min_run(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
       console.timeEnd('- minimizing ml');
 
       if (state === MINIMIZER_SOLVED || state === MINIMIZER_REJECTED) {
@@ -202,22 +200,6 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function minimize(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
-  ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
-  ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
-  // now we can access the ml in terms of bytes, jeuj
-  let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
-  if (state === MINIMIZER_SOLVED) {
-    ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
-    return state;
-  }
-  if (state === MINIMIZER_REJECTED) {
-    ASSERT_LOG2('minimizing rejected it!', state); // an empty domain was found or a literal failed a test
-    return state;
-  }
-  ASSERT(state === MINIMIZER_STABLE, 'must be one of three options', state);
-  ASSERT_LOG2('pre-optimization finished, not yet solved');
-}
 function createSolution(vars, domains, getAlias, solveStack) {
   function getDomain(index) {
     let d = domains[index];

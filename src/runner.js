@@ -132,69 +132,40 @@ function solverSolver(dsl) {
   }
 
   ASSERT_LOG2('Parsing DSL...');
-  let t = '- parsing dsl (' + dsl.length + ')';
-  console.time(t);
+  console.time('- dsl->ml (' + dsl.length + ')');
   let input = dslToMl(dsl, addVar, getVar);
-  console.timeEnd(t);
+  console.timeEnd('- dsl->ml (' + dsl.length + ')');
 
   let mls = input.mlString;
   let mlConstraints = Buffer.from(mls, 'binary');
 
-  let deduperAddedAlias;
-  let firstLoop = true;
-  let cutLoops = 0;
+  console.time('- all run cycles');
+  let runLoops = 0;
   let state = $CHANGED;
   while (state === $CHANGED) {
-    ASSERT_LOG2('Minimizing ML...');
-    console.time('- minimizing ml');
-    state = min_run(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, firstLoop);
-    console.timeEnd('- minimizing ml');
-
-    if (state === $CHANGED) {
-      console.time('dedupe constraints:');
-      deduperAddedAlias = deduper(mlConstraints, vars, domains, getAlias, addAlias);
-      console.timeEnd('dedupe constraints:');
-
-      if (deduperAddedAlias < 0) state = $REJECTED; // a contradiction was found... weird! but possible.
-    }
-
-    if (state === $CHANGED) {
-      console.time('cut leaf constraint:');
-      cutLoops = cutter(mlConstraints, vars, domains, addAlias, getAlias, solveStack);
-      console.timeEnd('cut leaf constraint:');
-
-      if (cutLoops < 0) return false;
-      else if (cutLoops > 1) state = $CHANGED;
-      else state = $STABLE;
-    }
+    ASSERT_LOG2('run loop...');
+    state = run_cycle(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops++);
   }
+  console.timeEnd('- all run cycles');
 
-  if (state === $SOLVED || state === $REJECTED) {
-    console.time('ml->dsl:');
-    let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack);
-    console.timeEnd('ml->dsl:');
-    ASSERT_LOG2(newdsl);
-
-    if (state === $SOLVED) return createSolution(vars, domains, getAlias, solveStack);
-    if (state === $REJECTED) return false;
-  }
-
-
-  console.time('ml->dsl (final):');
-  let newdsl2 = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
-  console.timeEnd('ml->dsl (final):');
-
-  console.time('generating solution:');
+  console.time('- generating solution');
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
-  if (!ml_hasConstraint(mlConstraints)) solution = createSolution(vars, domains, getAlias, solveStack);
-  console.timeEnd('generating solution:');
+  if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(mlConstraints))) {
+    solution = createSolution(vars, domains, getAlias, solveStack);
+  }
+  console.timeEnd('- generating solution');
+
+  console.time('ml->dsl');
+  let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
+  console.timeEnd('ml->dsl');
 
   console.timeEnd('</solverSolver>');
 
-  console.log(newdsl2);
+  console.log(newdsl);
 
   if (solution) return solution;
+  if (state === $REJECTED) return false;
 
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
@@ -206,6 +177,35 @@ function solverSolver(dsl) {
   return false;
 }
 let Solver = solverSolver; // TEMP
+
+function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops) {
+  console.time('- run_cycle #' + runLoops);
+
+  console.time('- minimizer cycle #' + runLoops);
+  let state = min_run(ml, getVar, addVar, domains, vars, addAlias, getAlias, runLoops === 0);
+  console.timeEnd('- minimizer cycle #' + runLoops);
+
+  if (state === $CHANGED) {
+    console.time('- deduper cycle #' + runLoops);
+    let deduperAddedAlias = deduper(ml, vars, domains, getAlias, addAlias);
+    console.timeEnd('- deduper cycle #' + runLoops);
+
+    if (deduperAddedAlias < 0) {
+      state = $REJECTED;
+    } else {
+      console.time('- cutter cycle #' + runLoops);
+      let cutLoops = cutter(ml, vars, domains, addAlias, getAlias, solveStack);
+      console.timeEnd('- cutter cycle #' + runLoops);
+
+      if (cutLoops > 1 || deduperAddedAlias) state = $CHANGED;
+      else if (cutLoops < 0) state = $REJECTED;
+      else state = $STABLE;
+    }
+  }
+
+  console.timeEnd('- run_cycle #' + runLoops);
+  return state;
+}
 
 function createSolution(vars, domains, getAlias, solveStack) {
   function getDomain(index) {

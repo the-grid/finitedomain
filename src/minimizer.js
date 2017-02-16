@@ -165,7 +165,7 @@ function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAli
 
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
-  console.log('minimize sweep, ml len=', ml.length);
+  ASSERT_LOG2('minimize sweep, ml len=', ml.length);
   let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;
@@ -177,7 +177,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
   while (varChanged) {
     ++loops;
     //console.log('- looping', loops);
-    console.time('-> loop ' + loops);
+    console.time('-> min_loop ' + loops);
     ASSERT_LOG2('cr outer loop');
     varChanged = false;
     pc = 0;
@@ -188,7 +188,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, domains, names)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
     }
-    console.timeEnd('-> loop ' + loops);
+    console.timeEnd('-> min_loop ' + loops);
     console.log('   - ops this loop:', ops, 'constraints:', constraints);
     if (emptyDomain) return $REJECTED;
     if (onlyJumps) return $SOLVED;

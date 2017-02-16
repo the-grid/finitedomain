@@ -232,7 +232,7 @@ module.exports = function () {
           process: function(code, path){
             if (path === 'src/index.js') return '';
             console.log('concatting', path);
-            code = removeHeaderFooter(code);
+            code = removeHeaderFooter(code, path);
             code = removeAsserts(code);
             code = removeDists(code);
             code = removeDsls(code);
@@ -254,7 +254,7 @@ module.exports = function () {
           process: function(code, path){
             if (path === 'src/index.js') return '';
             console.log('concatting', path);
-            code = removeHeaderFooter(code);
+            code = removeHeaderFooter(code, path);
             code = removeAsserts(code);
             code = removeDists(code);
 
@@ -275,7 +275,7 @@ module.exports = function () {
           process: function(code, path){
             if (path === 'src/index.js') return '';
             console.log('concatting', path);
-            code = removeHeaderFooter(code);
+            code = removeHeaderFooter(code, path);
 
             return concatFile(code, path);
           },
@@ -287,7 +287,7 @@ module.exports = function () {
     },
   });
 
-  function removeHeaderFooter(code) {
+  function removeHeaderFooter(code, path) {
     var match = code.match(/^[\s\S]*?BODY_START([\s\S]*?)\/\/ BODY_STOP/);
     if (!match) {
       console.error('unable to find body start/stop pragmas in ' + path);

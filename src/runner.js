@@ -49,12 +49,14 @@ import {
 } from './domain';
 import {
   trie_add,
-  trie_create,
   trie_get,
 } from './trie';
 import {
   counter,
 } from './counter';
+import {
+  problem_create,
+} from './problem';
 
 // BODY_START
 
@@ -63,11 +65,13 @@ function solverSolver(dsl) {
   console.time('</solverSolver>');
   ASSERT_LOG2(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
-  let varTrie = trie_create();
-  let vars = [];
-  let aliases = {}; // map old index to new index
-  let domains = [];
-  let solveStack = [];
+  let problem = problem_create(dsl);
+  // you can destructure it but this way is much easier to grep for usages... let the minifier minify it
+  let varTrie = problem.varTrie;
+  let varNames = problem.varNames;
+  let aliases = problem.aliases; // map old index to new index
+  let domains = problem.domains;
+  let solveStack = problem.solveStack;
 
   let anonCounter = 0;
 
@@ -90,9 +94,9 @@ function solverSolver(dsl) {
       domain = domain_arrToSmallest(domain);
     }
 
-    let newIndex = vars.length;
+    let newIndex = varNames.length;
     trie_add(varTrie, name, newIndex);
-    vars.push(name);
+    varNames.push(name);
     domains.push(domain);
     if (returnIndex) return newIndex;
     if (returnName) return name; // return a name when explicitly asked for.
@@ -144,7 +148,7 @@ function solverSolver(dsl) {
   let state = $CHANGED;
   while (state === $CHANGED) {
     ASSERT_LOG2('run loop...');
-    state = run_cycle(mlConstraints, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops++);
+    state = run_cycle(mlConstraints, getVar, addVar, domains, varNames, addAlias, getAlias, solveStack, runLoops++);
   }
   console.timeEnd('- all run cycles');
 
@@ -152,12 +156,12 @@ function solverSolver(dsl) {
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
   if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(mlConstraints))) {
-    solution = createSolution(vars, domains, getAlias, solveStack);
+    solution = createSolution(varNames, domains, getAlias, solveStack);
   }
   console.timeEnd('- generating solution');
 
   console.time('ml->dsl');
-  let newdsl = mlToDsl(mlConstraints, vars, domains, getAlias, solveStack, counter(mlConstraints, vars, domains, getAlias));
+  let newdsl = mlToDsl(mlConstraints, varNames, domains, getAlias, solveStack, counter(mlConstraints, varNames, domains, getAlias));
   console.timeEnd('ml->dsl');
 
   console.timeEnd('</solverSolver>');
@@ -170,7 +174,7 @@ function solverSolver(dsl) {
   if (input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
-    ASSERT(false, `Forcing a choice with strat=throw; debug: ${vars.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + vars[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(mlConstraints)} `);
+    ASSERT(false, `Forcing a choice with strat=throw; debug: ${varNames.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + varNames[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(mlConstraints)} `);
     THROW('Forcing a choice with strat=throw');
   }
   THROW('implement me (solve minimized problem)');

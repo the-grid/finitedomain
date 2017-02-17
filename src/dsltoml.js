@@ -155,46 +155,140 @@ const $$z = 122;
 /**
  * Compile the constraint dsl to a bytecode
  *
- * @param {string} THISISTHEDSLSTRING
+ * @param {string} dslStr
  * @param {Function} addVar
  * @param {Function} nameToIndex
  * @param {boolean} [_debug] Improved error reporting when true
  * @returns {string}
  */
-function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
-  let dslbuf = Buffer.from(THISISTHEDSLSTRING, 'binary');
+function dslToMl(dslStr, addVar, nameToIndex, _debug) {
+  ASSERT_LOG2('dslToMl:', [dslStr.slice(0, 100).replace(/ +/g, ' ') + (dslStr.replace(/ +/g, ' ').length > 100 ? '...' : '')]);
+
   let ret = {
     mlString: '',
     varstrat: 'default',
     valstrat: 'default',
   };
-  let ml = '';
-  ml += encode8bit(ML_START);
   let constraintCount = 0;
+  let freeDirective = -1; // for `@custom free x`. this var tries to ensure exactly x bytes are "free"
 
-  let pointer = 0;
-  let len = dslbuf.length;
+  let dslPointer = 0;
+  let dslBuf = Buffer.from(dslStr, 'binary');
+  let len = dslBuf.length;
+
+  let mlBufSize = Math.ceil(dslBuf.length / 5);
+  let mlBuffer = new Buffer(mlBufSize).fill(0); // 20% is arbitrary choice. grown dynamically when needed
+  let mlPointer = 0;
+
+  encode8bit(ML_START);
 
   while (!isEof()) parseStatement();
 
-  ret.mlString = ml + encode8bit(ML_STOP);
+  if (freeDirective > 0) {
+    // compile a jump of given size. this will be considered available space
+    ASSERT_LOG2('forcing', freeDirective, 'bytes of available space');
+    compileJump(freeDirective);
+  }
+
+  encode8bit(ML_STOP); // this step will be undone but serves to ensure the buffer isnt grown in the actual compilation step (which happens after the available-space-checks)
+  --mlPointer;
+
+  if (freeDirective < 0) {
+    // compile a jump for the remainder of the space, if any, which could be used by the recycle mechanisms
+    let leftFree = (mlBufSize - mlPointer) - 1; // STOP will occupy 1 byte
+    ASSERT_LOG2('space available', leftFree, 'bytes');
+    if (leftFree > 0) compileJump(leftFree);
+  }
+
+  encode8bit(ML_STOP); // put the STOP at the end
+
+  // if there is now still space left, we need to crop it because freeDirective was set and didnt consume it all
+  if (mlBufSize - mlPointer) {
+    ASSERT_LOG2('cropping excess available space');
+    // if the free directive was given, remove any excess free space
+    // note that one more byte needs to be compiled after this (ML_STOP)
+    mlBuffer = mlBuffer.slice(0, mlPointer);
+  }
+  ASSERT(mlPointer === mlBuffer.length, 'mlPointer should now be at the first unavailable cell of the buffer', mlPointer, mlBuffer.length);
+
+  ret.mlBuf = mlBuffer;
+
   console.log('# dslToMl: parsed', constraintCount, 'constraints');
   return ret;
 
+  // ########################################################################
+
+  function encode8bit(num) {
+    ASSERT(typeof num === 'number' && num >= 0 && num <= 0xff, 'OOB number');
+    ASSERT_LOG2('encode8bit:', num, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+
+    if (mlPointer >= mlBufSize) grow();
+    mlBuffer[mlPointer++] = num;
+  }
+
+  function encode16bit(num) {
+    ASSERT_LOG2('encode16bit:', num, '->', num >> 8, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+    ASSERT(typeof num === 'number', 'Encoding 16bit must be num', typeof num, num);
+    ASSERT(num >= 0, 'OOB num', num);
+    if (num > 0xffff) THROW('Need 32bit num support but missing it', num);
+
+    if (mlPointer >= mlBufSize) grow();
+    mlBuffer[mlPointer++] = (num >> 8) & 0xff;
+    mlBuffer[mlPointer++] = num & 0xff;
+  }
+
+  function grow() {
+    ASSERT_LOG2(' - grow() from', mlBufSize);
+    // grow the buffer by 10%
+    // you can't really grow existing buffers, instead you create a bigger buffer and copy the old one into it...
+    let oldSize = mlBufSize;
+    mlBufSize += Math.max(Math.ceil(mlBufSize * 0.1), 10);
+    mlBuffer = Buffer.concat([mlBuffer], mlBufSize); // wont actually concat, but will copy the existing buffer into a buffer of given size
+    mlBuffer.fill(0, oldSize);
+  }
+
+  function encodeNameOrLiteral(name, addVar) {
+    if (typeof name === 'number') {
+      ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
+      name = addVar(undefined, name, false, true);
+    }
+    return encodeName(name);
+  }
+
+  function encodeName(name) {
+    return encode16bit(nameToIndexSafe(name));
+  }
+
+  function encodeNameOrDie(name) {
+    return encode16bit(nameToIndexSafe(name, true));
+  }
+
+  function nameToIndexSafe(name, mustExist) {
+    if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
+    ASSERT_LOG2('encoding name:', name);
+    ASSERT_LOG2('to index', nameToIndex(name));
+    let index = nameToIndex(name);
+    if (index < 0) {
+      if (mustExist) THROW('Required var to be declared but it was not: [' + name + ']');
+      index = addVar(name, undefined, false, false, true);
+    }
+    return index;
+  }
+
   function read() {
-    return dslbuf[pointer];
+    return dslBuf[dslPointer];
   }
 
   function readD(delta) {
-    return dslbuf[pointer + delta];
+    return dslBuf[dslPointer + delta];
   }
 
   function substr(start, stop) { // use sparingly!
-    return dslbuf.slice(start, stop).toString('binary');
+    return dslBuf.slice(start, stop).toString('binary');
   }
 
   function skip() {
-    ++pointer;
+    ++dslPointer;
   }
 
   function is(c, desc) {
@@ -203,7 +297,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function skipWhitespaces() {
-    while (pointer < len && isWhitespace(read())) skip();
+    while (dslPointer < len && isWhitespace(read())) skip();
   }
 
   function skipWhites() {
@@ -238,7 +332,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function expectEol() {
     skipWhitespaces();
-    if (pointer < len) {
+    if (dslPointer < len) {
       let c = read();
       if (c === $$HASH) {
         skipComment();
@@ -251,7 +345,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function isEof() {
-    return pointer >= len;
+    return dslPointer >= len;
   }
 
   function parseStatement() {
@@ -294,7 +388,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let alts;
     while (readD(0) === $$a && readD(1) === $$l && readD(2) === $$i && readD(3) === $$a && readD(4) === $$a && readD(5) === $$s && readD(6) === $$LEFTPAREN) {
       if (!alts) alts = [];
-      alts.push(parseAlias(pointer += 6));
+      alts.push(parseAlias(dslPointer += 6));
       skipWhitespaces();
     }
     let mod = parseModifier();
@@ -349,7 +443,6 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       ident += String.fromCharCode(c);
       skip();
     }
-    if (isEof()) THROW('Quoted identifier must be closed');
     if (!ident) THROW('Expected to parse identifier, found none');
     return ident;
   }
@@ -529,7 +622,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       THROW('Expecting the priorities to follow the `@list`');
     }
 
-    pointer += 5;
+    dslPointer += 5;
     mod.list = parseNumList();
     is($$RIGHTPAREN, 'list end');
   }
@@ -544,13 +637,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
           if (readD(1) === $$a && readD(2) === $$t && readD(3) === $$r && readD(4) === $$i && readD(5) === $$x && readD(6) === $$LEFTPAREN) {
             // TOFIX: there is no validation here. apply stricter and safe matrix parsing
 
-            pointer += 7;
-            let start = pointer;
+            dslPointer += 7;
+            let start = dslPointer;
             while (read() !== $$RIGHTPAREN && !isEof()) skip();
             if (isEof()) THROW('The matrix must be closed by a `)` but did not find any');
             ASSERT(read() === $$RIGHTPAREN, 'code should only stop at eof or )');
 
-            let matrix = substr(start, pointer);
+            let matrix = substr(start, dslPointer);
             let code = 'return ' + matrix;
             let func = Function(code);
             /* eslint no-new-func: "off" */
@@ -564,7 +657,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
         case $$l:
           if (readD(1) === $$e && readD(2) === $$g && readD(3) === $$e && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
-            pointer += 7;
+            dslPointer += 7;
             mod.legend = parseNumList();
             skipWhitespaces();
             is($$RIGHTPAREN, 'legend closer');
@@ -575,7 +668,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
         case $$e:
           if (readD(1) === $$x && readD(2) === $$p && readD(3) === $$a && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
-            pointer += 7;
+            dslPointer += 7;
             mod.expandVectorsWith = parseNumber();
             skipWhitespaces();
             is($$RIGHTPAREN, 'expand closer');
@@ -593,50 +686,6 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     if (!isEof()) skip();
   }
 
-  function encode8bit(num) {
-    ASSERT(typeof num === 'number' && num >= 0 && num <= 0xff, 'OOB number');
-    ASSERT_LOG2('encode8bit:', num);
-    return String.fromCharCode(num);
-  }
-
-  function encodeNameOrLiteral(name, addVar) {
-    if (typeof name === 'number') {
-      ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
-      name = addVar(undefined, name, false, true);
-    }
-    return encodeName(name);
-  }
-
-  function encodeName(name) {
-    return encode16bit(nameToIndexSafe(name));
-  }
-
-  function encodeNameOrDie(name) {
-    return encode16bit(nameToIndexSafe(name, true));
-  }
-
-  function nameToIndexSafe(name, mustExist) {
-    if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
-    ASSERT_LOG2('encoding name:', name);
-    ASSERT_LOG2('to index', nameToIndex(name));
-    let index = nameToIndex(name);
-    if (index < 0) {
-      if (mustExist) THROW('Required var to be declared but it was not: [' + name + ']');
-      index = addVar(name, undefined, false, false, true);
-    }
-    return index;
-  }
-
-  function encode16bit(index) {
-    ASSERT_LOG2('encode16bit:', index, '->', index >> 8, index & 0xff);
-    ASSERT(typeof index === 'number', 'Encoding 16bit must be num', typeof index, index);
-    ASSERT(index >= 0, 'OOB index', index);
-    ASSERT(index <= 0xffff, 'implement 32bit index support if this breaks', index);
-    let s = String.fromCharCode(index >> 8, index & 0xff);
-    if (s.length === 1) return '\0' + s;
-    return s;
-  }
-
   function parseVoidConstraint() {
     // parse a constraint that does not return a value itself
 
@@ -647,14 +696,16 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let A = parseVexpr(); // returns a var name or a constant value
 
     skipWhitespaces();
-    let cop = parseCop();
-    skipWhitespaces();
+    if (!isEof()) { // `A==B<eof>` then A==B would be part of A and the parser would want to parse a cop here. there's a test case.
+      let cop = parseCop();
+      skipWhitespaces();
 
-    if (cop === '=') {
-      parseAssignment(A);
-    } else if (cop) {
-      let B = parseVexpr();
-      compileVoidConstraint(A, cop, B);
+      if (cop === '=') {
+        parseAssignment(A);
+      } else if (cop) {
+        let B = parseVexpr();
+        compileVoidConstraint(A, cop, B);
+      }
     }
 
     expectEol();
@@ -669,165 +720,288 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       case 'V==V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_EQ) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_EQ) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_EQ);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_EQ);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case 'V==8':
-        ml += encode8bit(ML_V8_EQ) + encodeName(A) + encode8bit(B);
+        encode8bit(ML_V8_EQ);
+        encodeName(A);
+        encode8bit(B);
         break;
       case '8==V':
-        ml += encode8bit(ML_V8_EQ) + encodeName(B) + encode8bit(A);
+        encode8bit(ML_V8_EQ);
+        encodeName(B);
+        encode8bit(A);
         break;
       case '8==8':
-        ml += encode8bit(ML_88_EQ) + encode8bit(A) + encode8bit(B);
+        encode8bit(ML_88_EQ);
+        encode8bit(A);
+        encode8bit(B);
         break;
 
       case 'V!=V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_NEQ) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_NEQ) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_NEQ);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_NEQ);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case 'V!=8':
-        ml += encode8bit(ML_V8_NEQ) + encodeName(A) + encode8bit(B);
+        encode8bit(ML_V8_NEQ);
+        encodeName(A);
+        encode8bit(B);
         break;
       case '8!=V':
-        ml += encode8bit(ML_V8_NEQ) + encodeName(B) + encode8bit(A);
+        encode8bit(ML_V8_NEQ);
+        encodeName(B);
+        encode8bit(A);
         break;
       case '8!=8':
-        ml += encode8bit(ML_88_NEQ) + encode8bit(A) + encode8bit(B);
+        encode8bit(ML_88_NEQ);
+        encode8bit(A);
+        encode8bit(B);
         break;
 
       case 'V<V':
-        ml += encode8bit(ML_VV_LT) + encodeName(A) + encodeName(B);
+        encode8bit(ML_VV_LT);
+        encodeName(A);
+        encodeName(B);
         break;
       case 'V<8':
-        ml += encode8bit(ML_V8_LT) + encodeName(A) + encode8bit(B);
+        encode8bit(ML_V8_LT);
+        encodeName(A);
+        encode8bit(B);
         break;
       case '8<V':
-        ml += encode8bit(ML_8V_LT) + encode8bit(A) + encodeName(B);
+        encode8bit(ML_8V_LT);
+        encode8bit(A);
+        encodeName(B);
         break;
       case '8<8':
-        ml += encode8bit(ML_88_LT) + encode8bit(A) + encode8bit(B);
+        encode8bit(ML_88_LT);
+        encode8bit(A);
+        encode8bit(B);
         break;
 
       case 'V<=V':
-        ml += encode8bit(ML_VV_LTE) + encodeName(A) + encodeName(B);
+        encode8bit(ML_VV_LTE);
+        encodeName(A);
+        encodeName(B);
         break;
       case 'V<=8':
-        ml += encode8bit(ML_V8_LTE) + encodeName(A) + encode8bit(B);
+        encode8bit(ML_V8_LTE);
+        encodeName(A);
+        encode8bit(B);
         break;
       case '8<=V':
-        ml += encode8bit(ML_8V_LTE) + encode8bit(A) + encodeName(B);
+        encode8bit(ML_8V_LTE);
+        encode8bit(A);
+        encodeName(B);
         break;
       case '8<=8':
-        ml += encode8bit(ML_88_LTE) + encode8bit(A) + encode8bit(B);
+        encode8bit(ML_88_LTE);
+        encode8bit(A);
+        encode8bit(B);
         break;
 
       case 'V>V':
-        ml += encode8bit(ML_VV_LT) + encodeName(B) + encodeName(A);
+        encode8bit(ML_VV_LT);
+        encodeName(B);
+        encodeName(A);
         break;
       case 'V>8':
-        ml += encode8bit(ML_8V_LT) + encode8bit(B) + encodeName(A);
+        encode8bit(ML_8V_LT);
+        encode8bit(B);
+        encodeName(A);
         break;
       case '8>V':
-        ml += encode8bit(ML_V8_LT) + encodeName(B) + encode8bit(A);
+        encode8bit(ML_V8_LT);
+        encodeName(B);
+        encode8bit(A);
         break;
       case '8>8':
-        ml += encode8bit(ML_88_LT) + encode8bit(B) + encode8bit(A);
+        encode8bit(ML_88_LT);
+        encode8bit(B);
+        encode8bit(A);
         break;
 
       case 'V>=V':
-        ml += encode8bit(ML_VV_LTE) + encodeName(B) + encodeName(A);
+        encode8bit(ML_VV_LTE);
+        encodeName(B);
+        encodeName(A);
         break;
       case 'V>=8':
-        ml += encode8bit(ML_8V_LTE) + encode8bit(B) + encodeName(A);
+        encode8bit(ML_8V_LTE);
+        encode8bit(B);
+        encodeName(A);
         break;
       case '8>=V':
-        ml += encode8bit(ML_V8_LTE) + encodeName(B) + encode8bit(A);
+        encode8bit(ML_V8_LTE);
+        encodeName(B);
+        encode8bit(A);
         break;
       case '8>=8':
-        ml += encode8bit(ML_88_LTE) + encode8bit(B) + encode8bit(A);
+        encode8bit(ML_88_LTE);
+        encode8bit(B);
+        encode8bit(A);
         break;
 
       case 'V&V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_AND) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_AND) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_AND);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_AND);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case '8&V':
-        ml += encode8bit(ML_VV_AND) + encodeName(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_AND);
+        encodeName(B);
+        encodeNameOrLiteral(A);
         break;
       case 'V&8':
-        ml += encode8bit(ML_VV_AND) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_AND);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case '8&8':
-        ml += encode8bit(ML_VV_AND) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_AND);
+        encodeNameOrLiteral(B);
+        encodeNameOrLiteral(A);
         break;
 
       case 'V|V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_OR) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_OR) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_OR);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_OR);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case '8|V':
-        ml += encode8bit(ML_VV_OR) + encodeName(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_OR);
+        encodeName(B);
+        encodeNameOrLiteral(A);
         break;
       case 'V|8':
-        ml += encode8bit(ML_VV_OR) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_OR);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case '8|8':
-        ml += encode8bit(ML_VV_OR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_OR);
+        encodeNameOrLiteral(B);
+        encodeNameOrLiteral(A);
         break;
 
       case 'V^V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_XOR) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_XOR) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_XOR);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_XOR);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case '8^V':
-        ml += encode8bit(ML_VV_XOR) + encodeName(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_XOR);
+        encodeName(B);
+        encodeNameOrLiteral(A);
         break;
       case 'V^8':
-        ml += encode8bit(ML_VV_XOR) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_XOR);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case '8^8':
-        ml += encode8bit(ML_VV_XOR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_XOR);
+        encodeNameOrLiteral(B);
+        encodeNameOrLiteral(A);
         break;
 
       case 'V!&V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_NAND) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_NAND) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_NAND);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_NAND);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case '8!&V':
-        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_NAND);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case 'V!&8':
-        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_NAND);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case '8!&8':
-        ml += encode8bit(ML_VV_NAND) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_NAND);
+        encodeNameOrLiteral(B);
+        encodeNameOrLiteral(A);
         break;
 
       case 'V!^V':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV_XNOR) + encode16bit(A) + encode16bit(B);
-        else ml += encode8bit(ML_VV_XNOR) + encode16bit(B) + encode16bit(A);
+        if (A < B) {
+          encode8bit(ML_VV_XNOR);
+          encode16bit(A);
+          encode16bit(B);
+        } else {
+          encode8bit(ML_VV_XNOR);
+          encode16bit(B);
+          encode16bit(A);
+        }
         break;
       case '8!^V':
-        ml += encode8bit(ML_VV_XNOR) + encodeName(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_XNOR);
+        encodeName(B);
+        encodeNameOrLiteral(A);
         break;
       case 'V!^8':
-        ml += encode8bit(ML_VV_XNOR) + encodeNameOrLiteral(B) + encodeName(A);
+        encode8bit(ML_VV_XNOR);
+        encodeNameOrLiteral(B);
+        encodeName(A);
         break;
       case '8!^8':
-        ml += encode8bit(ML_VV_XNOR) + encodeNameOrLiteral(B) + encodeNameOrLiteral(A);
+        encode8bit(ML_VV_XNOR);
+        encodeNameOrLiteral(B);
+        encodeNameOrLiteral(A);
         break;
 
       default:
@@ -893,113 +1067,233 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       case 'V==?VV':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VVV_ISEQ) + encode16bit(A) + encode16bit(B) + encodeName(C);
-        else ml += encode8bit(ML_VVV_ISEQ) + encode16bit(B) + encode16bit(A) + encodeName(C);
+        if (A < B) {
+          encode8bit(ML_VVV_ISEQ);
+          encode16bit(A);
+          encode16bit(B);
+          encodeName(C);
+        } else {
+          encode8bit(ML_VVV_ISEQ);
+          encode16bit(B);
+          encode16bit(A);
+          encodeName(C);
+        }
         break;
       case '8==?VV':
-        ml += encode8bit(ML_V8V_ISEQ) + encodeName(B) + encode8bit(A) + encodeName(C);
+        encode8bit(ML_V8V_ISEQ);
+        encodeName(B);
+        encode8bit(A);
+        encodeName(C);
         break;
       case 'V==?8V':
-        ml += encode8bit(ML_V8V_ISEQ) + encodeName(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_V8V_ISEQ);
+        encodeName(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V==?V8':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV8_ISEQ) + encode16bit(A) + encode16bit(B) + encode8bit(C);
-        else ml += encode8bit(ML_VV8_ISEQ) + encode16bit(B) + encode16bit(A) + encode8bit(C);
+        if (A < B) {
+          encode8bit(ML_VV8_ISEQ);
+          encode16bit(A);
+          encode16bit(B);
+          encode8bit(C);
+        } else {
+          encode8bit(ML_VV8_ISEQ);
+          encode16bit(B);
+          encode16bit(A);
+          encode8bit(C);
+        }
         break;
       case '8==?8V':
-        ml += encode8bit(ML_88V_ISEQ) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_88V_ISEQ);
+        encode8bit(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V==?88':
-        ml += encode8bit(ML_V88_ISEQ) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_V88_ISEQ);
+        encodeName(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
       case '8==?V8':
-        ml += encode8bit(ML_V88_ISEQ) + encodeName(B) + encode8bit(A) + encode8bit(C);
+        encode8bit(ML_V88_ISEQ);
+        encodeName(B);
+        encode8bit(A);
+        encode8bit(C);
         break;
       case '8==?88':
-        ml += encode8bit(ML_888_ISEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_888_ISEQ);
+        encode8bit(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
 
       case 'V!=?VV':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VVV_ISNEQ) + encode16bit(A) + encode16bit(B) + encodeName(C);
-        else ml += encode8bit(ML_VVV_ISNEQ) + encode16bit(B) + encode16bit(A) + encodeName(C);
+        if (A < B) {
+          encode8bit(ML_VVV_ISNEQ);
+          encode16bit(A);
+          encode16bit(B);
+          encodeName(C);
+        } else {
+          encode8bit(ML_VVV_ISNEQ);
+          encode16bit(B);
+          encode16bit(A);
+          encodeName(C);
+        }
         break;
       case '8!=?VV':
-        ml += encode8bit(ML_V8V_ISNEQ) + encodeName(B) + encode8bit(A) + encodeName(C);
+        encode8bit(ML_V8V_ISNEQ);
+        encodeName(B);
+        encode8bit(A);
+        encodeName(C);
         break;
       case 'V!=?8V':
-        ml += encode8bit(ML_V8V_ISNEQ) + encodeName(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_V8V_ISNEQ);
+        encodeName(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V!=?V8':
         A = nameToIndexSafe(A);
         B = nameToIndexSafe(B);
-        if (A < B) ml += encode8bit(ML_VV8_ISNEQ) + encode16bit(A) + encode16bit(B) + encode8bit(C);
-        else ml += encode8bit(ML_VV8_ISNEQ) + encode16bit(B) + encode16bit(A) + encode8bit(C);
+        if (A < B) {
+          encode8bit(ML_VV8_ISNEQ);
+          encode16bit(A);
+          encode16bit(B);
+          encode8bit(C);
+        } else {
+          encode8bit(ML_VV8_ISNEQ);
+          encode16bit(B);
+          encode16bit(A);
+          encode8bit(C);
+        }
         break;
       case '8!=?8V':
-        ml += encode8bit(ML_88V_ISNEQ) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_88V_ISNEQ);
+        encode8bit(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V!=?88':
-        ml += encode8bit(ML_V88_ISNEQ) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_V88_ISNEQ);
+        encodeName(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
       case '8!=?V8':
-        ml += encode8bit(ML_V88_ISNEQ) + encodeName(B) + encode8bit(A) + encode8bit(C);
+        encode8bit(ML_V88_ISNEQ);
+        encodeName(B);
+        encode8bit(A);
+        encode8bit(C);
         break;
       case '8!=?88':
-        ml += encode8bit(ML_888_ISNEQ) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_888_ISNEQ);
+        encode8bit(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
 
       case 'V<?VV':
-        ml += encode8bit(ML_VVV_ISLT) + encodeName(A) + encodeName(B) + encodeName(C);
+        encode8bit(ML_VVV_ISLT);
+        encodeName(A);
+        encodeName(B);
+        encodeName(C);
         break;
       case '8<?VV':
-        ml += encode8bit(ML_8VV_ISLT) + encode8bit(A) + encodeName(B) + encodeName(C);
+        encode8bit(ML_8VV_ISLT);
+        encode8bit(A);
+        encodeName(B);
+        encodeName(C);
         break;
       case 'V<?8V':
-        ml += encode8bit(ML_V8V_ISLT) + encodeName(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_V8V_ISLT);
+        encodeName(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V<?V8':
-        ml += encode8bit(ML_VV8_ISLT) + encodeName(A) + encodeName(B) + encode8bit(C);
+        encode8bit(ML_VV8_ISLT);
+        encodeName(A);
+        encodeName(B);
+        encode8bit(C);
         break;
       case '8<?8V':
-        ml += encode8bit(ML_88V_ISLT) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_88V_ISLT);
+        encode8bit(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V<?88':
-        ml += encode8bit(ML_V88_ISLT) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_V88_ISLT);
+        encodeName(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
       case '8<?V8':
-        ml += encode8bit(ML_8V8_ISLT) + encode8bit(A) + encodeName(B) + encode8bit(C);
+        encode8bit(ML_8V8_ISLT);
+        encode8bit(A);
+        encodeName(B);
+        encode8bit(C);
         break;
       case '8<?88':
-        ml += encode8bit(ML_888_ISLT) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_888_ISLT);
+        encode8bit(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
 
       case 'V<=?VV':
-        ml += encode8bit(ML_VVV_ISLTE) + encodeName(A) + encodeName(B) + encodeName(C);
+        encode8bit(ML_VVV_ISLTE);
+        encodeName(A);
+        encodeName(B);
+        encodeName(C);
         break;
       case '8<=?VV':
-        ml += encode8bit(ML_8VV_ISLTE) + encode8bit(A) + encodeName(B) + encodeName(C);
+        encode8bit(ML_8VV_ISLTE);
+        encode8bit(A);
+        encodeName(B);
+        encodeName(C);
         break;
       case 'V<=?8V':
-        ml += encode8bit(ML_V8V_ISLTE) + encodeName(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_V8V_ISLTE);
+        encodeName(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V<=?V8':
-        ml += encode8bit(ML_VV8_ISLTE) + encodeName(A) + encodeName(B) + encode8bit(C);
+        encode8bit(ML_VV8_ISLTE);
+        encodeName(A);
+        encodeName(B);
+        encode8bit(C);
         break;
       case '8<=?8V':
-        ml += encode8bit(ML_88V_ISLTE) + encode8bit(A) + encode8bit(B) + encodeName(C);
+        encode8bit(ML_88V_ISLTE);
+        encode8bit(A);
+        encode8bit(B);
+        encodeName(C);
         break;
       case 'V<=?88':
-        ml += encode8bit(ML_V88_ISLTE) + encodeName(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_V88_ISLTE);
+        encodeName(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
       case '8<=?V8':
-        ml += encode8bit(ML_8V8_ISLTE) + encode8bit(A) + encodeName(B) + encode8bit(C);
+        encode8bit(ML_8V8_ISLTE);
+        encode8bit(A);
+        encodeName(B);
+        encode8bit(C);
         break;
       case '8<=?88':
-        ml += encode8bit(ML_888_ISLTE) + encode8bit(A) + encode8bit(B) + encode8bit(C);
+        encode8bit(ML_888_ISLTE);
+        encode8bit(A);
+        encode8bit(B);
+        encode8bit(C);
         break;
 
       default:
@@ -1041,8 +1335,17 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
             return THROW('Unknown rop: `' + rop + '`');
         }
 
-        if (fixed || A < B) ml += encode8bit(opCode) + encode16bit(A) + encode16bit(B) + encodeNameOrLiteral(C, addVar);
-        else ml += encode8bit(opCode) + encode16bit(B) + encode16bit(A) + encodeNameOrLiteral(C, addVar);
+        if (fixed || A < B) {
+          encode8bit(opCode);
+          encode16bit(A);
+          encode16bit(B);
+          encodeNameOrLiteral(C, addVar);
+        } else {
+          encode8bit(opCode);
+          encode16bit(B);
+          encode16bit(A);
+          encodeNameOrLiteral(C, addVar);
+        }
     }
   }
 
@@ -1184,11 +1487,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function parseCalledListConstraint(opcode, delta) {
     ++constraintCount;
-    pointer += delta;
+    dslPointer += delta;
     skipWhitespaces();
     let vals = parseVexpList();
     ASSERT(vals.length <= 255, 'dont do lists with more than 255 vars :(');
-    ml += encode8bit(opcode) + encode16bit(vals.length) + vals.map(encodeName).join('');
+    encode8bit(opcode);
+    encode16bit(vals.length);
+    vals.forEach(encodeName);
     skipWhitespaces();
     is($$RIGHTPAREN, 'parseCalledListConstraint call closer');
     expectEol();
@@ -1282,32 +1587,46 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let refs = parseVexpList();
     result = createResultVar(result, false, true);
     ASSERT_LOG2('parseSum refs:', refs, 'result:', result, nameToIndex(result));
-    ml += encode8bit(ML_8V_SUM) + encode16bit(refs.length) + encode8bit(0) + refs.map(r => {
+
+    encode8bit(ML_8V_SUM);
+    encode16bit(refs.length); // count
+    encode8bit(0); // sum of constants
+    for (let i = 0, len = refs.length; i < len; ++i) {
+      let r = refs[i];
       if (typeof r === 'number') {
         // have to make temp var for this :(
         r = addVar(undefined, r, false, true);
       }
-      return encodeName(r);
-    }).join('') + encodeName(result);
+      encodeName(r);
+    }
+    encodeName(result);
+
     skipWhitespaces();
     is($$RIGHTPAREN, 'sum closer');
     return result;
   }
 
   function parseArgs(op, result, defaultBoolResult) {
+    console.log('#############', op, result, defaultBoolResult);
     ++constraintCount;
     is($$LEFTPAREN, 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
     result = createResultVar(result, defaultBoolResult, true);
-    ASSERT_LOG2('parseArgs refs:', refs, 'result:', result, nameToIndex(result), 'defaultBoolResult:', defaultBoolResult);
-    ml += encode8bit(op) + encode16bit(refs.length) + refs.map(r => {
+    ASSERT_LOG2('parseArgs refs:', result, ' = all(', refs, ')  ->  ', nameToIndex(result), '= all(', refs.map(nameToIndex), ') defaultBoolResult:', defaultBoolResult);
+
+    encode8bit(op);
+    encode16bit(refs.length); // count
+    for (let i = 0, len = refs.length; i < len; ++i) {
+      let r = refs[i];
       if (typeof r === 'number') {
         // have to make temp var for this :(
         r = addVar(undefined, r, false, true);
       }
-      return encodeName(r);
-    }).join('') + encodeName(result);
+      encodeName(r);
+    }
+    encodeName(result);
+
     skipWhitespaces();
     is($$RIGHTPAREN, 'args closer');
     return result;
@@ -1333,7 +1652,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       nums.push(parseInt(numstr, 10));
       skipWhitespaces();
       if (read() === $$COMMA) {
-        ++pointer;
+        ++dslPointer;
         skipWhitespaces();
       }
       numstr = parseNumstr();
@@ -1429,33 +1748,15 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
           for (let i = 0, len = idents.length; i < len; ++i) {
             // debug vars are never considered leaf vars until we change that (to something else and update this to something that still does the same thing)
             // this is for testing as a simple tool to prevent many trivial optimizations to kick in. it's not flawless.
-            ml += encode8bit(ML_DEBUG) + encodeNameOrDie(idents[i]);
+            encode8bit(ML_DEBUG);
+            encodeNameOrDie(idents[i]);
           }
           break;
         case 'free':
           skipWhitespaces();
           let size = parseNumber();
           ASSERT_LOG2('Found a jump of', size);
-          switch (size) {
-            case 0:
-              break; // ignore. only expliclty illustrates no free space
-            case 1:
-              ml += encode8bit(ML_NOOP);
-              break;
-            case 2:
-              ml += encode8bit(ML_NOOP2);
-              break;
-            case 3:
-              ml += encode8bit(ML_NOOP3);
-              break;
-            case 4:
-              ml += encode8bit(ML_NOOP4);
-              break;
-            default:
-              ml += encode8bit(ML_JMP) + encode16bit(size - SIZEOF_V) + '\0'.repeat(size - SIZEOF_V);
-              break;
-
-          }
+          freeDirective = size;
           break;
 
         default:
@@ -1469,6 +1770,39 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       THROW('unknown @ rule [' + ruleName + ']');
     }
     expectEol();
+  }
+
+  function compileJump(size) {
+    ASSERT_LOG2('compileJump(' + size + '), mlPointer=', mlPointer);
+    ASSERT(size > 0, 'dont call this function on size=0');
+    switch (size) {
+      case 0:
+        break; // ignore. only expliclty illustrates no free space
+      case 1:
+        encode8bit(ML_NOOP);
+        break;
+      case 2:
+        encode8bit(ML_NOOP2);
+        encode8bit(0);
+        break;
+      case 3:
+        encode8bit(ML_NOOP3);
+        encode8bit(0);
+        encode8bit(0);
+        break;
+      case 4:
+        encode8bit(ML_NOOP4);
+        encode8bit(0);
+        encode8bit(0);
+        encode8bit(0);
+        break;
+      default:
+        encode8bit(ML_JMP);
+        encode16bit(size - SIZEOF_V);
+        for (let i = 0, n = size - SIZEOF_V; i < n; ++i) {
+          encode8bit(0);
+        }
+    }
   }
 
   function parseVarStrat() {
@@ -1500,7 +1834,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     THROW('implement me (targeted vars)');
     if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
-      pointer += 3;
+      dslPointer += 3;
       this.solver.config.targetedVars = 'all';
     } else {
       is($$LEFTPAREN);
@@ -1531,9 +1865,9 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function THROW(msg) {
     if (_debug) {
-      ASSERT_LOG2(dslbuf.slice(0, pointer).toString('binary') + '##|PARSER_IS_HERE[' + msg + ']|##' + dslbuf.slice(pointer).toString('binary'));
+      ASSERT_LOG2(dslBuf.slice(0, dslPointer).toString('binary') + '##|PARSER_IS_HERE[' + msg + ']|##' + dslBuf.slice(dslPointer).toString('binary'));
     }
-    msg += ', source at ' + pointer + ' #|#: `' + dslbuf.slice(Math.max(0, pointer - 20), pointer).toString('binary') + '#|#' + dslbuf.slice(pointer, Math.min(dslbuf.length, pointer + 20)).toString('binary') + '`';
+    msg += ', source at ' + dslPointer + ' #|#: `' + dslBuf.slice(Math.max(0, dslPointer - 20), dslPointer).toString('binary') + '#|#' + dslBuf.slice(dslPointer, Math.min(dslBuf.length, dslPointer + 20)).toString('binary') + '`';
     throw new Error(msg);
   }
 }

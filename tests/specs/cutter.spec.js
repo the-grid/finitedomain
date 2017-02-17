@@ -333,6 +333,7 @@ describe('specs/cutter.spec', function() {
         C <= R
         # -->  C <= A, C <= B
         @custom noleaf A B C
+        @custom free 0
       `)).to.throw(/ops: lte,lte /);
     });
 
@@ -344,11 +345,8 @@ describe('specs/cutter.spec', function() {
         X = all?(A B C)
         D <= X
         # -->  D <= A, D <= B, D <= C
-        M == M      # recycle-able space after eliminating the tautology
-        M == M      # recycle-able space after eliminating the tautology
-        M == M      # recycle-able space after eliminating the tautology
-        M == M      # recycle-able space after eliminating the tautology
         @custom noleaf A B C D
+        @custom free 100
       `)).to.throw(/ops: lte,lte,lte /);
     });
 
@@ -588,13 +586,13 @@ describe('specs/cutter.spec', function() {
         # when A is 0, B or C is 0, so the nall is resolved
         # when D is 1, A can't be 1 because then B is also one and the nall would break
         @custom noleaf B C D
-      `)).to.throw(/ops: isall,nand /);
+      `)).to.throw(/ops: nall /); // (isall+nand is rewritten to nall if it shares a var)
     });
 
     describe('all variations of nall arg order', function() {
 
-      function test(A, B, C) {
-        it('nall(' + A + ',' + B + ',' + C + ')', function() {
+      function test(v1, v2, v3) {
+        it('nall(' + v1 + ',' + v2 + ',' + v3 + ')', function() {
           expect(_ => solverSolver(`
           @custom var-strat throw
           : A [0 1]
@@ -602,10 +600,12 @@ describe('specs/cutter.spec', function() {
           : C [0 1]
           : D [0 1]
           A = all?(B C)
-          nall(${A} ${B} ${C})
+          nall(${v1} ${v2} ${v3})
+          # note: this is rewritten to A=all?(BC), A!&D
+          # which in turn is morphed to nall(BCD) (or similar for all tests)
 
           @custom noleaf B C D
-        `)).to.throw(/ops: isall,nand /);
+        `)).to.throw(/ops: nall /);
         });
       }
 
@@ -705,7 +705,6 @@ describe('specs/cutter.spec', function() {
         # -> same because there is no space for the rewrite
         @custom noleaf A B C D R
         @custom free 0                 # redundant but for illustration
-
       `)).to.throw(/ops: isall,nand,nand /);
     });
 

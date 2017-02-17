@@ -666,6 +666,8 @@ function ml__debug(ml, offset, max, domains, names) {
     switch (op) {
       case ML_START:
         if (pc !== 0) {
+          ASSERT_LOG2('collected debugs up to error:', rv);
+          THROW('ML_START at non-zero (' + pc + ')');
           rv.push('unused_error(0)');
           return rv.join('\n');
         }

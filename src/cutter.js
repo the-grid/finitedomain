@@ -1772,41 +1772,45 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
       // check if B or D is in the isall. apply morph by cutting out the one that matches
       if (indexA === indexC) {
-        ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
+        ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall and changing it to a nand');
         ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
+        bounty_markVar(bounty, indexC);
         bounty_markVar(bounty, indexD);
         bounty_markVar(bounty, varIndex);
         somethingChanged();
         return true;
       }
       if (indexA === indexD) {
-        ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
+        ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall and changing it to a nand');
         ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, indexD);
         bounty_markVar(bounty, varIndex);
         somethingChanged();
         return true;
       }
       if (indexB === indexC) {
-        ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
+        ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall and changing it to a nand');
         ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
+        bounty_markVar(bounty, indexC);
         bounty_markVar(bounty, indexD);
         bounty_markVar(bounty, varIndex);
         somethingChanged();
         return true;
       }
       if (indexB === indexD) {
-        ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
+        ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall and changing it to a nand');
         ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         bounty_markVar(bounty, indexC);
+        bounty_markVar(bounty, indexD);
         bounty_markVar(bounty, varIndex);
         somethingChanged();
         return true;

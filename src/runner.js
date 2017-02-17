@@ -65,13 +65,12 @@ function solverSolver(dsl) {
   let $addAlias = problem.addAlias;
   let $getAlias = problem.getAlias;
 
-  ASSERT_LOG2('Parsing DSL...');
-  console.time('- dsl->ml (' + dsl.length + ')');
+  console.time('- dsl->ml');
   let input = dslToMl(dsl, $addVar, $getVar);
-  console.timeEnd('- dsl->ml (' + dsl.length + ')');
+  let mlConstraints = input.mlBuf;
+  console.timeEnd('- dsl->ml');
 
-  let mls = input.mlString;
-  let mlConstraints = Buffer.from(mls, 'binary');
+  console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + mlConstraints.length + ' bytes)');
 
   console.time('- all run cycles');
   let runLoops = 0;

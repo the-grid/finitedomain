@@ -102,13 +102,14 @@ import {
 /**
  * Compile the constraint dsl to a bytecode
  *
- * @param {string} str
+ * @param {string} THISISTHEDSLSTRING
  * @param {Function} addVar
  * @param {Function} nameToIndex
  * @param {boolean} [_debug] Improved error reporting when true
  * @returns {string}
  */
-function dslToMl(str, addVar, nameToIndex, _debug) {
+function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
+  let dslbuf = Buffer.from(THISISTHEDSLSTRING, 'binary');
   let ret = {
     mlString: '',
     varstrat: 'default',
@@ -119,7 +120,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   let constraintCount = 0;
 
   let pointer = 0;
-  let len = str.length;
+  let len = dslbuf.length;
 
   while (!isEof()) parseStatement();
 
@@ -128,7 +129,15 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   return ret;
 
   function read() {
-    return str[pointer];
+    return String.fromCharCode(dslbuf[pointer]);
+  }
+
+  function readD(delta) {
+    return String.fromCharCode(dslbuf[pointer + delta]);
+  }
+
+  function substr(start, stop) { // use sparingly!
+    return dslbuf.slice(start, stop).toString('binary');
   }
 
   function skip() {
@@ -200,6 +209,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     // - otherwise: constraint
 
     skipWhites();
+
     switch (read()) {
       case ':':
         return parseVar();
@@ -229,7 +239,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     let domain = parseDomain();
     skipWhitespaces();
     let alts;
-    while (str.slice(pointer, pointer + 6) === 'alias(') {
+    while (readD(0) === 'a' && readD(1) === 'l' && readD(2) === 'i' && readD(3) === 'a' && readD(4) === 'a' && readD(5) === 's' && readD(6) === '(') {
       if (!alts) alts = [];
       alts.push(parseAlias(pointer += 6));
       skipWhitespaces();
@@ -262,22 +272,33 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   function parseQuotedIdentifier() {
     is('\'');
 
-    let start = pointer;
-    while (!isEof() && read() !== '\'') skip();
+    let ident = '';
+    while (!isEof()) {
+      let c = read();
+      if (c === '\'') break;
+      ident += c;
+      skip();
+    }
     if (isEof()) THROW('Quoted identifier must be closed');
-    if (start === pointer) THROW('Expected to parse identifier, found none');
+    if (!ident) THROW('Expected to parse identifier, found none');
     skip(); // quote
-    return str.slice(start, pointer - 1); // return unquoted ident
+    return ident; // return unquoted ident
   }
 
   function parseUnquotedIdentifier() {
     // anything terminated by whitespace
-    let start = pointer;
-    if (read() >= '0' && read() <= '9') THROW('Unquoted ident cant start with number');
-    while (!isEof() && isValidUnquotedIdentChar(read())) skip();
+    let c = read();
+    let ident = '';
+    if (c >= '0' && c <= '9') THROW('Unquoted ident cant start with number');
+    while (!isEof()) {
+      c = read();
+      if (!isValidUnquotedIdentChar(c)) break;
+      ident += c;
+      skip();
+    }
     if (isEof()) THROW('Quoted identifier must be closed');
-    if (start === pointer) THROW('Expected to parse identifier, found none');
-    return str.slice(start, pointer);
+    if (!ident) THROW('Expected to parse identifier, found none');
+    return ident;
   }
 
   function isValidUnquotedIdentChar(c) {
@@ -298,15 +319,15 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   function parseAlias() {
     skipWhitespaces();
 
-    let start = pointer;
+    let alias = '';
     while (true) {
       let c = read();
       if (c === ')') break;
       if (isNewline(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
       if (isEof()) THROW('Alias must be closed with a `)` but wasnt (eof)');
+      alias += c;
       skip();
     }
-    let alias = str.slice(start, pointer);
     if (!alias) THROW('The alias() can not be empty but was');
 
     skipWhitespaces();
@@ -413,9 +434,13 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
     let mod = {};
 
-    let start = pointer;
-    while (read() >= 'a' && read() <= 'z') skip();
-    let stratName = str.slice(start, pointer);
+    let stratName = '';
+    while (true) {
+      let c = read();
+      if (c < 'a' || c > 'z') break;
+      stratName += c;
+      skip();
+    }
 
     switch (stratName) {
       case 'list':
@@ -446,37 +471,66 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function parseList(mod) {
     skipWhitespaces();
-    if (str.slice(pointer, pointer + 5) !== 'prio(') THROW('Expecting the priorities to follow the `@list`');
+
+    if (!(readD(0) === 'p' && readD(1) === 'r' && readD(2) === 'i' && readD(3) === 'o' && readD(4) === '(')) {
+      THROW('Expecting the priorities to follow the `@list`');
+    }
+
     pointer += 5;
     mod.list = parseNumList();
     is(')', 'list end');
   }
 
   function parseMarkov(mod) {
-    while (true) {
+    let repeat = true;
+    while (repeat) {
+      repeat = false;
       skipWhitespaces();
-      if (str.slice(pointer, pointer + 7) === 'matrix(') {
-        // TOFIX: there is no validation here. apply stricter and safe matrix parsing
-        let matrix = str.slice(pointer + 7, pointer = str.indexOf(')', pointer));
-        let code = 'return ' + matrix;
-        let func = Function(code);
-        /* eslint no-new-func: "off" */
-        mod.matrix = func();
-        if (pointer === -1) THROW('The matrix must be closed by a `)` but did not find any');
-      } else if (str.slice(pointer, pointer + 7) === 'legend(') {
-        pointer += 7;
-        mod.legend = parseNumList();
-        skipWhitespaces();
-        is(')', 'legend closer');
-      } else if (str.slice(pointer, pointer + 7) === 'expand(') {
-        pointer += 7;
-        mod.expandVectorsWith = parseNumber();
-        skipWhitespaces();
-        is(')', 'expand closer');
-      } else {
-        break;
+      switch (read()) {
+        case 'm':
+          if (readD(1) === 'a' && readD(2) === 't' && readD(3) === 'r' && readD(4) === 'i' && readD(5) === 'x' && readD(6) === '(') {
+            // TOFIX: there is no validation here. apply stricter and safe matrix parsing
+
+            pointer += 7;
+            let start = pointer;
+            while (read() !== ')' && !isEof()) skip();
+            if (isEof()) THROW('The matrix must be closed by a `)` but did not find any');
+            ASSERT(read() === ')', 'code should only stop at eof or )');
+
+            let matrix = substr(start, pointer);
+            let code = 'return ' + matrix;
+            let func = Function(code);
+            /* eslint no-new-func: "off" */
+            mod.matrix = func();
+
+            is(')', 'end of matrix'); // kind of a redundant double check. could also just skip() here.
+
+            repeat = true;
+          }
+          break;
+
+        case 'l':
+          if (readD(1) === 'e' && readD(2) === 'g' && readD(3) === 'e' && readD(4) === 'n' && readD(5) === 'd' && readD(6) === '(') {
+            pointer += 7;
+            mod.legend = parseNumList();
+            skipWhitespaces();
+            is(')', 'legend closer');
+
+            repeat = true;
+          }
+          break;
+
+        case 'e':
+          if (readD(1) === 'x' && readD(2) === 'p' && readD(3) === 'a' && readD(4) === 'n' && readD(5) === 'd' && readD(6) === '(') {
+            pointer += 7;
+            mod.expandVectorsWith = parseNumber();
+            skipWhitespaces();
+            is(')', 'expand closer');
+
+            repeat = true;
+          }
+          break;
       }
-      skip();
     }
   }
 
@@ -1052,11 +1106,20 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
 
   function parseUexpr() {
     // it's not very efficient (we could parse an ident before and check that result here) but it'll work for now
-    if (str.slice(pointer, pointer + 9) === 'distinct(') parseCalledListConstraint(ML_DISTINCT, 9);
-    else if (str.slice(pointer, pointer + 5) === 'nall(') parseCalledListConstraint(ML_NALL, 5);
-    else return false;
 
-    return true;
+    let c = read();
+
+    if (c === 'd' && readD(1) === 'i' && readD(2) === 's' && readD(3) === 't' && readD(4) === 'i' && readD(5) === 'n' && readD(6) === 'c' && readD(7) === 't' && readD(8) === '(') {
+      parseCalledListConstraint(ML_DISTINCT, 9);
+      return true;
+    }
+
+    if (c === 'n' && readD(1) === 'a' && readD(2) === 'l' && readD(3) === 'l' && readD(4) === '(') {
+      parseCalledListConstraint(ML_NALL, 5);
+      return true;
+    }
+
+    return false;
   }
 
   function parseCalledListConstraint(opcode, delta) {
@@ -1145,12 +1208,11 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function parseNumber() {
-    let start = pointer;
-    while (!isEof() && read() >= '0' && read() <= '9') skip();
-    if (start === pointer) {
-      THROW('Expecting to parse a number but did not find any digits [' + start + ',' + pointer + '][' + read() + ']');
+    let numstr = parseNumstr();
+    if (!numstr) {
+      THROW('Expecting to parse a number but did not find any digits');
     }
-    return parseInt(str.slice(start, pointer), 10);
+    return parseInt(numstr, 10);
   }
 
   function parseSum(result) {
@@ -1192,9 +1254,14 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
   }
 
   function parseNumstr() {
-    let start = pointer;
-    while (!isEof() && read() >= '0' && read() <= '9') skip();
-    return str.slice(start, pointer);
+    let numstr = '';
+    while (!isEof()) {
+      let c = read();
+      if (c < '0' || c > '9') break;
+      numstr += c;
+      skip();
+    }
+    return numstr;
   }
 
   function parseNumList() {
@@ -1255,18 +1322,24 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     return idents;
   }
 
-  function readLine() {
-    let offset = pointer;
-    while (!isEof() && !isNewline(read())) skip();
-    return str.slice(offset, pointer);
+  function readLineRest() {
+    let str = '';
+    while (!isEof()) {
+      let c = read();
+      if (isNewline(c)) break;
+      str += c;
+      skip();
+    }
+    return str;
   }
 
   function parseAtRule() {
     is('@');
     // mostly temporary hacks while the dsl stabilizes...
 
-    if (str.slice(pointer, pointer + 6) === 'custom') {
-      pointer += 6;
+    let ruleName = parseIdentifier();
+
+    if (ruleName === 'custom') {
       skipWhitespaces();
       let ident = parseIdentifier();
       skipWhitespaces();
@@ -1328,20 +1401,18 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
         default:
           THROW('Unsupported custom rule: ' + ident);
       }
-    } else if (str.slice(pointer, pointer + 7) === 'targets') {
-      pointer += 7;
+    } else if (ruleName === 'targets') {
       parseTargets();
-    } else if (str.slice(pointer, pointer + 4) === 'mode') {
-      pointer += 4;
+    } else if (ruleName === 'mode') {
       parseMode();
     } else {
-      THROW('Unknown atrule');
+      THROW('unknown @ rule');
     }
     expectEol();
   }
 
   function parseVarStrat() {
-    let json = readLine();
+    let json = readLineRest();
     if (/\w+/.test(json)) ret.varstrat = json;
     else ret.varstrat = JSON.parse(json);
   }
@@ -1357,7 +1428,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       skipWhitespaces();
     }
 
-    return readLine();
+    return readLineRest();
   }
 
   function parseTargets() {
@@ -1368,7 +1439,7 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
     }
 
     THROW('implement me (targeted vars)');
-    if (str.slice(pointer, pointer + 3) === 'all') {
+    if (read() === 'a' && readD(1) === 'l' && readD(2) === 'l') {
       pointer += 3;
       this.solver.config.targetedVars = 'all';
     } else {
@@ -1387,20 +1458,22 @@ function dslToMl(str, addVar, nameToIndex, _debug) {
       skipWhitespaces();
     }
 
-    if (str.slice(pointer, pointer + 'constraints'.length) === 'constraints') {
+    let mode = parseIdentifier();
+
+    if (mode === 'constraints') {
       // input consists of high level constraints. generate low level optimizations.
-      pointer += 'constraints'.length;
-    } else if (str.slice(pointer, pointer + 'propagators'.length) === 'propagators') {
+    } else if (mode === 'propagators') {
       // input consists of low level constraints. try not to generate more.
-      pointer += 'propagators'.length;
+    } else {
+      THROW('unsupported mode: ' + mode);
     }
   }
 
   function THROW(msg) {
     if (_debug) {
-      ASSERT_LOG2(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
+      ASSERT_LOG2(dslbuf.slice(0, pointer).toString('binary') + '##|PARSER_IS_HERE[' + msg + ']|##' + dslbuf.slice(pointer).toString('binary'));
     }
-    msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
+    msg += ', source at ' + pointer + ' #|#: `' + dslbuf.slice(Math.max(0, pointer - 20), pointer).toString('binary') + '#|#' + dslbuf.slice(pointer, Math.min(dslbuf.length, pointer + 20)).toString('binary') + '`';
     throw new Error(msg);
   }
 }

@@ -99,6 +99,59 @@ import {
 
 // BODY_START
 
+// ords (number matching is faster, especially since we use a buffer anyways)
+const $$AND = 38;
+const $$AT = 64;
+const $$BANG = 33;
+const $$COLON = 58;
+const $$COMMA = 44;
+const $$CR = 10;
+const $$LF = 13;
+const $$DASH = 45;
+const $$DIV = 47;
+const $$EQ = 61;
+const $$GT = 62;
+const $$HASH = 35;
+const $$LEFTBRACK = 91;
+const $$LEFTPAREN = 40;
+const $$LT = 60;
+const $$OR = 124;
+const $$PLUS = 43;
+const $$QM = 63;
+const $$SPACE = 32;
+const $$RIGHTBRACK = 93;
+const $$RIGHTPAREN = 41;
+const $$SQUOTE = 39;
+const $$STAR = 42;
+const $$TAB = 7;
+const $$XOR = 94;
+const $$0 = 48;
+const $$1 = 49;
+const $$2 = 50;
+const $$3 = 51;
+const $$4 = 52;
+const $$5 = 53;
+const $$6 = 54;
+const $$7 = 55;
+const $$8 = 56;
+const $$9 = 57;
+const $$a = 97;
+const $$c = 99;
+const $$d = 100;
+const $$e = 101;
+const $$g = 103;
+const $$i = 105;
+const $$l = 108;
+const $$m = 109;
+const $$n = 110;
+const $$o = 111;
+const $$p = 112;
+const $$r = 114;
+const $$s = 115;
+const $$t = 116;
+const $$x = 120;
+const $$z = 122;
+
 /**
  * Compile the constraint dsl to a bytecode
  *
@@ -129,11 +182,11 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   return ret;
 
   function read() {
-    return String.fromCharCode(dslbuf[pointer]);
+    return dslbuf[pointer];
   }
 
   function readD(delta) {
-    return String.fromCharCode(dslbuf[pointer + delta]);
+    return dslbuf[pointer + delta];
   }
 
   function substr(start, stop) { // use sparingly!
@@ -167,16 +220,16 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function isWhitespace(s) {
-    return s === ' ' || s === '\t';
+    return s === $$SPACE || s === $$TAB;
   }
 
   function isNewline(s) {
     // no, I don't feel bad for also flaggin a comment as eol :)
-    return s === '\n' || s === '\r';
+    return s === $$CR || s === $$LF;
   }
 
   function isComment(s) {
-    return s === '#';
+    return s === $$HASH;
   }
 
   function isWhite(s) {
@@ -187,7 +240,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     skipWhitespaces();
     if (pointer < len) {
       let c = read();
-      if (c === '#') {
+      if (c === $$HASH) {
         skipComment();
       } else if (isNewline(c)) {
         skip();
@@ -211,11 +264,11 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     skipWhites();
 
     switch (read()) {
-      case ':':
+      case $$COLON:
         return parseVar();
-      case '#':
+      case $$HASH:
         return skipComment();
-      case '@':
+      case $$AT:
         return parseAtRule();
       default:
         if (!isEof()) return parseVoidConstraint();
@@ -223,13 +276,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function parseVar() {
-    skip(); // is(':')
+    skip(); // is($$COLON)
     skipWhitespaces();
     let nameNames = parseIdentifier();
     skipWhitespaces();
-    if (read() === ',') {
+    if (read() === $$COMMA) {
       nameNames = [nameNames];
-      while (!isEof() && read() === ',') {
+      while (!isEof() && read() === $$COMMA) {
         skip();
         skipWhitespaces();
         nameNames.push(parseIdentifier());
@@ -239,7 +292,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let domain = parseDomain();
     skipWhitespaces();
     let alts;
-    while (readD(0) === 'a' && readD(1) === 'l' && readD(2) === 'i' && readD(3) === 'a' && readD(4) === 'a' && readD(5) === 's' && readD(6) === '(') {
+    while (readD(0) === $$a && readD(1) === $$l && readD(2) === $$i && readD(3) === $$a && readD(4) === $$a && readD(5) === $$s && readD(6) === $$LEFTPAREN) {
       if (!alts) alts = [];
       alts.push(parseAlias(pointer += 6));
       skipWhitespaces();
@@ -265,18 +318,18 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function parseIdentifier() {
-    if (read() === '\'') return parseQuotedIdentifier();
+    if (read() === $$SQUOTE) return parseQuotedIdentifier();
     else return parseUnquotedIdentifier();
   }
 
   function parseQuotedIdentifier() {
-    is('\'');
+    is($$SQUOTE);
 
     let ident = '';
     while (!isEof()) {
       let c = read();
-      if (c === '\'') break;
-      ident += c;
+      if (c === $$SQUOTE) break;
+      ident += String.fromCharCode(c);
       skip();
     }
     if (isEof()) THROW('Quoted identifier must be closed');
@@ -289,11 +342,11 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     // anything terminated by whitespace
     let c = read();
     let ident = '';
-    if (c >= '0' && c <= '9') THROW('Unquoted ident cant start with number');
+    if (c >= $$0 && c <= $$9) THROW('Unquoted ident cant start with number');
     while (!isEof()) {
       c = read();
       if (!isValidUnquotedIdentChar(c)) break;
-      ident += c;
+      ident += String.fromCharCode(c);
       skip();
     }
     if (isEof()) THROW('Quoted identifier must be closed');
@@ -303,13 +356,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function isValidUnquotedIdentChar(c) {
     switch (c) {
-      case '(':
-      case ')':
-      case ',':
-      case '[':
-      case ']':
-      case '\'':
-      case '#':
+      case $$LEFTPAREN:
+      case $$RIGHTPAREN:
+      case $$COMMA:
+      case $$LEFTBRACK:
+      case $$RIGHTBRACK:
+      case $$SQUOTE:
+      case $$HASH:
         return false;
     }
     if (isWhite(c)) return false;
@@ -322,16 +375,16 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let alias = '';
     while (true) {
       let c = read();
-      if (c === ')') break;
+      if (c === $$RIGHTPAREN) break;
       if (isNewline(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
       if (isEof()) THROW('Alias must be closed with a `)` but wasnt (eof)');
-      alias += c;
+      alias += String.fromCharCode(c);
       skip();
     }
     if (!alias) THROW('The alias() can not be empty but was');
 
     skipWhitespaces();
-    is(')', '`alias` to be closed by `)`');
+    is($$RIGHTPAREN, '`alias` to be closed by `)`');
 
     return alias;
   }
@@ -345,7 +398,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     // (comma's optional and ignored)
 
     let c = read();
-    if (c === '=') {
+    if (c === $$EQ) {
       skip();
       skipWhitespaces();
       c = read();
@@ -353,41 +406,41 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     let domain;
     switch (c) {
-      case '[':
+      case $$LEFTBRACK:
 
-        is('[', 'domain start');
+        is($$LEFTBRACK, 'domain start');
         skipWhitespaces();
 
         domain = [];
 
-        if (read() === '[') {
+        if (read() === $$LEFTBRACK) {
           do {
             skip();
             skipWhitespaces();
             let lo = parseNumber();
             skipWhitespaces();
-            if (read() === ',') {
+            if (read() === $$COMMA) {
               skip();
               skipWhitespaces();
             }
             let hi = parseNumber();
             skipWhitespaces();
-            is(']', 'range-end');
+            is($$RIGHTBRACK, 'range-end');
             skipWhitespaces();
 
             domain.push(lo, hi);
 
-            if (read() === ',') {
+            if (read() === $$COMMA) {
               skip();
               skipWhitespaces();
             }
-          } while (read() === '[');
-        } else if (read() !== ']') {
+          } while (read() === $$LEFTBRACK);
+        } else if (read() !== $$RIGHTBRACK) {
           do {
             skipWhitespaces();
             let lo = parseNumber();
             skipWhitespaces();
-            if (read() === ',') {
+            if (read() === $$COMMA) {
               skip();
               skipWhitespaces();
             }
@@ -396,30 +449,30 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
             domain.push(lo, hi);
 
-            if (read() === ',') {
+            if (read() === $$COMMA) {
               skip();
               skipWhitespaces();
             }
-          } while (read() !== ']');
+          } while (read() !== $$RIGHTBRACK);
         }
 
-        is(']', 'domain-end');
+        is($$RIGHTBRACK, 'domain-end');
         return domain;
 
-      case '*':
+      case $$STAR:
         skip();
         return [SUB, SUP];
 
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
+      case $$0:
+      case $$1:
+      case $$2:
+      case $$3:
+      case $$4:
+      case $$5:
+      case $$6:
+      case $$7:
+      case $$8:
+      case $$9:
         let v = parseNumber();
         skipWhitespaces();
         return [v, v];
@@ -429,7 +482,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function parseModifier() {
-    if (read() !== '@') return;
+    if (read() !== $$AT) return;
     skip();
 
     let mod = {};
@@ -437,8 +490,8 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let stratName = '';
     while (true) {
       let c = read();
-      if (c < 'a' || c > 'z') break;
-      stratName += c;
+      if (c < $$a || c > $$z) break;
+      stratName += String.fromCharCode(c);
       skip();
     }
 
@@ -472,13 +525,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   function parseList(mod) {
     skipWhitespaces();
 
-    if (!(readD(0) === 'p' && readD(1) === 'r' && readD(2) === 'i' && readD(3) === 'o' && readD(4) === '(')) {
+    if (!(readD(0) === $$p && readD(1) === $$r && readD(2) === $$i && readD(3) === $$o && readD(4) === $$LEFTPAREN)) {
       THROW('Expecting the priorities to follow the `@list`');
     }
 
     pointer += 5;
     mod.list = parseNumList();
-    is(')', 'list end');
+    is($$RIGHTPAREN, 'list end');
   }
 
   function parseMarkov(mod) {
@@ -487,15 +540,15 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       repeat = false;
       skipWhitespaces();
       switch (read()) {
-        case 'm':
-          if (readD(1) === 'a' && readD(2) === 't' && readD(3) === 'r' && readD(4) === 'i' && readD(5) === 'x' && readD(6) === '(') {
+        case $$m:
+          if (readD(1) === $$a && readD(2) === $$t && readD(3) === $$r && readD(4) === $$i && readD(5) === $$x && readD(6) === $$LEFTPAREN) {
             // TOFIX: there is no validation here. apply stricter and safe matrix parsing
 
             pointer += 7;
             let start = pointer;
-            while (read() !== ')' && !isEof()) skip();
+            while (read() !== $$RIGHTPAREN && !isEof()) skip();
             if (isEof()) THROW('The matrix must be closed by a `)` but did not find any');
-            ASSERT(read() === ')', 'code should only stop at eof or )');
+            ASSERT(read() === $$RIGHTPAREN, 'code should only stop at eof or )');
 
             let matrix = substr(start, pointer);
             let code = 'return ' + matrix;
@@ -503,29 +556,29 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
             /* eslint no-new-func: "off" */
             mod.matrix = func();
 
-            is(')', 'end of matrix'); // kind of a redundant double check. could also just skip() here.
+            is($$RIGHTPAREN, 'end of matrix'); // kind of a redundant double check. could also just skip() here.
 
             repeat = true;
           }
           break;
 
-        case 'l':
-          if (readD(1) === 'e' && readD(2) === 'g' && readD(3) === 'e' && readD(4) === 'n' && readD(5) === 'd' && readD(6) === '(') {
+        case $$l:
+          if (readD(1) === $$e && readD(2) === $$g && readD(3) === $$e && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
             pointer += 7;
             mod.legend = parseNumList();
             skipWhitespaces();
-            is(')', 'legend closer');
+            is($$RIGHTPAREN, 'legend closer');
 
             repeat = true;
           }
           break;
 
-        case 'e':
-          if (readD(1) === 'x' && readD(2) === 'p' && readD(3) === 'a' && readD(4) === 'n' && readD(5) === 'd' && readD(6) === '(') {
+        case $$e:
+          if (readD(1) === $$x && readD(2) === $$p && readD(3) === $$a && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
             pointer += 7;
             mod.expandVectorsWith = parseNumber();
             skipWhitespaces();
-            is(')', 'expand closer');
+            is($$RIGHTPAREN, 'expand closer');
 
             repeat = true;
           }
@@ -535,7 +588,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function skipComment() {
-    is('#', 'comment start'); //is('#', 'comment hash');
+    is($$HASH, 'comment start'); //is('#', 'comment hash');
     while (!isEof() && !isNewline(read())) skip();
     if (!isEof()) skip();
   }
@@ -996,52 +1049,52 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   function parseCop() {
     let c = read();
     switch (c) {
-      case '=':
+      case $$EQ:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
           return '==';
         }
         return '=';
-      case '!':
+      case $$BANG:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
           return '!=';
         }
-        if (read() === '&') {
+        if (read() === $$AND) {
           skip();
           return '!&';
         }
-        if (read() === '^') {
+        if (read() === $$XOR) {
           skip();
           return '!^';
         }
         return '!';
-      case '<':
+      case $$LT:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
           return '<=';
         }
         return '<';
-      case '>':
+      case $$GT:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
           return '>=';
         }
         return '>';
-      case '&':
+      case $$AND:
         skip();
         return '&';
-      case '|':
+      case $$OR:
         skip();
         return '|';
-      case '^':
+      case $$XOR:
         skip();
         return '^';
-      case '#':
+      case $$HASH:
         THROW('Expected to parse a cop but found a comment instead');
         break;
       default:
@@ -1051,56 +1104,63 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function parseRop() {
-    let a = read();
-    switch (a) {
-      case '=':
+    switch (read()) {
+      case $$EQ:
         skip();
-        let b = read();
-        if (b === '=') {
+        if (read() === $$EQ) {
           skip();
-          is('?', 'reifier suffix');
+          is($$QM, 'reifier suffix');
           return '==?';
         } else {
           return '=';
         }
 
-      case '!':
+      case $$BANG:
         skip();
-        is('=', 'middle part of !=? op');
-        is('?', 'reifier suffix');
+        is($$EQ, 'middle part of !=? op');
+        is($$QM, 'reifier suffix');
         return '!=?';
 
-      case '<':
+      case $$LT:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
-          is('?', 'reifier suffix');
+          is($$QM, 'reifier suffix');
           return '<=?';
         } else {
-          is('?', 'reifier suffix');
+          is($$QM, 'reifier suffix');
           return '<?';
         }
 
-      case '>':
+      case $$GT:
         skip();
-        if (read() === '=') {
+        if (read() === $$EQ) {
           skip();
-          is('?', 'reifier suffix');
+          is($$QM, 'reifier suffix');
           return '>=?';
         } else {
-          is('?', 'reifier suffix');
+          is($$QM, 'reifier suffix');
           return '>?';
         }
 
-      case '+':
-      case '-':
-      case '*':
-      case '/':
+      case $$PLUS:
         skip();
-        return a;
+        return '+';
+
+      case $$DASH:
+        skip();
+        return '-';
+
+      case $$STAR:
+        skip();
+        return '*';
+
+      case $$DIV:
+        skip();
+        return '/';
 
       default:
-        THROW('Wanted to parse a rop but next char is `' + a + '`');
+        THROW('Wanted to parse a rop but next char is `' + read() + '` (`' + String.fromCharCode(read()) + '`)');
     }
   }
 
@@ -1109,12 +1169,12 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     let c = read();
 
-    if (c === 'd' && readD(1) === 'i' && readD(2) === 's' && readD(3) === 't' && readD(4) === 'i' && readD(5) === 'n' && readD(6) === 'c' && readD(7) === 't' && readD(8) === '(') {
+    if (c === $$d && readD(1) === $$i && readD(2) === $$s && readD(3) === $$t && readD(4) === $$i && readD(5) === $$n && readD(6) === $$c && readD(7) === $$t && readD(8) === $$LEFTPAREN) {
       parseCalledListConstraint(ML_DISTINCT, 9);
       return true;
     }
 
-    if (c === 'n' && readD(1) === 'a' && readD(2) === 'l' && readD(3) === 'l' && readD(4) === '(') {
+    if (c === $$n && readD(1) === $$a && readD(2) === $$l && readD(3) === $$l && readD(4) === $$LEFTPAREN) {
       parseCalledListConstraint(ML_NALL, 5);
       return true;
     }
@@ -1130,19 +1190,19 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     ASSERT(vals.length <= 255, 'dont do lists with more than 255 vars :(');
     ml += encode8bit(opcode) + encode16bit(vals.length) + vals.map(encodeName).join('');
     skipWhitespaces();
-    is(')', 'parseCalledListConstraint call closer');
+    is($$RIGHTPAREN, 'parseCalledListConstraint call closer');
     expectEol();
   }
 
   function parseVexpList() {
     let list = [];
     skipWhitespaces();
-    while (!isEof() && read() !== ')') {
+    while (!isEof() && read() !== $$RIGHTPAREN) {
       let v = parseVexpr();
       list.push(v);
 
       skipWhitespaces();
-      if (read() === ',') {
+      if (read() === $$COMMA) {
         skip();
         skipWhitespaces();
       }
@@ -1155,17 +1215,17 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     let c = read();
     let v;
-    if (c === '(') v = parseGrouping();
-    else if (c === '[') {
+    if (c === $$LEFTPAREN) v = parseGrouping();
+    else if (c === $$LEFTBRACK) {
       let d = parseDomain();
       if (d[0] === d[1] && d.length === 2) v = d[0];
       else v = addVar(undefined, d, false, true);
-    } else if (c >= '0' && c <= '9') {
+    } else if (c >= $$0 && c <= $$9) {
       v = parseNumber();
     } else {
       let ident = parseIdentifier();
 
-      if (read() === '(') {
+      if (read() === $$LEFTPAREN) {
         if (ident === 'sum') v = parseSum(resultVar);
         else if (ident === 'product') v = parseArgs(ML_PRODUCT, resultVar);
         else if (ident === 'all?') v = parseArgs(ML_ISALL, resultVar, true);
@@ -1181,21 +1241,21 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
   }
 
   function parseGrouping() {
-    is('(', 'group open');
+    is($$LEFTPAREN, 'group open');
     skipWhitespaces();
     let A = parseVexpr();
     skipWhitespaces();
 
-    if (read() === '=') {
-      if (read() !== '=') {
+    if (read() === $$EQ) {
+      if (read() !== $$EQ) {
         parseAssignment(A);
         skipWhitespaces();
-        is(')', 'group closer');
+        is($$RIGHTPAREN, 'group closer');
         return A;
       }
     }
 
-    if (read() === ')') {
+    if (read() === $$RIGHTPAREN) {
       // just wrapping a vexpr is okay
       skip();
       return A;
@@ -1203,7 +1263,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     let C = parseAssignRest(A);
     skipWhitespaces();
-    is(')', 'group closer');
+    is($$RIGHTPAREN, 'group closer');
     return C;
   }
 
@@ -1217,7 +1277,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function parseSum(result) {
     ++constraintCount;
-    is('(', 'sum call opener');
+    is($$LEFTPAREN, 'sum call opener');
     skipWhitespaces();
     let refs = parseVexpList();
     result = createResultVar(result, false, true);
@@ -1230,13 +1290,13 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       return encodeName(r);
     }).join('') + encodeName(result);
     skipWhitespaces();
-    is(')', 'sum closer');
+    is($$RIGHTPAREN, 'sum closer');
     return result;
   }
 
   function parseArgs(op, result, defaultBoolResult) {
     ++constraintCount;
-    is('(', 'args call opener');
+    is($$LEFTPAREN, 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
     result = createResultVar(result, defaultBoolResult, true);
@@ -1249,7 +1309,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       return encodeName(r);
     }).join('') + encodeName(result);
     skipWhitespaces();
-    is(')', 'args closer');
+    is($$RIGHTPAREN, 'args closer');
     return result;
   }
 
@@ -1257,8 +1317,8 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     let numstr = '';
     while (!isEof()) {
       let c = read();
-      if (c < '0' || c > '9') break;
-      numstr += c;
+      if (c < $$0 || c > $$9) break;
+      numstr += String.fromCharCode(c);
       skip();
     }
     return numstr;
@@ -1272,7 +1332,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     while (numstr) {
       nums.push(parseInt(numstr, 10));
       skipWhitespaces();
-      if (read() === ',') {
+      if (read() === $$COMMA) {
         ++pointer;
         skipWhitespaces();
       }
@@ -1288,8 +1348,8 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
     while (true) {
       skipWhitespaces();
-      if (read() === ')') break;
-      if (read() === ',') {
+      if (read() === $$RIGHTPAREN) break;
+      if (read() === $$COMMA) {
         skip();
         skipWhitespaces();
       }
@@ -1310,7 +1370,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       let c = read();
       if (isNewline(c)) break;
 
-      if (c === ',') {
+      if (c === $$COMMA) {
         skip();
         skipWhitespaces();
       }
@@ -1327,14 +1387,14 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     while (!isEof()) {
       let c = read();
       if (isNewline(c)) break;
-      str += c;
+      str += String.fromCharCode(c);
       skip();
     }
     return str;
   }
 
   function parseAtRule() {
-    is('@');
+    is($$AT);
     // mostly temporary hacks while the dsl stabilizes...
 
     let ruleName = parseIdentifier();
@@ -1343,7 +1403,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
       skipWhitespaces();
       let ident = parseIdentifier();
       skipWhitespaces();
-      if (read() === '=') {
+      if (read() === $$EQ) {
         skip();
         skipWhitespaces();
       }
@@ -1406,7 +1466,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
     } else if (ruleName === 'mode') {
       parseMode();
     } else {
-      THROW('unknown @ rule');
+      THROW('unknown @ rule [' + ruleName + ']');
     }
     expectEol();
   }
@@ -1423,7 +1483,7 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function parseRestCustom() {
     skipWhitespaces();
-    if (read() === '=') {
+    if (read() === $$EQ) {
       skip();
       skipWhitespaces();
     }
@@ -1433,27 +1493,27 @@ function dslToMl(THISISTHEDSLSTRING, addVar, nameToIndex, _debug) {
 
   function parseTargets() {
     skipWhitespaces();
-    if (read() === '=') {
+    if (read() === $$EQ) {
       skip();
       skipWhitespaces();
     }
 
     THROW('implement me (targeted vars)');
-    if (read() === 'a' && readD(1) === 'l' && readD(2) === 'l') {
+    if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
       pointer += 3;
       this.solver.config.targetedVars = 'all';
     } else {
-      is('(');
+      is($$LEFTPAREN);
       let idents = parseIdentList();
       this.solver.config.targetedVars = idents;
-      is(')');
+      is($$RIGHTPAREN);
     }
     expectEol();
   }
 
   function parseMode() {
     skipWhitespaces();
-    if (read() === '=') {
+    if (read() === $$EQ) {
       skip();
       skipWhitespaces();
     }

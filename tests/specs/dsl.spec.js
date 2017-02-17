@@ -3,6 +3,12 @@ import solverSolver from '../../src/runner';
 
 describe('specs/dsl.spec', function() {
 
+  it('should parse trivial case', function() {
+    expect(_ => solverSolver(`
+      A == 5
+    `)).not.to.throw();
+  });
+
   it('should not allow var decl after using it implicitly', function() {
     expect(_ => solverSolver(`
       A == 5

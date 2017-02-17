@@ -75,7 +75,7 @@ function solverSolver(dsl) {
 
   let anonCounter = 0;
 
-  function addVar(name, domain, modifier, returnName, returnIndex) {
+  function $addVar(name, domain, modifier, returnName, returnIndex) {
     ASSERT_LOG2('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
     if (modifier) THROW('implement me (var mod)');
     if (typeof name === 'number') {
@@ -102,11 +102,11 @@ function solverSolver(dsl) {
     if (returnName) return name; // return a name when explicitly asked for.
   }
 
-  function getVar(name) {
+  function $getVar(name) {
     return trie_get(varTrie, name);
   }
 
-  function addAlias(indexOld, indexNew) {
+  function $addAlias(indexOld, indexNew) {
     ASSERT(indexOld !== indexNew, 'cant make an alias for itself');
     aliases[indexOld] = indexNew;
 
@@ -124,7 +124,7 @@ function solverSolver(dsl) {
     domains[indexOld] = false; // mark as aliased. this is not a change per se.
   }
 
-  function getAlias(index) {
+  function $getAlias(index) {
     let alias = aliases[index];
     if (alias === index) throw new Error('alias is itself?', alias, index);
     if (alias === undefined) {
@@ -137,7 +137,7 @@ function solverSolver(dsl) {
 
   ASSERT_LOG2('Parsing DSL...');
   console.time('- dsl->ml (' + dsl.length + ')');
-  let input = dslToMl(dsl, addVar, getVar);
+  let input = dslToMl(dsl, $addVar, $getVar);
   console.timeEnd('- dsl->ml (' + dsl.length + ')');
 
   let mls = input.mlString;
@@ -148,7 +148,7 @@ function solverSolver(dsl) {
   let state = $CHANGED;
   while (state === $CHANGED) {
     ASSERT_LOG2('run loop...');
-    state = run_cycle(mlConstraints, getVar, addVar, domains, varNames, addAlias, getAlias, solveStack, runLoops++);
+    state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++);
   }
   console.timeEnd('- all run cycles');
 
@@ -156,12 +156,12 @@ function solverSolver(dsl) {
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
   if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(mlConstraints))) {
-    solution = createSolution(varNames, domains, getAlias, solveStack);
+    solution = createSolution(varNames, domains, $getAlias, solveStack);
   }
   console.timeEnd('- generating solution');
 
   console.time('ml->dsl');
-  let newdsl = mlToDsl(mlConstraints, varNames, domains, getAlias, solveStack, counter(mlConstraints, varNames, domains, getAlias));
+  let newdsl = mlToDsl(mlConstraints, varNames, domains, $getAlias, solveStack, counter(mlConstraints, varNames, domains, $getAlias));
   console.timeEnd('ml->dsl');
 
   console.timeEnd('</solverSolver>');

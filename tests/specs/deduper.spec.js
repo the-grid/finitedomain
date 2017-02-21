@@ -74,14 +74,16 @@ describe('specs/deduper.spec', function() {
     // it's an artifact edge case that we can't just ignore
 
     // if this breaks the output probably changed or the engine improved; this case should result in `false`
-    expect(_ => solverSolver(`
+    let solution = solverSolver(`
       @custom var-strat throw
       : A *
       : B *
       0 = A ==? B
       1 = A ==? B
       # oops
-    `)).to.throw(/debug: 2 vars, 1 constraints.* ops: neq /); // it should actually resolve this... (it ends with x != x) and maybe a future fix will resolve this to reject
+    `);
+
+    expect(solution).to.eql(false);
   });
 
   it('should alias two sums', function() {

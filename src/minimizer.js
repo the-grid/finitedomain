@@ -149,7 +149,7 @@ import {
 const MINIMIZE_ALIASED = false;
 
 function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
-  ASSERT_LOG2('mlConstraints byte code:', mlConstraints);
+  ASSERT_LOG2('mlConstraints, loop:', firstRun, ', byte code:', mlConstraints);
   ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
   let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
@@ -165,7 +165,7 @@ function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAli
 
 function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
-  ASSERT_LOG2('minimize sweep, ml len=', ml.length);
+  ASSERT_LOG2('minimize sweep, ml len=', ml.length, ', firstRun=', firstRun);
   let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;
@@ -197,7 +197,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
     firstRun = false;
   }
-  if (firstRun) return $STABLE;
+  if (loops === 1) return $STABLE;
   return $CHANGED;
 
   function getDomainOrRestartForAlias(index, argDelta) {

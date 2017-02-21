@@ -73,14 +73,21 @@ function solverSolver(dsl) {
 
   console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + mlConstraints.length + ' bytes)');
 
-  console.time('- all run cycles');
+  // first scan will be the most drastic in terms of reduction so do it seperately here
+  console.time('- first minimizer cycle (single loop)');
+  let state = min_run(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, true);
+  console.timeEnd('- first minimizer cycle (single loop)');
+  ASSERT_LOG2('First minimize pass result:', state);
+
   let runLoops = 0;
-  let state = $CHANGED;
-  while (state === $CHANGED) {
-    ASSERT_LOG2('run loop...');
-    state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
+  if (state !== $SOLVED && state !== $REJECTED) {
+    console.time('- all run cycles');
+    do {
+      ASSERT_LOG2('run loop...');
+      state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, ++runLoops, problem);
+    } while (state === $CHANGED);
+    console.timeEnd('- all run cycles');
   }
-  console.timeEnd('- all run cycles');
 
   console.time('- generating solution');
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
@@ -119,21 +126,24 @@ function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveS
   let state = min_run(ml, getVar, addVar, domains, vars, addAlias, getAlias, runLoops === 0);
   console.timeEnd('- minimizer cycle #' + runLoops);
 
-  if (state === $CHANGED) {
-    console.time('- deduper cycle #' + runLoops);
-    let deduperAddedAlias = deduper(ml, vars, domains, getAlias, addAlias);
-    console.timeEnd('- deduper cycle #' + runLoops);
+  if (state === $SOLVED) return state;
+  if (state === $REJECTED) return state;
 
-    if (deduperAddedAlias < 0) {
-      state = $REJECTED;
-    } else {
-      console.time('- cutter cycle #' + runLoops);
-      let cutLoops = cutter(ml, vars, domains, addAlias, getAlias, solveStack);
-      console.timeEnd('- cutter cycle #' + runLoops);
+  console.time('- deduper cycle #' + runLoops);
+  let deduperAddedAlias = deduper(ml, vars, domains, getAlias, addAlias);
+  console.timeEnd('- deduper cycle #' + runLoops);
 
-      if (cutLoops > 1 || deduperAddedAlias) state = $CHANGED;
-      else if (cutLoops < 0) state = $REJECTED;
-      else state = $STABLE;
+  if (deduperAddedAlias < 0) {
+    state = $REJECTED;
+  } else {
+    console.time('- cutter cycle #' + runLoops);
+    let cutLoops = cutter(ml, vars, domains, addAlias, getAlias, solveStack);
+    console.timeEnd('- cutter cycle #' + runLoops);
+
+    if (cutLoops > 1 || deduperAddedAlias) state = $CHANGED;
+    else if (cutLoops < 0) state = $REJECTED;
+    else {
+      ASSERT(state === $CHANGED || state === $STABLE, 'minimize state should be either stable or changed here');
     }
   }
 

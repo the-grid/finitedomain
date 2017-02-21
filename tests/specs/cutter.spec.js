@@ -147,6 +147,20 @@ describe('specs/cutter.spec', function() {
       expect(solution).to.eql({A: 0, B: 0, C: 0, R: 4, __1: 4});
     });
 
+    it('should order sum args', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        R = sum(C A B)
+        @custom noleaf A B C
+      `);
+
+      // should solve because R doesnt actually restrict its sum args (the result of any combination is in R)
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0});
+    });
+
     it('should remove if R wraps whole range', function() {
       let solution = solverSolver(`
         @custom var-strat throw

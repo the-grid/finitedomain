@@ -156,19 +156,19 @@ const $$z = 122;
  * Compile the constraint dsl to a bytecode
  *
  * @param {string} dslStr
+ * @param {Object} problem
  * @param {Function} addVar
  * @param {Function} nameToIndex
  * @param {boolean} [_debug] Improved error reporting when true
  * @returns {string}
  */
-function dslToMl(dslStr, addVar, nameToIndex, _debug) {
+function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
   ASSERT_LOG2('dslToMl:', [dslStr.slice(0, 100).replace(/ +/g, ' ') + (dslStr.replace(/ +/g, ' ').length > 100 ? '...' : '')]);
 
-  let ret = {
-    mlString: '',
-    varstrat: 'default',
-    valstrat: 'default',
-  };
+  problem.input.varstrat = 'default';
+  problem.input.valstrat = 'default';
+  problem.input.dsl = dslStr;
+
   let constraintCount = 0;
   let freeDirective = -1; // for `@custom free x`. this var tries to ensure exactly x bytes are "free"
 
@@ -211,10 +211,10 @@ function dslToMl(dslStr, addVar, nameToIndex, _debug) {
   }
   ASSERT(mlPointer === mlBuffer.length, 'mlPointer should now be at the first unavailable cell of the buffer', mlPointer, mlBuffer.length);
 
-  ret.mlBuf = mlBuffer;
+  problem.ml = mlBuffer;
 
   console.log('# dslToMl: parsed', constraintCount, 'constraints');
-  return ret;
+  return;
 
   // ########################################################################
 
@@ -1738,8 +1738,8 @@ function dslToMl(dslStr, addVar, nameToIndex, _debug) {
           let target = parseIdentifier();
           let config = parseRestCustom();
 
-          if (!ret.valdist) ret.valdist = {};
-          ret.valdist[target] = JSON.parse(config);
+          if (!problem.input.valdist) problem.input.valdist = {};
+          problem.input.valdist[target] = JSON.parse(config);
           break;
         case 'noleaf':
           skipWhitespaces();
@@ -1807,12 +1807,12 @@ function dslToMl(dslStr, addVar, nameToIndex, _debug) {
 
   function parseVarStrat() {
     let json = readLineRest();
-    if (/\w+/.test(json)) ret.varstrat = json;
-    else ret.varstrat = JSON.parse(json);
+    if (/\w+/.test(json)) problem.input.varstrat = json;
+    else problem.input.varstrat = JSON.parse(json);
   }
 
   function parseValStrat() {
-    ret.varstrat = parseIdentifier();
+    problem.input.valstrat = parseIdentifier();
   }
 
   function parseRestCustom() {

@@ -15,6 +15,19 @@ import {
   domain_arrToSmallest,
 } from './domain';
 import {
+  ML_JMP,
+  ML_NOOP,
+  ML_NOOP2,
+  ML_NOOP3,
+  ML_NOOP4,
+  ML_STOP,
+
+  ml_enc8,
+  ml_jump,
+  ml_validateSkeleton,
+  ml_walk,
+} from './ml';
+import {
   trie_add,
   trie_create,
   trie_get,
@@ -77,7 +90,7 @@ function $getAlias($aliases, index) {
   return alias;
 }
 
-function problem_create(dsl) {
+function problem_create() {
   let anonCounter = 0;
   let varTrie = trie_create();
   let varNames = [];
@@ -86,17 +99,20 @@ function problem_create(dsl) {
   let solveStack = [];
 
   return {
-    _dsl: dsl,
-
     varTrie,
     varNames,
     domains,
     aliases,
     solveStack,
 
-    input: undefined, // obj: see dsltoml
-    mlString: '',
-    ml: undefined,
+    input: { // see dsltoml
+      varstrat: 'default',
+      valstrat: 'default',
+      dsl: '',
+      valdist: undefined, // arbitrary json to be defined in detail
+    },
+    ml: undefined, // Buffer
+    mapping: undefined, // var index in (this) child to var index of parent
 
     addVar: $addVar.bind(undefined, varTrie, varNames, domains, _ => ++anonCounter),
     getVar: $getVar.bind(undefined, varTrie),
@@ -105,8 +121,57 @@ function problem_create(dsl) {
   };
 }
 
+function problem_from(parentProblem) {
+  ASSERT_LOG2(' - problem_from(): sweeping parent and generating clean child problem');
+  let childProblem = problem_create(parentProblem._dsl);
+
+  let parentMl = parentProblem.ml;
+  childProblem.mapping = new Array(parentProblem.varNames.length);
+  let len = parentMl.length;
+  let childMl = new Buffer(len); // worst case there's a lot of empty space to recycle
+  //childMl.fill(0); // note: we shouldnt need to do this. everything but the left-over space is copied over directly. the left-over space is compiled as a full jump which should ignore the remaining contents of the buffer. it may only be a little confusing to debug if you expect that space to be "empty"
+  childProblem.ml = childMl;
+
+  let childOffset = 0;
+  let lastJumpSize = 0;
+  let lastJumpOffset = 0;
+  let stopOffset = 0;
+  ml_walk(parentMl, 0, (ml, offset, op, sizeof) => {
+    switch (op) {
+      case ML_JMP:
+      case ML_NOOP:
+      case ML_NOOP2:
+      case ML_NOOP3:
+      case ML_NOOP4:
+        lastJumpOffset = offset;
+        lastJumpSize = sizeof;
+        return; // eliminate these
+      case ML_STOP:
+        stopOffset = offset;
+    }
+
+    // copy the bytes to the new problem ml
+    // TODO: consolidate consecutive copies (probably faster to do one long copy than 10 short ones?)
+    ml.copy(childMl, childOffset, offset, offset + sizeof);
+    childOffset += sizeof;
+  });
+  ASSERT_LOG2('ML len:', len, 'parent content len:', (stopOffset - lastJumpSize === lastJumpOffset) ? lastJumpOffset + 1 : stopOffset, ', child content len:', childOffset);
+  ASSERT(childMl[childOffset - 1] === ML_STOP, 'expecting last copied op to be a STOP', childOffset, childMl[childOffset - 1], childMl);
+  if (childOffset < len) {
+    ASSERT_LOG2(' - there are', len - childOffset - 1, 'available bytes left, compiling a jump and moving the STOP back');
+    ml_jump(childMl, childOffset - 1, len - childOffset);
+    ml_enc8(childMl, len - 1, ML_STOP);
+  }
+  ASSERT_LOG2('PML:', parentMl);
+  ASSERT_LOG2('CML:', childMl);
+  ASSERT(ml_validateSkeleton(childMl, 'after streaming to a child ml'));
+
+  return childProblem;
+}
+
 // BODY_STOP
 
 export {
   problem_create,
+  problem_from,
 };

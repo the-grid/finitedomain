@@ -550,15 +550,21 @@ function ml_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
   ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
 }
 
-function walk(ml, offset, callback) {
+function ml_walk(ml, offset, callback) {
+  ASSERT(ml instanceof Buffer, 'ml must be Buffer');
+  ASSERT(typeof offset === 'number' && offset >= 0 && offset < ml.length, 'offset should be valid and not oob');
+  ASSERT(typeof callback === 'function', 'callback should be callable');
+
   let len = ml.length;
   let op = ml[offset];
   while (offset < len) {
     op = ml[offset];
     ASSERT(offset === 0 || op !== ML_START, 'should not see op=0 unless offset=0', 'offset=', offset, 'ml=', ml);
-    let r = callback(ml, offset, op);
+    let sizeof = ml_sizeof(ml, offset, op);
+    ASSERT(sizeof > 0, 'ops should occupy space');
+    let r = callback(ml, offset, op, sizeof);
     if (r !== undefined) return r;
-    offset += ml_sizeof(ml, offset, op);
+    offset += sizeof;
   }
 }
 
@@ -566,14 +572,14 @@ function ml_validateSkeleton(ml, msg) {
   ASSERT_LOG2('--- ml_validateSkeleton', msg);
   let started = false;
   let stopped = false;
-  walk(ml, 0, (ml, offset, op) => {
+  ml_walk(ml, 0, (ml, offset, op) => {
     if (op === ML_START && offset === 0) started = true;
-    if (op === ML_START && offset !== 0) THROW('ml_validateSkeleton: Found ML_START at offset', offset);
+    if (op === ML_START && offset !== 0) ml_throw(ml, offset, 'ml_validateSkeleton: Found ML_START at offset', offset);
     if (op === ML_STOP) stopped = true;
-    else if (stopped) THROW('ml_validateSkeleton: Should stop after encountering a stop but did not');
+    else if (stopped) ml_throw(ml, offset, 'ml_validateSkeleton: Should stop after encountering a stop but did not');
   });
 
-  if (!started || !stopped) THROW('ml_validateSkeleton: Did not find a ML_START or ML_STOP');
+  if (!started || !stopped) ml_throw(ml, ml.length, 'ml_validateSkeleton: Missing a ML_START or ML_STOP');
   ASSERT_LOG2('--- PASS ml_validateSkeleton');
   return true;
 }
@@ -581,7 +587,7 @@ function ml_validateSkeleton(ml, msg) {
 function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
   ASSERT_LOG2(' - ml_getRecycleOffset looking for at least', requiredSize, 'bytes of free space');
   // find a jump which covers at least the requiredSize
-  return walk(ml, fromOffset, (ml, offset, op) => {
+  return ml_walk(ml, fromOffset, (ml, offset, op) => {
     ASSERT_LOG2('   - considering op', op, 'at', offset);
     if (op === ML_JMP) {
       let size = ml_getOpSizeSlow(ml, offset);
@@ -1306,6 +1312,7 @@ export {
   ml_skip,
   ml_throw,
   ml_validateSkeleton,
+  ml_walk,
 
   ml_c2vv,
   ml_cr2vv,

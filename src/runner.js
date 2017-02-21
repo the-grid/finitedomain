@@ -45,6 +45,7 @@ import {
 } from './counter';
 import {
   problem_create,
+  //problem_from,
 } from './problem';
 
 // BODY_START
@@ -54,7 +55,7 @@ function solverSolver(dsl) {
   console.time('</solverSolver>');
   ASSERT_LOG2(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
-  let problem = problem_create(dsl);
+  let problem = problem_create();
   // you can destructure it but this way is much easier to grep for usages... let the minifier minify it
   let varNames = problem.varNames;
   let domains = problem.domains;
@@ -66,8 +67,8 @@ function solverSolver(dsl) {
   let $getAlias = problem.getAlias;
 
   console.time('- dsl->ml');
-  let input = dslToMl(dsl, $addVar, $getVar);
-  let mlConstraints = input.mlBuf;
+  dslToMl(dsl, problem, $addVar, $getVar);
+  let mlConstraints = problem.ml;
   console.timeEnd('- dsl->ml');
 
   console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + mlConstraints.length + ' bytes)');
@@ -77,7 +78,7 @@ function solverSolver(dsl) {
   let state = $CHANGED;
   while (state === $CHANGED) {
     ASSERT_LOG2('run loop...');
-    state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++);
+    state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
   }
   console.timeEnd('- all run cycles');
 
@@ -100,7 +101,7 @@ function solverSolver(dsl) {
   if (solution) return solution;
   if (state === $REJECTED) return false;
 
-  if (input.varstrat === 'throw') {
+  if (problem.input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
     ASSERT(false, `Forcing a choice with strat=throw; debug: ${varNames.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + varNames[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(mlConstraints)} `);
@@ -111,7 +112,7 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops) {
+function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops, problem) {
   console.time('- run_cycle #' + runLoops);
 
   console.time('- minimizer cycle #' + runLoops);

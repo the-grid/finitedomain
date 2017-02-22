@@ -514,7 +514,7 @@ class Solver {
       if (domain_isEmpty(vardoms[i])) {
         alreadyRejected = true;
         if (log >= LOG_STATS) {
-          console.log('      - FD: rejected without propagation');
+          console.log('      - FD: rejected without propagation (' + this.config.allVarNames[i] + ' is empty)');
         }
         break;
       }

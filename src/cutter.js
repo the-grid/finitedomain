@@ -184,17 +184,6 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     return getFinalIndex(aliasIndex, _max - 1);
   }
 
-  function force(varIndex) {
-    ASSERT(domains[varIndex] !== false, 'TOFIX: resolve aliases in solveStack');
-    let v = domain_getValue(domains[varIndex]);
-    if (v < 0) {
-      ASSERT_LOG2('   - forcing index', varIndex, 'to min(' + domain__debug(domains[varIndex]) + '):', domain_min(domains[varIndex]));
-      v = domain_min(domains[varIndex]); // arbitrary choice, may want to take strats into account although that's more relevant for helping search faster than the actual solution imo
-      domains[varIndex] = domain_createValue(v);
-    }
-    return v;
-  }
-
   function somethingChanged() {
     ++changes;
   }
@@ -248,7 +237,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut lt A;', indexA, '<', indexB, '  ->  ', domain__debug(domains[indexA]), '<', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
@@ -266,7 +255,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         let vA = force(indexA);
         let B = domains[indexB];
         ASSERT_LOG2(' - cut lt B; Setting', indexA, '(', vA, ') to be lt', indexB, '(', domain__debug(B), ')');
@@ -342,7 +331,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       indexA = getFinalIndex(ml_dec16(ml, offset + 1));
       indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2));
       ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let vB = lenB === 1 ? indexB : force(indexB);
@@ -371,7 +360,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vB = ml_dec8(ml, offset + 1 + 2);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut iseq A;', indexR, '=', indexA, '==? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '==?', vB);
           let vR = force(indexR);
           ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
@@ -407,7 +396,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2));
 
       ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut isneq R;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let vB = lenB === 1 ? indexB : force(indexB);
@@ -436,7 +425,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vB = ml_dec8(ml, offset + 1 + 2);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut isneq A;', indexR, '=', indexA, '!=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '!=?', vB);
           let vR = force(indexR);
           ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
@@ -472,7 +461,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
 
       ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut islt R;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
         let vA = lenA === 1 ? indexA : force(indexA);
         let vB = lenB === 1 ? indexB : force(indexB);
@@ -501,7 +490,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vB = ml_dec8(ml, offset + 1 + lenA);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<?', vB);
           let vR = force(indexR);
           ASSERT(domain_removeGte(A, vB), 'A should be able to reflect R=0 with B');
@@ -529,7 +518,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vA = ml_dec8(ml, offset + 1);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut islt B;', indexR, '= c <?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<?', domain__debug(B));
           let vR = force(indexR);
           ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
@@ -566,7 +555,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
 
       ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut islte R;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
         let vA = lenA === 1 ? indexA : force(indexA);
         let vB = lenB === 1 ? indexB : force(indexB);
@@ -595,7 +584,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vB = ml_dec8(ml, offset + 1 + lenA);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<=?', vB);
           let vR = force(indexR);
           ASSERT(domain_removeGtUnsafe(A, vB), 'A should be able to reflect R=0 with B');
@@ -623,7 +612,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         let vA = ml_dec8(ml, offset + 1);
 
         ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut islt B;', indexR, '= c <=?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<=?', domain__debug(B));
           let vR = force(indexR);
           ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
@@ -685,7 +674,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (R === domain_createRange(lo, hi)) {
         // regardless of A and B, every addition between them is contained in R
         // this means we can eliminate R safely without breaking minimal distance A B
-        solveStack.push(_ => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
           let vB = force(indexB);
@@ -706,7 +695,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       if (domain_isBool(A) && domain_isBool(B)) {
         if (R === domain_createRange(1, 2)) {
           ASSERT_LOG2('   - leaf R; [12]=[01]+[01] is actually an OR');
-          solveStack.push(_ => {
+          solveStack.push((domains, force) => {
             ASSERT_LOG2(' - cut plus R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
             let vA = force(indexA);
             let vB = force(indexB);
@@ -728,7 +717,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
         if (domain_isBool(R)) {
           ASSERT_LOG2('   - leaf R; [01]=[01]+[01] is actually a NAND');
-          solveStack.push(_ => {
+          solveStack.push((domains, force) => {
             ASSERT_LOG2(' - cut plus R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
             let vA = force(indexA);
             let vB = force(indexB);
@@ -772,7 +761,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
           ASSERT(domain_isBool(domains[indexS]), 'S should be a bool');
 
-          solveStack.push(domains => {
+          solveStack.push((domains, force) => {
             ASSERT_LOG2(' - cut plus -> isAll; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
             ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) === 2, 'R should have all values');
             domains[indexR] = domain_createValue(force(indexA) + force(indexB));
@@ -812,7 +801,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           domains[indexR] = R;
         }
 
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut plus R=' + X + '+c;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
           let vA = force(indexA);
           let vB = force(indexB);
@@ -873,7 +862,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         }
 
         ASSERT_LOG2('   - R is a leaf var that wraps all bounds', indexR, args, domain__debug(R));
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
           let vR = C + args.map(force).reduce((a, b) => a + b);
           ASSERT(Number.isInteger(vR), 'should be integer result');
@@ -898,7 +887,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         }
 
         ASSERT_LOG2('   - R is a isNall leaf var, rewriting to NALL', indexR, args, domain__debug(R));
-        solveStack.push(domains => {
+        solveStack.push((domains, force) => {
           ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
           let vR = C + args.map(force).reduce((a, b) => a + b);
           ASSERT(Number.isInteger(vR), 'should be integer result');
@@ -950,7 +939,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
           let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 3));
           ASSERT(domains[indexS] === domain_createRange(0, 1), 'S should be a bool');
 
-          solveStack.push(domains => {
+          solveStack.push((domains, force) => {
             ASSERT_LOG2(' - cut sum -> isAll');
             let vR = 0;
             for (let i = 0; i < len; ++i) {
@@ -996,7 +985,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut or A;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
@@ -1015,7 +1004,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut or B;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let B = domains[indexB];
@@ -1046,7 +1035,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut xor A;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vB = force(indexB);
@@ -1066,7 +1055,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut xor B;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
         let vA = force(indexA);
         let B = domains[indexB];
@@ -1098,13 +1087,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut nand A;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let B = domains[indexB];
         let vB = domain_min(B) || force(indexB); // there's no need to force solve B if B doesnt contain a zero anyways
         ASSERT(domain_min(A) === 0, 'A should contain a zero (regardless)');
         if (vB > 0) domains[indexA] = domain_createValue(0);
+        ASSERT_LOG2('   - result: vB=', vB, 'domain A=', domain__debug(domains[indexA]));
       });
       ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
       ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !& ' + indexB));
@@ -1118,7 +1108,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut nand B;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vA = domain_min(A) || force(indexA); // there's no need to force solve A if A doesnt contain a zero anyways
@@ -1174,7 +1164,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsA === 1) {
       ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut xnor A;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let B = domains[indexB];
@@ -1195,7 +1185,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     if (countsB === 1) {
       ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut xnor B;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]));
         let A = domains[indexA];
         let vA = domain_min(A) || force(indexA); // no need to force solve A if A has no zero anyways
@@ -1242,7 +1232,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let E = domains[indexE]; // remember what E was because it will be replaced by false to mark it an alias
       ASSERT_LOG2(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]), 'replacing', indexE, 'with', indexK);
 
-      solveStack.push((domains, getDomain) => {
+      solveStack.push((domains, force, getDomain) => {
         ASSERT_LOG2(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
         ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
         let vK = force(indexK);
@@ -1282,7 +1272,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
       }
 
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut isall R; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', args.map(index => domain__debug(domains[index])), ')');
         ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values', domain__debug(domains[indexR]));
 
@@ -1328,7 +1318,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
       let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
 
       ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut isall2 R; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
         let vR = (force(indexA) === 0 || force(indexB) === 0) ? 0 : 1;
         ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should be bool');
@@ -1368,7 +1358,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
         args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
       }
 
-      solveStack.push(domains => {
+      solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut isnall R; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isNall(', args.map(index => domain__debug(domains[index])), ')');
         ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values');
 
@@ -1415,7 +1405,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function leafNeq(ml, indexA, indexB) {
     ASSERT_LOG2('   - leafNeq; A is a leaf var, A != B,', indexA, '!=', indexB);
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
       let A = domains[indexA];
       let vB = force(indexB);
@@ -1431,7 +1421,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function leafLteLhs(ml, indexA, indexB) {
     ASSERT_LOG2('   - A is a leaf var');
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
       let A = domains[indexA];
       let vB = force(indexB);
@@ -1447,7 +1437,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
   function leafLteRhs(ml, indexA, indexB) {
     ASSERT_LOG2('   - B is a leaf var');
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
       let vA = force(indexA);
       let B = domains[indexB];
@@ -1505,7 +1495,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
 
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - 2xlte;1;', varIndex, '!&', indexB1, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB1]));
       ASSERT_LOG2(' - 2xlte;2;', varIndex, '!&', indexB2, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB2]));
 
@@ -1691,7 +1681,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
   function trickIsallLteRhsDeferShared(varIndex, lteIndex) {
     // TODO: this has to check the isall args because lte is not strict enough
     ASSERT_LOG2('   - deferring', varIndex, 'will be gt', lteIndex);
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       THROW('fixme');
       ASSERT_LOG2(' - isall + lte;', lteIndex, '<=', varIndex, '  ->  ', domain__debug(domains[lteIndex]), '<=', domain__debug(domains[varIndex]));
       let vA = force(lteIndex);
@@ -1959,7 +1949,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
 
     ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
 
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - nand + lte;', indexA, '!&', varIndex, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[varIndex]));
       ASSERT_LOG2(' - nand + lte;', varIndex, '<=', indexB, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB]));
       let vA = force(indexA);
@@ -2360,7 +2350,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT(ml_validateSkeleton(ml, 'make sure the morphs went okay'));
 
     ASSERT_LOG2(' - X is a leaf constraint, defer it', indexX);
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(domains[indexX]), '!=', domain__debug(domains[indexY]));
 
       domains[indexX] = domain_removeValue(domains[indexX], force(indexY));
@@ -2405,7 +2395,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ASSERT_LOG2(' - collected offsets and vars:', offsets, indexes);
 
     ASSERT_LOG2('   - B is a leaf var');
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - only nands;', indexes);
 
       let X = domains[indexX];
@@ -2505,7 +2495,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     }
 
     ASSERT_LOG2('   - X is a leaf var', indexX);
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - or+lte+nands;', indexX);
 
       let X = domains[indexX];
@@ -2611,7 +2601,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexC, indexD);
 
     ASSERT_LOG2('   - X is a leaf var', indexX);
-    solveStack.push(domains => {
+    solveStack.push((domains, force) => {
       ASSERT_LOG2(' - or+nand+lte_lhs+lte_rhs;', indexX);
 
       let X = domains[indexX];

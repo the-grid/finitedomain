@@ -37,7 +37,9 @@ import {
 } from './cutter';
 import {
   domain__debug,
+  domain_createValue,
   domain_getValue,
+  domain_min,
   domain_toArr,
 } from './domain';
 import {
@@ -162,9 +164,23 @@ function createSolution(vars, domains, getAlias, solveStack) {
     }
     return d;
   }
-  ASSERT_LOG2('- createSolution()');
+
+  function force(varIndex) {
+    ASSERT(domains[varIndex] !== false, 'TOFIX: resolve aliases in solveStack');
+    let v = domain_getValue(domains[varIndex]);
+    if (v < 0) {
+      ASSERT_LOG2('   - forcing index', varIndex, 'to min(' + domain__debug(domains[varIndex]) + '):', domain_min(domains[varIndex]));
+      v = domain_min(domains[varIndex]); // arbitrary choice, may want to take strats into account although that's more relevant for helping search faster than the actual solution imo
+      domains[varIndex] = domain_createValue(v);
+    }
+    return v;
+  }
+
+  ASSERT_LOG2('\n# createSolution(), solveStack.length=', solveStack.length);
+  ASSERT_LOG2(domains.map(domain__debug).join(' '));
   let solution = {};
-  solveStack.reverse().forEach(f => f(domains, getDomain));
+  solveStack.reverse().forEach(f => f(domains, force, getDomain));
+  ASSERT_LOG2(domains.map(domain__debug).join(' '));
   vars.forEach((name, index) => {
     let d = getDomain(index);
     let v = domain_getValue(domains[index]);

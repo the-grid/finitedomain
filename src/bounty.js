@@ -67,6 +67,7 @@ import {
   ML_VV_XNOR,
   ML_DEBUG,
   ML_JMP,
+  ML_JMP32,
   ML_NOOP,
   ML_NOOP2,
   ML_NOOP3,
@@ -74,6 +75,7 @@ import {
   ML_STOP,
 
   SIZEOF_V,
+  SIZEOF_W,
   SIZEOF_VV,
   SIZEOF_VVV,
   SIZEOF_8VV,
@@ -84,6 +86,7 @@ import {
 
   ml__debug,
   ml_dec16,
+  ml_dec32,
   ml_throw,
 } from './ml';
 import {
@@ -405,8 +408,10 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           break;
 
         case ML_JMP:
-          let delta = ml_dec16(ml, pc + 1);
-          pc += 3 + delta;
+          pc += SIZEOF_V + ml_dec16(ml, pc + 1);
+          break;
+        case ML_JMP32:
+          pc += SIZEOF_W + ml_dec32(ml, pc + 1);
           break;
 
         case ML_NOOP:

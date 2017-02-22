@@ -91,17 +91,19 @@ const ML_VV_XNOR = ml_opcodeCounter++;
 
 const ML_DEBUG = ml_opcodeCounter++;
 const ML_JMP = ml_opcodeCounter++;
+const ML_JMP32 = ml_opcodeCounter++;
 const ML_NOOP = ml_opcodeCounter++;
 const ML_NOOP2 = ml_opcodeCounter++;
 const ML_NOOP3 = ml_opcodeCounter++;
 const ML_NOOP4 = ml_opcodeCounter++;
 const ML_STOP = 0xff;
 
-ASSERT(ml_opcodeCounter <= 256, 'All opcodes are 8bit');
+ASSERT(ml_opcodeCounter <= 0xff, 'All opcodes are 8bit');
 ASSERT(ML_START === 0);
 ASSERT(ML_STOP === 0xff);
 
-const SIZEOF_V = 1 + 2;
+const SIZEOF_V = 1 + 2; // 16bit
+const SIZEOF_W = 1 + 4; // 32bit
 const SIZEOF_VV = 1 + 2 + 2;
 const SIZEOF_8V = 1 + 1 + 2;
 const SIZEOF_V8 = 1 + 2 + 1;
@@ -223,6 +225,8 @@ function ml_sizeof(ml, offset, op) {
       return SIZEOF_V;
     case ML_JMP:
       return SIZEOF_V + ml.readUInt16BE(offset + 1);
+    case ML_JMP32:
+      return SIZEOF_W + ml.readUInt32BE(offset + 1);
     case ML_NOOP:
       return 1;
     case ML_NOOP2:
@@ -256,24 +260,46 @@ function ml_dec16(ml, pc) {
   return n;
 }
 
+function ml_dec32(ml, pc) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  let n = ml.readUInt32BE(pc);
+  ASSERT_LOG2(' . dec32pc decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') from', pc, '-->', n);
+  return n;
+}
+
 function ml_enc8(ml, pc, num) {
+  ASSERT_LOG2(' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ');
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
   ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values', num, '0x' + num.toString(16));
-  ASSERT_LOG2(' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ');
   ASSERT(num >= 0, 'only expecting non-negative nums');
   ml[pc] = num;
 }
 
 function ml_enc16(ml, pc, num) {
+  ASSERT_LOG2(' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
   ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
-  ASSERT_LOG2(' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
   ASSERT(num >= 0, 'only expecting non-negative nums');
   // node 4.6 has no uint version and using writeInt16BE will cause problems, so:
+  ml[pc++] = (num >> 8) & 0xff;
+  ml[pc] = num & 0xff;
+}
+
+function ml_enc32(ml, pc, num) {
+  ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
+  ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
+  ASSERT(typeof num === 'number', 'Encoding numbers');
+  ASSERT(num <= 0xffffffff, 'implement 64bit index support if this breaks', num);
+  ASSERT_LOG2(' - enc32(' + num + '/x' + num.toString(16) + ')', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') at', pc + 1);
+  ASSERT(num >= 0, 'only expecting non-negative nums');
+  // node 4.6 has no uint version and using writeInt32BE will cause problems, so:
+  ml[pc++] = (num >> 24) & 0xff;
+  ml[pc++] = (num >> 16) & 0xff;
   ml[pc++] = (num >> 8) & 0xff;
   ml[pc] = num & 0xff;
 }
@@ -307,8 +333,15 @@ function ml_jump(ml, offset, len) {
     case ML_JMP:
       let jmplen = ml_dec16(ml, offset + len + 1);
       ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
+      ASSERT(jmplen <= 0xffff, 'oob');
       ASSERT_LOG2('  - jmp target is another jmp (len =', SIZEOF_V + jmplen, '), merging them');
       return ml_jump(ml, offset, len + SIZEOF_V + jmplen);
+    case ML_JMP32:
+      let jmplen32 = ml_dec32(ml, offset + len + 1);
+      ASSERT(jmplen32 > 0, 'dont think zero is a valid jmp len');
+      ASSERT(jmplen32 <= 0xffffffff, 'oob');
+      ASSERT_LOG2('  - jmp target is a jmp32 (len =', SIZEOF_W + jmplen32, '), merging them');
+      return ml_jump(ml, offset, len + SIZEOF_W + jmplen32);
   }
 
   switch (len) {
@@ -327,9 +360,15 @@ function ml_jump(ml, offset, len) {
       ASSERT_LOG2('  - compiling a NOOP4');
       return ml_enc8(ml, offset, ML_NOOP4);
     default:
-      ASSERT_LOG2('  - compiling a JMP of', len, '(compiles', len - SIZEOF_V, ') because SIZEOF_V=', SIZEOF_V);
-      ml_enc8(ml, offset, ML_JMP);
-      ml_enc16(ml, offset + 1, len - SIZEOF_V);
+      if (len < 0xffff) {
+        ASSERT_LOG2('  - compiling a ML_JMP of', len, '(compiles', len - SIZEOF_V, 'because SIZEOF_V=', SIZEOF_V, ')');
+        ml_enc8(ml, offset, ML_JMP);
+        ml_enc16(ml, offset + 1, len - SIZEOF_V);
+      } else {
+        ASSERT_LOG2('  - compiling a ML_JMP32 of', len, '(compiles', len - SIZEOF_W, 'because SIZEOF_W=', SIZEOF_W, ')');
+        ml_enc8(ml, offset, ML_JMP32);
+        ml_enc32(ml, offset + 1, len - SIZEOF_W);
+      }
   }
 }
 
@@ -372,7 +411,10 @@ function ml_countConstraints(ml) {
         pc += 4;
         break;
       case ML_JMP:
-        pc += 3 + ml.readUInt16BE(pc + 1);
+        pc += SIZEOF_V + ml.readUInt16BE(pc + 1);
+        break;
+      case ML_JMP32:
+        pc += SIZEOF_W + ml.readUInt32BE(pc + 1);
         break;
 
       default:
@@ -414,7 +456,10 @@ function ml_hasConstraint(ml) {
         pc += 4;
         break;
       case ML_JMP:
-        pc += 3 + ml.readUInt16BE(pc + 1);
+        pc += SIZEOF_V + ml.readUInt16BE(pc + 1);
+        break;
+      case ML_JMP32:
+        pc += SIZEOF_W + ml.readUInt32BE(pc + 1);
         break;
 
       default:
@@ -589,7 +634,7 @@ function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
   // find a jump which covers at least the requiredSize
   return ml_walk(ml, fromOffset, (ml, offset, op) => {
     ASSERT_LOG2('   - considering op', op, 'at', offset);
-    if (op === ML_JMP) {
+    if (op === ML_JMP || op === ML_JMP32) {
       let size = ml_getOpSizeSlow(ml, offset);
       ASSERT_LOG2('   - found jump of', size, 'bytes at', offset + ', wanted', requiredSize, (requiredSize <= size ? ' so is ok!' : ' so is too small'));
       if (size >= requiredSize) return offset;
@@ -609,11 +654,12 @@ function ml_getOpSizeSlow(ml, offset) {
 
 function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
   // explicitly rewrite a count with len=3
-  ASSERT(ml_dec8(ml, offset) === ML_JMP, 'expecting to recycle a space that starts with a jump');
-  ASSERT(ml_dec16(ml, offset + 1) >= 6, 'a c3 should fit'); // op + len + 3*2
-  ASSERT_LOG2('- ml_recycleC3 | offset=', offset, ', op=', op, indexA, indexB, indexC);
+  let jumpOp = ml_dec8(ml, offset);
+  ASSERT_LOG2('- ml_recycleC3 | offset=', offset, ', op=', op, indexA, indexB, indexC, jumpOp);
+  ASSERT(jumpOp === ML_JMP || jumpOp === ML_JMP32, 'expecting to recycle a space that starts with a jump');
+  ASSERT((jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1)) >= SIZEOF_COUNT + 6, 'a c3 should fit'); // op + len + 3*2
 
-  let currentSize = SIZEOF_V + ml_dec16(ml, offset + 1);
+  let currentSize = (jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1));
   let newSize = SIZEOF_COUNT + 6;
   let remainsEmpty = currentSize - newSize;
   if (remainsEmpty < 0) THROW('recycled OOB');
@@ -629,11 +675,12 @@ function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
 }
 
 function ml_recycleVV(ml, offset, op, indexA, indexB) {
-  ASSERT(ml_dec8(ml, offset) === ML_JMP, 'expecting to recycle a space that starts with a jump');
-  ASSERT(ml_dec16(ml, offset + 1) >= 2, 'a vv should fit');
-  ASSERT_LOG2('- ml_recycleVV', offset, op, indexA, indexB);
+  let jumpOp = ml_dec8(ml, offset);
+  ASSERT_LOG2('- ml_recycleVV', offset, op, indexA, indexB, jumpOp);
+  ASSERT(jumpOp === ML_JMP || jumpOp === ML_JMP32, 'expecting to recycle a space that starts with a jump');
+  ASSERT((jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1)) >= SIZEOF_VV, 'a vv should fit'); // op + len + 3*2
 
-  let currentSize = SIZEOF_V + ml_dec16(ml, offset + 1);
+  let currentSize = (jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1));
   let remainsEmpty = currentSize - SIZEOF_VV;
   if (remainsEmpty < 0) THROW('recycled OOB');
   ASSERT_LOG2('- putting a vv', op, 'at', offset, 'of size', currentSize, 'leaving', remainsEmpty, 'for a jump');
@@ -923,6 +970,9 @@ function ml__debug(ml, offset, max, domains, names) {
 
       case ML_JMP:
         rv.push('jmp(' + ml.readUInt16BE(pc + 1) + ')');
+        break;
+      case ML_JMP32:
+        rv.push('jmp32(' + ml.readUInt32BE(pc + 1) + ')');
         break;
 
       case ML_DEBUG:
@@ -1269,6 +1319,7 @@ export {
 
   ML_DEBUG,
   ML_JMP,
+  ML_JMP32,
   ML_NOOP,
   ML_NOOP2,
   ML_NOOP3,
@@ -1277,6 +1328,7 @@ export {
   ML_STOP,
 
   SIZEOF_V,
+  SIZEOF_W,
   SIZEOF_VV,
   SIZEOF_8V,
   SIZEOF_V8,
@@ -1297,8 +1349,10 @@ export {
   ml_countConstraints,
   ml_dec8,
   ml_dec16,
+  ml_dec32,
   ml_enc8,
   ml_enc16,
+  ml_enc32,
   ml_eliminate,
   ml_getRecycleOffset,
   ml_getOpSizeSlow,

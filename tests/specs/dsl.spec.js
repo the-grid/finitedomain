@@ -44,7 +44,7 @@ describe('specs/dsl.spec', function() {
 
   describe('custom noleaf', function() {
 
-    it('should exist', function() {
+    it('should NOT eliminate the isall WITH the noleaf hint', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A,B,C [0 1]
@@ -64,7 +64,7 @@ describe('specs/dsl.spec', function() {
       expect(solution).to.eql({A: 0, B: 0, C: [0, 1]});
     });
 
-    it('should support multiple vars', function() {
+    it('should NOT eliminate the isalls WITH the noleaf hint', function() {
       expect(_ => solverSolver(`
         @custom var-strat throw
         : A,B,C [0 1]
@@ -101,5 +101,28 @@ describe('specs/dsl.spec', function() {
 
       expect(solution).to.eql({A: 1, B: 0, R: 0});
     });
+  });
+
+  describe('jmp32', function() {
+
+    function test(directive, desc) {
+      it('should ' + desc, function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A, B, R [0 1]
+          R = all?(A B)
+          A = 1
+          ${directive}
+        `);
+
+        expect(solution).to.eql({A: 1, B: 0, R: 0});
+      });
+    }
+
+    test('', 'solve base case (without a free directive)');
+    test('@custom free 65520', 'properly compile a jump covering 0xfff0');
+    test('@custom free 65535', 'properly compile a jump covering 0xffff');
+    test('@custom free 65536', 'properly compile a jump covering 0x10000');
+    test('@custom free 100000', 'properly compile a jump covering 100k');
   });
 });

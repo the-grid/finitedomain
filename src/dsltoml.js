@@ -74,9 +74,11 @@ import {
   ML_NOOP3,
   ML_NOOP4,
   ML_JMP,
+  ML_JMP32,
   ML_DEBUG,
 
   SIZEOF_V,
+  SIZEOF_W,
   //SIZEOF_VV,
   //SIZEOF_8V,
   //SIZEOF_V8,
@@ -195,6 +197,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
 
   if (freeDirective < 0) {
     // compile a jump for the remainder of the space, if any, which could be used by the recycle mechanisms
+    // only do this here when the free directive is absent
     let leftFree = (mlBufSize - mlPointer) - 1; // STOP will occupy 1 byte
     ASSERT_LOG2('space available', leftFree, 'bytes');
     if (leftFree > 0) compileJump(leftFree);
@@ -204,12 +207,12 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
 
   // if there is now still space left, we need to crop it because freeDirective was set and didnt consume it all
   if (mlBufSize - mlPointer) {
-    ASSERT_LOG2('cropping excess available space');
+    ASSERT_LOG2('cropping excess available space', mlBufSize, mlPointer, mlBufSize - mlPointer);
     // if the free directive was given, remove any excess free space
     // note that one more byte needs to be compiled after this (ML_STOP)
     mlBuffer = mlBuffer.slice(0, mlPointer);
   }
-  ASSERT(mlPointer === mlBuffer.length, 'mlPointer should now be at the first unavailable cell of the buffer', mlPointer, mlBuffer.length);
+  ASSERT(mlPointer === mlBuffer.length, 'mlPointer should now be at the first unavailable cell of the buffer', mlPointer, mlBuffer.length, mlBuffer);
 
   problem.ml = mlBuffer;
 
@@ -237,12 +240,27 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     mlBuffer[mlPointer++] = num & 0xff;
   }
 
-  function grow() {
-    ASSERT_LOG2(' - grow() from', mlBufSize);
-    // grow the buffer by 10%
+  function encode32bit(num) {
+    ASSERT_LOG2('encode32bit:', num, '->', (num >> 24) & 0xff, (num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+    ASSERT(typeof num === 'number', 'Encoding 32bit must be num', typeof num, num);
+    ASSERT(num >= 0, 'OOB num', num);
+    if (num > 0xffffffff) THROW('This requires 64bit support', num);
+
+    if (mlPointer >= mlBufSize) grow();
+    mlBuffer[mlPointer++] = (num >> 24) & 0xff;
+    mlBuffer[mlPointer++] = (num >> 16) & 0xff;
+    mlBuffer[mlPointer++] = (num >> 8) & 0xff;
+    mlBuffer[mlPointer++] = num & 0xff;
+  }
+
+  function grow(forcedExtraSpace) {
+    ASSERT_LOG2(' - grow(' + (forcedExtraSpace || '') + ') from', mlBufSize);
+    // grow the buffer by 10% or set it to `force`
     // you can't really grow existing buffers, instead you create a bigger buffer and copy the old one into it...
     let oldSize = mlBufSize;
-    mlBufSize += Math.max(Math.ceil(mlBufSize * 0.1), 10);
+    if (forcedExtraSpace) mlBufSize += forcedExtraSpace;
+    else mlBufSize += Math.max(Math.ceil(mlBufSize * 0.1), 10);
+    ASSERT(mlBufSize > mlBuffer.length, 'grow() should grow() at least a bit...', mlBuffer.length, '->', mlBufSize);
     mlBuffer = Buffer.concat([mlBuffer], mlBufSize); // wont actually concat, but will copy the existing buffer into a buffer of given size
     mlBuffer.fill(0, oldSize);
   }
@@ -1797,11 +1815,18 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
         encode8bit(0);
         break;
       default:
-        encode8bit(ML_JMP);
-        encode16bit(size - SIZEOF_V);
-        for (let i = 0, n = size - SIZEOF_V; i < n; ++i) {
-          encode8bit(0);
+        // because we manually update mlPointer the buffer may not grow accordingly. so do that immediately
+        grow(mlPointer + size + 1); // 1 for opcode
+        if (size < 0xffff) {
+          encode8bit(ML_JMP);
+          encode16bit(size - SIZEOF_V);
+          mlPointer += size - SIZEOF_V;
+        } else {
+          encode8bit(ML_JMP32);
+          encode32bit(size - SIZEOF_W);
+          mlPointer += size - SIZEOF_W;
         }
+        // buffer is explicitly fill(0)'d so no need to clear it out here (otherwise we probably should)
     }
   }
 

@@ -67,6 +67,7 @@ import {
   ML_VV_XNOR,
   ML_DEBUG,
   ML_JMP,
+  ML_JMP32,
   ML_NOOP,
   ML_NOOP2,
   ML_NOOP3,
@@ -74,6 +75,7 @@ import {
   ML_STOP,
 
   SIZEOF_V,
+  SIZEOF_W,
   SIZEOF_VV,
   SIZEOF_8V,
   SIZEOF_V8,
@@ -87,6 +89,7 @@ import {
   ml__debug,
   ml_dec8,
   ml_dec16,
+  ml_dec32,
   ml_eliminate,
   ml_throw,
 } from './ml';
@@ -466,8 +469,10 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           return;
 
         case ML_JMP:
-          let delta = ml_dec16(ml, pc + 1);
-          pc += SIZEOF_V + delta;
+          pc += SIZEOF_V + ml_dec16(ml, pc + 1);
+          break;
+        case ML_JMP32:
+          pc += SIZEOF_W + ml_dec32(ml, pc + 1);
           break;
 
         case ML_NOOP:

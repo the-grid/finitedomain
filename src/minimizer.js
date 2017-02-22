@@ -76,6 +76,7 @@ import {
   ML_VV_XNOR,
   ML_DEBUG,
   ML_JMP,
+  ML_JMP32,
   ML_NOOP,
   ML_NOOP2,
   ML_NOOP3,
@@ -83,6 +84,7 @@ import {
   ML_STOP,
 
   SIZEOF_V,
+  SIZEOF_W,
   SIZEOF_8V,
   SIZEOF_VV,
   SIZEOF_V8,
@@ -101,6 +103,7 @@ import {
   ml__debug,
   ml_dec8,
   ml_dec16,
+  ml_dec32,
   ml_enc8,
   ml_enc16,
   ml_eliminate,
@@ -585,8 +588,12 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
           break;
         case ML_JMP:
           ASSERT_LOG2('- jmp @', pc);
-          let delta = ml_dec16(ml, pc + 1);
-          min_moveTo(ml, pc, SIZEOF_V + delta);
+          min_moveTo(ml, pc, SIZEOF_V + ml_dec16(ml, pc + 1));
+          --constraints; // not a constraint
+          break;
+        case ML_JMP32:
+          ASSERT_LOG2('- jmp32 @', pc);
+          min_moveTo(ml, pc, SIZEOF_W + ml_dec32(ml, pc + 1));
           --constraints; // not a constraint
           break;
 
@@ -610,6 +617,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       case ML_NOOP3:
       case ML_NOOP4:
       case ML_JMP:
+      case ML_JMP32:
         ASSERT_LOG2('- moving to another jump so merging them now');
         ml_jump(ml, offset, len);
         pc = offset; // restart, make sure the merge worked

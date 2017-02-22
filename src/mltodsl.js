@@ -75,6 +75,7 @@ import {
   ML_VV_XNOR,
   ML_DEBUG,
   ML_JMP,
+  ML_JMP32,
   ML_NOOP,
   ML_NOOP2,
   ML_NOOP3,
@@ -202,6 +203,12 @@ ${varDecls}
     ASSERT(pc < ml.length - 1, 'OOB');
     ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 8) | ml[pc++];
+  }
+
+  function m2d_dec32() {
+    ASSERT(pc < ml.length - 1, 'OOB');
+    ASSERT_LOG2(' . dec32 decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], 'from', pc, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    return (ml[pc++] << 24) | (ml[pc++] << 16) | (ml[pc++] << 8) | ml[pc++];
   }
 
   function m2d_decAb(lena, lenb, op) {
@@ -426,6 +433,7 @@ ${varDecls}
         case ML_NOOP3:
         case ML_NOOP4:
         case ML_JMP:
+        case ML_JMP32:
           break;
         default:
           ++constraintCount;
@@ -446,6 +454,11 @@ ${varDecls}
           let delta = m2d_dec16();
           ASSERT_LOG2(' ! jmp', delta);
           pc += delta;
+          break;
+        case ML_JMP32:
+          let delta32 = m2d_dec32();
+          ASSERT_LOG2(' ! jmp32', delta32);
+          pc += delta32;
           break;
 
         case ML_VV_EQ:

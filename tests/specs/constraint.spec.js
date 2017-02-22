@@ -2378,7 +2378,7 @@ describe('src/constraint.spec', function() {
 
     describe('isall', function() {
 
-      it('should reject with boolies', function() {
+      it('should work with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -2389,7 +2389,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
       });
 
-      it('should reject with zero/booly', function() {
+      it('should work with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -2400,7 +2400,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10], R: 0}]);
       });
 
-      it('should reject with booly/zero', function() {
+      it('should work with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 0]
@@ -2411,7 +2411,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
       });
 
-      it('should pass with nonzeroes', function() {
+      it('should work with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [20 60]
@@ -2489,6 +2489,122 @@ describe('src/constraint.spec', function() {
         // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
         // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 1}]);
+      });
+    });
+
+    describe('isnall', function() {
+
+      it('should work with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10], R: 1}]);
+      });
+
+      it('should work with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [20 60]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 20, R: 0}]);
+      });
+
+      it('should force a pass when R is nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [1 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should force a pass when R is zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 23, R: 0}]);
+      });
+
+      it('should reject when R is zero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [23 60]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject when R is nonzero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [450 2000]
+          : R [100 2000]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should not fail previous test because R didnt have a 1', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [450 2000]
+          : R [1 1]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      // TODO: we can enable this test once isall (and friends) are properly implemented and not through product()
+      it.skip('should work with very high values that mul beyond sup', function() {
+        let solver = new Solver().imp(`
+          : A [100000 1000000]
+          : B [100000 1000000]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
+        // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 0}]);
       });
     });
   });

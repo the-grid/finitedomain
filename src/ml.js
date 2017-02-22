@@ -327,7 +327,7 @@ function ml_jump(ml, offset, len) {
       ASSERT_LOG2('  - compiling a NOOP4');
       return ml_enc8(ml, offset, ML_NOOP4);
     default:
-      ASSERT_LOG2('  - compiling a JMP of', len);
+      ASSERT_LOG2('  - compiling a JMP of', len, '(compiles', len - SIZEOF_V, ') because SIZEOF_V=', SIZEOF_V);
       ml_enc8(ml, offset, ML_JMP);
       ml_enc16(ml, offset + 1, len - SIZEOF_V);
   }
@@ -958,11 +958,11 @@ function ml__debug(ml, offset, max, domains, names) {
 }
 
 function ml_throw(ml, offset, msg) {
-  console.error('There was an ML related error...');
+  console.error('There was an ML related error;', msg);
   let before = ml.slice(Math.max(0, offset - 30), offset);
   let after = ml.slice(offset, offset + 20);
-  console.error('ML at error (offset=' + offset + '):', before, after);
-  console.error(ml__debug(ml, offset, 1));
+  console.error('ML at error (offset=' + offset + '/' + ml.length + '):', before, after);
+  console.error('->', ml__debug(ml, offset, 1));
   THROW(msg);
 }
 

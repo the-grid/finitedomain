@@ -196,6 +196,7 @@ function trie_getValueBitsize(value) {
  * @returns {number} previous value, or -1 if there wasn't any
  */
 function trie_add(trie, key, value) {
+  ASSERT(typeof trie === 'object' && trie._class === '$trie', 'trie should be a $trie', trie);
   ASSERT(++trie._adds);
   trie_ensureValueFits(trie, value);
   return _trie_add(trie, TRIE_ROOT_OFFSET, key, 0, key.length, value);
@@ -254,6 +255,7 @@ function _trie_add(trie, offset, key, index, len, value) {
  * @returns {number} previous value, or -1 if there wasn't any
  */
 function trie_addNum(trie, key, value) {
+  ASSERT(typeof trie === 'object' && trie._class === '$trie', 'trie should be a $trie', trie);
   ASSERT(++trie._adds);
   trie_ensureValueFits(trie, value);
   return _trie_addNum(trie, TRIE_ROOT_OFFSET, key + 1, value);
@@ -338,6 +340,7 @@ function _trie_pavePath(trie, offset, digit) {
  * @returns {number} -1 if not found, >= 0 otherwise
  */
 function trie_get(trie, key) {
+  ASSERT(typeof trie === 'object' && trie._class === '$trie', 'trie should be a $trie', trie);
   ASSERT(++trie._gets);
   return _trie_get(trie, TRIE_ROOT_OFFSET, key, 0, key.length);
 }
@@ -384,6 +387,7 @@ function _trie_get(trie, offset, key, index, len) {
  * @returns {boolean}
  */
 function trie_has(trie, key) {
+  ASSERT(typeof trie === 'object' && trie._class === '$trie', 'trie should be a $trie', trie);
   ASSERT(++trie._hass);
   return trie_get(trie, key) !== TRIE_KEY_NOT_FOUND;
 }
@@ -397,6 +401,7 @@ function trie_has(trie, key) {
  * @returns {number} -1 if not found, >= 0 otherwise
  */
 function trie_getNum(trie, key) {
+  ASSERT(typeof trie === 'object' && trie._class === '$trie', 'trie should be a $trie', trie);
   ASSERT(++trie._gets);
   return _trie_getNum(trie, TRIE_ROOT_OFFSET, key + 1);
 }
@@ -412,7 +417,7 @@ function _trie_getNum(trie, offset, key) {
   ASSERT(++trie._getSteps);
 
   ASSERT(offset >= 0, 'OFFSET_UNSIGNED');
-  ASSERT(typeof key === 'number', 'NUMBER_KEY');
+  ASSERT(typeof key === 'number', 'NUMBER_KEY', key);
 
   let buf = trie.buffer;
 

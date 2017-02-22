@@ -111,6 +111,7 @@ expressions:
   expr [[`,`] expressions]
 nulcall:
   `distinct(` expressions `)`
+  `nall(` expressions `)`
 valcall:
   `sum(` expressions `)`
   `product(` expressions `)`

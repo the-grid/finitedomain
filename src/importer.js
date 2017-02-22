@@ -538,6 +538,7 @@ function importer_main(str, solver, _debug) {
   function parseUexpr() {
     // it's not very efficient (we could parse an ident before and check that result here) but it'll work for now
     if (str.slice(pointer, pointer + 9) === 'distinct(') parseDistinct();
+    else if (str.slice(pointer, pointer + 5) === 'nall(') parseNall();
     else return false;
 
     return true;
@@ -650,6 +651,16 @@ function importer_main(str, solver, _debug) {
     skipWhitespaces();
     is(')', 'product closer');
     return r;
+  }
+
+  function parseNall() {
+    pointer += 5;
+    skipWhitespaces();
+    let refs = parseVexpList();
+    solver.product(refs, solver.num(0));
+    skipWhitespaces();
+    is(')', 'nall closer');
+    expectEol();
   }
 
   function parseNumstr() {

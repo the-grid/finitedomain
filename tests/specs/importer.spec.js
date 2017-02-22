@@ -346,6 +346,31 @@ let unitTests = [
     `,
   ],
 
+  '  - nall',
+  [
+    'simple nalls',
+    s => {
+      s.declRange('A', 0, 10);
+      s.declRange('B', 0, 10);
+      s.declRange('C', 0, 10);
+      s.declRange('R', 0, 0);
+      s.product(['A', 'B', 'C'], 'R');
+    },
+    `
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    : R [0 0]
+    R = product(A B C)
+    |--
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    nall(A B C)
+    `,
+  ],
+
+
   '  - simply cops',
   ...[
     ['==', 'eq'],
@@ -867,9 +892,10 @@ describe('src/importer.spec', function() {
 
   // to focus on a specific unit test find the `test #xxx` number from the target test
   // below in the inner forEach, return unless the index isn't that number.
-  describe('unit tests', function() {
+  describe.skip('unit tests (heavy! dont enable for travis!)', function() {
 
     let COMPARE_RESULT = false; // this is too heavy so disable it. still good to check every now and then.
+    let ONLY_TEST = 0;
 
     let section = '';
     let n = 0;
@@ -883,11 +909,13 @@ describe('src/importer.spec', function() {
       if (n1 >= 0) inputs = inputs.slice(n1 + 1, n2);
       inputs = inputs.split(/\n\s*?\|\-\-.*?\n/g);
 
-      it(section + ' | ' + i + ' should have proper test layout', function() {
-        expect((n1 >= 0) === (n2 >= 0), 'either no newlines or have trimmable bumper lines').to.eql(true);
-        expect(inputs.length, 'at least one test').to.be.above(0);
-        expect(inputs.filter(x => x.indexOf('|--') >= 0), 'no separators').to.eql([]);
-      });
+      if (!ONLY_TEST) {
+        it(section + ' | ' + i + ' should have proper test layout', function() {
+          expect((n1 >= 0) === (n2 >= 0), 'either no newlines or have trimmable bumper lines').to.eql(true);
+          expect(inputs.length, 'at least one test').to.be.above(0);
+          expect(inputs.filter(x => x.indexOf('|--') >= 0), 'no separators').to.eql([]);
+        });
+      }
 
       describe(section + ' | ' + desc, function() {
         let expectation;
@@ -900,13 +928,17 @@ describe('src/importer.spec', function() {
         inputs.forEach(input => {
           let ok = false;
           ++n;
-          if (n !== 230) return;
+
+          if (ONLY_TEST && n !== ONLY_TEST) return;
+
           it('[test #' + n + '] input=`' + input.replace(/[\n\r]/g, '\u23CE') + '`', function() {
             let output = importer(input);
             expect(output).to.be.an('object');
             if (COMPARE_RESULT) expect(output.solve()).to.eql(expectation);
             ok = true;
           });
+
+          if (ONLY_TEST) return;
 
           it('[test #' + n + '] with tabs', function() {
             if (!ok) return;

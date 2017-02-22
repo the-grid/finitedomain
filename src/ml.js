@@ -119,6 +119,26 @@ const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
 const SIZEOF_C8 = 1 + 2 + 1; // + 2*count
 
+let ml_typeCounter = 0;
+const ML_NO_ARGS = ++ml_typeCounter;
+const ML_V = ++ml_typeCounter;
+const ML_W = ++ml_typeCounter;
+const ML_VV = ++ml_typeCounter;
+const ML_V8 = ++ml_typeCounter;
+const ML_8V = ++ml_typeCounter;
+const ML_88 = ++ml_typeCounter;
+const ML_VVV = ++ml_typeCounter;
+const ML_VV8 = ++ml_typeCounter;
+const ML_V8V = ++ml_typeCounter;
+const ML_8VV = ++ml_typeCounter;
+const ML_V88 = ++ml_typeCounter;
+const ML_88V = ++ml_typeCounter;
+const ML_8V8 = ++ml_typeCounter;
+const ML_888 = ++ml_typeCounter;
+const ML_C = ++ml_typeCounter;
+const ML_CR = ++ml_typeCounter;
+const ML_C8R = ++ml_typeCounter;
+
 function ml_sizeof(ml, offset, op) {
   switch (op) {
     case ML_VV_EQ:
@@ -608,6 +628,191 @@ function ml_walk(ml, offset, callback) {
     let sizeof = ml_sizeof(ml, offset, op);
     ASSERT(sizeof > 0, 'ops should occupy space');
     let r = callback(ml, offset, op, sizeof);
+    if (r !== undefined) return r;
+    offset += sizeof;
+  }
+}
+
+/**
+ * Walk the ml with a callback for each var encountered
+ *
+ * @param {Buffer} ml
+ * @param {number} offset
+ * @param {Function} callback Called as opCallback(ml, opoffset, optype, opcode, ...args) the actual `args` depend on the optype
+ */
+function ml_stream(ml, offset, callback) {
+  ASSERT(ml instanceof Buffer, 'ml must be Buffer');
+  ASSERT(typeof offset === 'number' && offset >= 0 && offset < ml.length, 'offset should be valid and not oob');
+  ASSERT(typeof callback === 'function', 'callback should be callable');
+
+  let r;
+  let len = ml.length;
+  let op = ml[offset];
+  while (offset < len) {
+    op = ml[offset];
+    ASSERT(offset === 0 || op !== ML_START, 'should not see op=0 unless offset=0', 'offset=', offset, 'ml=', ml);
+
+    let sizeof = 0;
+    switch (op) {
+      case ML_VV_EQ:
+      case ML_VV_NEQ:
+      case ML_VV_LT:
+      case ML_VV_LTE:
+      case ML_VV_AND:
+      case ML_VV_OR:
+      case ML_VV_XOR:
+      case ML_VV_NAND:
+      case ML_VV_XNOR:
+        r = callback(ml, offset, ML_VV, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3));
+        sizeof = SIZEOF_VV;
+        break;
+
+      case ML_V8_EQ:
+      case ML_V8_NEQ:
+      case ML_V8_LT:
+      case ML_V8_LTE:
+        r = callback(ml, offset, ML_V8, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3));
+        sizeof = SIZEOF_V8;
+        break;
+
+      case ML_88_EQ:
+      case ML_88_NEQ:
+      case ML_88_LT:
+      case ML_88_LTE:
+        r = callback(ml, offset, ML_88, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2));
+        sizeof = SIZEOF_88;
+        break;
+
+      case ML_8V_LT:
+      case ML_8V_LTE:
+        r = callback(ml, offset, ML_8V, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2));
+        sizeof = SIZEOF_8V;
+        break;
+
+      case ML_VVV_ISEQ:
+      case ML_VVV_ISNEQ:
+      case ML_VVV_ISLT:
+      case ML_VVV_ISLTE:
+      case ML_PLUS:
+      case ML_MINUS:
+      case ML_MUL:
+      case ML_DIV:
+      case ML_ISALL2:
+        r = callback(ml, offset, ML_VVV, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3), ml_dec16(ml, offset + 5));
+        sizeof = SIZEOF_VVV;
+        break;
+
+      case ML_V8V_ISEQ:
+      case ML_V8V_ISNEQ:
+      case ML_V8V_ISLT:
+      case ML_V8V_ISLTE:
+        r = callback(ml, offset, ML_V8V, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec16(ml, offset + 4));
+        sizeof = SIZEOF_V8V;
+        break;
+
+      case ML_VV8_ISEQ:
+      case ML_VV8_ISNEQ:
+      case ML_VV8_ISLT:
+      case ML_VV8_ISLTE:
+        r = callback(ml, offset, ML_VV8, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3), ml_dec8(ml, offset + 5));
+        sizeof = SIZEOF_VV8;
+        break;
+
+      case ML_88V_ISEQ:
+      case ML_88V_ISNEQ:
+      case ML_88V_ISLT:
+      case ML_88V_ISLTE:
+        r = callback(ml, offset, ML_88V, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2), ml_dec16(ml, offset + 3));
+        sizeof = SIZEOF_88V;
+        break;
+
+      case ML_V88_ISEQ:
+      case ML_V88_ISNEQ:
+      case ML_V88_ISLT:
+      case ML_V88_ISLTE:
+        r = callback(ml, offset, ML_V88, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec8(ml, offset + 4));
+        sizeof = SIZEOF_V88;
+        break;
+
+      case ML_888_ISEQ:
+      case ML_888_ISNEQ:
+      case ML_888_ISLT:
+      case ML_888_ISLTE:
+        r = callback(ml, offset, ML_888, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2), ml_dec8(ml, offset + 3));
+        sizeof = SIZEOF_888;
+        break;
+
+      case ML_8VV_ISLT:
+      case ML_8VV_ISLTE:
+        r = callback(ml, offset, ML_8VV, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2), ml_dec16(ml, offset + 4));
+        sizeof = SIZEOF_8VV;
+        break;
+
+      case ML_8V8_ISLT:
+      case ML_8V8_ISLTE:
+        r = callback(ml, offset, ML_8V8, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2), ml_dec8(ml, offset + 4));
+        sizeof = SIZEOF_8V8;
+        break;
+
+      case ML_NALL:
+      case ML_DISTINCT:
+        r = callback(ml, offset, ML_C, op, ml_dec16(ml, offset + 1));
+        sizeof = SIZEOF_COUNT + ml_dec16(ml, offset + 1) * 2;
+        break;
+
+      case ML_ISALL:
+      case ML_ISNALL:
+      case ML_ISNONE:
+      case ML_PRODUCT:
+        r = callback(ml, offset, ML_CR, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + SIZEOF_COUNT + ml_dec16(ml, offset + 1) * 2));
+        sizeof = SIZEOF_COUNT + ml_dec16(ml, offset + 1) * 2 + 2;
+        break;
+
+      case ML_8V_SUM:
+        r = callback(ml, offset, ML_C8R, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec16(ml, offset + SIZEOF_C8 + ml_dec16(ml, offset + 1) * 2));
+        sizeof = SIZEOF_C8 + ml_dec16(ml, offset + 1) * 2 + 2;
+        break;
+
+      case ML_DEBUG:
+        r = callback(ml, offset, ML_V, op, ml_dec16(ml, offset + 1));
+        sizeof = SIZEOF_V;
+        break;
+
+      case ML_JMP:
+        r = callback(ml, offset, ML_V, op, ml_dec16(ml, offset + 1));
+        sizeof = SIZEOF_V + ml_dec16(ml, offset + 1);
+        break;
+      case ML_JMP32:
+        r = callback(ml, offset, ML_W, op, ml_dec32(ml, offset + 1));
+        sizeof = SIZEOF_W + ml_dec32(ml, offset + 1);
+        break;
+
+      case ML_NOOP2:
+        r = callback(ml, offset, ML_NO_ARGS, op);
+        sizeof = 2;
+        break;
+      case ML_NOOP3:
+        r = callback(ml, offset, ML_NO_ARGS, op);
+        sizeof = 3;
+        break;
+      case ML_NOOP4:
+        r = callback(ml, offset, ML_NO_ARGS, op);
+        sizeof = 4;
+        break;
+
+      case ML_NOOP:
+      case ML_START:
+      case ML_STOP:
+        r = callback(ml, offset, ML_NO_ARGS, op);
+        sizeof = 1;
+        break;
+
+      default:
+        ASSERT_LOG2('(ml_walkVars) unknown op: ' + ml[offset], ' at', offset);
+        ml_throw(ml, offset, '(ml_walkVars) unknown op');
+    }
+
+    ASSERT(sizeof > 0, 'ops should occupy space');
     if (r !== undefined) return r;
     offset += sizeof;
   }
@@ -1344,6 +1549,25 @@ export {
   SIZEOF_COUNT,
   SIZEOF_C8,
 
+  ML_NO_ARGS,
+  ML_V,
+  ML_W,
+  ML_VV,
+  ML_V8,
+  ML_8V,
+  ML_88,
+  ML_VVV,
+  ML_VV8,
+  ML_V8V,
+  ML_8VV,
+  ML_V88,
+  ML_88V,
+  ML_8V8,
+  ML_888,
+  ML_C,
+  ML_CR,
+  ML_C8R,
+
   ml__debug,
   ml_getOpList,
   ml_countConstraints,
@@ -1367,6 +1591,7 @@ export {
   ml_throw,
   ml_validateSkeleton,
   ml_walk,
+  ml_stream,
 
   ml_c2vv,
   ml_cr2vv,

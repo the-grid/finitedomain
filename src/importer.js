@@ -657,6 +657,7 @@ function importer_main(str, solver, _debug) {
     pointer += 5;
     skipWhitespaces();
     let refs = parseVexpList();
+    // TODO: could also sum reifiers but i think this is way more efficient. for the time being.
     solver.product(refs, solver.num(0));
     skipWhitespaces();
     is(')', 'nall closer');

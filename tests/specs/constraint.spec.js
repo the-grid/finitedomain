@@ -2321,5 +2321,48 @@ describe('src/constraint.spec', function() {
         ]);
       });
     });
+
+    describe('nall', function() {
+
+      it('should work with zeroes', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should work with A nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 10]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should work with B nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [1 8]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should reject both nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [18 20]
+          : B [50 100]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+    });
   });
 });

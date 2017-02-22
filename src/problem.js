@@ -70,7 +70,7 @@ function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew) {
 
   ASSERT_LOG2(' - Mapping', indexOld, 'to be an alias for', indexNew);
   TRACE_ADD(indexOld, domain__debug($domains[indexOld]), domain__debug($domains[indexNew]), 'now alias of ' + indexNew);
-  $solveStack.push(domains => {
+  $solveStack.push((domains, force) => {
     ASSERT_LOG2(' - alias; ensuring', indexNew, 'and', indexOld, 'result in same value');
     ASSERT_LOG2('   - domain =', domain__debug(domains[indexNew]), 'forcing choice to min(d)=', domain_min(domains[indexNew]));
     // ensure A and B end up with the same value, regardless of how A is reduced

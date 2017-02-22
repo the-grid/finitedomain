@@ -588,6 +588,7 @@ function importer_main(str, solver, _debug) {
       if (read() === '(') {
         if (ident === 'sum') v = parseSum(resultVar);
         else if (ident === 'product') v = parseProduct(resultVar);
+        else if (ident === 'all?') v = parseIsAll(resultVar);
         else THROW('Unknown constraint func: ' + ident);
       } else {
         v = ident;
@@ -650,6 +651,22 @@ function importer_main(str, solver, _debug) {
     let r = solver.product(refs, result);
     skipWhitespaces();
     is(')', 'product closer');
+    return r;
+  }
+
+  function parseIsAll(result) {
+    is('(', 'isall call opener');
+    skipWhitespaces();
+    let refs = parseVexpList();
+
+    // R = all?(A B C ...)   ->   X = A * B * C * ..., R = X !=? 0
+
+    let x = solver.decl(); // anon var [sub,sup]
+    solver.product(refs, x);
+    let r = solver.isNeq(x, solver.num(0), result);
+
+    skipWhitespaces();
+    is(')', 'isall closer');
     return r;
   }
 

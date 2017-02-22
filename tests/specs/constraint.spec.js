@@ -2363,6 +2363,133 @@ describe('src/constraint.spec', function() {
         solver.solve({max: 1});
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
+
+      it('should work with zeroes', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : C [0 10]
+          nall(A B C)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, C: 0}]);
+      });
+    });
+
+    describe('isall', function() {
+
+      it('should reject with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should reject with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10], R: 0}]);
+      });
+
+      it('should reject with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should pass with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [20 60]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 20, R: 1}]);
+      });
+
+      it('should force a pass when R is nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [1 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 23, R: 1}]);
+      });
+
+      it('should force a pass when R is zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [0 0]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should reject when R is zero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [23 60]
+          : R [0 0]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject when R is nonzero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [0 0]
+          : R [100 2000]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should not fail previous test because R didnt have a 1', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [0 0]
+          : R [1 1]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      // TODO: we can enable this test once isall (and friends) are properly implemented and not through product()
+      it.skip('should work with very high values that mul beyond sup', function() {
+        let solver = new Solver().imp(`
+          : A [100000 1000000]
+          : B [100000 1000000]
+          : R [1 1]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
+        // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 1}]);
+      });
     });
   });
 });

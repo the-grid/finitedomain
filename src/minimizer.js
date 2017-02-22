@@ -148,11 +148,11 @@ import {
 
 const MINIMIZE_ALIASED = false;
 
-function min_run(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
-  ASSERT_LOG2('mlConstraints, loop:', firstRun, ', byte code:', mlConstraints);
-  ASSERT_LOG2(ml__debug(mlConstraints, 0, 20, domains, names));
+function min_run(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
+  ASSERT_LOG2('min_run, loop:', firstRun, ', byte code:', ml);
+  ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
-  let state = min_optimizeConstraints(mlConstraints, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
+  let state = min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
   if (state === $SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
   } else if (state === $REJECTED) {
@@ -195,6 +195,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     ASSERT_LOG2('intermediate state:');
     ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
+    if (firstRun) break;
     firstRun = false;
   }
   if (loops === 1) return $STABLE;

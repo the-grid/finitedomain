@@ -394,8 +394,14 @@ function importer_main(str, solver, _debug) {
         // force A and B to non-zero (artifact)
         // (could easily be done at compile time)
         // for now we mul the args and force the result non-zero, this way neither arg can be zero
-        // TODO: this could be made "safer" with more work; `(A/A)+(B/B) > 0` doesnt risk going oob, i think
+        // TODO: this could be made "safer" with more work; `(A/A)+(B/B) > 0` doesnt risk going oob, i think. and otherwise we could sum two ==?0 reifiers to equal 2. just relatively very expensive.
         solver.neq(solver.mul(A, parseVexpr()), solver.num(0));
+        break;
+
+      case '|':
+        // force at least one of A and B to be non-zero (both is fine too)
+        // if we add both args and check the result for non-zero then at least one arg must be non-zero
+        solver.neq(solver.plus(A, parseVexpr()), solver.num(0));
         break;
 
       default:
@@ -481,8 +487,9 @@ function importer_main(str, solver, _debug) {
         }
         return '>';
       case '&':
+      case '|':
         skip();
-        return '&';
+        return c;
       case '#':
         THROW('Expected to parse a cop but found a comment instead');
         break;

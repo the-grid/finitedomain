@@ -162,10 +162,10 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       // R = 1 ==? B[0 1]   ->    R == B
       if (valueC >= 0) { // result solved
         if (valueA >= 0) {
-          if (valueC) initialDomains[rightVarIndex] = A;
+          if (valueC) initialDomains[rightVarIndex] = domain_intersection(A, B);
           else initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
         } else if (valueB >= 0) {
-          if (valueC) initialDomains[leftVarIndex] = B;
+          if (valueC) initialDomains[leftVarIndex] = domain_intersection(A, B);
           else initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
         } else {
           // neither A nor B is solved; simplify

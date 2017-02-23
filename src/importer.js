@@ -419,6 +419,12 @@ function importer_main(str, solver, _debug) {
         solver.mul(A, parseVexpr(), solver.num(0));
         break;
 
+      case '!^':
+        // xor means A and B both solve to zero or both to non-zero
+        // (A==?0)==(B==?0)
+        solver.eq(solver.isEq(A, solver.num(0)), solver.isEq(parseVexpr(), solver.num(0)));
+        break;
+
       default:
         if (cop) THROW('Unknown constraint op: [' + cop + ']');
     }
@@ -490,6 +496,10 @@ function importer_main(str, solver, _debug) {
         if (c === '&') {
           skip();
           return '!&';
+        }
+        if (c === '^') {
+          skip();
+          return '!^';
         }
         return '!';
       case '<':

@@ -666,7 +666,7 @@ describe('src/constraint.spec', function() {
       });
     });
 
-    describe('reifier', function() {
+    describe('reifier (conceptual)', function() {
 
       it('should find two solutions with a constant left', function() {
         let solver = new Solver();
@@ -878,6 +878,20 @@ describe('src/constraint.spec', function() {
         });
 
         // note: gt and gte map to lt and lte so there's no real need to test them as well... but we could :)
+      });
+    });
+
+    describe('isall', function() {
+
+      it('should reject if R=1 and A!=B', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          : R [1 1]
+          R = A ==? B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
     });
 
@@ -2726,7 +2740,7 @@ describe('src/constraint.spec', function() {
 
     describe('and', function() {
 
-      it('should work with boolies', function() {
+      it('should solve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -2756,7 +2770,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should work with booly/zero', function() {
+      it('should reject with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -2766,7 +2780,27 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should work with nonzeroes', function() {
+      it('should reject with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]
@@ -2779,7 +2813,7 @@ describe('src/constraint.spec', function() {
 
     describe('or', function() {
 
-      it('should work with boolies', function() {
+      it('should solve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -2799,7 +2833,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should reject with zero/booly', function() {
+      it('should solve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -2809,7 +2843,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
       });
 
-      it('should work with booly/zero', function() {
+      it('should solve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -2819,7 +2853,27 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
       });
 
-      it('should work with nonzeroes', function() {
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 5}]);
+      });
+
+      it('should solve with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]
@@ -2832,7 +2886,7 @@ describe('src/constraint.spec', function() {
 
     describe('xor', function() {
 
-      it('should work with boolies', function() {
+      it('should solve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -2852,7 +2906,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should reject with zero/booly', function() {
+      it('should solve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -2862,7 +2916,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
       });
 
-      it('should work with booly/zero', function() {
+      it('should solve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -2872,7 +2926,27 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
       });
 
-      it('should work with nonzeroes', function() {
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 5}]);
+      });
+
+      it('should reject with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]
@@ -2885,7 +2959,7 @@ describe('src/constraint.spec', function() {
 
     describe('nand', function() {
 
-      it('should work with boolies', function() {
+      it('should solve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -2925,6 +2999,26 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [0, 10], B: 0}]);
       });
 
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [5, 10], B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [5, 10]}]);
+      });
+
       it('should reject with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
@@ -2933,6 +3027,79 @@ describe('src/constraint.spec', function() {
         `);
         solver.solve({max: 1});
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+    });
+
+    describe('xnor', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should reject with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 8}]);
       });
     });
   });

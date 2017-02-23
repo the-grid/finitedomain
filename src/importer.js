@@ -590,6 +590,7 @@ function importer_main(str, solver, _debug) {
         else if (ident === 'product') v = parseProduct(resultVar);
         else if (ident === 'all?') v = parseIsAll(resultVar);
         else if (ident === 'nall?') v = parseIsNall(resultVar);
+        else if (ident === 'none?') v = parseIsNone(resultVar);
         else THROW('Unknown constraint func: ' + ident);
       } else {
         v = ident;
@@ -684,6 +685,22 @@ function importer_main(str, solver, _debug) {
 
     skipWhitespaces();
     is(')', 'isnall closer');
+    return r;
+  }
+
+  function parseIsNone(result) {
+    is('(', 'isnone call opener');
+    skipWhitespaces();
+    let refs = parseVexpList();
+
+    // R = none?(A B C ...)   ->   X = sum(A * B * C * ...), R = X ==? 0
+
+    let x = solver.decl(); // anon var [sub,sup]
+    solver.sum(refs, x);
+    let r = solver.isEq(x, solver.num(0), result);
+
+    skipWhitespaces();
+    is(')', 'isnone closer');
     return r;
   }
 
@@ -852,7 +869,7 @@ function importer_main(str, solver, _debug) {
     if (_debug) {
       console.log(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
     }
-    msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
+    msg = 'Importer parser error: ' + msg + ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
     throw new Error(msg);
   }
 }

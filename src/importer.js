@@ -404,6 +404,14 @@ function importer_main(str, solver, _debug) {
         solver.neq(solver.plus(A, parseVexpr()), solver.num(0));
         break;
 
+      case '^':
+        // force A zero and B nonzero or A nonzero and B zero (anything else rejects)
+        // this is more tricky/expensive to implement than AND and OR...
+        // x=A+B,x==A^x==B owait
+        // (A==?0)+(B==?0)==1
+        solver.eq(solver.plus(solver.isEq(A, 0), solver.isEq(parseVexpr(), 0)), 1);
+        break;
+
       default:
         if (cop) THROW('Unknown constraint op: [' + cop + ']');
     }
@@ -488,6 +496,7 @@ function importer_main(str, solver, _debug) {
         return '>';
       case '&':
       case '|':
+      case '^':
         skip();
         return c;
       case '#':

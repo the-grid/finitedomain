@@ -2736,6 +2736,16 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 1}]);
       });
 
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
       it('should reject with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
@@ -2779,6 +2789,16 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
       });
 
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
       it('should reject with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
@@ -2807,6 +2827,59 @@ describe('src/constraint.spec', function() {
         `);
         solver.solve({max: 1});
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 8}]);
+      });
+    });
+
+    describe('xor', function() {
+
+      it('should work with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should work with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
+      });
+
+      it('should work with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
     });
   });

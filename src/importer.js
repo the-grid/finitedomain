@@ -412,6 +412,13 @@ function importer_main(str, solver, _debug) {
         solver.eq(solver.plus(solver.isEq(A, 0), solver.isEq(parseVexpr(), 0)), 1);
         break;
 
+      case '!&':
+        // nand is a nall with just two args...
+        // it is the opposite from AND, and so is the implementation
+        // (except since we can force to 0 instead of "nonzero" we can drop the eq wrapper)
+        solver.mul(A, parseVexpr(), solver.num(0));
+        break;
+
       default:
         if (cop) THROW('Unknown constraint op: [' + cop + ']');
     }
@@ -475,9 +482,14 @@ function importer_main(str, solver, _debug) {
         return '=';
       case '!':
         skip();
-        if (read() === '=') {
+        c = read();
+        if (c === '=') {
           skip();
           return '!=';
+        }
+        if (c === '&') {
+          skip();
+          return '!&';
         }
         return '!';
       case '<':

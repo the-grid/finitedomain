@@ -541,7 +541,7 @@ function _config_addVarConditionally(varIndex, initialDomains, hash, propagatorI
  *
  * @param {$config} config
  * @param {string} name Type of constraint (hardcoded values)
- * @param {string[]} varNames All the argument var names for target constraint
+ * @param {<string,number,undefined>[]} varNames All the argument var names for target constraint
  * @param {string} [param] The result var name for certain. With reifiers param is the actual constraint to reflect.
  * @returns {string|undefined} Actual result vars only, undefined otherwise. See desc above.
  */
@@ -655,7 +655,7 @@ function config_varNamesToIndexes(config, varNames) {
     let varName = varNames[i];
     ASSERT(typeof varName === 'string', 'var names should be strings here', varName, i, varNames);
     let varIndex = trie_get(config._varNamesTrie, varName);
-    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', varName, i, varNames);
+    ASSERT(varIndex !== TRIE_KEY_NOT_FOUND, 'CONSTRAINT_VARS_SHOULD_BE_DECLARED', 'name=', varName, 'index=', i, 'names=', varNames);
     varIndexes[i] = varIndex;
   }
   return varIndexes;

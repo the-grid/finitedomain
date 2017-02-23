@@ -136,6 +136,7 @@ cop: // constraining op, has no result
   `<=`
   `>`
   `>=`
+  `&`
 grouping:
   `(` vexpr `)`
   `(` grouping `)`

@@ -151,11 +151,11 @@ import {
 
 const MINIMIZE_ALIASED = false;
 
-function min_run(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
+function min_run(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun, once) {
   ASSERT_LOG2('min_run, loop:', firstRun, ', byte code:', ml);
   ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
   // now we can access the ml in terms of bytes, jeuj
-  let state = min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun);
+  let state = min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun, once);
   if (state === $SOLVED) {
     ASSERT_LOG2('minimizing solved it!', state); // all constraints have been eliminated
   } else if (state === $REJECTED) {
@@ -166,9 +166,9 @@ function min_run(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRu
   return state;
 }
 
-function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun) {
+function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, getAlias, firstRun, once) {
   ASSERT_LOG2('min_optimizeConstraints', ml, domains.map(domain__debug));
-  ASSERT_LOG2('minimize sweep, ml len=', ml.length, ', firstRun=', firstRun);
+  ASSERT_LOG2('minimize sweep, ml len=', ml.length, ', firstRun=', firstRun, 'once=', once);
   let varChanged = true;
   let onlyJumps = true;
   let emptyDomain = false;
@@ -198,7 +198,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
 
     ASSERT_LOG2('intermediate state:');
     ASSERT_LOG2(ml__debug(ml, 0, 20, domains, names));
-    if (firstRun) break;
+    if (once) break;
     firstRun = false;
   }
   if (loops === 1) return $STABLE;

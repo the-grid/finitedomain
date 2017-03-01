@@ -148,7 +148,7 @@ import {
 
 const CUTTER_NEQ_TRICK_FLAGS = BOUNTY_LTE_LHS | BOUNTY_LTE_RHS | BOUNTY_OR | BOUNTY_NAND;
 
-function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
+function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   ASSERT_LOG2('\n ## cutter', ml);
   let pc = 0;
 
@@ -166,7 +166,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack) {
     cutLoop();
     console.log(' - end cutter outer loop', loops, ', removed:', solveStack.length - lenBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain);
     ++loops;
-  } while (!emptyDomain && changes);
+  } while (!emptyDomain && changes && !once);
 
   ASSERT_LOG2('## exit cutter');
   if (emptyDomain) return -1;

@@ -159,12 +159,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   let changes = 0;
   let loops = 0;
   do {
+    console.time('-> cut_loop ' + loops);
     ASSERT_LOG2(' # start cutter outer loop', loops);
     bounty = bounty_collect(ml, vars, domains, getAlias, bounty);
     lenBefore = solveStack.length;
     changes = 0;
     cutLoop();
-    console.log(' - end cutter outer loop', loops, ', removed:', solveStack.length - lenBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain);
+    console.timeEnd('-> cut_loop ' + loops);
+    console.log('   - end cutter outer loop', loops, ', removed:', solveStack.length - lenBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain, 'once=', once);
     ++loops;
   } while (!emptyDomain && changes && !once);
 

@@ -83,11 +83,12 @@ function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew) {
 }
 function $getAlias($aliases, index) {
   let alias = $aliases[index];
-  if (alias === index) throw new Error('alias is itself?', alias, index);
-  if (alias === undefined) {
-    throw new Error('alias for ' + index + ' does not exist... ');
+  while (alias !== undefined) {
+    if (alias === index) THROW('alias is itself?', alias, index);
+    index = alias;
+    alias = $aliases[index];
   }
-  return alias;
+  return index;
 }
 
 function problem_create() {

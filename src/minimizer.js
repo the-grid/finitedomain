@@ -653,6 +653,7 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
       }
 
       addAlias(indexB, indexA);
+      varChanged = true;
     }
 
     ASSERT_LOG2(' - eliminating eq', indexA, indexB);
@@ -711,6 +712,8 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
     let offsetB = offset + 3;
     let indexA = ml_dec16(ml, offsetA);
     let indexB = ml_dec16(ml, offsetB);
+
+    if (indexA === indexB) return setEmpty(indexA, 'X!=X falsum'); // (relevant) artifact case
 
     let A = getDomainOrRestartForAlias(indexA, 1);
     let B = getDomainOrRestartForAlias(indexB, 3);

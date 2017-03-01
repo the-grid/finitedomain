@@ -89,17 +89,21 @@ import {
 
 function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
   ASSERT_LOG2('\n## mlToDsl');
-  const DEBUG = true;
-  const HASH_NAMES = true;
+  const DEBUG = false; // add debugging help in comments (domains, related constraints, occurrences, etc)
+  const HASH_NAMES = true; // replace all var names with $index$ with index in base36
+  const INDEX_NAMES = false; // replace all var names with _index_ (ignored if HASH_NAMES is true)
+  const ADD_GROUPED_CONSTRAINTS = true; // only when debugging
+
   let pc = 0;
   let dsl = '';
 
   function toName(index) {
-    if (HASH_NAMES) return '_' + index.toString(36) + '_';
+    if (HASH_NAMES) return '$' + index.toString(36) + '$';
+    if (INDEX_NAMES) return '_' + index + '_';
     return names[index];
   }
 
-  //if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], '$' + a[1].toString(36)]));
+  //if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], toName(a[1])]));
 
   let allParts = [];
   let partsPerVar = [];
@@ -112,6 +116,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
     let aliases = 0;
     let solved = 0;
     let unsolved = 0;
+    let withCount = 0;
     domains.forEach((domain, index) => {
       let str = '';
       if (domain === false) {
@@ -143,7 +148,9 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
     if (counts) {
       domains.forEach((domain, index) => {
         if (domain !== false) {
-          arr[index] += ' # counts = ' + counts[index];
+          let count = counts[index];
+          if (count) ++withCount;
+          arr[index] += ' # counts = ' + count;
         }
       });
     }
@@ -163,9 +170,11 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
         }).sort((a, b) => a < b ? -1 : 1).join(' ') + ' $'));
 
         return (
-          s + '  # ' + count + 'x ops: ' + ops +
-          '\n ## ' +
-          (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
+          s + '  # ' + count + (HASH_NAMES || INDEX_NAMES ? 'x ops: ' + ops : '') +
+          (ADD_GROUPED_CONSTRAINTS
+            ? '\n ## ' + (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
+            : ''
+          )
         );
       })
       .filter((a, i) => domains[i] !== false && (!counts || counts[i] > 0))
@@ -179,14 +188,18 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 #    - Solved: ${solved} x
 #    - Unsolved: ${unsolved} x
 #      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
-#      - To solve: ${unsolved - (solveStack.length - aliases)} x
+#      - Left to solve: ${counts ? withCount : '<did not count>'} x
+`;
+    console.error(dsl);
+
+    dsl += `
 # Var decls:
 ${varDecls}
 
 `;
   } else {
     dsl += '# vars:\n';
-    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !counts || counts[a[1]] > 0).map(a => ': $' + a[1].toString(36) + ' [' + domain_toArr(a[0]) + ']').join('\n');
+    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !counts || counts[a[1]] > 0).map(a => ': ' + toName(a[1]) + ' [' + domain_toArr(a[0]) + ']').join('\n');
     dsl += '\n\n';
   }
 
@@ -209,6 +222,31 @@ ${varDecls}
     ASSERT(pc < ml.length - 1, 'OOB');
     ASSERT_LOG2(' . dec32 decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], 'from', pc, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 24) | (ml[pc++] << 16) | (ml[pc++] << 8) | ml[pc++];
+  }
+
+  function m2d_decA(lena) {
+    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
+    if (lena === 2 && domains[a] === false) a = getAlias(a);
+
+    if (DEBUG) {
+      if (lena === 2) {
+        if (!partsPerVar[a]) partsPerVar[a] = [];
+        partsPerVar[a].push(allParts.length);
+      }
+
+      let s = lena === 1 ? a : toName(a);
+      s += ' '.repeat(Math.max(45 - s.length, 3));
+      s += '# ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a]));
+      s += ' '.repeat(Math.max(110 - s.length, 3));
+      s += '# args: ' + a;
+      s += ' '.repeat(Math.max(150 - s.length, 3));
+      s += counts ? '# counts: ' + (lena === 1 ? '-' : counts[a]) : '';
+      s += ' \n';
+
+      return s;
+    } else {
+      return (lena === 1 ? a : toName(a));
+    }
   }
 
   function m2d_decAb(lena, lenb, op) {
@@ -239,7 +277,7 @@ ${varDecls}
 
       return s;
     } else {
-      return (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
+      return (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b)) + '\n';
     }
   }
 
@@ -251,6 +289,9 @@ ${varDecls}
     if (lena === 2 && domains[a] === false) a = getAlias(a);
     if (lenb === 2 && domains[b] === false) b = getAlias(b);
     if (lenc === 2 && domains[c] === false) c = getAlias(c);
+
+    if (lena === 2 && a !== getAlias(a, true)) THROW('wruhroh', a, domains[a], domain__debug(domains[a]), '->', getAlias(a, true));
+    if (lenb === 2 && b !== getAlias(b, true)) THROW('wruhroh', b, domains[b], domain__debug(domains[b]), '->', getAlias(b, true));
 
     let s = '';
     if (DEBUG) {
@@ -279,7 +320,8 @@ ${varDecls}
 
       return s;
     } else {
-      return (lenc === 1 ? c : '$' + c.toString(36) + '$') + ' = ' + (lena === 1 ? a : '$' + a.toString(36) + '$') + ' ' + op + ' ' + (lenb === 1 ? b : '$' + b.toString(36) + '$') + '\n';
+      if (op === '+') console.error('b=', b, '=', toName(b), '->', domains[b], domain__debug(domains[b]));
+      return (lenc === 1 ? c : toName(c)) + ' = ' + (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b)) + '\n';
     }
   }
 
@@ -289,9 +331,14 @@ ${varDecls}
     let counters = '';
     let argNames = '';
     let debugs = '';
+    let prevIndex = -1;
     for (let i = 0; i < argCount; ++i) {
       let index = m2d_dec16();
 
+      if (index < prevIndex) console.error('unordered void list...', prevIndex, index);
+      if (index === prevIndex) console.error('void list with dupe', index);
+
+      prevIndex = index;
 
       let domain = domains[index];
       if (domain === false) {
@@ -307,7 +354,7 @@ ${varDecls}
         argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += toName(index) + ' ';
+        argNames += toName(index);
       }
     }
     if (DEBUG) {
@@ -336,8 +383,15 @@ ${varDecls}
     let counters = '';
     let argNames = '';
     let debugs = '';
+    let prevIndex = -1;
     for (let i = 0; i < argCount; ++i) {
       let index = m2d_dec16();
+
+      if (index < prevIndex) console.error('unordered value list...', prevIndex, index);
+      if (index === prevIndex) console.error('value list with dupe', index);
+
+      prevIndex = index;
+
       let domain = domains[index];
       if (domain === false) {
         index = getAlias(index);
@@ -352,10 +406,11 @@ ${varDecls}
         argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += toName(index) + ' ';
+        argNames += toName(index);
       }
     }
     let indexR = m2d_dec16();
+    if (domains[indexR] === false) indexR = getAlias(indexR);
     if (DEBUG) {
       if (!partsPerVar[indexR]) partsPerVar[indexR] = [];
       partsPerVar[indexR].push(allParts.length);
@@ -370,7 +425,7 @@ ${varDecls}
 
       return s;
     } else {
-      return '$' + indexR.toString(36) + ' = ' + callName + '( ' + argNames + ')\n';
+      return toName(indexR) + ' = ' + callName + '( ' + argNames + ')\n';
     }
   }
 
@@ -381,8 +436,14 @@ ${varDecls}
     let sumCount = m2d_dec16();
     let sumConstant = m2d_dec8();
     let sums = sumConstant ? sumConstant + ' ' : '';
+    let prevIndex = -1;
     for (let i = 0; i < sumCount; ++i) {
       let index = m2d_dec16();
+
+      if (index < prevIndex) console.error('unordered sum...', prevIndex, index);
+      if (index === prevIndex) console.error('sum with dupe', index);
+      prevIndex = index;
+
       let domain = domains[index];
       if (domain === false) {
         index = getAlias(index);
@@ -396,10 +457,11 @@ ${varDecls}
         sums += toName(index) + ' ';
         bug += domain__debug(domain) + ' ';
       } else {
-        sums += '$' + index.toString(36) + ' ';
+        sums += toName(index);
       }
     }
     let sumIndex = m2d_dec16();
+    if (domains[sumIndex] === false) sumIndex = getAlias(sumIndex);
     if (DEBUG) {
       if (!partsPerVar[sumIndex]) partsPerVar[sumIndex] = [];
       partsPerVar[sumIndex].push(allParts.length);
@@ -414,7 +476,7 @@ ${varDecls}
 
       return s;
     } else {
-      return '$' + sumIndex.toString(36) + ' = sum(' + sums + ')\n';
+      return toName(sumIndex) + ' = sum(' + sums + ')\n';
     }
   }
 
@@ -754,7 +816,7 @@ ${varDecls}
 
         case ML_DEBUG:
           ASSERT_LOG2(' ! debug');
-          part = '@custom noleaf _' + m2d_dec16().toString(36) + '_\n';
+          part = '@custom noleaf ' + m2d_decA(2) + '\n';
           break;
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');

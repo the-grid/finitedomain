@@ -52,7 +52,7 @@ import {
 
 // BODY_START
 
-function solverSolver(dsl) {
+function solverSolver(dsl, singleCycle) {
   console.log('<solverSolver>');
   console.time('</solverSolver>');
   ASSERT_LOG2(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
@@ -75,18 +75,28 @@ function solverSolver(dsl) {
 
   console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + mlConstraints.length + ' bytes)');
 
-  // first scan will be the most drastic in terms of reduction so do it seperately here
-  console.time('- first minimizer cycle (single loop)');
-  let state = min_run(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, true);
-  console.timeEnd('- first minimizer cycle (single loop)');
-  ASSERT_LOG2('First minimize pass result:', state);
+  let state;
+  if (singleCycle) { // only single cycle? usually most dramatic reduction. only runs a single loop of every step.
+    console.time('- first minimizer cycle (single loop)');
+    state = min_run(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, true, true);
+    console.timeEnd('- first minimizer cycle (single loop)');
+    ASSERT_LOG2('First minimize pass result:', state);
 
-  let runLoops = 0;
-  if (state !== $SOLVED && state !== $REJECTED) {
+    console.time('- deduper cycle #');
+    let deduperAddedAlias = deduper(mlConstraints, varNames, domains, $getAlias, $addAlias);
+    console.timeEnd('- deduper cycle #');
+
+    if (deduperAddedAlias >= 0) {
+      console.time('- cutter cycle #');
+      cutter(mlConstraints, varNames, domains, $addAlias, $getAlias, solveStack, true);
+      console.timeEnd('- cutter cycle #');
+    }
+  } else { // multiple cycles? more expensive, may not be worth the gains
+    let runLoops = 0;
     console.time('- all run cycles');
     do {
       ASSERT_LOG2('run loop...');
-      state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, ++runLoops, problem);
+      state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
     } while (state === $CHANGED);
     console.timeEnd('- all run cycles');
   }
@@ -121,7 +131,7 @@ function solverSolver(dsl) {
 }
 let Solver = solverSolver; // TEMP
 
-function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops, problem) {
+function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops) {
   console.time('- run_cycle #' + runLoops);
 
   console.time('- minimizer cycle #' + runLoops);

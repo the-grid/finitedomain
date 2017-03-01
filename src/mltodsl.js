@@ -320,7 +320,6 @@ ${varDecls}
 
       return s;
     } else {
-      if (op === '+') console.error('b=', b, '=', toName(b), '->', domains[b], domain__debug(domains[b]));
       return (lenc === 1 ? c : toName(c)) + ' = ' + (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b)) + '\n';
     }
   }
@@ -354,7 +353,7 @@ ${varDecls}
         argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += toName(index);
+        argNames += toName(index) + ' ';
       }
     }
     if (DEBUG) {
@@ -406,7 +405,7 @@ ${varDecls}
         argNames += toName(index) + ' ';
         debugs += domain__debug(domain) + ' ';
       } else {
-        argNames += toName(index);
+        argNames += toName(index) + ' ';
       }
     }
     let indexR = m2d_dec16();
@@ -457,7 +456,7 @@ ${varDecls}
         sums += toName(index) + ' ';
         bug += domain__debug(domain) + ' ';
       } else {
-        sums += toName(index);
+        sums += toName(index) + ' ';
       }
     }
     let sumIndex = m2d_dec16();

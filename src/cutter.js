@@ -174,28 +174,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   if (emptyDomain) return -1;
   return loops;
 
-  function getFinalIndex(index, _max = 50) {
-    if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('         getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
-    if (domains[index] !== false) return index;
-
-    // if the domain is falsy then there was an alias 6sx(or a bug)
-    // write the alias back to ML and restart the current op
-    // caller should ensure to check return value and return on
-    // a falsy result as well so the loop can restart.
-    let aliasIndex = getAlias(index);
-    ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
-    ASSERT_LOG2(' - alias for', index, 'is', aliasIndex);
-    return getFinalIndex(aliasIndex, _max - 1);
-  }
-
   function somethingChanged() {
     ++changes;
   }
 
   function cutNeq() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -232,8 +217,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutLt() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -279,8 +264,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutLte() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -325,16 +310,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
     let indexA;
     let indexB;
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + lenB));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + lenB));
     let countsR = bounty_getCounts(bounty, indexR);
 
-    ASSERT(!void (indexA = getFinalIndex(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2))));
+    ASSERT(!void (indexA = getAlias(ml_dec16(ml, offset + 1))));
+    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2))));
     ASSERT_LOG2(' - cutIsEq', indexR, '=', indexA, '==?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = getFinalIndex(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+      indexA = getAlias(ml_dec16(ml, offset + 1));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2));
       ASSERT_LOG2('   - R is a leaf var');
       solveStack.push((domains, force) => {
         ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
@@ -356,7 +341,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
     // note: A can not be a constant because we normalize iseq args that way
     if (lenB === 1) {
-      indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      indexA = getAlias(ml_dec16(ml, offset + 1));
       let countsA = bounty_getCounts(bounty, indexA);
       if (countsA === 1) {
         // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
@@ -389,16 +374,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
     let indexA;
     let indexB;
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + lenB));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + lenB));
     let countsR = bounty_getCounts(bounty, indexR);
 
-    ASSERT(!void (indexA = getFinalIndex(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2))));
+    ASSERT(!void (indexA = getAlias(ml_dec16(ml, offset + 1))));
+    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2))));
     ASSERT_LOG2(' - cutIsNeq', indexR, '=', indexA, '!=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = getFinalIndex(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+      indexA = getAlias(ml_dec16(ml, offset + 1));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2));
 
       ASSERT_LOG2('   - R is a leaf var');
       solveStack.push((domains, force) => {
@@ -421,7 +406,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     }
 
     if (lenB === 1) {
-      indexA = getFinalIndex(ml_dec16(ml, offset + 1));
+      indexA = getAlias(ml_dec16(ml, offset + 1));
       let countsA = bounty_getCounts(bounty, indexA);
       if (countsA === 1) {
         // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
@@ -454,16 +439,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
     let indexA;
     let indexB;
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + lenA + lenB));
     let countsR = bounty_getCounts(bounty, indexR);
 
-    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA))));
+    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1))));
+    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA))));
     ASSERT_LOG2(' - cutIsLt', indexR, '=', indexA, '<?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
+      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
 
       ASSERT_LOG2('   - R is a leaf var');
       solveStack.push((domains, force) => {
@@ -486,7 +471,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     }
 
     if (lenB === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
+      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
       let countsA = bounty_getCounts(bounty, indexA);
       if (countsA === 1) {
         // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
@@ -514,7 +499,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     }
 
     if (lenA === 1) {
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
       let countsB = bounty_getCounts(bounty, indexB);
       if (countsB === 1) {
         // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
@@ -548,16 +533,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT(1 + lenA + lenB + 2 === sizeof, 'expecting this sizeof', 1 + 2 + lenB + 2, sizeof, lenA, lenB);
     let indexA;
     let indexB;
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + lenA + lenB));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + lenA + lenB));
     let countsR = bounty_getCounts(bounty, indexR);
 
-    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA))));
+    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1))));
+    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA))));
     ASSERT_LOG2(' - cutIsLte', indexR, '=', indexA, '<=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
+      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
 
       ASSERT_LOG2('   - R is a leaf var');
       solveStack.push((domains, force) => {
@@ -580,7 +565,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     }
 
     if (lenB === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getFinalIndex(ml_dec16(ml, offset + 1));
+      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
       let countsA = bounty_getCounts(bounty, indexA);
       if (countsA === 1) {
         // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
@@ -608,7 +593,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     }
 
     if (lenA === 1) {
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getFinalIndex(ml_dec16(ml, offset + 1 + lenA));
+      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
       let countsB = bounty_getCounts(bounty, indexB);
       if (countsB === 1) {
         // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
@@ -643,7 +628,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     // note: we cant simply eliminate leaf vars because they still constrain
     // the allowed distance between the other two variables and if you
     // eliminate this constraint, that limitation is not enforced anymore.
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 2));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + 2));
     ASSERT_LOG2('   - indexR=', indexR, 'counts:', bounty_getCounts(bounty, indexR), 'meta:', bounty_getMeta(bounty, indexR));
     if (cutPlusR(offset, indexR)) return;
     if (cutPlusAB(offset, indexR, 'A', 1, 'B', 1 + 2)) return;
@@ -664,8 +649,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       // any further except by this constraint, so it cannot be
       // the case that another constraint invalidates this step.
 
-      let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
-      let indexB = getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+      let indexA = getAlias(ml_dec16(ml, offset + 1));
+      let indexB = getAlias(ml_dec16(ml, offset + 1 + 2));
       let A = domains[indexA];
       let B = domains[indexB];
       let R = domains[indexR];
@@ -751,11 +736,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       let offset2 = bounty_getOffset(bounty, indexR, 1);
       let otherOffset = offset1 === offset ? offset2 : offset1;
       ASSERT(offset1 && offset2 && (offset1 === offset || offset2 === offset), 'if there were two counts Bounty should have collected two offsets for it');
-      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getFinalIndex(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === 2) {
+      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getAlias(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === 2) {
         // okay the "other side" is checking whether the result is 2 so if the two plus args are bools we can reduce
 
-        let indexA = getFinalIndex(ml_dec16(ml, offset + 1));
-        let indexB = getFinalIndex(ml_dec16(ml, offset + 1 + 2));
+        let indexA = getAlias(ml_dec16(ml, offset + 1));
+        let indexB = getAlias(ml_dec16(ml, offset + 1 + 2));
         let A = domains[indexA];
         let B = domains[indexB];
 
@@ -763,7 +748,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
         if (domain_isBool(A) && domain_isBool(B)) {
           ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
           // match. rewrite plus isAll and remove the isEq. adjust counts accordingly
-          let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
+          let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
           ASSERT(domain_isBool(domains[indexS]), 'S should be a bool');
 
           solveStack.push((domains, force) => {
@@ -788,11 +773,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
   function cutPlusAB(offset, indexR, X, deltaX, Y, deltaY) {
     ASSERT_LOG2(' - _cutPlusAB:', X, Y, offset, indexR, deltaX, deltaY);
-    let indexA = getFinalIndex(ml_dec16(ml, offset + deltaX));
+    let indexA = getAlias(ml_dec16(ml, offset + deltaX));
     let countsA = bounty_getCounts(bounty, indexA);
     if (countsA === 1) {
       let A = domains[indexA];
-      let indexB = getFinalIndex(ml_dec16(ml, offset + deltaY));
+      let indexB = getAlias(ml_dec16(ml, offset + deltaY));
       let B = domains[indexB];
       let vB = domain_getValue(B);
       ASSERT_LOG2('   -', X, ' is a leaf var, ', Y, '=', domain__debug(B));
@@ -831,7 +816,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     let len = ml_dec16(ml, pc + 1);
     ASSERT(len > 2, 'should have at least three args or otherwise the minifier would have morphed it');
 
-    let indexR = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + len * 2));
+    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + 1 + len * 2));
     let countsR = bounty_getCounts(bounty, indexR);
 
     if (countsR === 1) {
@@ -840,7 +825,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       let lo = C;
       let hi = C;
       for (let i = 0; i < len; ++i) {
-        let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
+        let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
         let domain = domains[index];
         let min = domain_min(domain);
         let max = domain_max(domain);
@@ -861,7 +846,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
         // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
         let args = [];
         for (let i = 0; i < len; ++i) {
-          let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
+          let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
           args.push(index);
           bounty_markVar(bounty, index);
         }
@@ -886,7 +871,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
         // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
         let args = [];
         for (let i = 0; i < len; ++i) {
-          let index = getFinalIndex(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
+          let index = getAlias(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
           args.push(index);
           bounty_markVar(bounty, index);
         }
@@ -920,13 +905,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       let offset2 = bounty_getOffset(bounty, indexR, 1);
       let otherOffset = offset1 === offset ? offset2 : offset1;
       ASSERT(otherOffset > 0, 'offset should exist and cant be the first op');
-      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getFinalIndex(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === (C + len)) {
+      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getAlias(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === (C + len)) {
         // okay the "other side" is checking whether the result is max so if all the args are bools we can reduce
 
         let args = [];
         let allBools = true;
         for (let i = 0; i < len; ++i) {
-          let index = getFinalIndex(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
+          let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
           let domain = domains[index];
           if (!domain_isBool(domain)) {
             allBools = false;
@@ -941,7 +926,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           // ok, we replace the sum and isEq with `S = isAll(args)`
           // the sum has the biggest footprint so the isall will fit with one byte to spare
 
-          let indexS = getFinalIndex(ml_dec16(ml, otherOffset + 1 + 3));
+          let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 3));
           ASSERT(domains[indexS] === domain_createRange(0, 1), 'S should be a bool');
 
           solveStack.push((domains, force) => {
@@ -980,8 +965,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutOr() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -1030,8 +1015,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutXor() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -1082,8 +1067,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutNand() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -1159,8 +1144,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutXnor() {
-    let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-    let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
     let countsA = bounty_getCounts(bounty, indexA);
     let countsB = bounty_getCounts(bounty, indexB);
@@ -1264,7 +1249,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
   function cutIsAll() {
     let len = ml_dec16(ml, pc + 1);
-    let indexR = getFinalIndex(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
+    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
     let countsR = bounty_getCounts(bounty, indexR);
 
     ASSERT_LOG2(' - cutIsAll', indexR, '->', countsR, 'x');
@@ -1274,7 +1259,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
       let args = [];
       for (let i = 0; i < len; ++i) {
-        args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
+        args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
       }
 
       solveStack.push((domains, force) => {
@@ -1313,14 +1298,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
   }
 
   function cutIsAll2() {
-    let indexR = getFinalIndex(ml_dec16(ml, pc + 5));
+    let indexR = getAlias(ml_dec16(ml, pc + 5));
     let countsR = bounty_getCounts(bounty, indexR);
 
     ASSERT_LOG2(' - cutIsAll2', indexR, '->', countsR, 'x');
 
     if (countsR === 1) {
-      let indexA = getFinalIndex(ml_dec16(ml, pc + 1));
-      let indexB = getFinalIndex(ml_dec16(ml, pc + 3));
+      let indexA = getAlias(ml_dec16(ml, pc + 1));
+      let indexB = getAlias(ml_dec16(ml, pc + 3));
 
       ASSERT_LOG2('   - R is a leaf var');
       solveStack.push((domains, force) => {
@@ -1350,7 +1335,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
   function cutIsNall() {
     let len = ml_dec16(ml, pc + 1);
-    let indexR = getFinalIndex(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
+    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
     let countsR = bounty_getCounts(bounty, indexR);
 
     ASSERT_LOG2(' - cutIsNall', indexR, '->', countsR, 'x');
@@ -1360,7 +1345,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
       let args = [];
       for (let i = 0; i < len; ++i) {
-        args.push(getFinalIndex(ml_dec16(ml, pc + 3 + i * 2)));
+        args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
       }
 
       solveStack.push((domains, force) => {
@@ -1484,8 +1469,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       return false;
     }
 
-    let indexB1 = getFinalIndex(ml_dec16(ml, offset1 + 3));
-    let indexB2 = getFinalIndex(ml_dec16(ml, offset2 + 3));
+    let indexB1 = getAlias(ml_dec16(ml, offset1 + 3));
+    let indexB2 = getAlias(ml_dec16(ml, offset2 + 3));
 
     if (domain_max(domains[indexB1]) > 1 || domain_max(domains[indexB2]) > 1) {
       ASSERT_LOG2(' - only works on boolean domains'); // well not only, but there are some edge cases otherwise
@@ -1546,7 +1531,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       return false;
     }
 
-    let indexA = getFinalIndex(ml_dec16(ml, lteOffset + 1));
+    let indexA = getAlias(ml_dec16(ml, lteOffset + 1));
 
     ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexA =', indexA);
     // there are two isalls, need special paths because of different footprints
@@ -1562,8 +1547,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
       // 2 ltes fit perfectly in the space we have available (sizeof(isall on 2)=9 + sizeof(lte)=5, sizeof(2xlte)=10)
       if (len === 2) {
-        let left = getFinalIndex(ml_dec16(ml, isallOffset + 3));
-        let right = getFinalIndex(ml_dec16(ml, isallOffset + 5));
+        let left = getAlias(ml_dec16(ml, isallOffset + 3));
+        let right = getAlias(ml_dec16(ml, isallOffset + 5));
 
         // validate domains. for now, only apply the trick on strict bools [0 1]. only required for the isall args.
         ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
@@ -1616,7 +1601,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
         // confirm all isall args are bool
         for (let i = 0; i < len; ++i) {
-          let indexB = getFinalIndex(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
+          let indexB = getAlias(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
           if (domain_max(domains[indexB]) > 1) {
             ASSERT_LOG2('     - not all isall args are bool so bailing this morph');
             return false;
@@ -1662,8 +1647,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
         ASSERT_LOG2(' - shared var was not result var of the isall, this is probably an old addr');
         return false;
       }
-      let left = getFinalIndex(ml_dec16(ml, isallOffset + 1));
-      let right = getFinalIndex(ml_dec16(ml, isallOffset + 3));
+      let left = getAlias(ml_dec16(ml, isallOffset + 1));
+      let right = getAlias(ml_dec16(ml, isallOffset + 3));
 
       // validate domains. for now, only apply the trick on strict bools [0 1] for the isall args
       ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
@@ -1687,7 +1672,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     // TODO: this has to check the isall args because lte is not strict enough
     ASSERT_LOG2('   - deferring', varIndex, 'will be gt', lteIndex);
     solveStack.push((domains, force) => {
-      THROW('fixme');
+      THROW('fixme; trickIsallLteRhsDeferShared');
       ASSERT_LOG2(' - isall + lte;', lteIndex, '<=', varIndex, '  ->  ', domain__debug(domains[lteIndex]), '<=', domain__debug(domains[varIndex]));
       let vA = force(lteIndex);
       domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], vA);
@@ -1922,7 +1907,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       return false;
     }
 
-    let indexB = getFinalIndex(ml_dec16(ml, lteOffset + 3));
+    let indexB = getAlias(ml_dec16(ml, lteOffset + 3));
 
     ASSERT_LOG2(' - checking nand offset', ml_dec8(ml, nandOffset) === ML_VV_NAND, ', indexA =', indexB);
     if (ml_dec8(ml, nandOffset) !== ML_VV_NAND) {
@@ -1930,8 +1915,8 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       return false;
     }
 
-    let left = getFinalIndex(ml_dec16(ml, nandOffset + 1));
-    let right = getFinalIndex(ml_dec16(ml, nandOffset + 3));
+    let left = getAlias(ml_dec16(ml, nandOffset + 1));
+    let right = getAlias(ml_dec16(ml, nandOffset + 3));
 
     if (left !== varIndex && right !== varIndex) {
       ASSERT_LOG2(' - shared var should be part of the nand but wasnt, probably old addr');
@@ -2197,7 +2182,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
     ASSERT_LOG2('trickNeqElimination', indexX);
 
-    if (!domain_isBool(domains[getFinalIndex(indexX)])) {
+    if (!domain_isBool(domains[getAlias(indexX)])) {
       ASSERT_LOG2(' - X is non-bool, bailing');
       return false;
     }
@@ -2232,7 +2217,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getFinalIndex(indexT)])) {
+        if (!domain_isBool(domains[getAlias(indexT)])) {
           ASSERT_LOG2(' - found a non-bool lte arg, bailing');
           return false;
         }
@@ -2265,7 +2250,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getFinalIndex(indexT)])) {
+        if (!domain_isBool(domains[getAlias(indexT)])) {
           ASSERT_LOG2(' - found a non-bool or arg, bailing');
           return false;
         }
@@ -2282,7 +2267,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getFinalIndex(indexT)])) {
+        if (!domain_isBool(domains[getAlias(indexT)])) {
           ASSERT_LOG2(' - found a non-bool or arg, bailing');
           return false;
         }

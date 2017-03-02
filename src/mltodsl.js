@@ -161,8 +161,8 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 
         let count = 0;
         let ops = (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => {
-          let m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )(nall|distinct|sum|product|all\?|nall\?)\(/);
-          if (!m) m = allParts[partIndex].match(/^(?:(?:_\w+_|\d+) = )?(?:_\w+_|\d+) (\S+) (?:_\w+_|\d+)/);
+          let m = allParts[partIndex].match(/^(?:(?:[_$]\w+[_$]|\d+) = )(nall|distinct|sum|product|all\?|nall\?)\(/);
+          if (!m) m = allParts[partIndex].match(/^(?:(?:[_$]\w+[_$]|\d+) = )?(?:[_$]\w+[_$]|\d+) (\S+) (?:[_$]\w+[_$]|\d+)/);
           ++count;
           if (m) return m[1];
           else if (allParts[partIndex].match(/^\s*nall\(/)) return 'nall';
@@ -170,7 +170,9 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
         }).sort((a, b) => a < b ? -1 : 1).join(' ') + ' $'));
 
         return (
-          s + '  # ' + count + (HASH_NAMES || INDEX_NAMES ? 'x ops: ' + ops : '') +
+          s +
+          (HASH_NAMES ? '  # index = ' + varIndex : '') +
+          '  # ' + count + (HASH_NAMES || INDEX_NAMES ? 'x ops: ' + ops : '') +
           (ADD_GROUPED_CONSTRAINTS
             ? '\n ## ' + (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
             : ''

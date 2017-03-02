@@ -33,14 +33,14 @@ var perf = module.exports = function perf(config, max, _waited) {
     };
   }
 
+  console.log('<TEST>');
+  console.time('</TEST>');
   if (typeof config === 'string') {
-    var solver = new Solver().imp(config);
+    var solver = new Solver({log: 1}).imp(config);
   } else {
     var solver = new Solver({config: config});
   }
 
-  console.log('start test');
-  console.time('test runtime');
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');
   solver.solve({
     log: 1,
@@ -51,5 +51,5 @@ var perf = module.exports = function perf(config, max, _waited) {
     exportBare: false, // does not require dsl build
   });
   if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('fd perf');
-  console.timeEnd('test runtime');
+  console.timeEnd('</TEST>');
 };

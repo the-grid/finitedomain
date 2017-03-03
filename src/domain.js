@@ -48,6 +48,8 @@ const STR_RANGE_SIZE = 4;
 const EMPTY = 0;
 const EMPTY_STR = '';
 
+let DOM_ZERO; // created on first use
+
 /**
  * Append given range to the end of given domain. Does not
  * check if the range belongs there! Dumbly appends.
@@ -1353,6 +1355,39 @@ function domain_isSolved(domain) {
 
   return typeof domain === 'number' && domain >= SOLVED_FLAG;
 }
+/**
+ * Purely checks whether given domain is solved to zero
+ *
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_isZero(domain) {
+  ASSERT_NORDOM(domain);
+  if (DOM_ZERO === undefined) DOM_ZERO = domain_createValue(0);
+  return domain === DOM_ZERO;
+}
+/**
+ * Purely checks whether given domain does not contain the value zero
+ *
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_hasNoZero(domain) {
+  ASSERT_NORDOM(domain);
+  return !(domain_min(domain) === 0); // note: should return true for empty domain...
+}
+/**
+ * Treat domain as booly ("zero or nonzero")
+ * If result then remove the zero, otherwise remove anything nonzero
+ * The result should be either the domain solved to zero or any domain that contains no zero. Well or the empty domain.
+ *
+ * @param {$nordom} domain
+ * @param {boolean} result
+ * @returns {$nordom}
+ */
+function domain_resolveAsBooly(domain, result) {
+  return result ? domain_removeValue(domain, 0) : domain_removeGtUnchecked(domain, 0);
+}
 
 /**
  * Is given domain empty?
@@ -1529,6 +1564,43 @@ function domain_str_removeGte(strdom, value) {
 }
 
 /**
+ * Removes all values lower than value.
+ * Only "unchecked" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values.
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeLtUnchecked(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value <= SUB) return domain;
+  if (value > SUP) return domain_createEmpty();
+  return domain_removeLte(domain, value - 1);
+}
+/**
+ * Removes all values lower than value.
+ * Only "unchecked" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeGtUnchecked(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value >= SUP) return domain;
+  if (value < SUB) return domain_createEmpty();
+  return domain_removeGte(domain, value + 1);
+}
+
+/**
  * Remove all values from domain that are lower
  * than or equal to given value
  *
@@ -1695,7 +1767,7 @@ function domain_str_removeLte(strdom, value) {
  */
 function domain_removeValue(domain, value) {
   ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT'); // so cannot be negative
+  ASSERT(typeof value === 'number' && value >= 0, 'VALUE_SHOULD_BE_VALID_DOMAIN_ELEMENT', value); // so cannot be negative
 
   if (typeof domain === 'number') return domain_num_removeValue(domain, value);
   return domain_toSmallest(domain_str_removeValue(domain, value));
@@ -2322,11 +2394,13 @@ export {
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
+  domain_hasNoZero,
   domain_intersection,
   domain_invMul,
   domain_invMulValue,
   domain_isEmpty,
   domain_isSolved,
+  domain_isZero,
   domain_max,
   domain_middleElement,
   domain_min,
@@ -2334,8 +2408,11 @@ export {
   domain_mulByValue,
   domain_numToStr,
   domain_removeGte,
+  domain_removeGtUnchecked,
   domain_removeLte,
+  domain_removeLtUnchecked,
   domain_removeValue,
+  domain_resolveAsBooly,
   domain_sharesNoElements,
   domain_str_simplify,
   domain_size,

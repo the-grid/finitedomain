@@ -503,7 +503,7 @@ function propagator_mulConstraintResolved(config, varIndexA, varIndexB, varIndex
         // if b is zero, a can be anything. otherwise, a must be zero (or the result couldn't be zero)
         if (vB !== 0) initialDomains[varIndexA] = domain_intersection(A, domain_createValue(0));
       } else {
-        let a = (vB % vC) ? domain_createEmpty() : domain_createValue(vB / vC);
+        let a = (vC % vB) ? domain_createEmpty() : domain_createValue(vC / vB);
         initialDomains[varIndexA] = domain_intersection(A, a);
       }
       return true;

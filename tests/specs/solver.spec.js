@@ -1323,7 +1323,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       let solutions = solver.solve({});
       // a, b, c are not constrained in any way, so 2^3=8
@@ -1356,7 +1356,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       let solutions = solver.solve({vars: ['A', 'B']});
       // A and B are targeted, they have [0,1] [0,1] so
@@ -1377,7 +1377,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B');
 
       solver.solve({vars: ['B', 'C']});
       // B and C are targeted, they have [0,1] [0,1] so

@@ -38,9 +38,11 @@ import {
   //domain__debug,
   domain_createEmpty,
   domain_createValue,
+  domain_hasNoZero,
+  domain_getValue,
   domain_invMul,
   domain_invMulValue,
-  domain_getValue,
+  domain_isZero,
   domain_intersection,
   domain_isEmpty,
   domain_max,
@@ -50,6 +52,7 @@ import {
   domain_removeGte,
   domain_removeLte,
   domain_removeValue,
+  domain_resolveAsBooly,
 } from './domain';
 import domain_plus from './doms/domain_plus';
 import domain_minus from './doms/domain_minus';
@@ -123,25 +126,28 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
   let A = initialDomains[leftVarIndex];
   let B = initialDomains[rightVarIndex];
-  let C = initialDomains[resultVarIndex] = domain_removeGte(initialDomains[resultVarIndex], 2);
+  let C = initialDomains[resultVarIndex];
+
+  // the reifier is solved if A or B is solved or if C is non-booly (zero ^ nonzero)
 
   let valueA = domain_getValue(A);
+  let solvedA = valueA >= 0;
   let valueB = domain_getValue(B);
-  let valueC = domain_getValue(C);
+  let solvedB = valueB >= 0;
 
-  // the reifier is solved if all three vars are solved
-  let solved = 0;
-  if (valueA >= 0) ++solved;
-  if (valueB >= 0) ++solved;
-  if (valueC >= 0) ++solved;
-  if (solved === 3) return;
+  let resultIsFalsy = domain_isZero(C);
+  let resultIsTruthy = domain_hasNoZero(C);
+  let solvedC = resultIsFalsy || resultIsTruthy;
+
+  if (solvedA && solvedB && solvedC) return;
 
   let minA = domain_min(A);
   let maxA = domain_max(A);
   let minB = domain_min(B);
   let maxB = domain_max(B);
+  let maxC = domain_max(C); // some of the tricks require max(C) to be 1
 
-  // the reifier can be rewritten if any two of the three vars are solved
+  // the reifier can be rewritten if any two of the three vars are solved (for C that means "non-booly")
   // the reifier might be rewritable if one var is solved
   // in some cases certain constraints can be decided without being solved ([0,4]<[5,10] always holds)
   // the actual rewrites depends on the op, though
@@ -157,36 +163,38 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
       // 1 = A ==? B        ->    A == B
       // 0 = A ==? B        ->    A != B
       // R = x ==? B        ->    check if B contains value x, solve accordingly
-      // if B is boolean we can apply even more special rules (we know R is boolean)
-      // R = 0 ==? B[0 1]   ->    R != B
-      // R = 1 ==? B[0 1]   ->    R == B
-      if (valueC >= 0) { // result solved
+      // if B and R are boolean we can apply even more special rules
+      // R[0 1] = 0 ==? B[0 1]   ->    R != B
+      // R[0 1] = 1 ==? B[0 1]   ->    R == B
+      if (solvedC) {
         if (valueA >= 0) {
-          if (valueC) initialDomains[rightVarIndex] = domain_intersection(A, B);
+          if (resultIsTruthy) initialDomains[rightVarIndex] = domain_intersection(A, B);
           else initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
         } else if (valueB >= 0) {
-          if (valueC) initialDomains[leftVarIndex] = domain_intersection(A, B);
+          if (resultIsTruthy) initialDomains[leftVarIndex] = domain_intersection(A, B);
           else initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
         } else {
           // neither A nor B is solved; simplify
-          if (valueC) propagator_addEq(config, leftVarIndex, rightVarIndex);
+          if (resultIsTruthy) propagator_addEq(config, leftVarIndex, rightVarIndex);
           else propagator_addNeq(config, leftVarIndex, rightVarIndex);
         }
         return;
       }
       if (valueA >= 0 && valueB >= 0) {
-        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 1 : 0);
+        initialDomains[resultVarIndex] = domain_resolveAsBooly(C, valueA === valueB);
         return;
       }
       // C isnt solved, and A and B arent both solved
-      // check the cases of one side solved and other side bool
-      if (maxA <= 1 && maxB === 1) {
-        if (valueA === 0) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-        else if (valueA === 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
-      }
-      if (maxB <= 1 && maxA === 1) {
-        if (valueB === 0) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
-        else if (valueB === 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      // if C is a strict bool check the cases of one side solved and other side bool
+      if (maxC <= 1) {
+        if (maxA <= 1 && maxB === 1) {
+          if (valueA === 0) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+          else if (valueA === 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        }
+        if (maxB <= 1 && maxA === 1) {
+          if (valueB === 0) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+          else if (valueB === 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+        }
       }
 
       nopName = 'neq';
@@ -201,33 +209,35 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
     case 'neq': {
       // similar optimizations to eq. just inversed.
 
-      if (valueC >= 0) { // result solved
+      if (solvedC) { // result solved
         if (valueA >= 0) {
-          if (valueC) initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
+          if (resultIsTruthy) initialDomains[rightVarIndex] = domain_removeValue(B, valueA);
           else initialDomains[rightVarIndex] = A;
         } else if (valueB >= 0) {
-          if (valueC) initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
+          if (resultIsTruthy) initialDomains[leftVarIndex] = domain_removeValue(A, valueB);
           else initialDomains[leftVarIndex] = B;
         } else {
           // neither A nor B is solved; simplify
-          if (valueC) propagator_addNeq(config, leftVarIndex, rightVarIndex);
+          if (resultIsTruthy) propagator_addNeq(config, leftVarIndex, rightVarIndex);
           else propagator_addEq(config, leftVarIndex, rightVarIndex);
         }
         return;
       }
       if (valueA >= 0 && valueB >= 0) {
-        initialDomains[resultVarIndex] = domain_createValue(valueA === valueB ? 0 : 1);
+        initialDomains[resultVarIndex] = domain_resolveAsBooly(C, valueA !== valueB);
         return;
       }
       // C isnt solved, and A and B arent both solved
-      // check the cases of one side solved and other side bool
-      if (maxA <= 1 && maxB === 1) {
-        if (valueA === 0) return propagator_addEq(config, rightVarIndex, resultVarIndex);
-        else if (valueA === 1) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
-      }
-      if (maxB <= 1 && maxA === 1) {
-        if (valueB === 0) return propagator_addEq(config, leftVarIndex, resultVarIndex);
-        else if (valueB === 1) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+      // if C is a strict bool check the cases of one side solved and other side bool
+      if (maxC <= 1) {
+        if (maxA <= 1 && maxB === 1) {
+          if (valueA === 0) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+          else if (valueA === 1) return propagator_addNeq(config, rightVarIndex, resultVarIndex);
+        }
+        if (maxB <= 1 && maxA === 1) {
+          if (valueB === 0) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+          else if (valueB === 1) return propagator_addNeq(config, leftVarIndex, resultVarIndex);
+        }
       }
 
       nopName = 'eq';
@@ -238,15 +248,16 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
       break;
     }
+
     case 'lt':
       // R = A <? B
-      // x = A <? B        ->    reduce A and B regardless, drop constraint
-      // R = x <? B        ->    check if B >= x, solve accordingly
-      // R = 0 <? B[0 1]   ->    R == B
+      // x = A <? B             ->    reduce A and B regardless, drop constraint
+      // R = x <? B             ->    check if B >= x, solve accordingly
+      // R[0 1] = 0 <? B[0 1]   ->    R == B
 
-      if (valueC >= 0) { // result solved
+      if (solvedC) {
         // either this resolves the constraint or we compile a non-reifier for the remainder
-        if (valueC) {
+        if (resultIsTruthy) {
           if (maxA < minB) return;
           return propagator_addLt(config, leftVarIndex, rightVarIndex);
         }
@@ -254,11 +265,14 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
         if (minA >= maxB) return;
         return propagator_addGte(config, leftVarIndex, rightVarIndex);
       }
-      // regardless of being solved, check if the domains are already solving < as is
-      if (maxA < minB) return initialDomains[resultVarIndex] = domain_createValue(1);
-      if (minA >= maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
-      if (valueA === 0 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
-      if (valueB === 0 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      // if C is not solved, check if the domains are already solving < as is
+      if (maxA < minB) return initialDomains[resultVarIndex] = domain_resolveAsBooly(C, true);
+      if (minA >= maxB) return initialDomains[resultVarIndex] = domain_resolveAsBooly(C, false);
+      // rewrite trick when all args have strict bool domains
+      if (maxC <= 1) {
+        if (valueA === 0 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        if (valueB === 0 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      }
 
       opFunc = propagator_neqStepBare;
       opRejectChecker = propagator_ltStepWouldReject;
@@ -269,13 +283,13 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
 
     case 'lte':
       // R = A <=? B
-      // x = A <=? B        ->    reduce A and B regardless, drop constraint
-      // R = x <=? B        ->    check if B > x, solve accordingly
-      // R = 1 <=? B[0,1]   ->    eq(R, B)
+      // x = A <=? B             ->    reduce A and B regardless, drop constraint
+      // R = x <=? B             ->    check if B > x, solve accordingly
+      // R[0 1] = 1 <=? B[0,1]   ->    eq(R, B)
 
-      if (valueC >= 0) { // result solved
+      if (solvedC) { // result solved
         // either this resolves the constraint or we compile a non-reifier for the remainder
-        if (valueC) {
+        if (resultIsTruthy) {
           if (maxA <= minB) return;
           return propagator_addLte(config, leftVarIndex, rightVarIndex);
         }
@@ -284,10 +298,13 @@ function propagator_addReified(config, opname, leftVarIndex, rightVarIndex, resu
         return propagator_addGt(config, leftVarIndex, rightVarIndex);
       }
       // regardless of being solved, check if the domains are already solving < as is
-      if (maxA <= minB) return initialDomains[resultVarIndex] = domain_createValue(1);
-      if (minA > maxB) return initialDomains[resultVarIndex] = domain_createValue(0);
-      if (valueA === 1 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
-      if (valueB === 1 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      if (maxA <= minB) return initialDomains[resultVarIndex] = domain_resolveAsBooly(C, true);
+      if (minA > maxB) return initialDomains[resultVarIndex] = domain_resolveAsBooly(C, false);
+      // rewrite trick when all args have strict bool domains
+      if (maxC <= 1) {
+        if (valueA === 1 && maxB <= 1) return propagator_addEq(config, rightVarIndex, resultVarIndex);
+        if (valueB === 1 && maxA <= 1) return propagator_addEq(config, leftVarIndex, resultVarIndex);
+      }
 
       opFunc = propagator_lteStepBare;
       opRejectChecker = propagator_lteStepWouldReject;

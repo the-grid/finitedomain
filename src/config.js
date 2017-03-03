@@ -45,15 +45,19 @@ import {
 
   domain__debug,
   domain_createRange,
+  domain_createValue,
   domain_getValue,
   domain_max,
   domain_min,
   domain_mul,
-  domain_isSolved,
+  domain_hasNoZero,
   domain_intersection,
+  domain_isSolved,
+  domain_isZero,
   domain_removeGte,
   domain_removeLte,
   domain_removeValue,
+  domain_resolveAsBooly,
   domain_toSmallest,
   domain_anyToSmallest,
 } from './domain';
@@ -553,10 +557,10 @@ function config_addConstraint(config, name, varNames, param) {
   let inputConstraintKeyOp = name;
   let resultVarName;
 
-  let forceBool = false;
+  let anonIsBool = false;
   switch (name) { /* eslint no-fallthrough: "off" */
     case 'reifier':
-      forceBool = true;
+      anonIsBool = true;
       inputConstraintKeyOp = param;
       // fall-through
     case 'plus':
@@ -569,16 +573,12 @@ function config_addConstraint(config, name, varNames, param) {
     case 'sum':
     case 'product': {
       let sumOrProduct = name === 'product' || name === 'sum';
-      if (sumOrProduct && varNames.length === 0) {
-        // no variables means the sum/product is zero. not sure about the product though. nothing times nothing = 0?
-        return config.allVarNames[config_addVarAnonConstant(config, 0)];
-      }
 
       resultVarName = sumOrProduct ? param : varNames[2];
       let resultVarIndex;
 
       if (resultVarName === undefined) {
-        if (forceBool) resultVarIndex = config_addVarAnonRange(config, 0, 1);
+        if (anonIsBool) resultVarIndex = config_addVarAnonRange(config, 0, 1);
         else resultVarIndex = config_addVarAnonNothing(config);
         resultVarName = config.allVarNames[resultVarIndex];
       } else if (typeof resultVarName === 'number') {
@@ -714,7 +714,6 @@ function config_solvedAtCompileTime(config, constraintName, varIndexes, param) {
   } else if (constraintName === 'reifier') {
     return _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, param);
   } else if (constraintName === 'sum') {
-    if (!varIndexes.length) return true;
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
   } else if (constraintName === 'product') {
     return _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexes, param);
@@ -848,10 +847,10 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
   let domain1 = initialDomains[varIndexLeft];
   let domain2 = initialDomains[varIndexRight];
   let domain3 = initialDomains[varIndexResult];
-  domain3 = initialDomains[varIndexResult] = domain_removeGte(domain3, 2); // result domains are bool. just cut away the rest.
 
   ASSERT_NORDOM(domain1, true, domain__debug);
   ASSERT_NORDOM(domain2, true, domain__debug);
+  ASSERT_NORDOM(domain3, true, domain__debug);
 
   let v1 = domain_getValue(initialDomains[varIndexLeft]);
   let v2 = domain_getValue(initialDomains[varIndexRight]);
@@ -861,15 +860,15 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     return _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, v2);
   }
 
-  let v3 = domain_getValue(domain3);
-  let hasResult = v3 !== NO_SUCH_VALUE;
-  if (hasResult) {
+  let resultIsFalsy = domain_isZero(domain3);
+  let resultIsTruthy = domain_hasNoZero(domain3);
+  if (resultIsFalsy !== resultIsTruthy) { // if it has either no zero or is zero then C is solved
     if (hasLeft) {
       // resolve right and eliminate reifier
-      return _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, v1, v3, domain1, domain2);
+      return _config_solvedAtCompileTimeReifierLeft(config, opName, varIndexRight, v1, resultIsTruthy, domain1, domain2);
     } else if (hasRight) {
       // resolve right and eliminate reifier
-      return _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v2, v3, domain1, domain2);
+      return _config_solvedAtCompileTimeReifierRight(config, opName, varIndexLeft, v2, resultIsTruthy, domain1, domain2);
     }
   }
 
@@ -877,25 +876,25 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
     // must be lt lte gt gte. these are solved completely when either param is solved
     ASSERT(opName === 'lt' || opName === 'lte' || opName === 'gt' || opName === 'gte', 'should be lt lte gt gte now because there are no other reifiers atm');
 
-    const REMOVE_FAIL = 0;
-    const REMOVE_PASS = 1;
+    const PASSED = true;
+    const FAILED = false;
 
     if (opName === 'lt') {
       // A < B. solved if max(A) < min(B). rejected if min(A) >= max(B)
-      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
-      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, PASSED);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, FAILED);
     } else if (opName === 'lte') {
       // A <= B. solved if max(A) <= min(B). rejected if min(A) > max(B)
-      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
-      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, PASSED);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, FAILED);
     } else if (opName === 'gt') {
       // A > B. solved if min(A) > max(B). rejected if max(A) <= min(B)
-      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
-      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
+      if (domain_min(domain1) > domain_max(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, PASSED);
+      if (domain_max(domain1) <= domain_min(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, FAILED);
     } else if (opName === 'gte') {
       // A > B. solved if min(A) >= max(B). rejected if max(A) < min(B)
-      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_FAIL);
-      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminate(config, varIndexLeft, varIndexRight, varIndexResult, domain3, REMOVE_PASS);
+      if (domain_min(domain1) >= domain_max(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, PASSED);
+      if (domain_max(domain1) < domain_min(domain2)) return _config_eliminateReifier(config, varIndexLeft, varIndexRight, varIndexResult, domain3, FAILED);
     } else {
       THROW('UNKNOWN_OP');
     }
@@ -903,8 +902,8 @@ function _config_solvedAtCompileTimeReifier(config, constraintName, varIndexes, 
 
   return false;
 }
-function _config_eliminate(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, value) {
-  config.initialDomains[resultVarIndex] = domain_removeValue(resultDomain, value);
+function _config_eliminateReifier(config, leftVarIndex, rightVarIndex, resultVarIndex, resultDomain, result) {
+  config.initialDomains[resultVarIndex] = domain_resolveAsBooly(resultDomain, result);
   config._constrainedAway.push(leftVarIndex, rightVarIndex, resultVarIndex);
   return true;
 }
@@ -936,7 +935,7 @@ function _config_solvedAtCompileTimeReifierBoth(config, varIndexes, opName, v1, 
       return false;
   }
 
-  initialDomains[varIndexResult] = domain_removeValue(initialDomains[varIndexResult], bool ? 0 : 1);
+  initialDomains[varIndexResult] = domain_resolveAsBooly(initialDomains[varIndexResult], bool);
   config._constrainedAway.push(varIndexResult); // note: left and right have been solved already so no need to push those here
   return true;
 }
@@ -1020,8 +1019,13 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
   ASSERT(constraintName === 'sum' || constraintName === 'product', 'if this changes update the function accordingly');
   let initialDomains = config.initialDomains;
 
+  // for product, multiply by 1 to get identity. for sum it's add 0 for identity.
+  const SUM_IDENT = 0;
+  const PROD_IDENT = 1;
+  const IDENT = constraintName === 'product' ? PROD_IDENT : SUM_IDENT;
+
   // if there are no vars then the next step would fail. could happen as an artifact.
-  if (initialDomains.length) {
+  if (initialDomains.length && varIndexes.length) {
     // limit result var to the min/max possible sum
     let maxDomain = initialDomains[varIndexes[0]]; // dont start with EMPTY or [0,0]!
     for (let i = 1, n = varIndexes.length; i < n; ++i) {
@@ -1036,7 +1040,7 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
   // eliminate multiple constants
   if (varIndexes.length > 1) {
     let newVarIndexes = [];
-    let total = constraintName === 'product' ? 1 : 0;
+    let total = IDENT;
     for (let i = 0, n = varIndexes.length; i < n; ++i) {
       let varIndex = varIndexes[i];
       let domain = initialDomains[varIndex];
@@ -1049,8 +1053,10 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
         total *= value;
       }
     }
-    // note for product, multiply by 1 to get identity. for sum it's add 0 for identity.
-    if (!newVarIndexes.length || (constraintName === 'sum' && total !== 0) || (constraintName === 'product' && total !== 1)) {
+
+    // we cant just remove constants from the result like a math equation; different paradigms
+    // if there are no vars left then the result must equal the constant (put it back in the list, even if identity)
+    if (!newVarIndexes.length || (constraintName === 'sum' && total !== SUM_IDENT) || (constraintName === 'product' && total !== PROD_IDENT)) {
       let varIndex = config_addVarAnonConstant(config, total);
       newVarIndexes.push(varIndex);
     }
@@ -1063,6 +1069,12 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
   }
 
   // shouldnt be zero here unless it was declared empty
+  if (varIndexes.length === 0) {
+    // TOFIX: should a product without args equal 1 or 0? currently we set it to 0 for both sum/product
+    config.initialDomains[resultIndex] = domain_intersection(config.initialDomains[resultIndex], domain_createValue(0));
+    return true;
+  }
+
   if (varIndexes.length === 1) {
     // both in the case of sum and product, if there is only one value in the set, the result must be that value
     // so here we do an intersect that one value with the result because that's what must happen anyways
@@ -1075,6 +1087,7 @@ function _config_solvedAtCompileTimeSumProduct(config, constraintName, varIndexe
     }
     // cant eliminate constraint; sum will compile an `eq` for it.
   }
+
   return false;
 }
 

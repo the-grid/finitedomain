@@ -1513,5 +1513,32 @@ distinct('item','item&n=1','item&n=2','item&n=3','item&n=4','item&n=5')         
       // mv test: Harmonics - Clusterer | basics | rendering
       expect(solver.solutions.length).to.equal(360);
     });
+
+    it('should solve an "anonymous" iseq comparison', function() {
+      let solver = new Solver().imp(`
+        : A [0 1]
+        : B [0 1]
+        : C [0 2]
+        (A ==? B) == C
+      `);
+      solver.solve({max: 9999});
+      // C should never be 2 because the iseq is anonymous and
+      // that should generate a [0 1] domain for its result
+      expect(solver.solutions.length).to.equal(4);
+      expect(solver.solutions.some(s => s.C >= 2), 'confirm that C is never 2').to.eql(false);
+    });
+
+    it('should solve an eq between two anonymous iseqs', function() {
+      let solver = new Solver().imp(`
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        (A ==? B) == (C ==? D)
+      `);
+      solver.solve({max: 9999});
+      // there are 16 outcomes but because of the eq, only half of them are considered a solution, so 8
+      expect(solver.solutions.length).to.equal(8);
+    });
   });
 });

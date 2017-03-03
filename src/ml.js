@@ -1205,7 +1205,7 @@ function ml__debug(ml, offset, max, domains, names) {
 
     let size = ml_sizeof(ml, pc, op);
     //console.log('size was:', size, 'rv=', rv);
-    if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + size)].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' '));
+    if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + Math.min(size, 100))].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' ') + (size > 100 ? '... (trunced)' : ''));
     pc += size;
   }
 

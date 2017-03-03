@@ -90,7 +90,7 @@ import {
   ml_throw,
 } from './ml';
 import {
-  domain__debug,
+  //domain__debug,
 } from './domain';
 
 // BODY_START
@@ -152,28 +152,13 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
     return varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_SIZEOF_HEADER;
   }
 
-  function getFinalIndex(index, _max = 50) {
-    if (_max <= 0) THROW('damnit');
-    ASSERT_LOG2('    getFinalIndex: ' + index + ' -> ' + domain__debug(domains[index]));
-    if (domains[index] !== false) return index;
-
-    // if the domain is falsy then there was an alias (or a bug)
-    // write the alias back to ML and restart the current op
-    // caller should ensure to check return value and return on
-    // a falsy result as well so the loop can restart.
-    let aliasIndex = getAlias(index);
-    ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
-    ASSERT_LOG2(' - alias for', index, 'is', aliasIndex);
-    return getFinalIndex(aliasIndex, _max - 1);
-  }
-
   function collect(delta, metaFlags) {
     ASSERT(typeof delta === 'number' && delta > 0, 'delta should be >0 number', delta);
     ASSERT(typeof metaFlags === 'number' && metaFlags > 0, 'at least one metaFlags should be passed on', metaFlags, metaFlags.toString(2));
 
     let n = ml_dec16(ml, pc + delta);
     ASSERT(n < domains.length, 'should be a valid index', n);
-    let index = getFinalIndex(n);
+    let index = getAlias(n);
     ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
 
     let varOffset = getBountyOffset(index);

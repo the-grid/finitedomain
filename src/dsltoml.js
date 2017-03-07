@@ -711,6 +711,14 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     if (parseUexpr()) return;
 
     // so the first value must be a value returning expr
+    parseComplexVoidConstraint();
+
+    expectEol();
+  }
+
+  function parseComplexVoidConstraint() {
+    // parse a constraint that at least starts with a Vexpr but ultimately doesnt return anything
+
     let A = parseVexpr(); // returns a var name or a constant value
 
     skipWhitespaces();
@@ -725,8 +733,6 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
         compileVoidConstraint(A, cop, B);
       }
     }
-
-    expectEol();
   }
 
   function compileVoidConstraint(A, cop, B) {
@@ -1058,19 +1064,24 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
         compileVoidConstraint(A, '==', C);
       }
     } else {
-      parseAssignRest(A, C);
+      parseComplexValueConstraint(A, C);
     }
   }
 
-  function parseAssignRest(A, C) {
+  function parseComplexValueConstraint(A, resultRef) {
+    // note: resultRef may be undefined (like anonymous vexprs `A <= (B ==? C)`), an anon var will be created for it
+    // note: will try to optionally parse a rop next (like `C = sum()` vs `C = A + B`)
+    // compiles resultRef = A rop B
+    // returns the resultRef, whatever it ends up being
+
     let rop = parseRop();
     skipWhitespaces();
     let B = parseVexpr();
 
-    return _parseAssignRest(A, rop, B, C);
+    return compileValueConstraint(A, rop, B, resultRef);
   }
 
-  function _parseAssignRest(A, rop, B, C) {
+  function compileValueConstraint(A, rop, B, C) {
     ++constraintCount;
 
     // force fresh reifier result vars to a bool
@@ -1315,8 +1326,8 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
         break;
 
       default:
-        if (rop === '>?') return _parseAssignRest(B, '<?', A, C);
-        if (rop === '>=?') return _parseAssignRest(B, '<=?', A, C);
+        if (rop === '>?') return compileValueConstraint(B, '<?', A, C);
+        if (rop === '>=?') return compileValueConstraint(B, '<=?', A, C);
         if (rop === undefined) return A;
 
         if (typeof A === 'number') {
@@ -1365,6 +1376,8 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
           encodeNameOrLiteral(C, addVar);
         }
     }
+
+    return C;
   }
 
   function parseCop() {
@@ -1569,25 +1582,16 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     let A = parseVexpr();
     skipWhitespaces();
 
-    if (read() === $$EQ) {
-      if (read() !== $$EQ) {
-        parseAssignment(A);
-        skipWhitespaces();
-        is($$RIGHTPAREN, 'group closer');
-        return A;
-      }
-    }
-
     if (read() === $$RIGHTPAREN) {
       // just wrapping a vexpr is okay
       skip();
       return A;
+    } else {
+      let C = parseComplexValueConstraint(A);
+      skipWhitespaces();
+      is($$RIGHTPAREN, 'group closer');
+      return C;
     }
-
-    let C = parseAssignRest(A);
-    skipWhitespaces();
-    is($$RIGHTPAREN, 'group closer');
-    return C;
   }
 
   function parseNumber() {

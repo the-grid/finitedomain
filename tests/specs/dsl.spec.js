@@ -125,4 +125,57 @@ describe('specs/dsl.spec', function() {
     test('@custom free 65536', 'properly compile a jump covering 0x10000');
     test('@custom free 100000', 'properly compile a jump covering 100k');
   });
+
+  describe('compound anonymous expression regression', function() {
+
+    it('should parse an iseq left without assignment', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+
+        : A, B, C [0 10]
+
+        (A ==? B) == C
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 1, __1: 1}); // TODO: remove anon var from test check here
+    });
+
+    it('should parse an iseq right without assignment', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+
+        : A, B, C [0 10]
+
+        C == (A ==? B)
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 1, __1: 1}); // TODO: remove anon var from test check here
+    });
+
+    it('should parse a single compound iseq, compile two iseq but no eq (because alias)', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+
+        : A, B, X [0 10]
+
+        (A ==? X) == (C ==? Y)
+
+        @custom noleaf A B X
+      `)).to.throw(/ops: iseq,iseq /);
+    });
+
+    it('should parse two double compound iseqs, compile four iseq but no eq (because alias)', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+
+        : A, B, C, D, X, Y [0 10]
+
+        (A ==? X) == (C ==? Y)
+        (B ==? X) == (D ==? Y)
+
+        @custom noleaf A B C D X Y
+
+      `)).to.throw(/ops: iseq,iseq,iseq,iseq /);
+    });
+  });
 });

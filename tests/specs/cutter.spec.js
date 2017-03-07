@@ -11,6 +11,7 @@ describe('specs/cutter.spec', function() {
       : B *
       A == B
       A > 10
+      @custom noleaf B
     `);
 
     expect(solution).to.eql({A: 11, B: 11}); // a choice has to be made so min(B)=0, A=B.
@@ -23,6 +24,7 @@ describe('specs/cutter.spec', function() {
       : B *
       A != B
       A > 10
+      @custom noleaf B
     `);
 
     expect(solution).to.eql({A: [11, 100000000], B: 0});
@@ -35,6 +37,7 @@ describe('specs/cutter.spec', function() {
       : B *
       A < B
       A > 10
+      @custom noleaf B
     `);
 
     expect(solution).to.eql({A: 11, B: 12});
@@ -47,6 +50,7 @@ describe('specs/cutter.spec', function() {
       : B *
       A <= B
       A > 10
+      @custom noleaf B
     `);
 
     expect(solution).to.eql({A: 11, B: 11});
@@ -60,6 +64,7 @@ describe('specs/cutter.spec', function() {
       : C [0 1]
       C = A ==? B
       A > 10
+      @custom noleaf A B
     `);
 
     expect(solution).to.eql({A: 11, B: 11, C: 1});
@@ -71,6 +76,7 @@ describe('specs/cutter.spec', function() {
       : A [0 2]
       : C [0 1]
       C = A ==? 2
+      @custom noleaf A
     `);
 
     expect(solution).to.eql({A: 0, C: 0});
@@ -84,6 +90,7 @@ describe('specs/cutter.spec', function() {
       : C *
       C = A !=? B
       A > 10
+      @custom noleaf A B
     `);
 
     expect(solution).to.eql({A: 11, B: 11, C: 0});
@@ -109,7 +116,7 @@ describe('specs/cutter.spec', function() {
       : B 11
       : C *
       C = A <=? B
-      @custom noleaf A
+      @custom noleaf A B
     `);
 
     expect(solution).to.eql({A: 0, B: 11, C: 1});
@@ -198,6 +205,7 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         R = sum(A B C)
         S = R ==? 3
+        @custom noleaf A B C
       `);
 
       expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 11131
@@ -211,6 +219,7 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         S = R ==? 3
         R = sum(A B C)
+        @custom noleaf A B C
       `);
 
       expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 11131
@@ -226,6 +235,7 @@ describe('specs/cutter.spec', function() {
         : B [0 1]
         R = A + B
         S = R ==? 2
+        @custom noleaf A B
       `);
 
       expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
@@ -238,12 +248,14 @@ describe('specs/cutter.spec', function() {
         : B [0 1]
         S = R ==? 2
         R = A + B
+        @custom noleaf A B
       `);
 
       expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
     });
   });
 
+  // (I think this trick was bad. need to confirm and if so, just remove this test)
   it.skip('should reduce double isnall as nall', function() {
     let solution = solverSolver(`
         @custom var-strat throw
@@ -252,6 +264,7 @@ describe('specs/cutter.spec', function() {
         B = all?(d e f)
         nall(A B)
         # -> nall(a b c d e f)
+        @custom noleaf a b c d e f
       `);
 
     expect(solution).to.eql({});

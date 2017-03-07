@@ -3062,10 +3062,8 @@ function min_optimizeConstraints(ml, getVar, addVar, domains, names, addAlias, g
   function min_sum(ml) {
     let offset = pc;
     ASSERT_LOG2(' - parsing sum:', ml.slice(offset, offset + 10), firstRun);
-    let offsetCount = offset + 1;
-    let argCount = ml_dec16(ml, offsetCount);
-    let offsetConstant = offset + 3;
-    let fixedConstant = ml_dec8(ml, offsetConstant);
+    let argCount = ml_dec16(ml, offset + 1);
+    let fixedConstant = ml_dec8(ml, offset + 3);
     let oplen = SIZEOF_C8 + argCount * 2 + 2;
     ASSERT_LOG2(' - ml for this sum:', [].map.call(ml.slice(offset, offset + oplen), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '));
     let offsetArgs = offset + SIZEOF_C8;

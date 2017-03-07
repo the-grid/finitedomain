@@ -749,12 +749,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
           // match. rewrite plus isAll and remove the isEq. adjust counts accordingly
           let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
-          ASSERT(domain_isBool(domains[indexS]), 'S should be a bool');
 
-          solveStack.push((domains, force) => {
-            ASSERT_LOG2(' - cut plus -> isAll; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
-            ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) === 2, 'R should have all values');
-            domains[indexR] = domain_createValue(force(indexA) + force(indexB));
+          solveStack.push((_, force, getDomain, setDomain) => {
+            let R = getDomain(indexR);
+            ASSERT_LOG2(' - cut plus -> isAll; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(R), ' = isAll(', domain__debug(getDomain(indexA)), ',', domain__debug(getDomain(indexB)), ')');
+            ASSERT(domain_min(R) === 0 && domain_max(R) === 2, 'R should have all values', domain__debug(R));
+            setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
           });
 
           // for the record, _this_ is why ML_ISALL2 exists at all. we cant use ML_ISALL because it has a larger footprint than ML_PLUS
@@ -900,7 +900,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
     if (countsR === 2) {
       let C = ml_dec8(ml, offset + 1 + 2); // constant
-      // scan for pattern (R = sum(A B C) & (S = R==?3) -> S = isAll(A B C). a bit tedious to scan for but worth it.
+      // scan for pattern (R = sum(A B C) & (S = R==?3) -> S = isAll(A B C) with ABC strict bools. a bit tedious to scan for but worth it.
       let offset1 = bounty_getOffset(bounty, indexR, 0);
       let offset2 = bounty_getOffset(bounty, indexR, 1);
       let otherOffset = offset1 === offset ? offset2 : offset1;
@@ -927,18 +927,18 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           // the sum has the biggest footprint so the isall will fit with one byte to spare
 
           let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 3));
-          ASSERT(domains[indexS] === domain_createRange(0, 1), 'S should be a bool');
 
-          solveStack.push((domains, force) => {
+          solveStack.push((_, force, getDomain, setDomain) => {
             ASSERT_LOG2(' - cut sum -> isAll');
+            let R = getDomain(indexR);
             let vR = 0;
             for (let i = 0; i < len; ++i) {
               let vN = force(args[i]);
               ASSERT(vN === 0 || vN === 1, 'should be booly');
               if (vN) ++vR;
             }
-            ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) === len, 'R should have all values');
-            domains[indexR] = domain_createValue(vR);
+            ASSERT(domain_min(R) === 0 && domain_max(R) === len, 'R should have all values', domain__debug(R));
+            setDomain(indexR, domain_intersection(R, domain_createValue(vR)));
           });
 
           // isall has no constant so we must move all args one to the left
@@ -1257,36 +1257,48 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     if (countsR === 1) {
       ASSERT_LOG2('   - R is a leaf var');
 
-      let args = [];
-      for (let i = 0; i < len; ++i) {
-        args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
-      }
+      let R = domains[indexR];
 
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut isall R; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', args.map(index => domain__debug(domains[index])), ')');
-        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values', domain__debug(domains[indexR]));
+      // note: if R is solved to truthy, remove zero from all args (-> minimizer)
+      //       if R is solved to falsy, rewrite to a NALL (-> minimizer)
+      //       if R is undetermined the args can be anything because they are not bound
+      //       by leaf var R, in that case just eliminate the constraint and make R a leaf
 
-        let vR = 1;
+      // while it's possible for R to be unsolved, we only act on the unsolved case in the cutter (DRY)
+      if (domain_min(R) === 0 && domain_max(R) > 0) {
+        // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
+
+        let args = [];
         for (let i = 0; i < len; ++i) {
-          if (force(args[i]) === 0) {
-            vR = 0;
-            break;
-          }
+          args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
         }
 
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + args + ')'));
+        solveStack.push((domains, force) => {
+          ASSERT_LOG2(' - cut isall R; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', args.map(index => domain__debug(domains[index])), ')');
+          ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values', domain__debug(domains[indexR]));
 
-      ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
-      bounty_markVar(bounty, indexR);
-      for (let i = 0; i < len; ++i) {
-        bounty_markVar(bounty, args[i]);
+          let vR = 1;
+          for (let i = 0; i < len; ++i) {
+            if (force(args[i]) === 0) {
+              vR = 0;
+              break;
+            }
+          }
+
+          domains[indexR] = domain_createValue(vR);
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + args + ')'));
+
+        ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
+        bounty_markVar(bounty, indexR);
+        for (let i = 0; i < len; ++i) {
+          bounty_markVar(bounty, args[i]);
+        }
+        somethingChanged();
+
+        return;
       }
-      somethingChanged();
-
-      return;
     }
 
     if (countsR === 2) {
@@ -1307,22 +1319,37 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       let indexA = getAlias(ml_dec16(ml, pc + 1));
       let indexB = getAlias(ml_dec16(ml, pc + 3));
 
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut isall2 R; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', domain__debug(domains[indexA]), ',', domain__debug(domains[indexB]), ')');
-        let vR = (force(indexA) === 0 || force(indexB) === 0) ? 0 : 1;
-        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should be bool');
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + indexA + ',' + indexB + ')'));
+      let R = domains[indexR];
 
-      ml_eliminate(ml, pc, SIZEOF_VVV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      bounty_markVar(bounty, indexR);
-      somethingChanged();
-      return;
+      // note: if R is solved to truthy, remove zero from all args (-> minimizer)
+      //       if R is solved to falsy, rewrite to a NAND (-> minimizer)
+      //       if R is undetermined the args can be anything because they are not bound
+      //       by leaf var R, in that case just eliminate the constraint and make R a leaf
+
+      // while it's possible for R to be unsolved, we only act on the unsolved case in the cutter (DRY)
+      if (domain_min(R) === 0 && domain_max(R) > 0) {
+        // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
+
+        ASSERT_LOG2('   - R is a leaf var');
+        solveStack.push((_, force, getDomain, setDomain) => {
+          let R = getDomain(indexR);
+          ASSERT_LOG2(' - cut isall2 R; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(R), ' = isAll(', domain__debug(getDomain(indexA)), ',', domain__debug(getDomain(indexB)), ')');
+          let vR = (force(indexA) === 0 || force(indexB) === 0) ? 0 : 1;
+          ASSERT(domain_min(R) === 0 && domain_max(R) > 0, 'R should be booly', domain__debug(R));
+          setDomain(indexR, domain_intersection(R, domain_createValue(vR)));
+        });
+        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
+        ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + indexA + ',' + indexB + ')'));
+
+        // factoring R out
+
+        ml_eliminate(ml, pc, SIZEOF_VVV);
+        bounty_markVar(bounty, indexA);
+        bounty_markVar(bounty, indexB);
+        bounty_markVar(bounty, indexR);
+        somethingChanged();
+        return;
+      }
     }
 
     if (countsR === 2) {

@@ -87,12 +87,29 @@ import {
 
 // BODY_START
 
-function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
+/**
+ * Generate a dsl for given ml
+ * Includes a full debugging output stack to investigate a problem more thoroughly
+ *
+ * @param {Buffer} ml
+ * @param {string[]} names
+ * @param {$nordom[]} domains
+ * @param {Function} getAlias
+ * @param {Function[]} solveStack (Only used for stats)
+ * @param {number[]} [counts] Maps to var names, holds the sum of the number of times each var occurs in a constraint
+ * @param {Object} [options]
+ * @property {boolean} options.debug Enable debug output (adds lots of comments about vars)
+ * @property {boolean} options.hashNames Replace original names with `$<base36(index)>$` of their index in the output
+ * @property {boolean} options.indexNames Replace original names with `_<index>_` in the output
+ * @property {boolean} options.groupedConstraints When debugging only, add all constraints below a var decl where that var is used
+ * @returns {string}
+ */
+function mlToDsl(ml, names, domains, getAlias, solveStack, counts, options) {
   ASSERT_LOG2('\n## mlToDsl');
-  const DEBUG = false; // add debugging help in comments (domains, related constraints, occurrences, etc)
-  const HASH_NAMES = true; // replace all var names with $index$ with index in base36
-  const INDEX_NAMES = false; // replace all var names with _index_ (ignored if HASH_NAMES is true)
-  const ADD_GROUPED_CONSTRAINTS = true; // only when debugging
+  const DEBUG = options ? options.debug : true; // add debugging help in comments (domains, related constraints, occurrences, etc)
+  const HASH_NAMES = options ? options.hashNames : true; // replace all var names with $index$ with index in base36
+  const INDEX_NAMES = options ? options.indexNames : false; // replace all var names with _index_ (ignored if HASH_NAMES is true)
+  const ADD_GROUPED_CONSTRAINTS = options ? options.groupedConstraints : true; // only used when debugging
 
   let pc = 0;
   let dsl = '';
@@ -192,7 +209,7 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts) {
 #      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
 #      - Left to solve: ${counts ? withCount : '<did not count>'} x
 `;
-    console.error(dsl);
+    if (DEBUG) console.error(dsl);
 
     dsl += `
 # Var decls:
@@ -817,7 +834,9 @@ ${varDecls}
 
         case ML_DEBUG:
           ASSERT_LOG2(' ! debug');
-          part = '@custom noleaf ' + m2d_decA(2) + '\n';
+          // dont send this to finitedomain; it wont know what to do with it
+          if (DEBUG) part = '@custom noleaf ' + m2d_decA(2) + '\n';
+          else m2d_decA(2); // skip
           break;
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');

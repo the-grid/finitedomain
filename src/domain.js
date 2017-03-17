@@ -122,9 +122,10 @@ function domain_sol_containsValue(domain, value) {
 function domain_bit_containsValue(domain, value) {
   ASSERT_BITDOM(domain);
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-  ASSERT(value >= SUB);
-  ASSERT(value <= SUP);
+  ASSERT(value >= SUB, 'OOB');
+  ASSERT(value <= SUP, 'OOB');
 
+  if (value < SUB || value > SMALL_MAX_NUM) return false;
   return (domain & (1 << value)) !== 0;
 }
 function domain_str_containsValue(domain, value) {

@@ -586,6 +586,16 @@ describe('src/domain.spec', function() {
         }
       });
     });
+
+    describe('large value in numdom range', function() {
+
+      it('should return false when numbers are oob for bitdom ranges', function() {
+        expect(domain_containsValue(fixt_numdom_range(0, 10), 10000)).to.equal(false);
+        expect(domain_containsValue(fixt_numdom_range(0, 10), 1760)).to.equal(false); // this value is a regression that uncovered a bug
+        expect(_ => domain_containsValue(fixt_numdom_range(0, 10), -1)).to.throw('OOB');
+        expect(_ => domain_containsValue(fixt_numdom_range(0, 10), -10000)).to.throw('OOB');
+      });
+    });
   });
 
   describe('domain_rangeIndexOf', function() {

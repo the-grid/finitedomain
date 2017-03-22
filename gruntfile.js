@@ -210,10 +210,21 @@ module.exports = function () {
     },
 
     uglify: {
-      dist: {
+      dbg: {
         options: {
           report: 'gzip', // false, 'none', 'min', 'gzip'. gzip is a little slower but not significant and good to see.
           sourceMap: true,
+          //sourceMapStyle: '', // embed link inline
+          //sourceMapIncludeSources: 'embed',
+        },
+        files: {
+          'dist/finitedomain.dist.min.js': ['build/finitedomain-es5.js'],
+        },
+      },
+      dist: {
+        options: {
+          report: 'gzip', // false, 'none', 'min', 'gzip'. gzip is a little slower but not significant and good to see.
+          sourceMap: false,
         },
         files: {
           'dist/finitedomain.dist.min.js': ['build/finitedomain-es5.js'],
@@ -354,9 +365,8 @@ module.exports = function () {
 
   grunt.registerTask('clean', ['remove']);
   grunt.registerTask('build', 'alias for dist', ['dist']);
-  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq']);
-  grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
-  grunt.registerTask('distdsl', 'distq for browser but includes the dsl import/export code', ['clean', 'concat:dsl', 'babel:concat', 'uglify:dist', 'concat-dist-to-browserjs']);
+  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq', 'clean', 'concat:build', 'babel:concat', 'uglify:dist']);
+  grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dbg', 'concat-dist-to-browserjs']);
   grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
   grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);

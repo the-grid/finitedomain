@@ -125,6 +125,7 @@ function domain_bit_containsValue(domain, value) {
   ASSERT(value >= SUB);
   ASSERT(value <= SUP);
 
+  if (value < SUB || value > SMALL_MAX_NUM) return false;
   return (domain & (1 << value)) !== 0;
 }
 function domain_str_containsValue(domain, value) {

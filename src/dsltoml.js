@@ -9,64 +9,30 @@ import {
   ASSERT_LOG2,
 } from './helpers';
 import {
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
   ML_MINUS,
   ML_MUL,
   ML_DIV,
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
   ML_START,
   ML_STOP,
   ML_NOOP,
@@ -79,24 +45,9 @@ import {
 
   SIZEOF_V,
   SIZEOF_W,
-  //SIZEOF_VV,
-  //SIZEOF_8V,
-  //SIZEOF_V8,
-  //SIZEOF_88,
-  //SIZEOF_VVV,
-  //SIZEOF_8VV,
-  //SIZEOF_V8V,
-  //SIZEOF_VV8,
-  //SIZEOF_88V,
-  //SIZEOF_V88,
-  //SIZEOF_8V8,
-  //SIZEOF_888,
-  //SIZEOF_COUNT,
 } from './ml';
 import {
   domain_createRange,
-  domain_createValue,
-  domain_toArr,
 } from './domain';
 
 // BODY_START
@@ -159,17 +110,22 @@ const $$z = 122;
  *
  * @param {string} dslStr
  * @param {Object} problem
- * @param {Function} addVar
- * @param {Function} nameToIndex
  * @param {boolean} [_debug] Improved error reporting when true
  * @returns {string}
  */
-function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
+function dslToMl(dslStr, problem, _debug) {
   ASSERT_LOG2('dslToMl:', [dslStr.slice(0, 100).replace(/ +/g, ' ') + (dslStr.replace(/ +/g, ' ').length > 100 ? '...' : '')]);
 
   problem.input.varstrat = 'default';
   problem.input.valstrat = 'default';
   problem.input.dsl = dslStr;
+
+  let {
+    addVar,
+    addAlias,
+    setDomain,
+    name2index,
+  } = problem;
 
   let constraintCount = 0;
   let freeDirective = -1; // for `@custom free x`. this var tries to ensure exactly x bytes are "free"
@@ -181,6 +137,10 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
   let mlBufSize = Math.ceil(dslBuf.length / 5);
   let mlBuffer = new Buffer(mlBufSize).fill(0); // 20% is arbitrary choice. grown dynamically when needed
   let mlPointer = 0;
+
+  // this is for a hack
+  let lastAssignmentIndex = -1;
+  let lastUnknownIndex = -1;
 
   encode8bit(ML_START);
 
@@ -226,18 +186,20 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     ASSERT_LOG2('encode8bit:', num, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
 
     if (mlPointer >= mlBufSize) grow();
-    mlBuffer[mlPointer++] = num;
+    mlBuffer.writeUInt8(num, mlPointer++);
   }
 
   function encode16bit(num) {
-    ASSERT_LOG2('encode16bit:', num, '->', num >> 8, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+    ASSERT_LOG2('encode16bit:', num, '->', num >> 8, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer, '/', mlBufSize);
     ASSERT(typeof num === 'number', 'Encoding 16bit must be num', typeof num, num);
     ASSERT(num >= 0, 'OOB num', num);
     if (num > 0xffff) THROW('Need 32bit num support but missing it', num);
 
-    if (mlPointer >= mlBufSize) grow();
-    mlBuffer[mlPointer++] = (num >> 8) & 0xff;
-    mlBuffer[mlPointer++] = num & 0xff;
+    if (mlPointer >= mlBufSize - 1) grow();
+    mlBuffer.writeUInt16BE(num, mlPointer);
+    mlPointer += 2;
+    //mlBuffer[mlPointer++] = (num >> 8) & 0xff;
+    //mlBuffer[mlPointer++] = num & 0xff;
   }
 
   function encode32bit(num) {
@@ -246,11 +208,14 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     ASSERT(num >= 0, 'OOB num', num);
     if (num > 0xffffffff) THROW('This requires 64bit support', num);
 
-    if (mlPointer >= mlBufSize) grow();
-    mlBuffer[mlPointer++] = (num >> 24) & 0xff;
-    mlBuffer[mlPointer++] = (num >> 16) & 0xff;
-    mlBuffer[mlPointer++] = (num >> 8) & 0xff;
-    mlBuffer[mlPointer++] = num & 0xff;
+    if (mlPointer >= mlBufSize - 3) grow();
+    mlBuffer.writeUInt32BE(num, mlPointer);
+    mlPointer += 4;
+
+    //mlBuffer[mlPointer++] = (num >> 24) & 0xff;
+    //mlBuffer[mlPointer++] = (num >> 16) & 0xff;
+    //mlBuffer[mlPointer++] = (num >> 8) & 0xff;
+    //mlBuffer[mlPointer++] = num & 0xff;
   }
 
   function grow(forcedExtraSpace) {
@@ -263,34 +228,6 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     ASSERT(mlBufSize > mlBuffer.length, 'grow() should grow() at least a bit...', mlBuffer.length, '->', mlBufSize);
     mlBuffer = Buffer.concat([mlBuffer], mlBufSize); // wont actually concat, but will copy the existing buffer into a buffer of given size
     mlBuffer.fill(0, oldSize);
-  }
-
-  function encodeNameOrLiteral(name, addVar) {
-    if (typeof name === 'number') {
-      ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
-      name = addVar(undefined, name, false, true);
-    }
-    return encodeName(name);
-  }
-
-  function encodeName(name) {
-    return encode16bit(nameToIndexSafe(name));
-  }
-
-  function encodeNameOrDie(name) {
-    return encode16bit(nameToIndexSafe(name, true));
-  }
-
-  function nameToIndexSafe(name, mustExist) {
-    if (typeof name !== 'string') THROW('Expecting name to be a string:' + name);
-    ASSERT_LOG2('encoding name:', name);
-    ASSERT_LOG2('to index', nameToIndex(name));
-    let index = nameToIndex(name);
-    if (index < 0) {
-      if (mustExist) THROW('Required var to be declared but it was not: [' + name + ']');
-      index = addVar(name, undefined, false, false, true);
-    }
-    return index;
   }
 
   function read() {
@@ -332,12 +269,17 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
   }
 
   function isWhitespace(s) {
+    // make sure you dont actually want isNewlineChar()
     return s === $$SPACE || s === $$TAB;
   }
 
-  function isNewline(s) {
-    // no, I don't feel bad for also flaggin a comment as eol :)
+  function isNewlineChar(s) {
     return s === $$CR || s === $$LF;
+  }
+
+  function isLineEnd(s) {
+    // the line ends at a newline or a comment
+    return s === $$CR || s === $$LF || s === $$HASH;
   }
 
   function isComment(s) {
@@ -345,7 +287,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
   }
 
   function isWhite(s) {
-    return isWhitespace(s) || isNewline(s);
+    return isWhitespace(s) || isNewlineChar(s);
   }
 
   function expectEol() {
@@ -354,7 +296,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
       let c = read();
       if (c === $$HASH) {
         skipComment();
-      } else if (isNewline(c)) {
+      } else if (isNewlineChar(c)) {
         skip();
       } else {
         THROW('Expected EOL but got `' + read() + '`');
@@ -412,21 +354,19 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     let mod = parseModifier();
     expectEol();
 
+    let varIndex;
     if (typeof nameNames === 'string') {
-      if (nameToIndex(nameNames) >= 0) {
-        return THROW('Dont declare a var after using it');
-      }
-      addVar(nameNames, domain, mod);
+      varIndex = addVar(nameNames, domain, mod, false, true);
     } else {
-      nameNames.map(name => {
-        if (nameToIndex(name) >= 0) {
-          return THROW('Dont declare a var after using it');
-        }
-        addVar(name, domain, mod);
-      });
+      nameNames.map(name => addVar(name, domain, mod));
     }
 
-    if (alts) THROW('implement me (var alias)'); // alts.map(name => addVar(name, domain, mod));
+    if (alts) {
+      // prevent `: A, B [0, 10] alias(C)` because is C an alias for A or B? certainly not both
+      if (nameNames !== 'string') THROW('Cant use alias when declaring multiple vars at once (because which should be aliased?)');
+
+      alts.forEach(alt => addAlias(addVar(alt, false, false, false, true), varIndex));
+    }
   }
 
   function parseIdentifier() {
@@ -487,7 +427,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     while (true) {
       let c = read();
       if (c === $$RIGHTPAREN) break;
-      if (isNewline(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
+      if (isLineEnd(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
       if (isEof()) THROW('Alias must be closed with a `)` but wasnt (eof)');
       alias += String.fromCharCode(c);
       skip();
@@ -700,7 +640,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
 
   function skipComment() {
     is($$HASH, 'comment start'); //is('#', 'comment hash');
-    while (!isEof() && !isNewline(read())) skip();
+    while (!isEof() && !isNewlineChar(read())) skip();
     if (!isEof()) skip();
   }
 
@@ -719,7 +659,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
   function parseComplexVoidConstraint() {
     // parse a constraint that at least starts with a Vexpr but ultimately doesnt return anything
 
-    let A = parseVexpr(); // returns a var name or a constant value
+    let indexA = parseVexpr(undefined, true);
 
     skipWhitespaces();
     if (!isEof()) { // `A==B<eof>` then A==B would be part of A and the parser would want to parse a cop here. there's a test case.
@@ -727,305 +667,83 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
       skipWhitespaces();
 
       if (cop === '=') {
-        parseAssignment(A);
+        lastAssignmentIndex = indexA;
+        parseAssignment(indexA);
       } else if (cop) {
-        let B = parseVexpr();
-        compileVoidConstraint(A, cop, B);
+        let indexB = parseVexpr();
+        compileVoidConstraint(indexA, cop, indexB);
       }
     }
   }
 
-  function compileVoidConstraint(A, cop, B) {
+  function compileVoidConstraint(indexA, cop, indexB) {
     ++constraintCount;
-    // literals are only supported as 8bit values, otherwise just compile it as a solved var
-    let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
-    let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
-    switch (codeA + cop + codeB) {
-      case 'V==V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_EQ);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_EQ);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case 'V==8':
-        encode8bit(ML_V8_EQ);
-        encodeName(A);
-        encode8bit(B);
-        break;
-      case '8==V':
-        encode8bit(ML_V8_EQ);
-        encodeName(B);
-        encode8bit(A);
-        break;
-      case '8==8':
-        encode8bit(ML_88_EQ);
-        encode8bit(A);
-        encode8bit(B);
+
+    switch (cop) {
+      case '==':
+        encode8bit(ML_EQ);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V!=V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_NEQ);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_NEQ);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case 'V!=8':
-        encode8bit(ML_V8_NEQ);
-        encodeName(A);
-        encode8bit(B);
-        break;
-      case '8!=V':
-        encode8bit(ML_V8_NEQ);
-        encodeName(B);
-        encode8bit(A);
-        break;
-      case '8!=8':
-        encode8bit(ML_88_NEQ);
-        encode8bit(A);
-        encode8bit(B);
+      case '!=':
+        encode8bit(ML_NEQ);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V<V':
-        encode8bit(ML_VV_LT);
-        encodeName(A);
-        encodeName(B);
-        break;
-      case 'V<8':
-        encode8bit(ML_V8_LT);
-        encodeName(A);
-        encode8bit(B);
-        break;
-      case '8<V':
-        encode8bit(ML_8V_LT);
-        encode8bit(A);
-        encodeName(B);
-        break;
-      case '8<8':
-        encode8bit(ML_88_LT);
-        encode8bit(A);
-        encode8bit(B);
+      case '<':
+        encode8bit(ML_LT);
+        encode16bit(indexA);
+        encode16bit(indexB);
         break;
 
-      case 'V<=V':
-        encode8bit(ML_VV_LTE);
-        encodeName(A);
-        encodeName(B);
-        break;
-      case 'V<=8':
-        encode8bit(ML_V8_LTE);
-        encodeName(A);
-        encode8bit(B);
-        break;
-      case '8<=V':
-        encode8bit(ML_8V_LTE);
-        encode8bit(A);
-        encodeName(B);
-        break;
-      case '8<=8':
-        encode8bit(ML_88_LTE);
-        encode8bit(A);
-        encode8bit(B);
+      case '<=':
+        encode8bit(ML_LTE);
+        encode16bit(indexA);
+        encode16bit(indexB);
         break;
 
-      case 'V>V':
-        encode8bit(ML_VV_LT);
-        encodeName(B);
-        encodeName(A);
-        break;
-      case 'V>8':
-        encode8bit(ML_8V_LT);
-        encode8bit(B);
-        encodeName(A);
-        break;
-      case '8>V':
-        encode8bit(ML_V8_LT);
-        encodeName(B);
-        encode8bit(A);
-        break;
-      case '8>8':
-        encode8bit(ML_88_LT);
-        encode8bit(B);
-        encode8bit(A);
+      case '>':
+        encode8bit(ML_LT);
+        encode16bit(indexB);
+        encode16bit(indexA);
         break;
 
-      case 'V>=V':
-        encode8bit(ML_VV_LTE);
-        encodeName(B);
-        encodeName(A);
-        break;
-      case 'V>=8':
-        encode8bit(ML_8V_LTE);
-        encode8bit(B);
-        encodeName(A);
-        break;
-      case '8>=V':
-        encode8bit(ML_V8_LTE);
-        encodeName(B);
-        encode8bit(A);
-        break;
-      case '8>=8':
-        encode8bit(ML_88_LTE);
-        encode8bit(B);
-        encode8bit(A);
+      case '>=':
+        encode8bit(ML_LTE);
+        encode16bit(indexB);
+        encode16bit(indexA);
         break;
 
-      case 'V&V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_AND);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_AND);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case '8&V':
-        encode8bit(ML_VV_AND);
-        encodeName(B);
-        encodeNameOrLiteral(A);
-        break;
-      case 'V&8':
-        encode8bit(ML_VV_AND);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case '8&8':
-        encode8bit(ML_VV_AND);
-        encodeNameOrLiteral(B);
-        encodeNameOrLiteral(A);
+      case '&':
+        encode8bit(ML_AND);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V|V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_OR);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_OR);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case '8|V':
-        encode8bit(ML_VV_OR);
-        encodeName(B);
-        encodeNameOrLiteral(A);
-        break;
-      case 'V|8':
-        encode8bit(ML_VV_OR);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case '8|8':
-        encode8bit(ML_VV_OR);
-        encodeNameOrLiteral(B);
-        encodeNameOrLiteral(A);
+      case '|':
+        encode8bit(ML_OR);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V^V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_XOR);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_XOR);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case '8^V':
-        encode8bit(ML_VV_XOR);
-        encodeName(B);
-        encodeNameOrLiteral(A);
-        break;
-      case 'V^8':
-        encode8bit(ML_VV_XOR);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case '8^8':
-        encode8bit(ML_VV_XOR);
-        encodeNameOrLiteral(B);
-        encodeNameOrLiteral(A);
+      case '^':
+        encode8bit(ML_XOR);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V!&V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_NAND);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_NAND);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case '8!&V':
-        encode8bit(ML_VV_NAND);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case 'V!&8':
-        encode8bit(ML_VV_NAND);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case '8!&8':
-        encode8bit(ML_VV_NAND);
-        encodeNameOrLiteral(B);
-        encodeNameOrLiteral(A);
+      case '!&':
+        encode8bit(ML_NAND);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
-      case 'V!^V':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV_XNOR);
-          encode16bit(A);
-          encode16bit(B);
-        } else {
-          encode8bit(ML_VV_XNOR);
-          encode16bit(B);
-          encode16bit(A);
-        }
-        break;
-      case '8!^V':
-        encode8bit(ML_VV_XNOR);
-        encodeName(B);
-        encodeNameOrLiteral(A);
-        break;
-      case 'V!^8':
-        encode8bit(ML_VV_XNOR);
-        encodeNameOrLiteral(B);
-        encodeName(A);
-        break;
-      case '8!^8':
-        encode8bit(ML_VV_XNOR);
-        encodeNameOrLiteral(B);
-        encodeNameOrLiteral(A);
+      case '!^':
+        encode8bit(ML_XNOR);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
         break;
 
       default:
@@ -1033,351 +751,101 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     }
   }
 
-  function createResultVar(from, forceBool, noLit) {
-    ASSERT_LOG2('createResultVar', from, forceBool, noLit);
-    ASSERT(typeof from === 'string' || typeof from === 'number' || from === undefined, 'input can only be a string (name) or number (literal) or undefined (new var reflects result for something else)');
-
-    if (from === undefined) {
-      return addVar(undefined, forceBool ? [0, 1] : undefined, false, true);
-    }
-
-    if (typeof from === 'number') {
-      // a literal that is >1 where a bool is expected will always result in a problem (bad input problem)
-      if (forceBool && from > 1) return addVar(undefined, [], false, true);
-      // only supporting literals of 8bit. in some cases literals still need to become temp anon vars when the op doesnt have a lit version for it.
-      if (from > 0xff || noLit) return addVar(undefined, (forceBool && from > 1) ? [] : domain_createValue(from), false, true);
-      return from;
-    }
-
-    if (nameToIndex(from) < 0) return addVar(from, forceBool ? domain_toArr(domain_createRange(0, 1)) : undefined, false, true);
-    return from;
-  }
-
-  function parseAssignment(C) {
-    let A = parseVexpr(C);
+  function parseAssignment(indexC) {
+    let indexA = parseVexpr(indexC);
     skipWhitespaces();
     let c = read();
-    if (isEof() || isNewline(c) || isComment(c)) {
+    if (isEof() || isLineEnd(c)) {
       // any var, literal, or group without "top-level" op (`A=5`, `A=X`, `A=(B+C)`, `A=sum(...)`, etc)
-      if (A !== C) {
-        C = createResultVar(C); // wont change for 8bit literals or existing vars
-        compileVoidConstraint(A, '==', C);
+      if (indexA !== indexC) {
+        compileVoidConstraint(indexA, '==', indexC);
       }
     } else {
-      parseComplexValueConstraint(A, C);
+      let rop = parseRop();
+      skipWhitespaces();
+      let indexB = parseVexpr();
+      return compileValueConstraint(indexA, rop, indexB, indexC);
     }
   }
 
-  function parseComplexValueConstraint(A, resultRef) {
-    // note: resultRef may be undefined (like anonymous vexprs `A <= (B ==? C)`), an anon var will be created for it
-    // note: will try to optionally parse a rop next (like `C = sum()` vs `C = A + B`)
-    // compiles resultRef = A rop B
-    // returns the resultRef, whatever it ends up being
-
-    let rop = parseRop();
-    skipWhitespaces();
-    let B = parseVexpr();
-
-    return compileValueConstraint(A, rop, B, resultRef);
-  }
-
-  function compileValueConstraint(A, rop, B, C) {
+  function compileValueConstraint(indexA, rop, indexB, indexC) {
     ++constraintCount;
+    let wasReifier = false;
 
-    // force fresh reifier result vars to a bool
-    C = createResultVar(C, rop[rop.length - 1] === '?'); // wont change for 8bit literals or existing vars
-
-    // literals are only supported as 8bit values, otherwise just compile it as a solved var
-    let codeA = typeof A === 'number' ? A <= 0xff ? '8' : (A = addVar(undefined, A, false, true), 'V') : 'V';
-    let codeB = typeof B === 'number' ? B <= 0xff ? '8' : (B = addVar(undefined, B, false, true), 'V') : 'V';
-    let codeC = typeof C === 'number' ? '8' : 'V'; // check already done above
-
-    switch (codeA + rop + codeB + codeC) {
-      case 'V==?VV':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VVV_ISEQ);
-          encode16bit(A);
-          encode16bit(B);
-          encodeName(C);
-        } else {
-          encode8bit(ML_VVV_ISEQ);
-          encode16bit(B);
-          encode16bit(A);
-          encodeName(C);
-        }
-        break;
-      case '8==?VV':
-        encode8bit(ML_V8V_ISEQ);
-        encodeName(B);
-        encode8bit(A);
-        encodeName(C);
-        break;
-      case 'V==?8V':
-        encode8bit(ML_V8V_ISEQ);
-        encodeName(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V==?V8':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV8_ISEQ);
-          encode16bit(A);
-          encode16bit(B);
-          encode8bit(C);
-        } else {
-          encode8bit(ML_VV8_ISEQ);
-          encode16bit(B);
-          encode16bit(A);
-          encode8bit(C);
-        }
-        break;
-      case '8==?8V':
-        encode8bit(ML_88V_ISEQ);
-        encode8bit(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V==?88':
-        encode8bit(ML_V88_ISEQ);
-        encodeName(A);
-        encode8bit(B);
-        encode8bit(C);
-        break;
-      case '8==?V8':
-        encode8bit(ML_V88_ISEQ);
-        encodeName(B);
-        encode8bit(A);
-        encode8bit(C);
-        break;
-      case '8==?88':
-        encode8bit(ML_888_ISEQ);
-        encode8bit(A);
-        encode8bit(B);
-        encode8bit(C);
+    switch (rop) {
+      case '==?':
+        encode8bit(ML_ISEQ);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
+        encode16bit(indexC);
+        wasReifier = true;
         break;
 
-      case 'V!=?VV':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VVV_ISNEQ);
-          encode16bit(A);
-          encode16bit(B);
-          encodeName(C);
-        } else {
-          encode8bit(ML_VVV_ISNEQ);
-          encode16bit(B);
-          encode16bit(A);
-          encodeName(C);
-        }
-        break;
-      case '8!=?VV':
-        encode8bit(ML_V8V_ISNEQ);
-        encodeName(B);
-        encode8bit(A);
-        encodeName(C);
-        break;
-      case 'V!=?8V':
-        encode8bit(ML_V8V_ISNEQ);
-        encodeName(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V!=?V8':
-        A = nameToIndexSafe(A);
-        B = nameToIndexSafe(B);
-        if (A < B) {
-          encode8bit(ML_VV8_ISNEQ);
-          encode16bit(A);
-          encode16bit(B);
-          encode8bit(C);
-        } else {
-          encode8bit(ML_VV8_ISNEQ);
-          encode16bit(B);
-          encode16bit(A);
-          encode8bit(C);
-        }
-        break;
-      case '8!=?8V':
-        encode8bit(ML_88V_ISNEQ);
-        encode8bit(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V!=?88':
-        encode8bit(ML_V88_ISNEQ);
-        encodeName(A);
-        encode8bit(B);
-        encode8bit(C);
-        break;
-      case '8!=?V8':
-        encode8bit(ML_V88_ISNEQ);
-        encodeName(B);
-        encode8bit(A);
-        encode8bit(C);
-        break;
-      case '8!=?88':
-        encode8bit(ML_888_ISNEQ);
-        encode8bit(A);
-        encode8bit(B);
-        encode8bit(C);
+      case '!=?':
+        encode8bit(ML_ISNEQ);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
+        encode16bit(indexC);
+        wasReifier = true;
         break;
 
-      case 'V<?VV':
-        encode8bit(ML_VVV_ISLT);
-        encodeName(A);
-        encodeName(B);
-        encodeName(C);
-        break;
-      case '8<?VV':
-        encode8bit(ML_8VV_ISLT);
-        encode8bit(A);
-        encodeName(B);
-        encodeName(C);
-        break;
-      case 'V<?8V':
-        encode8bit(ML_V8V_ISLT);
-        encodeName(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V<?V8':
-        encode8bit(ML_VV8_ISLT);
-        encodeName(A);
-        encodeName(B);
-        encode8bit(C);
-        break;
-      case '8<?8V':
-        encode8bit(ML_88V_ISLT);
-        encode8bit(A);
-        encode8bit(B);
-        encodeName(C);
-        break;
-      case 'V<?88':
-        encode8bit(ML_V88_ISLT);
-        encodeName(A);
-        encode8bit(B);
-        encode8bit(C);
-        break;
-      case '8<?V8':
-        encode8bit(ML_8V8_ISLT);
-        encode8bit(A);
-        encodeName(B);
-        encode8bit(C);
-        break;
-      case '8<?88':
-        encode8bit(ML_888_ISLT);
-        encode8bit(A);
-        encode8bit(B);
-        encode8bit(C);
+      case '<?':
+        encode8bit(ML_ISLT);
+        encode16bit(indexA);
+        encode16bit(indexB);
+        encode16bit(indexC);
+        wasReifier = true;
         break;
 
-      case 'V<=?VV':
-        encode8bit(ML_VVV_ISLTE);
-        encodeName(A);
-        encodeName(B);
-        encodeName(C);
+      case '<=?':
+        encode8bit(ML_ISLTE);
+        encode16bit(indexA);
+        encode16bit(indexB);
+        encode16bit(indexC);
+        wasReifier = true;
         break;
-      case '8<=?VV':
-        encode8bit(ML_8VV_ISLTE);
-        encode8bit(A);
-        encodeName(B);
-        encodeName(C);
+
+      case '+':
+        encode8bit(ML_PLUS);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
+        encode16bit(indexC);
         break;
-      case 'V<=?8V':
-        encode8bit(ML_V8V_ISLTE);
-        encodeName(A);
-        encode8bit(B);
-        encodeName(C);
+
+      case '-':
+        encode8bit(ML_MINUS);
+        encode16bit(indexA);
+        encode16bit(indexB);
+        encode16bit(indexC);
         break;
-      case 'V<=?V8':
-        encode8bit(ML_VV8_ISLTE);
-        encodeName(A);
-        encodeName(B);
-        encode8bit(C);
+
+      case '*':
+        encode8bit(ML_MUL);
+        encode16bit(indexA < indexB ? indexA : indexB);
+        encode16bit(indexA < indexB ? indexB : indexA);
+        encode16bit(indexC);
         break;
-      case '8<=?8V':
-        encode8bit(ML_88V_ISLTE);
-        encode8bit(A);
-        encode8bit(B);
-        encodeName(C);
+
+      case '/':
+        encode8bit(ML_DIV);
+        encode16bit(indexA);
+        encode16bit(indexB);
+        encode16bit(indexC);
         break;
-      case 'V<=?88':
-        encode8bit(ML_V88_ISLTE);
-        encodeName(A);
-        encode8bit(B);
-        encode8bit(C);
-        break;
-      case '8<=?V8':
-        encode8bit(ML_8V8_ISLTE);
-        encode8bit(A);
-        encodeName(B);
-        encode8bit(C);
-        break;
-      case '8<=?88':
-        encode8bit(ML_888_ISLTE);
-        encode8bit(A);
-        encode8bit(B);
-        encode8bit(C);
-        break;
+
+      case '>?':
+        return compileValueConstraint(indexB, '<?', indexA, indexC);
+
+      case '>=?':
+        return compileValueConstraint(indexB, '<=?', indexA, indexC);
 
       default:
-        if (rop === '>?') return compileValueConstraint(B, '<?', A, C);
-        if (rop === '>=?') return compileValueConstraint(B, '<=?', A, C);
-        if (rop === undefined) return A;
-
-        if (typeof A === 'number') {
-          ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
-          A = addVar(undefined, A, false, false, true);
-        } else {
-          A = nameToIndexSafe(A);
-        }
-        if (typeof B === 'number') {
-          ASSERT_LOG2('dsl parser; encodeNameOrLiteral will generate an anon var for a number');
-          B = addVar(undefined, B, false, false, true);
-        } else {
-          B = nameToIndexSafe(B);
-        }
-
-        let opCode;
-        let fixed = false;
-        switch (rop) {
-          case '+':
-            opCode = ML_PLUS;
-            break;
-          case '-':
-            opCode = ML_MINUS;
-            fixed = true;
-            break;
-          case '*':
-            opCode = ML_MUL;
-            break;
-          case '/':
-            opCode = ML_DIV;
-            fixed = true;
-            break;
-          default:
-            return THROW('Unknown rop: `' + rop + '`');
-        }
-
-        if (fixed || A < B) {
-          encode8bit(opCode);
-          encode16bit(A);
-          encode16bit(B);
-          encodeNameOrLiteral(C, addVar);
-        } else {
-          encode8bit(opCode);
-          encode16bit(B);
-          encode16bit(A);
-          encodeNameOrLiteral(C, addVar);
-        }
+        THROW('expected a result op but got [' + rop + ']');
     }
 
-    return C;
+    if (wasReifier && indexC === lastAssignmentIndex && indexC === lastUnknownIndex) setDomain(indexC, domain_createRange(0, 1));
+
+    return indexC;
   }
 
   function parseCop() {
@@ -1494,7 +962,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
         return '/';
 
       default:
-        THROW('Wanted to parse a rop but next char is `' + read() + '` (`' + String.fromCharCode(read()) + '`)');
+        return '';
     }
   }
 
@@ -1524,7 +992,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     ASSERT(vals.length <= 255, 'dont do lists with more than 255 vars :(');
     encode8bit(opcode);
     encode16bit(vals.length);
-    vals.forEach(encodeName);
+    vals.forEach(encode16bit);
     skipWhitespaces();
     is($$RIGHTPAREN, 'parseCalledListConstraint call closer');
     expectEol();
@@ -1534,8 +1002,8 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     let list = [];
     skipWhitespaces();
     while (!isEof() && read() !== $$RIGHTPAREN) {
-      let v = parseVexpr();
-      list.push(v);
+      let index = parseVexpr();
+      list.push(index);
 
       skipWhitespaces();
       if (read() === $$COMMA) {
@@ -1546,52 +1014,67 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     return list;
   }
 
-  function parseVexpr(resultVar) {
+  function parseVexpr(resultIndex, canBeUnknown) {
     // valcall, ident, number, group
+    // ALWAYS return a var or constant INDEX!
+
+    // resultIndex is only passed on if this was an explicit
+    // assignment (like the index of `X` in `X = sum(A B C)`)
 
     let c = read();
-    let v;
-    if (c === $$LEFTPAREN) v = parseGrouping();
-    else if (c === $$LEFTBRACK) {
-      let d = parseDomain();
-      if (d[0] === d[1] && d.length === 2) v = d[0];
-      else v = addVar(undefined, d, false, true);
+    let index;
+    if (c === $$LEFTPAREN) {
+      index = parseGrouping();
+    } else if (c === $$LEFTBRACK) {
+      let domain = parseDomain();
+      index = addVar(undefined, domain, false, false, true);
     } else if (c >= $$0 && c <= $$9) {
-      v = parseNumber();
+      let num = parseNumber();
+      index = addVar(undefined, num, false, false, true);
     } else {
       let ident = parseIdentifier();
 
       if (read() === $$LEFTPAREN) {
-        if (ident === 'sum') v = parseSum(resultVar);
-        else if (ident === 'product') v = parseArgs(ML_PRODUCT, resultVar);
-        else if (ident === 'all?') v = parseArgs(ML_ISALL, resultVar, true);
-        else if (ident === 'nall?') v = parseArgs(ML_ISNALL, resultVar, true);
-        else if (ident === 'none?') v = parseArgs(ML_ISNONE, resultVar, true);
+        if (ident === 'sum') index = parseArgs(ML_SUM, resultIndex, false);
+        else if (ident === 'product') index = parseArgs(ML_PRODUCT, resultIndex, false);
+        else if (ident === 'all?') index = parseArgs(ML_ISALL, resultIndex, true);
+        else if (ident === 'nall?') index = parseArgs(ML_ISNALL, resultIndex, true);
+        else if (ident === 'none?') index = parseArgs(ML_ISNONE, resultIndex, true);
         else THROW('Unknown constraint func: ' + ident);
       } else {
-        v = ident;
+        // implicitly declare unknown vars as [SUB,SUP]
+        index = name2index(ident, false, true);
+        if (index < 0) {
+          if (canBeUnknown) lastUnknownIndex = index = addVar(ident, undefined, false, false, true);
+          else THROW('unknown var [' + ident + ']');
+        }
       }
     }
 
-    return v;
+    ASSERT_LOG2('parseVexpr resulted in index:', index);
+
+    return index;
   }
 
   function parseGrouping() {
     is($$LEFTPAREN, 'group open');
     skipWhitespaces();
-    let A = parseVexpr();
+    let indexA = parseVexpr();
     skipWhitespaces();
 
-    if (read() === $$RIGHTPAREN) {
-      // just wrapping a vexpr is okay
-      skip();
-      return A;
-    } else {
-      let C = parseComplexValueConstraint(A);
+    // just wrapping a vexpr is okay
+    if (read() !== $$RIGHTPAREN) {
+      let rop = parseRop();
+      if (rop) {
+        skipWhitespaces();
+        let indexB = parseVexpr();
+        let indexC = addVar(undefined, rop[rop.length - 1] === '?' ? [0, 1] : undefined, false, false, true);
+        indexA = compileValueConstraint(indexA, rop, indexB, indexC);
+      }
       skipWhitespaces();
-      is($$RIGHTPAREN, 'group closer');
-      return C;
     }
+    is($$RIGHTPAREN, 'group closer');
+    return indexA;
   }
 
   function parseNumber() {
@@ -1602,56 +1085,24 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     return parseInt(numstr, 10);
   }
 
-  function parseSum(result) {
-    ++constraintCount;
-    is($$LEFTPAREN, 'sum call opener');
-    skipWhitespaces();
-    let refs = parseVexpList();
-    result = createResultVar(result, false, true);
-    ASSERT_LOG2('parseSum refs:', refs, 'result:', result, nameToIndex(result));
-
-    encode8bit(ML_8V_SUM);
-    encode16bit(refs.length); // count
-    encode8bit(0); // sum of constants
-    for (let i = 0, len = refs.length; i < len; ++i) {
-      let r = refs[i];
-      if (typeof r === 'number') {
-        // have to make temp var for this :(
-        r = addVar(undefined, r, false, true);
-      }
-      encodeName(r);
-    }
-    encodeName(result);
-
-    skipWhitespaces();
-    is($$RIGHTPAREN, 'sum closer');
-    return result;
-  }
-
-  function parseArgs(op, result, defaultBoolResult) {
-    console.log('#############', op, result, defaultBoolResult);
+  function parseArgs(op, resultIndex, defaultBoolResult) {
     ++constraintCount;
     is($$LEFTPAREN, 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
-    result = createResultVar(result, defaultBoolResult, true);
-    ASSERT_LOG2('parseArgs refs:', result, ' = all(', refs, ')  ->  ', nameToIndex(result), '= all(', refs.map(nameToIndex), ') defaultBoolResult:', defaultBoolResult);
+    if (resultIndex === undefined) resultIndex = addVar(undefined, defaultBoolResult ? [0, 1] : undefined, false, false, true);
+    else if (resultIndex === lastAssignmentIndex && resultIndex === lastUnknownIndex && defaultBoolResult) setDomain(resultIndex, [0, 1]);
+
+    ASSERT_LOG2('parseArgs refs:', resultIndex, ' = all(', refs, '), defaultBoolResult:', defaultBoolResult);
 
     encode8bit(op);
     encode16bit(refs.length); // count
-    for (let i = 0, len = refs.length; i < len; ++i) {
-      let r = refs[i];
-      if (typeof r === 'number') {
-        // have to make temp var for this :(
-        r = addVar(undefined, r, false, true);
-      }
-      encodeName(r);
-    }
-    encodeName(result);
+    refs.forEach(encode16bit);
+    encode16bit(resultIndex);
 
     skipWhitespaces();
     is($$RIGHTPAREN, 'args closer');
-    return result;
+    return resultIndex;
   }
 
   function parseNumstr() {
@@ -1709,7 +1160,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
       skipWhitespaces();
 
       let c = read();
-      if (isNewline(c)) break;
+      if (isLineEnd(c)) break;
 
       if (c === $$COMMA) {
         skip();
@@ -1727,7 +1178,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
     let str = '';
     while (!isEof()) {
       let c = read();
-      if (isNewline(c)) break;
+      if (isNewlineChar(c)) break;
       str += String.fromCharCode(c);
       skip();
     }
@@ -1771,7 +1222,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
             // debug vars are never considered leaf vars until we change that (to something else and update this to something that still does the same thing)
             // this is for testing as a simple tool to prevent many trivial optimizations to kick in. it's not flawless.
             encode8bit(ML_DEBUG);
-            encodeNameOrDie(idents[i]);
+            encode16bit(name2index(idents[i]));
           }
           break;
         case 'free':
@@ -1867,8 +1318,7 @@ function dslToMl(dslStr, problem, addVar, nameToIndex, _debug) {
       this.solver.config.targetedVars = 'all';
     } else {
       is($$LEFTPAREN);
-      let idents = parseIdentList();
-      this.solver.config.targetedVars = idents;
+      this.solver.config.targetedVars = parseIdentList();
       is($$RIGHTPAREN);
     }
     expectEol();

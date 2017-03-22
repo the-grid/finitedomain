@@ -2387,6 +2387,10 @@ function _domain_arrToBit(domain, len) {
   return out;
 }
 
+function domain_booly(domain, value) {
+  return value ? domain_removeValue(domain, 0) : domain_removeGtUnsafe(domain, 0);
+}
+
 // BODY_STOP
 
 export {
@@ -2403,6 +2407,7 @@ export {
 
   //domain_appendRange,
   domain_arrToSmallest,
+  domain_booly,
   domain_str_closeGaps,
   domain_containsValue,
   domain_num_containsValue,

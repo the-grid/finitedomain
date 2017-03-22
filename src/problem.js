@@ -4,14 +4,16 @@ import {
 
   ASSERT,
   ASSERT_LOG2,
+  ASSERT_NORDOM,
   THROW,
-  TRACE_ADD,
 } from './helpers';
 import {
   domain__debug,
+  domain_containsValue,
   domain_createRange,
   domain_createValue,
-  domain_min,
+  domain_getValue,
+  domain_isSolved,
   domain_arrToSmallest,
 } from './domain';
 import {
@@ -35,17 +37,16 @@ import {
 
 // BODY_START
 
-function $addVar($varTrie, $vars, $domains, $getAnonCounter, name, domain, modifier, returnName, returnIndex) {
+const MAX_VAR_COUNT = 0xffff; // 16bit
+
+function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, name, domain, modifier, returnName, returnIndex) {
   ASSERT_LOG2('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
   if (modifier) THROW('implement me (var mod)');
   if (typeof name === 'number') {
     domain = name;
     name = undefined;
   }
-  if (name === undefined) {
-    name = '__' + $getAnonCounter();
-    ASSERT_LOG2(' - Adding anonymous var for dom=', domain, '->', name);
-  }
+
   if (typeof domain === 'number') {
     domain = domain_createValue(domain);
   } else if (domain === undefined) {
@@ -54,35 +55,75 @@ function $addVar($varTrie, $vars, $domains, $getAnonCounter, name, domain, modif
     domain = domain_arrToSmallest(domain);
   }
 
-  let newIndex = $vars.length;
-  trie_add($varTrie, name, newIndex);
-  $vars.push(name);
-  $domains.push(domain);
-  if (returnIndex) return newIndex;
-  if (returnName) return name; // return a name when explicitly asked for.
-}
-function $getVar($varTrie, name) {
-  return trie_get($varTrie, name);
-}
-function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew) {
-  ASSERT(indexOld !== indexNew, 'cant make an alias for itself');
-  $aliases[indexOld] = indexNew;
+  let newIndex;
 
-  ASSERT_LOG2(' - Mapping', indexOld, 'to be an alias for', indexNew);
-  TRACE_ADD(indexOld, domain__debug($domains[indexOld]), domain__debug($domains[indexNew]), 'now alias of ' + indexNew);
-  $solveStack.push((domains, force) => {
-    ASSERT_LOG2(' - alias; ensuring', indexNew, 'and', indexOld, 'result in same value');
-    ASSERT_LOG2('   - domain =', domain__debug(domains[indexNew]), 'forcing choice to min(d)=', domain_min(domains[indexNew]));
-    // ensure A and B end up with the same value, regardless of how A is reduced
-    ASSERT(domains[indexOld] === false, 'B should be marked as an alias');
-    domains[indexOld] = domains[indexNew] = domain_createValue(domain_min(domains[indexNew]));
-  });
-  ASSERT(!void ($solveStack[$solveStack.length - 1]._target = indexOld));
-  ASSERT(!void ($solveStack[$solveStack.length - 1]._meta = 'alias(' + indexNew + ' -> ' + indexOld + ')'));
-  $domains[indexOld] = false; // mark as aliased. this is not a change per se.
+  let v = domain_getValue(domain);
+  if (typeof name === 'string' || v < 0 || returnName) {
+    if (name === undefined) {
+      name = '__' + $getAnonCounter();
+      ASSERT_LOG2(' - Adding anonymous var for dom=', domain, '->', name);
+    }
+
+    newIndex = $vars.length;
+    let prev = trie_add($varTrie, name, newIndex);
+    if (prev >= 0) THROW('Dont declare a var after using it', name, prev);
+    $vars.push(name);
+    $domains.push(domain);
+  }
+  // note: if the name is string but domain is constant, we must add the name here as well and immediately alias it to a constant
+  if (v >= 0 && !returnName) { // TODO: we'll phase out the second condition here soon, but right now constants can still end up as regular vars
+    // constants are compiled slightly differently
+    let constIndex = value2index($constants, v);
+    // actual var names must be registered so they can be looked up, then immediately alias them to a constant
+    if (newIndex >= 0) $addAlias(newIndex, constIndex, '$addvar');
+    newIndex = constIndex;
+  }
+
+  // deal with explicitly requested return values...
+  if (returnIndex) return newIndex;
+  if (returnName) {
+    //if (v >= 0) THROW('cant get a name for constants');
+    return name;
+  }
+}
+function $name2index($varTrie, $getAlias, name, skipAliasCheck, scanOnly) {
+  //ASSERT_LOG2('$name2index', name, skipAliasCheck);
+  let varIndex = trie_get($varTrie, name);
+  if (!scanOnly && varIndex < 0) THROW('cant use this on constants', name, varIndex);
+  if (!skipAliasCheck && varIndex >= 0) varIndex = $getAlias(varIndex);
+  return varIndex;
+}
+function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin, noSolveStack) {
+  if ($aliases[indexOld] === indexNew) return; // ignore constant (re)assignments. we may want to handle this more efficiently in the future
+  ASSERT_LOG2(' - $addAlias' + (_origin ? ' (from ' + _origin + ')' : '') + ': Mapping index = ', indexOld, '(', domain__debug($domains[indexOld]), ') to index = ', indexNew, '(', indexNew >= $domains.length ? 'some constant' : domain__debug($domains[indexNew]), ')');
+  ASSERT(indexOld !== indexNew, 'cant make an alias for itself', indexOld, indexNew);
+  ASSERT(indexOld >= 0 && indexOld <= $domains.length, 'should be valid non-constant var index', indexOld);
+  ASSERT(indexNew >= 0, 'should be valid var index', indexNew);
+
+  let oldDomain = $domains[indexOld];
+  $aliases[indexOld] = indexNew;
+  $domains[indexOld] = false; // mark as aliased. while this isnt a change itself, it could lead to some dedupes
+
+  // NOTE: there are very few cases where this will be false, but one example is the pseudo xnor case where two booly variables are equal the boolean sense but not the absolute value `(A !^ B)`
+  if (!noSolveStack) {
+    $solveStack.push((_, force, getDomain, setDomain) => {
+      // note: getDomain may pull from a different array than $domains!
+      // note: indexes may be aliased since declaring this callback so either refresh them or dont pass true to getDomain
+      let domain = getDomain(indexNew);
+      ASSERT_LOG2(' - $solveStack for $addAlias; ensuring', indexNew, 'and', indexOld, 'result in same value.');
+      ASSERT_LOG2('   - old domain:', domain__debug(oldDomain));
+      ASSERT_LOG2('   - new domain:', domain__debug(domain), domain_isSolved(domain) ? '' : 'forcing choice so we can be certain both vars have the same value');
+      // ensure both indexes end up with the same value, regardless of how the target is reduced
+      // only way to do that is to make sure the var is solved (otherwise two different values could be picked from the solution...)
+      let v = force(indexNew);
+      ASSERT(domain_containsValue(oldDomain, v), 'old domain should contain resulting value');
+      ASSERT(getDomain(indexOld, true) === false, 'old index should be marked as an alias', 'old index:', indexOld, ', current old domain:', domain__debug(getDomain(indexOld, true)), 'or', domain__debug($domains[indexOld]), 'same $domains?', $domains === _);
+      setDomain(indexOld, domain_createValue(v));
+    });
+  }
 }
 function $getAlias($aliases, index) {
-  let alias = $aliases[index];
+  let alias = $aliases[index]; // TODO: is a trie faster compared to property misses?
   while (alias !== undefined) {
     if (alias === index) THROW('alias is itself?', alias, index);
     index = alias;
@@ -90,14 +131,67 @@ function $getAlias($aliases, index) {
   }
   return index;
 }
+function $getDomain($domains, $constants, $getAlias, varIndex, skipAliasCheck) {
+  //ASSERT_LOG2('    - $getDomain', varIndex, skipAliasCheck, $constants[varIndex]);
+  if (!skipAliasCheck) varIndex = $getAlias(varIndex);
+
+  // constant var indexes start at the end of the max
+  let v = $constants[varIndex];
+  if (v !== undefined) {
+    ASSERT(SUB <= v && v <= SUP, 'only SUB SUP values are valid here');
+    return domain_createValue(v);
+  }
+
+  return $domains[varIndex];
+}
+function $setDomain($domains, $constants, $addAlias, $getAlias, varIndex, domain, skipAliasCheck) {
+  ASSERT(arguments.length >= 2, 'at least two args');
+  ASSERT(typeof varIndex === 'number' && varIndex >= 0 && varIndex <= 0xffff, 'valid varindex', varIndex);
+  ASSERT_NORDOM(domain);
+  ASSERT(skipAliasCheck === undefined || skipAliasCheck === true || skipAliasCheck === false, 'valid skipAliasCheck', skipAliasCheck);
+
+  //ASSERT_LOG2(' - $setDomain', varIndex, domain__debug(domain), skipAliasCheck);
+  let value = domain_getValue(domain);
+  if (value >= 0) {
+    // check if this isnt already a constant.. this case should never happen
+    if ($constants[varIndex] !== undefined) {
+      if ($constants[varIndex] === value) return; // TOFIX: this needs to be handled better because a regular var may become mapped to a constant and if it becomes empty then this place cant deal/signal with that properly
+      THROW('Cant update a constant (only to an empty domain, which should be handled differently)');
+    }
+
+    let constantIndex = value2index($constants, value);
+    $addAlias(varIndex, constantIndex, '$setDomain; because var is now constant ' + value);
+    return constantIndex;
+  }
+
+  if (!skipAliasCheck) varIndex = $getAlias(varIndex);
+  $domains[varIndex] = domain;
+}
+function value2index(constants, value) {
+  //ASSERT_LOG2('value2index', value, '->', constants['v' + value]);
+  ASSERT(value >= SUB && value <= SUP, 'value is OOB', value);
+
+  let constantIndex = constants['v' + value];
+  if (constantIndex >= 0) return constantIndex;
+
+  constantIndex = MAX_VAR_COUNT - (constants._count++);
+  constants['v' + value] = constantIndex;
+  constants[constantIndex] = value;
+
+  return constantIndex;
+}
 
 function problem_create() {
   let anonCounter = 0;
-  let varTrie = trie_create();
   let varNames = [];
+  let varTrie = trie_create(); // name -> index (in varNames)
   let domains = [];
+  let constants = {_count: 0};
   let aliases = {};
   let solveStack = [];
+
+  let addAlias = $addAlias.bind(undefined, domains, aliases, solveStack);
+  let getAlias = $getAlias.bind(undefined, aliases);
 
   return {
     varTrie,
@@ -115,10 +209,14 @@ function problem_create() {
     ml: undefined, // Buffer
     mapping: undefined, // var index in (this) child to var index of parent
 
-    addVar: $addVar.bind(undefined, varTrie, varNames, domains, _ => ++anonCounter),
-    getVar: $getVar.bind(undefined, varTrie),
-    addAlias: $addAlias.bind(undefined, domains, aliases, solveStack),
-    getAlias: $getAlias.bind(undefined, aliases),
+    addVar: $addVar.bind(undefined, varTrie, varNames, domains, constants, addAlias, _ => ++anonCounter),
+    getVar: $name2index.bind(undefined, varTrie, getAlias), // deprecated
+    name2index: $name2index.bind(undefined, varTrie, getAlias),
+    addAlias,
+    getAlias,
+    getDomain: $getDomain.bind(undefined, domains, constants, getAlias),
+    setDomain: $setDomain.bind(undefined, domains, constants, addAlias, getAlias),
+    isConstant: index => constants[index] !== undefined,
   };
 }
 

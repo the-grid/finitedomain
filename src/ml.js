@@ -18,55 +18,14 @@ let ml_opcodeCounter = 0;
 
 const ML_START = ml_opcodeCounter++;
 
-const ML_VV_EQ = ml_opcodeCounter++;
-const ML_V8_EQ = ml_opcodeCounter++;
-const ML_88_EQ = ml_opcodeCounter++;
-
-const ML_VV_NEQ = ml_opcodeCounter++;
-const ML_V8_NEQ = ml_opcodeCounter++;
-const ML_88_NEQ = ml_opcodeCounter++;
-
-const ML_VV_LT = ml_opcodeCounter++;
-const ML_V8_LT = ml_opcodeCounter++;
-const ML_8V_LT = ml_opcodeCounter++;
-const ML_88_LT = ml_opcodeCounter++;
-
-const ML_VV_LTE = ml_opcodeCounter++;
-const ML_V8_LTE = ml_opcodeCounter++;
-const ML_8V_LTE = ml_opcodeCounter++;
-const ML_88_LTE = ml_opcodeCounter++;
-
-const ML_VVV_ISEQ = ml_opcodeCounter++;
-const ML_V8V_ISEQ = ml_opcodeCounter++;
-const ML_VV8_ISEQ = ml_opcodeCounter++;
-const ML_88V_ISEQ = ml_opcodeCounter++;
-const ML_V88_ISEQ = ml_opcodeCounter++;
-const ML_888_ISEQ = ml_opcodeCounter++;
-
-const ML_VVV_ISNEQ = ml_opcodeCounter++;
-const ML_V8V_ISNEQ = ml_opcodeCounter++;
-const ML_VV8_ISNEQ = ml_opcodeCounter++;
-const ML_88V_ISNEQ = ml_opcodeCounter++;
-const ML_V88_ISNEQ = ml_opcodeCounter++;
-const ML_888_ISNEQ = ml_opcodeCounter++;
-
-const ML_VVV_ISLT = ml_opcodeCounter++;
-const ML_8VV_ISLT = ml_opcodeCounter++;
-const ML_V8V_ISLT = ml_opcodeCounter++;
-const ML_VV8_ISLT = ml_opcodeCounter++;
-const ML_88V_ISLT = ml_opcodeCounter++;
-const ML_V88_ISLT = ml_opcodeCounter++;
-const ML_8V8_ISLT = ml_opcodeCounter++;
-const ML_888_ISLT = ml_opcodeCounter++;
-
-const ML_VVV_ISLTE = ml_opcodeCounter++;
-const ML_8VV_ISLTE = ml_opcodeCounter++;
-const ML_V8V_ISLTE = ml_opcodeCounter++;
-const ML_VV8_ISLTE = ml_opcodeCounter++;
-const ML_88V_ISLTE = ml_opcodeCounter++;
-const ML_V88_ISLTE = ml_opcodeCounter++;
-const ML_8V8_ISLTE = ml_opcodeCounter++;
-const ML_888_ISLTE = ml_opcodeCounter++;
+const ML_EQ = ml_opcodeCounter++;
+const ML_NEQ = ml_opcodeCounter++;
+const ML_LT = ml_opcodeCounter++;
+const ML_LTE = ml_opcodeCounter++;
+const ML_ISEQ = ml_opcodeCounter++;
+const ML_ISNEQ = ml_opcodeCounter++;
+const ML_ISLT = ml_opcodeCounter++;
+const ML_ISLTE = ml_opcodeCounter++;
 
 const ML_NALL = ml_opcodeCounter++;
 const ML_ISALL = ml_opcodeCounter++;
@@ -74,7 +33,7 @@ const ML_ISALL2 = ml_opcodeCounter++;
 const ML_ISNALL = ml_opcodeCounter++;
 const ML_ISNONE = ml_opcodeCounter++;
 
-const ML_8V_SUM = ml_opcodeCounter++; // constant: 8bit literal, result: var
+const ML_SUM = ml_opcodeCounter++; // constant: 8bit literal, result: var
 
 const ML_PRODUCT = ml_opcodeCounter++;
 const ML_DISTINCT = ml_opcodeCounter++;
@@ -83,11 +42,11 @@ const ML_MINUS = ml_opcodeCounter++;
 const ML_MUL = ml_opcodeCounter++;
 const ML_DIV = ml_opcodeCounter++;
 
-const ML_VV_AND = ml_opcodeCounter++;
-const ML_VV_OR = ml_opcodeCounter++;
-const ML_VV_XOR = ml_opcodeCounter++;
-const ML_VV_NAND = ml_opcodeCounter++;
-const ML_VV_XNOR = ml_opcodeCounter++;
+const ML_AND = ml_opcodeCounter++;
+const ML_OR = ml_opcodeCounter++;
+const ML_XOR = ml_opcodeCounter++;
+const ML_NAND = ml_opcodeCounter++;
+const ML_XNOR = ml_opcodeCounter++;
 
 const ML_DEBUG = ml_opcodeCounter++;
 const ML_JMP = ml_opcodeCounter++;
@@ -105,119 +64,44 @@ ASSERT(ML_STOP === 0xff);
 const SIZEOF_V = 1 + 2; // 16bit
 const SIZEOF_W = 1 + 4; // 32bit
 const SIZEOF_VV = 1 + 2 + 2;
-const SIZEOF_8V = 1 + 1 + 2;
-const SIZEOF_V8 = 1 + 2 + 1;
-const SIZEOF_88 = 1 + 1 + 1;
 const SIZEOF_VVV = 1 + 2 + 2 + 2;
-const SIZEOF_8VV = 1 + 1 + 2 + 2;
-const SIZEOF_V8V = 1 + 2 + 1 + 2;
-const SIZEOF_VV8 = 1 + 2 + 2 + 1;
-const SIZEOF_88V = 1 + 1 + 1 + 2;
-const SIZEOF_V88 = 1 + 2 + 1 + 1;
-const SIZEOF_8V8 = 1 + 1 + 2 + 1;
-const SIZEOF_888 = 1 + 1 + 1 + 1;
 const SIZEOF_COUNT = 1 + 2; // + 2*count
-const SIZEOF_C8 = 1 + 2 + 1; // + 2*count
 
 let ml_typeCounter = 0;
 const ML_NO_ARGS = ++ml_typeCounter;
 const ML_V = ++ml_typeCounter;
 const ML_W = ++ml_typeCounter;
 const ML_VV = ++ml_typeCounter;
-const ML_V8 = ++ml_typeCounter;
-const ML_8V = ++ml_typeCounter;
-const ML_88 = ++ml_typeCounter;
 const ML_VVV = ++ml_typeCounter;
-const ML_VV8 = ++ml_typeCounter;
-const ML_V8V = ++ml_typeCounter;
-const ML_8VV = ++ml_typeCounter;
-const ML_V88 = ++ml_typeCounter;
-const ML_88V = ++ml_typeCounter;
-const ML_8V8 = ++ml_typeCounter;
-const ML_888 = ++ml_typeCounter;
 const ML_C = ++ml_typeCounter;
 const ML_CR = ++ml_typeCounter;
 const ML_C8R = ++ml_typeCounter;
 
 function ml_sizeof(ml, offset, op) {
   switch (op) {
-    case ML_VV_EQ:
-    case ML_VV_NEQ:
-    case ML_VV_LT:
-    case ML_VV_LTE:
-    case ML_VV_AND:
-    case ML_VV_OR:
-    case ML_VV_XOR:
-    case ML_VV_NAND:
-    case ML_VV_XNOR:
+    case ML_EQ:
+    case ML_NEQ:
+    case ML_LT:
+    case ML_LTE:
+    case ML_AND:
+    case ML_OR:
+    case ML_XOR:
+    case ML_NAND:
+    case ML_XNOR:
       return SIZEOF_VV;
 
     case ML_START:
       return 1;
 
-    case ML_V8_EQ:
-    case ML_V8_NEQ:
-    case ML_V8_LT:
-    case ML_V8_LTE:
-      return SIZEOF_V8;
-
-    case ML_88_EQ:
-    case ML_88_NEQ:
-    case ML_88_LT:
-    case ML_88_LTE:
-      return SIZEOF_88;
-
-    case ML_8V_LT:
-    case ML_8V_LTE:
-      return SIZEOF_8V;
-
-    case ML_VVV_ISEQ:
-    case ML_VVV_ISNEQ:
-    case ML_VVV_ISLT:
-    case ML_VVV_ISLTE:
+    case ML_ISEQ:
+    case ML_ISNEQ:
+    case ML_ISLT:
+    case ML_ISLTE:
     case ML_PLUS:
     case ML_MINUS:
     case ML_MUL:
     case ML_DIV:
       return SIZEOF_VVV;
-
-    case ML_V8V_ISEQ:
-    case ML_V8V_ISNEQ:
-    case ML_V8V_ISLT:
-    case ML_V8V_ISLTE:
-      return SIZEOF_V8V;
-
-    case ML_VV8_ISEQ:
-    case ML_VV8_ISNEQ:
-    case ML_VV8_ISLT:
-    case ML_VV8_ISLTE:
-      return SIZEOF_VV8;
-
-    case ML_88V_ISEQ:
-    case ML_88V_ISNEQ:
-    case ML_88V_ISLT:
-    case ML_88V_ISLTE:
-      return SIZEOF_88V;
-
-    case ML_V88_ISEQ:
-    case ML_V88_ISNEQ:
-    case ML_V88_ISLT:
-    case ML_V88_ISLTE:
-      return SIZEOF_V88;
-
-    case ML_888_ISEQ:
-    case ML_888_ISNEQ:
-    case ML_888_ISLT:
-    case ML_888_ISLTE:
-      return SIZEOF_888;
-
-    case ML_8VV_ISLT:
-    case ML_8VV_ISLTE:
-      return SIZEOF_8VV;
-
-    case ML_8V8_ISLT:
-    case ML_8V8_ISLTE:
-      return SIZEOF_8V8;
 
     case ML_NALL:
     case ML_DISTINCT:
@@ -233,10 +117,7 @@ function ml_sizeof(ml, offset, op) {
     case ML_ISALL2:
       return SIZEOF_VVV;
 
-    case ML_8V_SUM:
-      if (ml && offset >= 0) return SIZEOF_C8 + ml.readUInt16BE(offset + 1) * 2 + 2;
-      return -1;
-
+    case ML_SUM:
     case ML_PRODUCT:
       if (ml && offset >= 0) return SIZEOF_COUNT + ml.readUInt16BE(offset + 1) * 2 + 2;
       return -1;
@@ -268,7 +149,7 @@ function ml_sizeof(ml, offset, op) {
 function ml_dec8(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
-  ASSERT_LOG2(' . dec8pc decoding', ml[pc], 'from', pc);
+  ASSERT_LOG2('\x1b[90m', ' . dec8pc decoding', ml[pc], 'from', pc, '\x1b[0m');
   return ml[pc];
 }
 
@@ -276,7 +157,7 @@ function ml_dec16(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   let n = ml.readUInt16BE(pc); // (ml[pc++] << 8) | ml[pc];
-  ASSERT_LOG2(' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '-->', n);
+  ASSERT_LOG2('\x1b[90m', ' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '-->', n, '\x1b[0m');
   return n;
 }
 
@@ -284,27 +165,27 @@ function ml_dec32(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   let n = ml.readUInt32BE(pc);
-  ASSERT_LOG2(' . dec32pc decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') from', pc, '-->', n);
+  ASSERT_LOG2('\x1b[90m', ' . dec32pc decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') from', pc, '-->', n, '\x1b[0m');
   return n;
 }
 
 function ml_enc8(ml, pc, num) {
-  ASSERT_LOG2(' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ');
+  ASSERT_LOG2('\x1b[90m', ' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ', '\x1b[0m');
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
   ASSERT(num >= 0 && num <= 0xff, 'Only encode 8bit values', num, '0x' + num.toString(16));
-  ASSERT(num >= 0, 'only expecting non-negative nums');
+  ASSERT(num >= 0, 'only expecting non-negative nums', num);
   ml[pc] = num;
 }
 
 function ml_enc16(ml, pc, num) {
-  ASSERT_LOG2(' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1);
+  ASSERT_LOG2('\x1b[90m', ' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1, '\x1b[0m');
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
   ASSERT(num <= 0xffff, 'implement 32bit index support if this breaks', num);
-  ASSERT(num >= 0, 'only expecting non-negative nums');
+  ASSERT(num >= 0, 'only expecting non-negative nums', num);
   // node 4.6 has no uint version and using writeInt16BE will cause problems, so:
   ml[pc++] = (num >> 8) & 0xff;
   ml[pc] = num & 0xff;
@@ -315,8 +196,8 @@ function ml_enc32(ml, pc, num) {
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
   ASSERT(num <= 0xffffffff, 'implement 64bit index support if this breaks', num);
-  ASSERT_LOG2(' - enc32(' + num + '/x' + num.toString(16) + ')', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') at', pc + 1);
-  ASSERT(num >= 0, 'only expecting non-negative nums');
+  ASSERT_LOG2('\x1b[90m', ' - enc32(' + num + '/x' + num.toString(16) + ')', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') at', pc + 1, '\x1b[0m');
+  ASSERT(num >= 0, 'only expecting non-negative nums', num);
   // node 4.6 has no uint version and using writeInt32BE will cause problems, so:
   ml[pc++] = (num >> 24) & 0xff;
   ml[pc++] = (num >> 16) & 0xff;
@@ -325,8 +206,12 @@ function ml_enc32(ml, pc, num) {
 }
 
 function ml_eliminate(ml, offset, sizeof) {
-  ASSERT_LOG2(' - ml_eliminate: eliminating constraint at', offset, 'with size =', sizeof);
+  ASSERT(ml instanceof Buffer, 'ml should be buffer', ml);
+  ASSERT_LOG2(' - ml_eliminate: eliminating constraint at', offset, 'with size =', sizeof, ml.length < 50 ? ml : '');
+  ASSERT(typeof offset === 'number' && offset >= 0 && offset < ml.length, 'valid offset required');
+  ASSERT(typeof sizeof === 'number' && sizeof >= 0, 'valid sizeof required');
   ml_jump(ml, offset, sizeof);
+  ASSERT_LOG2('    - after ml_eliminate:', ml.length < 50 ? ml : '<trunced>');
 }
 
 function ml_skip(ml, offset, len) {
@@ -500,9 +385,36 @@ function ml_c2vv(ml, offset, len, opCode, indexA, indexB) {
   ml_skip(ml, offset + SIZEOF_VV, oldLen - SIZEOF_VV);
 }
 
+function ml_any2c(ml, offset, oldSizeof, opCode, args) {
+  ASSERT_LOG2(' -| ml_any2c | from', offset, 'was len=', oldSizeof, 'to op', opCode, 'with args', args, ', new size should be', SIZEOF_COUNT + args.length * 2);
+  ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
+  ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
+  ASSERT(typeof oldSizeof === 'number' && offset > 0 && offset < ml.length, 'valid oldSizeof', oldSizeof);
+  ASSERT(args instanceof Array, 'args is list of indexes', args);
+
+  let count = args.length;
+  ml_enc8(ml, offset, opCode);
+  ml_enc16(ml, offset + 1, count);
+  for (let i = 0; i < count; ++i) {
+    ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, args[i]);
+  }
+  let newSizeof = SIZEOF_COUNT + count * 2;
+  ASSERT(newSizeof <= oldSizeof, 'should fit!');
+  if (newSizeof < oldSizeof) {
+    ml_jump(ml, offset + newSizeof, oldSizeof - newSizeof);
+  }
+  ASSERT(ml_validateSkeleton(ml, 'ml_any2c'));
+}
+
 function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
   // "count with result" (not like sum, which is c8r)
   ASSERT_LOG2(' -| ml_cr2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
+  ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
+  ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
+  ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
+  ASSERT(typeof indexA === 'number' && indexA >= 0, 'valid indexA', indexA);
+  ASSERT(typeof indexB === 'number' && indexB >= 0, 'valid indexB', indexB);
+
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
@@ -511,108 +423,51 @@ function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
 }
 
 function ml_vv2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_vv2vv | from', offset, ', op=', opCode, indexA, indexB);
+  ASSERT_LOG2(' -| ml_vv2vv | from', offset, ', op=', opCode, ', index AB:', indexA, indexB);
+  ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
+  ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
+  ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
+  ASSERT(typeof indexA === 'number' && indexA >= 0, 'valid indexA', indexA);
+  ASSERT(typeof indexB === 'number' && indexB >= 0, 'valid indexB', indexB);
+
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
+
+  ASSERT(ml_validateSkeleton(ml, 'ml_vv2vv'));
 }
 
 function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
   ASSERT_LOG2(' -| ml_vvv2vv |', opCode, indexA, indexB);
+  ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
+  ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
+  ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
+  ASSERT(typeof indexA === 'number' && indexA >= 0, 'valid indexA', indexA);
+  ASSERT(typeof indexB === 'number' && indexB >= 0, 'valid indexB', indexB);
+
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
   ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VVV - SIZEOF_VV);
+
+  ASSERT(ml_validateSkeleton(ml, 'ml_vvv2vv'));
 }
 
 function ml_vvv2vvv(ml, offset, opCode, indexA, indexB, indexR) {
   ASSERT_LOG2(' -| cr_vvv2vvv |', opCode, indexA, indexB, indexR);
+  ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
+  ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
+  ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
+  ASSERT(typeof indexA === 'number' && indexA >= 0, 'valid indexA', indexA);
+  ASSERT(typeof indexB === 'number' && indexB >= 0, 'valid indexB', indexB);
+  ASSERT(typeof indexR === 'number' && indexR >= 0, 'valid indexR', indexR);
+
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
   ml_enc16(ml, offset + 5, indexR);
-}
 
-function ml_vvv2v8v(ml, offset, opCode, indexA, constant, indexR) {
-  ASSERT_LOG2(' -| ml_vvv2v8v |', opCode, indexA, constant, indexR);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, constant);
-  ml_enc16(ml, offset + 4, indexR);
-  ml_skip(ml, offset + SIZEOF_V8V, SIZEOF_VVV - SIZEOF_V8V);
-}
-
-function ml_vv82vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_vv82vv |', opCode, indexA, indexB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc16(ml, offset + 3, indexB);
-  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_VV8 - SIZEOF_VV);
-}
-
-function ml_8vv2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_8vv2vv |', opCode, indexA, indexB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc16(ml, offset + 3, indexB);
-  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_8VV - SIZEOF_VV);
-}
-
-function ml_8vv2v8(ml, offset, opCode, indexA, vB) {
-  ASSERT_LOG2(' -| ml_8vv2v8 |', opCode, indexA, vB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, vB);
-  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_8VV - SIZEOF_V8);
-}
-
-function ml_8vv28v(ml, offset, opCode, vA, indexB) {
-  ASSERT_LOG2(' -| ml_8vv28v |', opCode, vA, indexB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc8(ml, offset + 1, vA);
-  ml_enc16(ml, offset + 2, indexB);
-  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_8VV - SIZEOF_8V);
-}
-
-function ml_v8v2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_v8v2vv |', opCode, indexA, indexB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc16(ml, offset + 3, indexB);
-  ml_skip(ml, offset + SIZEOF_VV, SIZEOF_V8V - SIZEOF_VV);
-}
-
-function ml_v8v2v8(ml, offset, opCode, indexA, vB) {
-  ASSERT_LOG2(' -| ml_v8v2v8 |', opCode, indexA, vB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, vB);
-  ml_skip(ml, offset + SIZEOF_V8, SIZEOF_V8V - SIZEOF_V8);
-}
-
-function ml_v8v2v8v(ml, offset, opCode, indexA, vB, indexR) {
-  ASSERT_LOG2(' -| ml_v8v2v8v |', opCode, indexA, vB, indexR);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, vB);
-  ml_enc16(ml, offset + 4, indexR);
-}
-
-function ml_v8v28v(ml, offset, opCode, vA, indexB) {
-  ASSERT_LOG2(' -| ml_v8v2v8 |', opCode, vA, indexB);
-  ml_enc8(ml, offset, opCode);
-  ml_enc8(ml, offset + 1, vA);
-  ml_enc16(ml, offset + 2, indexB);
-  ml_skip(ml, offset + SIZEOF_8V, SIZEOF_V8V - SIZEOF_8V);
-}
-
-function ml_v8v2v88(ml, offset, opCode, indexA, vB, vR) {
-  ASSERT_LOG2(' -| ml_v8v2v88 |', opCode, indexA, vB, vR);
-  ml_enc8(ml, offset, opCode);
-  ml_enc16(ml, offset + 1, indexA);
-  ml_enc8(ml, offset + 3, vB);
-  ml_enc8(ml, offset + 4, vR);
-  ml_skip(ml, offset + SIZEOF_V88, SIZEOF_V8V - SIZEOF_V88);
+  ASSERT(ml_validateSkeleton(ml, 'ml_vvv2vvv'));
 }
 
 function ml_walk(ml, offset, callback) {
@@ -654,45 +509,23 @@ function ml_stream(ml, offset, callback) {
 
     let sizeof = 0;
     switch (op) {
-      case ML_VV_EQ:
-      case ML_VV_NEQ:
-      case ML_VV_LT:
-      case ML_VV_LTE:
-      case ML_VV_AND:
-      case ML_VV_OR:
-      case ML_VV_XOR:
-      case ML_VV_NAND:
-      case ML_VV_XNOR:
+      case ML_EQ:
+      case ML_NEQ:
+      case ML_LT:
+      case ML_LTE:
+      case ML_AND:
+      case ML_OR:
+      case ML_XOR:
+      case ML_NAND:
+      case ML_XNOR:
         r = callback(ml, offset, ML_VV, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3));
         sizeof = SIZEOF_VV;
         break;
 
-      case ML_V8_EQ:
-      case ML_V8_NEQ:
-      case ML_V8_LT:
-      case ML_V8_LTE:
-        r = callback(ml, offset, ML_V8, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3));
-        sizeof = SIZEOF_V8;
-        break;
-
-      case ML_88_EQ:
-      case ML_88_NEQ:
-      case ML_88_LT:
-      case ML_88_LTE:
-        r = callback(ml, offset, ML_88, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2));
-        sizeof = SIZEOF_88;
-        break;
-
-      case ML_8V_LT:
-      case ML_8V_LTE:
-        r = callback(ml, offset, ML_8V, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2));
-        sizeof = SIZEOF_8V;
-        break;
-
-      case ML_VVV_ISEQ:
-      case ML_VVV_ISNEQ:
-      case ML_VVV_ISLT:
-      case ML_VVV_ISLTE:
+      case ML_ISEQ:
+      case ML_ISNEQ:
+      case ML_ISLT:
+      case ML_ISLTE:
       case ML_PLUS:
       case ML_MINUS:
       case ML_MUL:
@@ -700,58 +533,6 @@ function ml_stream(ml, offset, callback) {
       case ML_ISALL2:
         r = callback(ml, offset, ML_VVV, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3), ml_dec16(ml, offset + 5));
         sizeof = SIZEOF_VVV;
-        break;
-
-      case ML_V8V_ISEQ:
-      case ML_V8V_ISNEQ:
-      case ML_V8V_ISLT:
-      case ML_V8V_ISLTE:
-        r = callback(ml, offset, ML_V8V, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec16(ml, offset + 4));
-        sizeof = SIZEOF_V8V;
-        break;
-
-      case ML_VV8_ISEQ:
-      case ML_VV8_ISNEQ:
-      case ML_VV8_ISLT:
-      case ML_VV8_ISLTE:
-        r = callback(ml, offset, ML_VV8, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + 3), ml_dec8(ml, offset + 5));
-        sizeof = SIZEOF_VV8;
-        break;
-
-      case ML_88V_ISEQ:
-      case ML_88V_ISNEQ:
-      case ML_88V_ISLT:
-      case ML_88V_ISLTE:
-        r = callback(ml, offset, ML_88V, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2), ml_dec16(ml, offset + 3));
-        sizeof = SIZEOF_88V;
-        break;
-
-      case ML_V88_ISEQ:
-      case ML_V88_ISNEQ:
-      case ML_V88_ISLT:
-      case ML_V88_ISLTE:
-        r = callback(ml, offset, ML_V88, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec8(ml, offset + 4));
-        sizeof = SIZEOF_V88;
-        break;
-
-      case ML_888_ISEQ:
-      case ML_888_ISNEQ:
-      case ML_888_ISLT:
-      case ML_888_ISLTE:
-        r = callback(ml, offset, ML_888, op, ml_dec8(ml, offset + 1), ml_dec8(ml, offset + 2), ml_dec8(ml, offset + 3));
-        sizeof = SIZEOF_888;
-        break;
-
-      case ML_8VV_ISLT:
-      case ML_8VV_ISLTE:
-        r = callback(ml, offset, ML_8VV, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2), ml_dec16(ml, offset + 4));
-        sizeof = SIZEOF_8VV;
-        break;
-
-      case ML_8V8_ISLT:
-      case ML_8V8_ISLTE:
-        r = callback(ml, offset, ML_8V8, op, ml_dec8(ml, offset + 1), ml_dec16(ml, offset + 2), ml_dec8(ml, offset + 4));
-        sizeof = SIZEOF_8V8;
         break;
 
       case ML_NALL:
@@ -764,13 +545,9 @@ function ml_stream(ml, offset, callback) {
       case ML_ISNALL:
       case ML_ISNONE:
       case ML_PRODUCT:
+      case ML_SUM:
         r = callback(ml, offset, ML_CR, op, ml_dec16(ml, offset + 1), ml_dec16(ml, offset + SIZEOF_COUNT + ml_dec16(ml, offset + 1) * 2));
         sizeof = SIZEOF_COUNT + ml_dec16(ml, offset + 1) * 2 + 2;
-        break;
-
-      case ML_8V_SUM:
-        r = callback(ml, offset, ML_C8R, op, ml_dec16(ml, offset + 1), ml_dec8(ml, offset + 3), ml_dec16(ml, offset + SIZEOF_C8 + ml_dec16(ml, offset + 1) * 2));
-        sizeof = SIZEOF_C8 + ml_dec16(ml, offset + 1) * 2 + 2;
         break;
 
       case ML_DEBUG:
@@ -836,6 +613,8 @@ function ml_validateSkeleton(ml, msg) {
 
 function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
   ASSERT_LOG2(' - ml_getRecycleOffset looking for at least', requiredSize, 'bytes of free space');
+  ASSERT(typeof fromOffset === 'number' && fromOffset >= 0, 'expecting fromOffset', fromOffset);
+  ASSERT(typeof requiredSize === 'number' && requiredSize > 0, 'expecting size', requiredSize);
   // find a jump which covers at least the requiredSize
   return ml_walk(ml, fromOffset, (ml, offset, op) => {
     ASSERT_LOG2('   - considering op', op, 'at', offset);
@@ -847,8 +626,57 @@ function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
   });
 }
 
+function ml_getRecycleOffsets(ml, fromOffset, slotCount, sizePerSlot) {
+  ASSERT_LOG2(' - ml_getRecycleOffsets looking for empty spaces to fill', slotCount, 'times', sizePerSlot, 'bytes');
+  ASSERT(typeof fromOffset === 'number' && fromOffset >= 0, 'expecting fromOffset', fromOffset);
+  ASSERT(typeof slotCount === 'number' && slotCount > 0, 'expecting slotCount', slotCount);
+  ASSERT(typeof sizePerSlot === 'number' && sizePerSlot > 0, 'expecting sizePerSlot', sizePerSlot);
+
+  let spaces = [];
+
+  // find a jump which covers at least the requiredSize
+  ml_walk(ml, fromOffset, (ml, offset, op) => {
+    ASSERT_LOG2('   - considering op', op, 'at', offset);
+    if (op === ML_JMP || op === ML_JMP32) {
+      let size = ml_getOpSizeSlow(ml, offset);
+      ASSERT_LOG2('   - found jump of', size, 'bytes at', offset + ', wanted', sizePerSlot, (sizePerSlot <= size ? ' so is ok!' : ' so is too small'));
+      if (size >= sizePerSlot) {
+        spaces.push(offset); // only add it once!
+        do { // remove as many from count as there fit in this empty space
+          --slotCount;
+          size -= sizePerSlot;
+        } while (slotCount && size >= sizePerSlot);
+        if (!slotCount) return true;
+      }
+    }
+  });
+
+  if (slotCount) return false; // unable to collect enough spaces
+  return spaces;
+}
+
+function ml_recycles(ml, bins, loops, sizeofOp, callback) {
+  let i = 0;
+  while (i < loops) {
+    let currentRecycleOffset = bins.pop();
+    ASSERT(ml_dec8(ml, currentRecycleOffset) === ML_JMP, 'should only get jumps here'); // might trap a case where we clobber
+    let sizeLeft = ml_getOpSizeSlow(ml, currentRecycleOffset);
+    ASSERT(sizeLeft >= sizeofOp, 'this is what should have been asked for when getting recycled spaces');
+    do {
+      callback(currentRecycleOffset, i, sizeLeft);
+
+      ++i;
+      sizeLeft -= sizeofOp;
+      currentRecycleOffset += sizeofOp;
+    } while (sizeLeft >= sizeofOp && i < loops);
+    if (sizeLeft) ml_jump(ml, currentRecycleOffset, sizeLeft);
+    ASSERT(ml_validateSkeleton(ml), 'trickNandIsall1 compiling loops'); // cant check earlier
+  }
+}
+
 function ml_getOpSizeSlow(ml, offset) {
-  ASSERT(offset < ml.length, 'ml_getOpSizeSlow OOB');
+  ASSERT(ml instanceof Buffer, 'ml is a buf');
+  ASSERT(typeof offset === 'number' && offset >= 0 && offset < ml.length, 'ml_getOpSizeSlow OOB');
   // this is much slower compared to using the constants because it has to read from the ML
   // this function exists to suplement recycling, where you must read the size of the jump
   // otherwise you won't know how much space is left after recycling
@@ -897,14 +725,13 @@ function ml_recycleVV(ml, offset, op, indexA, indexB) {
   if (remainsEmpty) ml_skip(ml, offset + SIZEOF_VV, remainsEmpty);
 }
 
-function ml__debug(ml, offset, max, domains, names) {
+function ml__debug(ml, offset, max, problem, dontThrow) {
+  let getDomain = problem && problem.getDomain;
+  let names = problem && problem.varNames;
+
   function ml_index(offset) {
     let index = ml.readUInt16BE(offset);
-    return '{index=' + index + (names ? ',name=' + names[index] : '') + (domains ? ',' + domain__debug(domains[index]) : '') + '}';
-  }
-
-  function ml_8(offset) {
-    return ml[offset];
+    return '{index=' + index + (problem && index < names.length ? ',name=' + names[index] : '') + (problem ? ',' + domain__debug(getDomain(index)) : '') + '}';
   }
 
   function ml_16(offset) {
@@ -925,201 +752,61 @@ function ml__debug(ml, offset, max, domains, names) {
       case ML_START:
         if (pc !== 0) {
           ASSERT_LOG2('collected debugs up to error:', rv);
-          THROW('ML_START at non-zero (' + pc + ')');
+          if (!dontThrow) THROW('ML_START at non-zero (' + pc + ')');
           rv.push('unused_error(0)');
           return rv.join('\n');
         }
         break;
 
-      case ML_VV_EQ:
+      case ML_EQ:
         name = '==';
       /* fall-through */
-      case ML_VV_NEQ:
+      case ML_NEQ:
         if (!name) name = '!=';
       /* fall-through */
-      case ML_VV_LT:
+      case ML_LT:
         if (!name) name = '<';
       /* fall-through */
-      case ML_VV_LTE:
+      case ML_LTE:
         if (!name) name = '<=';
       /* fall-through */
-      case ML_VV_AND:
+      case ML_AND:
         if (!name) name = '&';
       /* fall-through */
-      case ML_VV_OR:
+      case ML_OR:
         if (!name) name = '|';
       /* fall-through */
-      case ML_VV_XOR:
+      case ML_XOR:
         if (!name) name = '^';
       /* fall-through */
-      case ML_VV_NAND:
+      case ML_NAND:
         if (!name) name = '!&';
       /* fall-through */
-      case ML_VV_XNOR:
+      case ML_XNOR:
         if (!name) name = '!^';
         rv.push(ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3));
         break;
 
-      case ML_V8_EQ:
-        name = '==';
-      /* fall-through */
-      case ML_V8_NEQ:
-        if (!name) name = '!=';
-      /* fall-through */
-      case ML_V8_LT:
-        if (!name) name = '<';
-      /* fall-through */
-      case ML_V8_LTE:
-        if (!name) name = '<=';
-        rv.push(ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3));
-        break;
-
-      case ML_88_EQ:
-        name = '==';
-      /* fall-through */
-      case ML_88_NEQ:
-        if (!name) name = '!=';
-      /* fall-through */
-      case ML_88_LT:
-        if (!name) name = '<';
-      /* fall-through */
-      case ML_88_LTE:
-        if (!name) name = '<=';
-        rv.push(ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2));
-        break;
-
-      case ML_8V_LT:
-        name = '<';
-      /* fall-through */
-      case ML_8V_LTE:
-        if (!name) name = '<=';
-        rv.push(ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3));
-        break;
-
-      case ML_VVV_ISEQ:
+      case ML_ISEQ:
         name = '==?';
       /* fall-through */
-      case ML_VVV_ISNEQ:
+      case ML_ISNEQ:
         if (!name) name = '!=?';
       /* fall-through */
-      case ML_VVV_ISLT:
+      case ML_ISLT:
         if (!name) name = '<?';
       /* fall-through */
-      case ML_VVV_ISLTE:
+      case ML_ISLTE:
         if (!name) name = '<=?';
         AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3);
         rv.push(ml_index(pc + 5) + ' = ' + AB);
         break;
 
-      case ML_V8V_ISEQ:
-        name = '==?';
-      /* fall-through */
-      case ML_V8V_ISNEQ:
-        if (!name) name = '!=?';
-      /* fall-through */
-      case ML_V8V_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_V8V_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3);
-        rv.push(ml_index(pc + 4) + ' = ' + AB);
-        break;
-
-      case ML_VV8_ISEQ:
-        name = '==?';
-      /* fall-through */
-      case ML_VV8_ISNEQ:
-        if (!name) name = '!=?';
-      /* fall-through */
-      case ML_VV8_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_VV8_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_index(pc + 3);
-        rv.push(ml_8(pc + 5) + ' = ' + AB);
-        break;
-
-      case ML_88V_ISEQ:
-        name = '==?';
-      /* fall-through */
-      case ML_88V_ISNEQ:
-        if (!name) name = '!=?';
-      /* fall-through */
-      case ML_88V_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_88V_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2);
-        rv.push(ml_index(pc + 4) + ' = ' + AB);
-        break;
-
-      case ML_V88_ISEQ:
-        name = '==?';
-      /* fall-through */
-      case ML_V88_ISNEQ:
-        if (!name) name = '!=?';
-      /* fall-through */
-      case ML_V88_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_V88_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_index(pc + 1) + ' ' + name + ' ' + ml_8(pc + 3);
-        rv.push(ml_8(pc + 4) + ' = ' + AB);
-        break;
-
-      case ML_888_ISEQ:
-        name = '==?';
-      /* fall-through */
-      case ML_888_ISNEQ:
-        if (!name) name = '!=?';
-      /* fall-through */
-      case ML_888_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_888_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_8(pc + 2);
-        rv.push(ml_8(pc + 3) + ' = ' + AB);
-        break;
-
-      case ML_8VV_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_8VV_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 2);
-        rv.push(ml_index(pc + 4) + ' = ' + AB);
-        break;
-
-      case ML_8V8_ISLT:
-        if (!name) name = '<?';
-      /* fall-through */
-      case ML_8V8_ISLTE:
-        if (!name) name = '<=?';
-        AB = ml_8(pc + 1) + ' ' + name + ' ' + ml_index(pc + 2);
-        rv.push(ml_8(pc + 4) + ' = ' + AB);
-        break;
-
-      case ML_8V_SUM: {
+      case ML_SUM:
         name = 'sum';
-        let vars = '';
-        let varcount = ml_16(pc + 1);
-        let sumconstant = ml_8(pc + 3);
-        for (let i = 0; i < varcount; ++i) {
-          vars += ml_index(pc + SIZEOF_C8 + i * 2);
-        }
-        vars = name + '(' + sumconstant + ', ' + vars + ')';
-        vars = ml_index(pc + SIZEOF_C8 + varcount * 2) + ' = ' + vars;
-        rv.push(vars);
-        break;
-      }
-
+      /* fall-through */
       case ML_PRODUCT:
-        name = 'product';
+        if (!name) name = 'product';
       /* fall-through */
       case ML_ISALL:
         if (!name) name = 'isall';
@@ -1205,11 +892,11 @@ function ml__debug(ml, offset, max, domains, names) {
 
     let size = ml_sizeof(ml, pc, op);
     //console.log('size was:', size, 'rv=', rv);
-    if (max !== 1) rv.push(pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + Math.min(size, 100))].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' ') + (size > 100 ? '... (trunced)' : ''));
+    if (max !== 1) rv.push('\x1b[90m' + pc + ' ~ ' + (pc + size) + ' -> 0x ' + [...ml.slice(pc, pc + Math.min(size, 100))].map(c => (c < 16 ? '0' : '') + c.toString(16)).join(' ') + (size > 100 ? '... (trunced)' : '') + '\x1b[0m');
     pc += size;
   }
 
-  return max === 1 ? rv[0] : ' ## ML Debug:\n' + rv.join('\n') + '\n ## End of ML Debug\n';
+  return max === 1 ? rv[0] : ' ## ML Debug:\n' + rv.join('\n') + '\n ## End of ML Debug' + ((offset || pc < ml.length) ? ' (did not list all ops)...' : '') + '\n';
 }
 
 function ml_throw(ml, offset, msg) {
@@ -1234,85 +921,51 @@ function ml_getOpList(ml) {
         }
         break;
 
-      case ML_VV_EQ:
-      case ML_V8_EQ:
-      case ML_88_EQ:
+      case ML_EQ:
         rv.push('eq');
         break;
-      case ML_VV_NEQ:
-      case ML_V8_NEQ:
-      case ML_88_NEQ:
+      case ML_NEQ:
         rv.push('neq');
         break;
-      case ML_VV_LT:
-      case ML_V8_LT:
-      case ML_8V_LT:
-      case ML_88_LT:
+      case ML_LT:
         rv.push('lt');
         break;
-      case ML_VV_LTE:
-      case ML_V8_LTE:
-      case ML_88_LTE:
-      case ML_8V_LTE:
+      case ML_LTE:
         rv.push('lte');
         break;
-      case ML_VV_AND:
+      case ML_AND:
         rv.push('and');
         break;
-      case ML_VV_OR:
+      case ML_OR:
         rv.push('or');
         break;
-      case ML_VV_XOR:
+      case ML_XOR:
         rv.push('xor');
         break;
-      case ML_VV_NAND:
+      case ML_NAND:
         rv.push('nand');
         break;
-      case ML_VV_XNOR:
+      case ML_XNOR:
         rv.push('xnor');
         break;
 
-      case ML_VVV_ISEQ:
-      case ML_V8V_ISEQ:
-      case ML_VV8_ISEQ:
-      case ML_88V_ISEQ:
-      case ML_V88_ISEQ:
-      case ML_888_ISEQ:
+      case ML_ISEQ:
         rv.push('iseq');
         break;
 
-      case ML_VVV_ISNEQ:
-      case ML_V8V_ISNEQ:
-      case ML_88V_ISNEQ:
-      case ML_VV8_ISNEQ:
-      case ML_V88_ISNEQ:
-      case ML_888_ISNEQ:
+      case ML_ISNEQ:
         rv.push('isneq');
         break;
 
-      case ML_VVV_ISLT:
-      case ML_V8V_ISLT:
-      case ML_VV8_ISLT:
-      case ML_88V_ISLT:
-      case ML_V88_ISLT:
-      case ML_888_ISLT:
-      case ML_8VV_ISLT:
-      case ML_8V8_ISLT:
-        rv.push('lt');
+      case ML_ISLT:
+        rv.push('islt');
         break;
 
-      case ML_VVV_ISLTE:
-      case ML_V8V_ISLTE:
-      case ML_VV8_ISLTE:
-      case ML_88V_ISLTE:
-      case ML_V88_ISLTE:
-      case ML_888_ISLTE:
-      case ML_8VV_ISLTE:
-      case ML_8V8_ISLTE:
-        rv.push('lte');
+      case ML_ISLTE:
+        rv.push('islte');
         break;
 
-      case ML_8V_SUM:
+      case ML_SUM:
         rv.push('sum');
         break;
       case ML_PRODUCT:
@@ -1359,28 +1012,28 @@ function ml_getOpList(ml) {
   return rv.sort((a, b) => a < b ? -1 : 1).join(',');
 }
 
-function ml_heapSort16bitInline(ml, offset, len) {
+function ml_heapSort16bitInline(ml, offset, argCount) {
   ASSERT(ml instanceof Buffer, 'valid ML');
-  ASSERT(typeof offset === 'number' && (offset === 0 || (offset > 0 && offset < ml.length)), 'valid offset', ml.length, offset, len);
-  ASSERT(typeof len === 'number' && (len === 0 || (len > 0 && offset + len * 2 <= ml.length)), 'valid count', ml.length, offset, len);
+  ASSERT(typeof offset === 'number' && (offset === 0 || (offset > 0 && offset < ml.length)), 'valid offset', ml.length, offset, argCount);
+  ASSERT(typeof argCount === 'number' && (argCount === 0 || (argCount > 0 && offset + argCount * 2 <= ml.length)), 'valid count', ml.length, offset, argCount);
 
-  ASSERT_LOG2('     ml_heapSort16bitInline, len=', len, ', offset=', offset, ', buf=', ml.slice(offset, offset + len * 2));
-  ASSERT_LOG2('     - values before:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
+  ASSERT_LOG2('     ### <ml_heapSort16bitInline>, argCount=', argCount, ', offset=', offset, ', buf=', ml.slice(offset, offset + argCount * 2));
+  ASSERT_LOG2('     - values before:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
 
-  if (len <= 1) return; // finished this branch
+  if (argCount <= 1) return; // finished this branch
 
-  ml_heapify(ml, offset, len);
+  ml_heapify(ml, offset, argCount);
 
-  let end = len - 1;
+  let end = argCount - 1;
   while (end > 0) {
     ASSERT_LOG2('     - swapping first elemement (should be biggest of values left to do) [', ml.readUInt16BE(offset), '] with last [', ml.readUInt16BE(offset + end * 2), '] and reducing end [', end, '->', end - 1, ']');
     ml_swap16(ml, offset, offset + end * 2);
-    ASSERT_LOG2('     - (total) buffer now: Buffer(', [].map.call(ml.slice(offset, offset + len * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
+    ASSERT_LOG2('     - (total) buffer now: Buffer(', [].map.call(ml.slice(offset, offset + argCount * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
     --end;
     ml_heapRepair(ml, offset, 0, end);
   }
 
-  ASSERT_LOG2('     - values after:', new Array(len).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '), 'buf:', ml.slice(offset, offset + len * 2));
+  ASSERT_LOG2('     ### </ml_heapSort16bitInline> values after:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '), 'buf:', ml.slice(offset, offset + argCount * 2));
 }
 function ml_heapParent(index) {
   return Math.floor((index - 1) / 2);
@@ -1461,54 +1114,20 @@ function ml_swap16(ml, indexA, indexB) {
 // BODY_STOP
 
 export {
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
@@ -1516,11 +1135,11 @@ export {
   ML_MUL,
   ML_DIV,
 
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
 
   ML_DEBUG,
   ML_JMP,
@@ -1535,35 +1154,14 @@ export {
   SIZEOF_V,
   SIZEOF_W,
   SIZEOF_VV,
-  SIZEOF_8V,
-  SIZEOF_V8,
-  SIZEOF_88,
   SIZEOF_VVV,
-  SIZEOF_8VV,
-  SIZEOF_V8V,
-  SIZEOF_VV8,
-  SIZEOF_88V,
-  SIZEOF_V88,
-  SIZEOF_8V8,
-  SIZEOF_888,
   SIZEOF_COUNT,
-  SIZEOF_C8,
 
   ML_NO_ARGS,
   ML_V,
   ML_W,
   ML_VV,
-  ML_V8,
-  ML_8V,
-  ML_88,
   ML_VVV,
-  ML_VV8,
-  ML_V8V,
-  ML_8VV,
-  ML_V88,
-  ML_88V,
-  ML_8V8,
-  ML_888,
   ML_C,
   ML_CR,
   ML_C8R,
@@ -1579,33 +1177,26 @@ export {
   ml_enc32,
   ml_eliminate,
   ml_getRecycleOffset,
+  ml_getRecycleOffsets,
   ml_getOpSizeSlow,
   ml_hasConstraint,
   ml_heapSort16bitInline,
   ml_jump,
   ml_pump,
+  ml_recycles,
   ml_recycleC3,
   ml_recycleVV,
   ml_sizeof,
   ml_skip,
+  ml_stream,
   ml_throw,
   ml_validateSkeleton,
   ml_walk,
-  ml_stream,
 
+  ml_any2c,
   ml_c2vv,
   ml_cr2vv,
   ml_vv2vv,
   ml_vvv2vv,
   ml_vvv2vvv,
-  ml_vvv2v8v,
-  ml_8vv2vv,
-  ml_8vv2v8,
-  ml_8vv28v,
-  ml_v8v2vv,
-  ml_v8v28v,
-  ml_v8v2v8,
-  ml_v8v2v8v,
-  ml_v8v2v88,
-  ml_vv82vv,
 };

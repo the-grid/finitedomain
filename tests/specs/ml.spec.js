@@ -1,7 +1,7 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import solverSolver from '../../src/runner';
 import {
-  ML_VV_LTE,
+  ML_LTE,
   ML_JMP,
   ML_START,
   ML_STOP,
@@ -259,7 +259,7 @@ describe('specs/ml.spec', function() {
         A = sum(1 2 3 20)
       `);
 
-      expect(solution).to.eql({A: 26, __1: 1, __2: 2, __3: 3, __4: 20});
+      expect(solution).to.eql({A: 26});
     });
   });
 
@@ -272,7 +272,7 @@ describe('specs/ml.spec', function() {
         : B [0 1]
         : C [0 1]
         nall(A B C)
-      `)).to.throw(/debug: 3 vars, 1 constraints, current domain state: 0:A:0,1: 1:B:0,1: 2:C:0,1 ops: nall/); // if this fails check if its just the message
+      `)).to.throw(/debug: 3 vars, 1 constraints, current domain state: 0:A:0,1: 1:B:0,1: 2:C:0,1 ops: nall #/); // if this fails check if its just the message
     });
 
     it('should support isall', function() {
@@ -281,6 +281,7 @@ describe('specs/ml.spec', function() {
         : A [0 1]
         : B [0 1]
         : C [0 1]
+        : D [0 1]
         D = all?(A B C)
       `);
 
@@ -293,6 +294,7 @@ describe('specs/ml.spec', function() {
         : A [0 1]
         : B [0 1]
         : C [0 1]
+        : D [0 1]
         D = nall?(A B C)
       `);
 
@@ -302,30 +304,7 @@ describe('specs/ml.spec', function() {
 
   describe('eq reifier with booleanesque', function() {
 
-    it('should solve implicit case to boolean (C=0)', function() {
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [15 20]
-        C = A ==? B
-      `);
-
-      expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
-    });
-
-    it('should solve implicit case to boolean (C=1)', function() {
-      let solution = solverSolver(`
-        @custom var-strat throw
-        : A [5 10]
-        : B [5 10]
-        # C should be implicitly defined as a bool (!), not sub/sup
-        C = A ==? B
-      `);
-
-      expect(solution).to.eql({A: 5, B: 5, C: 1}); // C:[1,SUP] is NOT valid here... dsl2ml should create C as bool
-    });
-
-    it('should work when result is explicitly bool (C=0)', function() {
+    it('should work when result is bool (C=0)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -337,7 +316,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
     });
 
-    it('should work when result is explicitly bool (C=1)', function() {
+    it('should work when result is bool (C=1)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -349,7 +328,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 5, B: 5, C: 1});
     });
 
-    it('should work when result is explicitly [0 10] (C=0)', function() {
+    it('should work when result is [0 10] (C=0)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -361,7 +340,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
     });
 
-    it('should work when result is explicitly [0 10] (C=1)', function() {
+    it('should work when result is [0 10] (C=1)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -373,7 +352,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 5, B: 5, C: [1, 10]});
     });
 
-    it('should work when result is explicitly two values without 1 (C=0)', function() {
+    it('should work when result is two values without 1 (C=0)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -385,7 +364,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
     });
 
-    it('should work when result is explicitly two values without 1 (C=4)', function() {
+    it('should work when result is two values without 1 (C=4)', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -397,7 +376,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 5, B: 5, C: 4});
     });
 
-    it('should work when result is explicitly [0 0] v1', function() {
+    it('should work when result is [0 0] v1', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -409,7 +388,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: [5, 10], B: [15, 20], C: 0});
     });
 
-    it('should work when result is explicitly [0 0] v2', function() {
+    it('should work when result is [0 0] v2', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -421,7 +400,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: [6, 10], B: 5, C: 0});
     });
 
-    it('should work when result is explicitly [1 10] v1', function() {
+    it('should work when result is [1 10] v1', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 16]
@@ -433,7 +412,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 15, B: 15, C: [1, 10]});
     });
 
-    it('should work when result is explicitly [1 10] v2', function() {
+    it('should work when result is [1 10] v2', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -445,7 +424,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 5, B: 5, C: [1, 10]});
     });
 
-    it('should work when result is explicitly [5 10] v1', function() {
+    it('should work when result is [5 10] v1', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 16]
@@ -457,7 +436,7 @@ describe('specs/ml.spec', function() {
       expect(solution).to.eql({A: 15, B: 15, C: [5, 10]});
     });
 
-    it('should work when result is explicitly [5 10] v2', function() {
+    it('should work when result is [5 10] v2', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [5 10]
@@ -590,7 +569,7 @@ describe('specs/ml.spec', function() {
 
       // the recycle should get the second jump (len=3+17), then use that to compile in a LTE (len=5) and a jump for the remaining space (len=3+12)
       let expected = Buffer.from(init);
-      ml_enc8(expected, 9, ML_VV_LTE);
+      ml_enc8(expected, 9, ML_LTE);
       ml_enc16(expected, 10, 1);
       ml_enc16(expected, 12, 2);
       ml_enc8(expected, 14, ML_JMP);
@@ -599,7 +578,7 @@ describe('specs/ml.spec', function() {
       //console.log('------ start');
       let ml = Buffer.from(init);
       let offset = ml_getRecycleOffset(ml, 0, 9);
-      ml_recycleVV(ml, offset, ML_VV_LTE, 1, 2);
+      ml_recycleVV(ml, offset, ML_LTE, 1, 2);
 
       //console.log('');
       //console.log('init:', init);
@@ -622,10 +601,10 @@ describe('specs/ml.spec', function() {
 
       // the recycle should get the second jump (len=3+17), then use that to compile in a LTE (len=5) and a jump for the remaining space (len=3+12)
       let expected = Buffer.from(init);
-      ml_enc8(expected, 9, ML_VV_LTE);
+      ml_enc8(expected, 9, ML_LTE);
       ml_enc16(expected, 10, 1);
       ml_enc16(expected, 12, 2);
-      ml_enc8(expected, 14, ML_VV_LTE);
+      ml_enc8(expected, 14, ML_LTE);
       ml_enc16(expected, 15, 1);
       ml_enc16(expected, 17, 2);
       ml_enc8(expected, 19, ML_JMP);
@@ -634,8 +613,8 @@ describe('specs/ml.spec', function() {
       //console.log('------ start');
       let ml = Buffer.from(init);
       let offset = ml_getRecycleOffset(ml, 0, 9);
-      ml_recycleVV(ml, offset, ML_VV_LTE, 1, 2);
-      ml_recycleVV(ml, offset + 5, ML_VV_LTE, 1, 2);
+      ml_recycleVV(ml, offset, ML_LTE, 1, 2);
+      ml_recycleVV(ml, offset + 5, ML_LTE, 1, 2);
 
       //console.log('');
       //console.log('init:', init);

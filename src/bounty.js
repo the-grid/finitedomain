@@ -6,65 +6,31 @@ import {
 
 import {
   ML_START,
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
   ML_MINUS,
   ML_MUL,
   ML_DIV,
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
   ML_DEBUG,
   ML_JMP,
   ML_JMP32,
@@ -78,11 +44,7 @@ import {
   SIZEOF_W,
   SIZEOF_VV,
   SIZEOF_VVV,
-  SIZEOF_8VV,
-  SIZEOF_V8V,
-  SIZEOF_VV8,
   SIZEOF_COUNT,
-  SIZEOF_C8,
 
   ml__debug,
   ml_dec16,
@@ -90,25 +52,37 @@ import {
   ml_throw,
 } from './ml';
 import {
-  //domain__debug,
+  domain__debug,
+  domain_getValue,
 } from './domain';
 
 // BODY_START
 
 let bounty_flagCounter = 0;
 const BOUNTY_NONE = bounty_flagCounter;
-const BOUNTY_NOT_BOOLY = ++bounty_flagCounter; // booly = when only used in bool ops (like nall) or as the lhs of a reifier
-const BOUNTY_OTHER = ++bounty_flagCounter;
-const BOUNTY_OTHER_BOOLY = BOUNTY_OTHER; // all vars are implicitly booly, opt-out for non-booly
-const BOUNTY_OTHER_NONBOOLY = BOUNTY_OTHER | BOUNTY_NOT_BOOLY; // debug or any of the ops the cutter is not interested in
+const BOUNTY_NOT_BOOLY_ONLY_FLAG = ++bounty_flagCounter; // booly = when only used in bool ops (like nall) or as the lhs of a reifier
+const BOUNTY_OTHER_ONLY_FLAG = ++bounty_flagCounter;
+const BOUNTY_OTHER_BOOLY = BOUNTY_OTHER_ONLY_FLAG; // all vars are implicitly booly, opt-out for non-booly
+const BOUNTY_OTHER_NONBOOLY = BOUNTY_OTHER_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG; // debug or any of the ops the cutter is not interested in
 
-const BOUNTY_ISALL_RESULT = 1 << ++bounty_flagCounter;
-const BOUNTY_LTE_LHS = (1 << ++bounty_flagCounter) | BOUNTY_NOT_BOOLY;
-const BOUNTY_LTE_RHS = (1 << ++bounty_flagCounter) | BOUNTY_NOT_BOOLY;
-const BOUNTY_NALL = 1 << ++bounty_flagCounter;
-const BOUNTY_NAND = 1 << ++bounty_flagCounter;
-const BOUNTY_NEQ = (1 << ++bounty_flagCounter) | BOUNTY_NOT_BOOLY;
-const BOUNTY_OR = 1 << ++bounty_flagCounter;
+const BOUNTY_LTE_LHS_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_LTE_LHS = BOUNTY_LTE_LHS_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
+const BOUNTY_LTE_RHS_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_LTE_RHS = BOUNTY_LTE_RHS_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
+const BOUNTY_ISALL_RESULT_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_ISALL_RESULT = BOUNTY_ISALL_RESULT_ONLY_FLAG;
+const BOUNTY_ISEQ_ARG_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_ISEQ_ARG = BOUNTY_ISEQ_ARG_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
+const BOUNTY_NALL_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_NALL = BOUNTY_NALL_ONLY_FLAG;
+const BOUNTY_NAND_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_NAND = BOUNTY_NAND_ONLY_FLAG;
+const BOUNTY_NEQ_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_NEQ = BOUNTY_NEQ_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
+const BOUNTY_OR_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_OR = BOUNTY_OR_ONLY_FLAG;
+const BOUNTY_SUM_RESULT_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_SUM_RESULT = BOUNTY_SUM_RESULT_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
 
 ASSERT(bounty_flagCounter <= 16, 'can only run with 16 flags, or must increase flag size');
 
@@ -123,17 +97,21 @@ const BOUNTY_SIZEOF_VAR = BOUNTY_SIZEOF_HEADER + BOUNTY_SIZEOF_OFFSETS;
 
 /**
  * @param {Buffer} ml
- * @param {string[]} vars
- * @param {$nordom} domains
- * @param {Function} getAlias
+ * @param {Object} problem
  * @param {Buffer} [bounty]
  */
-function bounty_collect(ml, vars, domains, getAlias, bounty) {
+function bounty_collect(ml, problem, bounty) {
   ASSERT_LOG2('\n ## bounty_collect', ml);
+
+  let varNames = problem.varNames;
+  let varCount = varNames.length;
+  let getAlias = problem.getAlias;
+  let getDomain = problem.getDomain;
+
   let pc = 0;
 
   if (!bounty) {
-    bounty = new Buffer(vars.length * BOUNTY_SIZEOF_VAR);
+    bounty = new Buffer(varCount * BOUNTY_SIZEOF_VAR);
     console.log('Created bounty buffer. Size:', bounty.length);
   }
   bounty.fill(0); // even for new buffer because they are not guaranteed to be zero filled (most like not)
@@ -153,36 +131,40 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
   }
 
   function collect(delta, metaFlags) {
+    ASSERT_LOG2('collect(', delta, ',', bounty__debugMeta(metaFlags), ')');
     ASSERT(typeof delta === 'number' && delta > 0, 'delta should be >0 number', delta);
     ASSERT(typeof metaFlags === 'number' && metaFlags > 0, 'at least one metaFlags should be passed on', metaFlags, metaFlags.toString(2));
 
-    let n = ml_dec16(ml, pc + delta);
-    ASSERT(n < domains.length, 'should be a valid index', n);
-    let index = getAlias(n);
-    ASSERT(!isNaN(index) && index >= 0 && index < domains.length, 'should be a valid index', index);
+    let index = ml_dec16(ml, pc + delta);
+    ASSERT(!isNaN(index) && index >= 0 && index <= 0xffff, 'should be a valid index', index);
+    index = getAlias(index);
+    ASSERT(!isNaN(index) && index >= 0 && index <= 0xffff, 'should be a valid index', index);
+
+    let domain = getDomain(index, true);
+    ASSERT_LOG2(' - index=', index, 'domain=', domain__debug(domain));
+    if (domain_getValue(domain) >= 0) return; // ignore all constants. solved vars and constants are not relevant to bounty
 
     let varOffset = getBountyOffset(index);
-    ++bounty[varOffset];
+    ASSERT(bounty[varOffset] < 0xff, 'constraint count should not overflow');
+    let countIndex = bounty[varOffset]++; // count, but as zero-offset
 
-    let offsetFlags = varOffset + BOUNTY_LINK_COUNT;
+    let flagsOffset = varOffset + BOUNTY_LINK_COUNT;
     ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
-    let currentFlags = bounty.readUInt16BE(offsetFlags);
+    let currentFlags = bounty.readUInt16BE(flagsOffset);
 
-    ASSERT_LOG2(' > collect(', index, ',', metaFlags.toString(2), ') ->', currentFlags, '|=', metaFlags, ' -> ', (currentFlags | metaFlags).toString(2), 'from', offsetFlags);
+    ASSERT_LOG2(' >> collecting for index=', index, ' -> count now:', bounty[varOffset], 'flags:', bounty__debugMeta(currentFlags), '|=', bounty__debugMeta(metaFlags), ' -> ', bounty__debugMeta(currentFlags | metaFlags), 'from', flagsOffset, 'domain:', domain__debug(domain));
 
-    let offsetsOffset = getOffsetsOffset(index);
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
-      let nextOffset = offsetsOffset + (i * BOUNTY_BYTES_PER_OFFSET);
-      ASSERT_LOG2('  - reading/writing from', nextOffset, 'i=', i);
-      if (!bounty.readUInt32BE(nextOffset)) {
-        ASSERT_LOG2('  - putting at', nextOffset, 'i=', i);
-        bounty.writeUInt32BE(pc, nextOffset);
-        break;
-      }
+    if (countIndex < BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      let offsetsOffset = getOffsetsOffset(index);
+      let nextOffset = offsetsOffset + countIndex * BOUNTY_BYTES_PER_OFFSET;
+      ASSERT_LOG2(' - tracking offset; countIndex=', countIndex, ', putting offset at', nextOffset);
+      bounty.writeUInt32BE(pc, nextOffset);
+    } else {
+      ASSERT_LOG2(' - unable to track offset; countIndex beyond max;', countIndex, '>', BOUNTY_MAX_OFFSETS_TO_TRACK);
     }
 
     ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
-    bounty.writeUInt16BE(currentFlags | metaFlags, offsetFlags);
+    bounty.writeUInt16BE(currentFlags | metaFlags, flagsOffset);
   }
 
   function bountyLoop() {
@@ -191,51 +173,55 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
     while (pc < ml.length) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
-        case ML_VV_NEQ:
-          collect(1, BOUNTY_NEQ | BOUNTY_NOT_BOOLY);
-          collect(3, BOUNTY_NEQ | BOUNTY_NOT_BOOLY);
+        case ML_EQ:
+          THROW('this should really already have been aliased elsewhere');
+          break;
+
+        case ML_NEQ:
+          collect(1, BOUNTY_NEQ | BOUNTY_NOT_BOOLY_ONLY_FLAG);
+          collect(3, BOUNTY_NEQ | BOUNTY_NOT_BOOLY_ONLY_FLAG);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_LTE:
-          collect(1, BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY);
-          collect(3, BOUNTY_LTE_RHS | BOUNTY_NOT_BOOLY);
+        case ML_LTE:
+          collect(1, BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY_ONLY_FLAG);
+          collect(3, BOUNTY_LTE_RHS | BOUNTY_NOT_BOOLY_ONLY_FLAG);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_LT:
+        case ML_LT:
           collect(1, BOUNTY_OTHER_NONBOOLY);
           collect(3, BOUNTY_OTHER_NONBOOLY);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_AND:
+        case ML_AND:
           collect(1, BOUNTY_OTHER_BOOLY);
           collect(3, BOUNTY_OTHER_BOOLY);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_OR:
+        case ML_OR:
           collect(1, BOUNTY_OR);
           collect(3, BOUNTY_OR);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_XOR:
+        case ML_XOR:
           collect(1, BOUNTY_OTHER_BOOLY);
           collect(3, BOUNTY_OTHER_BOOLY);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_XNOR:
+        case ML_XNOR:
           collect(1, BOUNTY_OTHER_BOOLY);
           collect(3, BOUNTY_OTHER_BOOLY);
           pc += SIZEOF_VV;
           break;
 
-        case ML_VV_NAND:
+        case ML_NAND:
           collect(1, BOUNTY_NAND);
           collect(3, BOUNTY_NAND);
           pc += SIZEOF_VV;
@@ -265,28 +251,16 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           pc += SIZEOF_VVV;
           break;
 
-        case ML_VVV_ISEQ:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
+        case ML_ISEQ:
+          collect(1, BOUNTY_ISEQ_ARG);
+          collect(3, BOUNTY_ISEQ_ARG);
           collect(5, BOUNTY_OTHER_BOOLY);
           pc += SIZEOF_VVV;
           break;
 
-        case ML_VVV_ISNEQ:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
-          collect(5, BOUNTY_OTHER_BOOLY);
-          pc += SIZEOF_VVV;
-          break;
-
-        case ML_VVV_ISLT:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
-          collect(5, BOUNTY_OTHER_BOOLY);
-          pc += SIZEOF_VVV;
-          break;
-
-        case ML_VVV_ISLTE:
+        case ML_ISNEQ:
+        case ML_ISLT:
+        case ML_ISLTE:
           collect(1, BOUNTY_OTHER_NONBOOLY);
           collect(3, BOUNTY_OTHER_NONBOOLY);
           collect(5, BOUNTY_OTHER_BOOLY);
@@ -294,12 +268,6 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           break;
 
         case ML_PLUS:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
-          collect(5, BOUNTY_OTHER_NONBOOLY);
-          pc += SIZEOF_VVV;
-          break;
-
         case ML_MINUS:
         case ML_MUL:
         case ML_DIV:
@@ -307,46 +275,6 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           collect(3, BOUNTY_OTHER_NONBOOLY);
           collect(5, BOUNTY_OTHER_NONBOOLY);
           pc += SIZEOF_VVV;
-          break;
-
-        case ML_V8V_ISEQ:
-        case ML_V8V_ISNEQ:
-        case ML_V8V_ISLT:
-        case ML_V8V_ISLTE:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(4, BOUNTY_OTHER_BOOLY);
-          pc += SIZEOF_V8V;
-          break;
-
-        case ML_VV8_ISEQ:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
-          pc += SIZEOF_VV8;
-          break;
-
-        case ML_VV8_ISNEQ:
-        case ML_VV8_ISLT:
-        case ML_VV8_ISLTE:
-          collect(1, BOUNTY_OTHER_NONBOOLY);
-          collect(3, BOUNTY_OTHER_NONBOOLY);
-          pc += SIZEOF_VV8;
-          break;
-
-        case ML_8VV_ISLT:
-        case ML_8VV_ISLTE:
-          collect(2, BOUNTY_OTHER_NONBOOLY);
-          collect(4, BOUNTY_OTHER_BOOLY);
-          pc += SIZEOF_8VV;
-          break;
-
-        case ML_8V_SUM:
-          // TODO: collect multiple occurrences of same var once
-          let slen = ml_dec16(ml, pc + 1);
-          for (let i = 0; i < slen; ++i) {
-            collect(SIZEOF_C8 + i * 2, BOUNTY_OTHER_NONBOOLY);
-          }
-          collect(SIZEOF_C8 + slen * 2, BOUNTY_OTHER_NONBOOLY); // R
-          pc += SIZEOF_C8 + slen * 2 + 2;
           break;
 
         case ML_ISALL:
@@ -366,6 +294,16 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
           }
           collect(SIZEOF_COUNT + mlen * 2, BOUNTY_OTHER_BOOLY);
           pc += SIZEOF_COUNT + mlen * 2 + 2;
+          break;
+
+        case ML_SUM:
+          // TODO: collect multiple occurrences of same var once
+          let splen = ml_dec16(ml, pc + 1);
+          for (let i = 0; i < splen; ++i) {
+            collect(SIZEOF_COUNT + i * 2, BOUNTY_OTHER_NONBOOLY);
+          }
+          collect(SIZEOF_COUNT + splen * 2, BOUNTY_SUM_RESULT); // R
+          pc += SIZEOF_COUNT + splen * 2 + 2;
           break;
 
         case ML_PRODUCT:
@@ -414,46 +352,17 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
 
         default:
           // put in a switch in the default so that the main switch is smaller. this second switch should never hit.
-          switch (op) {
-            case ML_VV_EQ:
-            case ML_V8_EQ:
-            case ML_V8_NEQ:
-            case ML_V8_LT:
-            case ML_V8_LTE:
-            case ML_8V_LT:
-            case ML_8V_LTE:
-            case ML_88_EQ:
-            case ML_88_NEQ:
-            case ML_88_LT:
-            case ML_88_LTE:
-            case ML_88V_ISEQ:
-            case ML_88V_ISNEQ:
-            case ML_88V_ISLT:
-            case ML_88V_ISLTE:
-            case ML_V88_ISEQ:
-            case ML_V88_ISNEQ:
-            case ML_V88_ISLT:
-            case ML_V88_ISLTE:
-            case ML_8V8_ISLT:
-            case ML_8V8_ISLTE:
-            case ML_888_ISEQ:
-            case ML_888_ISNEQ:
-            case ML_888_ISLT:
-            case ML_888_ISLTE:
-              THROW('expecting bounty to run after the minifier and these ops should be gone');
-              break;
-          }
           //console.error('(cnt) unknown op', pc,' at', pc,'ctrl+c now or log will fill up');
           //while (true) console.log('beep');
-          ml_throw(ml, pc, '(cnt) unknown op');
+          ml_throw(ml, pc, '(bnt) expecting bounty to run after the minifier and these ops should be gone');
       }
     }
-    THROW('ML OOB');
+    ml_throw(ml, pc, 'ML OOB');
   }
 
   function getDeadCount(varMeta) {
     let count = 0;
-    for (let i = 0; i < vars.length; i += BOUNTY_SIZEOF_VAR) {
+    for (let i = 0; i < varCount; i += BOUNTY_SIZEOF_VAR) {
       if (!varMeta[i]) ++count;
     }
     return count;
@@ -461,7 +370,7 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
 
   function getLeafCount(varMeta) {
     let count = 0;
-    for (let i = 0; i < vars.length; i += BOUNTY_SIZEOF_VAR) {
+    for (let i = 0; i < varCount; i += BOUNTY_SIZEOF_VAR) {
       if (varMeta[i] === 1) ++count;
     }
     return count;
@@ -470,7 +379,7 @@ function bounty_collect(ml, vars, domains, getAlias, bounty) {
   function getOccurrenceCount(varMeta) {
     // should be eliminated when not used by ASSERTs
     let count = {};
-    for (let i = 0; i < vars.length; i += BOUNTY_SIZEOF_VAR) {
+    for (let i = 0; i < varCount; i += BOUNTY_SIZEOF_VAR) {
       count[varMeta[i]] = ~-count[varMeta[i]];
     }
 
@@ -484,10 +393,12 @@ function bounty_getCounts(bounty, varIndex) {
 
 function bounty_markVar(bounty, varIndex) {
   // until next loop, ignore this var (need to refresh bounty data)
+  ASSERT_LOG2(' - bounty_markVar', varIndex);
   bounty[varIndex * BOUNTY_SIZEOF_VAR] = 0;
 }
 
 function bounty_getMeta(bounty, varIndex) {
+  ASSERT(bounty_getCounts(bounty, varIndex) > 0, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
   return bounty.readUInt16BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT);
 }
 
@@ -496,8 +407,31 @@ function bounty_updateMeta(bounty, varIndex, newFlags) {
 }
 
 function bounty_getOffset(bounty, varIndex, n) {
+  ASSERT(bounty_getCounts(bounty, varIndex) > 0, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
+  ASSERT(n < bounty_getCounts(bounty, varIndex), 'check caller, this is probably a bug (should not get an offset beyond the count)');
   ASSERT(n < BOUNTY_MAX_OFFSETS_TO_TRACK, 'OOB, shouldnt exceed the max offset count');
   return bounty.readUInt32BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_SIZEOF_HEADER + n * BOUNTY_BYTES_PER_OFFSET);
+}
+
+function bounty__debugMeta(meta) {
+  ASSERT(typeof meta === 'number', 'the meta should be a number', meta);
+  let s = '0'.repeat(16 - meta.toString(2).length) + meta.toString(2);
+  let what = [];
+
+  if (!meta) what.push('BOUNTY_NONE');
+  if ((meta & BOUNTY_NOT_BOOLY_ONLY_FLAG) === BOUNTY_NOT_BOOLY_ONLY_FLAG) what.push('NOT_BOOLY');
+  if ((meta & BOUNTY_OTHER_ONLY_FLAG) === BOUNTY_OTHER_ONLY_FLAG) what.push('OTHER');
+  if ((meta & BOUNTY_LTE_LHS_ONLY_FLAG) === BOUNTY_LTE_LHS_ONLY_FLAG) what.push('LTE_LHS');
+  if ((meta & BOUNTY_LTE_RHS_ONLY_FLAG) === BOUNTY_LTE_RHS_ONLY_FLAG) what.push('LTE_RHS');
+  if ((meta & BOUNTY_ISALL_RESULT_ONLY_FLAG) === BOUNTY_ISALL_RESULT_ONLY_FLAG) what.push('ISALL_RESULT');
+  if ((meta & BOUNTY_ISEQ_ARG_ONLY_FLAG) === BOUNTY_ISEQ_ARG_ONLY_FLAG) what.push('ISEQ_ARG');
+  if ((meta & BOUNTY_NALL_ONLY_FLAG) === BOUNTY_NALL_ONLY_FLAG) what.push('NALL');
+  if ((meta & BOUNTY_NAND_ONLY_FLAG) === BOUNTY_NAND_ONLY_FLAG) what.push('NAND');
+  if ((meta & BOUNTY_NEQ_ONLY_FLAG) === BOUNTY_NEQ_ONLY_FLAG) what.push('NEQ');
+  if ((meta & BOUNTY_OR_ONLY_FLAG) === BOUNTY_OR_ONLY_FLAG) what.push('OR');
+  if ((meta & BOUNTY_SUM_RESULT_ONLY_FLAG) === BOUNTY_SUM_RESULT_ONLY_FLAG) what.push('SUM_RESULT');
+
+  return '[ ' + s + ': ' + what.join(', ') + ' ]';
 }
 
 
@@ -505,21 +439,33 @@ function bounty_getOffset(bounty, varIndex, n) {
 
 export {
   BOUNTY_NONE,
-  BOUNTY_NOT_BOOLY,
-  BOUNTY_OTHER,
+  BOUNTY_NOT_BOOLY_ONLY_FLAG,
+  BOUNTY_OTHER_ONLY_FLAG,
   BOUNTY_OTHER_BOOLY,
   BOUNTY_OTHER_NONBOOLY,
 
   BOUNTY_ISALL_RESULT,
+  BOUNTY_ISALL_RESULT_ONLY_FLAG,
+  BOUNTY_ISEQ_ARG,
+  BOUNTY_ISEQ_ARG_ONLY_FLAG,
   BOUNTY_LTE_LHS,
+  BOUNTY_LTE_LHS_ONLY_FLAG,
   BOUNTY_LTE_RHS,
+  BOUNTY_LTE_RHS_ONLY_FLAG,
   BOUNTY_NALL,
+  BOUNTY_NALL_ONLY_FLAG,
   BOUNTY_NAND,
+  BOUNTY_NAND_ONLY_FLAG,
   BOUNTY_NEQ,
+  BOUNTY_NEQ_ONLY_FLAG,
   BOUNTY_OR,
+  BOUNTY_OR_ONLY_FLAG,
+  BOUNTY_SUM_RESULT,
+  BOUNTY_SUM_RESULT_ONLY_FLAG,
 
   BOUNTY_MAX_OFFSETS_TO_TRACK,
 
+  bounty__debugMeta,
   bounty_collect,
   bounty_getCounts,
   bounty_getMeta,

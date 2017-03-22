@@ -1,70 +1,35 @@
 import {
   ASSERT,
   ASSERT_LOG2,
-  THROW,
 } from './helpers';
 
 import {
   ML_START,
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
   ML_MINUS,
   ML_MUL,
   ML_DIV,
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
   ML_DEBUG,
   ML_JMP,
   ML_JMP32,
@@ -77,387 +42,579 @@ import {
   SIZEOF_V,
   SIZEOF_W,
   SIZEOF_VV,
-  SIZEOF_8V,
-  SIZEOF_V8,
-  SIZEOF_88,
   SIZEOF_VVV,
-  SIZEOF_8VV,
-  SIZEOF_V8V,
   SIZEOF_COUNT,
-  SIZEOF_C8,
 
   ml__debug,
-  ml_dec8,
   ml_dec16,
   ml_dec32,
   ml_eliminate,
+  ml_heapSort16bitInline,
   ml_throw,
+  ml_vvv2vv,
 } from './ml';
 import {
+  domain__debug,
+  domain_containsValue,
+  domain_createValue,
   domain_getValue,
+  domain_size,
+  domain_hasNoZero,
+  domain_intersection,
+  domain_isSolved,
+  domain_removeValue,
 } from './domain';
 
 // BODY_START
 
-function deduper(ml, vars, domains, getAlias, addAlias) {
-  ASSERT_LOG2('\n ## pr_dedupe', ml);
+// these global counters can be used to trace problems or print a dsl at explicit steps in the solve
+let __runCounter = 0;
+let __opCounter = 0;
+
+function deduper(ml, problem) {
+  ++__runCounter;
+  ASSERT_LOG2('\n ## pr_dedupe', __runCounter, ml);
+
+  let getDomain = problem.getDomain;
+  let setDomain = problem.setDomain;
+  let getAlias = problem.getAlias;
+  let addVar = problem.addVar;
+  let addAlias = problem.addAlias;
+
   let pc = 0;
   let constraintHash = {}; // keys are A@B or R=A@B and the vars can be an index (as is) or a literal prefixed with #
+  let debugHash = {};
   let removed = 0;
   let aliased = 0;
   let emptyDomain = false;
   innerLoop();
-  console.log(' - dedupe removed', removed, 'constraints and aliased', aliased, 'result vars');
+  console.log(' - dedupe removed', removed, 'constraints and aliased', aliased, 'result vars, emptyDomain=', emptyDomain);
+
+
+  //console.log(mlToDsl(ml, problem, counter(ml, problem), {debug: false, hashNames: false, indexNames: true, groupedConstraints: true}));
+  //throw 'stop now.';
 
   return emptyDomain ? -1 : aliased; // if aliases were created the minifier will want another go.
 
-  function getUnaliasedDomain(index, _max = 10) {
-    if (_max <= 0) THROW('damnit');
-    //ASSERT_LOG2('getDomainOrRestartForAlias: ' + index + ' -> ' + domains[index]);
-    let D = domains[index];
-    if (D !== false) return D;
+  function dedupePairU(op) {
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
 
-    // if the domain is falsy then there was an alias (or a bug)
-    // write the alias back to ML and restart the current op
-    // caller should ensure to check return value and return on
-    // a falsy result as well so the loop can restart.
-    let aliasIndex = getAlias(index);
-    ASSERT(aliasIndex !== index, 'an alias to itself is an infi loop and a bug');
-    //ASSERT_LOG2('->', aliasIndex);
-    return getUnaliasedDomain(aliasIndex, _max - 1);
-  }
-
-  function part8(delta) {
-    return '#' + ml_dec8(ml, pc + delta);
-  }
-
-  function partV(delta) {
-    let A = ml_dec16(ml, pc + delta);
-    let domain = getUnaliasedDomain(A, pc + delta);
-    if (!domain && domain !== 0) {
-      ml_throw(ml, pc, 'unknown domain...');
+    if (indexB < indexA) {
+      let t = indexB;
+      indexB = indexA;
+      indexA = t;
     }
-    let vA = domain_getValue(domain);
-    return (vA >= 0 ? '#' + vA : A);
+
+    _dedupePairAny(op, indexA, indexB);
+  }
+  function dedupePairO(op) {
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+
+    _dedupePairAny(op, indexA, indexB);
+  }
+  function _dedupePairAny(op, indexA, indexB) {
+    let key = op + ':' + indexA + ',' + indexB;
+    let debugString = op + ':' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
+
+    if (constraintHash[key] !== undefined) {
+      ASSERT_LOG2(' - _dedupePairAny; Found dupe constraint; eliminating the second one');
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, SIZEOF_VV);
+      return;
+    }
+
+    constraintHash[key] = 1;
+    debugHash[key] = debugString;
+    pc += SIZEOF_VV;
   }
 
-  function dedupe(key, oplen, value = 1) {
-    let knownValue = constraintHash[key];
-    if (knownValue === undefined) {
-      constraintHash[key] = value;
+  function dedupeTripU(op) {
+    // this assumes the assignment is a fixed value, not booly like reifiers
+    // because in this case we can safely alias any R that with the same A@B
+
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+    let indexR = getAlias(ml_dec16(ml, pc + 5));
+
+    if (indexB < indexA) {
+      let t = indexB;
+      indexB = indexA;
+      indexA = t;
+    }
+
+    _dedupeTripAny(op, indexA, indexB, indexR);
+  }
+  function dedupeTripO(op) {
+    // this assumes the assignment is a fixed value, not booly like reifiers
+    // because in this case we can safely alias any R that with the same A@B
+
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+    let indexR = getAlias(ml_dec16(ml, pc + 5));
+
+    _dedupeTripAny(op, indexA, indexB, indexR);
+  }
+  function _dedupeTripAny(op, indexA, indexB, indexR) {
+    let key = op + ':' + indexA + ',' + indexB;
+    let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
+
+    let index = constraintHash[key];
+    if (index !== undefined) {
+      index = getAlias(index);
+      ASSERT_LOG2(' - _dedupeTripAny; Found dupe constraint; eliminating the second one, aliasing', indexR, 'to', index);
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      if (indexR !== index) {
+        let R = domain_intersection(getDomain(indexR, true), getDomain(index, true));
+        if (!R) return emptyDomain = true;
+        // this probably wont matter for most of the cases, but it could make a difference
+        //setDomain(indexR, R); // (useless)
+        setDomain(index, R);
+        addAlias(indexR, index);
+      }
+      return;
+    }
+
+    constraintHash[key] = indexR;
+    debugHash[key] = debugString;
+    pc += SIZEOF_VVV;
+  }
+
+  function dedupeReifierTripU(op) {
+    // iseq, isneq, isall2
+    // the tricky example:
+    // ####
+    // : A, B 1
+    // : R [0 1]
+    // : S [0 0 2 2]
+    // R = A ==? B
+    // S = A ==? B
+    // ####
+    // in this case R and S are "booly alias" but not actual alias
+    // basically this translates into a xnor (if R then S, if S then R)
+
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+
+    if (indexB < indexA) {
+      let t = indexB;
+      indexB = indexA;
+      indexA = t;
+    }
+
+    _dedupeReifierTripAny(op, indexA, indexB);
+  }
+  function dedupeReifierTripO(op) {
+    // islt, islte
+    // the tricky example:
+    // ####
+    // : A, B 1
+    // : R [0 1]
+    // : S [0 0 2 2]
+    // R = A <=? B
+    // S = A <=? B
+    // ####
+    // in this case R and S are "booly alias" but not actual alias
+    // basically this translates into a xnor (if R then S, if S then R)
+
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+
+    _dedupeReifierTripAny(op, indexA, indexB);
+  }
+  function _dedupeReifierTripAny(op, indexA, indexB) {
+    let indexR = getAlias(ml_dec16(ml, pc + 5));
+
+    // we'll add a key by all three indexes and conditionally also on the args and the domain of R
+
+    let key = op + ':' + indexR + '=' + indexA + ',' + indexB;
+    let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
+
+    ASSERT_LOG2('   - key=', key, ';', constraintHash[key] !== undefined);
+    if (constraintHash[key] !== undefined) {
+      ASSERT_LOG2(' - dedupeReifierTripU; Found dupe constraint; eliminating the second one');
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, SIZEOF_VVV);
+      return;
+    }
+
+    constraintHash[key] = 1;
+    debugHash[key] = debugString;
+
+    let R = getDomain(indexR, true);
+    let safeR = !domain_hasNoZero(R) && domain_size(R) <= 2;
+    ASSERT_LOG2('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
+    if (safeR) {
+      // okay R has only two values and one of them is zero
+      // try to match the arg constraints only. if we find a dupe with
+      // the same R domain then we can alias that R with this one
+
+      // we'll encode the domain instead of indexR to prevent
+      // multiple args on different R's to clash
+
+      // while R may not look it, it still represents a unique domain so we can use the
+      // encoded value as is here. wrap it to prevent clashes with indexes and numdoms
+      let key2 = op + ':[' + R + ']' + '=' + indexA + ',' + indexB;
+      ASSERT_LOG2('   - key2:', key2);
+
+      let index = constraintHash[key2];
+      if (index !== undefined) {
+        index = getAlias(index);
+        ASSERT_LOG2(' - _dedupeTripAny; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+        ASSERT_LOG2('    - #1:', debugHash[key2]);
+        ASSERT_LOG2('    - #2:', debugString);
+        ml_eliminate(ml, pc, SIZEOF_VVV);
+        ASSERT(indexR !== index, 'this case should have been caught by the other deduper');
+        ASSERT(getDomain(indexR) === getDomain(index), 'should have already asserted that these two domains have only two values, a zero and a non-zero, and that they are equal');
+        addAlias(indexR, index);
+        return;
+      }
+
+      constraintHash[key2] = indexR;
+      debugHash[key2] = debugString;
+    }
+
+    pc += SIZEOF_VVV;
+  }
+
+  function dedupeBoolyList(op) {
+    // isall, isnall, isnone
+    // the tricky example:
+    // ####
+    // : A, B, C 1
+    // : R [0 1]
+    // : S [0 0 2 2]
+    // R = xxx?(A B C)
+    // S = xxx?(A B C)
+    // ####
+    // in this case R and S are "booly alias" but not actual alias
+    // basically this translates into a xnor (if R then S, if S then R)
+
+    let argCount = ml_dec16(ml, pc + 1);
+    let opSize = SIZEOF_COUNT + argCount * 2 + 2;
+
+    // first we want to sort the list. we'll do this inline to prevent array creation
+    ml_heapSort16bitInline(ml, pc + SIZEOF_COUNT, argCount);
+
+    // now collect them. the key should end up with an ordered list
+    let args = '';
+    let debugArgs = '';
+    for (let i = 0; i < argCount; ++i) {
+      let index = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + i * 2));
+      args += index + ' ';
+      debugArgs += domain__debug(getDomain(index, true));
+    }
+
+    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + argCount * 2));
+
+    // we'll add a key with indexR and conditionally one with just the domain of R
+
+    let key = op + ':' + indexR + '=' + args;
+    let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + debugArgs;
+
+    ASSERT_LOG2('   - key=', key, ';', constraintHash[key] !== undefined);
+    if (constraintHash[key] !== undefined) {
+      ASSERT_LOG2(' - dedupeBoolyList; Found dupe constraint; eliminating the second one');
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, opSize);
+      return;
+    }
+
+    constraintHash[key] = 1;
+    debugHash[key] = debugString;
+
+    let R = getDomain(indexR, true);
+    let safeR = !domain_hasNoZero(R) && domain_size(R) === 2; // dont do <=2 because [0 0] is a constant and irrelevant here (and also caught by the above check, anyways)
+    ASSERT_LOG2('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
+    if (safeR) {
+      // okay R has only two values and one of them is zero
+      // try to match the arg constraints only. if we find a dupe with
+      // the same R domain then we can alias that R with this one
+
+      // we'll encode the domain instead of indexR to prevent
+      // multiple args on different R's to clash
+
+      // while R may not look it, it still represents a unique domain so we can use the
+      // encoded value as is here. wrap it to prevent clashes with indexes and numdoms
+      let key2 = op + ':[' + R + ']' + '=' + args;
+      ASSERT_LOG2('   - key2:', key2);
+
+      let index = constraintHash[key2];
+      if (index !== undefined) {
+        index = getAlias(index);
+        ASSERT_LOG2(' - dedupeBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+        ASSERT_LOG2('    - #1:', debugHash[key2]);
+        ASSERT_LOG2('    - #2:', debugString);
+        ml_eliminate(ml, pc, opSize);
+        ASSERT(indexR !== index, 'this case should have been caught by the other deduper');
+        ASSERT(getDomain(indexR) === getDomain(index), 'should have already asserted that these two domains have only two values, a zero and a non-zero, and that they are equal');
+        addAlias(indexR, index);
+        return;
+      }
+
+      constraintHash[key2] = indexR;
+      debugHash[key2] = debugString;
+    }
+
+    pc += opSize;
+  }
+
+  function dedupeNonBoolyList(op) {
+    // sum, product
+
+    let argCount = ml_dec16(ml, pc + 1);
+    let opSize = SIZEOF_COUNT + argCount * 2 + 2;
+
+    // first we want to sort the list. we'll do this inline to prevent array creation
+    ml_heapSort16bitInline(ml, pc + SIZEOF_COUNT, argCount);
+
+    // now collect them. the key should end up with an ordered list
+    let args = '';
+    let debugArgs = '';
+    for (let i = 0; i < argCount; ++i) {
+      let argIndex = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + i * 2));
+      args += argIndex + ' ';
+      debugArgs += domain__debug(getDomain(argIndex, true));
+    }
+
+    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + argCount * 2));
+
+    // we'll add a key without indexR because the results of these ops are fixed (unlike booly ops)
+
+    let key = op + ':' + '=' + args;
+    let debugString = op + ':' + debugArgs;
+
+    let index = constraintHash[key];
+    if (index !== undefined) {
+      index = getAlias(index);
+      ASSERT_LOG2(' - dedupeNonBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, opSize);
+      if (indexR !== index) { // R = A <=? A (artifact)
+        let domain = domain_intersection(getDomain(index, true), getDomain(indexR, true));
+        setDomain(index, domain);
+        addAlias(indexR, index);
+      }
+      return;
+    }
+
+    constraintHash[key] = indexR;
+    debugHash[key] = debugString;
+
+    pc += opSize;
+  }
+
+  function dedupeVoidList(op) {
+    // sum, product
+
+    let argCount = ml_dec16(ml, pc + 1);
+    let opSize = SIZEOF_COUNT + argCount * 2;
+
+    // first we want to sort the list. we'll do this inline to prevent array creation
+    ml_heapSort16bitInline(ml, pc + SIZEOF_COUNT, argCount);
+
+    // now collect them. the key should end up with an ordered list
+    let args = '';
+    let debugArgs = '';
+    for (let i = 0; i < argCount; ++i) {
+      let argIndex = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + i * 2));
+      args += argIndex + ' ';
+      debugArgs += domain__debug(getDomain(argIndex, true));
+    }
+
+    let key = op + ':' + '=' + args;
+    let debugString = op + ':' + debugArgs;
+
+    if (constraintHash[key] !== undefined) {
+      ASSERT_LOG2(' - dedupeVoidList; Found dupe constraint; eliminating the second one');
+      ASSERT_LOG2('    - #1:', debugHash[key]);
+      ASSERT_LOG2('    - #2:', debugString);
+      ml_eliminate(ml, pc, opSize);
+      return;
+    }
+
+    constraintHash[key] = 1;
+    debugHash[key] = debugString;
+
+    pc += opSize;
+  }
+
+  function dedupeInvIseqIsneq(op) {
+    ASSERT_LOG2(' - dedupeInvIseqIsneq;', op);
+    // looking for this pattern:
+    // : X [2 3]
+    // R = X ==? 2
+    // S = X !=? 3
+    // which means R !^ S, or even == when R and S are size=2,min=0,R==S
+
+    let indexA = getAlias(ml_dec16(ml, pc + 1));
+    let indexB = getAlias(ml_dec16(ml, pc + 3));
+    let indexR = getAlias(ml_dec16(ml, pc + 5));
+
+    // if A or B is a constant, then B will be a constant afterwards, and A (only) as well if they are both constants
+    if (indexB < indexA) {
+      let t = indexB;
+      indexB = indexA;
+      indexA = t;
+    }
+
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+
+    // verify fingerprint
+    if (domain_size(A) !== 2) {
+      ASSERT_LOG2(' - size(A) != 2, bailing');
+      return false;
+    }
+
+    let vB = domain_getValue(B);
+    if (vB < 0 || !domain_containsValue(A, vB)) {
+      ASSERT_LOG2(' - B wasnt a constant or A didnt contain B, bailing');
+      return false;
+    }
+
+    // fingerprint matches. A contains the solved value B and one other value
+    // check if opposite op is known
+
+    let invA = domain_removeValue(A, vB);
+    ASSERT(domain_isSolved(invA), 'if A had two values and one of them vB, then invA should have one value');
+    let otherValue = domain_getValue(invA);
+    let indexInvA = addVar(undefined, otherValue, false, false, true); // just gets the index for this constant
+    ASSERT(getDomain(indexInvA) === domain_createValue(otherValue), 'should alias to a constant');
+    let invOp = op === '==?' ? '!=?' : '==?';
+    let key = invOp + ':' + indexA + ',' + indexInvA;
+    let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
+
+    let indexS = constraintHash[key];
+    if (indexS === undefined) {
+      let thisKey = op + ':' + indexA + ',' + indexB;
+      ASSERT_LOG2(' - opposite for ' + op + ' (' + invOp + ') doesnt exist, adding this key then bailing');
+      ASSERT_LOG2(' - checked for key=', key, ', now adding key:', thisKey);
+
+      constraintHash[thisKey] = indexR;
+      debugHash[thisKey] = debugString;
+
+      return false;
+    }
+
+    ASSERT_LOG2(' - found the opposite of this constraint;');
+    ASSERT_LOG2('    - #1:', debugHash[key]);
+    ASSERT_LOG2('    - #2:', debugString);
+    ASSERT_LOG2(' - indexR !^ indexS, and perhaps indexR == indexS, check that case first');
+
+    let R = getDomain(indexR, true);
+    if (domain_size(R) === 2 && !domain_hasNoZero(R) && R === getDomain(indexS, true)) {
+      ASSERT_LOG2(' - indexR == indexS because', domain__debug(R), 'has two elements, one of them zero, and R==S');
+      addAlias(indexR, indexS);
+      ml_eliminate(ml, pc, SIZEOF_VVV);
     } else {
-      ++removed;
-      ASSERT_LOG2(' - Constraint with key', key, 'already exists (#' + (constraintHash[key] + 1) + ') so eliminating the dupe');
-      ++constraintHash[key];
-      ml_eliminate(ml, pc, oplen);
-    }
-    pc += oplen;
-    return knownValue;
-  }
-
-  function keyVV(op) {
-    let key = op + ':' + partV(1) + ',' + partV(3);
-    dedupe(key, SIZEOF_VV);
-  }
-
-  function key8V(op) {
-    let key = op + ':' + part8(1) + ',' + partV(2);
-    dedupe(key, SIZEOF_8V);
-  }
-
-  function keyV8(op) {
-    let key = op + ':' + partV(1) + ',' + partV(3);
-    dedupe(key, SIZEOF_V8);
-  }
-
-  function key88(op) {
-    let key = op + ':' + part8(1) + ',' + part8(2);
-    dedupe(key, SIZEOF_88);
-  }
-
-  function keyNonValueList(type) {
-    let key = [];
-    let len = ml_dec16(ml, pc + 1);
-    for (let i = 0; i < len; ++i) {
-      key.push(partV(3 + i * 2));
+      ASSERT_LOG2(' - indexR !^ indexS because R=', domain__debug(R), ', S=', domain__debug(getDomain(indexS, true)), '; R may still end up with a different value from S');
+      ml_vvv2vv(ml, pc, ML_XNOR, indexR, indexS);
     }
 
-    key = type + ':' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
-    dedupe(key, SIZEOF_COUNT + len * 2);
-  }
-
-  function keyVVV(op) {
-    // if r1=a@b is a dupe of r2=a@b then r1==r2
-    // however, note that a==b is not a dupe of a==?b
-
-    let opkey = op + ':' + partV(1) + ',' + partV(3);
-    ASSERT_LOG2('keyVVV', op, [opkey]);
-    let R = ml_dec16(ml, pc + 5);
-    let alias = dedupe(opkey, SIZEOF_VVV, R);
-    if (alias) {
-      ASSERT_LOG2(' - deduping vvv constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
-      // this constraint has been removed. the alias of R is returned
-      addAlias(R, alias);
-      ++aliased;
-    }
-  }
-
-  function key8VV(op) {
-    // if r1=a@b is a dupe of r2=a@b then r1==r2
-    // however, note that a==b is not a dupe of a==?b
-
-    let opkey = op + ':' + part8(1) + ',' + partV(2);
-    ASSERT_LOG2('key8VV', op, [opkey]);
-    let R = ml_dec16(ml, pc + 4);
-    let alias = dedupe(opkey, SIZEOF_8VV, R);
-    if (alias) {
-      ASSERT_LOG2(' - deduping 8vv constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
-      // this constraint has been removed. the alias of R is returned
-      addAlias(R, alias);
-      ++aliased;
-    }
-  }
-
-  function keyV8V(op) {
-    // if r1=a@b is a dupe of r2=a@b then r1==r2
-    // however, note that a==b is not a dupe of a==?b
-    let opkey = op + ':' + partV(1) + ',' + part8(3);
-    ASSERT_LOG2('keyV8V', op, [opkey]);
-    let R = ml_dec16(ml, pc + 4);
-    let alias = dedupe(opkey, SIZEOF_V8V, R);
-    if (alias) {
-      ASSERT_LOG2(' - deduping v8v constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
-      // this constraint has been removed. the alias of R is returned
-      addAlias(R, alias);
-      ++aliased;
-    }
-  }
-
-  function sum() {
-    let len = ml_dec16(ml, pc + 1);
-    let c = ml_dec8(ml, pc + 3);
-    let key = [];
-    for (let i = 0; i < len; ++i) {
-      key.push(partV(4 + i * 2));
-    }
-
-    key = 'sum:' + (c ? c + ',' : '') + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
-    ASSERT_LOG2('key sum:', [key]);
-    let R = ml_dec16(ml, pc + SIZEOF_C8 + len * 2);
-    let alias = dedupe(key, SIZEOF_C8 + len * 2 + 2, R);
-    if (alias) {
-      ASSERT_LOG2(' - deduping sum constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
-      // this constraint has been removed. the alias of R is returned
-      addAlias(R, alias);
-      ++aliased;
-    }
-  }
-
-  function keyValueList(type) {
-    let len = ml_dec16(ml, pc + 1);
-    let key = [];
-    for (let i = 0; i < len; ++i) {
-      key.push(partV(SIZEOF_COUNT + i * 2));
-    }
-
-    key = type + ':' + key.sort((a, b) => a < b ? -1 : a > b ? 1 : 0).join(',');
-    ASSERT_LOG2('key', type, ':', [key]);
-    let R = ml_dec16(ml, pc + SIZEOF_COUNT + len * 2);
-    let alias = dedupe(key, SIZEOF_COUNT + len * 2 + 2, R);
-    if (alias) {
-      ASSERT_LOG2(' - deduping', type, 'constraint, aliasing result;', R, '=', alias, '(', vars[R], '=', vars[alias], ')');
-      // this constraint has been removed. the alias of R is returned
-      addAlias(R, alias);
-      ++aliased;
-    }
+    // dont update pc
+    return true;
   }
 
   function innerLoop() {
     while (pc < ml.length && !emptyDomain) {
-      let pcStart = pc;
+      ++__opCounter;
       let op = ml[pc];
-      ASSERT_LOG2(' -- DD pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- DD pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem, true));
       switch (op) {
-        case ML_VV_EQ:
-          keyVV('==');
+
+        case ML_EQ:
+          dedupePairU('==');
           break;
-        case ML_V8_EQ:
-          keyV8('==');
+        case ML_NEQ:
+          dedupePairU('!=');
           break;
-        case ML_88_EQ:
-          key88('==');
+        case ML_LT:
+          dedupePairO('<');
+          break;
+        case ML_LTE:
+          dedupePairO('<=');
+          break;
+        case ML_AND:
+          dedupePairU('&');
+          break;
+        case ML_OR:
+          dedupePairU('|');
+          break;
+        case ML_XOR:
+          dedupePairU('^');
+          break;
+        case ML_NAND:
+          dedupePairU('!&');
+          break;
+        case ML_XNOR:
+          dedupePairU('!^');
           break;
 
-        case ML_VV_NEQ:
-          keyVV('!=');
+        case ML_ISEQ:
+          if (!dedupeInvIseqIsneq('==?')) dedupeReifierTripU('==?');
           break;
-
-        case ML_V8_NEQ:
-          keyV8('!=');
+        case ML_ISNEQ:
+          if (!dedupeInvIseqIsneq('!=?')) dedupeReifierTripU('!=?');
           break;
-
-        case ML_88_NEQ:
-          key88('!=');
+        case ML_ISLT:
+          dedupeReifierTripO('<?');
           break;
-
-        case ML_VV_LT:
-          keyVV('<');
+        case ML_ISLTE:
+          dedupeReifierTripO('<=?');
           break;
-
-        case ML_V8_LT:
-          keyV8('<');
-          break;
-
-        case ML_8V_LT:
-          key8V('<');
-          break;
-
-        case ML_88_LT:
-          key88('<');
-          break;
-
-        case ML_VV_LTE:
-          keyVV('<=');
-          break;
-
-        case ML_V8_LTE:
-          keyV8('<=');
-          break;
-
-        case ML_8V_LTE:
-          key8V('<=');
-          break;
-
-        case ML_88_LTE:
-          key88('<=');
-          break;
-
-        case ML_NALL:
-          keyNonValueList('nall');
+        case ML_ISALL2:
+          dedupeReifierTripU('isall');
           break;
 
         case ML_ISALL:
-          keyValueList('isall');
+          dedupeBoolyList('isall');
           break;
-
-        case ML_ISALL2:
-          keyVVV('isall');
-          break;
-
         case ML_ISNALL:
-          keyValueList('isnall');
+          dedupeBoolyList('isnall');
           break;
-
         case ML_ISNONE:
-          keyValueList('isnone');
+          dedupeBoolyList('isnone');
           break;
 
+        case ML_NALL:
+          dedupeVoidList('nall');
+          break;
         case ML_DISTINCT:
-          keyNonValueList('distinct');
+          dedupeVoidList('distinct');
           break;
 
         case ML_PLUS:
-          keyVVV('+');
+          dedupeTripU('+');
           break;
-
         case ML_MINUS:
-          keyVVV('-');
+          dedupeTripO('-');
           break;
-
         case ML_MUL:
-          keyVVV('*');
+          dedupeTripU('*');
           break;
-
         case ML_DIV:
-          keyVVV('/');
+          dedupeTripO('/');
           break;
 
-        case ML_VVV_ISEQ:
-          keyVVV('==?');
+        case ML_SUM:
+          dedupeNonBoolyList('sum');
           break;
-
-        case ML_V8V_ISEQ:
-          keyV8V('==?');
-          break;
-
-        case ML_VVV_ISNEQ:
-          keyVVV('!=?');
-          break;
-
-        case ML_V8V_ISNEQ:
-          keyV8V('!=?');
-          break;
-
-        case ML_VVV_ISLT:
-          keyVVV('<?');
-          break;
-
-        case ML_8VV_ISLT:
-          key8VV('<?');
-          break;
-
-        case ML_V8V_ISLT:
-          keyV8V('<?');
-          break;
-
-        case ML_VVV_ISLTE:
-          keyVVV('<=?');
-          break;
-
-        case ML_8VV_ISLTE:
-          key8VV('<=?');
-          break;
-
-        case ML_V8V_ISLTE:
-          keyV8V('<=?');
-          break;
-
-        case ML_VV8_ISEQ:
-        case ML_88V_ISEQ:
-        case ML_V88_ISEQ:
-        case ML_888_ISEQ:
-        case ML_VV8_ISNEQ:
-        case ML_88V_ISNEQ:
-        case ML_V88_ISNEQ:
-        case ML_888_ISNEQ:
-        case ML_VV8_ISLT:
-        case ML_88V_ISLT:
-        case ML_V88_ISLT:
-        case ML_8V8_ISLT:
-        case ML_888_ISLT:
-        case ML_VV8_ISLTE:
-        case ML_88V_ISLTE:
-        case ML_V88_ISLTE:
-        case ML_8V8_ISLTE:
-        case ML_888_ISLTE:
-          return THROW('if two vars are solved then the constraint is solved and should have been removed');
-
-        case ML_8V_SUM:
-          sum();
-          break;
-
         case ML_PRODUCT:
-          keyValueList('product');
-          break;
-
-        case ML_VV_AND:
-          keyVV('&');
-          break;
-        case ML_VV_OR:
-          keyVV('|');
-          break;
-        case ML_VV_XOR:
-          keyVV('^');
-          break;
-        case ML_VV_NAND:
-          keyVV('!&');
-          break;
-        case ML_VV_XNOR:
-          keyVV('!^');
+          dedupeNonBoolyList('product');
           break;
 
         case ML_START:
-          if (pc !== 0) return THROW(' ! compiler problem @', pcStart);
+          if (pc !== 0) {
+            return ml_throw(ml, pc, 'deduper problem found START');
+          }
           ++pc;
           break;
 
@@ -489,10 +646,10 @@ function deduper(ml, vars, domains, getAlias, addAlias) {
           break;
 
         default:
-          ml_throw('(dd) unknown op', pc);
+          ml_throw(ml, pc, '(dd) unknown op');
       }
     }
-    THROW('ML OOB');
+    if (!emptyDomain) ml_throw(ml, pc, '(dd) ML OOB');
   }
 }
 

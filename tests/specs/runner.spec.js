@@ -300,6 +300,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A = 50
           : B = 80
+          : C *
           C = A + B
         `);
 
@@ -377,6 +378,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A = 80
           : B = 50
+          : C *
           C = A - B
         `);
 
@@ -454,6 +456,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A = 50
           : B = 80
+          : C *
           C = A * B
         `);
 
@@ -543,6 +546,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A = 50
           : B = 10
+          : C *
           C = A / B
         `);
 
@@ -770,6 +774,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 56
           : B 77
+          : C [0 1]
           C = A !=? B
         `);
 
@@ -781,6 +786,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 65
+          : C [0 1]
           C = A !=? B
         `);
 
@@ -906,6 +912,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 64
           : B 65
+          : C [0 1]
           C = A <? B
         `);
 
@@ -917,6 +924,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 65
+          : C [0 1]
           C = A <? B
         `);
 
@@ -928,6 +936,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 66
           : B 65
+          : C [0 1]
           C = A <? B
         `);
 
@@ -1089,6 +1098,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 64
           : B 65
+          : C [0 1]
           C = A <=? B
         `);
 
@@ -1100,6 +1110,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 65
+          : C [0 1]
           C = A <=? B
         `);
 
@@ -1111,6 +1122,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 66
           : B 65
+          : C [0 1]
           C = A <=? B
         `);
 
@@ -1284,6 +1296,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 64
+          : C [0 1]
           C = A >? B
         `);
 
@@ -1295,6 +1308,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 65
+          : C [0 1]
           C = A >? B
         `);
 
@@ -1306,6 +1320,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 66
+          : C [0 1]
           C = A >? B
         `);
 
@@ -1467,6 +1482,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 64
+          : C [0 1]
           C = A >=? B
         `);
 
@@ -1478,6 +1494,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 65
+          : C [0 1]
           C = A >=? B
         `);
 
@@ -1489,6 +1506,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 65
           : B 66
+          : C [0 1]
           C = A >=? B
         `);
 
@@ -1649,6 +1667,7 @@ describe('specs/runner.spec', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A 1
+          : R *
           R = sum(A)
         `);
 
@@ -1660,6 +1679,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 1
           : B 10
+          : R *
           R = sum(A B)
         `);
 
@@ -1672,6 +1692,7 @@ describe('specs/runner.spec', function() {
           : A 1
           : B 10
           : C 7
+          : R *
           R = sum(A B C)
         `);
 
@@ -1685,6 +1706,7 @@ describe('specs/runner.spec', function() {
           : B 10
           : C 7
           : D 4
+          : R *
           R = sum(A B C D)
         `);
 
@@ -1710,11 +1732,12 @@ describe('specs/runner.spec', function() {
           : A 1
           : B [5 10]
           : X = 10
+          : R *
           R = sum(A B)
           B == X
         `);
 
-        expect(solution).to.eql({A: 1, B: 10, R: 11, X: 10, __1: 1}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, B: 10, R: 11, X: 10});
       });
 
       it('should solve when B is unsolved and forced by other constraint with 3 vars', function() {
@@ -1724,11 +1747,12 @@ describe('specs/runner.spec', function() {
           : B [5 10]
           : C 7
           : X = 10
+          : R *
           R = sum(A B C)
           B == X
         `);
 
-        expect(solution).to.eql({A: 1, B: 10, C: 7, R: 18, X: 10, __1: 8}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, B: 10, C: 7, R: 18, X: 10});
       });
 
       it('should solve when B is unsolved and forced by other constraint with 4 vars', function() {
@@ -1739,11 +1763,12 @@ describe('specs/runner.spec', function() {
           : C 7
           : D 11
           : X = 10
+          : R *
           R = sum(A B C D)
           B == X
         `);
 
-        expect(solution).to.eql({A: 1, B: 10, C: 7, D: 11, R: 29, X: 10, __1: 19}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, B: 10, C: 7, D: 11, R: 29, X: 10});
       });
 
       it('should accept one var', function() {
@@ -1751,6 +1776,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A [0 10]
           : X 10
+          : R *
           R = sum(A)
           A == X
         `);
@@ -1770,7 +1796,7 @@ describe('specs/runner.spec', function() {
           R = sum(A B C D E)
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0});
       });
 
       it('should clear args if result is solved to zero transitive', function() {
@@ -1786,7 +1812,7 @@ describe('specs/runner.spec', function() {
           B == X
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, X: 0});
       });
 
       it('should rewrite special case to A<R', function() {
@@ -1802,7 +1828,7 @@ describe('specs/runner.spec', function() {
           # the cutter will force A<R to A=0,B=1
         `);
 
-        expect(solution).to.eql({A: 0, B: 1, R: 1, __1: 1});
+        expect(solution).to.eql({A: 0, B: 1, R: 1});
       });
 
       it('should rewrite special case to B<R', function() {
@@ -1815,7 +1841,7 @@ describe('specs/runner.spec', function() {
           # see test above
         `);
 
-        expect(solution).to.eql({A: 1, B: 0, R: 1, __1: 1});
+        expect(solution).to.eql({A: 1, B: 0, R: 1});
       });
 
       it('should eliminate the zeroes that occur twice', function() {
@@ -1827,7 +1853,7 @@ describe('specs/runner.spec', function() {
           R = sum(A B B)
         `);
 
-        expect(solution).to.eql({A: 1, B: 0, R: 1}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, B: 0, R: 1});
       });
 
       it('should reduce to plus and ignore the zeroes', function() {
@@ -1842,7 +1868,7 @@ describe('specs/runner.spec', function() {
           # cutter will force a solution on that
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 1, R: 1, __1: 1});
+        expect(solution).to.eql({A: 0, B: 0, C: 1, R: 1});
       });
 
       it('should accept constants in sum', function() {
@@ -1853,7 +1879,29 @@ describe('specs/runner.spec', function() {
           R = sum(A 1)
         `);
 
-        expect(solution).to.eql({A: 1, R: 2, __1: 1}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 1, R: 2});
+      });
+
+      it('should reject a falsum caused by one constant', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : R [0 20]
+          R = sum(100 A)
+        `);
+
+        expect(solution).to.eql(false);
+      });
+
+      it('should reject a falsum caused by multiple constants', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : R [0 29]
+          R = sum(10 10 A 10) # individual constants dont reject per-se
+        `);
+
+        expect(solution).to.eql(false);
       });
     });
 
@@ -1863,6 +1911,7 @@ describe('specs/runner.spec', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A 28
+          : R *
           R = product(A)
         `);
 
@@ -1873,6 +1922,7 @@ describe('specs/runner.spec', function() {
         let solution = solverSolver(`
           @custom var-strat throw
           : A 0
+          : R *
           R = product(A)
         `);
 
@@ -1884,6 +1934,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 2
           : B 10
+          : R *
           R = product(A B)
         `);
 
@@ -1895,6 +1946,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A 14
           : B 0
+          : R *
           R = product(A B)
         `);
 
@@ -1907,6 +1959,7 @@ describe('specs/runner.spec', function() {
           : A 2
           : B 10
           : C 7
+          : R *
           R = product(A B C)
         `);
 
@@ -1920,6 +1973,7 @@ describe('specs/runner.spec', function() {
           : B 10
           : C 7
           : D 4
+          : R *
           R = product(A B C D)
         `);
 
@@ -1936,7 +1990,7 @@ describe('specs/runner.spec', function() {
           R = product(A B C)
         `);
 
-        expect(solution).to.eql({A: 2, B: 9, C: 7, R: 126, __1: 14}); // TODO: remove tmp var
+        expect(solution).to.eql({A: 2, B: 9, C: 7, R: 126});
       });
 
       it('should solve when B is unsolved and forced by other constraint with 2 vars', function() {
@@ -1945,11 +1999,12 @@ describe('specs/runner.spec', function() {
           : A 2
           : B [5 10]
           : X = 9
+          : R *
           R = product(A B)
           B == X
         `);
 
-        expect(solution).to.eql({A: 2, B: 9, R: 18, X: 9, __1: 2}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 2, B: 9, R: 18, X: 9});
       });
 
       it('should solve when B is unsolved and forced by other constraint with 3 vars', function() {
@@ -1959,11 +2014,12 @@ describe('specs/runner.spec', function() {
           : B [5 10]
           : C 7
           : X = 5
+          : R *
           R = product(A B C)
           B == X
         `);
 
-        expect(solution).to.eql({A: 2, B: 5, C: 7, R: 70, X: 5, __1: 14}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 2, B: 5, C: 7, R: 70, X: 5});
       });
 
       it('should solve when B is unsolved and forced by other constraint with 4 vars', function() {
@@ -1974,11 +2030,40 @@ describe('specs/runner.spec', function() {
           : C 7
           : D 11
           : X = 10
+          : R *
           R = product(A B C D)
           B == X
         `);
 
-        expect(solution).to.eql({A: 2, B: 10, C: 7, D: 11, R: 1540, X: 10, __1: 154}); // TODO: eliminate that temp var from showing up
+        expect(solution).to.eql({A: 2, B: 10, C: 7, D: 11, R: 1540, X: 10});
+      });
+
+      it('should reject (not throw assertion error) when R cant reflect constant product (without vars)', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A 2
+          : B 10
+          : C 8
+          : D 11
+          : R [0 10]
+          R = product(A B C D)
+        `);
+
+        expect(solution).to.eql(false);
+      });
+
+      it('should reject (not throw assertion error) when R cant reflect constant product (with vars)', function() {
+        let solution = solverSolver(`
+          @custom var-strat throw
+          : A 2
+          : B 10
+          : C [0 8]
+          : D [0 11]
+          : R [0 10]
+          R = product(A B C D)
+        `);
+
+        expect(solution).to.eql(false);
       });
 
       it('should accept one var', function() {
@@ -1986,6 +2071,7 @@ describe('specs/runner.spec', function() {
           @custom var-strat throw
           : A [0 10]
           : X 10
+          : R *
           R = product(A)
           A == X
         `);
@@ -2682,7 +2768,7 @@ describe('specs/runner.spec', function() {
           1 = 30 <? 300
         `);
 
-        expect(solution).to.eql({__1: 300});
+        expect(solution).to.eql({});
       });
 
       it('888 reject', function() {
@@ -3177,6 +3263,35 @@ describe('specs/runner.spec', function() {
       `);
 
       expect(solution).to.eql({A: 0, B: 0, C: 0});
+    });
+
+    it('should resolve the pseudo xnor case', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+
+        : A [0 0 5 5]
+        : B [0 0 6 6]
+        : C [0 10]
+        A !^ B
+        C < A
+        # A must be non-zero to be bigger than C, C must be under 5, B must follow C's suit and become non-zero
+      `);
+
+      expect(solution).to.eql({A: 5, B: 6, C: [0, 4]});
+    });
+
+    it('should not trigger regression', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+
+        : A [0 0 5 5]
+        : B [0 0 6 6]
+        : C [0 20]
+        : D, E [0 10]
+        A !^ B
+        D != E
+        nall(A B C D)
+      `)).to.throw(/ops: nall #/);
     });
   });
 });

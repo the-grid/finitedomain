@@ -1,3 +1,7 @@
+// note: you can use the tool at https://qfox.github.io/logic-table-filter/ to test some of these tricks
+// enter the names of the vars, the formulae (in proper JS), and the var considered a leaf and you can
+// quickly see whether the rewrite is valid or not.
+
 import {
   ASSERT,
   ASSERT_LOG2,
@@ -6,65 +10,31 @@ import {
 
 import {
   ML_START,
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
   ML_MINUS,
   ML_MUL,
   ML_DIV,
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
   ML_DEBUG,
   ML_JMP,
   ML_JMP32,
@@ -78,10 +48,7 @@ import {
   SIZEOF_W,
   SIZEOF_VV,
   SIZEOF_VVV,
-  SIZEOF_8VV,
-  SIZEOF_V8V,
   SIZEOF_COUNT,
-  SIZEOF_C8,
 
   ml__debug,
   ml_dec8,
@@ -91,14 +58,13 @@ import {
   ml_enc16,
   ml_eliminate,
   ml_getOpSizeSlow,
-  ml_getRecycleOffset,
-  ml_heapSort16bitInline,
+  ml_getRecycleOffsets,
   ml_jump,
-  ml_recycleVV,
-  ml_skip,
+  ml_recycles,
   ml_throw,
   ml_validateSkeleton,
 
+  ml_any2c,
   ml_c2vv,
   ml_cr2vv,
   ml_vv2vv,
@@ -107,15 +73,18 @@ import {
 } from './ml';
 import {
   domain__debug,
-  domain_containsValue,
+  domain_booly,
   domain_createValue,
   domain_createRange,
   domain_hasNoZero,
   domain_intersection,
+  domain_intersectionValue,
   domain_isBool,
+  domain_isSolved,
   domain_isZero,
   domain_min,
   domain_max,
+  domain_size,
   domain_getValue,
   domain_removeValue,
   domain_removeGte,
@@ -124,18 +93,34 @@ import {
   domain_removeLtUnsafe,
 } from './domain';
 import domain_plus from './domain_plus';
+import domain_minus from './domain_minus';
 
 import {
   BOUNTY_MAX_OFFSETS_TO_TRACK,
+  //BOUNTY_ISALL_RESULT_ONLY_FLAG,
   BOUNTY_ISALL_RESULT,
+  //BOUNTY_ISEQ_ARG_ONLY_FLAG,
+  BOUNTY_ISEQ_ARG,
+  BOUNTY_LTE_LHS_ONLY_FLAG,
   BOUNTY_LTE_LHS,
+  BOUNTY_LTE_RHS_ONLY_FLAG,
   BOUNTY_LTE_RHS,
+  //BOUNTY_NALL_ONLY_FLAG,
   BOUNTY_NALL,
+  BOUNTY_NAND_ONLY_FLAG,
   BOUNTY_NAND,
+  BOUNTY_NEQ_ONLY_FLAG,
   BOUNTY_NEQ,
-  BOUNTY_NOT_BOOLY,
+  BOUNTY_NOT_BOOLY_ONLY_FLAG,
+  BOUNTY_OR_ONLY_FLAG,
   BOUNTY_OR,
+  //BOUNTY_OTHER_ONLY_FLAG,
+  //BOUNTY_OTHER_BOOLY,
+  //BOUNTY_OTHER_NONBOOLY,
+  //BOUNTY_SUM_RESULT_ONLY_FLAG,
+  BOUNTY_SUM_RESULT,
 
+  bounty__debugMeta,
   bounty_collect,
   bounty_getCounts,
   bounty_getMeta,
@@ -143,30 +128,37 @@ import {
   bounty_markVar,
 } from './bounty';
 
-
 // BODY_START
 
-const CUTTER_NEQ_TRICK_FLAGS = BOUNTY_LTE_LHS | BOUNTY_LTE_RHS | BOUNTY_OR | BOUNTY_NAND;
 
-function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
+function cutter(ml, problem, once) {
   ASSERT_LOG2('\n ## cutter', ml);
+
+  let getDomain = problem.getDomain;
+  let setDomain = problem.setDomain;
+  let addAlias = problem.addAlias;
+  let getAlias = problem.getAlias;
+  let solveStack = problem.solveStack;
+  let isConstant = problem.isConstant;
+
   let pc = 0;
 
   let bounty;
 
-  let lenBefore;
+  let stacksBefore;
   let emptyDomain = false;
   let changes = 0;
   let loops = 0;
   do {
     console.time('-> cut_loop ' + loops);
     ASSERT_LOG2(' # start cutter outer loop', loops);
-    bounty = bounty_collect(ml, vars, domains, getAlias, bounty);
-    lenBefore = solveStack.length;
+    bounty = bounty_collect(ml, problem, bounty);
+
+    stacksBefore = solveStack.length;
     changes = 0;
     cutLoop();
     console.timeEnd('-> cut_loop ' + loops);
-    console.log('   - end cutter outer loop', loops, ', removed:', solveStack.length - lenBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain, 'once=', once);
+    console.log('   - end cutter outer loop', loops, ', removed:', solveStack.length - stacksBefore, ' vars, total changes:', changes, ', emptyDomain =', emptyDomain, 'once=', once);
     ++loops;
   } while (!emptyDomain && changes && !once);
 
@@ -178,1086 +170,542 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ++changes;
   }
 
-  function cutNeq() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
+  function readIndex(ml, offset) {
+    ASSERT(ml instanceof Buffer, 'ml should be a buffer');
+    ASSERT(typeof offset === 'number' && offset >= 0 && offset <= ml.length, 'expecting valid offset');
+    ASSERT(arguments.length === 2, 'no more than two args');
+    return getAlias(ml_dec16(ml, offset));
+  }
 
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
+  function getMeta(bounty, index) {
+    ASSERT(typeof index === 'number' && index >= 0 && index <= 0xffff, 'expecting valid index');
+    ASSERT(arguments.length === 2, 'no more than two args');
+    if (!isConstant(index)) return bounty_getMeta(bounty, index);
+    return 0;
+  }
 
-    ASSERT_LOG2(' - cutNeq', indexA, '!=', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+  function getCounts(bounty, index) {
+    ASSERT(typeof index === 'number' && index >= 0 && index <= 0xffff, 'expecting valid index');
+    ASSERT(arguments.length === 2, 'no more than two args');
+    if (!isConstant(index)) return bounty_getCounts(bounty, index);
+    return 0;
+  }
+
+  // ##############
+
+  function cutNeq(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+
+    ASSERT_LOG2(' ! cutNeq; ', indexA, '!=', indexB, '::', domain__debug(getDomain(indexA, true)), '!=', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
-      return leafNeq(ml, indexA, indexB);
+      return leafNeq(ml, offset, indexA, indexB, indexA, indexB);
     }
 
     if (countsB === 1) {
-      return leafNeq(ml, indexB, indexA);
+      return leafNeq(ml, offset, indexB, indexA, indexA, indexB);
     }
 
+    let TRICK_INV_NEQ_FLAGS = BOUNTY_LTE_LHS_ONLY_FLAG | BOUNTY_LTE_RHS_ONLY_FLAG | BOUNTY_OR_ONLY_FLAG | BOUNTY_NAND_ONLY_FLAG;
+
     if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if ((metaA & BOUNTY_NEQ) && (metaA & CUTTER_NEQ_TRICK_FLAGS)) {
-        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
-        metaA = (metaA | BOUNTY_NEQ | CUTTER_NEQ_TRICK_FLAGS) ^ (BOUNTY_NEQ | CUTTER_NEQ_TRICK_FLAGS); // remove neq and lte flags
-        if (!metaA && trickNeqElimination(indexA)) return;
+      let metaA = getMeta(bounty, indexA);
+      ASSERT_LOG2('  - meta A:', bounty__debugMeta(metaA));
+
+      // first remove the booly flag, then check if it has any targeted ops, then check if it has no other stuff
+      let m = (metaA | BOUNTY_NOT_BOOLY_ONLY_FLAG) ^ BOUNTY_NOT_BOOLY_ONLY_FLAG;
+      let hasGoodOps = m & TRICK_INV_NEQ_FLAGS;
+      let hasBadOps = (m | TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG) ^ (TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG);
+      if ((metaA & BOUNTY_NEQ) === BOUNTY_NEQ && hasGoodOps && !hasBadOps) {
+        if (trickNeqElimination(indexA, countsA)) return;
       }
     }
 
     if (countsB >= 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      let metaB = bounty_getMeta(bounty, indexB);
-      if ((metaB & BOUNTY_NEQ) && (metaB & CUTTER_NEQ_TRICK_FLAGS)) {
-        // so A has neq and at least one of the two lte flags. remove all those flags to confirm there wasnt anything else
-        metaB = (metaB | BOUNTY_NEQ | CUTTER_NEQ_TRICK_FLAGS) ^ (BOUNTY_NEQ | CUTTER_NEQ_TRICK_FLAGS); // remove neq and lte flags
-        if (!metaB && trickNeqElimination(indexB)) return;
+      let metaB = getMeta(bounty, indexB);
+      ASSERT_LOG2('  - meta B:', bounty__debugMeta(metaB));
+
+      // first remove the booly flag, then check if it has any targeted ops, then check if it has no other stuff
+      let m = (metaB | BOUNTY_NOT_BOOLY_ONLY_FLAG) ^ BOUNTY_NOT_BOOLY_ONLY_FLAG;
+      let hasGoodOps = m & TRICK_INV_NEQ_FLAGS;
+      let hasBadOps = (m | TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG) ^ (TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG);
+
+      if ((metaB & BOUNTY_NEQ) === BOUNTY_NEQ && hasGoodOps && !hasBadOps) {
+        if (trickNeqElimination(indexB, countsB)) return;
       }
     }
 
     pc += SIZEOF_VV;
   }
 
-  function cutLt() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
+  function cutLt(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
 
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' - cutLt', indexA, '<', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' ! cutLt; ', indexA, '<', indexB, '::', domain__debug(getDomain(indexA, true)), '<', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut lt A;', indexA, '<', indexB, '  ->  ', domain__debug(domains[indexA]), '<', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vB = force(indexB);
-        ASSERT_LOG2('   - Setting', indexA, '(', domain__debug(A), ') to be lt', indexB, '(', vB, ')');
-        domains[indexA] = domain_removeGte(A, vB);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = vars[indexA] + ' < ' + vars[indexB]));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
+      return leafLtLhs(ml, offset, indexA, indexB);
     }
 
     if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push((domains, force) => {
-        let vA = force(indexA);
-        let B = domains[indexB];
-        ASSERT_LOG2(' - cut lt B; Setting', indexA, '(', vA, ') to be lt', indexB, '(', domain__debug(B), ')');
-        domains[indexB] = domain_removeLte(B, vA);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' < ' + indexB));
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
+      return leafLtRhs(ml, offset, indexA, indexB);
     }
 
     pc += SIZEOF_VV;
   }
 
-  function cutLte() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
+  function cutLte(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
 
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' - cutLte', indexA, '<=', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
+    ASSERT_LOG2(' ! cutLte; ', indexA, '<=', indexB, '::', domain__debug(getDomain(indexA, true)), '<=', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsA === 1) {
-      return leafLteLhs(ml, indexA, indexB);
+      return leafLteLhs(ml, offset, indexA, indexB);
     }
 
     if (countsB === 1) {
       return leafLteRhs(ml, indexA, indexB);
     }
 
-    if (countsA === 2) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if ((metaA & BOUNTY_NAND) && trickNandLteLhs(indexA, pc, 'lte')) return;
-      // note: if it wasnt 2x lte then the flag would contain, at least, another flag as well.
-      if (metaA === (BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY) && trickLteLhsTwice(indexA, pc, 'lte', metaA)) return;
+    if (countsA > 0) {
+      let metaA = getMeta(bounty, indexA);
+
+      if (countsA === 2) {
+        if ((metaA & BOUNTY_NAND) === BOUNTY_NAND && trickNandLteLhs(ml, indexA, offset, metaA, countsA)) return;
+        // note: if it wasnt 2x lte then the flag would contain, at least, another flag as well.
+        if (metaA === BOUNTY_LTE_LHS && trickLteLhsTwice(indexA, offset, metaA, countsA)) return;
+      }
+
+      if (countsA >= 3) {
+        if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, countsA)) return;
+        if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickOrNandLteBoth(indexA, countsA)) return;
+      }
+
+      if (countsA > 1) {
+        if ((metaA & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT && trickLteLhsIsall(ml, offset, indexA, metaA, countsA)) return;
+      }
     }
 
     if (countsB === 2) {
-      let metaB = bounty_getMeta(bounty, indexB);
-      if ((metaB & BOUNTY_ISALL_RESULT) && trickIsallLteRhs(indexB, pc, 'lte')) return;
-    }
-
-    if (countsA >= 2) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if ((metaA & BOUNTY_ISALL_RESULT) && trickLteLhsIsallShared(indexA, pc)) return;
-    }
-
-    if (countsA >= 3) {
-      let metaA = bounty_getMeta(bounty, indexA);
-      if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS) && trickOrLteLhsNands(indexA, pc)) return;
-      if (metaA === (BOUNTY_OR | BOUNTY_NAND | BOUNTY_LTE_LHS | BOUNTY_LTE_RHS) && trickOrNandLteBoth(indexA, pc)) return;
+      let metaB = getMeta(bounty, indexB);
+      if ((metaB & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT && trickLteRhsIsallEntry(indexB, offset, metaB, countsB)) return;
     }
 
     pc += SIZEOF_VV;
   }
 
-  function cutIsEq(ml, offset, sizeof, lenB) {
-    ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
-    let indexA;
-    let indexB;
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + lenB));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsEq(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+    let indexR = readIndex(ml, offset + 5);
 
-    ASSERT(!void (indexA = getAlias(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2))));
-    ASSERT_LOG2(' - cutIsEq', indexR, '=', indexA, '==?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsEq; ', indexR, '=', indexA, '==?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '==?', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
+    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = getAlias(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2));
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut iseq R;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '==?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = lenB === 1 ? indexB : force(indexB);
-        let matches = vA === vB ? 1 : 0;
-        ASSERT(domain_min(domains[indexR]) === 0 && domain_max(domains[indexR]) > 0, 'A B and R should already have been reduced to domains that are valid within A==?B=R', vA, vB, matches, domain__debug(domains[indexR]));
-        domains[indexR] = matches ? domain_removeValue(domains[indexR], 0) : domain_createValue(0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} ==? ${indexB}`));
-      ml_eliminate(ml, pc, sizeof);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      bounty_markVar(bounty, indexR);
-      somethingChanged();
-      return;
+      return leafIsEqR(ml, offset, indexA, indexB, indexR);
     }
 
-    // note: A can not be a constant because we normalize iseq args that way
-    if (lenB === 1) {
-      indexA = getAlias(ml_dec16(ml, offset + 1));
-      let countsA = bounty_getCounts(bounty, indexA);
-      if (countsA === 1) {
-        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
-        // we assume that A contains a valid value for B and both cases C=0 and C=1
-        let A = domains[indexA];
-        let vB = ml_dec8(ml, offset + 1 + 2);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut iseq A;', indexR, '=', indexA, '==? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '==?', vB);
-          let vR = force(indexR);
-          ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
-          ASSERT(domain_containsValue(A, vB), 'A should be able to reflect R=1 with B');
-          domains[indexA] = vR ? domain_createValue(vB) : domain_removeValue(A, vB);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} ==? L${vB}`));
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsA === 1) {
+      // note: A cannot be solved (bounty ignores it so count would be 0)
+      if (domain_isSolved(getDomain(indexB, true))) {
+        return leafIsEqArg(ml, offset, indexA, indexB, indexR, indexA, indexB);
       }
     }
 
-    pc = offset + sizeof;
+    if (countsB === 1) {
+      // note: B cannot be solved (bounty ignores it so count would be 0)
+      if (domain_isSolved(getDomain(indexA, true))) {
+        return leafIsEqArg(ml, offset, indexB, indexA, indexR, indexA, indexB);
+      }
+    }
+
+    pc = offset + SIZEOF_VVV;
   }
 
-  function cutIsNeq(ml, offset, sizeof, lenB) {
-    ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
-    let indexA;
-    let indexB;
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + lenB));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsNeq(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+    let indexR = readIndex(ml, offset + 5);
 
-    ASSERT(!void (indexA = getAlias(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2))));
-    ASSERT_LOG2(' - cutIsNeq', indexR, '=', indexA, '!=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsNeq; ', indexR, '=', indexA, '!=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '!=?', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
+    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = getAlias(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + 2) : getAlias(ml_dec16(ml, offset + 1 + 2));
-
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut isneq R;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '!=?', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let vB = lenB === 1 ? indexB : force(indexB);
-        let vR = vA !== vB ? 1 : 0;
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A!=?B=R', vA, vB, vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} !=? ${indexB}`));
-
-      ml_eliminate(ml, pc, sizeof);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      bounty_markVar(bounty, indexR);
-      somethingChanged();
-      return;
+      return leafIsNeqR(ml, offset, indexA, indexB, indexR);
     }
 
-    if (lenB === 1) {
-      indexA = getAlias(ml_dec16(ml, offset + 1));
-      let countsA = bounty_getCounts(bounty, indexA);
-      if (countsA === 1) {
-        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
-        // we assume that A contains a valid value for B and both cases C=0 and C=1
-        let A = domains[indexA];
-        let vB = ml_dec8(ml, offset + 1 + 2);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut isneq A;', indexR, '=', indexA, '!=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '!=?', vB);
-          let vR = force(indexR);
-          ASSERT(domain_removeValue(A, vB), 'A should be able to reflect R=0 with B');
-          ASSERT(domain_containsValue(A, vB), 'A should be able to reflect R=1 with B');
-          domains[indexA] = vR ? domain_removeValue(A, vB) : domain_createValue(vB);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} !=? L${vB}`));
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsA === 1) {
+      // note: A cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexB, true))) {
+        return leafIsNeqArg(ml, offset, indexA, indexB, indexA, indexB, indexR);
       }
     }
 
-    pc = offset + sizeof;
+    if (countsB === 1) {
+      // note: B cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexA, true))) {
+        return leafIsNeqArg(ml, offset, indexB, indexA, indexA, indexB, indexR);
+      }
+    }
+
+    pc = offset + SIZEOF_VVV;
   }
 
-  function cutIsLt(ml, offset, sizeof, lenA, lenB) {
-    ASSERT(1 + 2 + lenB + 2 === sizeof, 'expecting this sizeof');
-    let indexA;
-    let indexB;
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + lenA + lenB));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsLt(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+    let indexR = readIndex(ml, offset + 5);
 
-    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA))));
-    ASSERT_LOG2(' - cutIsLt', indexR, '=', indexA, '<?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsLt; ', indexR, '=', indexA, '<?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<?', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
+    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
-
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut islt R;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<?', domain__debug(domains[indexB]));
-        let vA = lenA === 1 ? indexA : force(indexA);
-        let vB = lenB === 1 ? indexB : force(indexB);
-        let vR = vA < vB ? 1 : 0;
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} <? ${indexB}`));
-
-      ml_eliminate(ml, pc, sizeof);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      bounty_markVar(bounty, indexR);
-      somethingChanged();
-      return;
+      leafIsLtR(ml, offset, indexA, indexB, indexR);
     }
 
-    if (lenB === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
-      let countsA = bounty_getCounts(bounty, indexA);
-      if (countsA === 1) {
-        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
-        // we assume that A contains a valid value for B and both cases C=0 and C=1
-        let A = domains[indexA];
-        let vB = ml_dec8(ml, offset + 1 + lenA);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<?', vB);
-          let vR = force(indexR);
-          ASSERT(domain_removeGte(A, vB), 'A should be able to reflect R=0 with B');
-          ASSERT(domain_removeLtUnsafe(A, vB), 'A should be able to reflect R=1 with B');
-          domains[indexA] = vR ? domain_removeGte(A, vB) : domain_removeLtUnsafe(A, vB);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} <? L${vB}`));
-
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsA === 1) {
+      // note: A cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexB, true))) {
+        return leafIsLtLhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
-    if (lenA === 1) {
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
-      let countsB = bounty_getCounts(bounty, indexB);
-      if (countsB === 1) {
-        // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
-        // we assume that B contains a valid value for A and both cases C=0 and C=1
-        let B = domains[indexB];
-        let vA = ml_dec8(ml, offset + 1);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut islt B;', indexR, '= c <?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<?', domain__debug(B));
-          let vR = force(indexR);
-          ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
-          ASSERT(domain_removeGte(B, vA), 'B should be able to reflect R=1 with A');
-          domains[indexB] = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = L${vA} <? ${vars[indexB]}`));
-
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsB === 1) {
+      // note: B cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexA, true))) {
+        return leafIsLtRhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
-    pc = offset + sizeof;
+    pc = offset + SIZEOF_VVV;
   }
 
-  function cutIsLte(ml, offset, sizeof, lenA, lenB) {
-    ASSERT(1 + lenA + lenB + 2 === sizeof, 'expecting this sizeof', 1 + 2 + lenB + 2, sizeof, lenA, lenB);
-    let indexA;
-    let indexB;
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + lenA + lenB));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsLte(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+    let indexR = readIndex(ml, offset + 5);
 
-    ASSERT(!void (indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1))));
-    ASSERT(!void (indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA))));
-    ASSERT_LOG2(' - cutIsLte', indexR, '=', indexA, '<=?', indexB, 'counts:', countsR, bounty_getCounts(bounty, indexA), lenB === 2 && bounty_getCounts(bounty, indexB), ', meta:', bounty_getMeta(bounty, indexR), bounty_getMeta(bounty, indexA), lenB === 2 && bounty_getMeta(bounty, indexB));
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsLte; ', indexR, '=', indexA, '<=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<=?', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
+    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
-
-      ASSERT_LOG2('   - R is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut islte R;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '<=?', domain__debug(domains[indexB]));
-        let vA = lenA === 1 ? indexA : force(indexA);
-        let vB = lenB === 1 ? indexB : force(indexB);
-        let vR = vA <= vB ? 1 : 0;
-        ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A<=?B=R;', vA, '<?', vB, '=', vR, domain__debug(domains[indexR]));
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexR} = ${indexA} <=? ${indexB}`));
-
-      ml_eliminate(ml, pc, sizeof);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      bounty_markVar(bounty, indexR);
-      somethingChanged();
-      return;
+      leafIsLteR(ml, offset, indexA, indexB, indexR);
     }
 
-    if (lenB === 1) {
-      indexA = lenA === 1 ? ml_dec8(ml, offset + 1) : getAlias(ml_dec16(ml, offset + 1));
-      let countsA = bounty_getCounts(bounty, indexA);
-      if (countsA === 1) {
-        // A is leaf, B is constant, cut the constraint, A can reflect B and C afterwards
-        // we assume that A contains a valid value for B and both cases C=0 and C=1
-        let A = domains[indexA];
-        let vB = ml_dec8(ml, offset + 1 + lenA);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vB, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut islt A;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(domains[indexR]), '=', domain__debug(A), '<=?', vB);
-          let vR = force(indexR);
-          ASSERT(domain_removeGtUnsafe(A, vB), 'A should be able to reflect R=0 with B');
-          ASSERT(domain_removeLte(A, vB), 'A should be able to reflect R=1 with B');
-          domains[indexA] = vR ? domain_removeGtUnsafe(A, vB) : domain_removeLte(A, vB);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = ${vars[indexA]} <=? L${vB}`));
-
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsA === 1) {
+      // note: A cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexB, true))) {
+        return leafIsLteLhs(ml, offset, indexA, indexB, indexA, indexB, indexR);
       }
     }
 
-    if (lenA === 1) {
-      indexB = lenB === 1 ? ml_dec8(ml, offset + 1 + lenA) : getAlias(ml_dec16(ml, offset + 1 + lenA));
-      let countsB = bounty_getCounts(bounty, indexB);
-      if (countsB === 1) {
-        // B is leaf, A is constant, cut the constraint, B can reflect A and C afterwards
-        // we assume that B contains a valid value for A and both cases C=0 and C=1
-        let B = domains[indexB];
-        let vA = ml_dec8(ml, offset + 1);
-
-        ASSERT_LOG2('   - A is a leaf var, B a constant (', vA, ')');
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut islt B;', indexR, '= c <=?', indexB, ' ->  ', domain__debug(domains[indexR]), '=', vA, '<=?', domain__debug(B));
-          let vR = force(indexR);
-          ASSERT(domain_removeLtUnsafe(B, vA), 'B should be able to reflect R=0 with A');
-          ASSERT(domain_removeGte(B, vA), 'B should be able to reflect R=1 with A');
-          domains[indexB] = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${vars[indexR]} = L${vA} <=? ${vars[indexB]}`));
-
-        ml_eliminate(ml, offset, sizeof);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+    if (countsB === 1) {
+      // note: B cannot be solved (bounty ignores it so count would be 0)
+      if (!domain_isSolved(getDomain(indexA, true))) {
+        return leafIsLteRhs(ml, offset, indexB, indexA, indexA, indexB, indexR);
       }
     }
 
-    pc = offset + sizeof;
+    pc = offset + SIZEOF_VVV;
   }
 
   function cutPlus(ml, offset) {
-    ASSERT_LOG2(' -- cutPlus', offset);
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+    let indexR = readIndex(ml, offset + 5);
+
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutPlus; ', indexR, '=', indexA, '+', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '+', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
+    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+
     // note: we cant simply eliminate leaf vars because they still constrain
     // the allowed distance between the other two variables and if you
     // eliminate this constraint, that limitation is not enforced anymore.
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + 2));
-    ASSERT_LOG2('   - indexR=', indexR, 'counts:', bounty_getCounts(bounty, indexR), 'meta:', bounty_getMeta(bounty, indexR));
-    if (cutPlusR(offset, indexR)) return;
-    if (cutPlusAB(offset, indexR, 'A', 1, 'B', 1 + 2)) return;
-    if (cutPlusAB(offset, indexR, 'B', 1 + 2, 'A', 1)) return;
-    pc = offset + SIZEOF_VVV;
-  }
-  function cutPlusR(offset, indexR) {
-    let countsR = bounty_getCounts(bounty, indexR);
-    ASSERT_LOG2(' - cutPlusR', offset, indexR, 'count=', countsR);
+    // so thread carefully.
+
     if (countsR === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-      // even though R is a dud, it cant be plainly eliminated!
-      // however, if the range of R wraps the complete range of
-      // A+B then that means the distance between A and B is not
-      // restricted and we can defer this constraint, anyways.
-      // (this could happen when C=A+B with C=*)
-      // note that since R is a leaf var it cant be constrained
-      // any further except by this constraint, so it cannot be
-      // the case that another constraint invalidates this step.
+      ASSERT_LOG2('   - R is only used in one constraint (could be a cuttable leaf)');
+      // even though R is a leaf, it cant be plainly eliminated!
 
-      let indexA = getAlias(ml_dec16(ml, offset + 1));
-      let indexB = getAlias(ml_dec16(ml, offset + 1 + 2));
-      let A = domains[indexA];
-      let B = domains[indexB];
-      let R = domains[indexR];
-      ASSERT_LOG2(' ->', domain__debug(R), '=', domain__debug(A), '+', domain__debug(B));
+      let A = getDomain(indexA, true);
+      let B = getDomain(indexB, true);
+      let R = getDomain(indexR, true);
 
-      // you could also simply add the domains and check if the result intersected with R equals the result.
-      let lo = domain_min(A) + domain_min(B);
-      let hi = domain_max(A) + domain_max(B);
-      ASSERT(domain_min(R) >= lo, 'should be minified');
-      ASSERT(domain_max(R) <= hi, 'should be minified');
-      if (R === domain_createRange(lo, hi)) {
-        // regardless of A and B, every addition between them is contained in R
-        // this means we can eliminate R safely without breaking minimal distance A B
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut plus R;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-          let vA = force(indexA);
-          let vB = force(indexB);
-          let vR = vA + vB;
-          ASSERT(Number.isInteger(vR), 'should be integer result');
-          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
-        });
+      // R can only be eliminated if all possible additions between A and B occur in it
+      // because in that case it no longer serves as a constraint to force certain distance(s)
 
-        ml_eliminate(ml, pc, SIZEOF_VVV);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return true;
+      let AB = domain_plus(A, B);
+
+      // note that this means the intersection AB to R should equal AB (not R because it could
+      // contain even more values, even though those simply can't lead to a solution)
+
+      if (domain_intersection(R, AB) === AB) {
+        // we can safely defer R
+        return leafPlusFull(ml, offset, indexA, indexB, indexR);
       }
 
+      // there are some other tricks possible on strictly bool domains
       if (domain_isBool(A) && domain_isBool(B)) {
         if (R === domain_createRange(1, 2)) {
-          ASSERT_LOG2('   - leaf R; [12]=[01]+[01] is actually an OR');
-          solveStack.push((domains, force) => {
-            ASSERT_LOG2(' - cut plus R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-            let vA = force(indexA);
-            let vB = force(indexB);
-            let vR = vA + vB;
-            ASSERT(Number.isInteger(vR), 'should be integer result');
-            ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
-            domains[indexR] = domain_createValue(vR);
-          });
-
-          ASSERT_LOG2(' - Rewrite to A|B');
-          // rewrite to `A | B` (inclusive OR)
-          // R can later reflect the result
-          // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
-          ml_vvv2vv(ml, offset, ML_VV_OR, indexA, indexB);
-          bounty_markVar(bounty, indexR);
-          somethingChanged();
-          return true;
+          return trickPlusOr(ml, offset, indexA, indexB, indexR); // [12]=[01]+[01] => A|B
         }
 
         if (domain_isBool(R)) {
-          ASSERT_LOG2('   - leaf R; [01]=[01]+[01] is actually a NAND');
-          solveStack.push((domains, force) => {
-            ASSERT_LOG2(' - cut plus R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-            let vA = force(indexA);
-            let vB = force(indexB);
-            let vR = vA + vB;
-            ASSERT(Number.isInteger(vR), 'should be integer result');
-            ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
-            domains[indexR] = domain_createValue(vR);
-          });
-
-          ASSERT_LOG2(' - Rewrite to A!&B');
-          // rewrite to `A !& B` (not AND) to enforce that they can't both be 1 (... "non-zero")
-          // R can later reflect the result
-          // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
-          ml_vvv2vv(ml, offset, ML_VV_NAND, indexA, indexB);
-          bounty_markVar(bounty, indexR);
-          somethingChanged();
-          return true;
+          return trickPlusNand(ml, offset, indexA, indexB, indexR); // [01]=[01]+[01] => A!&B
         }
       }
     }
 
     if (countsR === 2) {
-      // scan for pattern (R = A+B) & (S = R==?2) -> S = isAll(A B) when A and B are strict bools. a bit tedious to scan for but worth it.
-      // (TODO: more generically it applies when all args to the plus/sum are size=2 and booly)
-      let offset1 = bounty_getOffset(bounty, indexR, 0);
-      let offset2 = bounty_getOffset(bounty, indexR, 1);
-      let otherOffset = offset1 === offset ? offset2 : offset1;
-      ASSERT(offset1 && offset2 && (offset1 === offset || offset2 === offset), 'if there were two counts Bounty should have collected two offsets for it');
-      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getAlias(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === 2) {
-        // okay the "other side" is checking whether the result is 2 so if the two plus args are bools we can reduce
+      if (trickPlusIseq(ml, offset, indexA, indexB, indexR)) return;
+    }
 
-        let indexA = getAlias(ml_dec16(ml, offset + 1));
-        let indexB = getAlias(ml_dec16(ml, offset + 1 + 2));
-        let A = domains[indexA];
-        let B = domains[indexB];
+    if (countsA === 1 || countsB === 1) {
+      let A = getDomain(indexA, true);
+      let B = getDomain(indexB, true);
 
-        ASSERT_LOG2(' ->', domain__debug(domains[indexR]), '=', domain__debug(A), '+', domain__debug(B));
-        if (domain_isBool(A) && domain_isBool(B)) {
-          ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
-          // match. rewrite plus isAll and remove the isEq. adjust counts accordingly
-          let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 2 + 1)); // other op is a v8v_isEq and we want its R
-
-          solveStack.push((_, force, getDomain, setDomain) => {
-            let R = getDomain(indexR);
-            ASSERT_LOG2(' - cut plus -> isAll; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(R), ' = isAll(', domain__debug(getDomain(indexA)), ',', domain__debug(getDomain(indexB)), ')');
-            ASSERT(domain_min(R) === 0 && domain_max(R) === 2, 'R should have all values', domain__debug(R));
-            setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
-          });
-
-          // for the record, _this_ is why ML_ISALL2 exists at all. we cant use ML_ISALL because it has a larger footprint than ML_PLUS
-          // TODO: this was before recycling was a thing. we will soon remove isall2 and use recycling instead
-          ml_vvv2vvv(ml, offset, ML_ISALL2, indexA, indexB, indexS);
-          ml_eliminate(ml, otherOffset, SIZEOF_V8V);
-          // R=A+B, S=R==?2  ->  S=isall(A,B). so only the count for R is reduced
-          bounty_markVar(bounty, indexR);
-          somethingChanged();
-          return true;
-        }
+      if (domain_getValue(A) >= 0 || domain_getValue(B) >= 0) {
+        leafPlusArg();
       }
     }
 
-    return false;
-  }
-  function cutPlusAB(offset, indexR, X, deltaX, Y, deltaY) {
-    ASSERT_LOG2(' - _cutPlusAB:', X, Y, offset, indexR, deltaX, deltaY);
-    let indexA = getAlias(ml_dec16(ml, offset + deltaX));
-    let countsA = bounty_getCounts(bounty, indexA);
-    if (countsA === 1) {
-      let A = domains[indexA];
-      let indexB = getAlias(ml_dec16(ml, offset + deltaY));
-      let B = domains[indexB];
-      let vB = domain_getValue(B);
-      ASSERT_LOG2('   -', X, ' is a leaf var, ', Y, '=', domain__debug(B));
-      if (vB >= 0) {
-        let oR = domains[indexR];
-        ASSERT_LOG2('   - and', Y, 'is solved to', vB, 'so intersect R to ' + X + '+' + vB + ', defer ' + X + ', and eliminate the constraint');
-        let R = domain_intersection(domain_plus(A, B), oR);
-        if (R !== oR) {
-          ASSERT_LOG2(' - intersecting R with ' + X + '+vB', domain__debug(oR), 'n', (domain__debug(A) + '+' + domain__debug(B) + '=' + domain__debug(domain_plus(A, B))), '->', domain__debug(R));
-          if (!R) return emptyDomain = true;
-          domains[indexR] = R;
-        }
-
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut plus R=' + X + '+c;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(domains[indexR]), '=', domain__debug(domains[indexA]), '+', domain__debug(domains[indexB]));
-          let vA = force(indexA);
-          let vB = force(indexB);
-          let vR = vA + vB;
-          ASSERT(Number.isInteger(vR), 'should be integer result');
-          ASSERT(domain_containsValue(domains[indexR], vR), 'A B and R should already have been reduced to domains that are valid within A+B=R', vA, vB, vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
-        });
-
-        ml_eliminate(ml, pc, SIZEOF_VVV);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return true;
-      }
-    }
-    return false;
+    pc = offset + SIZEOF_VVV;
   }
 
   function cutSum(ml, offset) {
-    let len = ml_dec16(ml, pc + 1);
-    ASSERT(len > 2, 'should have at least three args or otherwise the minifier would have morphed it');
+    let argCount = ml_dec16(ml, offset + 1);
+    let argsOffset = offset + SIZEOF_COUNT;
+    let opSize = SIZEOF_COUNT + argCount * 2 + 2;
 
-    let indexR = getAlias(ml_dec16(ml, offset + 1 + 2 + 1 + len * 2));
-    let countsR = bounty_getCounts(bounty, indexR);
+    let indexR = readIndex(ml, argsOffset + argCount * 2);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutSum; R=', indexR);
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
       let allBool = true; // all args [01]? used later
-      let C = ml_dec8(ml, offset + 1 + 2); // constant
-      let lo = C;
-      let hi = C;
-      for (let i = 0; i < len; ++i) {
-        let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
-        let domain = domains[index];
-        let min = domain_min(domain);
-        let max = domain_max(domain);
-        ASSERT(min < max, 'arg should not be solved here (minimizer should take care of that)');
-        lo += min;
-        hi += max;
-        if (lo !== 0 || max !== 1) allBool = false;
+      let sum = domain_createValue(0);
+      for (let i = 0; i < argCount; ++i) {
+        let index = readIndex(ml, argsOffset + i * 2);
+        let domain = getDomain(index, true);
+
+        sum = domain_plus(sum, domain);
+        if (!domain_isBool(domain)) allBool = false;
       }
 
-      let R = domains[indexR];
-      ASSERT(domain_min(R) >= lo, 'R should be minimized');
-      ASSERT(domain_max(R) <= hi, 'R should be minimized');
+      let R = getDomain(indexR, true);
 
-      if (R === domain_createRange(lo, hi)) {
+      if (sum === domain_intersection(R, sum)) { // are all possible outcomes of the sum of args in R? then R is a cuttable leaf
         // all possible outcomes of summing any element in the sum args are part of R so
-        // R is a leaf and the args arent bound by it so we can safely remove the sum
-
-        // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
-        let args = [];
-        for (let i = 0; i < len; ++i) {
-          let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
-          args.push(index);
-          bounty_markVar(bounty, index);
-        }
-
-        ASSERT_LOG2('   - R is a leaf var that wraps all bounds', indexR, args, domain__debug(R));
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
-          let vR = C + args.map(force).reduce((a, b) => a + b);
-          ASSERT(Number.isInteger(vR), 'should be integer result');
-          ASSERT(domain_containsValue(domains[indexR], vR), 'R should already have been reduced to a domain that is valid within any outcome of the sum', vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
-        });
-
-        ml_eliminate(ml, pc, SIZEOF_C8 + len * 2 + 2);
-        bounty_markVar(bounty, indexR); // args already done in above loop
-        somethingChanged();
-        return;
+        // R is a leaf and the args aren't bound by it so we can safely remove the sum
+        return leafSumR(ml, offset, argCount, indexR);
       }
 
-      // if R is [0, n-1] and all args are [0, 1] then rewrite to a NALL
-      if (allBool && lo === 0 && R === domain_createRange(0, hi - 1)) {
-        // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
-        let args = [];
-        for (let i = 0; i < len; ++i) {
-          let index = getAlias(ml_dec16(ml, offset + 1 + 2 + 1 + i * 2));
-          args.push(index);
-          bounty_markVar(bounty, index);
-        }
-
-        ASSERT_LOG2('   - R is a isNall leaf var, rewriting to NALL', indexR, args, domain__debug(R));
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut plus R;', indexR, args, domain__debug(R));
-          let vR = C + args.map(force).reduce((a, b) => a + b);
-          ASSERT(Number.isInteger(vR), 'should be integer result');
-          ASSERT(domain_containsValue(domains[indexR], vR), 'R should already have been reduced to a domain that is valid within any outcome of the sum', vR, domain__debug(domains[indexR]));
-          domains[indexR] = domain_createValue(vR);
-        });
-
-        // from sum to nall.
-        ml_enc8(ml, offset, ML_NALL);
-        ml_enc16(ml, offset + 1, len);
-        for (let i = 0; i < len; ++i) {
-          ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, args[i]);
-        }
-        ml_jump(ml, offset + SIZEOF_COUNT + len * 2, 3); // result var (16bit) and the constant (8bit). for the rest nall is same as sum
-        bounty_markVar(bounty, indexR); // args already done in above loop
-        somethingChanged();
-        return;
+      // if R is [0, n-1] and all n args are [0, 1] then rewrite to a NALL
+      if (allBool && R === domain_createRange(0, argCount - 1)) {
+        return trickSumNall(ml, offset, argCount, indexR);
       }
     }
 
     if (countsR === 2) {
-      let C = ml_dec8(ml, offset + 1 + 2); // constant
-      // scan for pattern (R = sum(A B C) & (S = R==?3) -> S = isAll(A B C) with ABC strict bools. a bit tedious to scan for but worth it.
-      let offset1 = bounty_getOffset(bounty, indexR, 0);
-      let offset2 = bounty_getOffset(bounty, indexR, 1);
-      let otherOffset = offset1 === offset ? offset2 : offset1;
-      ASSERT(otherOffset > 0, 'offset should exist and cant be the first op');
-      if (ml_dec8(ml, otherOffset) === ML_V8V_ISEQ && getAlias(ml_dec16(ml, otherOffset + 1)) === indexR && ml_dec8(ml, otherOffset + 3) === (C + len)) {
-        // okay the "other side" is checking whether the result is max so if all the args are bools we can reduce
+      let metaR = getMeta(bounty, indexR);
+      // (R = sum(A B C) & (S = R==?3) -> S = isAll(A B C)
+      // we already confirmed that R is for a sum, so we can strictly compare the flag to check for it being an iseq arg
+      if (metaR === (BOUNTY_ISEQ_ARG | BOUNTY_SUM_RESULT) && trickSumIseq(ml, offset, indexR, countsR, metaR)) return;
+    }
 
-        let args = [];
-        let allBools = true;
-        for (let i = 0; i < len; ++i) {
-          let index = getAlias(ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
-          let domain = domains[index];
-          if (!domain_isBool(domain)) {
-            allBools = false;
-            break;
-          }
-          args.push(index);
-        }
+    pc += opSize;
+  }
 
-        if (allBools) {
-          ASSERT_LOG2(' - found isAll pattern, rewriting sum and eliminating isEq');
+  function cutOr(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
 
-          // ok, we replace the sum and isEq with `S = isAll(args)`
-          // the sum has the biggest footprint so the isall will fit with one byte to spare
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
 
-          let indexS = getAlias(ml_dec16(ml, otherOffset + 1 + 3));
+    ASSERT_LOG2(' ! cutOr; ', indexA, '|', indexB, '::', domain__debug(getDomain(indexA, true)), '|', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
-          solveStack.push((_, force, getDomain, setDomain) => {
-            ASSERT_LOG2(' - cut sum -> isAll');
-            let R = getDomain(indexR);
-            let vR = 0;
-            for (let i = 0; i < len; ++i) {
-              let vN = force(args[i]);
-              ASSERT(vN === 0 || vN === 1, 'should be booly');
-              if (vN) ++vR;
-            }
-            ASSERT(domain_min(R) === 0 && domain_max(R) === len, 'R should have all values', domain__debug(R));
-            setDomain(indexR, domain_intersection(R, domain_createValue(vR)));
-          });
+    if (countsA === 1) {
+      return leafOr(ml, offset, indexA, indexB, indexA, indexB);
+    }
 
-          // isall has no constant so we must move all args one to the left
-          ml_enc8(ml, offset, ML_ISALL);
-          ml_enc16(ml, offset + 1, len);
-          for (let i = 0; i < len; ++i) {
-            ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, ml_dec16(ml, offset + SIZEOF_C8 + i * 2));
-          }
-          ml_enc16(ml, offset + SIZEOF_COUNT + len * 2, indexS);
-          ml_jump(ml, offset + SIZEOF_COUNT + len * 2 + 2, SIZEOF_C8 - SIZEOF_COUNT); // the difference in op footprint is the 8bit constant
+    if (countsB === 1) {
+      return leafOr(ml, offset, indexB, indexA, indexA, indexB);
+    }
 
-          // remove the iseq, regardless
-          ml_eliminate(ml, otherOffset, SIZEOF_V8V);
+    pc += SIZEOF_VV;
+  }
 
-          // R=sum(args), S=R==?2  ->  S=isall(args). so only the count for R is reduced
-          bounty_markVar(bounty, indexR);
-          somethingChanged();
-          return;
-        }
+  function cutXor(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+
+    ASSERT_LOG2(' ! cutXor; ', indexA, '^', indexB, '::', domain__debug(getDomain(indexA, true)), '^', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+
+    if (countsA === 1) {
+      return leafXor(ml, offset, indexA, indexB, indexA, indexB);
+    }
+
+    if (countsB === 1) {
+      return leafXor(ml, offset, indexB, indexA, indexA, indexB);
+    }
+
+    pc += SIZEOF_VV;
+  }
+
+  function cutNand(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
+
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+
+    ASSERT_LOG2(' ! cutNand; ', indexA, '!&', indexB, '::', domain__debug(getDomain(indexA, true)), '!&', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+
+    if (countsA === 1) {
+      return leafNand(ml, offset, indexA, indexB, indexA, indexB);
+    }
+
+    if (countsB === 1) {
+      return leafNand(ml, offset, indexB, indexA, indexA, indexB);
+    }
+
+    if (countsA > 0) {
+      let metaA = getMeta(bounty, indexA);
+      if (metaA === BOUNTY_NAND) {
+        // A is only used in nands. eliminate them all and defer A
+        if (trickNandOnly(indexA, countsA)) return;
       }
     }
 
-    pc += SIZEOF_C8 + len * 2 + 2;
-  }
+    if (countsB > 0) {
+      let metaB = getMeta(bounty, indexB);
 
-  function cutOr() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
-
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
-
-    ASSERT_LOG2(' - cutOr', indexA, '|', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
-
-    if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut or A;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vB = force(indexB);
-        ASSERT(domain_min(A) === 0 && domain_max(A) > 0, 'A should contain zero and non-zero');
-        if (vB === 0) domains[indexA] = domain_removeValue(A, 0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' | ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut or B;', indexA, '|', indexB, '  ->  ', domain__debug(domains[indexA]), '|', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let B = domains[indexB];
-        ASSERT(domain_min(B) === 0 && domain_max(B) > 0, 'B should contain zero and non-zero');
-        if (vA === 0) domains[indexB] = domain_removeValue(B, 0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' | ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    pc += SIZEOF_VV;
-  }
-
-  function cutXor() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
-
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
-
-    ASSERT_LOG2(' - cutXor', indexA, '^', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
-
-    if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut xor A;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vB = force(indexB);
-        ASSERT(domain_min(A) === 0 && domain_max(A) > 0, 'A should contain zero and non-zero');
-        if (vB === 0) domains[indexA] = domain_removeValue(A, 0);
-        else domains[indexA] = domain_createValue(0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' ^ ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut xor B;', indexA, '^', indexB, '  ->  ', domain__debug(domains[indexA]), '^', domain__debug(domains[indexB]));
-        let vA = force(indexA);
-        let B = domains[indexB];
-        ASSERT(domain_min(B) === 0 && domain_max(B) > 0, 'B should contain zero and non-zero');
-        if (vA === 0) domains[indexB] = domain_removeValue(B, 0);
-        else domains[indexB] = domain_createValue(0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' ^ ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    pc += SIZEOF_VV;
-  }
-
-  function cutNand() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
-
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
-
-    ASSERT_LOG2(' - cutNand', indexA, '!&', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
-
-    if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut nand A;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let B = domains[indexB];
-        let vB = domain_min(B) || force(indexB); // there's no need to force solve B if B doesnt contain a zero anyways
-        ASSERT(domain_min(A) === 0, 'A should contain a zero (regardless)');
-        if (vB > 0) domains[indexA] = domain_createValue(0);
-        ASSERT_LOG2('   - result: vB=', vB, 'domain A=', domain__debug(domains[indexA]));
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !& ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut nand B;', indexA, '!&', indexB, '  ->  ', domain__debug(domains[indexA]), '!&', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vA = domain_min(A) || force(indexA); // there's no need to force solve A if A doesnt contain a zero anyways
-        let B = domains[indexB];
-        ASSERT(domain_min(B) === 0, 'A should contain a zero (regardless)');
-        if (vA > 0) domains[indexB] = domain_createValue(0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !& ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    let metaA = bounty_getMeta(bounty, indexA);
-    let metaB = bounty_getMeta(bounty, indexB);
-
-    if (metaA === BOUNTY_NAND) {
-      // A is only used in nands. eliminate them all and defer A
-      if (trickNandOnly(indexA, pc)) return;
-    }
-
-    if (metaB === BOUNTY_NAND) {
-      // B is only used in nands. eliminate them all and defer B
-      if (trickNandOnly(indexB, pc)) return;
-    }
-
-    if (countsA === 2) {
-      if ((metaA & BOUNTY_LTE_LHS) && trickNandLteLhs(indexA, pc, 'nand')) return;
-    }
-
-    if (countsB === 2) {
-      if ((metaB & BOUNTY_LTE_LHS) && trickNandLteLhs(indexB, pc, 'nand')) return;
-    }
-
-    if ((metaA & BOUNTY_ISALL_RESULT) && trickNandIsall(indexA, indexB, pc)) return;
-    if ((metaB & BOUNTY_ISALL_RESULT) && trickNandIsall(indexB, indexA, pc)) return;
-
-    pc += SIZEOF_VV;
-  }
-
-  function cutXnor() {
-    let indexA = getAlias(ml_dec16(ml, pc + 1));
-    let indexB = getAlias(ml_dec16(ml, pc + 3));
-
-    let countsA = bounty_getCounts(bounty, indexA);
-    let countsB = bounty_getCounts(bounty, indexB);
-
-    ASSERT_LOG2(' - cutXnor', indexA, '!^', indexB, 'counts:', countsA, countsB, ', meta:', bounty_getMeta(bounty, indexA), bounty_getMeta(bounty, indexB));
-
-    if (countsA === 1) {
-      ASSERT_LOG2('   - A is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut xnor A;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let B = domains[indexB];
-        let vB = domain_min(B) || force(indexB); // no need to force solve B if B has no zero anyways
-        ASSERT(domain_min(A) === 0 && domain_max(A) > 0, 'A should contain zero and non-zero');
-        if (vB === 0) domains[indexA] = domain_createValue(0);
-        else domains[indexA] = domain_removeValue(A, 0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !^ ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    if (countsB === 1) {
-      ASSERT_LOG2('   - B is a leaf var');
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut xnor B;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]));
-        let A = domains[indexA];
-        let vA = domain_min(A) || force(indexA); // no need to force solve A if A has no zero anyways
-        let B = domains[indexB];
-        ASSERT(domain_min(B) === 0 && domain_max(B) > 0, 'B should contain zero and non-zero');
-        if (vA === 0) domains[indexB] = domain_createValue(0);
-        else domains[indexB] = domain_removeValue(B, 0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !^ ' + indexB));
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      bounty_markVar(bounty, indexA);
-      bounty_markVar(bounty, indexB);
-      somethingChanged();
-      return;
-    }
-
-    let metaA = bounty_getMeta(bounty, indexA);
-    let metaB = bounty_getMeta(bounty, indexB);
-    let boolyA = !(metaA & BOUNTY_NOT_BOOLY);
-    let boolyB = !(metaB & BOUNTY_NOT_BOOLY);
-    if (boolyA || boolyB) {
-      // A or B is only used as a boolean (in the zero-nonzero sense, not strictly 0,1)
-      // the xnor basically says that if one is zero the other one is too, and otherwise neither is zero
-      // cominbing that with the knowledge that both vars are only used for zero-nonzero, one can be
-      // considered a pseudo-alias for the other. we replace it with the other var and defer solving it.
-      // when possible, pick a strictly boolean domain because it's more likely to allow new tricks.
-      // note that for the bool, the actual value is irrelevant. whether it's 1 or 5, the ops will
-      // normalize this to zero and non-zero anyways. and by assertion there are no other ops.
-
-      ASSERT_LOG2(' - found bool-eq in a xnor:', indexA, '!^', indexB, '->', metaA, metaB);
-
-      // ok, a little tricky, but we're going to consider the bool to be a full alias of the other var
-      // only when creating a solution, we will override the value and apply the boolean-esque value
-      // to the bool var and assign it either its zero or nonzero value.
-
-      let indexE = indexB;
-      let indexK = indexA;
-      if (!boolyB || (boolyA && domain_isBool(domains[indexA]))) { // if A wasnt booly use B, otherwise A must be booly
-        indexE = indexA;
-        indexK = indexB;
+      if (metaB === BOUNTY_NAND) {
+        // B is only used in nands. eliminate them all and defer B
+        if (trickNandOnly(indexB, countsB)) return;
       }
-      let E = domains[indexE]; // remember what E was because it will be replaced by false to mark it an alias
-      ASSERT_LOG2(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(domains[indexA]), '!^', domain__debug(domains[indexB]), 'replacing', indexE, 'with', indexK);
-
-      solveStack.push((domains, force, getDomain) => {
-        ASSERT_LOG2(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
-        ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
-        let vK = force(indexK);
-        if (vK === 0) domains[indexE] = domain_removeGtUnsafe(E, 0);
-        else domains[indexE] = domain_removeValue(E, 0);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexE));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' !^ ' + indexB));
-
-      // note: addAlias will push a defer as well. since the defers are resolved in reverse order,
-      // we must call addAlias after adding our own defer, otherwise our change will be lost.
-      addAlias(indexE, indexK);
-
-      ml_eliminate(ml, pc, SIZEOF_VV);
-      // we can add the count of E to that of K and subtract two for eliminating this constraint (due to alias is now identity hence -2)
-      bounty_markVar(bounty, indexK);
-      bounty_markVar(bounty, indexE);
-      somethingChanged();
-      return;
     }
 
     pc += SIZEOF_VV;
   }
 
-  function cutIsAll() {
-    let len = ml_dec16(ml, pc + 1);
-    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutXnor(ml, offset) {
+    let indexA = readIndex(ml, offset + 1);
+    let indexB = readIndex(ml, offset + 3);
 
-    ASSERT_LOG2(' - cutIsAll', indexR, '->', countsR, 'x');
+    let countsA = getCounts(bounty, indexA);
+    let countsB = getCounts(bounty, indexB);
+
+    ASSERT_LOG2(' ! cutXnor; ', indexA, '!^', indexB, '::', domain__debug(getDomain(indexA, true)), '!^', domain__debug(getDomain(indexB, true)));
+    ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
+    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+
+    if (countsA === 1) {
+      return leafXnor(ml, offset, indexA, indexB, indexA, indexB);
+    }
+
+    if (countsB === 1) {
+      return leafXnor(ml, offset, indexB, indexA, indexA, indexB);
+    }
+
+    if (countsA > 0 && countsB > 0) {
+      let metaA = getMeta(bounty, indexA);
+      let metaB = getMeta(bounty, indexB);
+      let boolyA = (metaA & BOUNTY_NOT_BOOLY_ONLY_FLAG) !== BOUNTY_NOT_BOOLY_ONLY_FLAG;
+      let boolyB = (metaB & BOUNTY_NOT_BOOLY_ONLY_FLAG) !== BOUNTY_NOT_BOOLY_ONLY_FLAG;
+      if (boolyA || boolyB) {
+        return trickXnorPseudoEq(ml, offset, indexA, boolyA, indexB, boolyB);
+      }
+    }
+
+    pc += SIZEOF_VV;
+  }
+
+  function cutIsAll(ml, offset) {
+    let argCount = ml_dec16(ml, offset + 1);
+    let argsOffset = offset + SIZEOF_COUNT;
+    let opSize = SIZEOF_COUNT + argCount * 2 + 2;
+
+    let indexR = readIndex(ml, argsOffset + argCount * 2);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsAll; R=', indexR, ', counts:', countsR);
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-
-      let R = domains[indexR];
+      let R = getDomain(indexR, true);
 
       // note: if R is solved to truthy, remove zero from all args (-> minimizer)
       //       if R is solved to falsy, rewrite to a NALL (-> minimizer)
@@ -1265,932 +713,1498 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       //       by leaf var R, in that case just eliminate the constraint and make R a leaf
 
       // while it's possible for R to be unsolved, we only act on the unsolved case in the cutter (DRY)
+      // TODO: we could ignore the state of R completely. this probably leads to a regression in results... but if the minimizer isnt ran at full capacity anyways, at least you can have this
       if (domain_min(R) === 0 && domain_max(R) > 0) {
         // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
-
-        let args = [];
-        for (let i = 0; i < len; ++i) {
-          args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
-        }
-
-        solveStack.push((domains, force) => {
-          ASSERT_LOG2(' - cut isall R; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isAll(', args.map(index => domain__debug(domains[index])), ')');
-          ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values', domain__debug(domains[indexR]));
-
-          let vR = 1;
-          for (let i = 0; i < len; ++i) {
-            if (force(args[i]) === 0) {
-              vR = 0;
-              break;
-            }
-          }
-
-          domains[indexR] = domain_createValue(vR);
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + args + ')'));
-
-        ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
-        bounty_markVar(bounty, indexR);
-        for (let i = 0; i < len; ++i) {
-          bounty_markVar(bounty, args[i]);
-        }
-        somethingChanged();
-
-        return;
+        return leafIsall(ml, offset, argCount, indexR);
       }
     }
 
-    if (countsR === 2) {
-      let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
+    if (countsR > 0) {
+      let metaR = getMeta(bounty, indexR);
+      ASSERT_LOG2('   - metaR:', bounty__debugMeta(metaR));
+
+      if (countsR === 2) {
+        if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall1Nall(ml, indexR, offset, countsR, metaR)) return;
+      }
+
+      if (metaR === (BOUNTY_NAND | BOUNTY_ISALL_RESULT) && trickNandIsall1(ml, indexR, offset, countsR, metaR)) return;
     }
 
-    pc += SIZEOF_COUNT + len * 2 + 2;
+    pc += opSize;
   }
 
-  function cutIsAll2() {
-    let indexR = getAlias(ml_dec16(ml, pc + 5));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsAll2(ml, offset) {
+    let indexR = readIndex(ml, offset + 5);
+    let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' - cutIsAll2', indexR, '->', countsR, 'x');
+    ASSERT_LOG2(' - cutIsAll2', indexR);
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
-      let indexA = getAlias(ml_dec16(ml, pc + 1));
-      let indexB = getAlias(ml_dec16(ml, pc + 3));
-
-      let R = domains[indexR];
-
+      let R = getDomain(indexR, true);
       // note: if R is solved to truthy, remove zero from all args (-> minimizer)
       //       if R is solved to falsy, rewrite to a NAND (-> minimizer)
       //       if R is undetermined the args can be anything because they are not bound
       //       by leaf var R, in that case just eliminate the constraint and make R a leaf
-
-      // while it's possible for R to be unsolved, we only act on the unsolved case in the cutter (DRY)
-      if (domain_min(R) === 0 && domain_max(R) > 0) {
+      // while it's possible for R to be solved, we only act on the unsolved case in the cutter (DRY)
+      if (domain_isZero(R) && domain_hasNoZero(R)) {
+        let indexA = readIndex(ml, offset + 1);
+        let indexB = readIndex(ml, offset + 3);
         // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
-
-        ASSERT_LOG2('   - R is a leaf var');
-        solveStack.push((_, force, getDomain, setDomain) => {
-          let R = getDomain(indexR);
-          ASSERT_LOG2(' - cut isall2 R; ', indexR, '= isAll(', indexA, ',', indexB, ')  ->  ', domain__debug(R), ' = isAll(', domain__debug(getDomain(indexA)), ',', domain__debug(getDomain(indexB)), ')');
-          let vR = (force(indexA) === 0 || force(indexB) === 0) ? 0 : 1;
-          ASSERT(domain_min(R) === 0 && domain_max(R) > 0, 'R should be booly', domain__debug(R));
-          setDomain(indexR, domain_intersection(R, domain_createValue(vR)));
-        });
-        ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-        ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isall(' + indexA + ',' + indexB + ')'));
-
-        // factoring R out
-
-        ml_eliminate(ml, pc, SIZEOF_VVV);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-        return;
+        return leafIsall2(ml, offset, indexA, indexB, indexR);
       }
     }
 
-    if (countsR === 2) {
-      let metaR = bounty_getMeta(bounty, indexR);
-      if ((metaR & BOUNTY_NALL) && trickIsallNall(indexR, pc, 'isall')) return;
+    if (countsR > 0) {
+      let metaR = getMeta(bounty, indexR);
+
+      if (countsR === 2) {
+        if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall2Nall(ml, indexR, offset, metaR)) return;
+      }
+
+      if (metaR === (BOUNTY_NAND | BOUNTY_ISALL_RESULT) && trickNandIsall2(ml, indexR, offset, metaR, countsR)) return;
     }
 
     pc += SIZEOF_VVV;
   }
 
-  function cutIsNall() {
-    let len = ml_dec16(ml, pc + 1);
-    let indexR = getAlias(ml_dec16(ml, pc + SIZEOF_COUNT + len * 2));
-    let countsR = bounty_getCounts(bounty, indexR);
+  function cutIsNall(ml, offset) {
+    let argCount = ml_dec16(ml, offset + 1);
+    let argsOffset = offset + SIZEOF_COUNT;
+    let opSize = SIZEOF_COUNT + argCount * 2 + 2;
 
-    ASSERT_LOG2(' - cutIsNall', indexR, '->', countsR, 'x');
+    let indexR = readIndex(ml, argsOffset + argCount * 2);
+    let countsR = getCounts(bounty, indexR);
+
+    ASSERT_LOG2(' ! cutIsNall; R=', indexR);
+    ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
-      ASSERT_LOG2('   - R is a leaf var');
-
-      let args = [];
-      for (let i = 0; i < len; ++i) {
-        args.push(getAlias(ml_dec16(ml, pc + 3 + i * 2)));
-      }
-
-      solveStack.push((domains, force) => {
-        ASSERT_LOG2(' - cut isnall R; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(domains[indexR]), ' = isNall(', args.map(index => domain__debug(domains[index])), ')');
-        ASSERT(domains[indexR] === domain_createRange(0, 1), 'R should contain all valid values');
-
-        let vR = 0;
-        for (let i = 0; i < len; ++i) {
-          if (force(args[i]) === 0) {
-            vR = 1;
-            break;
-          }
-        }
-
-        domains[indexR] = domain_createValue(vR);
-      });
-      ASSERT(!void (solveStack[solveStack.length - 1]._target = indexR));
-      ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexR + '= isnall(' + args + ')'));
-
-      ml_eliminate(ml, pc, SIZEOF_COUNT + len * 2 + 2);
-      bounty_markVar(bounty, indexR);
-      for (let i = 0; i < len; ++i) {
-        bounty_markVar(bounty, args[i]);
-      }
-      somethingChanged();
-      return;
+      return leafIsnall(ml, offset, argCount, indexR, countsR);
     }
 
-    pc += SIZEOF_COUNT + len * 2 + 2;
+    pc += opSize;
   }
 
-  function cutNall() {
-    let len = ml_dec16(ml, pc + 1);
+  // ##############
 
-    for (let i = 0; i < len; ++i) {
-      let index = ml_dec16(ml, pc + 3 + i * 2);
-      let countsi = bounty_getCounts(bounty, index);
+  function leafNeq(ml, offset, leafIndex, otherIndex, indexA, indexB) {
+    ASSERT_LOG2('   - leafNeq;', leafIndex, 'is a leaf var, A != B,', indexA, '!=', indexB);
 
-      if (countsi === 2) {
-        let meta = bounty_getMeta(bounty, index);
-        if ((meta & BOUNTY_ISALL_RESULT) && trickIsallNall(index, pc, 'nall')) return;
-      }
-    }
-
-    pc += SIZEOF_COUNT + len * 2;
-  }
-
-  function leafNeq(ml, indexA, indexB) {
-    ASSERT_LOG2('   - leafNeq; A is a leaf var, A != B,', indexA, '!=', indexB);
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[indexB]));
-      let A = domains[indexA];
-      let vB = force(indexB);
-      domains[indexA] = domain_removeValue(A, vB);
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!=', domain__debug(getDomain(indexB)));
+      let oD = getDomain(leafIndex);
+      let v = force(otherIndex);
+      let D = domain_removeValue(oD, v);
+      ASSERT(D, 'D ought to have at least a value other dan v', domain__debug(oD), v);
+      setDomain(leafIndex, D);
     });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' != ' + indexB));
-    ml_eliminate(ml, pc, SIZEOF_VV);
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, otherIndex);
+    somethingChanged();
+  }
+
+  function leafLtLhs(ml, offset, indexA, indexB) {
+    ASSERT_LOG2('   - leafLtLhs;', indexA, 'is a leaf var, A < B,', indexA, '<', indexB);
+    ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
+    ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafLtLhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
+      let A = getDomain(indexA);
+      let vB = force(indexB);
+      ASSERT(domain_removeGte(A, vB), 'A ought to have at least one value below B');
+      setDomain(indexA, domain_removeGte(A, vB));
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
     somethingChanged();
   }
 
-  function leafLteLhs(ml, indexA, indexB) {
-    ASSERT_LOG2('   - A is a leaf var');
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - cut lte A;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
-      let A = domains[indexA];
-      let vB = force(indexB);
-      domains[indexA] = domain_removeGtUnsafe(A, vB);
-    });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexA));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = indexA + ' <= ' + indexB));
-    ml_eliminate(ml, pc, SIZEOF_VV);
-    bounty_markVar(bounty, indexA);
-    bounty_markVar(bounty, indexB);
-    somethingChanged();
-  }
+  function leafLtRhs(ml, offset, indexA, indexB) {
+    ASSERT_LOG2('   - leafLtRhs;', indexB, 'is a leaf var, A < B,', indexA, '<', indexB);
+    ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
+    ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
 
-  function leafLteRhs(ml, indexA, indexB) {
-    ASSERT_LOG2('   - B is a leaf var');
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - cut lte B;', indexA, '<=', indexB, '  ->  ', domain__debug(domains[indexA]), '<=', domain__debug(domains[indexB]));
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafLtRhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
-      let B = domains[indexB];
-      domains[indexB] = domain_removeLtUnsafe(B, vA);
+      let B = getDomain(indexB);
+      ASSERT(domain_removeLte(B, vA), 'B ought to have at least one value above A');
+      setDomain(indexB, domain_removeLte(B, vA));
     });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexB));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${indexA} <= ${indexB}`));
-    ml_eliminate(ml, pc, SIZEOF_VV);
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
     somethingChanged();
   }
 
-  function trickLteLhsTwice(varIndex, offset, meta) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex, meta);
+  function leafLteLhs(ml, offset, indexA, indexB) {
+    ASSERT_LOG2('   - leafLteLhs;', indexA, 'is a leaf var, A <= B,', indexA, '<', indexB);
+    ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
+    ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
 
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafLteLhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
+      let A = getDomain(indexA);
+      let vB = force(indexB);
+      ASSERT(domain_removeGtUnsafe(A, vB), 'A ought to have at least one value lte B');
+      setDomain(indexA, domain_removeGtUnsafe(A, vB));
+    });
 
-    ASSERT_LOG2('trickLteLhsTwice', varIndex, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', meta);
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    somethingChanged();
+  }
 
-    if (offset !== offset1 && ml_dec8(ml, offset1) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - offset1 wasnt lte');
+  function leafLteRhs(ml, offset, indexA, indexB) {
+    ASSERT_LOG2('   - leafLteRhs;', indexB, 'is a leaf var, A <= B,', indexA, '<', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafLtRhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let B = getDomain(indexB);
+      ASSERT(domain_removeLtUnsafe(B, vA), 'B ought to have at least one value gte A');
+      setDomain(indexB, domain_removeLtUnsafe(B, vA));
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    somethingChanged();
+  }
+
+  function leafIsEqR(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsEqR;', indexR, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsEqR;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '==?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let R = getDomain(indexR);
+      R = domain_booly(R, vA === vB);
+      ASSERT(R, 'leaf should at least have the resulting value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsEqArg(ml, offset, indexLeaf, indexConst, indexR, indexA, indexB) {
+    ASSERT_LOG2('   - leafIsEqArg;', indexLeaf, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
+
+    ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
+    ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsEqArg;', indexR, '=', indexLeaf, '==? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '==?', domain__debug(getDomain(indexConst)));
+      let A = getDomain(indexLeaf);
+      let vB = force(indexConst);
+      let vR = force(indexR);
+      A = vR ? domain_intersectionValue(A, vB) : domain_removeValue(A, vB);
+      ASSERT(A, 'leaf should at least have the resulting value');
+      setDomain(indexLeaf, A);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexLeaf);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsNeqR(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsNeqR;', indexR, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsNeqR;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '!=?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let R = getDomain(indexR);
+      R = domain_booly(R, vA !== vB);
+      ASSERT(R, 'leaf should at least have the resulting value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsNeqArg(ml, offset, indexLeaf, indexConst, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsNeqArg;', indexLeaf, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
+
+    ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
+    ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsNeqArg;', indexR, '=', indexLeaf, '!=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '!=?', domain__debug(getDomain(indexConst)));
+      let A = getDomain(indexLeaf);
+      let vB = force(indexConst);
+      let vR = force(indexR);
+      A = vR ? domain_intersectionValue(A, vB) : domain_removeValue(A, vB);
+      ASSERT(A, 'leaf should at least have the resulting value');
+      setDomain(indexLeaf, A);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexLeaf);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLtR(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLtR;', indexR, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLtR;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let R = getDomain(indexR);
+      R = domain_booly(R, vA < vB);
+      ASSERT(R, 'leaf should at least have the resulting value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLtLhs(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLtLhs;', indexA, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+    // A is leaf, B is constant
+
+    ASSERT(!domain_isSolved(getDomain(indexA, true)), 'the leaf var shouldnt be solved yet', indexA);
+    ASSERT(domain_isSolved(getDomain(indexB, true)), 'the const should be solved', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLtLhs;', indexR, '=', indexA, '<? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      let A = getDomain(indexA);
+      let vB = force(indexB);
+      let vR = force(indexR);
+      A = vR ? domain_removeGte(A, vB) : domain_removeLtUnsafe(A, vB);
+      ASSERT(A, 'leaf should at least have the resulting value');
+      setDomain(indexA, A);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLtRhs(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLtRhs;', indexB, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+    // A is constant, B is leaf
+
+    ASSERT(domain_isSolved(getDomain(indexA, true)), 'the const should be solved', indexA);
+    ASSERT(!domain_isSolved(getDomain(indexB, true)), 'the leaf var shouldnt be solved yet', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLtRhs;', indexR, '= c <?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let B = getDomain(indexB);
+      let vR = force(indexR);
+      B = vR ? domain_removeGte(B, vA) : domain_removeLtUnsafe(B, vA);
+      ASSERT(B, 'leaf should at least have the resulting value');
+      setDomain(indexB, B);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLteR(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLteR;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLteR;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let R = getDomain(indexR);
+      R = domain_booly(R, vA <= vB);
+      ASSERT(R, 'leaf should at least have the resulting value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLteLhs(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLteLhs;', indexA, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+    // A is leaf, B is constant
+
+    ASSERT(!domain_isSolved(getDomain(indexA, true)), 'the leaf var shouldnt be solved yet', indexA);
+    ASSERT(domain_isSolved(getDomain(indexB, true)), 'the const should be solved', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLteLhs;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      let A = getDomain(indexA);
+      let vB = force(indexB);
+      let vR = force(indexR);
+      A = vR ? domain_removeGtUnsafe(A, vB) : domain_removeLte(A, vB);
+      ASSERT(A, 'leaf should at least have the resulting value');
+      setDomain(indexA, A);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsLteRhs(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsLteRhs;', indexB, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+    // A is constant, B is leaf
+
+    ASSERT(domain_isSolved(getDomain(indexA, true)), 'the const should be solved', indexA);
+    ASSERT(!domain_isSolved(getDomain(indexB, true)), 'the leaf var shouldnt be solved yet', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsLteRhs;', indexR, '= c <=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let B = getDomain(indexB);
+      let vR = force(indexR);
+      B = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
+      ASSERT(B, 'leaf should at least have the resulting value');
+      setDomain(indexB, B);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafPlusFull(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafPlusFull;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '+', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafPlusFull;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let vR = vA + vB;
+      let R = getDomain(indexR);
+      R = domain_intersectionValue(R, vR);
+      ASSERT(R, 'leaf should contain the value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafPlusArg(ml, offset, leafIndex, constIndex, indexR, indexA, indexB) {
+    ASSERT_LOG2('   - leafPlusArg;', leafIndex, 'is a leaf var, R = A + B,', indexR, '=', indexA, '+', indexB);
+    ASSERT(!domain_isSolved(getDomain(leafIndex)), 'A should not yet be solved at this point');
+    ASSERT(domain_isSolved(getDomain(constIndex)), 'B should be solved at this point');
+
+    // B is solved, drop it from A. then defer R to resolve as an alias to A later
+    let B = domain_getValue(constIndex);
+    let oR = getDomain(indexR, true);
+    let R = domain_intersection(oR, domain_minus(oR, B));
+    if (R !== oR && setDomain(indexR, R)) return;
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafPlusArg;', indexR, '=', leafIndex, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(leafIndex)), '+', domain__debug(getDomain(constIndex)));
+      let A = getDomain(leafIndex);
+      let vB = force(constIndex);
+      let vR = force(indexR);
+      let vA = vR - vB;
+      ASSERT(Number.isInteger(vA), 'should be integer result');
+      A = domain_intersectionValue(A, vA);
+      ASSERT(A, 'leaf var should contain solution value');
+      setDomain(leafIndex, A);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, constIndex);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafSumR(ml, offset, argCount, indexR) {
+    ASSERT_LOG2('   - leafSumR;', indexR, 'is a leaf var, R = sum(', argCount, 'x ),', indexR, '= sum(...)');
+
+    // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
+    let args = [];
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, offset + SIZEOF_COUNT + i * 2);
+      args.push(index);
+      bounty_markVar(bounty, index);
+    }
+
+    ASSERT_LOG2('   - collected sum arg indexes;', args);
+    ASSERT_LOG2('   - collected sum arg domains;', args.map(index => domain__debug(getDomain(index))).join(', '));
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafSumR;', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))).join(', '), ')');
+      let vR = args.map(force).reduce((a, b) => a + b);
+      ASSERT(Number.isInteger(vR), 'should be integer result');
+      let R = domain_intersectionValue(getDomain(indexR), vR);
+      ASSERT(R, 'R should contain solution value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_COUNT + argCount * 2 + 2);
+    bounty_markVar(bounty, indexR); // args already done in above loop
+    somethingChanged();
+  }
+
+  function leafOr(ml, offset, leafIndex, otherIndex, indexA, indexB) {
+    ASSERT_LOG2('   - leafOr;', leafIndex, 'is a leaf var, A | B,', indexA, '|', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafOr; solving', indexA, '|', indexB, '  ->  ', domain__debug(getDomain(indexA)), '|', domain__debug(getDomain(indexB)));
+      let D = getDomain(leafIndex);
+      let v = force(otherIndex);
+      if (!v) {
+        let L = domain_booly(D, true);
+        ASSERT(L, 'defer solving A|B should not lead to an empty domain');
+        setDomain(leafIndex, L);
+      }
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, otherIndex);
+    somethingChanged();
+  }
+
+  function leafXor(ml, offset, leafIndex, otherIndex, indexA, indexB) {
+    ASSERT_LOG2('   - leafXor;', leafIndex, 'is a leaf var, A ^ B,', indexA, '^', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafXor; solving', indexA, '^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '^', domain__debug(getDomain(indexB)));
+      let D = getDomain(leafIndex);
+      let v = force(otherIndex);
+      let L = domain_booly(D, !v);
+      ASSERT(L, 'defer solving A^B should not lead to an empty domain');
+      setDomain(leafIndex, L);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, otherIndex);
+    somethingChanged();
+  }
+
+  function leafNand(ml, offset, leafIndex, otherIndex, indexA, indexB) {
+    ASSERT_LOG2('   - leafNand;', leafIndex, 'is a leaf var, A !& B,', indexA, '!&', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafNand; solving', indexA, '!&', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!&', domain__debug(getDomain(indexB)));
+      let D = getDomain(leafIndex);
+      let v = force(otherIndex);
+      if (v) {
+        let L = domain_booly(D, false);
+        ASSERT(L, 'defer solving A!&B should not lead to an empty domain');
+        setDomain(leafIndex, L);
+      }
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, otherIndex);
+    somethingChanged();
+  }
+
+  function leafXnor(ml, offset, leafIndex, otherIndex, indexA, indexB) {
+    ASSERT_LOG2('   - leafXnor;', leafIndex, 'is a leaf var, A !^ B,', indexA, '!^', indexB);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafXnor; solving', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)));
+      let D = getDomain(leafIndex);
+      let v = force(otherIndex);
+      let L = domain_booly(D, v);
+      ASSERT(L, 'defer solving A!^B should not lead to an empty domain');
+      setDomain(leafIndex, L);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, leafIndex);
+    bounty_markVar(bounty, otherIndex);
+    somethingChanged();
+  }
+
+  function leafIsall(ml, offset, argCount, indexR) {
+    ASSERT_LOG2('   - leafIsall;', indexR, 'is a leaf var, R = all?(', argCount, 'x ),', indexR, '= all?(...)');
+
+    let args = [];
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, offset + SIZEOF_COUNT + i * 2);
+      args.push(index);
+      bounty_markVar(bounty, index);
+    }
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsall; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isAll(', args.map(index => domain__debug(getDomain(index))), ')');
+      let vR = 1;
+      for (let i = 0; i < argCount; ++i) {
+        if (force(args[i]) === 0) {
+          vR = 0;
+          break;
+        }
+      }
+      let oR = getDomain(indexR);
+      let R = domain_booly(oR, vR);
+      ASSERT(R, 'R should be able to at least represent the solution');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_COUNT + argCount * 2 + 2);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsall2(ml, offset, indexA, indexB, indexR) {
+    ASSERT_LOG2('   - leafIsall2;', indexR, 'is a leaf var, R = all(A B),', indexR, '= all?(', indexA, indexB, ')');
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsall2;', indexR, '= all?(', indexA, indexB, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', domain__debug(getDomain(indexA)), domain__debug(getDomain(indexB)), ')');
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let R = getDomain(indexR);
+      R = domain_booly(R, (vA & vB) > 0);
+      ASSERT(R, 'leaf should at least have the resulting value');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_VVV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function leafIsnall(ml, offset, argCount, indexR, counts) {
+    ASSERT_LOG2('   - leafIsnall;', indexR, 'is a leaf var with counts:', counts, ', R = nall?(', argCount, 'x ),', indexR, '= all?(...)');
+
+    let args = [];
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, offset + SIZEOF_COUNT + i * 2);
+      args.push(index);
+      bounty_markVar(bounty, index);
+    }
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - leafIsnall; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isNall(', args.map(index => domain__debug(getDomain(index))), ')');
+      let vR = 0;
+      for (let i = 0; i < argCount; ++i) {
+        if (force(args[i]) === 0) {
+          vR = 1;
+          break;
+        }
+      }
+      let oR = getDomain(indexR);
+      let R = domain_booly(oR, vR);
+      ASSERT(R, 'R should be able to at least represent the solution');
+      setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, offset, SIZEOF_COUNT + argCount * 2 + 2);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  // ##############
+
+  function trickPlusOr(ml, offset, indexA, indexB, indexR) {
+    // [12]=[01]+[01]   ->   A | B
+    ASSERT_LOG2('   - trickPlusOr; [12]=[01]+[01] is actually an OR');
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickPlusOr R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let vR = vA + vB;
+      ASSERT(Number.isInteger(vR), 'should be integer result');
+      let R = domain_intersectionValue(getDomain(indexR), vR);
+      ASSERT(R, 'R should not be empty here');
+      setDomain(indexR, R);
+    });
+
+    ASSERT_LOG2(' - Morph plus to A|B');
+    // rewrite to `A | B` (inclusive OR)
+    // R can later reflect the result
+    // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
+    ml_vvv2vv(ml, offset, ML_OR, indexA, indexB);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function trickPlusNand(ml, offset, indexA, indexB, indexR) {
+    // [01]=[01]+[01]   ->   A !& B
+    ASSERT_LOG2('   - trickPlusNand; [01]=[01]+[01] is actually a NAND');
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickPlusNand R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      let vA = force(indexA);
+      let vB = force(indexB);
+      let vR = vA + vB;
+      ASSERT(Number.isInteger(vR), 'should be integer result');
+      let R = domain_intersectionValue(getDomain(indexR), vR);
+      ASSERT(R, 'R should not be empty here');
+      setDomain(indexR, R);
+    });
+
+    ASSERT_LOG2(' - Rewrite to A!&B');
+    // rewrite to `A !& B` (not AND) to enforce that they can't both be 1 (... "non-zero")
+    // R can later reflect the result
+    // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
+    ml_vvv2vv(ml, offset, ML_NAND, indexA, indexB);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
+  }
+
+  function trickSumNall(ml, offset, argCount, indexR) {
+    // [0 0 n-1 n-1]=sum([01] [01] [01]   ->   nall(...)
+    ASSERT_LOG2('   - trickSumNall; [0 0 n-1 n-1]=sum([01] [01] [01] ...) is actually a NALL', indexR);
+
+    // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
+    let args = [];
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, offset + SIZEOF_COUNT + i * 2);
+      args.push(index);
+      bounty_markVar(bounty, index);
+    }
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickSumNall nall(A B);', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))), ')');
+
+      let vR = args.map(force).reduce((a, b) => a + b);
+      ASSERT(Number.isInteger(vR), 'should be integer result');
+      let R = domain_intersectionValue(getDomain(indexR), vR);
+      ASSERT(R, 'R should not be empty here');
+      setDomain(indexR, R);
+    });
+
+    // from sum to nall.
+    ml_enc8(ml, offset, ML_NALL);
+    ml_enc16(ml, offset + 1, argCount);
+    for (let i = 0; i < argCount; ++i) {
+      ml_enc16(ml, offset + SIZEOF_COUNT + i * 2, args[i]);
+    }
+    ml_jump(ml, offset + SIZEOF_COUNT + argCount * 2, 2); // result var (16bit). for the rest nall is same as sum
+    bounty_markVar(bounty, indexR); // args already done in above loop
+    somethingChanged();
+  }
+
+  function trickLteLhsTwice(indexS, offset, meta, counts) {
+    // S <= A, S <= B   ->   * (S=leaf, drop both)
+
+    let offset1 = bounty_getOffset(bounty, indexS, 0);
+    let offset2 = bounty_getOffset(bounty, indexS, 1);
+    ASSERT_LOG2('trickLteLhsTwice', indexS, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', meta, '`S <= A, S <= B   ->   * (S=leaf, drop both)`');
+
+    // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
+    ASSERT(counts === 2, 'the indexS should only be part of two constraints', counts, bounty__debugMeta(meta), 'wtf?', meta);
+    ASSERT(meta === (BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY_ONLY_FLAG), 'in both constraints the shared index should be the lhs of an lte');
+    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, indexS, meta); // not super important but ok
+    ASSERT(ml_dec8(ml, offset1) === ML_LTE, 'offset1 should be lte');
+    ASSERT(ml_dec8(ml, offset2) === ML_LTE, 'offset2 should be lte');
+    ASSERT(ml_dec16(ml, offset1 + 1) === indexS, 'shared index should be lhs of offset1');
+    ASSERT(ml_dec16(ml, offset2 + 1) === indexS, 'shared index should be lhs of offset2');
+
+    let indexA = readIndex(ml, offset1 + 3);
+    let indexB = readIndex(ml, offset2 + 3);
+
+    // [01] <= [01], [01] <= [01]
+    // [05] <= [09], [05] <= [04]
+    // [34] <= [02], [34] <= [45] -> reject
+    // [34] <= [05], [34] <= [05] -> possibly reject at solve time (so not leaf...)
+
+    let S = getDomain(indexS, true);
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+    ASSERT(A && B && S, 'domains should not be empty');
+
+    let minS = domain_min(S);
+    let maxS = domain_max(S);
+    if (domain_min(A) < minS || domain_min(B) < minS || domain_max(A) < maxS || domain_max(B) < maxS) {
+      // leaf S can not (yet) reflect every value of A and B such that S<A and S<B at solve time is guaranteed to hold. postpone this cut.
+      ASSERT_LOG2(' - the shared var can not yet reflect all values of A and B so cannot cut yet, bailing', domain__debug(S), domain__debug(A), domain__debug(B));
       return false;
     }
 
-    if (offset !== offset2 && ml_dec8(ml, offset2) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - offset2 wasnt lte');
-      return false;
-    }
-
-    if (ml_dec16(ml, offset1 + 1) !== varIndex) {
-      ASSERT_LOG2(' - indexA of 1 wasnt the shared index');
-      return false;
-    }
-
-    if (ml_dec16(ml, offset1 + 1) !== varIndex) {
-      ASSERT_LOG2(' - indexA of 2 wasnt the shared index');
-      return false;
-    }
-
-    let indexB1 = getAlias(ml_dec16(ml, offset1 + 3));
-    let indexB2 = getAlias(ml_dec16(ml, offset2 + 3));
-
-    if (domain_max(domains[indexB1]) > 1 || domain_max(domains[indexB2]) > 1) {
-      ASSERT_LOG2(' - only works on boolean domains'); // well not only, but there are some edge cases otherwise
-      return false;
-    }
+    ASSERT_LOG2(' - okay, S is a leaf constraint, eliminating both ltes, defer S');
 
     // okay, two lte with the left being the shared index
+    // the shared var holds under lte for any value of A and B
     // the shared index is a leaf var, eliminate them both
 
     ml_eliminate(ml, offset1, SIZEOF_VV);
     ml_eliminate(ml, offset2, SIZEOF_VV);
 
-    ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - 2xlte; offset1;', indexS, '!&', indexA, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexA)));
+      ASSERT_LOG2(' - 2xlte; offset2;', indexS, '!&', indexB, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexB)));
 
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - 2xlte;1;', varIndex, '!&', indexB1, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB1]));
-      ASSERT_LOG2(' - 2xlte;2;', varIndex, '!&', indexB2, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB2]));
-
-      domains[varIndex] = domain_removeGtUnsafe(domain_removeGtUnsafe(domains[varIndex], force(indexB1)), force(indexB2));
+      let S = S = domain_removeGtUnsafe(domain_removeGtUnsafe(getDomain(indexS), force(indexA)), force(indexB));
+      ASSERT(S, 'S should be able to reflect the solution');
+      setDomain(indexS, S);
     });
 
-    bounty_markVar(bounty, varIndex);
-    bounty_markVar(bounty, indexB1);
-    bounty_markVar(bounty, indexB2);
+    bounty_markVar(bounty, indexS);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
     somethingChanged();
     return true;
   }
 
-  function trickIsallLteRhs(varIndex, lteOffset) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(lteOffset === offset1 || lteOffset === offset2, 'expecting current offset to be one of the two offsets found', lteOffset, varIndex);
+  function trickLteLhsIsall(ml, lteOffset, indexR, meta, countsR) {
+    // S <= A, S = all?(A B)   ->   S = all?(A B)
+    // (the isall subsumes the lte, regardless of other constraints)
 
-    ASSERT_LOG2('trickIsallLteRhs', varIndex, 'at', lteOffset, '->', offset1, offset2);
+    ASSERT_LOG2('trickLteLhsTwice', indexR, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
 
-    return _trickIsallLteRhs(varIndex, lteOffset, lteOffset === offset1 ? offset2 : offset1);
-  }
-  function _trickIsallLteRhs(varIndex, lteOffset, isallOffset) {
-    // we can replace an isall and lte with ltes on the args of the isall
-    // B = isall(C D), A <= B  ->   A <= C, A <= D
-    // (where B is sharedVarIndex)
-    // if A turns out to be a leaf var for only being lte_lhs then
-    // everything will dissolve through another trick function
-    // (only) the isall args are assumed to be booly (containing both zero and non-zero)
-    // A <= B meaning A is 0 when B is 0. B is 0 when C or D is 0 and non-zero
-    // otherwise. so A <= C or A <= D should force A to match A <= B.
+    // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
+    ASSERT(countsR > 1, 'the indexR should only be part of two constraints', countsR, bounty__debugMeta(meta), 'wtf?', meta);
+    ASSERT((meta & BOUNTY_LTE_LHS) === BOUNTY_LTE_LHS && (meta & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT, 's must at least be an lte lhs and isall result var');
+    ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'lteOffset should be lte');
+    ASSERT(ml_dec16(ml, lteOffset + 1) === indexR, 'shared index should be lhs of lteOffset');
 
-    // first check whether the offsets are still valid (an lte_lhs trick may have removed/updated the lte for example)
+    let indexA = readIndex(ml, lteOffset + 3);
 
-    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
-    if (ml_dec8(ml, lteOffset) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - no longer lte. bailing.');
-      return false;
-    }
+    let toCheck = countsR <= BOUNTY_MAX_OFFSETS_TO_TRACK ? countsR : BOUNTY_MAX_OFFSETS_TO_TRACK;
 
-    if (ml_dec16(ml, lteOffset + 3) !== varIndex) {
-      ASSERT_LOG2(' - shared var was not rhs of the lte');
-      return false;
-    }
-
-    let indexA = getAlias(ml_dec16(ml, lteOffset + 1));
-
-    ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL, ', indexA =', indexA);
-    // there are two isalls, need special paths because of different footprints
-    if (ml_dec8(ml, isallOffset) === ML_ISALL) {
-      let len = ml_dec16(ml, isallOffset + 1);
-
-      if (ml_dec16(ml, isallOffset + SIZEOF_COUNT + len * 2) !== varIndex) {
-        ASSERT_LOG2(' - shared var was not result var of the isall');
-        return false;
-      }
-
-      ASSERT_LOG2(' - rewriting B=isall(C D), A <= B  ->  A <= C, A <= D');
-
-      // 2 ltes fit perfectly in the space we have available (sizeof(isall on 2)=9 + sizeof(lte)=5, sizeof(2xlte)=10)
-      if (len === 2) {
-        let left = getAlias(ml_dec16(ml, isallOffset + 3));
-        let right = getAlias(ml_dec16(ml, isallOffset + 5));
-
-        // validate domains. for now, only apply the trick on strict bools [0 1]. only required for the isall args.
-        ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
-        if (domain_isBool(domains[left]) && domain_isBool(domains[right])) {
-          // compile A<=left and A<=right over the existing two offsets
-          ml_vv2vv(ml, lteOffset, ML_VV_LTE, indexA, left);
-          ml_cr2vv(ml, isallOffset, len, ML_VV_LTE, indexA, right);
-
-          // must mark all affected vars. their bounty data is probably obsolete now.
-          bounty_markVar(bounty, indexA);
-          bounty_markVar(bounty, left); // C
-          bounty_markVar(bounty, right); // D
-          bounty_markVar(bounty, varIndex);
-          somethingChanged();
-
-          return trickIsallLteRhsDeferShared(varIndex, indexA);
-        }
-      } else if (len < 100) {
-        ASSERT_LOG2(' - Attempting to recycle space to stuff', len, 'lte constraints');
-        // we have to recycle some space now. 100 is an arbitrary upper bound. the actual bound is the available space to recycle
-
-        // start by collecting len recycled spaces
-        let bin = []; // rare case of using an array inside this lib...
-        let leftToStore = len;
-        let lteSize = SIZEOF_VV; // lte vv
-        let nextOffset = 0;
-        let spaceLeft = 0;
-        let nextSize = 0;
-        do {
-          if (spaceLeft < lteSize) {
-            nextOffset = ml_getRecycleOffset(ml, nextOffset + nextSize, lteSize);
-            ASSERT_LOG2('     - Got a new recyclable offset:', nextOffset);
-            if (nextOffset === undefined) {
-              // not enough spaces to recycle to fill our need; we can't rewrite this one
-              ASSERT_LOG2('     - There is not enough space to recycle; bailing this morph');
-              return false;
+    // note: it's not guaranteed that we'll actually see an isall in this loop
+    // if countsR is higher than the max number of offsets tracked by bounty
+    // in that case nothing happens and the redundant constraint persists. no biggie
+    for (let i = 0; i < toCheck; ++i) {
+      let offset = bounty_getOffset(bounty, indexR, i);
+      ASSERT_LOG2('   - #' + i, ', offset =', offset);
+      if (offset !== lteOffset) {
+        let op = ml_dec8(ml, offset);
+        if (op === ML_ISALL) {
+          let count = ml_dec16(ml, offset + 1);
+          let index = readIndex(ml, offset + SIZEOF_COUNT + count * 2);
+          ASSERT_LOG2('     - isall 1 with an arg count of', count, ', result index=', index);
+          if (count === 2 && index === indexR) {
+            ASSERT_LOG2('     - result index is indexR, checking args for indexA', readIndex(ml, offset + SIZEOF_COUNT), readIndex(ml, offset + SIZEOF_COUNT + 2), '~', indexA);
+            // get the isall args and check if they are indexR and indexA
+            if (readIndex(ml, offset + SIZEOF_COUNT) === indexA || readIndex(ml, offset + SIZEOF_COUNT + 2) === indexA) {
+              ASSERT_LOG2('   - Match isall1! this is R <= A, R = all?(A B). proceding to eliminate the lte');
+              // match. this is R <= A, R = all?(A B)
+              // eliminate the lte
+              ml_eliminate(ml, lteOffset, SIZEOF_VV);
+              // note: only do this once! we only have one lte so no need to continue searching
+              return true;
             }
-            nextSize = ml_getOpSizeSlow(ml, nextOffset); // probably larger than requested because jumps are consolidated
-            spaceLeft = nextSize;
-            ASSERT_LOG2('     - It has', nextSize, 'bytes of free space');
-
-            bin.push(nextOffset);
           }
-          spaceLeft -= lteSize;
-          --leftToStore;
-          ASSERT_LOG2('   - Space left at', nextOffset, 'after compiling the LTE:', spaceLeft, ', LTEs left to store:', leftToStore);
-        } while (leftToStore > 0);
-
-        ASSERT_LOG2(' - Found', bin.length, 'jumps (', bin, ') which can host the', len, 'lte constraints. Compiling them now');
-
-        // confirm all isall args are bool
-        for (let i = 0; i < len; ++i) {
-          let indexB = getAlias(ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2));
-          if (domain_max(domains[indexB]) > 1) {
-            ASSERT_LOG2('     - not all isall args are bool so bailing this morph');
-            return false;
+        } else if (op === ML_ISALL2) {
+          let index = readIndex(ml, offset + 5);
+          ASSERT_LOG2('     - isall 2, result index=', index);
+          if (index === indexR) {
+            ASSERT_LOG2('     - result index is indexR, checking args for indexA', readIndex(ml, offset + 1), readIndex(ml, offset + 3), '~', indexA);
+            // get the isall args and check if they are indexR and indexA
+            if (readIndex(ml, offset + 1) === indexA || readIndex(ml, offset + 3) === indexA) {
+              ASSERT_LOG2('   - Match isall2! this is R <= A, R = all?(A B). proceding to eliminate the lte');
+              // match. this is R <= A, R = all?(A B)
+              // eliminate the lte
+              ml_eliminate(ml, lteOffset, SIZEOF_VV);
+              // note: only do this once! we only have one lte so no need to continue searching
+              return true;
+            }
           }
         }
-
-        let recycleOffset;
-        let currentSize = 0;
-        for (let i = 0; i < len; ++i) {
-          ASSERT_LOG2('   - Compiling an lte to offset=', recycleOffset, 'with remaining size=', currentSize);
-          if (currentSize < SIZEOF_VV) {
-            recycleOffset = bin.pop(); // note: doing it backwards means we may not deplete the bin if the last space can host more lte's than were left to assign in the last loop. but that's fine either way.
-            currentSize = ml_getOpSizeSlow(ml, recycleOffset);
-            ASSERT_LOG2('   - Fetched next space from bin; offset=', recycleOffset, 'with size=', currentSize);
-          }
-          let indexB = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
-          ASSERT_LOG2('- Compiling LTE in recycled space', recycleOffset, 'on AB', indexA, indexB);
-          ml_recycleVV(ml, recycleOffset, ML_VV_LTE, indexA, indexB);
-          recycleOffset += SIZEOF_VV;
-          currentSize -= SIZEOF_VV;
-          bounty_markVar(bounty, indexB);
-
-          ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
-        }
-
-        // TODO: we could recycle these addresses immediately. slightly more efficient and may cover the edge case where there otherwise wouldnt be enough space.
-        ml_eliminate(ml, isallOffset, SIZEOF_COUNT + len * 2 + 2);
-        ml_eliminate(ml, lteOffset, SIZEOF_VV);
-
-        // the other vars were marked in the last loop
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-
-        ASSERT(!void ml_validateSkeleton(ml), 'just making sure the recycle didnt screw up');
-        return trickIsallLteRhsDeferShared(varIndex, indexA);
       }
     }
 
-    ASSERT_LOG2(' - checking isall offset for other op', ml_dec8(ml, isallOffset) === ML_ISALL2, ', indexA =', indexA);
-    if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
-      if (ml_dec16(ml, isallOffset + 5) !== varIndex) {
-        ASSERT_LOG2(' - shared var was not result var of the isall, this is probably an old addr');
-        return false;
-      }
-      let left = getAlias(ml_dec16(ml, isallOffset + 1));
-      let right = getAlias(ml_dec16(ml, isallOffset + 3));
-
-      // validate domains. for now, only apply the trick on strict bools [0 1] for the isall args
-      ASSERT_LOG2(' - confirming all targeted vars are strict bools', domain__debug(domains[indexA]), domain__debug(domains[left]), domain__debug(domains[right]));
-      if (domain_isBool(domains[left]) && domain_isBool(domains[right])) {
-        // compile A<=left and A<=right over the existing two offsets
-        ml_vv2vv(ml, lteOffset, ML_VV_LTE, varIndex, left);
-        ml_vvv2vv(ml, isallOffset, ML_VV_LTE, varIndex, right);
-        bounty_markVar(bounty, left);
-        bounty_markVar(bounty, right);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-
-        return trickIsallLteRhsDeferShared(varIndex, indexA);
-      }
-    }
-
-    ASSERT_LOG2(' - was not isall. bailing.');
+    ASSERT_LOG2(' - did not find an isall on R so bailing');
     return false;
   }
-  function trickIsallLteRhsDeferShared(varIndex, lteIndex) {
-    // TODO: this has to check the isall args because lte is not strict enough
-    ASSERT_LOG2('   - deferring', varIndex, 'will be gt', lteIndex);
-    solveStack.push((domains, force) => {
-      THROW('fixme; trickIsallLteRhsDeferShared');
-      ASSERT_LOG2(' - isall + lte;', lteIndex, '<=', varIndex, '  ->  ', domain__debug(domains[lteIndex]), '<=', domain__debug(domains[varIndex]));
-      let vA = force(lteIndex);
-      domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], vA);
-    });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = varIndex));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = `${lteIndex} <= ${varIndex}`));
 
-    // revisit this op, it is now an lte
+  function trickLteRhsIsallEntry(indexS, lteOffset, meta, counts) {
+    // A <= S, S = all?(B C...)    ->    A <= B, A <= C
+
+    let offset1 = bounty_getOffset(bounty, indexS, 0);
+    let offset2 = bounty_getOffset(bounty, indexS, 1);
+    ASSERT_LOG2('trickLteRhsIsallEntry; ', indexS, 'at', lteOffset, '->', offset1, offset2, '` A <= S, S = all?(B C...)    ->    A <= B, A <= C`');
+    ASSERT(lteOffset === offset1 || lteOffset === offset2, 'expecting current offset to be one of the two offsets found', lteOffset, indexS);
+
+    let isallOffset = lteOffset === offset1 ? offset2 : offset1;
+
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'lte offset should be an lte');
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL || ml_dec8(ml, isallOffset) === ML_ISALL2, 'isall offset should be either isall op');
+    ASSERT(meta === (BOUNTY_ISALL_RESULT | BOUNTY_LTE_RHS | BOUNTY_NOT_BOOLY_ONLY_FLAG), 'kind of redundant, but this is what bounty should have yielded for this var');
+    ASSERT(counts === 2, 'S should only appear in two constraints');
+    ASSERT(readIndex(ml, lteOffset + 3) === indexS, 'S should be rhs of lte');
+    ASSERT((ml_dec8(ml, isallOffset) === ML_ISALL ? readIndex(ml, isallOffset + SIZEOF_COUNT + ml_dec16(ml, isallOffset + 1) * 2) : readIndex(ml, lteOffset + 5)) === indexS, 'S should the result of the isall');
+
+    // we can replace an isall and lte with ltes on the args of the isall
+    // A <= S, S = isall(C D)   ->    A <= C, A <= D
+
+    // note that A amust be strict bool and A must have a 0 for this to be safe. S is our shared var here.
+    // [01] <= [01], [01] = isall(....)
+
+    // if you dont apply this condition:
+    // [0 0 5 5 9 9] <= [0 0 9 9], [0 0 9 9] = isall([55], [66])
+    // after the morph A _must_ be 0 or 5 while before it could also be 9.
+
+    let indexA = readIndex(ml, lteOffset + 1);
+    let A = getDomain(indexA, true);
+    let S = getDomain(indexS, true);
+
+    // mostly A will be [01] but dont rule out valid cases when A=0 or A=1
+    // A or C (or both) MUST be boolean bound or this trick may be bad (A=100,S=100,C=1,D=1 -> 100<=10,100<=10 while it should pass)
+
+    if (domain_max(A) > 1 && domain_max(S) > 1) {
+      ASSERT_LOG2(' - neither A nor S was boolean bound, bailing', domain__debug(A), domain__debug(S));
+      return false;
+    }
+
+    if (domain_hasNoZero(S)) {
+      ASSERT_LOG2('- S has no zero which it would need to reflect any solution as a leaf, bailing', domain__debug(S));
+      // (unless the isall was already solved, but the minimizer should take care of that)
+      return false;
+    }
+
+    if (domain_max(A) > domain_max(S)) {
+      ASSERT_LOG2(' - max(A) > max(S) so there is a value in A that S couldnt satisfy A<=S so we must bail', domain__debug(A), domain__debug(S));
+      // we can only trick if S can represent any valuation of A and there is a reject possible so no
+      // note that this shouldnt happen when the minimizer runs to the max, but could in single cycle mode
+      return false;
+    }
+
+    ASSERT_LOG2(' - A and S are okay proceeding with morph, A:', domain__debug(A), 'S:', domain__debug(S));
+
+    if (ml_dec8(ml, isallOffset) === ML_ISALL) {
+      ASSERT_LOG2(' - op is MS_ISALL (1)');
+      return trickLteRhsIsall1(ml, lteOffset, isallOffset, indexA, indexS);
+    } else {
+      ASSERT_LOG2(' - op is MS_ISALL2');
+      return trickLteRhsIsall2(ml, lteOffset, isallOffset, indexA, indexS);
+    }
+  }
+  function trickLteRhsIsall1(ml, lteOffset, isallOffset, indexA, indexS) {
+    ASSERT_LOG2(' - trickLteRhsIsall1; an isall with 1 arg; rewriting A <= S, S=isall(X Y Z ...)  ->  A <= X, A <= Y, A <= Z, ...');
+
+    let argCount = ml_dec16(ml, isallOffset + 1);
+
+    let A = getDomain(indexA, true);
+    let maxA = domain_max(A);
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      let domain = getDomain(index, true);
+      if (domain_max(domain) < maxA) {
+        ASSERT_LOG2(' - there is an isall arg whose max is lower than max(A), this leads to a lossy morph so we must bail', i, index, domain__debug(domain), '<', domain__debug(A));
+        return false;
+      }
+    }
+
+    // we can recylce space but its relatively expensive to search for empty space;
+    // we can fit 2 ltes in our existing constraints (lte is 5, isall with 2 args is (1+2+2*2+2=9), so one lte in each)
+    // we can fit 3 ltes in our existing constraints (lte is 5, isall with 2 args is (1+2+3*2+2=11), so two ltes in the isall)
+    // four or more wont fit so for those we need to recycle spaces
+
+    if (argCount <= 1) return false; // this is an alias or a bug, but ignore this case here
+    if (argCount === 2) {
+      trickLteRhsIsall1a2(ml, lteOffset, isallOffset, indexA, indexS);
+    } else if (argCount === 3) {
+      trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS);
+    } else {
+      let pass = trickLteRhsIsall1a4p(ml, lteOffset, isallOffset, argCount, indexA, indexS);
+      if (!pass) return false;
+    }
+
+    return true;
+  }
+  function trickLteRhsIsall1a2(ml, lteOffset, isallOffset, indexA, indexS) {
+    // isall has two args
+    ASSERT_LOG2(' - trickLteRhsIsall1a2; an isall with 2 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
+
+    let indexX = readIndex(ml, isallOffset + 3);
+    let indexY = readIndex(ml, isallOffset + 5);
+
+    // compile A<=left and A<=right over the existing two offsets
+    ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
+    ml_cr2vv(ml, isallOffset, 2, ML_LTE, indexA, indexY);
+
+    // must mark all affected vars. their bounty data is probably obsolete now.
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexS);
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    somethingChanged();
+
+    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickLteRhsIsall1a2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
+      let vX = force(indexX);
+      let vY = force(indexY);
+      let oS = getDomain(indexS);
+      ASSERT(domain_isBool(oS), 'S was a strict bool, right');
+      let S = domain_booly(oS, vX && vY); // note: S was a strict bool so this should be fine
+      ASSERT(S, 'S should not be empty here');
+      setDomain(indexS, S);
+    });
+  }
+  function trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS) {
+    // isall has three args
+    ASSERT_LOG2(' - trickLteRhsIsall1a3; an isall with 3 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
+
+    let indexX = readIndex(ml, isallOffset + 3);
+    let indexY = readIndex(ml, isallOffset + 5);
+    let indexZ = readIndex(ml, isallOffset + 7);
+    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + 3 * 2 + 2);
+
+    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickLteRhsIsall1a3;', indexS, '= all?(', indexX, indexY, indexZ, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), domain__debug(getDomain(indexZ)), ')');
+      let vX = force(indexX);
+      let vY = force(indexY);
+      let vZ = force(indexZ);
+      let oS = getDomain(indexS);
+      ASSERT(domain_isBool(oS), 'S was a strict bool, right');
+      let S = domain_booly(oS, vX && vY && vZ); // note: S was a strict bool so this should be fine
+      ASSERT(S, 'S should not be empty here');
+      setDomain(indexS, S);
+    });
+  }
+  function _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, sizeofIsall) {
+    // isall has three args (left). it may have had more originally.
+    ASSERT_LOG2(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall);
+    ASSERT(sizeofIsall === ml_getOpSizeSlow(ml, isallOffset), 'should get correct isall sizeof');
+
+    // the first lte replaces the existing lte
+    ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
+
+    // note: cant use ml_cr2vv for the next one because assumptions are not binary safe due to how jumps are consolidated
+    ASSERT(SIZEOF_COUNT + 3 * 2 + 2 === 11, 'if this changes the code below probably needs to be updated as well');
+
+    ASSERT_LOG2(' - compiling first lte starting at', isallOffset);
+    // second lte, into first half of isall
+    ml_enc8(ml, isallOffset, ML_LTE);
+    ml_enc16(ml, isallOffset + 1, indexA);
+    ml_enc16(ml, isallOffset + 3, indexY);
+
+    isallOffset += SIZEOF_VV;
+
+    ASSERT_LOG2(' - compiling second lte starting at', isallOffset);
+    // third lte, into second half of lte
+    ml_enc8(ml, isallOffset, ML_LTE);
+    ml_enc16(ml, isallOffset + 1, indexA);
+    ml_enc16(ml, isallOffset + 3, indexZ);
+
+    let left = sizeofIsall - (SIZEOF_VV + SIZEOF_VV);
+    ASSERT_LOG2(' - compiling jump starting at', isallOffset, 'for', left, 'bytes');
+    // should be one byte remaining
+    ASSERT(left === 1, 'just 1 byte left, not likely to change but if this fails check anyways');
+    ml_jump(ml, isallOffset + SIZEOF_VV, left);
+
+    ASSERT(ml_validateSkeleton(ml, '_trickLteRhsIsall1a3'));
+
+    // must mark all affected vars. their bounty data is probably obsolete now.
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexS);
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    bounty_markVar(bounty, indexZ);
+    somethingChanged();
+  }
+  function trickLteRhsIsall1a4p(ml, lteOffset, isallOffset, argCount, indexA, indexS) {
+    // isall has four or more args
+    ASSERT_LOG2(' - trickLteRhsIsall1a4p. Attempting to recycle space to stuff', argCount, 'lte constraints');
+
+    // we have to recycle some space now. we wont know whether we can
+    // actually do the morph until we've collected enough space for it.
+
+    // we'll use lteOffset and isallOffset to compile the last 3 args so only need space for the remaining ones
+    ASSERT(argCount >= 4, 'this function should only be called for 4+ isall args');
+    let toRecycle = argCount - 3;
+
+    // start by collecting toRecycle recycled spaces
+    let bins = ml_getRecycleOffsets(ml, 0, toRecycle, SIZEOF_VV);
+    if (!bins) {
+      ASSERT_LOG2(' - Was unable to find enough free space to fit', argCount, 'ltes, bailing');
+      return false;
+    }
+
+    ASSERT_LOG2(' - Found', bins.length, 'jumps (', bins, ') which can host (at least)', toRecycle, 'lte constraints. Compiling them now');
+
+    // okay, now we'll morph. be careful about clobbering existing indexes... start with
+    // last address to make sure jumps dont clobber existing jump offsets in the bin
+
+    let args = []; // need this list for deferred solving
+    let i = 0;
+    while (i < toRecycle) {
+      let currentOffset = bins.pop();
+      ASSERT(ml_dec8(ml, currentOffset) === ML_JMP, 'should only get jumps here'); // might trap a case where we clobber
+      let size = ml_getOpSizeSlow(ml, currentOffset);
+      ASSERT(size >= SIZEOF_VV, 'this is what we asked for');
+      do {
+        let indexB = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+        bounty_markVar(bounty, indexB);
+        args.push(indexB);
+
+        ml_enc8(ml, currentOffset, ML_LTE);
+        ml_enc16(ml, currentOffset + 1, indexA);
+        ml_enc16(ml, currentOffset + 3, indexB);
+
+        ++i;
+        size -= SIZEOF_VV;
+        currentOffset += SIZEOF_VV;
+      } while (size >= SIZEOF_VV && i < toRecycle);
+      if (size) ml_jump(ml, currentOffset, size);
+      ASSERT(!void ml_validateSkeleton(ml), 'trickLteRhsIsall1a4p compiling ltes'); // cant check earlier
+    }
+
+    // now burn off the last three isall args by recycling our existing isall+lte offsets
+    let indexX = readIndex(ml, SIZEOF_COUNT + argCount - 3);
+    let indexY = readIndex(ml, SIZEOF_COUNT + argCount - 2);
+    let indexZ = readIndex(ml, SIZEOF_COUNT + argCount - 1);
+    args.push(indexX, indexY, indexZ);
+    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + argCount * 2 + 2);
+
+    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickLteRhsIsall1a4p;', indexS, '= all?(', args, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', args.map(index => domain__debug(getDomain(index))), ')');
+
+      let result = args.reduce((prev, now) => prev && now) > 0; // true if every arg was non-zero
+      let oS = getDomain(indexS);
+      ASSERT(domain_isBool(oS), 'S was a strict bool, right');
+      let S = domain_booly(oS, result); // note: S was a strict bool so this should be fine
+      ASSERT(S, 'S should not be empty here');
+      setDomain(indexS, S);
+    });
+  }
+  function trickLteRhsIsall2(ml, lteOffset, isallOffset, indexA, indexS) {
+    ASSERT_LOG2(' - trickLteRhsIsall2');
+
+    let indexX = readIndex(ml, isallOffset + 1);
+    let indexY = readIndex(ml, isallOffset + 3);
+
+    // compile A<=left and A<=right over the existing two offsets
+    ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
+    ml_vvv2vv(ml, isallOffset, 2, ML_LTE, indexA, indexY);
+
+    // must mark all affected vars. their bounty data is probably obsolete now.
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexS);
+    bounty_markVar(bounty, indexX);
+    bounty_markVar(bounty, indexY);
+    somethingChanged();
+
+    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickLteRhsIsall2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
+      let vX = force(indexX);
+      let vY = force(indexY);
+      let oS = getDomain(indexS);
+      ASSERT(domain_isBool(oS), 'S was a strict bool, right');
+      let S = domain_booly(oS, vX && vY); // note: S was a strict bool so this should be fine
+      ASSERT(S, 'S should not be empty here');
+      setDomain(indexS, S);
+    });
+
     return true;
   }
 
-  function trickIsallNall(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
+  function trickIsall1Nall(ml, indexR, isallOffset, counts, meta) {
+    // R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D
 
-    ASSERT_LOG2('trickIsallNall', varIndex, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', bounty_getMeta(bounty, varIndex));
+    let offset1 = bounty_getOffset(bounty, indexR, 0);
+    let offset2 = bounty_getOffset(bounty, indexR, 1);
 
-    let nallOffset = (forOp === 'nall' && offset === offset1) ? offset1 : offset2;
-    let isallOffset = (forOp !== 'nall' && offset === offset1) ? offset1 : offset2;
+    ASSERT_LOG2('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+
+    let nallOffset = offset1 === isallOffset ? offset2 : offset1;
+    let argCountNall = ml_dec16(ml, nallOffset + 1);
+    let argCountIsall = ml_dec16(ml, isallOffset + 1);
+
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(meta === (BOUNTY_NALL | BOUNTY_ISALL_RESULT), 'the var should only be part of a nall and the result of an isall');
+    ASSERT(counts === 2, 'R should only appear in two constraints');
+    ASSERT(isallOffset === offset1 || isallOffset === offset2, 'expecting current offset to be one of the two offsets found', isallOffset, indexR);
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL, 'isall offset should be an isall');
+    ASSERT(ml_dec8(ml, nallOffset) === ML_NALL, 'other offset should be a nall');
+    ASSERT(getAlias(indexR) === indexR, 'should be unaliased');
+    ASSERT(readIndex(ml, isallOffset + SIZEOF_COUNT + argCountIsall * 2) === indexR, 'var should be R of isall');
+
+    // this should be `R = all?(A B), nall(R A D)`
+    // if R = 1 then A and B are 1, so the nall will have two 1's, meaning D must be 0
+    // if R = 0 then the nall is already satisfied. neither the nall nor the isall is not redundant
+    // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from the nall)
+
+    if (argCountNall !== 3 || argCountIsall !== 2) {
+      ASSERT_LOG2(' - fingerprint didnt match so bailing');
+      return false;
+    }
+
+    ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
+    // next; one of the two isalls must occur in the nall
+    // R = all?(A B), nall(R A C)
+    // R = all?(A B), nall(X Y Z)
+
+    let indexA = ml_dec16(ml, isallOffset + 3);
+    let indexB = ml_dec16(ml, isallOffset + 5);
+
+    return trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall);
+  }
+  function trickIsall2Nall(ml, indexR, isallOffset, counts, meta) {
+    // R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D
+
+    let offset1 = bounty_getOffset(bounty, indexR, 0);
+    let offset2 = bounty_getOffset(bounty, indexR, 1);
+
+    ASSERT_LOG2('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+
+    let nallOffset = offset1 === isallOffset ? offset2 : offset1;
+    let argCountNall = ml_dec16(ml, nallOffset + 1);
+
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(meta === (BOUNTY_NALL | BOUNTY_ISALL_RESULT), 'the var should only be part of a nall and the result of an isall');
+    ASSERT(counts === 2, 'R should only appear in two constraints');
+    ASSERT(isallOffset === offset1 || isallOffset === offset2, 'expecting current offset to be one of the two offsets found', isallOffset, indexR);
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL2, 'isall offset should be an isall2');
+    ASSERT(ml_dec8(ml, nallOffset) === ML_NALL, 'other offset should be a nall');
+    ASSERT(getAlias(indexR) === indexR, 'should be unaliased');
+    ASSERT(readIndex(ml, isallOffset + 5) === indexR, 'var should be R of isall2');
 
     // this should be `R = all?(A B), nall(R A D)`
     // if R = 1 then A and B are 1, so the nall will have two 1's, meaning D must be 0
     // if R = 0 then the nall is already satisfied. the nall is not entirely redundant
     // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from it)
 
-    ASSERT_LOG2(' - checking nall offset', ml_dec8(ml, nallOffset) === ML_NALL);
-    if (ml_dec8(ml, nallOffset) !== ML_NALL) {
-      ASSERT_LOG2(' - op wasnt nall so bailing');
+    ASSERT_LOG2(' - the ops match. now fingerprint them');
+
+    // initially, for this we need a nall of 3 and a isall of 2 (always the case for isall2)
+    if (argCountNall !== 3) {
+      ASSERT_LOG2(' - fingerprint did not match so bailing');
       return false;
     }
 
-    ASSERT_LOG2(' - checking isall offset', ml_dec8(ml, isallOffset) === ML_ISALL);
-    if (ml_dec8(ml, isallOffset) === ML_ISALL) {
-      ASSERT_LOG2(' - the ops match. now fingerprint them');
-      // initially, for this we need a nall of 3 and a isall of 2
-      let nallLen = ml_dec16(ml, nallOffset + 1);
-      let isallLen = ml_dec16(ml, isallOffset + 1);
+    ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
+    // next; one of the two isalls must occur in the nall
+    // R = all?(A B), nall(R A C)
+    // R = all?(A B), nall(X Y Z)
 
-      if (nallLen !== 3 || isallLen !== 2) {
-        ASSERT_LOG2(' - fingerprint didnt match so bailing');
-        return false;
-      }
+    let indexA = ml_dec16(ml, isallOffset + 1);
+    let indexB = ml_dec16(ml, isallOffset + 3);
 
-      ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
-      // next; one of the two isalls must occur in the nall
-      // letters; S = all?(A B), nall(S C D)   (where S = shared)
-      let indexS = varIndex;
-      if (ml_dec16(ml, isallOffset + 7) !== indexS) {
-        ASSERT_LOG2(' - this is NOT the isall we were looking at before because the shared index is not part of it');
-        return false;
-      }
-      let indexA = ml_dec16(ml, isallOffset + 3);
-      let indexB = ml_dec16(ml, isallOffset + 5);
+    return trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall);
+  }
+  function trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall) {
+    // R = all?(A B), nall(R A C)
+    // R = all?(A B), nall(X Y Z)
 
-      let indexC;
-      let indexD;
+    let indexX = ml_dec16(ml, nallOffset + 3);
+    let indexY = ml_dec16(ml, nallOffset + 5);
+    let indexZ = ml_dec16(ml, nallOffset + 7);
 
-      let indexN1 = ml_dec16(ml, nallOffset + 3);
-      let indexN2 = ml_dec16(ml, nallOffset + 5);
-      let indexN3 = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
-      if (indexN1 === indexS) {
-        indexC = indexN2;
-        indexD = indexN3;
-      } else if (indexN2 === indexS) {
-        indexC = indexN1;
-        indexD = indexN3;
-      } else if (indexN3 === indexS) {
-        indexC = indexN1;
-        indexD = indexN2;
-      } else {
-        ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
-        return false;
-      }
-
-      ASSERT_LOG2(' - nall(', indexS, indexC, indexD, ') and ', indexS, ' = all?(', indexA, indexB, ')');
-
-      // check if B or D is in the isall. apply morph by cutting out the one that matches
-      if (indexA === indexC) {
-        ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall and changing it to a nand');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, indexD);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexA === indexD) {
-        ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall and changing it to a nand');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, indexD);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexB === indexC) {
-        ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall and changing it to a nand');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, indexD);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexB === indexD) {
-        ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall and changing it to a nand');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, indexD);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
+    let indexC;
+    let indexD;
+    if (indexX === indexR) {
+      indexC = indexY;
+      indexD = indexZ;
+    } else if (indexY === indexR) {
+      indexC = indexX;
+      indexD = indexZ;
+    } else if (indexZ === indexR) {
+      indexC = indexX;
+      indexD = indexY;
+    } else {
+      ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
+      ASSERT(false, 'should not happen? bounty should have asserted this');
+      return false;
     }
-    ASSERT_LOG2(' - checking isall2 offset', ml_dec8(ml, isallOffset) === ML_ISALL);
-    if (ml_dec8(ml, isallOffset) === ML_ISALL2) {
-      ASSERT_LOG2(' - the ops match. now fingerprint them');
-      // initially, for this we need a nall of 3 and a isall of 2 (which the op tells us already)
-      let nallLen = ml_dec16(ml, nallOffset + 1);
 
-      if (nallLen !== 3) {
-        ASSERT_LOG2(' - fingerprint did not match so bailing');
-        return false;
-      }
+    ASSERT_LOG2(' - nall(', indexR, indexC, indexD, ') and ', indexR, ' = all?(', indexA, indexB, ')');
 
-      ASSERT_LOG2(' - nall has 3 and isall2 ... 2 args, check if they share an arg');
-      // next; one of the two isalls must occur in the nall
-      // letters; S = all?(A B), nall(S C D)   (where S = shared)
-      let indexS = varIndex;
-      if (ml_dec16(ml, isallOffset + 5) !== indexS) {
-        ASSERT_LOG2(' - this is NOT the isall we were looking at before because the shared index is not part of it');
-        return false;
-      }
-      let indexA = ml_dec16(ml, isallOffset + 1);
-      let indexB = ml_dec16(ml, isallOffset + 3);
-
-      let indexC;
-      let indexD;
-
-      let indexN1 = ml_dec16(ml, nallOffset + 3);
-      let indexN2 = ml_dec16(ml, nallOffset + 5);
-      let indexN3 = ml_dec16(ml, nallOffset + 7); // need to verify this anyways
-      if (indexN1 === indexS) {
-        indexC = indexN2;
-        indexD = indexN3;
-      } else if (indexN2 === indexS) {
-        indexC = indexN1;
-        indexD = indexN3;
-      } else if (indexN3 === indexS) {
-        indexC = indexN1;
-        indexD = indexN2;
-      } else {
-        ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
-        return false;
-      }
-
-      ASSERT_LOG2(' - nall(', indexS, indexC, indexD, ') and ', indexS, ' = all?(', indexA, indexB, ')');
-
-      // check if B or D is in the isall. apply morph by cutting out the one that matches
-      if (indexA === indexC) {
-        ASSERT_LOG2(' - A=C so removing', indexA, 'from the nall');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexD);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexA === indexD) {
-        ASSERT_LOG2(' - A=D so removing', indexA, 'from the nall');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexB === indexC) {
-        ASSERT_LOG2(' - B=C so removing', indexB, 'from the nall');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexD);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
-      if (indexB === indexD) {
-        ASSERT_LOG2(' - B=D so removing', indexB, 'from the nall');
-        ml_c2vv(ml, nallOffset, nallLen, ML_VV_NAND, indexS, indexC);
-        bounty_markVar(bounty, indexA);
-        bounty_markVar(bounty, indexB);
-        bounty_markVar(bounty, indexC);
-        bounty_markVar(bounty, varIndex);
-        somethingChanged();
-        return true;
-      }
+    // check if C or D is in the isall. apply morph by cutting the one that matches from the nall
+    let notShared = (indexA === indexC || indexB === indexC) ? indexD : (indexA === indexD || indexB === indexD) ? indexC : -1;
+    if (notShared >= 0) {
+      ASSERT_LOG2(' - A or B == C or D (', indexA, indexB, indexC, indexD, ') so changing the nall to a nand on', indexR, 'and', notShared);
+      ml_c2vv(ml, nallOffset, argCountNall, ML_NAND, indexR, notShared);
+      bounty_markVar(bounty, indexA);
+      bounty_markVar(bounty, indexB);
+      bounty_markVar(bounty, indexC);
+      bounty_markVar(bounty, indexD);
+      bounty_markVar(bounty, indexR);
+      somethingChanged();
+      return true;
     }
 
     return false;
   }
 
-  function trickNandLteLhs(varIndex, offset, forOp) {
-    let offset1 = bounty_getOffset(bounty, varIndex, 0);
-    let offset2 = bounty_getOffset(bounty, varIndex, 1);
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, varIndex);
+  function trickNandLteLhs(ml, indexA, lteOffset, meta, counts) {
+    // A <= B, A !& C   ->   * (A leaf)
+
+    let offset1 = bounty_getOffset(bounty, indexA, 0);
+    let offset2 = bounty_getOffset(bounty, indexA, 1);
+
+    ASSERT_LOG2('trickNandLteLhs;', indexA, '`A <= B, A !& C   ->   * (A leaf)`');
+
+    let nandOffset = offset1 === lteOffset ? offset2 : offset1;
+
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(meta === (BOUNTY_NAND | BOUNTY_LTE_LHS), 'the var should only be lhs of lte and part of a nand', meta.toString(2), counts);
+    ASSERT(counts === 2, 'A should only appear in two constraints');
+    ASSERT(lteOffset === offset1 || lteOffset === offset2, 'expecting current offset to be one of the two offsets found');
+    ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'isall offset should be an isall');
+    ASSERT(ml_dec8(ml, nandOffset) === ML_NAND, 'other offset should be a nall');
+    ASSERT(getAlias(indexA) === indexA, 'should be unaliased');
+    ASSERT(readIndex(ml, lteOffset + 1) === indexA, 'A should be lhs of lte');
+    ASSERT(readIndex(ml, nandOffset + 1) === indexA || readIndex(ml, nandOffset + 3), 'A should be part of the nand');
 
     // this should be `A <= B, A !& C`. A is a leaf var, eliminate both constraints and defer A.
+    // assuming A contains at least 0, it can always satisify both the lte and the nand for any value of B and C
+    // A <= B, C !& A
 
-    let lteOffset = (forOp === 'lte' && offset === offset1) ? offset1 : offset2;
-    let nandOffset = (forOp !== 'lte' && offset === offset1) ? offset1 : offset2;
+    let indexB = readIndex(ml, lteOffset + 3);
+    let indexC = readIndex(ml, nandOffset + 1);
+    if (indexC === indexA) indexC = readIndex(ml, nandOffset + 3);
 
-    ASSERT_LOG2(' - checking lte offset', ml_dec8(ml, lteOffset) === ML_VV_LTE);
-    if (ml_dec8(ml, lteOffset) !== ML_VV_LTE) {
-      ASSERT_LOG2(' - op wasnt lte so bailing');
-      return false;
+    let A = getDomain(indexA, true);
+    if (domain_hasNoZero(A)) {
+      // ok, without a zero it must have a value lte min(B) and C must be solved to zero or this trick is unsafe
+      let B = getDomain(indexB, true);
+      let C = getDomain(indexC, true);
+      if (domain_min(A) >= domain_min(B) || !domain_isZero(C)) {
+        ASSERT_LOG2(' - A can not satisfy both constraints for all values of A and B, bailing trick');
+        return false;
+      }
     }
 
-    if (ml_dec16(ml, lteOffset + 1) !== varIndex) {
-      ASSERT_LOG2(' - shared var should be left var of the lte but wasnt, probably old addr');
-      return false;
-    }
-
-    let indexB = getAlias(ml_dec16(ml, lteOffset + 3));
-
-    ASSERT_LOG2(' - checking nand offset', ml_dec8(ml, nandOffset) === ML_VV_NAND, ', indexA =', indexB);
-    if (ml_dec8(ml, nandOffset) !== ML_VV_NAND) {
-      ASSERT_LOG2(' - op wasnt nand so bailing');
-      return false;
-    }
-
-    let left = getAlias(ml_dec16(ml, nandOffset + 1));
-    let right = getAlias(ml_dec16(ml, nandOffset + 3));
-
-    if (left !== varIndex && right !== varIndex) {
-      ASSERT_LOG2(' - shared var should be part of the nand but wasnt, probably old addr');
-      return false;
-    }
-
-    ASSERT_LOG2(' - asserting strict boolean domains', domain__debug(domains[indexB]), domain__debug(domains[left]), domain__debug(domains[right]));
-    if (!domain_isBool(domains[indexB]) || !domain_isBool(domains[left]) || !domain_isBool(domains[right])) {
-      ASSERT_LOG2(' - at least some arg wasnt bool so bailing');
-      return false;
-    }
-
-    ASSERT_LOG2(' - ok, eliminating constraints, deferring', varIndex);
-    ASSERT_LOG2(' - eliminating A <= B, B !& C');
-
-    let indexA = varIndex === left ? right : left;
+    ASSERT_LOG2(' - ok, eliminating constraints, deferring', indexA, domain__debug(getDomain(indexA, true)));
+    ASSERT_LOG2(' - eliminating A <= B, A !& C');
 
     ml_eliminate(ml, nandOffset, SIZEOF_VV);
     ml_eliminate(ml, lteOffset, SIZEOF_VV);
 
-    ASSERT_LOG2(' - A is a leaf constraint, defer it', varIndex);
+    ASSERT_LOG2(' - A is a leaf constraint, defer it', indexA);
 
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - nand + lte;', indexA, '!&', varIndex, '  ->  ', domain__debug(domains[indexA]), '!=', domain__debug(domains[varIndex]));
-      ASSERT_LOG2(' - nand + lte;', varIndex, '<=', indexB, '  ->  ', domain__debug(domains[varIndex]), '<=', domain__debug(domains[indexB]));
-      let vA = force(indexA);
-      let vB = force(indexB);
-      // if vA is non-zero then varIndex must be zero, otherwise it must be lte B
-      domains[varIndex] = domain_removeGtUnsafe(domains[varIndex], vA ? 0 : vB);
+    solveStack.push((_, force, getDomain, setDomain) => {
+      let A = getDomain(indexA);
+      let B = getDomain(indexB);
+      let C = getDomain(indexC);
+
+      ASSERT_LOG2(' - trickNandLteLhs; nand + lte;', indexA, '<=', indexC, '  ->  ', domain__debug(A), '<=', domain__debug(B), 'and', indexA, '!&', indexB, '  ->  ', domain__debug(A), '!=', domain__debug(C));
+
+      // put in the effort not to force B or C if A already satisfies the constraints
+      if (domain_min(C) > 0) {
+        A = domain_removeGtUnsafe(A, 0);
+      } else if (force(indexC) > 0) {
+        A = domain_removeGtUnsafe(A, 0);
+      } else if (domain_min(A) >= domain_min(B)) {
+        A = domain_removeGtUnsafe(A, force(indexB));
+      }
+
+      ASSERT(A, 'A should contain result');
+      setDomain(indexA, A);
     });
 
-    // we eliminated both constraints so all vars involved decount
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
-    bounty_markVar(bounty, varIndex);
+    bounty_markVar(bounty, indexC);
     somethingChanged();
     return true;
   }
 
-  function trickNandIsall(indexX, indexY, nandOffset) {
-    // given is the nand offset. find the isall offset
+  function trickNandIsall1(ml, indexR, isallOffset, counts, meta) {
+    // R = all?(A B ...), R !& C  ->  nall(A B ... C)
+    // note: this works for any nalls on one isall
 
-    ASSERT_LOG2('trickNandIsall; X !& B, X = all?(C D)   ->   nall(B C D)');
+    ASSERT_LOG2('trickNandIsall1;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for any nand on one isall');
 
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
-      let offset = bounty_getOffset(bounty, indexX, i);
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(meta === (BOUNTY_NAND | BOUNTY_ISALL_RESULT), 'the var should only be nand and isall', bounty__debugMeta(meta), counts);
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL, 'isall offset should be an isall');
+    ASSERT(getAlias(indexR) === indexR, 'should be unaliased');
+    ASSERT(readIndex(ml, isallOffset + SIZEOF_COUNT + ml_dec16(ml, isallOffset + 1) * 2) === indexR, 'R should be result of isall');
+
+    if (counts > BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
+      return false;
+    }
+
+    let isallArgCount = ml_dec16(ml, isallOffset + 1);
+    let isallSizeof = SIZEOF_COUNT + isallArgCount * 2 + 2;
+    let isallArgs = [];
+    for (let i = 0; i < isallArgCount; ++i) {
+      let index = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      isallArgs.push(index);
+    }
+
+    return trickNandIsallRest(ml, isallOffset, indexR, counts, isallArgCount, isallSizeof, isallArgs);
+  }
+  function trickNandIsall2(ml, indexR, isallOffset, meta, counts) {
+    // R = all?(A B), R !& C  ->  nall(A B C)
+    // note: this works for any nalls on one isall
+
+    ASSERT_LOG2('trickNandIsall2;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for all nalls');
+
+    // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
+    ASSERT(meta === (BOUNTY_NAND | BOUNTY_ISALL_RESULT), 'the var should only be nand and isall');
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL2, 'isall offset should be an isall2');
+    ASSERT(getAlias(indexR) === indexR, 'should be unaliased');
+    ASSERT(readIndex(ml, isallOffset + 5) === indexR, 'R should be result of isall');
+
+    if (counts > BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
+      return false;
+    }
+
+    // this array may be premature and unused, but it saves a lot of duplicate code that's hard to abstract otherwise...
+
+    let isallArgs = [
+      readIndex(ml, isallOffset + 1),
+      readIndex(ml, isallOffset + 2),
+    ];
+
+    return trickNandIsallRest(ml, isallOffset, indexR, counts, 2, SIZEOF_VVV, isallArgs);
+  }
+  function trickNandIsallRest(ml, isallOffset, indexR, countsR, isallArgCount, isallSizeof, isallArgs) {
+    // this is an abstraction to cover ML_ISALL and ML_ISALL2
+
+    // first confirm the other offsets are all nands
+
+    let nands = 0;
+    for (let i = 0; i < countsR; ++i) {
+      let offset = bounty_getOffset(bounty, indexR, i);
       if (!offset) break;
-
-      let op = ml_dec8(ml, offset);
-      if (op === ML_ISALL) {
-        return trickNandIsall1(indexX, indexY, nandOffset, offset);
-      } else if (op === ML_ISALL2) {
-        return trickNandIsall2(indexX, indexY, nandOffset, offset);
+      if (offset !== isallOffset) {
+        if (ml_dec8(ml, offset) !== ML_NAND) {
+          ASSERT_LOG2(' - at least one offset wasnt a nand, bailing');
+          return false;
+        }
+        ++nands;
       }
-    }
-    ASSERT_LOG2(' - none of the tracked offsets was an isall, bailing');
-    return false;
-  }
-  function trickNandIsall1(indexX, indexY, nandOffset, isallOffset) {
-    // morph the nand to a nall on Y and the args of the isall. keep the isall, remove the nand
-
-    ASSERT_LOG2(' - trickNandIsall1', indexX, indexY, nandOffset, isallOffset);
-
-    let count = ml_dec16(ml, isallOffset + 1);
-    let indexR = ml_dec16(ml, isallOffset + SIZEOF_COUNT + count * 2);
-    if (indexR !== indexX) {
-      ASSERT_LOG2(' - isall mismatch; indexR != indexX, bailing');
-      return false;
+      ASSERT(offset === isallOffset || readIndex(ml, offset + 1) === indexR || readIndex(ml, offset + 3) === indexR, 'R should be part of the nand');
     }
 
-    // the nall wont fit in the nand and we want to keep the isall, so we need more space
-    let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
-    if (recycleOffset === undefined) {
-      ASSERT_LOG2(' - no free spot to compile this so skip it until we can morph');
-      return false;
-    }
-    let recycleSize = ml_getOpSizeSlow(ml, recycleOffset);
+    // bounty asserted that all these nalls contain R, rewrite each such nall
 
-    ASSERT_LOG2(' - okay! R=X and we were able to recycle enough space. lets morph');
+    ASSERT_LOG2('trickNandIsallRest; there are', nands, 'nands; for each nand: X !& B, X = all?(C D)   ->   nall(B C D)');
 
-    // note: the isall args remain the same. we only have to update the op (-> nall), count (-> +1), and R (-> Y)
-    // we must also sort the args afterwards
+    // we need to get enough space to write the nalls if there is more than one nand (the first fits in the isall)
 
-    ml_enc8(ml, recycleOffset, ML_NALL);
-    ml_enc16(ml, recycleOffset + 1, count + 1);
-    // copy the isall args. also mark them
-    for (let i = 0; i < count; ++i) {
-      let index = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
-      ml_enc16(ml, recycleOffset + SIZEOF_COUNT + i * 2, index);
-      bounty_markVar(bounty, index);
-    }
-    ml_enc16(ml, recycleOffset + SIZEOF_COUNT + count * 2, indexY);
-    ml_heapSort16bitInline(ml, recycleOffset + SIZEOF_COUNT, count + 1);
-    let opsize = SIZEOF_COUNT + count * 2 + 2;
-    let skipSize = recycleSize - opsize;
-    if (skipSize) ml_skip(ml, recycleOffset + opsize, skipSize);
-    ASSERT(ml_validateSkeleton(ml, 'check isall1 to nall transform'));
+    // each nand becomes a nall with the isall args + 1
+    let sizeofNall = SIZEOF_COUNT + (isallArgCount + 1) * 2;
 
-    ml_eliminate(ml, nandOffset, SIZEOF_VV);
+    ASSERT_LOG2(' - isall offset=', isallOffset, ', isall sizeof=', isallSizeof, ', size of nall is', sizeofNall, ', there are', nands, 'nands. so we need', nands - (isallSizeof < sizeofNall ? 0 : 1), 'spaces');
 
-    // isall args are already marked. now mark the nand args too.
-    bounty_markVar(bounty, indexX);
-    bounty_markVar(bounty, indexY);
-    somethingChanged();
-
-    return true;
-  }
-  function trickNandIsall2(indexX, indexY, nandOffset, isallOffset) {
-    // combine nand and isall. morph the isall to a nall of all args except X. remove the nand
-
-    ASSERT_LOG2(' - trickNandIsall2', indexX, indexY, nandOffset, isallOffset);
-
-    let indexR = ml_dec16(ml, isallOffset + 5);
-    if (indexR !== indexX) {
-      ASSERT_LOG2(' - isall mismatch; indexR != indexX, bailing');
-      return false;
-    }
-
-    // isall2 has 3 spots (sizeof=7). the nall requires a sizeof_count for len=3 (sizeof=9). we'll need to recycle
-    let recycleOffset = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 6);
-    if (recycleOffset === undefined) {
-      ASSERT_LOG2(' - no free spot to compile this so skip it until we can morph');
-      return false;
-    }
-
-    let recycleSize = ml_getOpSizeSlow(ml, recycleOffset);
-
-    let indexA = ml_dec16(ml, isallOffset + 1);
-    let indexB = ml_dec16(ml, isallOffset + 3);
-
-    ASSERT(ml_validateSkeleton(ml, 'double check...'));
-    ml_enc8(ml, recycleOffset, ML_NALL);
-    ml_enc16(ml, recycleOffset + 1, 3);
-    ml_enc16(ml, recycleOffset + 3, indexY);
-    ml_enc16(ml, recycleOffset + 5, indexA);
-    ml_enc16(ml, recycleOffset + 7, indexB);
-    ml_heapSort16bitInline(ml, recycleOffset + SIZEOF_COUNT, 3);
-    let opsize = SIZEOF_COUNT + 3 * 2;
-    let skipSize = recycleSize - opsize;
-    if (skipSize) ml_skip(ml, recycleOffset + opsize, skipSize);
-    ASSERT(ml_validateSkeleton(ml, 'check isall2 to nall transform'));
-
-    ml_eliminate(ml, nandOffset, SIZEOF_VV);
-
-    // mark all affected vars as tainted.
-    bounty_markVar(bounty, indexX);
-    bounty_markVar(bounty, indexY);
-    bounty_markVar(bounty, indexA);
-    bounty_markVar(bounty, indexB);
-    somethingChanged();
-
-    return true;
-  }
-
-  function trickLteLhsIsallShared(indexX, lteOffset) {
-    // need to verify that the other lte arg is also an isall arg. it may very well not be.
-    // we also don't know which offset is going to be the isall (or isall2), so let's find that first
-
-    let indexY = ml_dec16(ml, lteOffset + 3);
-    ASSERT_LOG2('trickLteLhsIsallShared; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset);
-
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
-      let offset = bounty_getOffset(bounty, indexX, i);
-      if (!offset) break;
-
-      let op = ml_dec8(ml, offset);
-      if (op === ML_ISALL) {
-        return _trickLteLhsIsallSharedIsall1(indexX, indexY, lteOffset, offset);
-      }
-      if (op === ML_ISALL2) {
-        return _trickLteLhsIsallSharedIsall2(indexX, indexY, lteOffset, offset);
+    let spacesNeeded = nands - (isallSizeof < sizeofNall ? 0 : 1);
+    let bins;
+    if (spacesNeeded) {
+      bins = ml_getRecycleOffsets(ml, 0, spacesNeeded, sizeofNall);
+      if (!bins) {
+        ASSERT_LOG2(' - Was unable to find enough free space to fit', nands, 'nalls, bailing');
+        return false;
       }
     }
 
-    return false;
-  }
-  function _trickLteLhsIsallSharedIsall1(indexX, indexY, lteOffset, isallOffset) {
-    ASSERT_LOG2(' - _trickLteLhsIsallSharedIsall1; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset, 'isallOffset=', isallOffset);
+    // if any of the nand args or any of the isall args is 0, then so is R. so collect all args together to defer R
+    let allArgs = isallArgs.slice(0);
 
-    let count = ml_dec16(ml, isallOffset + 1);
-    let indexR = ml_dec16(ml, isallOffset + SIZEOF_COUNT + count * 2);
+    let offsetCounter = 0;
 
-    if (indexR !== indexX) {
-      ASSERT_LOG2(' - indexX was not indexR, bailing');
-      return false;
+    // immediately recycle the isall if it was large enough (ML_ISALL can fit a ML_NALL but ML_ISALL2 cannot)
+    if (isallSizeof >= sizeofNall) {
+      ASSERT_LOG2(' - recycling isall immediately');
+      let nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
+      if (nandOffset === isallOffset) nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
+      _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, nandOffset, isallOffset, isallSizeof);
+    } else {
+      ASSERT_LOG2(' - eliminating isall because it is too small');
+      ASSERT_LOG2('   - removing the (unrecycled) isall...');
+      ml_eliminate(ml, isallOffset, isallSizeof);
     }
 
-    // search for indexY in the args of the isall
+    // TODO: what if the same arg occurs in multiple nands? deduper should take care of this, but what if it doesnt (like in quick-unsound mode)
 
-    let found = false;
-    for (let i = 0; i < count; ++i) {
-      let index = ml_dec16(ml, isallOffset + SIZEOF_COUNT + i * 2);
-      if (index === indexY) {
-        found = true;
-        break;
-      }
+    if (spacesNeeded) {
+      ASSERT_LOG2(' - now morphing the nands remaining (', spacesNeeded, ')');
+      ml_recycles(ml, bins, nands, sizeofNall, (recycledOffset, i, sizeLeft) => {
+        ASSERT_LOG2('   - using: recycledOffset:', recycledOffset, ', i:', i, ', sizeLeft:', sizeLeft);
+        let offset = bounty_getOffset(bounty, indexR, offsetCounter++);
+        if (offset !== isallOffset) {
+          ASSERT_LOG2('   - offset', offset, 'is not isall so it should be nand');
+          ASSERT(ml_dec8(ml, offset) === ML_NAND, 'should be nand');
+          ASSERT(offset, 'the earlier loop counted the nands so it should still have that number of offsets now');
+          ASSERT(sizeLeft === ml_getOpSizeSlow(ml, recycledOffset), 'size left should be sizeof op');
+          _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, offset, recycledOffset, sizeLeft);
+        }
+      });
     }
-    if (!found) {
-      ASSERT_LOG2(' - indexY was not part of the isall, bailing');
-      return false;
-    }
 
-    ASSERT_LOG2(' - Confirmed `A!&B, A=all?(A C)`, eliminating the nand');
+    ASSERT_LOG2('   - deferring', indexR, 'will be R = all?(', allArgs, ')');
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - trickNandIsallRest;', indexR, '= all?(', allArgs, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', allArgs.map(index => domain__debug(getDomain(index))), ')');
 
-    // ok, just eliminate the nand. it is subsumed by the isall
+      let R = getDomain(indexR);
+      allArgs.some(index => {
+        let X = getDomain(index);
+        if (!domain_hasNoZero(X)) { // if non-zero, this var wont affect R
+          let vX = force(index);
+          if (vX === 0) {
+            R = domain_removeGtUnsafe(R, 0);
+            return true;
+          }
+        }
+      });
+      // R should be updated properly now. basically if any arg solved to zero, it will be zero. otherwise unchanged.
 
-    ml_eliminate(ml, lteOffset, SIZEOF_VV);
-    bounty_markVar(bounty, indexX);
-    bounty_markVar(bounty, indexY);
-    somethingChanged();
+      ASSERT(R, 'R should have at least a value to solve left');
+      setDomain(indexR, R);
+    });
+
+    bounty_markVar(bounty, indexR);
 
     return true;
   }
+  function _trickNandIsallCreateNallAndRemoveNand(ml, indexR, nallArgs, allArgs, nandOffset, recycleOffset, recycleSizeof) {
+    ASSERT_LOG2(' - _trickNandIsallCreateNallAndRemoveNand: indexR:', indexR, 'nallArgs:', nallArgs, 'allArgs:', allArgs, 'nandOffset:', nandOffset, 'recycleOffset:', recycleOffset, 'recycleSizeof:', recycleSizeof);
+    let indexX = readIndex(ml, nandOffset + 1);
+    let indexY = readIndex(ml, nandOffset + 3);
+    let index = indexX === indexR ? indexY : indexX;
 
-  function _trickLteLhsIsallSharedIsall2(indexX, indexY, lteOffset, isallOffset) {
-    ASSERT_LOG2(' - _trickLteLhsIsallSharedIsall2; indexX=', indexX, 'indexY=', indexY, 'lteOffset=', lteOffset, 'isallOffset=', isallOffset);
+    nallArgs.push(index);
+    allArgs.push(index);
+    bounty_markVar(bounty, index);
 
-    let indexR = ml_dec16(ml, isallOffset + 5);
-
-    if (indexR !== indexX) {
-      ASSERT_LOG2(' - indexX was not indexR, bailing');
-      return false;
+    ml_any2c(ml, recycleOffset, recycleSizeof, ML_NALL, nallArgs);
+    if (nandOffset !== recycleOffset) {
+      ml_eliminate(ml, nandOffset, SIZEOF_VV);
     }
-
-    // search for indexY in the args of the isall
-
-    let indexA = ml_dec16(ml, isallOffset + 1);
-    let indexB = ml_dec16(ml, isallOffset + 3);
-
-    if (indexA !== indexY && indexB !== indexY) {
-      ASSERT_LOG2(' - indexY was not an isall arg, bailing');
-      return false;
-    }
-
-    // ok, just eliminate the nand. it is subsumed by the isall
-
-    ASSERT_LOG2(' - Confirmed `A!&B, A=all?(A C)`, eliminating the nand');
-
-    ml_eliminate(ml, lteOffset, SIZEOF_VV);
-    bounty_markVar(bounty, indexX);
-    bounty_markVar(bounty, indexY);
-    somethingChanged();
-
-    return true;
+    ASSERT(ml_validateSkeleton(ml, '_trickNandIsallCreateNallAndRemoveNand'));
   }
 
-  function trickNeqElimination(indexX) {
+  function trickNeqElimination(indexX, countsX) {
+    // bascially we "invert" one arg by aliasing it to the other arg and then inverting all ops that relate to it
+
     // X is used multiple times and only with exactly one neq
     // and multiple lte's, or's, nand's.
     // multiple neq's should be eliminated elsewhere
@@ -2207,9 +2221,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
     // first we need to validate. we can only have one neq
 
-    ASSERT_LOG2('trickNeqElimination', indexX);
+    ASSERT_LOG2('trickNeqElimination; index:', indexX, ', counts:', countsX);
 
-    if (!domain_isBool(domains[getAlias(indexX)])) {
+    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - the number of vars', indexX, 'touches is larger than the number of offsets tracked by bounty so we bail here');
+      return false;
+    }
+
+    if (!domain_isBool(getDomain(indexX))) {
       ASSERT_LOG2(' - X is non-bool, bailing');
       return false;
     }
@@ -2223,15 +2242,15 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     let nandOffsets = [];
 
     let seenNeq = false;
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+    for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
-      if (!offset) break;
+      ASSERT(offset, 'the offset should exist...', offset);
 
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 3);
+      let indexA = readIndex(ml, offset + 1);
+      let indexB = readIndex(ml, offset + 3);
 
       let op = ml_dec8(ml, offset);
-      if (op === ML_VV_LTE) {
+      if (op === ML_LTE) {
         let indexT;
         if (indexA === indexX) {
           lhsOffsets.push(offset);
@@ -2244,11 +2263,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getAlias(indexT)])) {
+        if (!domain_isBool(getDomain(indexT, true))) {
           ASSERT_LOG2(' - found a non-bool lte arg, bailing');
           return false;
         }
-      } else if (op === ML_VV_NEQ) {
+      } else if (op === ML_NEQ) {
         if (seenNeq) {
           ASSERT_LOG2(' - found second neq, bailing');
           return false;
@@ -2264,7 +2283,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
 
         seenNeq = true;
         neqOffset = offset;
-      } else if (op === ML_VV_OR) {
+      } else if (op === ML_OR) {
         let indexT;
         if (indexA === indexX) {
           orOffsets.push(offset);
@@ -2277,11 +2296,11 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getAlias(indexT)])) {
+        if (!domain_isBool(getDomain(indexT, true))) {
           ASSERT_LOG2(' - found a non-bool or arg, bailing');
           return false;
         }
-      } else if (op === ML_VV_NAND) {
+      } else if (op === ML_NAND) {
         let indexT;
         if (indexA === indexX) {
           nandOffsets.push(offset);
@@ -2294,7 +2313,7 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           return false;
         }
 
-        if (!domain_isBool(domains[getAlias(indexT)])) {
+        if (!domain_isBool(getDomain(indexT, true))) {
           ASSERT_LOG2(' - found a non-bool or arg, bailing');
           return false;
         }
@@ -2321,10 +2340,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     for (let i = 0, len = lhsOffsets.length; i < len; ++i) {
       // X <= A, X != Y    ->    A | Y
       let offset = lhsOffsets[i];
-      let index = ml_dec16(ml, offset + 1);
-      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      let index = readIndex(ml, offset + 1);
+      if (index === indexX) index = readIndex(ml, offset + 3);
       bounty_markVar(bounty, index);
-      ml_vv2vv(ml, offset, ML_VV_OR, index, indexY);
+      ml_vv2vv(ml, offset, ML_OR, index, indexY);
     }
 
     ASSERT(ml_validateSkeleton(ml, 'check after lhs offsets'));
@@ -2332,10 +2351,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     for (let i = 0, len = rhsOffsets.length; i < len; ++i) {
       // X <= A, X != Y    ->    A | Y
       let offset = rhsOffsets[i];
-      let index = ml_dec16(ml, offset + 1);
-      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      let index = readIndex(ml, offset + 1);
+      if (index === indexX) index = readIndex(ml, offset + 3);
       bounty_markVar(bounty, index);
-      ml_vv2vv(ml, offset, ML_VV_NAND, index, indexY);
+      ml_vv2vv(ml, offset, ML_NAND, index, indexY);
     }
 
     ASSERT(ml_validateSkeleton(ml, 'check after rhs offsets'));
@@ -2343,10 +2362,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     for (let i = 0, len = orOffsets.length; i < len; ++i) {
       // X | A, X != Y    ->    Y <= A
       let offset = orOffsets[i];
-      let index = ml_dec16(ml, offset + 1);
-      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      let index = readIndex(ml, offset + 1);
+      if (index === indexX) index = readIndex(ml, offset + 3);
       bounty_markVar(bounty, index);
-      ml_vv2vv(ml, offset, ML_VV_LTE, indexY, index);
+      ml_vv2vv(ml, offset, ML_LTE, indexY, index);
     }
 
     ASSERT(ml_validateSkeleton(ml, 'check after or offsets'));
@@ -2354,10 +2373,10 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     for (let i = 0, len = nandOffsets.length; i < len; ++i) {
       // X !& A, X != Y    ->    A <= Y
       let offset = nandOffsets[i];
-      let index = ml_dec16(ml, offset + 1);
-      if (index === indexX) index = ml_dec16(ml, offset + 3);
+      let index = readIndex(ml, offset + 1);
+      if (index === indexX) index = readIndex(ml, offset + 3);
       bounty_markVar(bounty, index);
-      ml_vv2vv(ml, offset, ML_VV_LTE, index, indexY);
+      ml_vv2vv(ml, offset, ML_LTE, index, indexY);
     }
 
     ASSERT(ml_validateSkeleton(ml, 'check after or offsets'));
@@ -2367,10 +2386,13 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT(ml_validateSkeleton(ml, 'make sure the morphs went okay'));
 
     ASSERT_LOG2(' - X is a leaf constraint, defer it', indexX);
-    solveStack.push((domains, force) => {
-      ASSERT_LOG2(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(domains[indexX]), '!=', domain__debug(domains[indexY]));
+    solveStack.push((_, force, getDomain, setDomain) => {
+      let X = getDomain(indexX);
+      ASSERT_LOG2(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(), '!=', domain__debug(getDomain(indexY)));
 
-      domains[indexX] = domain_removeValue(domains[indexX], force(indexY));
+      X = domain_removeValue(X, force(indexY));
+      ASSERT(X, 'X should be able to reflect any solution');
+      setDomain(indexX, X);
     });
 
     bounty_markVar(bounty, indexX);
@@ -2379,23 +2401,28 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     return true;
   }
 
-  function trickNandOnly(indexX) {
-    ASSERT_LOG2('trickNandOnly', indexX);
+  function trickNandOnly(indexX, countsX) {
+    ASSERT_LOG2('trickNandOnly;', indexX, ', counts:', countsX);
+
+    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      return false;
+    }
 
     let offsets = []; // to eliminate
     let indexes = []; // to mark and to defer solve
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+    for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
       if (!offset) break;
 
       let opCode = ml_dec8(ml, offset);
-      if (opCode !== ML_VV_NAND) {
+      if (opCode !== ML_NAND) {
         ASSERT_LOG2(' - opcode wasnt nand but was expecting only nands, bailing');
         return false;
       }
 
-      let indexA = ml_dec16(ml, offset + 1);
-      let indexB = ml_dec16(ml, offset + 3);
+      let indexA = readIndex(ml, offset + 1);
+      let indexB = readIndex(ml, offset + 3);
 
       let indexY = indexA;
       if (indexY === indexX) {
@@ -2412,21 +2439,21 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT_LOG2(' - collected offsets and vars:', offsets, indexes);
 
     ASSERT_LOG2('   - B is a leaf var');
-    solveStack.push((domains, force) => {
+    solveStack.push((_, force, getDomain, setDomain) => {
       ASSERT_LOG2(' - only nands;', indexes);
 
-      let X = domains[indexX];
+      let X = getDomain(indexX);
       if (!domain_isZero(X) && !domain_hasNoZero(X)) {
         for (let i = 0; i < indexes.length; ++i) {
           if (force(indexes[i]) > 0) {
-            domains[indexX] = domain_removeGtUnsafe(X, 0);
+            let X = domain_removeGtUnsafe(X, 0);
+            ASSERT(X, 'X should be able to reflect a solution');
+            setDomain(indexX, X);
             break;
           }
         }
       }
     });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'nands only'));
 
     ASSERT_LOG2(' - now remove the nands', offsets);
 
@@ -2446,9 +2473,14 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     return true;
   }
 
-  function trickOrLteLhsNands(indexX) {
+  function trickOrLteLhsNands(indexX, countsX) {
     ASSERT_LOG2('trickOrLteLhsNands', indexX);
     // A !& X, X <= B, X | C    ->     B | C, A <= C
+
+    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      return false;
+    }
 
     let lteOffset;
     let orOffset;
@@ -2458,12 +2490,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     let indexB;
     let indexC;
 
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+    for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
       if (!offset) break;
 
-      let indexL = ml_dec16(ml, offset + 1);
-      let indexR = ml_dec16(ml, offset + 3);
+      let indexL = readIndex(ml, offset + 1);
+      let indexR = readIndex(ml, offset + 3);
 
       let indexY = indexL;
       if (indexL === indexX) {
@@ -2474,17 +2506,17 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       }
 
       let opCode = ml_dec8(ml, offset);
-      if (opCode === ML_VV_NAND) {
+      if (opCode === ML_NAND) {
         nandOffsets.push(offset);
         indexesA.push(indexY);
-      } else if (opCode === ML_VV_OR) {
+      } else if (opCode === ML_OR) {
         if (orOffset) {
           ASSERT_LOG2(' - trick only supported with one OR, bailing');
           return false;
         }
         orOffset = offset;
         indexB = indexY;
-      } else if (opCode === ML_VV_LTE) {
+      } else if (opCode === ML_LTE) {
         if (lteOffset) {
           ASSERT_LOG2(' - trick only supported with one LTE, bailing');
           return false;
@@ -2503,35 +2535,39 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT_LOG2(' - A !& X, D !& X, X <= B, X | C    ->     B | C, A <= C, D <= C');
     // the A <= C for all nand args (all <= C)
 
-    ml_vv2vv(ml, lteOffset, ML_VV_OR, indexB, indexC);
+    ml_vv2vv(ml, lteOffset, ML_OR, indexB, indexC);
     ml_eliminate(ml, orOffset, SIZEOF_VV);
     for (let i = 0, len = indexesA.length; i < len; ++i) {
       let indexA = indexesA[i];
-      ml_vv2vv(ml, nandOffsets[i], ML_VV_LTE, indexA, indexC);
+      ml_vv2vv(ml, nandOffsets[i], ML_LTE, indexA, indexC);
       bounty_markVar(bounty, indexA);
     }
 
     ASSERT_LOG2('   - X is a leaf var', indexX);
-    solveStack.push((domains, force) => {
+    solveStack.push((_, force, getDomain, setDomain) => {
       ASSERT_LOG2(' - or+lte+nands;', indexX);
 
-      let X = domains[indexX];
+      let X = getDomain(indexX);
       if (force(indexB) === 0) { // A<=B so if B is 0, A must also be 0
-        domains[indexX] = domain_removeGtUnsafe(X, 0);
+        X = domain_removeGtUnsafe(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       } else if (force(indexC) === 0) { // X|C so if C is 0, X must be non-zero
-        domains[indexX] = domain_removeValue(X, 0);
+        X = domain_removeValue(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       } else {
         // if any indexA is set, X must be zero
         for (let i = 0, len = indexesA.length; i < len; ++i) {
           if (force(indexesA[i]) > 0) {
-            domains[indexX] = domain_removeGtUnsafe(X, 0);
+            X = domain_removeGtUnsafe(X, 0);
+            ASSERT(X, 'X should be able to reflect the solution');
+            setDomain(indexX, X);
             break;
           }
         }
       }
     });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+lte+nands'));
 
     bounty_markVar(bounty, indexB);
     bounty_markVar(bounty, indexC);
@@ -2540,11 +2576,16 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     return true;
   }
 
-  function trickOrNandLteBoth(indexX) {
+  function trickOrNandLteBoth(indexX, countsX) {
     ASSERT_LOG2('trickOrNandLteBoth', indexX);
     // A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B
     // if we can model `A !& C, A <= D` in one constraint then we should do so but I couldn't find one
     // (when more lte's are added, that's the pattern we add for each)
+
+    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
+      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      return false;
+    }
 
     // we should have; lteRhs, lteLhs, nand, or
     let lteLhsOffset;
@@ -2557,12 +2598,12 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     let indexC;
     let indexD;
 
-    for (let i = 0; i < BOUNTY_MAX_OFFSETS_TO_TRACK; ++i) {
+    for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
       if (!offset) break;
 
-      let indexL = ml_dec16(ml, offset + 1);
-      let indexR = ml_dec16(ml, offset + 3);
+      let indexL = readIndex(ml, offset + 1);
+      let indexR = readIndex(ml, offset + 3);
 
       let indexY = indexL;
       if (indexL === indexX) {
@@ -2573,21 +2614,21 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
       }
 
       let opCode = ml_dec8(ml, offset);
-      if (opCode === ML_VV_NAND) {
+      if (opCode === ML_NAND) {
         if (nandOffset) {
           ASSERT_LOG2(' - trick only supported with one NAND, bailing');
           return false;
         }
         nandOffset = offset;
         indexC = indexY;
-      } else if (opCode === ML_VV_OR) {
+      } else if (opCode === ML_OR) {
         if (orOffset) {
           ASSERT_LOG2(' - trick only supported with one OR, bailing');
           return false;
         }
         orOffset = offset;
         indexB = indexY;
-      } else if (opCode === ML_VV_LTE) {
+      } else if (opCode === ML_LTE) {
         if (indexL === indexX) { // lte_lhs
           if (lteLhsOffset) {
             ASSERT_LOG2(' - trick only supported with one LTE_lhs, bailing');
@@ -2612,28 +2653,34 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     ASSERT_LOG2(' - collection complete; or offsets:', lteLhsOffset, lteRhsOffset, orOffset, nandOffset, ', indexes:', indexA, indexB, indexC, indexD);
     ASSERT_LOG2(' - A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B');
 
-    ml_vv2vv(ml, lteLhsOffset, ML_VV_NAND, indexA, indexC);
-    ml_vv2vv(ml, lteRhsOffset, ML_VV_OR, indexB, indexD);
-    ml_vv2vv(ml, orOffset, ML_VV_LTE, indexA, indexD);
-    ml_vv2vv(ml, nandOffset, ML_VV_LTE, indexC, indexD);
+    ml_vv2vv(ml, lteLhsOffset, ML_NAND, indexA, indexC);
+    ml_vv2vv(ml, lteRhsOffset, ML_OR, indexB, indexD);
+    ml_vv2vv(ml, orOffset, ML_LTE, indexA, indexD);
+    ml_vv2vv(ml, nandOffset, ML_LTE, indexC, indexD);
 
     ASSERT_LOG2('   - X is a leaf var', indexX);
-    solveStack.push((domains, force) => {
+    solveStack.push((_, force, getDomain, setDomain) => {
       ASSERT_LOG2(' - or+nand+lte_lhs+lte_rhs;', indexX);
 
-      let X = domains[indexX];
+      let X = getDomain(indexX);
       if (force(indexA) === 1) { // A<=X so if A is 1, X must also be 1
-        domains[indexX] = domain_removeValue(X, 0);
+        X = domain_removeValue(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       } else if (force(indexB) === 0) { // X|B so if B is 0, X must be non-zero
-        domains[indexX] = domain_removeValue(X, 0);
+        X = domain_removeValue(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       } else if (force(indexC) > 0) { // if indexA is set, X must be zero
-        domains[indexX] = domain_removeGtUnsafe(X, 0);
+        X = domain_removeGtUnsafe(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       } else if (force(indexD) === 0) { // X<=D, if indexD is 0, X must be zero
-        domains[indexX] = domain_removeGtUnsafe(X, 0);
+        X = domain_removeGtUnsafe(X, 0);
+        ASSERT(X, 'X should be able to reflect the solution');
+        setDomain(indexX, X);
       }
     });
-    ASSERT(!void (solveStack[solveStack.length - 1]._target = indexX));
-    ASSERT(!void (solveStack[solveStack.length - 1]._meta = 'or+nand+lte_lhs+lte_rhs'));
 
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);
@@ -2644,61 +2691,241 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
     return true;
   }
 
+  function trickPlusIseq(ml, offset, indexA, indexB, indexR) {
+    // scan for pattern:
+    //   (R = A+B) & (S = R==?2)   ->   S = isAll(A B)
+    //   [0022]=[01]+[01] & [01]=[0022]==?2
+    //   [00 x+y x+y]=[00xx]+[00yy] & [01] = [00 x+y x+y] ==? (x+y)
+    // so there's a plus and then there's an iseq that checks whether the result is the
+    // sum of the only two non-zero values. that's just an "are both set" check -> isall
+
+    ASSERT_LOG2('trickPlusIseq', ml, offset, indexA, indexB, indexR);
+
+    // so R is used in two constraints. let's first determine the other one
+    let offset1 = bounty_getOffset(bounty, indexR, 0);
+    let offset2 = bounty_getOffset(bounty, indexR, 1);
+    ASSERT(offset1 && offset2 && (offset1 === offset || offset2 === offset), 'if there were two counts Bounty should have collected two offsets for it');
+    let otherOffset = offset1 === offset ? offset2 : offset1;
+
+    // now assert that the other offset is indeed an iseq
+    if (ml_dec8(ml, otherOffset) !== ML_ISEQ) return false;
+
+    // get its operands (let's use X,Y,Z). R should be X or Y and the other should be a constant
+    let indexX = readIndex(ml, otherOffset + 1); // R | 2
+    let indexY = readIndex(ml, otherOffset + 1); // R | 2
+    let indexZ = readIndex(ml, otherOffset + 1); // S
+
+    if (indexX !== indexR && indexY !== indexR) return false;
+    let v = domain_getValue(getDomain(indexX, true));
+    if (v < 0) {
+      v = domain_getValue(getDomain(indexY, true));
+      if (v < 0) return false;
+    }
+
+    // v should be the value of A+B if they are non-zero but we have to confirm that first
+    // A and B must be booly and have exactly two values (usually 0 and 1, but 0 and 5 is fine too)
+
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+
+    if (domain_min(A) !== 0 || domain_size(A) !== 2) return false;
+    if (domain_min(B) !== 0 || domain_size(B) !== 2) return false;
+
+    // confirm that the two non-zero values sum to exactly v
+    if (v !== domain_max(A) + domain_max(B)) return false;
+
+    // so now we know that there's a plus, and its args have two values, each have at least a zero,
+    // and R is zero and the sum of non-zero values from the args.
+    // then there's an iseq that confirms whether R is in fact the only non-zero value it has
+    // we've confirmed all these details so it's time to merge them together and morph to an isall
+
+    ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
+
+    // rewrite one into `Z = all?(A B)`, drop the other
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - cut plus -> isAll; plus+iseq->isall');
+      let R = getDomain(indexR);
+      let vS = force(indexZ);
+      setDomain(indexR, vS ? domain_intersectionValue(R, v) : domain_removeValue(R, v));
+      // or just this? ultimately, perhaps pick the way that forces the least? *shrug*
+      //setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
+    });
+
+    // for the record, _this_ is why ML_ISALL2 exists at all. we can use recycle now though, but it's slow.
+    ml_vvv2vvv(ml, offset, ML_ISALL2, indexA, indexB, indexZ);
+    ml_eliminate(ml, otherOffset, SIZEOF_VVV);
+
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    bounty_markVar(bounty, indexR);
+    bounty_markVar(bounty, indexZ);
+    somethingChanged();
+
+    return true;
+  }
+
+  function trickSumIseq(ml, sumOffset, indexR, counts, meta) {
+    // scan for pattern (R = sum(A B C) & (S = R==?3) -> S = isAll(A B C) with ABC strict bools. a bit tedious to scan for but worth it.
+
+    let offset1 = bounty_getOffset(bounty, indexR, 0);
+    let offset2 = bounty_getOffset(bounty, indexR, 1);
+    let iseqOffset = offset1 === sumOffset ? offset2 : offset1;
+    ASSERT_LOG2('trickSumIseq; sumOffset:', sumOffset, 'iseqOffset:', iseqOffset, 'indexR:', indexR);
+
+    ASSERT(iseqOffset > 0, 'offset should exist and cant be the first op');
+    ASSERT(counts === 2, 'R should only be used in two constraints (sum and iseq)');
+    ASSERT(meta === (BOUNTY_ISEQ_ARG | BOUNTY_SUM_RESULT), 'should be sum and iseq arg', counts, bounty__debugMeta(meta));
+    ASSERT(ml_dec8(ml, sumOffset) === ML_SUM, 'check sum offset');
+    ASSERT(ml_dec8(ml, iseqOffset) === ML_ISEQ, 'check iseq offset');
+    ASSERT(readIndex(ml, iseqOffset + 1) === indexR || readIndex(ml, iseqOffset + 3) === indexR, 'R should be an iseq arg');
+
+    let argCount = ml_dec16(ml, sumOffset + 1);
+
+    let indexA = readIndex(ml, iseqOffset + 1);
+    let indexB = readIndex(ml, iseqOffset + 1);
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+
+    let vA = domain_getValue(A);
+    let vB = domain_getValue(B);
+
+
+    if ((vA >= 0 && vA === argCount) || (vB >= 0 && vB === argCount)) {
+      // okay the iseq checks whether the sum equals the number of args. confirm that all args are bools to proceed
+
+      let args = [];
+      let allBools = true;
+      for (let i = 0; i < argCount; ++i) {
+        let index = readIndex(ml, sumOffset + SIZEOF_COUNT + i * 2);
+        let domain = getDomain(index, true);
+        if (!domain_isBool(domain)) {
+          allBools = false;
+          break;
+        }
+        args.push(index);
+        bounty_markVar(bounty, index);
+      }
+
+      if (allBools) {
+        ASSERT_LOG2(' - found isAll pattern, rewriting sum and eliminating isEq');
+
+        // ok, we replace the sum and isEq with `S = isAll(args)`
+        // the sum has the biggest footprint so the isall will fit with one byte to spare
+
+        let indexS = readIndex(ml, iseqOffset + 5);
+
+        solveStack.push((_, force, getDomain, setDomain) => {
+          ASSERT_LOG2(' - cut sum -> isAll');
+          let R = getDomain(indexR);
+          let vR = 0;
+          for (let i = 0; i < argCount; ++i) {
+            let vN = force(args[i]);
+            ASSERT(vN === 0 || vN === 1, 'should be booly');
+            if (vN) ++vR;
+          }
+          R = domain_intersectionValue(R, vR);
+          ASSERT(R, 'R should be able to reflect the solution');
+          setDomain(indexR, R);
+        });
+
+        ml_enc8(ml, sumOffset, ML_ISALL);
+        ml_enc16(ml, sumOffset + 1, argCount);
+        ml_enc16(ml, sumOffset + SIZEOF_COUNT + argCount * 2, indexS);
+
+        // remove the iseq, regardless
+        ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
+
+        bounty_markVar(bounty, indexR);
+        somethingChanged();
+      }
+    }
+  }
+
+  function trickXnorPseudoEq(ml, offset, indexA, boolyA, indexB, boolyB) {
+    // A or B or both are only used as a boolean (in the zero-nonzero sense, not strictly 0,1)
+    // the xnor basically says that if one is zero the other one is too, and otherwise neither is zero
+    // cominbing that with the knowledge that both vars are only used for zero-nonzero, one can be
+    // considered a pseudo-alias for the other. we replace it with the other var and defer solving it.
+    // when possible, pick a strictly boolean domain because it's more likely to allow new tricks.
+
+    // note that for a booly, the actual value is irrelevant. whether it's 1 or 5, the ops will normalize
+    // this to zero and non-zero anyways. and by assertion the actual value is not used inside the problem
+
+    ASSERT_LOG2(' - trickXnorPseudoEq; found booly-eq in a xnor:', indexA, '!^', indexB);
+
+    // ok, a little tricky, but we're going to consider the bool to be a full alias of the other var.
+    // once we create a solution we will override the value and apply the booly constraint and assign
+    // it either its zero or nonzero value(s) depending on the other value of this xnor.
+
+    let indexE = indexB;
+    let indexK = indexA;
+    if (!boolyB || (boolyA && domain_isBool(getDomain(indexA)))) { // if A wasnt booly use B, otherwise A must be booly
+      indexE = indexA;
+      indexK = indexB;
+    }
+    let E = getDomain(indexE, true); // remember what E was because it will be replaced by false to mark it an alias
+    ASSERT_LOG2(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)), 'replacing', indexE, 'with', indexK);
+
+    solveStack.push((_, force, getDomain, setDomain) => {
+      ASSERT_LOG2(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
+      ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
+      let vK = force(indexK);
+      if (vK === 0) E = domain_removeGtUnsafe(E, 0);
+      else E = domain_removeValue(E, 0);
+      ASSERT(E, 'E should be able to reflect the solution');
+      setDomain(indexE, E);
+    });
+
+    // note: addAlias will push a defer as well. since the defers are resolved in reverse order,
+    // we must call addAlias after adding our own defer, otherwise our change will be lost.
+    addAlias(indexE, indexK, 'xnor', true);
+
+    ml_eliminate(ml, offset, SIZEOF_VV);
+    bounty_markVar(bounty, indexA);
+    bounty_markVar(bounty, indexB);
+    somethingChanged();
+  }
+
   function cutLoop() {
-    ASSERT_LOG2('\n - inner cutLoop');
+    ASSERT_LOG2('\n#### - inner cutLoop');
     pc = 0;
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, domains, vars));
+      ASSERT_LOG2(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
-        case ML_VV_EQ:
+        case ML_EQ:
           return ml_throw(ml, pc, 'eqs should be aliased and eliminated');
 
-        case ML_VV_NEQ:
-          cutNeq();
+        case ML_NEQ:
+          cutNeq(ml, pc);
           break;
 
-        case ML_VV_LT:
-          cutLt();
+        case ML_LT:
+          cutLt(ml, pc);
           break;
 
-        case ML_VV_LTE:
-          cutLte();
+        case ML_LTE:
+          cutLte(ml, pc);
           break;
-
-        case ML_V8_EQ:
-        case ML_88_EQ:
-        case ML_V8_NEQ:
-        case ML_88_NEQ:
-        case ML_V8_LT:
-        case ML_8V_LT:
-        case ML_88_LT:
-        case ML_V8_LTE:
-        case ML_8V_LTE:
-        case ML_88_LTE:
-          return ml_throw(ml, pc, 'constraints with <= 1 var should be eliminated');
 
         case ML_NALL:
-          cutNall();
-          break;
-
         case ML_DISTINCT:
-          ASSERT_LOG2('(todo) d', pc);
           let dlen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + dlen * 2;
           break;
 
         case ML_ISALL:
-          cutIsAll();
+          cutIsAll(ml, pc);
           break;
 
         case ML_ISNALL:
-          cutIsNall();
+          cutIsNall(ml, pc);
           break;
 
         case ML_ISALL2:
-          cutIsAll2();
+          cutIsAll2(ml, pc);
           break;
 
         case ML_ISNONE:
@@ -2720,62 +2947,20 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           pc += SIZEOF_VVV;
           break;
 
-        case ML_VVV_ISEQ:
-          cutIsEq(ml, pc, SIZEOF_VVV, 2);
+        case ML_ISEQ:
+          cutIsEq(ml, pc);
           break;
-        case ML_VVV_ISNEQ:
-          cutIsNeq(ml, pc, SIZEOF_VVV, 2);
+        case ML_ISNEQ:
+          cutIsNeq(ml, pc);
           break;
-        case ML_VVV_ISLT:
-          cutIsLt(ml, pc, SIZEOF_VVV, 2, 2);
+        case ML_ISLT:
+          cutIsLt(ml, pc);
           break;
-        case ML_VVV_ISLTE:
-          cutIsLte(ml, pc, SIZEOF_VVV, 2, 2);
-          break;
-
-        case ML_V8V_ISEQ:
-          cutIsEq(ml, pc, SIZEOF_V8V, 1);
-          break;
-        case ML_V8V_ISNEQ:
-          cutIsNeq(ml, pc, SIZEOF_V8V, 1);
-          break;
-        case ML_V8V_ISLT:
-          cutIsLt(ml, pc, SIZEOF_V8V, 2, 1);
-          break;
-        case ML_V8V_ISLTE:
-          cutIsLte(ml, pc, SIZEOF_V8V, 2, 1);
+        case ML_ISLTE:
+          cutIsLte(ml, pc);
           break;
 
-        case ML_8VV_ISLT:
-          cutIsLt(ml, pc, SIZEOF_8VV, 1, 2);
-          break;
-        case ML_8VV_ISLTE:
-          cutIsLte(ml, pc, SIZEOF_8VV, 1, 2);
-          break;
-
-        case ML_VV8_ISEQ:
-        case ML_VV8_ISNEQ:
-        case ML_VV8_ISLT:
-        case ML_VV8_ISLTE:
-          return ml_throw(ml, pc, 'reifiers with constant R should have been morphed');
-
-        case ML_88V_ISEQ:
-        case ML_88V_ISNEQ:
-        case ML_88V_ISLT:
-        case ML_88V_ISLTE:
-        case ML_V88_ISEQ:
-        case ML_V88_ISNEQ:
-        case ML_V88_ISLT:
-        case ML_V88_ISLTE:
-        case ML_8V8_ISLT:
-        case ML_8V8_ISLTE:
-        case ML_888_ISEQ:
-        case ML_888_ISNEQ:
-        case ML_888_ISLT:
-        case ML_888_ISLTE:
-          return ml_throw(ml, pc, 'constraints with <= 1 var should be eliminated');
-
-        case ML_8V_SUM:
+        case ML_SUM:
           cutSum(ml, pc);
           break;
 
@@ -2785,19 +2970,19 @@ function cutter(ml, vars, domains, addAlias, getAlias, solveStack, once) {
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
 
-        case ML_VV_AND:
+        case ML_AND:
           return ml_throw(ml, pc, 'ands should be solved and eliminated');
-        case ML_VV_OR:
-          cutOr();
+        case ML_OR:
+          cutOr(ml, pc);
           break;
-        case ML_VV_XOR:
-          cutXor();
+        case ML_XOR:
+          cutXor(ml, pc);
           break;
-        case ML_VV_NAND:
-          cutNand();
+        case ML_NAND:
+          cutNand(ml, pc);
           break;
-        case ML_VV_XNOR:
-          cutXnor();
+        case ML_XNOR:
+          cutXnor(ml, pc);
           break;
 
         case ML_START:

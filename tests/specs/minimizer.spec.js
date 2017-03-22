@@ -1,5 +1,8 @@
 import expect from '../fixtures/mocha_proxy.fixt';
 import solverSolver from '../../src/runner';
+import {
+  SUP,
+} from '../../src/helpers';
 
 describe('specs/minimizer.spec', function() {
 
@@ -158,7 +161,7 @@ describe('specs/minimizer.spec', function() {
         C = A + 1
       `);
 
-      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+      expect(solution).to.eql({A: 0, C: 1});
     });
 
     it('should not rewrite [0055]=[1166]+1 to LT lr', function() {
@@ -169,7 +172,7 @@ describe('specs/minimizer.spec', function() {
         C = A + 1
       `);
 
-      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+      expect(solution).to.eql({A: 0, C: 1});
     });
 
     it('should not rewrite [0055]=[1166]+1 to LT rl', function() {
@@ -180,7 +183,7 @@ describe('specs/minimizer.spec', function() {
         C = 1 + A
       `);
 
-      expect(solution).to.eql({A: 0, C: 1, __1: 1}); // anon var is because plus doesnt use constants so a var is generated for `1`
+      expect(solution).to.eql({A: 0, C: 1});
     });
 
     it('should not fall into this trap for [01]=[12]+1', function() {
@@ -247,6 +250,7 @@ describe('specs/minimizer.spec', function() {
         : A [1 6]
         : B [5 8 10 42]
         : C [20 20]
+        : R [0 1]
         R = all?(A B C)
       `);
 
@@ -259,18 +263,33 @@ describe('specs/minimizer.spec', function() {
         : A [1 6]
         : B [5 8 10 42]
         : C [0 0]
+        : R *
         R = all?(A B C)
       `);
 
       expect(solution).to.eql({A: [1, 6], B: [5, 8, 10, 42], C: 0, R: 0});
     });
 
-    it('should solve by defer if unsolved immediately', function() {
+    it('should solve by defer if unsolved immediately R=[01]', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
         : C [0 10] # this prevents solving because R can still go either way
+        : R [0 1]
+        R = all?(A B C)
+      `);
+
+      expect(solution).to.eql({A: 1, B: 5, C: 0, R: 0});
+    });
+
+    it('should solve by defer if unsolved immediately R=*', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 6]
+        : B [5 8 10 42]
+        : C [0 10] # this prevents solving because R can still go either way
+        : R *
         R = all?(A B C)
       `);
 
@@ -286,6 +305,7 @@ describe('specs/minimizer.spec', function() {
         : A [1 6]
         : B [5 8 10 42]
         : C [20 20]
+        : R [0 1]
         R = nall?(A B C)
       `);
 
@@ -298,22 +318,37 @@ describe('specs/minimizer.spec', function() {
         : A [1 6]
         : B [5 8 10 42]
         : C [0 0]
+        : R [0 1]
         R = nall?(A B C)
       `);
 
       expect(solution).to.eql({A: [1, 6], B: [5, 8, 10, 42], C: 0, R: 1});
     });
 
-    it('should solve by defer if unsolved immediately', function() {
+    it('should solve by defer if unsolved immediately R=[01]', function() {
       let solution = solverSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
         : C [0 10] # this prevents solving because R can still go either way
+        : R [0 1]
         R = nall?(A B C)
       `);
 
       expect(solution).to.eql({A: 1, B: 5, C: 0, R: 1});
+    });
+
+    it('should solve by defer if unsolved immediately R=*', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A [1 6]
+        : B [5 8 10 42]
+        : C [0 10] # this prevents solving because R can still go either way
+        : R *
+        R = nall?(A B C)
+      `);
+
+      expect(solution).to.eql({A: 1, B: 5, C: 0, R: [1, SUP]});
     });
   });
 
@@ -369,6 +404,17 @@ describe('specs/minimizer.spec', function() {
 
       expect(solution).to.eql(false);
     });
+
+    it('should properly remove resolved vars', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, C, D [0 5]
+        : B 10
+        nall(A B C D)
+
+        @custom noleaf A B C D
+      `)).to.throw(/ops: nall #/);
+    });
   });
 
   describe('nand', function() {
@@ -405,4 +451,166 @@ describe('specs/minimizer.spec', function() {
     });
   });
 
+  describe('sum', function() {
+
+    // (missing basic tests)
+
+    it('should work with constants', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, C, E [0 10]
+        : B 5
+        : D 8
+        : R *
+        R = sum(A B C D E)
+        @custom noleaf A B C D E R
+      `)).to.throw(/ops: sum #/);
+    });
+
+    it('should not trip up when R=0 already', function() {
+
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 10]
+        : R [0 0]
+        R = sum(A B C D E)
+        @custom noleaf A B C D E R
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0});
+    });
+
+    it('should not trip up with same var arg twice becoming solved', function() {
+
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 10]
+        : R [0 0]
+        R = sum(A B B C)
+        @custom noleaf A B R
+      `);
+
+      // ok the regression being tested is when the minifier applies the R
+      // value, 0, it sets A and B to zero in the same loop. however, B is
+      // counted twice. In this same loop the number of constants and their
+      // sum was increased. This caused the second occurence of the same
+      // var to be considered an already seen constant, and ignored. So now
+      // it just counts again and this test ensures that's okay.
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0, R: 0});
+    });
+  });
+
+  describe('product', function() {
+
+    // (missing basic tests)
+
+    it('should rewrite a product with R=0 to a nall', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 10]
+        : R 0
+        R = product(A B C D E)
+        @custom noleaf A B C D E R
+      `)).to.throw(/ops: nall #/);
+    });
+
+    it('should rewrite a product with a zero constants to let other args free', function() {
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, C, D, E [0 10]
+        : B 0
+        : R *
+        R = product(A B C D E)
+        @custom noleaf A B C D E R
+      `);
+
+      expect(solution).to.eql({A: [0, 10], B: 0, C: [0, 10], D: [0, 10], E: [0, 10], R: 0});
+    });
+
+    it('should work with constants', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, C, E [1 10]
+        : B 5
+        : D 8
+        : R *
+        R = product(A B C D E)
+        @custom noleaf A B C D E R
+      `)).to.throw(/ops: product #/);
+    });
+
+    it('should solve at least one arg to zero to force result to zero', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C [0 10]
+        : D 0
+        D = product(A B C)
+        @custom noleaf A B C
+      `)).to.throw(/ops: nall #/); // note: nall is correct because it enforces at least one arg to be zero, which is all that product need when the result is zero
+    });
+  });
+
+  describe('distinct', function() {
+
+    it('should work', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 10]
+        distinct(A B C D E)
+        @custom noleaf A B C D E
+      `)).to.throw(/ops: distinct #/);
+    });
+
+    it('should prune constants', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, D, E [0 10]
+        distinct(A B 5 D E)
+        @custom noleaf A B D E
+      `)).to.throw(/ops: distinct #/);
+    });
+
+    it('should prune a var that becomes constant', function() {
+      expect(_ => solverSolver(`
+        @custom var-strat throw
+        : A, B, D, E [0 10]
+        : C [0 10]
+        distinct(A B C D E)
+        C < 1
+        @custom noleaf A B C D E
+      `)).to.throw(/ops: distinct #/);
+    });
+  });
+
+  describe('regressions', function() {
+
+    it('the extra math made it not solve', function() {
+      // (the inverses of div were messed up)
+      let solution = solverSolver(`
+        @custom var-strat throw
+        : A, B = [0 0 10 10]
+        : C = [0 0 100 100]
+        : R = 100
+        R = all?(A B)
+        C <= R
+        # -->  C <= A, C <= B
+        # we want the solution: {A: 10, B: 10, C: 100, R: 100}
+
+
+        # with R being >0, A and B must be >0, so they become 10
+        # C can still be 0 or 100 so the math tries to indirectly force that
+        # R/2=50, a+a=100. but it seems to break somewhere
+        : a *
+        a = R / 2
+        C = a + a
+
+        @custom noleaf A B C
+        @custom free 0
+      `);
+
+      expect(solution).to.eql({A: 10, B: 10, C: 100, R: 100, a: 50});
+    });
+
+  });
 });

@@ -1,3 +1,5 @@
+// TODO: need to update this code to use getDomain and aliases and such
+//
 // this is an import function for config
 // it converts a DSL string to a $config
 // see /docs/dsl.txt for syntax
@@ -14,65 +16,31 @@ import {
 } from './domain';
 import {
   ML_START,
-  ML_VV_EQ,
-  ML_V8_EQ,
-  ML_88_EQ,
-  ML_VV_NEQ,
-  ML_V8_NEQ,
-  ML_88_NEQ,
-  ML_VV_LT,
-  ML_V8_LT,
-  ML_8V_LT,
-  ML_88_LT,
-  ML_VV_LTE,
-  ML_V8_LTE,
-  ML_8V_LTE,
-  ML_88_LTE,
-  ML_VVV_ISEQ,
-  ML_V8V_ISEQ,
-  ML_VV8_ISEQ,
-  ML_88V_ISEQ,
-  ML_V88_ISEQ,
-  ML_888_ISEQ,
-  ML_VVV_ISNEQ,
-  ML_V8V_ISNEQ,
-  ML_VV8_ISNEQ,
-  ML_88V_ISNEQ,
-  ML_V88_ISNEQ,
-  ML_888_ISNEQ,
-  ML_VVV_ISLT,
-  ML_8VV_ISLT,
-  ML_V8V_ISLT,
-  ML_VV8_ISLT,
-  ML_88V_ISLT,
-  ML_V88_ISLT,
-  ML_8V8_ISLT,
-  ML_888_ISLT,
-  ML_VVV_ISLTE,
-  ML_8VV_ISLTE,
-  ML_V8V_ISLTE,
-  ML_VV8_ISLTE,
-  ML_88V_ISLTE,
-  ML_V88_ISLTE,
-  ML_8V8_ISLTE,
-  ML_888_ISLTE,
+  ML_EQ,
+  ML_NEQ,
+  ML_LT,
+  ML_LTE,
+  ML_ISEQ,
+  ML_ISNEQ,
+  ML_ISLT,
+  ML_ISLTE,
   ML_NALL,
   ML_ISALL,
   ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
-  ML_8V_SUM,
+  ML_SUM,
   ML_PRODUCT,
   ML_DISTINCT,
   ML_PLUS,
   ML_MINUS,
   ML_MUL,
   ML_DIV,
-  ML_VV_AND,
-  ML_VV_OR,
-  ML_VV_XOR,
-  ML_VV_NAND,
-  ML_VV_XNOR,
+  ML_AND,
+  ML_OR,
+  ML_XOR,
+  ML_NAND,
+  ML_XNOR,
   ML_DEBUG,
   ML_JMP,
   ML_JMP32,
@@ -92,111 +60,94 @@ import {
  * Includes a full debugging output stack to investigate a problem more thoroughly
  *
  * @param {Buffer} ml
- * @param {string[]} names
- * @param {$nordom[]} domains
- * @param {Function} getAlias
- * @param {Function[]} solveStack (Only used for stats)
- * @param {number[]} [counts] Maps to var names, holds the sum of the number of times each var occurs in a constraint
+ * @param {Object} problem
+ * @param {number[]} [counts] Maps to var varNames, holds the sum of the number of times each var occurs in a constraint
  * @param {Object} [options]
  * @property {boolean} options.debug Enable debug output (adds lots of comments about vars)
- * @property {boolean} options.hashNames Replace original names with `$<base36(index)>$` of their index in the output
- * @property {boolean} options.indexNames Replace original names with `_<index>_` in the output
+ * @property {boolean} options.hashNames Replace original varNames with `$<base36(index)>$` of their index in the output
+ * @property {boolean} options.indexNames Replace original varNames with `_<index>_` in the output
  * @property {boolean} options.groupedConstraints When debugging only, add all constraints below a var decl where that var is used
  * @returns {string}
  */
-function mlToDsl(ml, names, domains, getAlias, solveStack, counts, options) {
+function mlToDsl(ml, problem, counts, options) {
   ASSERT_LOG2('\n## mlToDsl');
   const DEBUG = options ? options.debug : true; // add debugging help in comments (domains, related constraints, occurrences, etc)
-  const HASH_NAMES = options ? options.hashNames : true; // replace all var names with $index$ with index in base36
-  const INDEX_NAMES = options ? options.indexNames : false; // replace all var names with _index_ (ignored if HASH_NAMES is true)
+  const HASH_NAMES = options ? options.hashNames : true; // replace all var varNames with $index$ with index in base36
+  const INDEX_NAMES = options ? options.indexNames : false; // replace all var varNames with _index_ (ignored if HASH_NAMES is true)
   const ADD_GROUPED_CONSTRAINTS = options ? options.groupedConstraints : true; // only used when debugging
+
+  let {
+    varNames,
+    domains,
+    getDomain,
+    getAlias,
+    solveStack,
+  } = problem;
+
 
   let pc = 0;
   let dsl = '';
+  const LEN = ml.length;
 
   function toName(index) {
     if (HASH_NAMES) return '$' + index.toString(36) + '$';
     if (INDEX_NAMES) return '_' + index + '_';
-    return names[index];
+    return varNames[index];
   }
 
   //if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], toName(a[1])]));
 
   let allParts = [];
   let partsPerVar = [];
+  let varOps = [];
   let constraintCount = 0;
   m2d_innerLoop();
 
   if (DEBUG) {
-    let arr = [];
+    let varDecls = [];
     let varsLeft = 0;
     let aliases = 0;
     let solved = 0;
     let unsolved = 0;
-    let withCount = 0;
+    // first generate var decls for unsolved, unaliased vars
     domains.forEach((domain, index) => {
       let str = '';
       if (domain === false) {
         ++aliases;
       } else {
         ++varsLeft;
-        let domain = domains[index];
+        ASSERT(domain === getDomain(index), 'if not aliased then it should return this', index, domain);
         let v = domain_getValue(domain);
-        if (v >= 0) {
+        if (v >= 0 || (counts && !counts[index])) {
           ++solved;
-          str = ': ' + toName(index) + ' ' + v;
         } else {
           ++unsolved;
           str = ': ' + toName(index) + ' [' + domain_toArr(domain) + ']';
         }
       }
-      arr[index] = str;
+      varDecls[index] = str;
     });
-    domains.forEach((domain, index) => {
-      if (domain === false) {
-        let alias = getAlias(index);
-        if (arr[alias][arr[alias].length - 1] === ')') {
-          arr[alias] = arr[alias].slice(0, -1) + ' ' + toName(index) + ')';
-        } else {
-          arr[alias] += ' alias(' + toName(index) + ')';
-        }
-      }
-    });
-    if (counts) {
-      domains.forEach((domain, index) => {
-        if (domain !== false) {
-          let count = counts[index];
-          if (count) ++withCount;
-          arr[index] += ' # counts = ' + count;
-        }
-      });
-    }
 
-    let varDecls = arr
-      .map((s, varIndex) => {
-        if (!s) return '';
+    let varDeclsString = domains
+      .map((_, varIndex) => {
+        // ignore constants and aliased vars
+        let decl = varDecls[varIndex];
+        if (!decl) return '';
 
-        let count = 0;
-        let ops = (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => {
-          let m = allParts[partIndex].match(/^(?:(?:[_$]\w+[_$]|\d+) = )(nall|distinct|sum|product|all\?|nall\?)\(/);
-          if (!m) m = allParts[partIndex].match(/^(?:(?:[_$]\w+[_$]|\d+) = )?(?:[_$]\w+[_$]|\d+) (\S+) (?:[_$]\w+[_$]|\d+)/);
-          ++count;
-          if (m) return m[1];
-          else if (allParts[partIndex].match(/^\s*nall\(/)) return 'nall';
-          else return '???';
-        }).sort((a, b) => a < b ? -1 : 1).join(' ') + ' $'));
+        let ops = (varOps[varIndex] || '').split(/ /g).sort().join(' ');
 
         return (
-          s +
-          (HASH_NAMES ? '  # index = ' + varIndex : '') +
-          '  # ' + count + (HASH_NAMES || INDEX_NAMES ? 'x ops: ' + ops : '') +
+          decl +
+          (counts ? ' # counts: ' + counts[varIndex] : '') +
+          ((HASH_NAMES || !INDEX_NAMES) ? '  # index = ' + varIndex : '') +
+          '  # ops (' + (ops.replace(/[^ ]/g, '').length + 1) + '): ' + ops + ' $' +
           (ADD_GROUPED_CONSTRAINTS
             ? '\n ## ' + (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
             : ''
           )
         );
       })
-      .filter((a, i) => domains[i] !== false && (!counts || counts[i] > 0))
+      .filter(s => !!s)
       .join('\n');
 
     dsl = `
@@ -206,14 +157,13 @@ function mlToDsl(ml, names, domains, getAlias, solveStack, counts, options) {
 #   Domained: ${varsLeft} x
 #    - Solved: ${solved} x
 #    - Unsolved: ${unsolved} x
-#      - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
-#      - Left to solve: ${counts ? withCount : '<did not count>'} x
+#    - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
 `;
     if (DEBUG) console.error(dsl);
 
     dsl += `
 # Var decls:
-${varDecls}
+${varDeclsString}
 
 `;
   } else {
@@ -225,121 +175,128 @@ ${varDecls}
   dsl += '# Constraints:\n' + allParts.join('');
   return dsl;
 
-  function m2d_dec8() {
-    ASSERT(pc < ml.length, 'OOB');
-    ASSERT_LOG2(' . dec8 decoding', ml[pc], 'from', pc);
-    return ml[pc++];
-  }
+  // ###########################################
 
   function m2d_dec16() {
-    ASSERT(pc < ml.length - 1, 'OOB');
+    ASSERT(pc < LEN - 1, 'OOB');
     ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
-    return (ml[pc++] << 8) | ml[pc++];
+    let s = (ml[pc++] << 8) | ml[pc++];
+    return s;
   }
 
   function m2d_dec32() {
-    ASSERT(pc < ml.length - 1, 'OOB');
+    ASSERT(pc < LEN - 1, 'OOB');
     ASSERT_LOG2(' . dec32 decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], 'from', pc, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 24) | (ml[pc++] << 16) | (ml[pc++] << 8) | ml[pc++];
   }
 
-  function m2d_decA(lena) {
-    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
-    if (lena === 2 && domains[a] === false) a = getAlias(a);
+  function m2d_decA() {
+    let a = getAlias(m2d_dec16());
+    let A = getDomain(a);
+    let vA = domain_getValue(A);
 
     if (DEBUG) {
-      if (lena === 2) {
+      if (vA < 0) {
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
       }
 
-      let s = lena === 1 ? a : toName(a);
+      let s = vA >= 0 ? vA : toName(a);
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a]));
+      s += '# ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(getDomain(a)));
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += counts ? '# counts: ' + (lena === 1 ? '-' : counts[a]) : '';
+      s += counts ? '# counts: ' + (counts[a] === undefined ? '-' : counts[a]) : '';
       s += ' \n';
 
       return s;
     } else {
-      return (lena === 1 ? a : toName(a));
+      return (vA >= 0 ? vA : toName(a));
     }
   }
 
-  function m2d_decAb(lena, lenb, op) {
-    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
-    let b = (lenb === 1 ? m2d_dec8() : m2d_dec16());
+  function m2d_decAb(op) {
+    let a = getAlias(m2d_dec16());
+    let A = getDomain(a);
+    let vA = domain_getValue(A);
 
-    if (lena === 2 && domains[a] === false) a = getAlias(a);
-    if (lenb === 2 && domains[b] === false) b = getAlias(b);
+    let b = getAlias(m2d_dec16());
+    let B = getDomain(b);
+    let vB = domain_getValue(B);
 
     if (DEBUG) {
-      if (lena === 2) {
+      if (vA < 0) {
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-      }
-      if (lenb === 2) {
-        if (!partsPerVar[b]) partsPerVar[b] = [];
-        partsPerVar[b].push(allParts.length);
+        varOps[a] = (varOps[a] ? varOps[a] + ' ' : '') + op;
       }
 
-      let s = (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b));
+      if (vB < 0) {
+        if (!partsPerVar[b]) partsPerVar[b] = [];
+        partsPerVar[b].push(allParts.length);
+        varOps[b] = (varOps[b] ? varOps[b] + ' ' : '') + op;
+      }
+
+      let s = (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b));
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += '# ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(A)) + ' ' + op + ' ' + (vB >= 0 ? 'lit(' + vB + ')' : domain__debug(B));
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a + ', ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) : '');
+      s += (counts ? '# counts: ' + (counts[a] === undefined ? '-' : counts[a]) + ' ' + op + ' ' + (counts[b] === undefined ? '-' : counts[b]) : '');
       s += ' \n';
 
       return s;
     } else {
-      return (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b)) + '\n';
+      return (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b)) + '\n';
     }
   }
 
-  function m2d_decAbc(lena, lenb, lenc, op) {
-    let a = (lena === 1 ? m2d_dec8() : m2d_dec16());
-    let b = (lenb === 1 ? m2d_dec8() : m2d_dec16());
-    let c = (lenc === 1 ? m2d_dec8() : m2d_dec16());
+  function m2d_decAbc(op) {
+    let a = getAlias(m2d_dec16());
+    let A = getDomain(a);
+    let vA = domain_getValue(A);
 
-    if (lena === 2 && domains[a] === false) a = getAlias(a);
-    if (lenb === 2 && domains[b] === false) b = getAlias(b);
-    if (lenc === 2 && domains[c] === false) c = getAlias(c);
+    let b = getAlias(m2d_dec16());
+    let B = getDomain(b);
+    let vB = domain_getValue(B);
 
-    if (lena === 2 && a !== getAlias(a, true)) THROW('wruhroh', a, domains[a], domain__debug(domains[a]), '->', getAlias(a, true));
-    if (lenb === 2 && b !== getAlias(b, true)) THROW('wruhroh', b, domains[b], domain__debug(domains[b]), '->', getAlias(b, true));
+    let c = getAlias(m2d_dec16());
+    let C = getDomain(c);
+    let vC = domain_getValue(C);
 
-    let s = '';
     if (DEBUG) {
-      if (lena === 2) {
+      if (vA < 0) {
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-      }
-      if (lenb === 2) {
-        if (!partsPerVar[b]) partsPerVar[b] = [];
-        partsPerVar[b].push(allParts.length);
-      }
-      if (lenc === 2) {
-        if (!partsPerVar[c]) partsPerVar[c] = [];
-        partsPerVar[c].push(allParts.length);
+        varOps[a] = (varOps[a] ? varOps[a] + ' ' : '') + op;
       }
 
-      s = (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b));
-      s = (lenc === 1 ? c : toName(c)) + ' = ' + s;
+      if (vB < 0) {
+        if (!partsPerVar[b]) partsPerVar[b] = [];
+        partsPerVar[b].push(allParts.length);
+        varOps[b] = (varOps[b] ? varOps[b] + ' ' : '') + op;
+      }
+
+      if (vC < 0) {
+        if (!partsPerVar[c]) partsPerVar[c] = [];
+        partsPerVar[c].push(allParts.length);
+        varOps[c] = (varOps[c] ? varOps[c] + ' ' : '') + op;
+      }
+
+      let s = (vC >= 0 ? vC : toName(c)) + ' = ' + (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b));
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (lenc === 1 ? 'lit(' + c + ')' : domain__debug(domains[c])) + ' = ' + (lena === 1 ? 'lit(' + a + ')' : domain__debug(domains[a])) + ' ' + op + ' ' + (lenb === 1 ? 'lit(' + b + ')' : domain__debug(domains[b]));
+      s += '# ' + (vC >= 0 ? 'lit(' + vC + ')' : domain__debug(C)) + ' = ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(A)) + ' ' + op + ' ' + (vB >= 0 ? 'lit(' + vB + ')' : domain__debug(B));
       s += ' '.repeat(Math.max(110 - s.length, 3));
-      s += '# args: ' + c + ' = ' + a + ' @ ' + b;
+      s += '# indexes: ' + c + ' = ' + a + ' ' + op + ' ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += counts ? '# counts: ' + (lenc === 1 ? '-' : counts[c]) + ' = ' + (lena === 1 ? '-' : counts[a]) + ' ' + op + ' ' + (lenb === 1 ? '-' : counts[b]) + ' ' : '';
+      if (counts) s += '# counts: ' + (counts[c] === undefined ? '-' : counts[c]) + ' = ' + (counts[a] === undefined ? '-' : counts[a]) + ' ' + op + ' ' + (counts[b] === undefined ? '-' : counts[b]) + ' ';
       s += '\n';
 
       return s;
     } else {
-      return (lenc === 1 ? c : toName(c)) + ' = ' + (lena === 1 ? a : toName(a)) + ' ' + op + ' ' + (lenb === 1 ? b : toName(b)) + '\n';
+      return (vC >= 0 ? vC : toName(c)) + ' = ' + (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b)) + '\n';
     }
   }
 
@@ -349,30 +306,23 @@ ${varDecls}
     let counters = '';
     let argNames = '';
     let debugs = '';
-    let prevIndex = -1;
+    //let prevIndex = -1;
     for (let i = 0; i < argCount; ++i) {
-      let index = m2d_dec16();
+      let d = getAlias(m2d_dec16());
+      let D = getDomain(d);
+      let vD = domain_getValue(D);
 
-      if (index < prevIndex) console.error('unordered void list...', prevIndex, index);
-      if (index === prevIndex) console.error('void list with dupe', index);
-
-      prevIndex = index;
-
-      let domain = domains[index];
-      if (domain === false) {
-        index = getAlias(index);
-        domain = domains[index];
-      }
+      argNames += vD >= 0 ? vD : toName(d) + ' ';
       if (DEBUG) {
-        if (!partsPerVar[index]) partsPerVar[index] = [];
-        partsPerVar[index].push(allParts.length);
+        if (vD < 0) {
+          if (!partsPerVar[d]) partsPerVar[d] = [];
+          partsPerVar[d].push(allParts.length);
+          varOps[d] = (varOps[d] ? varOps[d] + ' ' : '') + callName;
+        }
 
-        indexes += index + ' ';
-        if (counts) counters += counts[index] + ' ';
-        argNames += toName(index) + ' ';
-        debugs += domain__debug(domain) + ' ';
-      } else {
-        argNames += toName(index) + ' ';
+        indexes += d + ' ';
+        if (counts) counters += (counts[d] === undefined ? '-' : counts[d]) + ' ';
+        debugs += domain__debug(D) + ' ';
       }
     }
     if (DEBUG) {
@@ -392,8 +342,8 @@ ${varDecls}
   }
 
   function m2d_listResult(callName) {
-    let args = m2d_dec16();
-    return m2d_listResultBody(callName, args);
+    let argCount = m2d_dec16();
+    return m2d_listResultBody(callName, argCount);
   }
 
   function m2d_listResultBody(callName, argCount) {
@@ -401,108 +351,61 @@ ${varDecls}
     let counters = '';
     let argNames = '';
     let debugs = '';
-    let prevIndex = -1;
+    //let prevIndex = -1;
     for (let i = 0; i < argCount; ++i) {
-      let index = m2d_dec16();
+      let d = getAlias(m2d_dec16());
+      let D = getDomain(d);
+      let vD = domain_getValue(D);
 
-      if (index < prevIndex) console.error('unordered value list...', prevIndex, index);
-      if (index === prevIndex) console.error('value list with dupe', index);
-
-      prevIndex = index;
-
-      let domain = domains[index];
-      if (domain === false) {
-        index = getAlias(index);
-        domain = domains[index];
-      }
+      argNames += vD >= 0 ? vD : toName(d) + ' ';
       if (DEBUG) {
-        if (!partsPerVar[index]) partsPerVar[index] = [];
-        partsPerVar[index].push(allParts.length);
+        if (vD < 0) {
+          if (!partsPerVar[d]) partsPerVar[d] = [];
+          partsPerVar[d].push(allParts.length);
+          varOps[d] = (varOps[d] ? varOps[d] + ' ' : '') + callName;
+        }
 
-        indexes += index + ' ';
-        if (counts) counters += counts[index] + ' ';
-        argNames += toName(index) + ' ';
-        debugs += domain__debug(domain) + ' ';
-      } else {
-        argNames += toName(index) + ' ';
+        indexes += d + ' ';
+        if (counts) counters += (counts[d] === undefined ? '-' : counts[d]) + ' ';
+        debugs += domain__debug(D) + ' ';
       }
     }
-    let indexR = m2d_dec16();
-    if (domains[indexR] === false) indexR = getAlias(indexR);
+
+    let r = getAlias(m2d_dec16());
+    let R = getDomain(r);
+    let vR = domain_getValue(R);
+
     if (DEBUG) {
-      if (!partsPerVar[indexR]) partsPerVar[indexR] = [];
-      partsPerVar[indexR].push(allParts.length);
-      let s = toName(indexR) + ' = ' + callName + '( ' + argNames + ')';
+      varOps[r] = (varOps[r] ? varOps[r] + ' ' : '') + callName;
+      if (vR < 0) {
+        if (!partsPerVar[r]) partsPerVar[r] = [];
+        partsPerVar[r].push(allParts.length);
+        varOps[r] = (varOps[r] ? varOps[r] + ' ' : '') + callName;
+      }
+
+      let s = (vR >= 0 ? vR : toName(r)) + ' = ' + callName + '( ' + argNames + ')';
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + domain__debug(domains[indexR]) + ' = ' + callName + '( ' + debugs + ') ';
+      s += '# ' + domain__debug(R) + ' = ' + callName + '( ' + debugs + ') ';
       s += ' '.repeat(Math.max(110 - s.length, 3));
-      s += '# indexes: ' + indexes;
+      s += '# indexes: ' + r + ' = ' + indexes;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + counts[indexR] + ' = ' + callName + '( ' + counters + ')' : '');
+      s += (counts ? '# counts: ' + (counts[r] === undefined ? '-' : counts[r]) + ' = ' + callName + '( ' + counters + ')' : '');
       s += '\n';
 
       return s;
     } else {
-      return toName(indexR) + ' = ' + callName + '( ' + argNames + ')\n';
-    }
-  }
-
-  function m2d_sum() {
-    let indexes = '';
-    let scounts = '';
-    let bug = '';
-    let sumCount = m2d_dec16();
-    let sumConstant = m2d_dec8();
-    let sums = sumConstant ? sumConstant + ' ' : '';
-    let prevIndex = -1;
-    for (let i = 0; i < sumCount; ++i) {
-      let index = m2d_dec16();
-
-      if (index < prevIndex) console.error('unordered sum...', prevIndex, index);
-      if (index === prevIndex) console.error('sum with dupe', index);
-      prevIndex = index;
-
-      let domain = domains[index];
-      if (domain === false) {
-        index = getAlias(index);
-        domain = domains[index];
-      }
-      if (DEBUG) {
-        if (!partsPerVar[index]) partsPerVar[index] = [];
-        partsPerVar[index].push(allParts.length);
-        indexes += index + ' ';
-        if (counts) scounts += counts[index] + ' ';
-        sums += toName(index) + ' ';
-        bug += domain__debug(domain) + ' ';
-      } else {
-        sums += toName(index) + ' ';
-      }
-    }
-    let sumIndex = m2d_dec16();
-    if (domains[sumIndex] === false) sumIndex = getAlias(sumIndex);
-    if (DEBUG) {
-      if (!partsPerVar[sumIndex]) partsPerVar[sumIndex] = [];
-      partsPerVar[sumIndex].push(allParts.length);
-      let s = toName(sumIndex) + ' = sum( ' + sums + ')';
-      s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# constant=' + sumConstant + ', ' + domain__debug(domains[sumIndex]) + ' = sum( ' + bug + ') ';
-      s += ' '.repeat(Math.max(110 - s.length, 3));
-      s += '# indexes: ' + indexes;
-      s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + counts[sumIndex] + ' = sum( ' + scounts + ')' : '');
-      s += '\n';
-
-      return s;
-    } else {
-      return toName(sumIndex) + ' = sum(' + sums + ')\n';
+      return (vR >= 0 ? vR : toName(r)) + ' = ' + callName + '( ' + argNames + ')\n';
     }
   }
 
   function m2d_innerLoop() {
-    while (pc < ml.length) {
+    while (pc < LEN) {
       let pcStart = pc;
+
       let op = ml[pc++];
       let part = '';
+
+      //console.log('->', pc, op);
 
       switch (op) {
         case ML_START:
@@ -522,7 +425,7 @@ ${varDecls}
       switch (op) {
         case ML_START:
           if (pc !== 1) { // pc is already incremented...
-            return THROW(' ! compiler problem @', pcStart);
+            return THROW(' ! ml2dsl compiler problem @', pcStart);
           }
           break;
 
@@ -533,82 +436,34 @@ ${varDecls}
         case ML_JMP:
           let delta = m2d_dec16();
           ASSERT_LOG2(' ! jmp', delta);
+          if (delta <= 0) THROW('Must jump some bytes');
           pc += delta;
           break;
         case ML_JMP32:
           let delta32 = m2d_dec32();
           ASSERT_LOG2(' ! jmp32', delta32);
+          if (delta32 <= 0) THROW('Must jump some bytes');
           pc += delta32;
           break;
 
-        case ML_VV_EQ:
+        case ML_EQ:
           ASSERT_LOG2(' ! eq vv');
-          part = m2d_decAb(2, 2, '==');
+          part = m2d_decAb('==');
           break;
 
-        case ML_V8_EQ:
-          ASSERT_LOG2(' ! eq v8');
-          part = m2d_decAb(2, 1, '==');
-          break;
-
-        case ML_88_EQ:
-          ASSERT_LOG2(' ! eq 88');
-          part = m2d_decAb(1, 1, '==');
-          break;
-
-        case ML_VV_NEQ:
+        case ML_NEQ:
           ASSERT_LOG2(' ! neq vv');
-          part = m2d_decAb(2, 2, '!=');
+          part = m2d_decAb('!=');
           break;
 
-        case ML_V8_NEQ:
-          ASSERT_LOG2(' ! neq v8');
-          part = m2d_decAb(2, 1, '!=');
-          break;
-
-        case ML_88_NEQ:
-          ASSERT_LOG2(' ! neq 88');
-          part = m2d_decAb(1, 1, '!=');
-          break;
-
-        case ML_VV_LT:
+        case ML_LT:
           ASSERT_LOG2(' ! lt vv');
-          part = m2d_decAb(2, 2, '<');
+          part = m2d_decAb('<');
           break;
 
-        case ML_V8_LT:
-          ASSERT_LOG2(' ! lt v8');
-          part = m2d_decAb(2, 1, '<');
-          break;
-
-        case ML_8V_LT:
-          ASSERT_LOG2(' ! lt 8v');
-          part = m2d_decAb(1, 2, '<');
-          break;
-
-        case ML_88_LT:
-          ASSERT_LOG2(' ! lt 88');
-          part = m2d_decAb(1, 1, '<');
-          break;
-
-        case ML_VV_LTE:
+        case ML_LTE:
           ASSERT_LOG2(' ! lte vv');
-          part = m2d_decAb(2, 2, '<=');
-          break;
-
-        case ML_V8_LTE:
-          ASSERT_LOG2(' ! lte v8');
-          part = m2d_decAb(2, 1, '<=');
-          break;
-
-        case ML_8V_LTE:
-          ASSERT_LOG2(' ! lte 8v');
-          part = m2d_decAb(1, 2, '<=');
-          break;
-
-        case ML_88_LTE:
-          ASSERT_LOG2(' ! lte 88');
-          part = m2d_decAb(1, 1, '<=');
+          part = m2d_decAb('<=');
           break;
 
         case ML_NALL:
@@ -643,167 +498,47 @@ ${varDecls}
 
         case ML_PLUS:
           ASSERT_LOG2(' ! plus');
-          part = m2d_decAbc(2, 2, 2, '+');
+          part = m2d_decAbc('+');
           break;
 
         case ML_MINUS:
           ASSERT_LOG2(' ! minus');
-          part = m2d_decAbc(2, 2, 2, '-');
+          part = m2d_decAbc('-');
           break;
 
         case ML_MUL:
           ASSERT_LOG2(' ! mul');
-          part = m2d_decAbc(2, 2, 2, '*');
+          part = m2d_decAbc('*');
           break;
 
         case ML_DIV:
           ASSERT_LOG2(' ! div');
-          part = m2d_decAbc(2, 2, 2, '/');
+          part = m2d_decAbc('/');
           break;
 
-        case ML_VVV_ISEQ:
+        case ML_ISEQ:
           ASSERT_LOG2(' ! iseq vvv');
-          part = m2d_decAbc(2, 2, 2, '==?');
+          part = m2d_decAbc('==?');
           break;
 
-        case ML_V8V_ISEQ:
-          ASSERT_LOG2(' ! iseq v8v');
-          part = m2d_decAbc(2, 1, 2, '==?');
-          break;
-
-        case ML_VV8_ISEQ:
-          ASSERT_LOG2(' ! iseq vv8');
-          part = m2d_decAbc(2, 2, 1, '==?');
-          break;
-
-        case ML_88V_ISEQ:
-          ASSERT_LOG2(' ! iseq 88v');
-          part = m2d_decAbc(1, 1, 2, '==?');
-          break;
-
-        case ML_V88_ISEQ:
-          ASSERT_LOG2(' ! iseq v88');
-          part = m2d_decAbc(2, 1, 1, '==?');
-          break;
-
-        case ML_888_ISEQ:
-          ASSERT_LOG2(' ! iseq 888');
-          part = m2d_decAbc(1, 1, 1, '==?');
-          break;
-
-        case ML_VVV_ISNEQ:
+        case ML_ISNEQ:
           ASSERT_LOG2(' ! isneq vvv');
-          part = m2d_decAbc(2, 2, 2, '!=?');
+          part = m2d_decAbc('!=?');
           break;
 
-        case ML_V8V_ISNEQ:
-          ASSERT_LOG2(' ! isneq v8v');
-          part = m2d_decAbc(2, 1, 2, '!=?');
-          break;
-
-        case ML_VV8_ISNEQ:
-          ASSERT_LOG2(' ! isneq vv8');
-          part = m2d_decAbc(2, 2, 1, '!=?');
-          break;
-
-        case ML_88V_ISNEQ:
-          ASSERT_LOG2(' ! isneq 88v');
-          part = m2d_decAbc(1, 1, 2, '!=?');
-          break;
-
-        case ML_V88_ISNEQ:
-          ASSERT_LOG2(' ! isneq v88');
-          part = m2d_decAbc(2, 1, 1, '!=?');
-          break;
-
-        case ML_888_ISNEQ:
-          ASSERT_LOG2(' ! isneq 888');
-          part = m2d_decAbc(1, 1, 1, '!=?');
-          break;
-
-        case ML_VVV_ISLT:
+        case ML_ISLT:
           ASSERT_LOG2(' ! islt vvv');
-          part = m2d_decAbc(2, 2, 2, '<?');
+          part = m2d_decAbc('<?');
           break;
 
-        case ML_8VV_ISLT:
-          ASSERT_LOG2(' ! islt 8vv');
-          part = m2d_decAbc(1, 2, 2, '<?');
-          break;
-
-        case ML_V8V_ISLT:
-          ASSERT_LOG2(' ! islt v8v');
-          part = m2d_decAbc(2, 1, 2, '<?');
-          break;
-
-        case ML_VV8_ISLT:
-          ASSERT_LOG2(' ! islt vv8');
-          part = m2d_decAbc(2, 2, 1, '<?');
-          break;
-
-        case ML_88V_ISLT:
-          ASSERT_LOG2(' ! islt 88v');
-          part = m2d_decAbc(1, 1, 2, '<?');
-          break;
-
-        case ML_V88_ISLT:
-          ASSERT_LOG2(' ! islt v88');
-          part = m2d_decAbc(2, 1, 1, '<?');
-          break;
-
-        case ML_8V8_ISLT:
-          ASSERT_LOG2(' ! islt 8v8');
-          part = m2d_decAbc(1, 2, 1, '<?');
-          break;
-
-        case ML_888_ISLT:
-          ASSERT_LOG2(' ! islt 888');
-          part = m2d_decAbc(1, 1, 1, '<?');
-          break;
-
-        case ML_VVV_ISLTE:
+        case ML_ISLTE:
           ASSERT_LOG2(' ! islte vvv');
-          part = m2d_decAbc(2, 2, 2, '<=?');
+          part = m2d_decAbc('<=?');
           break;
 
-        case ML_8VV_ISLTE:
-          ASSERT_LOG2(' ! islte 8vv');
-          part = m2d_decAbc(1, 2, 2, '<=?');
-          break;
-
-        case ML_V8V_ISLTE:
-          ASSERT_LOG2(' ! islte v8v');
-          part = m2d_decAbc(2, 1, 2, '<=?');
-          break;
-
-        case ML_VV8_ISLTE:
-          ASSERT_LOG2(' ! islte vv8');
-          part = m2d_decAbc(2, 2, 1, '<=?');
-          break;
-
-        case ML_88V_ISLTE:
-          ASSERT_LOG2(' ! islte 88v');
-          part = m2d_decAbc(1, 1, 2, '<=?');
-          break;
-
-        case ML_V88_ISLTE:
-          ASSERT_LOG2(' ! islte v88');
-          part = m2d_decAbc(2, 1, 1, '<=?');
-          break;
-
-        case ML_8V8_ISLTE:
-          ASSERT_LOG2(' ! islte 8v8');
-          part = m2d_decAbc(1, 2, 1, '<=?');
-          break;
-
-        case ML_888_ISLTE:
-          ASSERT_LOG2(' ! islte 888');
-          part = m2d_decAbc(1, 1, 1, '<=?');
-          break;
-
-        case ML_8V_SUM:
+        case ML_SUM:
           ASSERT_LOG2(' ! sum');
-          part = m2d_sum();
+          part = m2d_listResult('product');
           break;
 
         case ML_PRODUCT:
@@ -811,32 +546,32 @@ ${varDecls}
           part = m2d_listResult('product');
           break;
 
-        case ML_VV_AND:
+        case ML_AND:
           ASSERT_LOG2(' ! and vv');
-          part = m2d_decAb(2, 2, '&');
+          part = m2d_decAb('&');
           break;
-        case ML_VV_OR:
+        case ML_OR:
           ASSERT_LOG2(' ! or vv');
-          part = m2d_decAb(2, 2, '|');
+          part = m2d_decAb('|');
           break;
-        case ML_VV_XOR:
+        case ML_XOR:
           ASSERT_LOG2(' ! xor vv');
-          part = m2d_decAb(2, 2, '^');
+          part = m2d_decAb('^');
           break;
-        case ML_VV_NAND:
+        case ML_NAND:
           ASSERT_LOG2(' ! nand vv');
-          part = m2d_decAb(2, 2, '!&');
+          part = m2d_decAb('!&');
           break;
-        case ML_VV_XNOR:
+        case ML_XNOR:
           ASSERT_LOG2(' ! xnor vv');
-          part = m2d_decAb(2, 2, '!^');
+          part = m2d_decAb('!^');
           break;
 
         case ML_DEBUG:
           ASSERT_LOG2(' ! debug');
           // dont send this to finitedomain; it wont know what to do with it
           if (DEBUG) part = '@custom noleaf ' + m2d_decA(2) + '\n';
-          else m2d_decA(2); // skip
+          else m2d_decA(); // skip
           break;
         case ML_NOOP:
           ASSERT_LOG2(' ! noop');

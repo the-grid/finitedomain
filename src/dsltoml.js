@@ -591,7 +591,7 @@ function dslToMl(dslStr, problem, _debug) {
       repeat = false;
       skipWhitespaces();
       switch (read()) {
-        case $$m:
+        case $$m: // matrix
           if (readD(1) === $$a && readD(2) === $$t && readD(3) === $$r && readD(4) === $$i && readD(5) === $$x && readD(6) === $$LEFTPAREN) {
             // TOFIX: there is no validation here. apply stricter and safe matrix parsing
 
@@ -613,7 +613,7 @@ function dslToMl(dslStr, problem, _debug) {
           }
           break;
 
-        case $$l:
+        case $$l: // legend
           if (readD(1) === $$e && readD(2) === $$g && readD(3) === $$e && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
             dslPointer += 7;
             mod.legend = parseNumList();
@@ -624,7 +624,7 @@ function dslToMl(dslStr, problem, _debug) {
           }
           break;
 
-        case $$e:
+        case $$e: // expand
           if (readD(1) === $$x && readD(2) === $$p && readD(3) === $$a && readD(4) === $$n && readD(5) === $$d && readD(6) === $$LEFTPAREN) {
             dslPointer += 7;
             mod.expandVectorsWith = parseNumber();
@@ -1237,8 +1237,6 @@ function dslToMl(dslStr, problem, _debug) {
       }
     } else if (ruleName === 'targets') {
       parseTargets();
-    } else if (ruleName === 'mode') {
-      parseMode();
     } else {
       THROW('unknown @ rule [' + ruleName + ']');
     }
@@ -1322,24 +1320,6 @@ function dslToMl(dslStr, problem, _debug) {
       is($$RIGHTPAREN);
     }
     expectEol();
-  }
-
-  function parseMode() {
-    skipWhitespaces();
-    if (read() === $$EQ) {
-      skip();
-      skipWhitespaces();
-    }
-
-    let mode = parseIdentifier();
-
-    if (mode === 'constraints') {
-      // input consists of high level constraints. generate low level optimizations.
-    } else if (mode === 'propagators') {
-      // input consists of low level constraints. try not to generate more.
-    } else {
-      THROW('unsupported mode: ' + mode);
-    }
   }
 
   function THROW(msg) {

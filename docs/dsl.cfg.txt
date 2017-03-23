@@ -44,7 +44,6 @@ atrule:
   `@custom` ident [`=`] *
   `@targets all`
   `@targets(` idents `)`
-  `@mode` mode
 *:
   i'm just being lazy. parse through to eol. hand of to special handler for this @rule. todo
 mode:

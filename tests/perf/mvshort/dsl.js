@@ -19,7 +19,6 @@ At the time of exporting this case (when imported like below, not actual mv test
 
 var dsl = module.exports =  `
 ## bare export:
-@mode constraints
 : _ROOT_BRANCH_ = [1,1]
 : SECTION = [1,1]
 SECTION >= 1

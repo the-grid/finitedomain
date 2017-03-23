@@ -6,7 +6,7 @@
 // see exporter.js to convert a config to this DSL
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 import {
@@ -70,7 +70,7 @@ import {
  * @returns {string}
  */
 function mlToDsl(ml, problem, counts, options) {
-  ASSERT_LOG2('\n## mlToDsl');
+  TRACE('\n## mlToDsl');
   const DEBUG = options ? options.debug : true; // add debugging help in comments (domains, related constraints, occurrences, etc)
   const HASH_NAMES = options ? options.hashNames : true; // replace all var varNames with $index$ with index in base36
   const INDEX_NAMES = options ? options.indexNames : false; // replace all var varNames with _index_ (ignored if HASH_NAMES is true)
@@ -179,14 +179,14 @@ ${varDeclsString}
 
   function m2d_dec16() {
     ASSERT(pc < LEN - 1, 'OOB');
-    ASSERT_LOG2(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    TRACE(' . dec16 decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '=>', (ml[pc] << 8) | ml[pc + 1]);
     let s = (ml[pc++] << 8) | ml[pc++];
     return s;
   }
 
   function m2d_dec32() {
     ASSERT(pc < LEN - 1, 'OOB');
-    ASSERT_LOG2(' . dec32 decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], 'from', pc, '=>', (ml[pc] << 8) | ml[pc + 1]);
+    TRACE(' . dec32 decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], 'from', pc, '=>', (ml[pc] << 8) | ml[pc + 1]);
     return (ml[pc++] << 24) | (ml[pc++] << 16) | (ml[pc++] << 8) | ml[pc++];
   }
 
@@ -430,163 +430,163 @@ ${varDeclsString}
           break;
 
         case ML_STOP:
-          ASSERT_LOG2(' ! good end @', pcStart);
+          TRACE(' ! good end @', pcStart);
           return;
 
         case ML_JMP:
           let delta = m2d_dec16();
-          ASSERT_LOG2(' ! jmp', delta);
+          TRACE(' ! jmp', delta);
           if (delta <= 0) THROW('Must jump some bytes');
           pc += delta;
           break;
         case ML_JMP32:
           let delta32 = m2d_dec32();
-          ASSERT_LOG2(' ! jmp32', delta32);
+          TRACE(' ! jmp32', delta32);
           if (delta32 <= 0) THROW('Must jump some bytes');
           pc += delta32;
           break;
 
         case ML_EQ:
-          ASSERT_LOG2(' ! eq vv');
+          TRACE(' ! eq vv');
           part = m2d_decAb('==');
           break;
 
         case ML_NEQ:
-          ASSERT_LOG2(' ! neq vv');
+          TRACE(' ! neq vv');
           part = m2d_decAb('!=');
           break;
 
         case ML_LT:
-          ASSERT_LOG2(' ! lt vv');
+          TRACE(' ! lt vv');
           part = m2d_decAb('<');
           break;
 
         case ML_LTE:
-          ASSERT_LOG2(' ! lte vv');
+          TRACE(' ! lte vv');
           part = m2d_decAb('<=');
           break;
 
         case ML_NALL:
-          ASSERT_LOG2(' ! nall');
+          TRACE(' ! nall');
           part = m2d_listVoid('nall');
           break;
 
         case ML_ISALL:
-          ASSERT_LOG2(' ! isall');
+          TRACE(' ! isall');
           part = m2d_listResult('all?');
           break;
 
         case ML_ISALL2:
-          ASSERT_LOG2(' ! isall2');
+          TRACE(' ! isall2');
           part = m2d_listResultBody('all?', 2); // body of a VVV is same as the body of an arg counted
           break;
 
         case ML_ISNALL:
-          ASSERT_LOG2(' ! isnall');
+          TRACE(' ! isnall');
           part = m2d_listResult('nall?');
           break;
 
         case ML_ISNONE:
-          ASSERT_LOG2(' ! isnone');
+          TRACE(' ! isnone');
           part = m2d_listResult('none?');
           break;
 
         case ML_DISTINCT:
-          ASSERT_LOG2(' ! distinct');
+          TRACE(' ! distinct');
           part = m2d_listVoid('distinct');
           break;
 
         case ML_PLUS:
-          ASSERT_LOG2(' ! plus');
+          TRACE(' ! plus');
           part = m2d_decAbc('+');
           break;
 
         case ML_MINUS:
-          ASSERT_LOG2(' ! minus');
+          TRACE(' ! minus');
           part = m2d_decAbc('-');
           break;
 
         case ML_MUL:
-          ASSERT_LOG2(' ! mul');
+          TRACE(' ! mul');
           part = m2d_decAbc('*');
           break;
 
         case ML_DIV:
-          ASSERT_LOG2(' ! div');
+          TRACE(' ! div');
           part = m2d_decAbc('/');
           break;
 
         case ML_ISEQ:
-          ASSERT_LOG2(' ! iseq vvv');
+          TRACE(' ! iseq vvv');
           part = m2d_decAbc('==?');
           break;
 
         case ML_ISNEQ:
-          ASSERT_LOG2(' ! isneq vvv');
+          TRACE(' ! isneq vvv');
           part = m2d_decAbc('!=?');
           break;
 
         case ML_ISLT:
-          ASSERT_LOG2(' ! islt vvv');
+          TRACE(' ! islt vvv');
           part = m2d_decAbc('<?');
           break;
 
         case ML_ISLTE:
-          ASSERT_LOG2(' ! islte vvv');
+          TRACE(' ! islte vvv');
           part = m2d_decAbc('<=?');
           break;
 
         case ML_SUM:
-          ASSERT_LOG2(' ! sum');
+          TRACE(' ! sum');
           part = m2d_listResult('product');
           break;
 
         case ML_PRODUCT:
-          ASSERT_LOG2(' ! product');
+          TRACE(' ! product');
           part = m2d_listResult('product');
           break;
 
         case ML_AND:
-          ASSERT_LOG2(' ! and vv');
+          TRACE(' ! and vv');
           part = m2d_decAb('&');
           break;
         case ML_OR:
-          ASSERT_LOG2(' ! or vv');
+          TRACE(' ! or vv');
           part = m2d_decAb('|');
           break;
         case ML_XOR:
-          ASSERT_LOG2(' ! xor vv');
+          TRACE(' ! xor vv');
           part = m2d_decAb('^');
           break;
         case ML_NAND:
-          ASSERT_LOG2(' ! nand vv');
+          TRACE(' ! nand vv');
           part = m2d_decAb('!&');
           break;
         case ML_XNOR:
-          ASSERT_LOG2(' ! xnor vv');
+          TRACE(' ! xnor vv');
           part = m2d_decAb('!^');
           break;
 
         case ML_DEBUG:
-          ASSERT_LOG2(' ! debug');
+          TRACE(' ! debug');
           // dont send this to finitedomain; it wont know what to do with it
           if (DEBUG) part = '@custom noleaf ' + m2d_decA(2) + '\n';
           else m2d_decA(); // skip
           break;
         case ML_NOOP:
-          ASSERT_LOG2(' ! noop');
+          TRACE(' ! noop');
           pc = pcStart + 1;
           break;
         case ML_NOOP2:
-          ASSERT_LOG2(' ! noop 2');
+          TRACE(' ! noop 2');
           pc = pcStart + 2;
           break;
         case ML_NOOP3:
-          ASSERT_LOG2(' ! noop 3');
+          TRACE(' ! noop 3');
           pc = pcStart + 3;
           break;
         case ML_NOOP4:
-          ASSERT_LOG2(' ! noop 4');
+          TRACE(' ! noop 4');
           pc = pcStart + 4;
           break;
 

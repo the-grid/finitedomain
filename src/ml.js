@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 import {
@@ -141,7 +141,7 @@ function ml_sizeof(ml, offset, op) {
     default:
       //console.log('(ml) unknown op', op,' at', offset,'ctrl+c now or log will fill up');
       //while (true) console.error('ctrl+c me');
-      ASSERT_LOG2('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
+      TRACE('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
       THROW('(ml_sizeof) unknown op: ' + ml[offset], ' at', offset);
   }
 }
@@ -149,7 +149,7 @@ function ml_sizeof(ml, offset, op) {
 function ml_dec8(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
-  ASSERT_LOG2('\x1b[90m', ' . dec8pc decoding', ml[pc], 'from', pc, '\x1b[0m');
+  TRACE('\x1b[90m', ' . dec8pc decoding', ml[pc], 'from', pc, '\x1b[0m');
   return ml[pc];
 }
 
@@ -157,7 +157,7 @@ function ml_dec16(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   let n = ml.readUInt16BE(pc); // (ml[pc++] << 8) | ml[pc];
-  ASSERT_LOG2('\x1b[90m', ' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '-->', n, '\x1b[0m');
+  TRACE('\x1b[90m', ' . dec16pc decoding', ml[pc] << 8, 'from', pc, 'and', ml[pc + 1], 'from', pc + 1, '-->', n, '\x1b[0m');
   return n;
 }
 
@@ -165,12 +165,12 @@ function ml_dec32(ml, pc) {
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   let n = ml.readUInt32BE(pc);
-  ASSERT_LOG2('\x1b[90m', ' . dec32pc decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') from', pc, '-->', n, '\x1b[0m');
+  TRACE('\x1b[90m', ' . dec32pc decoding', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') from', pc, '-->', n, '\x1b[0m');
   return n;
 }
 
 function ml_enc8(ml, pc, num) {
-  ASSERT_LOG2('\x1b[90m', ' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ', '\x1b[0m');
+  TRACE('\x1b[90m', ' . enc8(' + num + '/x' + num.toString(16) + ') at', pc, ' ', '\x1b[0m');
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers', num);
@@ -180,7 +180,7 @@ function ml_enc8(ml, pc, num) {
 }
 
 function ml_enc16(ml, pc, num) {
-  ASSERT_LOG2('\x1b[90m', ' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1, '\x1b[0m');
+  TRACE('\x1b[90m', ' - enc16(' + num + '/x' + num.toString(16) + ')', (num >> 8) & 0xff, 'at', pc, 'and', num & 0xff, 'at', pc + 1, '\x1b[0m');
   ASSERT(ml instanceof Buffer, 'Expecting ml to be a buffer', typeof ml);
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
@@ -196,7 +196,7 @@ function ml_enc32(ml, pc, num) {
   ASSERT(typeof pc === 'number' && pc >= 0 && pc < ml.length, 'Invalid or OOB', pc, '>=', ml.length);
   ASSERT(typeof num === 'number', 'Encoding numbers');
   ASSERT(num <= 0xffffffff, 'implement 64bit index support if this breaks', num);
-  ASSERT_LOG2('\x1b[90m', ' - enc32(' + num + '/x' + num.toString(16) + ')', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') at', pc + 1, '\x1b[0m');
+  TRACE('\x1b[90m', ' - enc32(' + num + '/x' + num.toString(16) + ')', ml[pc], ml[pc + 1], ml[pc + 2], ml[pc + 3], '( x' + ml[pc].toString(16) + ml[pc + 1].toString(16) + ml[pc + 2].toString(16) + ml[pc + 3].toString(16), ') at', pc + 1, '\x1b[0m');
   ASSERT(num >= 0, 'only expecting non-negative nums', num);
   // node 4.6 has no uint version and using writeInt32BE will cause problems, so:
   ml[pc++] = (num >> 24) & 0xff;
@@ -207,45 +207,45 @@ function ml_enc32(ml, pc, num) {
 
 function ml_eliminate(ml, offset, sizeof) {
   ASSERT(ml instanceof Buffer, 'ml should be buffer', ml);
-  ASSERT_LOG2(' - ml_eliminate: eliminating constraint at', offset, 'with size =', sizeof, ml.length < 50 ? ml : '');
+  TRACE(' - ml_eliminate: eliminating constraint at', offset, 'with size =', sizeof, ml.length < 50 ? ml : '');
   ASSERT(typeof offset === 'number' && offset >= 0 && offset < ml.length, 'valid offset required');
   ASSERT(typeof sizeof === 'number' && sizeof >= 0, 'valid sizeof required');
   ml_jump(ml, offset, sizeof);
-  ASSERT_LOG2('    - after ml_eliminate:', ml.length < 50 ? ml : '<trunced>');
+  TRACE('    - after ml_eliminate:', ml.length < 50 ? ml : '<trunced>');
 }
 
 function ml_skip(ml, offset, len) {
-  ASSERT_LOG2(' - ml_skip: compiling a skip at', offset, 'with size =', len);
+  TRACE(' - ml_skip: compiling a skip at', offset, 'with size =', len);
   ml_jump(ml, offset, len);
 }
 
 function ml_jump(ml, offset, len) {
-  ASSERT_LOG2('  - ml_jump: offset = ', offset, 'len = ', len);
+  TRACE('  - ml_jump: offset = ', offset, 'len = ', len);
 
   switch (ml[offset + len]) {
     case ML_NOOP:
-      ASSERT_LOG2('  - jmp target is another jmp (noop), merging them');
+      TRACE('  - jmp target is another jmp (noop), merging them');
       return ml_jump(ml, offset, len + 1);
     case ML_NOOP2:
-      ASSERT_LOG2('  - jmp target is another jmp (noop2), merging them');
+      TRACE('  - jmp target is another jmp (noop2), merging them');
       return ml_jump(ml, offset, len + 2);
     case ML_NOOP3:
-      ASSERT_LOG2('  - jmp target is another jmp (noop3), merging them');
+      TRACE('  - jmp target is another jmp (noop3), merging them');
       return ml_jump(ml, offset, len + 3);
     case ML_NOOP4:
-      ASSERT_LOG2('  - jmp target is another jmp (noop4), merging them');
+      TRACE('  - jmp target is another jmp (noop4), merging them');
       return ml_jump(ml, offset, len + 4);
     case ML_JMP:
       let jmplen = ml_dec16(ml, offset + len + 1);
       ASSERT(jmplen > 0, 'dont think zero is a valid jmp len');
       ASSERT(jmplen <= 0xffff, 'oob');
-      ASSERT_LOG2('  - jmp target is another jmp (len =', SIZEOF_V + jmplen, '), merging them');
+      TRACE('  - jmp target is another jmp (len =', SIZEOF_V + jmplen, '), merging them');
       return ml_jump(ml, offset, len + SIZEOF_V + jmplen);
     case ML_JMP32:
       let jmplen32 = ml_dec32(ml, offset + len + 1);
       ASSERT(jmplen32 > 0, 'dont think zero is a valid jmp len');
       ASSERT(jmplen32 <= 0xffffffff, 'oob');
-      ASSERT_LOG2('  - jmp target is a jmp32 (len =', SIZEOF_W + jmplen32, '), merging them');
+      TRACE('  - jmp target is a jmp32 (len =', SIZEOF_W + jmplen32, '), merging them');
       return ml_jump(ml, offset, len + SIZEOF_W + jmplen32);
   }
 
@@ -253,24 +253,24 @@ function ml_jump(ml, offset, len) {
     case 0:
       return THROW('this is a bug');
     case 1:
-      ASSERT_LOG2('  - compiling a NOOP');
+      TRACE('  - compiling a NOOP');
       return ml_enc8(ml, offset, ML_NOOP);
     case 2:
-      ASSERT_LOG2('  - compiling a NOOP2');
+      TRACE('  - compiling a NOOP2');
       return ml_enc8(ml, offset, ML_NOOP2);
     case 3:
-      ASSERT_LOG2('  - compiling a NOOP3');
+      TRACE('  - compiling a NOOP3');
       return ml_enc8(ml, offset, ML_NOOP3);
     case 4:
-      ASSERT_LOG2('  - compiling a NOOP4');
+      TRACE('  - compiling a NOOP4');
       return ml_enc8(ml, offset, ML_NOOP4);
     default:
       if (len < 0xffff) {
-        ASSERT_LOG2('  - compiling a ML_JMP of', len, '(compiles', len - SIZEOF_V, 'because SIZEOF_V=', SIZEOF_V, ')');
+        TRACE('  - compiling a ML_JMP of', len, '(compiles', len - SIZEOF_V, 'because SIZEOF_V=', SIZEOF_V, ')');
         ml_enc8(ml, offset, ML_JMP);
         ml_enc16(ml, offset + 1, len - SIZEOF_V);
       } else {
-        ASSERT_LOG2('  - compiling a ML_JMP32 of', len, '(compiles', len - SIZEOF_W, 'because SIZEOF_W=', SIZEOF_W, ')');
+        TRACE('  - compiling a ML_JMP32 of', len, '(compiles', len - SIZEOF_W, 'because SIZEOF_W=', SIZEOF_W, ')');
         ml_enc8(ml, offset, ML_JMP32);
         ml_enc32(ml, offset + 1, len - SIZEOF_W);
       }
@@ -278,11 +278,11 @@ function ml_jump(ml, offset, len) {
 }
 
 function ml_pump(ml, offset, from, to, len) {
-  ASSERT_LOG2(' - pumping from', offset + from, 'to', offset + to, '(len=', len, ')');
+  TRACE(' - pumping from', offset + from, 'to', offset + to, '(len=', len, ')');
   let fromOffset = offset + from;
   let toOffset = offset + to;
   for (let i = 0; i < len; ++i) {
-    ASSERT_LOG2(' - pump', fromOffset, toOffset, '(1)');
+    TRACE(' - pump', fromOffset, toOffset, '(1)');
     ml[fromOffset++] = ml[toOffset++];
   }
 }
@@ -377,7 +377,7 @@ function ml_hasConstraint(ml) {
 
 function ml_c2vv(ml, offset, len, opCode, indexA, indexB) {
   // "count without result" (distinct, nall, etc)
-  ASSERT_LOG2(' -| ml_c2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
+  TRACE(' -| ml_c2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
@@ -386,7 +386,7 @@ function ml_c2vv(ml, offset, len, opCode, indexA, indexB) {
 }
 
 function ml_any2c(ml, offset, oldSizeof, opCode, args) {
-  ASSERT_LOG2(' -| ml_any2c | from', offset, 'was len=', oldSizeof, 'to op', opCode, 'with args', args, ', new size should be', SIZEOF_COUNT + args.length * 2);
+  TRACE(' -| ml_any2c | from', offset, 'was len=', oldSizeof, 'to op', opCode, 'with args', args, ', new size should be', SIZEOF_COUNT + args.length * 2);
   ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
   ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
   ASSERT(typeof oldSizeof === 'number' && offset > 0 && offset < ml.length, 'valid oldSizeof', oldSizeof);
@@ -408,7 +408,7 @@ function ml_any2c(ml, offset, oldSizeof, opCode, args) {
 
 function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
   // "count with result" (not like sum, which is c8r)
-  ASSERT_LOG2(' -| ml_cr2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
+  TRACE(' -| ml_cr2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
   ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
   ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
   ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
@@ -423,7 +423,7 @@ function ml_cr2vv(ml, offset, len, opCode, indexA, indexB) {
 }
 
 function ml_vv2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_vv2vv | from', offset, ', op=', opCode, ', index AB:', indexA, indexB);
+  TRACE(' -| ml_vv2vv | from', offset, ', op=', opCode, ', index AB:', indexA, indexB);
   ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
   ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
   ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
@@ -438,7 +438,7 @@ function ml_vv2vv(ml, offset, opCode, indexA, indexB) {
 }
 
 function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
-  ASSERT_LOG2(' -| ml_vvv2vv |', opCode, indexA, indexB);
+  TRACE(' -| ml_vvv2vv |', opCode, indexA, indexB);
   ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
   ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
   ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
@@ -454,7 +454,7 @@ function ml_vvv2vv(ml, offset, opCode, indexA, indexB) {
 }
 
 function ml_vvv2vvv(ml, offset, opCode, indexA, indexB, indexR) {
-  ASSERT_LOG2(' -| cr_vvv2vvv |', opCode, indexA, indexB, indexR);
+  TRACE(' -| cr_vvv2vvv |', opCode, indexA, indexB, indexR);
   ASSERT(ml instanceof Buffer, 'ml is buffer', ml);
   ASSERT(typeof offset === 'number' && offset > 0 && offset < ml.length, 'valid offset', offset);
   ASSERT(typeof opCode === 'number' && offset >= 0, 'valid opCode', opCode);
@@ -585,7 +585,7 @@ function ml_stream(ml, offset, callback) {
         break;
 
       default:
-        ASSERT_LOG2('(ml_walkVars) unknown op: ' + ml[offset], ' at', offset);
+        TRACE('(ml_walkVars) unknown op: ' + ml[offset], ' at', offset);
         ml_throw(ml, offset, '(ml_walkVars) unknown op');
     }
 
@@ -596,7 +596,7 @@ function ml_stream(ml, offset, callback) {
 }
 
 function ml_validateSkeleton(ml, msg) {
-  ASSERT_LOG2('--- ml_validateSkeleton', msg);
+  TRACE('--- ml_validateSkeleton', msg);
   let started = false;
   let stopped = false;
   ml_walk(ml, 0, (ml, offset, op) => {
@@ -607,27 +607,27 @@ function ml_validateSkeleton(ml, msg) {
   });
 
   if (!started || !stopped) ml_throw(ml, ml.length, 'ml_validateSkeleton: Missing a ML_START or ML_STOP');
-  ASSERT_LOG2('--- PASS ml_validateSkeleton');
+  TRACE('--- PASS ml_validateSkeleton');
   return true;
 }
 
 function ml_getRecycleOffset(ml, fromOffset, requiredSize) {
-  ASSERT_LOG2(' - ml_getRecycleOffset looking for at least', requiredSize, 'bytes of free space');
+  TRACE(' - ml_getRecycleOffset looking for at least', requiredSize, 'bytes of free space');
   ASSERT(typeof fromOffset === 'number' && fromOffset >= 0, 'expecting fromOffset', fromOffset);
   ASSERT(typeof requiredSize === 'number' && requiredSize > 0, 'expecting size', requiredSize);
   // find a jump which covers at least the requiredSize
   return ml_walk(ml, fromOffset, (ml, offset, op) => {
-    ASSERT_LOG2('   - considering op', op, 'at', offset);
+    TRACE('   - considering op', op, 'at', offset);
     if (op === ML_JMP || op === ML_JMP32) {
       let size = ml_getOpSizeSlow(ml, offset);
-      ASSERT_LOG2('   - found jump of', size, 'bytes at', offset + ', wanted', requiredSize, (requiredSize <= size ? ' so is ok!' : ' so is too small'));
+      TRACE('   - found jump of', size, 'bytes at', offset + ', wanted', requiredSize, (requiredSize <= size ? ' so is ok!' : ' so is too small'));
       if (size >= requiredSize) return offset;
     }
   });
 }
 
 function ml_getRecycleOffsets(ml, fromOffset, slotCount, sizePerSlot) {
-  ASSERT_LOG2(' - ml_getRecycleOffsets looking for empty spaces to fill', slotCount, 'times', sizePerSlot, 'bytes');
+  TRACE(' - ml_getRecycleOffsets looking for empty spaces to fill', slotCount, 'times', sizePerSlot, 'bytes');
   ASSERT(typeof fromOffset === 'number' && fromOffset >= 0, 'expecting fromOffset', fromOffset);
   ASSERT(typeof slotCount === 'number' && slotCount > 0, 'expecting slotCount', slotCount);
   ASSERT(typeof sizePerSlot === 'number' && sizePerSlot > 0, 'expecting sizePerSlot', sizePerSlot);
@@ -636,10 +636,10 @@ function ml_getRecycleOffsets(ml, fromOffset, slotCount, sizePerSlot) {
 
   // find a jump which covers at least the requiredSize
   ml_walk(ml, fromOffset, (ml, offset, op) => {
-    ASSERT_LOG2('   - considering op', op, 'at', offset);
+    TRACE('   - considering op', op, 'at', offset);
     if (op === ML_JMP || op === ML_JMP32) {
       let size = ml_getOpSizeSlow(ml, offset);
-      ASSERT_LOG2('   - found jump of', size, 'bytes at', offset + ', wanted', sizePerSlot, (sizePerSlot <= size ? ' so is ok!' : ' so is too small'));
+      TRACE('   - found jump of', size, 'bytes at', offset + ', wanted', sizePerSlot, (sizePerSlot <= size ? ' so is ok!' : ' so is too small'));
       if (size >= sizePerSlot) {
         spaces.push(offset); // only add it once!
         do { // remove as many from count as there fit in this empty space
@@ -681,14 +681,14 @@ function ml_getOpSizeSlow(ml, offset) {
   // this function exists to suplement recycling, where you must read the size of the jump
   // otherwise you won't know how much space is left after recycling
   let size = ml_sizeof(ml, offset, ml[offset]);
-  ASSERT_LOG2(' - ml_getOpSizeSlow', offset, ml.length, '-->', size);
+  TRACE(' - ml_getOpSizeSlow', offset, ml.length, '-->', size);
   return size;
 }
 
 function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
   // explicitly rewrite a count with len=3
   let jumpOp = ml_dec8(ml, offset);
-  ASSERT_LOG2('- ml_recycleC3 | offset=', offset, ', op=', op, indexA, indexB, indexC, jumpOp);
+  TRACE('- ml_recycleC3 | offset=', offset, ', op=', op, indexA, indexB, indexC, jumpOp);
   ASSERT(jumpOp === ML_JMP || jumpOp === ML_JMP32, 'expecting to recycle a space that starts with a jump');
   ASSERT((jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1)) >= SIZEOF_COUNT + 6, 'a c3 should fit'); // op + len + 3*2
 
@@ -696,7 +696,7 @@ function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
   let newSize = SIZEOF_COUNT + 6;
   let remainsEmpty = currentSize - newSize;
   if (remainsEmpty < 0) THROW('recycled OOB');
-  ASSERT_LOG2('- putting a c3', op, 'at', offset, ', old size=', currentSize, ', new size=', newSize, ', leaving', remainsEmpty, 'for a jump');
+  TRACE('- putting a c3', op, 'at', offset, ', old size=', currentSize, ', new size=', newSize, ', leaving', remainsEmpty, 'for a jump');
 
   ml_enc8(ml, offset, op);
   ml_enc16(ml, offset + 1, 3);
@@ -709,14 +709,14 @@ function ml_recycleC3(ml, offset, op, indexA, indexB, indexC) {
 
 function ml_recycleVV(ml, offset, op, indexA, indexB) {
   let jumpOp = ml_dec8(ml, offset);
-  ASSERT_LOG2('- ml_recycleVV', offset, op, indexA, indexB, jumpOp);
+  TRACE('- ml_recycleVV', offset, op, indexA, indexB, jumpOp);
   ASSERT(jumpOp === ML_JMP || jumpOp === ML_JMP32, 'expecting to recycle a space that starts with a jump');
   ASSERT((jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1)) >= SIZEOF_VV, 'a vv should fit'); // op + len + 3*2
 
   let currentSize = (jumpOp === ML_JMP ? SIZEOF_V + ml_dec16(ml, offset + 1) : SIZEOF_W + ml_dec32(ml, offset + 1));
   let remainsEmpty = currentSize - SIZEOF_VV;
   if (remainsEmpty < 0) THROW('recycled OOB');
-  ASSERT_LOG2('- putting a vv', op, 'at', offset, 'of size', currentSize, 'leaving', remainsEmpty, 'for a jump');
+  TRACE('- putting a vv', op, 'at', offset, 'of size', currentSize, 'leaving', remainsEmpty, 'for a jump');
 
   ml_enc8(ml, offset, op);
   ml_enc16(ml, offset + 1, indexA);
@@ -751,7 +751,7 @@ function ml__debug(ml, offset, max, problem, dontThrow) {
     switch (op) {
       case ML_START:
         if (pc !== 0) {
-          ASSERT_LOG2('collected debugs up to error:', rv);
+          TRACE('collected debugs up to error:', rv);
           if (!dontThrow) THROW('ML_START at non-zero (' + pc + ')');
           rv.push('unused_error(0)');
           return rv.join('\n');
@@ -1017,8 +1017,8 @@ function ml_heapSort16bitInline(ml, offset, argCount) {
   ASSERT(typeof offset === 'number' && (offset === 0 || (offset > 0 && offset < ml.length)), 'valid offset', ml.length, offset, argCount);
   ASSERT(typeof argCount === 'number' && (argCount === 0 || (argCount > 0 && offset + argCount * 2 <= ml.length)), 'valid count', ml.length, offset, argCount);
 
-  ASSERT_LOG2('     ### <ml_heapSort16bitInline>, argCount=', argCount, ', offset=', offset, ', buf=', ml.slice(offset, offset + argCount * 2));
-  ASSERT_LOG2('     - values before:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
+  TRACE('     ### <ml_heapSort16bitInline>, argCount=', argCount, ', offset=', offset, ', buf=', ml.slice(offset, offset + argCount * 2));
+  TRACE('     - values before:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '));
 
   if (argCount <= 1) return; // finished this branch
 
@@ -1026,14 +1026,14 @@ function ml_heapSort16bitInline(ml, offset, argCount) {
 
   let end = argCount - 1;
   while (end > 0) {
-    ASSERT_LOG2('     - swapping first elemement (should be biggest of values left to do) [', ml.readUInt16BE(offset), '] with last [', ml.readUInt16BE(offset + end * 2), '] and reducing end [', end, '->', end - 1, ']');
+    TRACE('     - swapping first elemement (should be biggest of values left to do) [', ml.readUInt16BE(offset), '] with last [', ml.readUInt16BE(offset + end * 2), '] and reducing end [', end, '->', end - 1, ']');
     ml_swap16(ml, offset, offset + end * 2);
-    ASSERT_LOG2('     - (total) buffer now: Buffer(', [].map.call(ml.slice(offset, offset + argCount * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
+    TRACE('     - (total) buffer now: Buffer(', [].map.call(ml.slice(offset, offset + argCount * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
     --end;
     ml_heapRepair(ml, offset, 0, end);
   }
 
-  ASSERT_LOG2('     ### </ml_heapSort16bitInline> values after:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '), 'buf:', ml.slice(offset, offset + argCount * 2));
+  TRACE('     ### </ml_heapSort16bitInline> values after:', new Array(argCount).fill(0).map((_, i) => ml.readUInt16BE(offset + i * 2)).join(' '), 'buf:', ml.slice(offset, offset + argCount * 2));
 }
 function ml_heapParent(index) {
   return Math.floor((index - 1) / 2);
@@ -1045,7 +1045,7 @@ function ml_heapRight(index) {
   return index * 2 + 2;
 }
 function ml_heapify(ml, offset, len) {
-  ASSERT_LOG2('     - ml_heapify', ml.slice(offset, offset + len * 2), offset, len);
+  TRACE('     - ml_heapify', ml.slice(offset, offset + len * 2), offset, len);
 
   let start = ml_heapParent(len - 1);
   while (start >= 0) {
@@ -1053,56 +1053,56 @@ function ml_heapify(ml, offset, len) {
     --start; // wont this cause it to do it redundantly twice?
   }
 
-  ASSERT_LOG2('     - ml_heapify end');
+  TRACE('     - ml_heapify end');
 }
 function ml_heapRepair(ml, offset, startIndex, endIndex) {
-  ASSERT_LOG2('     - ml_heapRepair', offset, startIndex, endIndex, 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
+  TRACE('     - ml_heapRepair', offset, startIndex, endIndex, 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
   let parentIndex = startIndex;
   let parentValue = ml_dec16(ml, offset + parentIndex * 2);
   let leftIndex = ml_heapLeft(parentIndex);
-  ASSERT_LOG2('     -- first leftIndex=', leftIndex, 'end=', endIndex);
+  TRACE('     -- first leftIndex=', leftIndex, 'end=', endIndex);
 
   while (leftIndex <= endIndex) {
-    ASSERT_LOG2('       - sift loop. indexes; parent=', parentIndex, 'left=', leftIndex, 'right=', ml_heapRight(parentIndex), 'values; parent=', ml.readUInt16BE(offset + parentIndex * 2) + '/' + parentValue, ' left=', ml.readUInt16BE(offset + leftIndex * 2), ' right=', ml_heapRight(parentIndex) <= endIndex ? ml.readUInt16BE(offset + ml_heapRight(parentIndex) * 2) : 'void');
+    TRACE('       - sift loop. indexes; parent=', parentIndex, 'left=', leftIndex, 'right=', ml_heapRight(parentIndex), 'values; parent=', ml.readUInt16BE(offset + parentIndex * 2) + '/' + parentValue, ' left=', ml.readUInt16BE(offset + leftIndex * 2), ' right=', ml_heapRight(parentIndex) <= endIndex ? ml.readUInt16BE(offset + ml_heapRight(parentIndex) * 2) : 'void');
     let leftValue = ml_dec16(ml, offset + leftIndex * 2);
     let swapIndex = parentIndex;
     let swapValue = parentValue;
 
-    ASSERT_LOG2('         - swap<left?', swapValue, leftValue, swapValue < leftValue ? 'yes' : 'no');
+    TRACE('         - swap<left?', swapValue, leftValue, swapValue < leftValue ? 'yes' : 'no');
     if (swapValue < leftValue) {
       swapIndex = leftIndex;
       swapValue = leftValue;
     }
 
     let rightIndex = ml_heapRight(parentIndex);
-    ASSERT_LOG2('         - right index', rightIndex, '<=', endIndex, rightIndex <= endIndex ? 'yes it has a right child' : 'no right child');
+    TRACE('         - right index', rightIndex, '<=', endIndex, rightIndex <= endIndex ? 'yes it has a right child' : 'no right child');
     if (rightIndex <= endIndex) {
       let rightValue = ml_dec16(ml, offset + rightIndex * 2);
-      ASSERT_LOG2('         - swap<right?', swapValue, rightValue);
+      TRACE('         - swap<right?', swapValue, rightValue);
       if (swapValue < rightValue) {
         swapIndex = rightIndex;
         swapValue = rightValue;
       }
     }
 
-    ASSERT_LOG2('           - result; parent=', parentIndex, 'swap=', swapIndex, ', values; parent=', parentValue, ', swap=', swapValue, '->', (swapIndex === parentIndex ? 'finished, parent=swap' : 'should swap'));
+    TRACE('           - result; parent=', parentIndex, 'swap=', swapIndex, ', values; parent=', parentValue, ', swap=', swapValue, '->', (swapIndex === parentIndex ? 'finished, parent=swap' : 'should swap'));
 
     if (swapIndex === parentIndex) {
-      ASSERT_LOG2('     - ml_heapRepair end early:', 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
+      TRACE('     - ml_heapRepair end early:', 'Buffer(', [].map.call(ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2), b => (b < 16 ? '0' : '') + b.toString(16)).join(' '), ')');
       return;
     }
     // "swap"
     ml_enc16(ml, offset + parentIndex * 2, swapValue);
     ml_enc16(ml, offset + swapIndex * 2, parentValue);
-    ASSERT_LOG2('             - setting parent to index=', swapIndex, ', value=', swapValue);
+    TRACE('             - setting parent to index=', swapIndex, ', value=', swapValue);
     parentIndex = swapIndex;
     // note: parentValue remains the same because the swapped child becomes the new parent and it gets the old parent value
 
     leftIndex = ml_heapLeft(parentIndex);
-    ASSERT_LOG2('           - next left:', leftIndex, 'end:', endIndex);
+    TRACE('           - next left:', leftIndex, 'end:', endIndex);
   }
 
-  ASSERT_LOG2('     - ml_heapRepair end:', ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2));
+  TRACE('     - ml_heapRepair end:', ml.slice(offset + startIndex * 2, offset + startIndex * 2 + (endIndex - startIndex + 1) * 2));
 }
 function ml_swap16(ml, indexA, indexB) {
   let A = ml_dec16(ml, indexA);

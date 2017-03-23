@@ -153,23 +153,8 @@ function ASSERT_VARDOMS_SLOW(vardoms, domain__debug) {
   }
 }
 
-const LOG_FLAG_NONE = 0;
-const LOG_FLAG_PROPSTEPS = 1;
-const LOG_FLAG_CHOICE = 2;
-let LOG_FLAGS = LOG_FLAG_NONE;
-function ASSERT_SET_LOG(level) {
-  LOG_FLAGS = level;
-}
-
-let helper_logger = (console => function() { console.log('LOG', ...arguments); })(console);
-function ASSERT_LOG(flags, func) {
-  if (true || flags & LOG_FLAGS) {
-    ASSERT(typeof func === 'function', 'expecting log function');
-    func(helper_logger);
-  }
-}
-function ASSERT_LOG2(...args) {
-  console.log(...args);
+function TRACE(...args) {
+  if (false) console.log(...args);
   return false;
 }
 
@@ -192,9 +177,6 @@ export {
   $SOLVED,
   $STABLE,
 
-  LOG_FLAG_CHOICE,
-  LOG_FLAG_NONE,
-  LOG_FLAG_PROPSTEPS,
   LOG_NONE,
   LOG_STATS,
   LOG_SOLVES,
@@ -212,11 +194,9 @@ export {
   ASSERT_ANYDOM,
   ASSERT_ARRDOM,
   ASSERT_BITDOM,
-  ASSERT_LOG,
-  ASSERT_LOG2,
+  TRACE,
   ASSERT_NORDOM,
   ASSERT_NUMDOM,
-  ASSERT_SET_LOG,
   ASSERT_SOLDOM,
   ASSERT_STRDOM,
   ASSERT_VARDOMS_SLOW,

@@ -6,7 +6,7 @@ import {
   SUB,
   SUP,
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
 } from './helpers';
 import {
   ML_EQ,
@@ -114,7 +114,7 @@ const $$z = 122;
  * @returns {string}
  */
 function dslToMl(dslStr, problem, _debug) {
-  ASSERT_LOG2('dslToMl:', [dslStr.slice(0, 100).replace(/ +/g, ' ') + (dslStr.replace(/ +/g, ' ').length > 100 ? '...' : '')]);
+  TRACE('dslToMl:', [dslStr.slice(0, 100).replace(/ +/g, ' ') + (dslStr.replace(/ +/g, ' ').length > 100 ? '...' : '')]);
 
   problem.input.varstrat = 'default';
   problem.input.valstrat = 'default';
@@ -148,7 +148,7 @@ function dslToMl(dslStr, problem, _debug) {
 
   if (freeDirective > 0) {
     // compile a jump of given size. this will be considered available space
-    ASSERT_LOG2('forcing', freeDirective, 'bytes of available space');
+    TRACE('forcing', freeDirective, 'bytes of available space');
     compileJump(freeDirective);
   }
 
@@ -159,7 +159,7 @@ function dslToMl(dslStr, problem, _debug) {
     // compile a jump for the remainder of the space, if any, which could be used by the recycle mechanisms
     // only do this here when the free directive is absent
     let leftFree = (mlBufSize - mlPointer) - 1; // STOP will occupy 1 byte
-    ASSERT_LOG2('space available', leftFree, 'bytes');
+    TRACE('space available', leftFree, 'bytes');
     if (leftFree > 0) compileJump(leftFree);
   }
 
@@ -167,7 +167,7 @@ function dslToMl(dslStr, problem, _debug) {
 
   // if there is now still space left, we need to crop it because freeDirective was set and didnt consume it all
   if (mlBufSize - mlPointer) {
-    ASSERT_LOG2('cropping excess available space', mlBufSize, mlPointer, mlBufSize - mlPointer);
+    TRACE('cropping excess available space', mlBufSize, mlPointer, mlBufSize - mlPointer);
     // if the free directive was given, remove any excess free space
     // note that one more byte needs to be compiled after this (ML_STOP)
     mlBuffer = mlBuffer.slice(0, mlPointer);
@@ -183,14 +183,14 @@ function dslToMl(dslStr, problem, _debug) {
 
   function encode8bit(num) {
     ASSERT(typeof num === 'number' && num >= 0 && num <= 0xff, 'OOB number');
-    ASSERT_LOG2('encode8bit:', num, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+    TRACE('encode8bit:', num, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
 
     if (mlPointer >= mlBufSize) grow();
     mlBuffer.writeUInt8(num, mlPointer++);
   }
 
   function encode16bit(num) {
-    ASSERT_LOG2('encode16bit:', num, '->', num >> 8, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer, '/', mlBufSize);
+    TRACE('encode16bit:', num, '->', num >> 8, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer, '/', mlBufSize);
     ASSERT(typeof num === 'number', 'Encoding 16bit must be num', typeof num, num);
     ASSERT(num >= 0, 'OOB num', num);
     if (num > 0xffff) THROW('Need 32bit num support but missing it', num);
@@ -203,7 +203,7 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function encode32bit(num) {
-    ASSERT_LOG2('encode32bit:', num, '->', (num >> 24) & 0xff, (num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
+    TRACE('encode32bit:', num, '->', (num >> 24) & 0xff, (num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff, 'dsl pointer:', dslPointer, ', ml pointer:', mlPointer);
     ASSERT(typeof num === 'number', 'Encoding 32bit must be num', typeof num, num);
     ASSERT(num >= 0, 'OOB num', num);
     if (num > 0xffffffff) THROW('This requires 64bit support', num);
@@ -219,7 +219,7 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function grow(forcedExtraSpace) {
-    ASSERT_LOG2(' - grow(' + (forcedExtraSpace || '') + ') from', mlBufSize);
+    TRACE(' - grow(' + (forcedExtraSpace || '') + ') from', mlBufSize);
     // grow the buffer by 10% or set it to `force`
     // you can't really grow existing buffers, instead you create a bigger buffer and copy the old one into it...
     let oldSize = mlBufSize;
@@ -1051,7 +1051,7 @@ function dslToMl(dslStr, problem, _debug) {
       }
     }
 
-    ASSERT_LOG2('parseVexpr resulted in index:', index);
+    TRACE('parseVexpr resulted in index:', index);
 
     return index;
   }
@@ -1093,7 +1093,7 @@ function dslToMl(dslStr, problem, _debug) {
     if (resultIndex === undefined) resultIndex = addVar(undefined, defaultBoolResult ? [0, 1] : undefined, false, false, true);
     else if (resultIndex === lastAssignmentIndex && resultIndex === lastUnknownIndex && defaultBoolResult) setDomain(resultIndex, [0, 1]);
 
-    ASSERT_LOG2('parseArgs refs:', resultIndex, ' = all(', refs, '), defaultBoolResult:', defaultBoolResult);
+    TRACE('parseArgs refs:', resultIndex, ' = all(', refs, '), defaultBoolResult:', defaultBoolResult);
 
     encode8bit(op);
     encode16bit(refs.length); // count
@@ -1228,7 +1228,7 @@ function dslToMl(dslStr, problem, _debug) {
         case 'free':
           skipWhitespaces();
           let size = parseNumber();
-          ASSERT_LOG2('Found a jump of', size);
+          TRACE('Found a jump of', size);
           freeDirective = size;
           break;
 
@@ -1244,7 +1244,7 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function compileJump(size) {
-    ASSERT_LOG2('compileJump(' + size + '), mlPointer=', mlPointer);
+    TRACE('compileJump(' + size + '), mlPointer=', mlPointer);
     ASSERT(size > 0, 'dont call this function on size=0');
     switch (size) {
       case 0:
@@ -1324,7 +1324,7 @@ function dslToMl(dslStr, problem, _debug) {
 
   function THROW(msg) {
     if (_debug) {
-      ASSERT_LOG2(dslBuf.slice(0, dslPointer).toString('binary') + '##|PARSER_IS_HERE[' + msg + ']|##' + dslBuf.slice(dslPointer).toString('binary'));
+      TRACE(dslBuf.slice(0, dslPointer).toString('binary') + '##|PARSER_IS_HERE[' + msg + ']|##' + dslBuf.slice(dslPointer).toString('binary'));
     }
     msg += ', source at ' + dslPointer + ' #|#: `' + dslBuf.slice(Math.max(0, dslPointer - 20), dslPointer).toString('binary') + '#|#' + dslBuf.slice(dslPointer, Math.min(dslBuf.length, dslPointer + 20)).toString('binary') + '`';
     throw new Error(msg);

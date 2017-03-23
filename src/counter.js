@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 
@@ -65,11 +65,11 @@ function counter(ml, problem) {
   let varCount = problem.varNames.length;
   let getAlias = problem.getAlias;
 
-  ASSERT_LOG2('\n ## counter', ml);
+  TRACE('\n ## counter', ml);
   let pc = 0;
   let counts = new Array(varCount).fill(0);
   countLoop(problem);
-  ASSERT_LOG2(' - There are', counts.filter(c => !c).length, 'dead vars,', counts.filter(c => c === 1).length, 'leaf vars, and', counts.filter(c => c > 1).length, 'other vars');
+  TRACE(' - There are', counts.filter(c => !c).length, 'dead vars,', counts.filter(c => c === 1).length, 'leaf vars, and', counts.filter(c => c > 1).length, 'other vars');
   return counts;
 
   function count(delta) {
@@ -85,11 +85,11 @@ function counter(ml, problem) {
   function countLoop(problem) {
     pc = 0;
     let len = ml.length;
-    ASSERT_LOG2(' - countLoop');
+    TRACE(' - countLoop');
     while (pc < len) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
+      TRACE(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
         case ML_NEQ:
           count(1);

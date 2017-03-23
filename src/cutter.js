@@ -4,7 +4,7 @@
 
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 
@@ -132,7 +132,7 @@ import {
 
 
 function cutter(ml, problem, once) {
-  ASSERT_LOG2('\n ## cutter', ml);
+  TRACE('\n ## cutter', ml);
 
   let getDomain = problem.getDomain;
   let setDomain = problem.setDomain;
@@ -151,7 +151,7 @@ function cutter(ml, problem, once) {
   let loops = 0;
   do {
     console.time('-> cut_loop ' + loops);
-    ASSERT_LOG2(' # start cutter outer loop', loops);
+    TRACE(' # start cutter outer loop', loops);
     bounty = bounty_collect(ml, problem, bounty);
 
     stacksBefore = solveStack.length;
@@ -162,7 +162,7 @@ function cutter(ml, problem, once) {
     ++loops;
   } while (!emptyDomain && changes && !once);
 
-  ASSERT_LOG2('## exit cutter');
+  TRACE('## exit cutter');
   if (emptyDomain) return -1;
   return loops;
 
@@ -200,10 +200,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutNeq; ', indexA, '!=', indexB, '::', domain__debug(getDomain(indexA, true)), '!=', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutNeq; ', indexA, '!=', indexB, '::', domain__debug(getDomain(indexA, true)), '!=', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafNeq(ml, offset, indexA, indexB, indexA, indexB);
@@ -217,7 +217,7 @@ function cutter(ml, problem, once) {
 
     if (countsA >= 2 && countsA <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
       let metaA = getMeta(bounty, indexA);
-      ASSERT_LOG2('  - meta A:', bounty__debugMeta(metaA));
+      TRACE('  - meta A:', bounty__debugMeta(metaA));
 
       // first remove the booly flag, then check if it has any targeted ops, then check if it has no other stuff
       let m = (metaA | BOUNTY_NOT_BOOLY_ONLY_FLAG) ^ BOUNTY_NOT_BOOLY_ONLY_FLAG;
@@ -230,7 +230,7 @@ function cutter(ml, problem, once) {
 
     if (countsB >= 2 && countsB <= BOUNTY_MAX_OFFSETS_TO_TRACK) {
       let metaB = getMeta(bounty, indexB);
-      ASSERT_LOG2('  - meta B:', bounty__debugMeta(metaB));
+      TRACE('  - meta B:', bounty__debugMeta(metaB));
 
       // first remove the booly flag, then check if it has any targeted ops, then check if it has no other stuff
       let m = (metaB | BOUNTY_NOT_BOOLY_ONLY_FLAG) ^ BOUNTY_NOT_BOOLY_ONLY_FLAG;
@@ -252,10 +252,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutLt; ', indexA, '<', indexB, '::', domain__debug(getDomain(indexA, true)), '<', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutLt; ', indexA, '<', indexB, '::', domain__debug(getDomain(indexA, true)), '<', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafLtLhs(ml, offset, indexA, indexB);
@@ -275,10 +275,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutLte; ', indexA, '<=', indexB, '::', domain__debug(getDomain(indexA, true)), '<=', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutLte; ', indexA, '<=', indexB, '::', domain__debug(getDomain(indexA, true)), '<=', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsA === 1) {
       return leafLteLhs(ml, offset, indexA, indexB);
@@ -324,11 +324,11 @@ function cutter(ml, problem, once) {
     let countsB = getCounts(bounty, indexB);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsEq; ', indexR, '=', indexA, '==?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '==?', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutIsEq; ', indexR, '=', indexA, '==?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '==?', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
       return leafIsEqR(ml, offset, indexA, indexB, indexR);
@@ -360,11 +360,11 @@ function cutter(ml, problem, once) {
     let countsB = getCounts(bounty, indexB);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsNeq; ', indexR, '=', indexA, '!=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '!=?', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutIsNeq; ', indexR, '=', indexA, '!=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '!=?', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
       return leafIsNeqR(ml, offset, indexA, indexB, indexR);
@@ -396,11 +396,11 @@ function cutter(ml, problem, once) {
     let countsB = getCounts(bounty, indexB);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsLt; ', indexR, '=', indexA, '<?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<?', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutIsLt; ', indexR, '=', indexA, '<?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<?', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
       leafIsLtR(ml, offset, indexA, indexB, indexR);
@@ -432,11 +432,11 @@ function cutter(ml, problem, once) {
     let countsB = getCounts(bounty, indexB);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsLte; ', indexR, '=', indexA, '<=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<=?', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutIsLte; ', indexR, '=', indexA, '<=?', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<=?', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsR === 1) {
       leafIsLteR(ml, offset, indexA, indexB, indexR);
@@ -468,11 +468,11 @@ function cutter(ml, problem, once) {
     let countsB = getCounts(bounty, indexB);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutPlus; ', indexR, '=', indexA, '+', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '+', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutPlus; ', indexR, '=', indexA, '+', indexB, '::', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '+', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    ASSERT_LOG2('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     // note: we cant simply eliminate leaf vars because they still constrain
     // the allowed distance between the other two variables and if you
@@ -480,7 +480,7 @@ function cutter(ml, problem, once) {
     // so thread carefully.
 
     if (countsR === 1) {
-      ASSERT_LOG2('   - R is only used in one constraint (could be a cuttable leaf)');
+      TRACE('   - R is only used in one constraint (could be a cuttable leaf)');
       // even though R is a leaf, it cant be plainly eliminated!
 
       let A = getDomain(indexA, true);
@@ -536,7 +536,7 @@ function cutter(ml, problem, once) {
     let indexR = readIndex(ml, argsOffset + argCount * 2);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutSum; R=', indexR);
+    TRACE(' ! cutSum; R=', indexR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
@@ -581,10 +581,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutOr; ', indexA, '|', indexB, '::', domain__debug(getDomain(indexA, true)), '|', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutOr; ', indexA, '|', indexB, '::', domain__debug(getDomain(indexA, true)), '|', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafOr(ml, offset, indexA, indexB, indexA, indexB);
@@ -604,10 +604,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutXor; ', indexA, '^', indexB, '::', domain__debug(getDomain(indexA, true)), '^', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutXor; ', indexA, '^', indexB, '::', domain__debug(getDomain(indexA, true)), '^', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafXor(ml, offset, indexA, indexB, indexA, indexB);
@@ -627,10 +627,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutNand; ', indexA, '!&', indexB, '::', domain__debug(getDomain(indexA, true)), '!&', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutNand; ', indexA, '!&', indexB, '::', domain__debug(getDomain(indexA, true)), '!&', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafNand(ml, offset, indexA, indexB, indexA, indexB);
@@ -667,10 +667,10 @@ function cutter(ml, problem, once) {
     let countsA = getCounts(bounty, indexA);
     let countsB = getCounts(bounty, indexB);
 
-    ASSERT_LOG2(' ! cutXnor; ', indexA, '!^', indexB, '::', domain__debug(getDomain(indexA, true)), '!^', domain__debug(getDomain(indexB, true)));
+    TRACE(' ! cutXnor; ', indexA, '!^', indexB, '::', domain__debug(getDomain(indexA, true)), '!^', domain__debug(getDomain(indexB, true)));
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
-    ASSERT_LOG2('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsA, countsB, ', meta:', countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
 
     if (countsA === 1) {
       return leafXnor(ml, offset, indexA, indexB, indexA, indexB);
@@ -701,7 +701,7 @@ function cutter(ml, problem, once) {
     let indexR = readIndex(ml, argsOffset + argCount * 2);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsAll; R=', indexR, ', counts:', countsR);
+    TRACE(' ! cutIsAll; R=', indexR, ', counts:', countsR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
@@ -722,7 +722,7 @@ function cutter(ml, problem, once) {
 
     if (countsR > 0) {
       let metaR = getMeta(bounty, indexR);
-      ASSERT_LOG2('   - metaR:', bounty__debugMeta(metaR));
+      TRACE('   - metaR:', bounty__debugMeta(metaR));
 
       if (countsR === 2) {
         if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall1Nall(ml, indexR, offset, countsR, metaR)) return;
@@ -738,7 +738,7 @@ function cutter(ml, problem, once) {
     let indexR = readIndex(ml, offset + 5);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' - cutIsAll2', indexR);
+    TRACE(' - cutIsAll2', indexR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
@@ -777,7 +777,7 @@ function cutter(ml, problem, once) {
     let indexR = readIndex(ml, argsOffset + argCount * 2);
     let countsR = getCounts(bounty, indexR);
 
-    ASSERT_LOG2(' ! cutIsNall; R=', indexR);
+    TRACE(' ! cutIsNall; R=', indexR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR === 1) {
@@ -790,10 +790,10 @@ function cutter(ml, problem, once) {
   // ##############
 
   function leafNeq(ml, offset, leafIndex, otherIndex, indexA, indexB) {
-    ASSERT_LOG2('   - leafNeq;', leafIndex, 'is a leaf var, A != B,', indexA, '!=', indexB);
+    TRACE('   - leafNeq;', leafIndex, 'is a leaf var, A != B,', indexA, '!=', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!=', domain__debug(getDomain(indexB)));
+      TRACE(' - leafNeq; solving', indexA, '!=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!=', domain__debug(getDomain(indexB)));
       let oD = getDomain(leafIndex);
       let v = force(otherIndex);
       let D = domain_removeValue(oD, v);
@@ -808,12 +808,12 @@ function cutter(ml, problem, once) {
   }
 
   function leafLtLhs(ml, offset, indexA, indexB) {
-    ASSERT_LOG2('   - leafLtLhs;', indexA, 'is a leaf var, A < B,', indexA, '<', indexB);
+    TRACE('   - leafLtLhs;', indexA, 'is a leaf var, A < B,', indexA, '<', indexB);
     ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
     ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafLtLhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
+      TRACE(' - leafLtLhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
       let A = getDomain(indexA);
       let vB = force(indexB);
       ASSERT(domain_removeGte(A, vB), 'A ought to have at least one value below B');
@@ -827,12 +827,12 @@ function cutter(ml, problem, once) {
   }
 
   function leafLtRhs(ml, offset, indexA, indexB) {
-    ASSERT_LOG2('   - leafLtRhs;', indexB, 'is a leaf var, A < B,', indexA, '<', indexB);
+    TRACE('   - leafLtRhs;', indexB, 'is a leaf var, A < B,', indexA, '<', indexB);
     ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
     ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafLtRhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
+      TRACE(' - leafLtRhs; solving', indexA, '<', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let B = getDomain(indexB);
       ASSERT(domain_removeLte(B, vA), 'B ought to have at least one value above A');
@@ -846,12 +846,12 @@ function cutter(ml, problem, once) {
   }
 
   function leafLteLhs(ml, offset, indexA, indexB) {
-    ASSERT_LOG2('   - leafLteLhs;', indexA, 'is a leaf var, A <= B,', indexA, '<', indexB);
+    TRACE('   - leafLteLhs;', indexA, 'is a leaf var, A <= B,', indexA, '<', indexB);
     ASSERT(typeof indexA === 'number', 'index A should be number', indexA);
     ASSERT(typeof indexB === 'number', 'index B should be number', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafLteLhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
+      TRACE(' - leafLteLhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
       let A = getDomain(indexA);
       let vB = force(indexB);
       ASSERT(domain_removeGtUnsafe(A, vB), 'A ought to have at least one value lte B');
@@ -865,10 +865,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafLteRhs(ml, offset, indexA, indexB) {
-    ASSERT_LOG2('   - leafLteRhs;', indexB, 'is a leaf var, A <= B,', indexA, '<', indexB);
+    TRACE('   - leafLteRhs;', indexB, 'is a leaf var, A <= B,', indexA, '<', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafLtRhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
+      TRACE(' - leafLtRhs; solving', indexA, '<=', indexB, '  ->  ', domain__debug(getDomain(indexA)), '<=', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let B = getDomain(indexB);
       ASSERT(domain_removeLtUnsafe(B, vA), 'B ought to have at least one value gte A');
@@ -882,10 +882,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsEqR(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsEqR;', indexR, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
+    TRACE('   - leafIsEqR;', indexR, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsEqR;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '==?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsEqR;', indexR, '=', indexA, '==?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '==?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let R = getDomain(indexR);
@@ -902,13 +902,13 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsEqArg(ml, offset, indexLeaf, indexConst, indexR, indexA, indexB) {
-    ASSERT_LOG2('   - leafIsEqArg;', indexLeaf, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
+    TRACE('   - leafIsEqArg;', indexLeaf, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
 
     ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
     ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsEqArg;', indexR, '=', indexLeaf, '==? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '==?', domain__debug(getDomain(indexConst)));
+      TRACE(' - leafIsEqArg;', indexR, '=', indexLeaf, '==? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '==?', domain__debug(getDomain(indexConst)));
       let A = getDomain(indexLeaf);
       let vB = force(indexConst);
       let vR = force(indexR);
@@ -924,10 +924,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsNeqR(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsNeqR;', indexR, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
+    TRACE('   - leafIsNeqR;', indexR, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsNeqR;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '!=?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsNeqR;', indexR, '=', indexA, '!=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '!=?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let R = getDomain(indexR);
@@ -944,13 +944,13 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsNeqArg(ml, offset, indexLeaf, indexConst, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsNeqArg;', indexLeaf, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
+    TRACE('   - leafIsNeqArg;', indexLeaf, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
 
     ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
     ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsNeqArg;', indexR, '=', indexLeaf, '!=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '!=?', domain__debug(getDomain(indexConst)));
+      TRACE(' - leafIsNeqArg;', indexR, '=', indexLeaf, '!=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '!=?', domain__debug(getDomain(indexConst)));
       let A = getDomain(indexLeaf);
       let vB = force(indexConst);
       let vR = force(indexR);
@@ -966,10 +966,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLtR(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLtR;', indexR, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+    TRACE('   - leafIsLtR;', indexR, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLtR;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLtR;', indexR, '=', indexA, '<?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let R = getDomain(indexR);
@@ -986,14 +986,14 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLtLhs(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLtLhs;', indexA, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+    TRACE('   - leafIsLtLhs;', indexA, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
     // A is leaf, B is constant
 
     ASSERT(!domain_isSolved(getDomain(indexA, true)), 'the leaf var shouldnt be solved yet', indexA);
     ASSERT(domain_isSolved(getDomain(indexB, true)), 'the const should be solved', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLtLhs;', indexR, '=', indexA, '<? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLtLhs;', indexR, '=', indexA, '<? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
       let A = getDomain(indexA);
       let vB = force(indexB);
       let vR = force(indexR);
@@ -1009,14 +1009,14 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLtRhs(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLtRhs;', indexB, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
+    TRACE('   - leafIsLtRhs;', indexB, 'is a leaf var, R = A <? B,', indexR, '=', indexA, '<?', indexB);
     // A is constant, B is leaf
 
     ASSERT(domain_isSolved(getDomain(indexA, true)), 'the const should be solved', indexA);
     ASSERT(!domain_isSolved(getDomain(indexB, true)), 'the leaf var shouldnt be solved yet', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLtRhs;', indexR, '= c <?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLtRhs;', indexR, '= c <?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let B = getDomain(indexB);
       let vR = force(indexR);
@@ -1032,10 +1032,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLteR(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLteR;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+    TRACE('   - leafIsLteR;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLteR;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLteR;', indexR, '=', indexA, '<=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let R = getDomain(indexR);
@@ -1052,14 +1052,14 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLteLhs(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLteLhs;', indexA, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+    TRACE('   - leafIsLteLhs;', indexA, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
     // A is leaf, B is constant
 
     ASSERT(!domain_isSolved(getDomain(indexA, true)), 'the leaf var shouldnt be solved yet', indexA);
     ASSERT(domain_isSolved(getDomain(indexB, true)), 'the const should be solved', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLteLhs;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLteLhs;', indexR, '=', indexA, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
       let A = getDomain(indexA);
       let vB = force(indexB);
       let vR = force(indexR);
@@ -1075,14 +1075,14 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsLteRhs(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsLteRhs;', indexB, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
+    TRACE('   - leafIsLteRhs;', indexB, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '<=?', indexB);
     // A is constant, B is leaf
 
     ASSERT(domain_isSolved(getDomain(indexA, true)), 'the const should be solved', indexA);
     ASSERT(!domain_isSolved(getDomain(indexB, true)), 'the leaf var shouldnt be solved yet', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsLteRhs;', indexR, '= c <=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
+      TRACE(' - leafIsLteRhs;', indexR, '= c <=?', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '<=?', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let B = getDomain(indexB);
       let vR = force(indexR);
@@ -1098,10 +1098,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafPlusFull(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafPlusFull;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '+', indexB);
+    TRACE('   - leafPlusFull;', indexR, 'is a leaf var, R = A <=? B,', indexR, '=', indexA, '+', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafPlusFull;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      TRACE(' - leafPlusFull;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let vR = vA + vB;
@@ -1119,7 +1119,7 @@ function cutter(ml, problem, once) {
   }
 
   function leafPlusArg(ml, offset, leafIndex, constIndex, indexR, indexA, indexB) {
-    ASSERT_LOG2('   - leafPlusArg;', leafIndex, 'is a leaf var, R = A + B,', indexR, '=', indexA, '+', indexB);
+    TRACE('   - leafPlusArg;', leafIndex, 'is a leaf var, R = A + B,', indexR, '=', indexA, '+', indexB);
     ASSERT(!domain_isSolved(getDomain(leafIndex)), 'A should not yet be solved at this point');
     ASSERT(domain_isSolved(getDomain(constIndex)), 'B should be solved at this point');
 
@@ -1130,7 +1130,7 @@ function cutter(ml, problem, once) {
     if (R !== oR && setDomain(indexR, R)) return;
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafPlusArg;', indexR, '=', leafIndex, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(leafIndex)), '+', domain__debug(getDomain(constIndex)));
+      TRACE(' - leafPlusArg;', indexR, '=', leafIndex, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(leafIndex)), '+', domain__debug(getDomain(constIndex)));
       let A = getDomain(leafIndex);
       let vB = force(constIndex);
       let vR = force(indexR);
@@ -1149,7 +1149,7 @@ function cutter(ml, problem, once) {
   }
 
   function leafSumR(ml, offset, argCount, indexR) {
-    ASSERT_LOG2('   - leafSumR;', indexR, 'is a leaf var, R = sum(', argCount, 'x ),', indexR, '= sum(...)');
+    TRACE('   - leafSumR;', indexR, 'is a leaf var, R = sum(', argCount, 'x ),', indexR, '= sum(...)');
 
     // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
     let args = [];
@@ -1159,11 +1159,11 @@ function cutter(ml, problem, once) {
       bounty_markVar(bounty, index);
     }
 
-    ASSERT_LOG2('   - collected sum arg indexes;', args);
-    ASSERT_LOG2('   - collected sum arg domains;', args.map(index => domain__debug(getDomain(index))).join(', '));
+    TRACE('   - collected sum arg indexes;', args);
+    TRACE('   - collected sum arg domains;', args.map(index => domain__debug(getDomain(index))).join(', '));
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafSumR;', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))).join(', '), ')');
+      TRACE(' - leafSumR;', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))).join(', '), ')');
       let vR = args.map(force).reduce((a, b) => a + b);
       ASSERT(Number.isInteger(vR), 'should be integer result');
       let R = domain_intersectionValue(getDomain(indexR), vR);
@@ -1177,10 +1177,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafOr(ml, offset, leafIndex, otherIndex, indexA, indexB) {
-    ASSERT_LOG2('   - leafOr;', leafIndex, 'is a leaf var, A | B,', indexA, '|', indexB);
+    TRACE('   - leafOr;', leafIndex, 'is a leaf var, A | B,', indexA, '|', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafOr; solving', indexA, '|', indexB, '  ->  ', domain__debug(getDomain(indexA)), '|', domain__debug(getDomain(indexB)));
+      TRACE(' - leafOr; solving', indexA, '|', indexB, '  ->  ', domain__debug(getDomain(indexA)), '|', domain__debug(getDomain(indexB)));
       let D = getDomain(leafIndex);
       let v = force(otherIndex);
       if (!v) {
@@ -1197,10 +1197,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafXor(ml, offset, leafIndex, otherIndex, indexA, indexB) {
-    ASSERT_LOG2('   - leafXor;', leafIndex, 'is a leaf var, A ^ B,', indexA, '^', indexB);
+    TRACE('   - leafXor;', leafIndex, 'is a leaf var, A ^ B,', indexA, '^', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafXor; solving', indexA, '^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '^', domain__debug(getDomain(indexB)));
+      TRACE(' - leafXor; solving', indexA, '^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '^', domain__debug(getDomain(indexB)));
       let D = getDomain(leafIndex);
       let v = force(otherIndex);
       let L = domain_booly(D, !v);
@@ -1215,10 +1215,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafNand(ml, offset, leafIndex, otherIndex, indexA, indexB) {
-    ASSERT_LOG2('   - leafNand;', leafIndex, 'is a leaf var, A !& B,', indexA, '!&', indexB);
+    TRACE('   - leafNand;', leafIndex, 'is a leaf var, A !& B,', indexA, '!&', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafNand; solving', indexA, '!&', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!&', domain__debug(getDomain(indexB)));
+      TRACE(' - leafNand; solving', indexA, '!&', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!&', domain__debug(getDomain(indexB)));
       let D = getDomain(leafIndex);
       let v = force(otherIndex);
       if (v) {
@@ -1235,10 +1235,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafXnor(ml, offset, leafIndex, otherIndex, indexA, indexB) {
-    ASSERT_LOG2('   - leafXnor;', leafIndex, 'is a leaf var, A !^ B,', indexA, '!^', indexB);
+    TRACE('   - leafXnor;', leafIndex, 'is a leaf var, A !^ B,', indexA, '!^', indexB);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafXnor; solving', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)));
+      TRACE(' - leafXnor; solving', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)));
       let D = getDomain(leafIndex);
       let v = force(otherIndex);
       let L = domain_booly(D, v);
@@ -1253,7 +1253,7 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsall(ml, offset, argCount, indexR) {
-    ASSERT_LOG2('   - leafIsall;', indexR, 'is a leaf var, R = all?(', argCount, 'x ),', indexR, '= all?(...)');
+    TRACE('   - leafIsall;', indexR, 'is a leaf var, R = all?(', argCount, 'x ),', indexR, '= all?(...)');
 
     let args = [];
     for (let i = 0; i < argCount; ++i) {
@@ -1263,7 +1263,7 @@ function cutter(ml, problem, once) {
     }
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsall; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isAll(', args.map(index => domain__debug(getDomain(index))), ')');
+      TRACE(' - leafIsall; ', indexR, '= isAll(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isAll(', args.map(index => domain__debug(getDomain(index))), ')');
       let vR = 1;
       for (let i = 0; i < argCount; ++i) {
         if (force(args[i]) === 0) {
@@ -1283,10 +1283,10 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsall2(ml, offset, indexA, indexB, indexR) {
-    ASSERT_LOG2('   - leafIsall2;', indexR, 'is a leaf var, R = all(A B),', indexR, '= all?(', indexA, indexB, ')');
+    TRACE('   - leafIsall2;', indexR, 'is a leaf var, R = all(A B),', indexR, '= all?(', indexA, indexB, ')');
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsall2;', indexR, '= all?(', indexA, indexB, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', domain__debug(getDomain(indexA)), domain__debug(getDomain(indexB)), ')');
+      TRACE(' - leafIsall2;', indexR, '= all?(', indexA, indexB, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', domain__debug(getDomain(indexA)), domain__debug(getDomain(indexB)), ')');
       let vA = force(indexA);
       let vB = force(indexB);
       let R = getDomain(indexR);
@@ -1303,7 +1303,7 @@ function cutter(ml, problem, once) {
   }
 
   function leafIsnall(ml, offset, argCount, indexR, counts) {
-    ASSERT_LOG2('   - leafIsnall;', indexR, 'is a leaf var with counts:', counts, ', R = nall?(', argCount, 'x ),', indexR, '= all?(...)');
+    TRACE('   - leafIsnall;', indexR, 'is a leaf var with counts:', counts, ', R = nall?(', argCount, 'x ),', indexR, '= all?(...)');
 
     let args = [];
     for (let i = 0; i < argCount; ++i) {
@@ -1313,7 +1313,7 @@ function cutter(ml, problem, once) {
     }
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - leafIsnall; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isNall(', args.map(index => domain__debug(getDomain(index))), ')');
+      TRACE(' - leafIsnall; ', indexR, '= isNall(', args, ')  ->  ', domain__debug(getDomain(indexR)), ' = isNall(', args.map(index => domain__debug(getDomain(index))), ')');
       let vR = 0;
       for (let i = 0; i < argCount; ++i) {
         if (force(args[i]) === 0) {
@@ -1336,10 +1336,10 @@ function cutter(ml, problem, once) {
 
   function trickPlusOr(ml, offset, indexA, indexB, indexR) {
     // [12]=[01]+[01]   ->   A | B
-    ASSERT_LOG2('   - trickPlusOr; [12]=[01]+[01] is actually an OR');
+    TRACE('   - trickPlusOr; [12]=[01]+[01] is actually an OR');
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickPlusOr R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      TRACE(' - trickPlusOr R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let vR = vA + vB;
@@ -1349,7 +1349,7 @@ function cutter(ml, problem, once) {
       setDomain(indexR, R);
     });
 
-    ASSERT_LOG2(' - Morph plus to A|B');
+    TRACE(' - Morph plus to A|B');
     // rewrite to `A | B` (inclusive OR)
     // R can later reflect the result
     // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
@@ -1362,10 +1362,10 @@ function cutter(ml, problem, once) {
 
   function trickPlusNand(ml, offset, indexA, indexB, indexR) {
     // [01]=[01]+[01]   ->   A !& B
-    ASSERT_LOG2('   - trickPlusNand; [01]=[01]+[01] is actually a NAND');
+    TRACE('   - trickPlusNand; [01]=[01]+[01] is actually a NAND');
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickPlusNand R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      TRACE(' - trickPlusNand R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let vR = vA + vB;
@@ -1375,7 +1375,7 @@ function cutter(ml, problem, once) {
       setDomain(indexR, R);
     });
 
-    ASSERT_LOG2(' - Rewrite to A!&B');
+    TRACE(' - Rewrite to A!&B');
     // rewrite to `A !& B` (not AND) to enforce that they can't both be 1 (... "non-zero")
     // R can later reflect the result
     // (while this won't relieve stress on A or B, it will be one less var to actively worry about)
@@ -1388,7 +1388,7 @@ function cutter(ml, problem, once) {
 
   function trickSumNall(ml, offset, argCount, indexR) {
     // [0 0 n-1 n-1]=sum([01] [01] [01]   ->   nall(...)
-    ASSERT_LOG2('   - trickSumNall; [0 0 n-1 n-1]=sum([01] [01] [01] ...) is actually a NALL', indexR);
+    TRACE('   - trickSumNall; [0 0 n-1 n-1]=sum([01] [01] [01] ...) is actually a NALL', indexR);
 
     // collect the arg indexes (kind of dupe loop but we'd rather not make an array prematurely)
     let args = [];
@@ -1399,7 +1399,7 @@ function cutter(ml, problem, once) {
     }
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickSumNall nall(A B);', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))), ')');
+      TRACE(' - trickSumNall nall(A B);', indexR, '= sum(', args, ')  ->  ', domain__debug(getDomain(indexR)), '= sum(', args.map(index => domain__debug(getDomain(index))), ')');
 
       let vR = args.map(force).reduce((a, b) => a + b);
       ASSERT(Number.isInteger(vR), 'should be integer result');
@@ -1424,7 +1424,7 @@ function cutter(ml, problem, once) {
 
     let offset1 = bounty_getOffset(bounty, indexS, 0);
     let offset2 = bounty_getOffset(bounty, indexS, 1);
-    ASSERT_LOG2('trickLteLhsTwice', indexS, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', meta, '`S <= A, S <= B   ->   * (S=leaf, drop both)`');
+    TRACE('trickLteLhsTwice', indexS, 'at', offset, 'and', offset1, '/', offset2, 'metaFlags:', meta, '`S <= A, S <= B   ->   * (S=leaf, drop both)`');
 
     // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
     ASSERT(counts === 2, 'the indexS should only be part of two constraints', counts, bounty__debugMeta(meta), 'wtf?', meta);
@@ -1452,11 +1452,11 @@ function cutter(ml, problem, once) {
     let maxS = domain_max(S);
     if (domain_min(A) < minS || domain_min(B) < minS || domain_max(A) < maxS || domain_max(B) < maxS) {
       // leaf S can not (yet) reflect every value of A and B such that S<A and S<B at solve time is guaranteed to hold. postpone this cut.
-      ASSERT_LOG2(' - the shared var can not yet reflect all values of A and B so cannot cut yet, bailing', domain__debug(S), domain__debug(A), domain__debug(B));
+      TRACE(' - the shared var can not yet reflect all values of A and B so cannot cut yet, bailing', domain__debug(S), domain__debug(A), domain__debug(B));
       return false;
     }
 
-    ASSERT_LOG2(' - okay, S is a leaf constraint, eliminating both ltes, defer S');
+    TRACE(' - okay, S is a leaf constraint, eliminating both ltes, defer S');
 
     // okay, two lte with the left being the shared index
     // the shared var holds under lte for any value of A and B
@@ -1466,8 +1466,8 @@ function cutter(ml, problem, once) {
     ml_eliminate(ml, offset2, SIZEOF_VV);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - 2xlte; offset1;', indexS, '!&', indexA, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexA)));
-      ASSERT_LOG2(' - 2xlte; offset2;', indexS, '!&', indexB, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexB)));
+      TRACE(' - 2xlte; offset1;', indexS, '!&', indexA, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexA)));
+      TRACE(' - 2xlte; offset2;', indexS, '!&', indexB, '  ->  ', domain__debug(getDomain(indexS)), '<=', domain__debug(getDomain(indexB)));
 
       let S = S = domain_removeGtUnsafe(domain_removeGtUnsafe(getDomain(indexS), force(indexA)), force(indexB));
       ASSERT(S, 'S should be able to reflect the solution');
@@ -1485,7 +1485,7 @@ function cutter(ml, problem, once) {
     // S <= A, S = all?(A B)   ->   S = all?(A B)
     // (the isall subsumes the lte, regardless of other constraints)
 
-    ASSERT_LOG2('trickLteLhsTwice', indexR, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
+    TRACE('trickLteLhsTwice', indexR, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
 
     // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
     ASSERT(countsR > 1, 'the indexR should only be part of two constraints', countsR, bounty__debugMeta(meta), 'wtf?', meta);
@@ -1502,18 +1502,18 @@ function cutter(ml, problem, once) {
     // in that case nothing happens and the redundant constraint persists. no biggie
     for (let i = 0; i < toCheck; ++i) {
       let offset = bounty_getOffset(bounty, indexR, i);
-      ASSERT_LOG2('   - #' + i, ', offset =', offset);
+      TRACE('   - #' + i, ', offset =', offset);
       if (offset !== lteOffset) {
         let op = ml_dec8(ml, offset);
         if (op === ML_ISALL) {
           let count = ml_dec16(ml, offset + 1);
           let index = readIndex(ml, offset + SIZEOF_COUNT + count * 2);
-          ASSERT_LOG2('     - isall 1 with an arg count of', count, ', result index=', index);
+          TRACE('     - isall 1 with an arg count of', count, ', result index=', index);
           if (count === 2 && index === indexR) {
-            ASSERT_LOG2('     - result index is indexR, checking args for indexA', readIndex(ml, offset + SIZEOF_COUNT), readIndex(ml, offset + SIZEOF_COUNT + 2), '~', indexA);
+            TRACE('     - result index is indexR, checking args for indexA', readIndex(ml, offset + SIZEOF_COUNT), readIndex(ml, offset + SIZEOF_COUNT + 2), '~', indexA);
             // get the isall args and check if they are indexR and indexA
             if (readIndex(ml, offset + SIZEOF_COUNT) === indexA || readIndex(ml, offset + SIZEOF_COUNT + 2) === indexA) {
-              ASSERT_LOG2('   - Match isall1! this is R <= A, R = all?(A B). proceding to eliminate the lte');
+              TRACE('   - Match isall1! this is R <= A, R = all?(A B). proceding to eliminate the lte');
               // match. this is R <= A, R = all?(A B)
               // eliminate the lte
               ml_eliminate(ml, lteOffset, SIZEOF_VV);
@@ -1523,12 +1523,12 @@ function cutter(ml, problem, once) {
           }
         } else if (op === ML_ISALL2) {
           let index = readIndex(ml, offset + 5);
-          ASSERT_LOG2('     - isall 2, result index=', index);
+          TRACE('     - isall 2, result index=', index);
           if (index === indexR) {
-            ASSERT_LOG2('     - result index is indexR, checking args for indexA', readIndex(ml, offset + 1), readIndex(ml, offset + 3), '~', indexA);
+            TRACE('     - result index is indexR, checking args for indexA', readIndex(ml, offset + 1), readIndex(ml, offset + 3), '~', indexA);
             // get the isall args and check if they are indexR and indexA
             if (readIndex(ml, offset + 1) === indexA || readIndex(ml, offset + 3) === indexA) {
-              ASSERT_LOG2('   - Match isall2! this is R <= A, R = all?(A B). proceding to eliminate the lte');
+              TRACE('   - Match isall2! this is R <= A, R = all?(A B). proceding to eliminate the lte');
               // match. this is R <= A, R = all?(A B)
               // eliminate the lte
               ml_eliminate(ml, lteOffset, SIZEOF_VV);
@@ -1540,7 +1540,7 @@ function cutter(ml, problem, once) {
       }
     }
 
-    ASSERT_LOG2(' - did not find an isall on R so bailing');
+    TRACE(' - did not find an isall on R so bailing');
     return false;
   }
 
@@ -1549,7 +1549,7 @@ function cutter(ml, problem, once) {
 
     let offset1 = bounty_getOffset(bounty, indexS, 0);
     let offset2 = bounty_getOffset(bounty, indexS, 1);
-    ASSERT_LOG2('trickLteRhsIsallEntry; ', indexS, 'at', lteOffset, '->', offset1, offset2, '` A <= S, S = all?(B C...)    ->    A <= B, A <= C`');
+    TRACE('trickLteRhsIsallEntry; ', indexS, 'at', lteOffset, '->', offset1, offset2, '` A <= S, S = all?(B C...)    ->    A <= B, A <= C`');
     ASSERT(lteOffset === offset1 || lteOffset === offset2, 'expecting current offset to be one of the two offsets found', lteOffset, indexS);
 
     let isallOffset = lteOffset === offset1 ? offset2 : offset1;
@@ -1580,35 +1580,35 @@ function cutter(ml, problem, once) {
     // A or C (or both) MUST be boolean bound or this trick may be bad (A=100,S=100,C=1,D=1 -> 100<=10,100<=10 while it should pass)
 
     if (domain_max(A) > 1 && domain_max(S) > 1) {
-      ASSERT_LOG2(' - neither A nor S was boolean bound, bailing', domain__debug(A), domain__debug(S));
+      TRACE(' - neither A nor S was boolean bound, bailing', domain__debug(A), domain__debug(S));
       return false;
     }
 
     if (domain_hasNoZero(S)) {
-      ASSERT_LOG2('- S has no zero which it would need to reflect any solution as a leaf, bailing', domain__debug(S));
+      TRACE('- S has no zero which it would need to reflect any solution as a leaf, bailing', domain__debug(S));
       // (unless the isall was already solved, but the minimizer should take care of that)
       return false;
     }
 
     if (domain_max(A) > domain_max(S)) {
-      ASSERT_LOG2(' - max(A) > max(S) so there is a value in A that S couldnt satisfy A<=S so we must bail', domain__debug(A), domain__debug(S));
+      TRACE(' - max(A) > max(S) so there is a value in A that S couldnt satisfy A<=S so we must bail', domain__debug(A), domain__debug(S));
       // we can only trick if S can represent any valuation of A and there is a reject possible so no
       // note that this shouldnt happen when the minimizer runs to the max, but could in single cycle mode
       return false;
     }
 
-    ASSERT_LOG2(' - A and S are okay proceeding with morph, A:', domain__debug(A), 'S:', domain__debug(S));
+    TRACE(' - A and S are okay proceeding with morph, A:', domain__debug(A), 'S:', domain__debug(S));
 
     if (ml_dec8(ml, isallOffset) === ML_ISALL) {
-      ASSERT_LOG2(' - op is MS_ISALL (1)');
+      TRACE(' - op is MS_ISALL (1)');
       return trickLteRhsIsall1(ml, lteOffset, isallOffset, indexA, indexS);
     } else {
-      ASSERT_LOG2(' - op is MS_ISALL2');
+      TRACE(' - op is MS_ISALL2');
       return trickLteRhsIsall2(ml, lteOffset, isallOffset, indexA, indexS);
     }
   }
   function trickLteRhsIsall1(ml, lteOffset, isallOffset, indexA, indexS) {
-    ASSERT_LOG2(' - trickLteRhsIsall1; an isall with 1 arg; rewriting A <= S, S=isall(X Y Z ...)  ->  A <= X, A <= Y, A <= Z, ...');
+    TRACE(' - trickLteRhsIsall1; an isall with 1 arg; rewriting A <= S, S=isall(X Y Z ...)  ->  A <= X, A <= Y, A <= Z, ...');
 
     let argCount = ml_dec16(ml, isallOffset + 1);
 
@@ -1618,7 +1618,7 @@ function cutter(ml, problem, once) {
       let index = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
       let domain = getDomain(index, true);
       if (domain_max(domain) < maxA) {
-        ASSERT_LOG2(' - there is an isall arg whose max is lower than max(A), this leads to a lossy morph so we must bail', i, index, domain__debug(domain), '<', domain__debug(A));
+        TRACE(' - there is an isall arg whose max is lower than max(A), this leads to a lossy morph so we must bail', i, index, domain__debug(domain), '<', domain__debug(A));
         return false;
       }
     }
@@ -1642,7 +1642,7 @@ function cutter(ml, problem, once) {
   }
   function trickLteRhsIsall1a2(ml, lteOffset, isallOffset, indexA, indexS) {
     // isall has two args
-    ASSERT_LOG2(' - trickLteRhsIsall1a2; an isall with 2 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
+    TRACE(' - trickLteRhsIsall1a2; an isall with 2 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
 
     let indexX = readIndex(ml, isallOffset + 3);
     let indexY = readIndex(ml, isallOffset + 5);
@@ -1658,9 +1658,9 @@ function cutter(ml, problem, once) {
     bounty_markVar(bounty, indexY);
     somethingChanged();
 
-    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickLteRhsIsall1a2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
+      TRACE(' - trickLteRhsIsall1a2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
       let vX = force(indexX);
       let vY = force(indexY);
       let oS = getDomain(indexS);
@@ -1672,16 +1672,16 @@ function cutter(ml, problem, once) {
   }
   function trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS) {
     // isall has three args
-    ASSERT_LOG2(' - trickLteRhsIsall1a3; an isall with 3 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
+    TRACE(' - trickLteRhsIsall1a3; an isall with 3 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
 
     let indexX = readIndex(ml, isallOffset + 3);
     let indexY = readIndex(ml, isallOffset + 5);
     let indexZ = readIndex(ml, isallOffset + 7);
     _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + 3 * 2 + 2);
 
-    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickLteRhsIsall1a3;', indexS, '= all?(', indexX, indexY, indexZ, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), domain__debug(getDomain(indexZ)), ')');
+      TRACE(' - trickLteRhsIsall1a3;', indexS, '= all?(', indexX, indexY, indexZ, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), domain__debug(getDomain(indexZ)), ')');
       let vX = force(indexX);
       let vY = force(indexY);
       let vZ = force(indexZ);
@@ -1694,7 +1694,7 @@ function cutter(ml, problem, once) {
   }
   function _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, sizeofIsall) {
     // isall has three args (left). it may have had more originally.
-    ASSERT_LOG2(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall);
+    TRACE(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall);
     ASSERT(sizeofIsall === ml_getOpSizeSlow(ml, isallOffset), 'should get correct isall sizeof');
 
     // the first lte replaces the existing lte
@@ -1703,7 +1703,7 @@ function cutter(ml, problem, once) {
     // note: cant use ml_cr2vv for the next one because assumptions are not binary safe due to how jumps are consolidated
     ASSERT(SIZEOF_COUNT + 3 * 2 + 2 === 11, 'if this changes the code below probably needs to be updated as well');
 
-    ASSERT_LOG2(' - compiling first lte starting at', isallOffset);
+    TRACE(' - compiling first lte starting at', isallOffset);
     // second lte, into first half of isall
     ml_enc8(ml, isallOffset, ML_LTE);
     ml_enc16(ml, isallOffset + 1, indexA);
@@ -1711,14 +1711,14 @@ function cutter(ml, problem, once) {
 
     isallOffset += SIZEOF_VV;
 
-    ASSERT_LOG2(' - compiling second lte starting at', isallOffset);
+    TRACE(' - compiling second lte starting at', isallOffset);
     // third lte, into second half of lte
     ml_enc8(ml, isallOffset, ML_LTE);
     ml_enc16(ml, isallOffset + 1, indexA);
     ml_enc16(ml, isallOffset + 3, indexZ);
 
     let left = sizeofIsall - (SIZEOF_VV + SIZEOF_VV);
-    ASSERT_LOG2(' - compiling jump starting at', isallOffset, 'for', left, 'bytes');
+    TRACE(' - compiling jump starting at', isallOffset, 'for', left, 'bytes');
     // should be one byte remaining
     ASSERT(left === 1, 'just 1 byte left, not likely to change but if this fails check anyways');
     ml_jump(ml, isallOffset + SIZEOF_VV, left);
@@ -1735,7 +1735,7 @@ function cutter(ml, problem, once) {
   }
   function trickLteRhsIsall1a4p(ml, lteOffset, isallOffset, argCount, indexA, indexS) {
     // isall has four or more args
-    ASSERT_LOG2(' - trickLteRhsIsall1a4p. Attempting to recycle space to stuff', argCount, 'lte constraints');
+    TRACE(' - trickLteRhsIsall1a4p. Attempting to recycle space to stuff', argCount, 'lte constraints');
 
     // we have to recycle some space now. we wont know whether we can
     // actually do the morph until we've collected enough space for it.
@@ -1747,11 +1747,11 @@ function cutter(ml, problem, once) {
     // start by collecting toRecycle recycled spaces
     let bins = ml_getRecycleOffsets(ml, 0, toRecycle, SIZEOF_VV);
     if (!bins) {
-      ASSERT_LOG2(' - Was unable to find enough free space to fit', argCount, 'ltes, bailing');
+      TRACE(' - Was unable to find enough free space to fit', argCount, 'ltes, bailing');
       return false;
     }
 
-    ASSERT_LOG2(' - Found', bins.length, 'jumps (', bins, ') which can host (at least)', toRecycle, 'lte constraints. Compiling them now');
+    TRACE(' - Found', bins.length, 'jumps (', bins, ') which can host (at least)', toRecycle, 'lte constraints. Compiling them now');
 
     // okay, now we'll morph. be careful about clobbering existing indexes... start with
     // last address to make sure jumps dont clobber existing jump offsets in the bin
@@ -1787,9 +1787,9 @@ function cutter(ml, problem, once) {
     args.push(indexX, indexY, indexZ);
     _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + argCount * 2 + 2);
 
-    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickLteRhsIsall1a4p;', indexS, '= all?(', args, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', args.map(index => domain__debug(getDomain(index))), ')');
+      TRACE(' - trickLteRhsIsall1a4p;', indexS, '= all?(', args, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', args.map(index => domain__debug(getDomain(index))), ')');
 
       let result = args.reduce((prev, now) => prev && now) > 0; // true if every arg was non-zero
       let oS = getDomain(indexS);
@@ -1800,7 +1800,7 @@ function cutter(ml, problem, once) {
     });
   }
   function trickLteRhsIsall2(ml, lteOffset, isallOffset, indexA, indexS) {
-    ASSERT_LOG2(' - trickLteRhsIsall2');
+    TRACE(' - trickLteRhsIsall2');
 
     let indexX = readIndex(ml, isallOffset + 1);
     let indexY = readIndex(ml, isallOffset + 3);
@@ -1816,9 +1816,9 @@ function cutter(ml, problem, once) {
     bounty_markVar(bounty, indexY);
     somethingChanged();
 
-    ASSERT_LOG2('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
+    TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickLteRhsIsall2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
+      TRACE(' - trickLteRhsIsall2;', indexS, '= all?(', indexX, indexY, ')  ->  ', domain__debug(getDomain(indexS)), '= all?(', domain__debug(getDomain(indexX)), domain__debug(getDomain(indexY)), ')');
       let vX = force(indexX);
       let vY = force(indexY);
       let oS = getDomain(indexS);
@@ -1837,7 +1837,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
 
-    ASSERT_LOG2('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+    TRACE('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
 
     let nallOffset = offset1 === isallOffset ? offset2 : offset1;
     let argCountNall = ml_dec16(ml, nallOffset + 1);
@@ -1858,11 +1858,11 @@ function cutter(ml, problem, once) {
     // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from the nall)
 
     if (argCountNall !== 3 || argCountIsall !== 2) {
-      ASSERT_LOG2(' - fingerprint didnt match so bailing');
+      TRACE(' - fingerprint didnt match so bailing');
       return false;
     }
 
-    ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
+    TRACE(' - nall has 3 and isall 2 args, check if they share an arg');
     // next; one of the two isalls must occur in the nall
     // R = all?(A B), nall(R A C)
     // R = all?(A B), nall(X Y Z)
@@ -1878,7 +1878,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
 
-    ASSERT_LOG2('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+    TRACE('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
 
     let nallOffset = offset1 === isallOffset ? offset2 : offset1;
     let argCountNall = ml_dec16(ml, nallOffset + 1);
@@ -1897,15 +1897,15 @@ function cutter(ml, problem, once) {
     // if R = 0 then the nall is already satisfied. the nall is not entirely redundant
     // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from it)
 
-    ASSERT_LOG2(' - the ops match. now fingerprint them');
+    TRACE(' - the ops match. now fingerprint them');
 
     // initially, for this we need a nall of 3 and a isall of 2 (always the case for isall2)
     if (argCountNall !== 3) {
-      ASSERT_LOG2(' - fingerprint did not match so bailing');
+      TRACE(' - fingerprint did not match so bailing');
       return false;
     }
 
-    ASSERT_LOG2(' - nall has 3 and isall 2 args, check if they share an arg');
+    TRACE(' - nall has 3 and isall 2 args, check if they share an arg');
     // next; one of the two isalls must occur in the nall
     // R = all?(A B), nall(R A C)
     // R = all?(A B), nall(X Y Z)
@@ -1935,17 +1935,17 @@ function cutter(ml, problem, once) {
       indexC = indexX;
       indexD = indexY;
     } else {
-      ASSERT_LOG2(' - this is NOT the nall we were looking at before because the shared index is not part of it');
+      TRACE(' - this is NOT the nall we were looking at before because the shared index is not part of it');
       ASSERT(false, 'should not happen? bounty should have asserted this');
       return false;
     }
 
-    ASSERT_LOG2(' - nall(', indexR, indexC, indexD, ') and ', indexR, ' = all?(', indexA, indexB, ')');
+    TRACE(' - nall(', indexR, indexC, indexD, ') and ', indexR, ' = all?(', indexA, indexB, ')');
 
     // check if C or D is in the isall. apply morph by cutting the one that matches from the nall
     let notShared = (indexA === indexC || indexB === indexC) ? indexD : (indexA === indexD || indexB === indexD) ? indexC : -1;
     if (notShared >= 0) {
-      ASSERT_LOG2(' - A or B == C or D (', indexA, indexB, indexC, indexD, ') so changing the nall to a nand on', indexR, 'and', notShared);
+      TRACE(' - A or B == C or D (', indexA, indexB, indexC, indexD, ') so changing the nall to a nand on', indexR, 'and', notShared);
       ml_c2vv(ml, nallOffset, argCountNall, ML_NAND, indexR, notShared);
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
@@ -1965,7 +1965,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexA, 0);
     let offset2 = bounty_getOffset(bounty, indexA, 1);
 
-    ASSERT_LOG2('trickNandLteLhs;', indexA, '`A <= B, A !& C   ->   * (A leaf)`');
+    TRACE('trickNandLteLhs;', indexA, '`A <= B, A !& C   ->   * (A leaf)`');
 
     let nandOffset = offset1 === lteOffset ? offset2 : offset1;
 
@@ -1993,25 +1993,25 @@ function cutter(ml, problem, once) {
       let B = getDomain(indexB, true);
       let C = getDomain(indexC, true);
       if (domain_min(A) >= domain_min(B) || !domain_isZero(C)) {
-        ASSERT_LOG2(' - A can not satisfy both constraints for all values of A and B, bailing trick');
+        TRACE(' - A can not satisfy both constraints for all values of A and B, bailing trick');
         return false;
       }
     }
 
-    ASSERT_LOG2(' - ok, eliminating constraints, deferring', indexA, domain__debug(getDomain(indexA, true)));
-    ASSERT_LOG2(' - eliminating A <= B, A !& C');
+    TRACE(' - ok, eliminating constraints, deferring', indexA, domain__debug(getDomain(indexA, true)));
+    TRACE(' - eliminating A <= B, A !& C');
 
     ml_eliminate(ml, nandOffset, SIZEOF_VV);
     ml_eliminate(ml, lteOffset, SIZEOF_VV);
 
-    ASSERT_LOG2(' - A is a leaf constraint, defer it', indexA);
+    TRACE(' - A is a leaf constraint, defer it', indexA);
 
     solveStack.push((_, force, getDomain, setDomain) => {
       let A = getDomain(indexA);
       let B = getDomain(indexB);
       let C = getDomain(indexC);
 
-      ASSERT_LOG2(' - trickNandLteLhs; nand + lte;', indexA, '<=', indexC, '  ->  ', domain__debug(A), '<=', domain__debug(B), 'and', indexA, '!&', indexB, '  ->  ', domain__debug(A), '!=', domain__debug(C));
+      TRACE(' - trickNandLteLhs; nand + lte;', indexA, '<=', indexC, '  ->  ', domain__debug(A), '<=', domain__debug(B), 'and', indexA, '!&', indexB, '  ->  ', domain__debug(A), '!=', domain__debug(C));
 
       // put in the effort not to force B or C if A already satisfies the constraints
       if (domain_min(C) > 0) {
@@ -2037,7 +2037,7 @@ function cutter(ml, problem, once) {
     // R = all?(A B ...), R !& C  ->  nall(A B ... C)
     // note: this works for any nalls on one isall
 
-    ASSERT_LOG2('trickNandIsall1;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for any nand on one isall');
+    TRACE('trickNandIsall1;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for any nand on one isall');
 
     // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
     ASSERT(meta === (BOUNTY_NAND | BOUNTY_ISALL_RESULT), 'the var should only be nand and isall', bounty__debugMeta(meta), counts);
@@ -2046,7 +2046,7 @@ function cutter(ml, problem, once) {
     ASSERT(readIndex(ml, isallOffset + SIZEOF_COUNT + ml_dec16(ml, isallOffset + 1) * 2) === indexR, 'R should be result of isall');
 
     if (counts > BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
+      TRACE(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
       return false;
     }
 
@@ -2064,7 +2064,7 @@ function cutter(ml, problem, once) {
     // R = all?(A B), R !& C  ->  nall(A B C)
     // note: this works for any nalls on one isall
 
-    ASSERT_LOG2('trickNandIsall2;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for all nalls');
+    TRACE('trickNandIsall2;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for all nalls');
 
     // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
     ASSERT(meta === (BOUNTY_NAND | BOUNTY_ISALL_RESULT), 'the var should only be nand and isall');
@@ -2073,7 +2073,7 @@ function cutter(ml, problem, once) {
     ASSERT(readIndex(ml, isallOffset + 5) === indexR, 'R should be result of isall');
 
     if (counts > BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
+      TRACE(' - indexR is part of more constraints than the number of offsets tracked by bounty. this means we cant confirm the 1:* => isall:nand ratio requirement, bailing');
       return false;
     }
 
@@ -2097,7 +2097,7 @@ function cutter(ml, problem, once) {
       if (!offset) break;
       if (offset !== isallOffset) {
         if (ml_dec8(ml, offset) !== ML_NAND) {
-          ASSERT_LOG2(' - at least one offset wasnt a nand, bailing');
+          TRACE(' - at least one offset wasnt a nand, bailing');
           return false;
         }
         ++nands;
@@ -2107,21 +2107,21 @@ function cutter(ml, problem, once) {
 
     // bounty asserted that all these nalls contain R, rewrite each such nall
 
-    ASSERT_LOG2('trickNandIsallRest; there are', nands, 'nands; for each nand: X !& B, X = all?(C D)   ->   nall(B C D)');
+    TRACE('trickNandIsallRest; there are', nands, 'nands; for each nand: X !& B, X = all?(C D)   ->   nall(B C D)');
 
     // we need to get enough space to write the nalls if there is more than one nand (the first fits in the isall)
 
     // each nand becomes a nall with the isall args + 1
     let sizeofNall = SIZEOF_COUNT + (isallArgCount + 1) * 2;
 
-    ASSERT_LOG2(' - isall offset=', isallOffset, ', isall sizeof=', isallSizeof, ', size of nall is', sizeofNall, ', there are', nands, 'nands. so we need', nands - (isallSizeof < sizeofNall ? 0 : 1), 'spaces');
+    TRACE(' - isall offset=', isallOffset, ', isall sizeof=', isallSizeof, ', size of nall is', sizeofNall, ', there are', nands, 'nands. so we need', nands - (isallSizeof < sizeofNall ? 0 : 1), 'spaces');
 
     let spacesNeeded = nands - (isallSizeof < sizeofNall ? 0 : 1);
     let bins;
     if (spacesNeeded) {
       bins = ml_getRecycleOffsets(ml, 0, spacesNeeded, sizeofNall);
       if (!bins) {
-        ASSERT_LOG2(' - Was unable to find enough free space to fit', nands, 'nalls, bailing');
+        TRACE(' - Was unable to find enough free space to fit', nands, 'nalls, bailing');
         return false;
       }
     }
@@ -2133,25 +2133,25 @@ function cutter(ml, problem, once) {
 
     // immediately recycle the isall if it was large enough (ML_ISALL can fit a ML_NALL but ML_ISALL2 cannot)
     if (isallSizeof >= sizeofNall) {
-      ASSERT_LOG2(' - recycling isall immediately');
+      TRACE(' - recycling isall immediately');
       let nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
       if (nandOffset === isallOffset) nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
       _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, nandOffset, isallOffset, isallSizeof);
     } else {
-      ASSERT_LOG2(' - eliminating isall because it is too small');
-      ASSERT_LOG2('   - removing the (unrecycled) isall...');
+      TRACE(' - eliminating isall because it is too small');
+      TRACE('   - removing the (unrecycled) isall...');
       ml_eliminate(ml, isallOffset, isallSizeof);
     }
 
     // TODO: what if the same arg occurs in multiple nands? deduper should take care of this, but what if it doesnt (like in quick-unsound mode)
 
     if (spacesNeeded) {
-      ASSERT_LOG2(' - now morphing the nands remaining (', spacesNeeded, ')');
+      TRACE(' - now morphing the nands remaining (', spacesNeeded, ')');
       ml_recycles(ml, bins, nands, sizeofNall, (recycledOffset, i, sizeLeft) => {
-        ASSERT_LOG2('   - using: recycledOffset:', recycledOffset, ', i:', i, ', sizeLeft:', sizeLeft);
+        TRACE('   - using: recycledOffset:', recycledOffset, ', i:', i, ', sizeLeft:', sizeLeft);
         let offset = bounty_getOffset(bounty, indexR, offsetCounter++);
         if (offset !== isallOffset) {
-          ASSERT_LOG2('   - offset', offset, 'is not isall so it should be nand');
+          TRACE('   - offset', offset, 'is not isall so it should be nand');
           ASSERT(ml_dec8(ml, offset) === ML_NAND, 'should be nand');
           ASSERT(offset, 'the earlier loop counted the nands so it should still have that number of offsets now');
           ASSERT(sizeLeft === ml_getOpSizeSlow(ml, recycledOffset), 'size left should be sizeof op');
@@ -2160,9 +2160,9 @@ function cutter(ml, problem, once) {
       });
     }
 
-    ASSERT_LOG2('   - deferring', indexR, 'will be R = all?(', allArgs, ')');
+    TRACE('   - deferring', indexR, 'will be R = all?(', allArgs, ')');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - trickNandIsallRest;', indexR, '= all?(', allArgs, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', allArgs.map(index => domain__debug(getDomain(index))), ')');
+      TRACE(' - trickNandIsallRest;', indexR, '= all?(', allArgs, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', allArgs.map(index => domain__debug(getDomain(index))), ')');
 
       let R = getDomain(indexR);
       allArgs.some(index => {
@@ -2186,7 +2186,7 @@ function cutter(ml, problem, once) {
     return true;
   }
   function _trickNandIsallCreateNallAndRemoveNand(ml, indexR, nallArgs, allArgs, nandOffset, recycleOffset, recycleSizeof) {
-    ASSERT_LOG2(' - _trickNandIsallCreateNallAndRemoveNand: indexR:', indexR, 'nallArgs:', nallArgs, 'allArgs:', allArgs, 'nandOffset:', nandOffset, 'recycleOffset:', recycleOffset, 'recycleSizeof:', recycleSizeof);
+    TRACE(' - _trickNandIsallCreateNallAndRemoveNand: indexR:', indexR, 'nallArgs:', nallArgs, 'allArgs:', allArgs, 'nandOffset:', nandOffset, 'recycleOffset:', recycleOffset, 'recycleSizeof:', recycleSizeof);
     let indexX = readIndex(ml, nandOffset + 1);
     let indexY = readIndex(ml, nandOffset + 3);
     let index = indexX === indexR ? indexY : indexX;
@@ -2221,15 +2221,15 @@ function cutter(ml, problem, once) {
 
     // first we need to validate. we can only have one neq
 
-    ASSERT_LOG2('trickNeqElimination; index:', indexX, ', counts:', countsX);
+    TRACE('trickNeqElimination; index:', indexX, ', counts:', countsX);
 
     if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - the number of vars', indexX, 'touches is larger than the number of offsets tracked by bounty so we bail here');
+      TRACE(' - the number of vars', indexX, 'touches is larger than the number of offsets tracked by bounty so we bail here');
       return false;
     }
 
     if (!domain_isBool(getDomain(indexX))) {
-      ASSERT_LOG2(' - X is non-bool, bailing');
+      TRACE(' - X is non-bool, bailing');
       return false;
     }
 
@@ -2259,17 +2259,17 @@ function cutter(ml, problem, once) {
           rhsOffsets.push(offset);
           indexT = indexA;
         } else {
-          ASSERT_LOG2(' - lte without indexX (??), bailing');
+          TRACE(' - lte without indexX (??), bailing');
           return false;
         }
 
         if (!domain_isBool(getDomain(indexT, true))) {
-          ASSERT_LOG2(' - found a non-bool lte arg, bailing');
+          TRACE(' - found a non-bool lte arg, bailing');
           return false;
         }
       } else if (op === ML_NEQ) {
         if (seenNeq) {
-          ASSERT_LOG2(' - found second neq, bailing');
+          TRACE(' - found second neq, bailing');
           return false;
         }
 
@@ -2292,12 +2292,12 @@ function cutter(ml, problem, once) {
           orOffsets.push(offset);
           indexT = indexA;
         } else {
-          ASSERT_LOG2(' - lte without indexX (??), bailing');
+          TRACE(' - lte without indexX (??), bailing');
           return false;
         }
 
         if (!domain_isBool(getDomain(indexT, true))) {
-          ASSERT_LOG2(' - found a non-bool or arg, bailing');
+          TRACE(' - found a non-bool or arg, bailing');
           return false;
         }
       } else if (op === ML_NAND) {
@@ -2309,33 +2309,33 @@ function cutter(ml, problem, once) {
           nandOffsets.push(offset);
           indexT = indexA;
         } else {
-          ASSERT_LOG2(' - lte without indexX (??), bailing');
+          TRACE(' - lte without indexX (??), bailing');
           return false;
         }
 
         if (!domain_isBool(getDomain(indexT, true))) {
-          ASSERT_LOG2(' - found a non-bool or arg, bailing');
+          TRACE(' - found a non-bool or arg, bailing');
           return false;
         }
       } else {
-        ASSERT_LOG2(' - found an op that wasnt neq or lte, bailing');
+        TRACE(' - found an op that wasnt neq or lte, bailing');
         return false;
       }
     }
 
-    ASSERT_LOG2(' - collection complete; indexY =', indexY, ', neq offset =', neqOffset, ', lhs offsets:', lhsOffsets, ', rhs offsets:', rhsOffsets, ', or offsets:', orOffsets, ', nand offsets:', nandOffsets);
+    TRACE(' - collection complete; indexY =', indexY, ', neq offset =', neqOffset, ', lhs offsets:', lhsOffsets, ', rhs offsets:', rhsOffsets, ', or offsets:', orOffsets, ', nand offsets:', nandOffsets);
 
     if (!seenNeq) {
-      ASSERT_LOG2(' - did not find neq, bailing');
+      TRACE(' - did not find neq, bailing');
       return false;
     }
 
     // okay. pattern matches. do the rewrite
 
-    ASSERT_LOG2(' - pattern confirmed, morphing ltes, removing neq');
-    ASSERT_LOG2(' - A <= X, X != Y    ->    A !& Y');
-    ASSERT_LOG2(' - X <= A, X != Y    ->    A | Y');
-    ASSERT_LOG2(' - X | A, X != Y     ->    Y <= A');
+    TRACE(' - pattern confirmed, morphing ltes, removing neq');
+    TRACE(' - A <= X, X != Y    ->    A !& Y');
+    TRACE(' - X <= A, X != Y    ->    A | Y');
+    TRACE(' - X | A, X != Y     ->    Y <= A');
 
     for (let i = 0, len = lhsOffsets.length; i < len; ++i) {
       // X <= A, X != Y    ->    A | Y
@@ -2385,10 +2385,10 @@ function cutter(ml, problem, once) {
 
     ASSERT(ml_validateSkeleton(ml, 'make sure the morphs went okay'));
 
-    ASSERT_LOG2(' - X is a leaf constraint, defer it', indexX);
+    TRACE(' - X is a leaf constraint, defer it', indexX);
     solveStack.push((_, force, getDomain, setDomain) => {
       let X = getDomain(indexX);
-      ASSERT_LOG2(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(), '!=', domain__debug(getDomain(indexY)));
+      TRACE(' - neq + lte + lte...;', indexX, '!=', indexY, '  ->  ', domain__debug(), '!=', domain__debug(getDomain(indexY)));
 
       X = domain_removeValue(X, force(indexY));
       ASSERT(X, 'X should be able to reflect any solution');
@@ -2402,10 +2402,10 @@ function cutter(ml, problem, once) {
   }
 
   function trickNandOnly(indexX, countsX) {
-    ASSERT_LOG2('trickNandOnly;', indexX, ', counts:', countsX);
+    TRACE('trickNandOnly;', indexX, ', counts:', countsX);
 
     if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      TRACE(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
       return false;
     }
 
@@ -2417,7 +2417,7 @@ function cutter(ml, problem, once) {
 
       let opCode = ml_dec8(ml, offset);
       if (opCode !== ML_NAND) {
-        ASSERT_LOG2(' - opcode wasnt nand but was expecting only nands, bailing');
+        TRACE(' - opcode wasnt nand but was expecting only nands, bailing');
         return false;
       }
 
@@ -2428,7 +2428,7 @@ function cutter(ml, problem, once) {
       if (indexY === indexX) {
         indexY = indexB;
       } else if (!indexB !== indexX) {
-        ASSERT_LOG2(' - a nand did not have the proper args (??), bailing');
+        TRACE(' - a nand did not have the proper args (??), bailing');
         return false;
       }
 
@@ -2436,11 +2436,11 @@ function cutter(ml, problem, once) {
       indexes.push(indexY);
     }
 
-    ASSERT_LOG2(' - collected offsets and vars:', offsets, indexes);
+    TRACE(' - collected offsets and vars:', offsets, indexes);
 
-    ASSERT_LOG2('   - B is a leaf var');
+    TRACE('   - B is a leaf var');
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - only nands;', indexes);
+      TRACE(' - only nands;', indexes);
 
       let X = getDomain(indexX);
       if (!domain_isZero(X) && !domain_hasNoZero(X)) {
@@ -2455,7 +2455,7 @@ function cutter(ml, problem, once) {
       }
     });
 
-    ASSERT_LOG2(' - now remove the nands', offsets);
+    TRACE(' - now remove the nands', offsets);
 
     for (let i = 0; i < offsets.length; ++i) {
       let offset = offsets[i];
@@ -2474,11 +2474,11 @@ function cutter(ml, problem, once) {
   }
 
   function trickOrLteLhsNands(indexX, countsX) {
-    ASSERT_LOG2('trickOrLteLhsNands', indexX);
+    TRACE('trickOrLteLhsNands', indexX);
     // A !& X, X <= B, X | C    ->     B | C, A <= C
 
     if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      TRACE(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
       return false;
     }
 
@@ -2501,7 +2501,7 @@ function cutter(ml, problem, once) {
       if (indexL === indexX) {
         indexY = indexR;
       } else if (indexR !== indexX) {
-        ASSERT_LOG2(' - op did not have our target var on either side, bailing');
+        TRACE(' - op did not have our target var on either side, bailing');
         return false;
       }
 
@@ -2511,18 +2511,18 @@ function cutter(ml, problem, once) {
         indexesA.push(indexY);
       } else if (opCode === ML_OR) {
         if (orOffset) {
-          ASSERT_LOG2(' - trick only supported with one OR, bailing');
+          TRACE(' - trick only supported with one OR, bailing');
           return false;
         }
         orOffset = offset;
         indexB = indexY;
       } else if (opCode === ML_LTE) {
         if (lteOffset) {
-          ASSERT_LOG2(' - trick only supported with one LTE, bailing');
+          TRACE(' - trick only supported with one LTE, bailing');
           return false;
         }
         if (indexL !== indexX) {
-          ASSERT_LOG2(' - X must be lhs of LTE, bailing');
+          TRACE(' - X must be lhs of LTE, bailing');
           return false;
         }
         lteOffset = offset;
@@ -2530,9 +2530,9 @@ function cutter(ml, problem, once) {
       }
     }
 
-    ASSERT_LOG2(' - collection complete; or offset:', orOffset, ', indexB:', indexB, ', lte offset:', lteOffset, ', indexC:', indexC, ', nand offsets:', nandOffsets, ', indexesA:', indexesA);
-    ASSERT_LOG2(' - A !& X, X <= B, X | C    ->     B | C, A <= C');
-    ASSERT_LOG2(' - A !& X, D !& X, X <= B, X | C    ->     B | C, A <= C, D <= C');
+    TRACE(' - collection complete; or offset:', orOffset, ', indexB:', indexB, ', lte offset:', lteOffset, ', indexC:', indexC, ', nand offsets:', nandOffsets, ', indexesA:', indexesA);
+    TRACE(' - A !& X, X <= B, X | C    ->     B | C, A <= C');
+    TRACE(' - A !& X, D !& X, X <= B, X | C    ->     B | C, A <= C, D <= C');
     // the A <= C for all nand args (all <= C)
 
     ml_vv2vv(ml, lteOffset, ML_OR, indexB, indexC);
@@ -2543,9 +2543,9 @@ function cutter(ml, problem, once) {
       bounty_markVar(bounty, indexA);
     }
 
-    ASSERT_LOG2('   - X is a leaf var', indexX);
+    TRACE('   - X is a leaf var', indexX);
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - or+lte+nands;', indexX);
+      TRACE(' - or+lte+nands;', indexX);
 
       let X = getDomain(indexX);
       if (force(indexB) === 0) { // A<=B so if B is 0, A must also be 0
@@ -2577,13 +2577,13 @@ function cutter(ml, problem, once) {
   }
 
   function trickOrNandLteBoth(indexX, countsX) {
-    ASSERT_LOG2('trickOrNandLteBoth', indexX);
+    TRACE('trickOrNandLteBoth', indexX);
     // A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B
     // if we can model `A !& C, A <= D` in one constraint then we should do so but I couldn't find one
     // (when more lte's are added, that's the pattern we add for each)
 
     if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      ASSERT_LOG2(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+      TRACE(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
       return false;
     }
 
@@ -2609,21 +2609,21 @@ function cutter(ml, problem, once) {
       if (indexL === indexX) {
         indexY = indexR;
       } else if (indexR !== indexX) {
-        ASSERT_LOG2(' - op did not have our target var on either side, bailing');
+        TRACE(' - op did not have our target var on either side, bailing');
         return false;
       }
 
       let opCode = ml_dec8(ml, offset);
       if (opCode === ML_NAND) {
         if (nandOffset) {
-          ASSERT_LOG2(' - trick only supported with one NAND, bailing');
+          TRACE(' - trick only supported with one NAND, bailing');
           return false;
         }
         nandOffset = offset;
         indexC = indexY;
       } else if (opCode === ML_OR) {
         if (orOffset) {
-          ASSERT_LOG2(' - trick only supported with one OR, bailing');
+          TRACE(' - trick only supported with one OR, bailing');
           return false;
         }
         orOffset = offset;
@@ -2631,36 +2631,36 @@ function cutter(ml, problem, once) {
       } else if (opCode === ML_LTE) {
         if (indexL === indexX) { // lte_lhs
           if (lteLhsOffset) {
-            ASSERT_LOG2(' - trick only supported with one LTE_lhs, bailing');
+            TRACE(' - trick only supported with one LTE_lhs, bailing');
             return false;
           }
           lteLhsOffset = offset;
           indexD = indexY;
         } else if (indexR === indexX) { // lte_rhs
           if (lteRhsOffset) {
-            ASSERT_LOG2(' - trick only supported with one LTE_rhs, bailing');
+            TRACE(' - trick only supported with one LTE_rhs, bailing');
             return false;
           }
           lteRhsOffset = offset;
           indexA = indexY;
         } else {
-          ASSERT_LOG2(' - X not an arg of the lte, bailing');
+          TRACE(' - X not an arg of the lte, bailing');
           return false;
         }
       }
     }
 
-    ASSERT_LOG2(' - collection complete; or offsets:', lteLhsOffset, lteRhsOffset, orOffset, nandOffset, ', indexes:', indexA, indexB, indexC, indexD);
-    ASSERT_LOG2(' - A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B');
+    TRACE(' - collection complete; or offsets:', lteLhsOffset, lteRhsOffset, orOffset, nandOffset, ', indexes:', indexA, indexB, indexC, indexD);
+    TRACE(' - A <= X, B | X, C !& X, X <= D     ->     A !& C, B | D, A <= D, C <= B');
 
     ml_vv2vv(ml, lteLhsOffset, ML_NAND, indexA, indexC);
     ml_vv2vv(ml, lteRhsOffset, ML_OR, indexB, indexD);
     ml_vv2vv(ml, orOffset, ML_LTE, indexA, indexD);
     ml_vv2vv(ml, nandOffset, ML_LTE, indexC, indexD);
 
-    ASSERT_LOG2('   - X is a leaf var', indexX);
+    TRACE('   - X is a leaf var', indexX);
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - or+nand+lte_lhs+lte_rhs;', indexX);
+      TRACE(' - or+nand+lte_lhs+lte_rhs;', indexX);
 
       let X = getDomain(indexX);
       if (force(indexA) === 1) { // A<=X so if A is 1, X must also be 1
@@ -2699,7 +2699,7 @@ function cutter(ml, problem, once) {
     // so there's a plus and then there's an iseq that checks whether the result is the
     // sum of the only two non-zero values. that's just an "are both set" check -> isall
 
-    ASSERT_LOG2('trickPlusIseq', ml, offset, indexA, indexB, indexR);
+    TRACE('trickPlusIseq', ml, offset, indexA, indexB, indexR);
 
     // so R is used in two constraints. let's first determine the other one
     let offset1 = bounty_getOffset(bounty, indexR, 0);
@@ -2739,12 +2739,12 @@ function cutter(ml, problem, once) {
     // then there's an iseq that confirms whether R is in fact the only non-zero value it has
     // we've confirmed all these details so it's time to merge them together and morph to an isall
 
-    ASSERT_LOG2(' - found isAll pattern, rewriting plus and eliminating isEq');
+    TRACE(' - found isAll pattern, rewriting plus and eliminating isEq');
 
     // rewrite one into `Z = all?(A B)`, drop the other
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - cut plus -> isAll; plus+iseq->isall');
+      TRACE(' - cut plus -> isAll; plus+iseq->isall');
       let R = getDomain(indexR);
       let vS = force(indexZ);
       setDomain(indexR, vS ? domain_intersectionValue(R, v) : domain_removeValue(R, v));
@@ -2771,7 +2771,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
     let iseqOffset = offset1 === sumOffset ? offset2 : offset1;
-    ASSERT_LOG2('trickSumIseq; sumOffset:', sumOffset, 'iseqOffset:', iseqOffset, 'indexR:', indexR);
+    TRACE('trickSumIseq; sumOffset:', sumOffset, 'iseqOffset:', iseqOffset, 'indexR:', indexR);
 
     ASSERT(iseqOffset > 0, 'offset should exist and cant be the first op');
     ASSERT(counts === 2, 'R should only be used in two constraints (sum and iseq)');
@@ -2808,7 +2808,7 @@ function cutter(ml, problem, once) {
       }
 
       if (allBools) {
-        ASSERT_LOG2(' - found isAll pattern, rewriting sum and eliminating isEq');
+        TRACE(' - found isAll pattern, rewriting sum and eliminating isEq');
 
         // ok, we replace the sum and isEq with `S = isAll(args)`
         // the sum has the biggest footprint so the isall will fit with one byte to spare
@@ -2816,7 +2816,7 @@ function cutter(ml, problem, once) {
         let indexS = readIndex(ml, iseqOffset + 5);
 
         solveStack.push((_, force, getDomain, setDomain) => {
-          ASSERT_LOG2(' - cut sum -> isAll');
+          TRACE(' - cut sum -> isAll');
           let R = getDomain(indexR);
           let vR = 0;
           for (let i = 0; i < argCount; ++i) {
@@ -2852,7 +2852,7 @@ function cutter(ml, problem, once) {
     // note that for a booly, the actual value is irrelevant. whether it's 1 or 5, the ops will normalize
     // this to zero and non-zero anyways. and by assertion the actual value is not used inside the problem
 
-    ASSERT_LOG2(' - trickXnorPseudoEq; found booly-eq in a xnor:', indexA, '!^', indexB);
+    TRACE(' - trickXnorPseudoEq; found booly-eq in a xnor:', indexA, '!^', indexB);
 
     // ok, a little tricky, but we're going to consider the bool to be a full alias of the other var.
     // once we create a solution we will override the value and apply the booly constraint and assign
@@ -2865,10 +2865,10 @@ function cutter(ml, problem, once) {
       indexK = indexB;
     }
     let E = getDomain(indexE, true); // remember what E was because it will be replaced by false to mark it an alias
-    ASSERT_LOG2(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)), 'replacing', indexE, 'with', indexK);
+    TRACE(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)), 'replacing', indexE, 'with', indexK);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      ASSERT_LOG2(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
+      TRACE(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
       ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
       let vK = force(indexK);
       if (vK === 0) E = domain_removeGtUnsafe(E, 0);
@@ -2888,12 +2888,12 @@ function cutter(ml, problem, once) {
   }
 
   function cutLoop() {
-    ASSERT_LOG2('\n#### - inner cutLoop');
+    TRACE('\n#### - inner cutLoop');
     pc = 0;
     while (pc < ml.length && !emptyDomain) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
+      TRACE(' -- CU pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
         case ML_EQ:
           return ml_throw(ml, pc, 'eqs should be aliased and eliminated');
@@ -2929,7 +2929,7 @@ function cutter(ml, problem, once) {
           break;
 
         case ML_ISNONE:
-          ASSERT_LOG2('(todo) none', pc);
+          TRACE('(todo) none', pc);
           let nlen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + nlen * 2 + 2;
           break;
@@ -2965,7 +2965,7 @@ function cutter(ml, problem, once) {
           break;
 
         case ML_PRODUCT:
-          ASSERT_LOG2('(todo) p', pc);
+          TRACE('(todo) p', pc);
           let plen = ml_dec16(ml, pc + 1);
           pc += SIZEOF_COUNT + plen * 2 + 2;
           break;
@@ -3024,10 +3024,10 @@ function cutter(ml, problem, once) {
       }
     }
     if (emptyDomain) {
-      ASSERT_LOG2('Ended up with an empty domain');
+      TRACE('Ended up with an empty domain');
       return;
     }
-    ASSERT_LOG2('the implicit end; ml desynced');
+    TRACE('the implicit end; ml desynced');
     THROW('ML OOB');
   }
 }

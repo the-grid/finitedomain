@@ -3,7 +3,7 @@ import {
   SUP,
 
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   ASSERT_NORDOM,
   THROW,
 } from './helpers';
@@ -40,7 +40,7 @@ import {
 const MAX_VAR_COUNT = 0xffff; // 16bit
 
 function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, name, domain, modifier, returnName, returnIndex) {
-  ASSERT_LOG2('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
+  TRACE('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
   if (modifier) THROW('implement me (var mod)');
   if (typeof name === 'number') {
     domain = name;
@@ -61,7 +61,7 @@ function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCount
   if (typeof name === 'string' || v < 0 || returnName) {
     if (name === undefined) {
       name = '__' + $getAnonCounter();
-      ASSERT_LOG2(' - Adding anonymous var for dom=', domain, '->', name);
+      TRACE(' - Adding anonymous var for dom=', domain, '->', name);
     }
 
     newIndex = $vars.length;
@@ -95,7 +95,7 @@ function $name2index($varTrie, $getAlias, name, skipAliasCheck, scanOnly) {
 }
 function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin, noSolveStack) {
   if ($aliases[indexOld] === indexNew) return; // ignore constant (re)assignments. we may want to handle this more efficiently in the future
-  ASSERT_LOG2(' - $addAlias' + (_origin ? ' (from ' + _origin + ')' : '') + ': Mapping index = ', indexOld, '(', domain__debug($domains[indexOld]), ') to index = ', indexNew, '(', indexNew >= $domains.length ? 'some constant' : domain__debug($domains[indexNew]), ')');
+  TRACE(' - $addAlias' + (_origin ? ' (from ' + _origin + ')' : '') + ': Mapping index = ', indexOld, '(', domain__debug($domains[indexOld]), ') to index = ', indexNew, '(', indexNew >= $domains.length ? 'some constant' : domain__debug($domains[indexNew]), ')');
   ASSERT(indexOld !== indexNew, 'cant make an alias for itself', indexOld, indexNew);
   ASSERT(indexOld >= 0 && indexOld <= $domains.length, 'should be valid non-constant var index', indexOld);
   ASSERT(indexNew >= 0, 'should be valid var index', indexNew);
@@ -110,9 +110,9 @@ function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin,
       // note: getDomain may pull from a different array than $domains!
       // note: indexes may be aliased since declaring this callback so either refresh them or dont pass true to getDomain
       let domain = getDomain(indexNew);
-      ASSERT_LOG2(' - $solveStack for $addAlias; ensuring', indexNew, 'and', indexOld, 'result in same value.');
-      ASSERT_LOG2('   - old domain:', domain__debug(oldDomain));
-      ASSERT_LOG2('   - new domain:', domain__debug(domain), domain_isSolved(domain) ? '' : 'forcing choice so we can be certain both vars have the same value');
+      TRACE(' - $solveStack for $addAlias; ensuring', indexNew, 'and', indexOld, 'result in same value.');
+      TRACE('   - old domain:', domain__debug(oldDomain));
+      TRACE('   - new domain:', domain__debug(domain), domain_isSolved(domain) ? '' : 'forcing choice so we can be certain both vars have the same value');
       // ensure both indexes end up with the same value, regardless of how the target is reduced
       // only way to do that is to make sure the var is solved (otherwise two different values could be picked from the solution...)
       let v = force(indexNew);
@@ -221,7 +221,7 @@ function problem_create() {
 }
 
 function problem_from(parentProblem) {
-  ASSERT_LOG2(' - problem_from(): sweeping parent and generating clean child problem');
+  TRACE(' - problem_from(): sweeping parent and generating clean child problem');
   let childProblem = problem_create(parentProblem._dsl);
 
   let parentMl = parentProblem.ml;
@@ -254,15 +254,15 @@ function problem_from(parentProblem) {
     ml.copy(childMl, childOffset, offset, offset + sizeof);
     childOffset += sizeof;
   });
-  ASSERT_LOG2('ML len:', len, 'parent content len:', (stopOffset - lastJumpSize === lastJumpOffset) ? lastJumpOffset + 1 : stopOffset, ', child content len:', childOffset);
+  TRACE('ML len:', len, 'parent content len:', (stopOffset - lastJumpSize === lastJumpOffset) ? lastJumpOffset + 1 : stopOffset, ', child content len:', childOffset);
   ASSERT(childMl[childOffset - 1] === ML_STOP, 'expecting last copied op to be a STOP', childOffset, childMl[childOffset - 1], childMl);
   if (childOffset < len) {
-    ASSERT_LOG2(' - there are', len - childOffset - 1, 'available bytes left, compiling a jump and moving the STOP back');
+    TRACE(' - there are', len - childOffset - 1, 'available bytes left, compiling a jump and moving the STOP back');
     ml_jump(childMl, childOffset - 1, len - childOffset);
     ml_enc8(childMl, len - 1, ML_STOP);
   }
-  ASSERT_LOG2('PML:', parentMl);
-  ASSERT_LOG2('CML:', childMl);
+  TRACE('PML:', parentMl);
+  TRACE('CML:', childMl);
   ASSERT(ml_validateSkeleton(childMl, 'after streaming to a child ml'));
 
   return childProblem;

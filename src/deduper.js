@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
 } from './helpers';
 
 import {
@@ -73,7 +73,7 @@ let __opCounter = 0;
 
 function deduper(ml, problem) {
   ++__runCounter;
-  ASSERT_LOG2('\n ## pr_dedupe', __runCounter, ml);
+  TRACE('\n ## pr_dedupe', __runCounter, ml);
 
   let getDomain = problem.getDomain;
   let setDomain = problem.setDomain;
@@ -119,9 +119,9 @@ function deduper(ml, problem) {
     let debugString = op + ':' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
 
     if (constraintHash[key] !== undefined) {
-      ASSERT_LOG2(' - _dedupePairAny; Found dupe constraint; eliminating the second one');
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - _dedupePairAny; Found dupe constraint; eliminating the second one');
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, SIZEOF_VV);
       return;
     }
@@ -164,9 +164,9 @@ function deduper(ml, problem) {
     let index = constraintHash[key];
     if (index !== undefined) {
       index = getAlias(index);
-      ASSERT_LOG2(' - _dedupeTripAny; Found dupe constraint; eliminating the second one, aliasing', indexR, 'to', index);
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - _dedupeTripAny; Found dupe constraint; eliminating the second one, aliasing', indexR, 'to', index);
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, SIZEOF_VVV);
       if (indexR !== index) {
         let R = domain_intersection(getDomain(indexR, true), getDomain(index, true));
@@ -234,11 +234,11 @@ function deduper(ml, problem) {
     let key = op + ':' + indexR + '=' + indexA + ',' + indexB;
     let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + domain__debug(getDomain(indexA, true)) + ',' + domain__debug(getDomain(indexB, true));
 
-    ASSERT_LOG2('   - key=', key, ';', constraintHash[key] !== undefined);
+    TRACE('   - key=', key, ';', constraintHash[key] !== undefined);
     if (constraintHash[key] !== undefined) {
-      ASSERT_LOG2(' - dedupeReifierTripU; Found dupe constraint; eliminating the second one');
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - dedupeReifierTripU; Found dupe constraint; eliminating the second one');
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, SIZEOF_VVV);
       return;
     }
@@ -248,7 +248,7 @@ function deduper(ml, problem) {
 
     let R = getDomain(indexR, true);
     let safeR = !domain_hasNoZero(R) && domain_size(R) <= 2;
-    ASSERT_LOG2('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
+    TRACE('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
     if (safeR) {
       // okay R has only two values and one of them is zero
       // try to match the arg constraints only. if we find a dupe with
@@ -260,14 +260,14 @@ function deduper(ml, problem) {
       // while R may not look it, it still represents a unique domain so we can use the
       // encoded value as is here. wrap it to prevent clashes with indexes and numdoms
       let key2 = op + ':[' + R + ']' + '=' + indexA + ',' + indexB;
-      ASSERT_LOG2('   - key2:', key2);
+      TRACE('   - key2:', key2);
 
       let index = constraintHash[key2];
       if (index !== undefined) {
         index = getAlias(index);
-        ASSERT_LOG2(' - _dedupeTripAny; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
-        ASSERT_LOG2('    - #1:', debugHash[key2]);
-        ASSERT_LOG2('    - #2:', debugString);
+        TRACE(' - _dedupeTripAny; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+        TRACE('    - #1:', debugHash[key2]);
+        TRACE('    - #2:', debugString);
         ml_eliminate(ml, pc, SIZEOF_VVV);
         ASSERT(indexR !== index, 'this case should have been caught by the other deduper');
         ASSERT(getDomain(indexR) === getDomain(index), 'should have already asserted that these two domains have only two values, a zero and a non-zero, and that they are equal');
@@ -317,11 +317,11 @@ function deduper(ml, problem) {
     let key = op + ':' + indexR + '=' + args;
     let debugString = op + ':' + domain__debug(getDomain(indexR, true)) + '=' + debugArgs;
 
-    ASSERT_LOG2('   - key=', key, ';', constraintHash[key] !== undefined);
+    TRACE('   - key=', key, ';', constraintHash[key] !== undefined);
     if (constraintHash[key] !== undefined) {
-      ASSERT_LOG2(' - dedupeBoolyList; Found dupe constraint; eliminating the second one');
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - dedupeBoolyList; Found dupe constraint; eliminating the second one');
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, opSize);
       return;
     }
@@ -331,7 +331,7 @@ function deduper(ml, problem) {
 
     let R = getDomain(indexR, true);
     let safeR = !domain_hasNoZero(R) && domain_size(R) === 2; // dont do <=2 because [0 0] is a constant and irrelevant here (and also caught by the above check, anyways)
-    ASSERT_LOG2('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
+    TRACE('   - R:', domain__debug(R), ', size=', domain_size(R), ', has zero:', !domain_hasNoZero(R), '--> is safe?', safeR);
     if (safeR) {
       // okay R has only two values and one of them is zero
       // try to match the arg constraints only. if we find a dupe with
@@ -343,14 +343,14 @@ function deduper(ml, problem) {
       // while R may not look it, it still represents a unique domain so we can use the
       // encoded value as is here. wrap it to prevent clashes with indexes and numdoms
       let key2 = op + ':[' + R + ']' + '=' + args;
-      ASSERT_LOG2('   - key2:', key2);
+      TRACE('   - key2:', key2);
 
       let index = constraintHash[key2];
       if (index !== undefined) {
         index = getAlias(index);
-        ASSERT_LOG2(' - dedupeBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
-        ASSERT_LOG2('    - #1:', debugHash[key2]);
-        ASSERT_LOG2('    - #2:', debugString);
+        TRACE(' - dedupeBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+        TRACE('    - #1:', debugHash[key2]);
+        TRACE('    - #2:', debugString);
         ml_eliminate(ml, pc, opSize);
         ASSERT(indexR !== index, 'this case should have been caught by the other deduper');
         ASSERT(getDomain(indexR) === getDomain(index), 'should have already asserted that these two domains have only two values, a zero and a non-zero, and that they are equal');
@@ -393,9 +393,9 @@ function deduper(ml, problem) {
     let index = constraintHash[key];
     if (index !== undefined) {
       index = getAlias(index);
-      ASSERT_LOG2(' - dedupeNonBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - dedupeNonBoolyList; Found dupe reifier; eliminating the second one, aliasing', indexR, 'to', index);
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, opSize);
       if (indexR !== index) { // R = A <=? A (artifact)
         let domain = domain_intersection(getDomain(index, true), getDomain(indexR, true));
@@ -433,9 +433,9 @@ function deduper(ml, problem) {
     let debugString = op + ':' + debugArgs;
 
     if (constraintHash[key] !== undefined) {
-      ASSERT_LOG2(' - dedupeVoidList; Found dupe constraint; eliminating the second one');
-      ASSERT_LOG2('    - #1:', debugHash[key]);
-      ASSERT_LOG2('    - #2:', debugString);
+      TRACE(' - dedupeVoidList; Found dupe constraint; eliminating the second one');
+      TRACE('    - #1:', debugHash[key]);
+      TRACE('    - #2:', debugString);
       ml_eliminate(ml, pc, opSize);
       return;
     }
@@ -447,7 +447,7 @@ function deduper(ml, problem) {
   }
 
   function dedupeInvIseqIsneq(op) {
-    ASSERT_LOG2(' - dedupeInvIseqIsneq;', op);
+    TRACE(' - dedupeInvIseqIsneq;', op);
     // looking for this pattern:
     // : X [2 3]
     // R = X ==? 2
@@ -470,13 +470,13 @@ function deduper(ml, problem) {
 
     // verify fingerprint
     if (domain_size(A) !== 2) {
-      ASSERT_LOG2(' - size(A) != 2, bailing');
+      TRACE(' - size(A) != 2, bailing');
       return false;
     }
 
     let vB = domain_getValue(B);
     if (vB < 0 || !domain_containsValue(A, vB)) {
-      ASSERT_LOG2(' - B wasnt a constant or A didnt contain B, bailing');
+      TRACE(' - B wasnt a constant or A didnt contain B, bailing');
       return false;
     }
 
@@ -495,8 +495,8 @@ function deduper(ml, problem) {
     let indexS = constraintHash[key];
     if (indexS === undefined) {
       let thisKey = op + ':' + indexA + ',' + indexB;
-      ASSERT_LOG2(' - opposite for ' + op + ' (' + invOp + ') doesnt exist, adding this key then bailing');
-      ASSERT_LOG2(' - checked for key=', key, ', now adding key:', thisKey);
+      TRACE(' - opposite for ' + op + ' (' + invOp + ') doesnt exist, adding this key then bailing');
+      TRACE(' - checked for key=', key, ', now adding key:', thisKey);
 
       constraintHash[thisKey] = indexR;
       debugHash[thisKey] = debugString;
@@ -504,18 +504,18 @@ function deduper(ml, problem) {
       return false;
     }
 
-    ASSERT_LOG2(' - found the opposite of this constraint;');
-    ASSERT_LOG2('    - #1:', debugHash[key]);
-    ASSERT_LOG2('    - #2:', debugString);
-    ASSERT_LOG2(' - indexR !^ indexS, and perhaps indexR == indexS, check that case first');
+    TRACE(' - found the opposite of this constraint;');
+    TRACE('    - #1:', debugHash[key]);
+    TRACE('    - #2:', debugString);
+    TRACE(' - indexR !^ indexS, and perhaps indexR == indexS, check that case first');
 
     let R = getDomain(indexR, true);
     if (domain_size(R) === 2 && !domain_hasNoZero(R) && R === getDomain(indexS, true)) {
-      ASSERT_LOG2(' - indexR == indexS because', domain__debug(R), 'has two elements, one of them zero, and R==S');
+      TRACE(' - indexR == indexS because', domain__debug(R), 'has two elements, one of them zero, and R==S');
       addAlias(indexR, indexS);
       ml_eliminate(ml, pc, SIZEOF_VVV);
     } else {
-      ASSERT_LOG2(' - indexR !^ indexS because R=', domain__debug(R), ', S=', domain__debug(getDomain(indexS, true)), '; R may still end up with a different value from S');
+      TRACE(' - indexR !^ indexS because R=', domain__debug(R), ', S=', domain__debug(getDomain(indexS, true)), '; R may still end up with a different value from S');
       ml_vvv2vv(ml, pc, ML_XNOR, indexR, indexS);
     }
 
@@ -527,7 +527,7 @@ function deduper(ml, problem) {
     while (pc < ml.length && !emptyDomain) {
       ++__opCounter;
       let op = ml[pc];
-      ASSERT_LOG2(' -- DD pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem, true));
+      TRACE(' -- DD pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem, true));
       switch (op) {
 
         case ML_EQ:

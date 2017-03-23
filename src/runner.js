@@ -12,7 +12,7 @@ import {
   $STABLE,
 
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 import {
@@ -72,7 +72,7 @@ function solverSolver(dsl, Solver, options = {}) {
 
   console.log('<solverSolver>');
   console.time('</solverSolver>');
-  ASSERT_LOG2(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
+  TRACE(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
   let problem = problem_create();
   // you can destructure it but this way is much easier to grep for usages... let the minifier minify it
@@ -98,7 +98,7 @@ function solverSolver(dsl, Solver, options = {}) {
 
     state = min_run(mlConstraints, problem, domains, varNames, true, !repeatUntilStable);
     console.timeEnd('- first minimizer cycle (single loop)');
-    ASSERT_LOG2('First minimize pass result:', state);
+    TRACE('First minimize pass result:', state);
 
     if (state !== $REJECTED) {
       console.time('- deduper cycle #');
@@ -115,7 +115,7 @@ function solverSolver(dsl, Solver, options = {}) {
     let runLoops = 0;
     console.time('- all run cycles');
     do {
-      ASSERT_LOG2('run loop...');
+      TRACE('run loop...');
       state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
     } while (state === $CHANGED);
     console.timeEnd('- all run cycles');
@@ -143,7 +143,7 @@ function solverSolver(dsl, Solver, options = {}) {
   }
   if (state === $REJECTED) {
     console.error('<rejected without finitedomain>');
-    ASSERT_LOG2('problem rejected!');
+    TRACE('problem rejected!');
     return false;
   }
 
@@ -183,7 +183,7 @@ function solverSolver(dsl, Solver, options = {}) {
   let fdsolution = fdsolutions[0];
   console.log('fd result:', fdsolution ? 'SOLVED' : 'REJECTED');
 
-  ASSERT_LOG2('fdsolution = ', fdsolution ? Object.keys(fdsolution).length > 100 ? '<supressed; too big>' : fdsolution : 'REJECT');
+  TRACE('fdsolution = ', fdsolution ? Object.keys(fdsolution).length > 100 ? '<supressed; too big>' : fdsolution : 'REJECT');
 
   if (fdsolution && fdsolution) {
     console.error('<solved after finitedomain>');
@@ -191,7 +191,7 @@ function solverSolver(dsl, Solver, options = {}) {
   }
 
   console.error('<rejected after finitedomain>');
-  ASSERT_LOG2('problem rejected!');
+  TRACE('problem rejected!');
   return false;
 }
 let Solver = solverSolver; // TEMP
@@ -272,19 +272,19 @@ function createSolution(problem, fdsolution, options) {
     ASSERT(domain !== false, 'should fetch "final" domains');
     let v = domain_getValue(domain);
     if (v < 0) {
-      ASSERT_LOG2('   - forcing index', varIndex, '(final index=', finalVarIndex, ') to min(' + domain__debug(domain) + '):', domain_min(domain));
+      TRACE('   - forcing index', varIndex, '(final index=', finalVarIndex, ') to min(' + domain__debug(domain) + '):', domain_min(domain));
       v = domain_min(domain); // arbitrary choice, will want to take strats into account in the future
       setDomain(varIndex, domain_createValue(v), true);
     }
     return v;
   }
 
-  ASSERT_LOG2('\n# createSolution(), solveStack.length=', solveStack.length, ', using fdsolution:', !!fdsolution);
-  ASSERT_LOG2(domains.length > 50 ? '' : 'domains:\n' + domains.map((d, i) => '  ' + i + ': ' + domain__debug(d) + ' -> ' + (hashNames ? '$' + i.toString(36) + '$' : varNames[i]) + (fdsolution ? ': ' + fdsolution[(hashNames ? '$' + i.toString(36) + '$' : varNames[i])] : '?')).join('\n'));
+  TRACE('\n# createSolution(), solveStack.length=', solveStack.length, ', using fdsolution:', !!fdsolution);
+  TRACE(domains.length > 50 ? '' : 'domains:\n' + domains.map((d, i) => '  ' + i + ': ' + domain__debug(d) + ' -> ' + (hashNames ? '$' + i.toString(36) + '$' : varNames[i]) + (fdsolution ? ': ' + fdsolution[(hashNames ? '$' + i.toString(36) + '$' : varNames[i])] : '?')).join('\n'));
   let solution = {};
   solveStack.reverse().forEach(f => f(domains, force, getDomain, setDomain));
-  ASSERT_LOG2('domains array:', domains.slice(0, 20).map(domain__debug).join(' '), domains.length > 20 ? '(skipping the rest...)' : '');
-  ASSERT_LOG2('mapped domains:', domains.slice(0, 20).map((d, i) => domain__debug(getDomain(i))).join(' '), domains.length > 20 ? '(skipping the rest...)' : '');
+  TRACE('domains array:', domains.slice(0, 20).map(domain__debug).join(' '), domains.length > 20 ? '(skipping the rest...)' : '');
+  TRACE('mapped domains:', domains.slice(0, 20).map((d, i) => domain__debug(getDomain(i))).join(' '), domains.length > 20 ? '(skipping the rest...)' : '');
   varNames.forEach((name, index) => {
     let d = getDomain(index);
     let v = domain_getValue(d);
@@ -293,7 +293,7 @@ function createSolution(problem, fdsolution, options) {
     solution[name] = d;
   });
   console.timeEnd('createSolution()');
-  ASSERT_LOG2(' -> createSolution results in:', domains.length > 100 ? '<supressed; too many vars (' + domains.length + ')>' : solution);
+  TRACE(' -> createSolution results in:', domains.length > 100 ? '<supressed; too many vars (' + domains.length + ')>' : solution);
   return solution;
 }
 

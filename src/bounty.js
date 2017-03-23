@@ -1,6 +1,6 @@
 import {
   ASSERT,
-  ASSERT_LOG2,
+  TRACE,
   THROW,
 } from './helpers';
 
@@ -101,7 +101,7 @@ const BOUNTY_SIZEOF_VAR = BOUNTY_SIZEOF_HEADER + BOUNTY_SIZEOF_OFFSETS;
  * @param {Buffer} [bounty]
  */
 function bounty_collect(ml, problem, bounty) {
-  ASSERT_LOG2('\n ## bounty_collect', ml);
+  TRACE('\n ## bounty_collect', ml);
 
   let varNames = problem.varNames;
   let varCount = varNames.length;
@@ -118,7 +118,7 @@ function bounty_collect(ml, problem, bounty) {
 
   bountyLoop();
 
-  ASSERT_LOG2(` - There are ${getDeadCount(bounty)} dead vars, ${getLeafCount(bounty)} leaf vars, full distribution: ${getOccurrenceCount(bounty)} other vars`);
+  TRACE(` - There are ${getDeadCount(bounty)} dead vars, ${getLeafCount(bounty)} leaf vars, full distribution: ${getOccurrenceCount(bounty)} other vars`);
 
   return bounty;
 
@@ -131,7 +131,7 @@ function bounty_collect(ml, problem, bounty) {
   }
 
   function collect(delta, metaFlags) {
-    ASSERT_LOG2('collect(', delta, ',', bounty__debugMeta(metaFlags), ')');
+    TRACE('collect(', delta, ',', bounty__debugMeta(metaFlags), ')');
     ASSERT(typeof delta === 'number' && delta > 0, 'delta should be >0 number', delta);
     ASSERT(typeof metaFlags === 'number' && metaFlags > 0, 'at least one metaFlags should be passed on', metaFlags, metaFlags.toString(2));
 
@@ -141,7 +141,7 @@ function bounty_collect(ml, problem, bounty) {
     ASSERT(!isNaN(index) && index >= 0 && index <= 0xffff, 'should be a valid index', index);
 
     let domain = getDomain(index, true);
-    ASSERT_LOG2(' - index=', index, 'domain=', domain__debug(domain));
+    TRACE(' - index=', index, 'domain=', domain__debug(domain));
     if (domain_getValue(domain) >= 0) return; // ignore all constants. solved vars and constants are not relevant to bounty
 
     let varOffset = getBountyOffset(index);
@@ -152,15 +152,15 @@ function bounty_collect(ml, problem, bounty) {
     ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
     let currentFlags = bounty.readUInt16BE(flagsOffset);
 
-    ASSERT_LOG2(' >> collecting for index=', index, ' -> count now:', bounty[varOffset], 'flags:', bounty__debugMeta(currentFlags), '|=', bounty__debugMeta(metaFlags), ' -> ', bounty__debugMeta(currentFlags | metaFlags), 'from', flagsOffset, 'domain:', domain__debug(domain));
+    TRACE(' >> collecting for index=', index, ' -> count now:', bounty[varOffset], 'flags:', bounty__debugMeta(currentFlags), '|=', bounty__debugMeta(metaFlags), ' -> ', bounty__debugMeta(currentFlags | metaFlags), 'from', flagsOffset, 'domain:', domain__debug(domain));
 
     if (countIndex < BOUNTY_MAX_OFFSETS_TO_TRACK) {
       let offsetsOffset = getOffsetsOffset(index);
       let nextOffset = offsetsOffset + countIndex * BOUNTY_BYTES_PER_OFFSET;
-      ASSERT_LOG2(' - tracking offset; countIndex=', countIndex, ', putting offset at', nextOffset);
+      TRACE(' - tracking offset; countIndex=', countIndex, ', putting offset at', nextOffset);
       bounty.writeUInt32BE(pc, nextOffset);
     } else {
-      ASSERT_LOG2(' - unable to track offset; countIndex beyond max;', countIndex, '>', BOUNTY_MAX_OFFSETS_TO_TRACK);
+      TRACE(' - unable to track offset; countIndex beyond max;', countIndex, '>', BOUNTY_MAX_OFFSETS_TO_TRACK);
     }
 
     ASSERT(BOUNTY_META_FLAGS === 16, 'update code if this changes');
@@ -169,11 +169,11 @@ function bounty_collect(ml, problem, bounty) {
 
   function bountyLoop() {
     pc = 0;
-    ASSERT_LOG2(' - bountyLoop');
+    TRACE(' - bountyLoop');
     while (pc < ml.length) {
       let pcStart = pc;
       let op = ml[pc];
-      ASSERT_LOG2(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
+      TRACE(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
         case ML_EQ:
           THROW('this should really already have been aliased elsewhere');
@@ -393,7 +393,7 @@ function bounty_getCounts(bounty, varIndex) {
 
 function bounty_markVar(bounty, varIndex) {
   // until next loop, ignore this var (need to refresh bounty data)
-  ASSERT_LOG2(' - bounty_markVar', varIndex);
+  TRACE(' - bounty_markVar', varIndex);
   bounty[varIndex * BOUNTY_SIZEOF_VAR] = 0;
 }
 

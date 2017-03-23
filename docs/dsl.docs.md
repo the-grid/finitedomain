@@ -53,10 +53,12 @@ You can declare variables explicitly by opening with a colon, then followed by o
 : A [0 10]
 : A, B [0 1]
 : A [0 1] alias(foo)
-: A [0 1] strat(min)
+: A [0 10] @list prio(4 2 8)
 ```
 
-Note that certain modifiers like `alias()` only work with on variable at the same time. Declaring `: A, B [0 1]` does NOT alias `A` and `B` but declares two individual vars.
+Note that certain modifiers like `alias()` only work with on variable at the same time. 
+
+Declaring several vars with one declaration like `: A, B [0 1]` does NOT alias `A` and `B` but declares two individual vars with initially the same domain.
 
 You can use an actual domain, a star, and a literal to initialize the variables.
 
@@ -76,7 +78,7 @@ With `alias()`, which takes an arbitrary number of identifiers, you can associat
 
 ### Strategies
 
-You can declare several variable strategies by applying their particular modifier. Only the last modifier is used. Modifiers start with an `@`. Some modifiers have additional data to follow in any order.
+You can declare several variable strategies by applying their particular modifier. Only the last modifier is used. Strategy modifiers start with an `@`. Some modifiers have additional data to follow in any order.
 
 These are the modifiers that don't have any args and just appear as keywords:
 
@@ -96,7 +98,7 @@ There is also `list`, which is an ordered list of values to choose when forcing.
 : A [0 10] @list prio(5 8 3 1 2)
 ```
 
-The last one is `markov`, which is a complex type that is used "as is". Markov strategies allow you to implement certain probabilistic ways of determining the next value when forcing. The actual value is defined elsewhere. The dsl simply supports accepting a JSON which is deserialized and used as is. Additionally there are three more parameter keywords to define other parameters of the markov strat: `matrix`, `legend`, and `expand`.
+The last one is `markov`, which is a complex type that is used "as is". Markov strategies allow you to implement certain probabilistic ways of determining the next value when forcing. The actual value is defined elsewhere. The dsl simply supports accepting a JSON which is deserialized and used as is. Additionally there are three more modifier parameters to define specific parameters of the markov strat: `matrix`, `legend`, and `expand`.
 
 Note that `matrix` is not thoroughly parsed but rather `eval`ed and its result used as is. This makes the whole thing "unsafe" from untrusted sources. The only way around that is to be more explicit about the payload which was a bit beyond the scope of this dsl.
 
@@ -120,7 +122,8 @@ This is a shorthand way that declares all the markov things at once.
 A constraint is a condition that must be held between two or more domains once they are reduced to a single value. This is slightly different from regular programming.
 
 ```
-A <= B            # whatever value A ends up being, it must be lesser than or equal to B and if that's impossible the problem rejects as a whole
+A <= B            # whatever value A ends up being, it must be lesser than or equal
+                  # to B and if that's impossible the problem rejects as a whole
 ```
 
 ## Strict and boolean equality
@@ -294,10 +297,16 @@ Of the four, this is the most devastating in terms of being lossy. Obviously fin
 
 ```
 R = 5 / 4      # empty domain because 5/4=1.25
-R = [4 5] / 4  # R=1 because 4/4=1 and 5/4=1.25, but the fraction is dropped so the result is [1 1]
+R = [4 5] / 4  # R=1 because 4/4=1 and 5/4=1.25, but the fraction is 
+               # dropped so the result is [1 1]
 ```
 
 Additionally, divisions by zero are suppressed and their result also removed. They should not throw an error or cause rejections.
+
+```
+R = 4 / [0 3]  # R = [2 2 4 4] because 4/0 is dropped, 4/1=4, 4/2=2, 
+               # and 4/3 is a fraction and dropped 
+```
 
 ## sum (`sum(...)`)
 
@@ -349,7 +358,7 @@ A distinct is a pyramid of neq constraints.
 distinct(A B C D)
 ```
 
-This constraints generates an factorial number of constraints (`n!`) because it has to do an neq between every unique argument.
+This constraints generates an factorial number of constraints (`(n-1)!`) because it has to do an neq between every unique argument.
 
 ```
 distinct(A B C D)
@@ -432,7 +441,7 @@ nall(A B C D)    # A=0 or B=0 or C=0 or D=0
 
 A reifier is a constraint that reflects the state of a constraint between two or more variables, rather than enforcing the actual constraint.
 
-Keep in mind that the reifier does act as a constraint once the result is resolved. So if an `==?` reifier has a result that solves to `0`, the reifier will enforce the opposite of `==?` to the arguments.
+Keep in mind that the reifier does act as a constraint once the outcome is determined. So if an `==?` reifier has a result that solves to `0`, the reifier will enforce the opposite of `==?` to the arguments.
 
 The reifiers all end with a question mark, even the ones that take a list.
 

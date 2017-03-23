@@ -65,3 +65,7 @@ Note that both `./build` and `./dist` are cleared at the start of almost every (
 - `npm run lint`: run eslint with dist config (slightly stricter than dev). Exits non-zero if it fails.
 - `npm run lintdev`: run eslint with dev config (allows `console.log`, `debugger`, etc). No non-zero exit for failures.
 - `npm run lintfix`: runs eslint in the fix mode
+
+## DSL
+
+The library supports a DSL that is solidified right now. You can read up on it in [docs/dsl.docs.md](docs/dsl.docs.md).

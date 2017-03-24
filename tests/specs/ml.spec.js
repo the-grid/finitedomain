@@ -1,5 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 import {
   ML_LTE,
   ML_JMP,
@@ -19,7 +19,7 @@ describe('specs/ml.spec', function() {
 
     function test(A, B, r) {
       it(`should work: ${A} & ${B} = ${JSON.stringify(r)}`, function() {
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A ${A}
           : B ${B}
@@ -50,7 +50,7 @@ describe('specs/ml.spec', function() {
 
     function test(A, B, r) {
       it(`should work: ${A} | ${B} = ${JSON.stringify(r)}`, function() {
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A ${A}
           : B ${B}
@@ -81,7 +81,7 @@ describe('specs/ml.spec', function() {
 
     function test(A, B, r) {
       it(`should work: ${A} ^ ${B} = ${JSON.stringify(r)}`, function() {
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A ${A}
           : B ${B}
@@ -112,7 +112,7 @@ describe('specs/ml.spec', function() {
 
     function test(A, B, r) {
       it(`should work: ${A} !& ${B} = ${JSON.stringify(r)}`, function() {
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A ${A}
           : B ${B}
@@ -143,7 +143,7 @@ describe('specs/ml.spec', function() {
 
     function test(A, B, r) {
       it(`should work: ${A} !^ ${B} = ${JSON.stringify(r)}`, function() {
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A ${A}
           : B ${B}
@@ -171,7 +171,7 @@ describe('specs/ml.spec', function() {
   });
 
   it('should parse literals in the math ops', function() {
-    let solution = solverSolver(`
+    let solution = preSolver(`
       @custom var-strat throw
       : A [0 1]
       : B [0 1]
@@ -220,7 +220,7 @@ describe('specs/ml.spec', function() {
   describe('regular assignment', function() {
 
     it('regression; parser was blackholing literal assignments', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : C [1 2]
@@ -232,7 +232,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('regression; parser was blackholing regular assignments', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 10]
         : C 2
@@ -243,7 +243,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should not ignore unsolvable sum assignment', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 10]
         A = sum(1 2 3 20)
@@ -253,7 +253,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should not ignore solvable sum assignment', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 50]
         A = sum(1 2 3 20)
@@ -266,7 +266,7 @@ describe('specs/ml.spec', function() {
   describe('all nall', function() {
 
     it('should support nall', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -276,7 +276,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should support isall', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -289,7 +289,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should support isnall', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -305,7 +305,7 @@ describe('specs/ml.spec', function() {
   describe('eq reifier with booleanesque', function() {
 
     it('should work when result is bool (C=0)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [15 20]
@@ -317,7 +317,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is bool (C=1)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]
@@ -329,7 +329,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [0 10] (C=0)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [15 20]
@@ -341,7 +341,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [0 10] (C=1)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]
@@ -353,7 +353,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is two values without 1 (C=0)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [15 20]
@@ -365,7 +365,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is two values without 1 (C=4)', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]
@@ -377,7 +377,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [0 0] v1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [15 20]
@@ -389,7 +389,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [0 0] v2', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]
@@ -401,7 +401,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [1 10] v1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 16]
         : B [15 20]
@@ -413,7 +413,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [1 10] v2', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]
@@ -425,7 +425,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [5 10] v1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 16]
         : B [15 20]
@@ -437,7 +437,7 @@ describe('specs/ml.spec', function() {
     });
 
     it('should work when result is [5 10] v2', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 10]
         : B [5 10]

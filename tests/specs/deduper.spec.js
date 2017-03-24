@@ -1,10 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 
 describe('specs/deduper.spec', function() {
 
   it('should remove duplicate constraints', function() {
-    expect(_ => solverSolver(`
+    expect(_ => preSolver(`
       @custom var-strat throw
       : A [0 1]
       : B [0 1]
@@ -18,7 +18,7 @@ describe('specs/deduper.spec', function() {
 
     function test(op, name) {
       it('should work with [' + op + ']', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           A ${op} B
           A ${op} B
@@ -38,7 +38,7 @@ describe('specs/deduper.spec', function() {
     test('!&', 'nand');
 
     it('should work with [==]', function() {
-      expect(solverSolver(`
+      expect(preSolver(`
         : A, B [0 10]
         A == B
         A == B
@@ -49,7 +49,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should work with [&]', function() {
-      expect(solverSolver(`
+      expect(preSolver(`
         : A, B [0 10]
         A & B
         A & B
@@ -64,7 +64,7 @@ describe('specs/deduper.spec', function() {
 
     function test1(op, name) {
       it('should work with [' + op + '] on same R', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R *
           R = A ${op} B
@@ -76,7 +76,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on identical R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R, S *
           R = A ${op} B
@@ -88,7 +88,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on partially overlapping R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R [5, 15]
           : S [15, 30]
@@ -101,7 +101,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should reject with [' + op + '] on distinct R and S', function() {
-        expect(solverSolver(`
+        expect(preSolver(`
           : A, B [0 10]
           : R [5, 10]
           : S [20, 30]
@@ -119,7 +119,7 @@ describe('specs/deduper.spec', function() {
 
     function test2(op, name) {
       it('should work with [' + op + '] on same R', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 100]
           : R *
           R = A ${op} B
@@ -131,7 +131,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on identical R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 100]
           : R, S *
           R = A ${op} B
@@ -143,7 +143,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on partially overlapping R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 100]
           : R [5, 15]
           : S [15, 30]
@@ -156,7 +156,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should reject with [' + op + '] on distinct R and S', function() {
-        expect(solverSolver(`
+        expect(preSolver(`
           : A, B [0 100]
           : R [5, 10]
           : S [20, 30]
@@ -177,7 +177,7 @@ describe('specs/deduper.spec', function() {
 
     function test(op, name) {
       it('should work with [' + op + '] on same R', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R *
           R = A ${op} B
@@ -189,7 +189,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not work with [' + op + '] on wide R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R, S *
           R = A ${op} B
@@ -201,7 +201,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on identical size=2 booly R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R, S [0 0 50 50]
           R = A ${op} B
@@ -213,7 +213,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on identical bool R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R, S [0 1]
           R = A ${op} B
@@ -225,7 +225,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not work with [' + op + '] on size=2 different booly R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R [0 0 20 20]
           : S [0 0 21 21]
@@ -253,22 +253,22 @@ describe('specs/deduper.spec', function() {
           case 'iseq':
             // since R and S are truthy it morphs the iseq to eq which turns into
             // an alias. the problem basically just implodes :)
-            expect(solverSolver(dsl)).to.eql({A: 0, B: 0, R: [1, 2], S: [1, 2]});
+            expect(preSolver(dsl)).to.eql({A: 0, B: 0, R: [1, 2], S: [1, 2]});
             break;
           case 'isneq':
             // since R and S are truthy, minimizer will morph them both to identical
             // neqs. deduper will dedupe one of them and needs cutter to solve other
-            expect(_ => solverSolver(dsl)).to.throw('ops: neq #');
+            expect(_ => preSolver(dsl)).to.throw('ops: neq #');
             break;
           case 'islt':
             // since R and S are truthy, minimizer will morph them both to identical
             // lts. deduper will dedupe one of them and needs cutter to solve other
-            expect(_ => solverSolver(dsl)).to.throw('ops: lt #');
+            expect(_ => preSolver(dsl)).to.throw('ops: lt #');
             break;
           case 'islte':
             // since R and S are truthy, minimizer will morph them both to identical
             // ltes. deduper will dedupe one of them and needs cutter to solve other
-            expect(_ => solverSolver(dsl)).to.throw('ops: lte #');
+            expect(_ => preSolver(dsl)).to.throw('ops: lte #');
             break;
           default:
             throw new Error('no [' + op + ']');
@@ -291,19 +291,19 @@ describe('specs/deduper.spec', function() {
           case 'iseq':
             // ok; since S is truthy, it will rewrite the second iseq to an eq which will alias A to B
             // since A == B, R must be truthy and the whole thing solves without the deduper helping
-            expect(solverSolver(dsl)).to.eql({A: 0, B: 0, R: 1, S: [1, 2]});
+            expect(preSolver(dsl)).to.eql({A: 0, B: 0, R: 1, S: [1, 2]});
             break;
           case 'isneq':
             // since S is truthy, it will rewrite the second iseq to an neq
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},neq #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},neq #`);
             break;
           case 'islt':
             // since S is truthy, it will rewrite the second islt to an lt
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},lt #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},lt #`);
             break;
           case 'islte':
             // since S is truthy, it will rewrite the second islte to an lte
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},lte #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},lte #`);
             break;
           default:
             throw new Error('no [' + op + ']');
@@ -326,19 +326,19 @@ describe('specs/deduper.spec', function() {
           case 'iseq':
             // ok; since R is truthy, it will rewrite the first iseq to an eq which will alias A to B
             // since A == B, S must be truthy and the whole thing solves without the deduper helping
-            expect(solverSolver(dsl)).to.eql({A: 0, B: 0, R: [1, 2], S: 1});
+            expect(preSolver(dsl)).to.eql({A: 0, B: 0, R: [1, 2], S: 1});
             break;
           case 'isneq':
             // since R is truthy, it will rewrite the first iseq to an neq
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},neq #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},neq #`);
             break;
           case 'islt':
             // since R is truthy, it will rewrite the first islt to an lt
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},lt #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},lt #`);
             break;
           case 'islte':
             // since R is truthy, it will rewrite the first islte to an lte
-            expect(_ => solverSolver(dsl)).to.throw(`ops: ${name},lte #`);
+            expect(_ => preSolver(dsl)).to.throw(`ops: ${name},lte #`);
             break;
           default:
             throw new Error('no [' + op + ']');
@@ -346,7 +346,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not work with [' + op + '] on partially overlapping R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B [0 10]
           : R [0 0 5, 15]
           : S [0 0 15, 30]
@@ -360,7 +360,7 @@ describe('specs/deduper.spec', function() {
 
       // while theoretically possible to dedupe this case, it's just not practical, and so we can't
       it.skip('should dedupe as zero with [' + op + '] on R and S that only share a zero', function() {
-        expect(solverSolver(`
+        expect(preSolver(`
           : A, B [0 10]
           : R [0 0 5, 10]
           : S [0 0 20, 30]
@@ -383,7 +383,7 @@ describe('specs/deduper.spec', function() {
 
     function test(op, name) {
       it('should work with [' + op + '] and a plain dupe R', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           : R [0 1]
           R = ${op}(A B C D)
@@ -395,7 +395,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on bool R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           : R, S [0 1]
           R = ${op}(A B C D)
@@ -407,7 +407,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not work with [' + op + '] on different R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           : R [0 0 5 5]
           : S [0 0 6 6]
@@ -429,7 +429,7 @@ describe('specs/deduper.spec', function() {
 
     function test(op) {
       it('should work with [' + op + '] and a plain dupe R', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           : R [0 1000]
           R = ${op}(A B C D)
@@ -441,7 +441,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] on bool R and S', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           : R, S [0 1000]
           R = ${op}(A B C D)
@@ -467,11 +467,11 @@ describe('specs/deduper.spec', function() {
         // R and S are made aliases, meaning they can only end up 0 or empty
         // when R is 0, all sum args must be 0 as well and the whole thing
         // collapses to solve with zeroes
-        if (op === 'sum') expect(solverSolver(dsl)).to.eql({A: 0, B: 0, C: 0, D: 0, R: 0, S: 0});
+        if (op === 'sum') expect(preSolver(dsl)).to.eql({A: 0, B: 0, C: 0, D: 0, R: 0, S: 0});
         // R and S are made aliases, meaning they can only end up 0 or empty
         // with R=0, the product is optimized to a simpler nall() (since at
         // least one of the ops has to be zero for the product to be zero)
-        else expect(_ => solverSolver(dsl)).to.throw('ops: nall #');
+        else expect(_ => preSolver(dsl)).to.throw('ops: nall #');
       });
     }
 
@@ -483,7 +483,7 @@ describe('specs/deduper.spec', function() {
 
     function test(op) {
       it('should work with [' + op + '] already ordered', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           ${op}(A B C D)
           ${op}(A B C D)
@@ -494,7 +494,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should work with [' + op + '] in any order', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           : A, B, C, D [0 10]
           ${op}(B A C D)
           ${op}(A B C D)
@@ -511,7 +511,7 @@ describe('specs/deduper.spec', function() {
   });
 
   it('should detect swapped duplicate constraints', function() {
-    expect(_ => solverSolver(`
+    expect(_ => preSolver(`
       @custom var-strat throw
       : A [0 1]
       : B [0 1]
@@ -526,7 +526,7 @@ describe('specs/deduper.spec', function() {
     describe('only iseq', function() {
 
       it('should remove duplicate iseq', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -538,7 +538,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove duplicate iseq when result does not have the same domain', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -552,7 +552,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should remove swapped duplicate iseq', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -564,7 +564,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove swapped duplicate iseq on different results', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -580,7 +580,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe iseq reifier has a different constant R', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -596,7 +596,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe iseq reifier has a constant R and different solved alias', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -613,7 +613,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe iseq reifier has a solved var and different constant alias', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -630,7 +630,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe iseq reifier has a different solved vars', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -649,7 +649,7 @@ describe('specs/deduper.spec', function() {
     describe('only isneq', function() {
 
       it('should remove duplicate isneq', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -661,7 +661,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove duplicate isneq when result does not have the same domain', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -675,7 +675,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should remove swapped duplicate isneq', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -687,7 +687,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove swapped duplicate iseq on different results', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -703,7 +703,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe isneq reifier has a different constant R', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -719,7 +719,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe isneq reifier has a constant R and different solved alias', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -736,7 +736,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe isneq reifier has a solved var and different constant alias', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -753,7 +753,7 @@ describe('specs/deduper.spec', function() {
       it('should reject when a dupe isneq reifier has a different solved vars', function() {
 
         // if this breaks the output probably changed or the engine improved; this case should result in `false`
-        let solution = solverSolver(`
+        let solution = preSolver(`
           @custom var-strat throw
           : A *
           : B *
@@ -772,7 +772,7 @@ describe('specs/deduper.spec', function() {
     describe('iseq+isneq', function() {
 
       it('should remove pseudo duplicate iseq/isneq', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [2 3]
           : C, D [0 1]
@@ -786,7 +786,7 @@ describe('specs/deduper.spec', function() {
 
       it('should remove pseudo duplicate isneq/iseq', function() {
         // only the constraints are swapped with isneq going first
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [2 3]
           : C, D [0 1]
@@ -799,7 +799,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove pseudo duplicate iseq/isneq when domains do not "booly-match"', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [2 3]
           : C [0 1]
@@ -812,7 +812,7 @@ describe('specs/deduper.spec', function() {
       });
 
       it('should not remove pseudo duplicate isneq/iseq when domains do not "booly-match"', function() {
-        expect(_ => solverSolver(`
+        expect(_ => preSolver(`
           @custom var-strat throw
           : A [2 3]
           : C [0 1]
@@ -829,7 +829,7 @@ describe('specs/deduper.spec', function() {
   describe('sum/product', function() {
 
     it('should alias two sums with same order', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 10]
         : E, F *
@@ -840,7 +840,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should alias two sums with different order', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 10]
         : E, F *
@@ -851,7 +851,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should alias two products with same order', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -865,7 +865,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should alias two products with different order', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 10]
         : E, F *
@@ -877,7 +877,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should alias a sum with a plus', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -890,7 +890,7 @@ describe('specs/deduper.spec', function() {
   });
 
   it('should dedupe a contrived dupe (noleaf)', function() {
-    expect(_ => solverSolver(`
+    expect(_ => preSolver(`
       @custom var-strat throw
       : A, B, C [0 10]
       A != C
@@ -901,7 +901,7 @@ describe('specs/deduper.spec', function() {
   });
 
   it('should dedupe a contrived dupe (cutter)', function() {
-    let solution = solverSolver(`
+    let solution = preSolver(`
       @custom var-strat throw
       : A, B, C [0 10]
       A != C
@@ -915,7 +915,7 @@ describe('specs/deduper.spec', function() {
   describe('nand/nall', function() {
 
     it('should eliminate double nalls', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -927,7 +927,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should eliminate swapped double nalls', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -939,7 +939,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should dedupe nand (v1)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -950,7 +950,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should dedupe nand (v2)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -961,7 +961,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should completely remove a deduped nall if there is a dupe nand as well (v1)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -972,7 +972,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should completely remove a deduped nall if there is a dupe nand as well (v2)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]
@@ -983,7 +983,7 @@ describe('specs/deduper.spec', function() {
     });
 
     it('should completely remove a deduped nall if there is a dupe nand as well (v3)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 10]
         : B [0 10]

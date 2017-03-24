@@ -1,10 +1,10 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 
 describe('specs/dsl.spec', function() {
 
   it('should parse trivial case', function() {
-    expect(_ => solverSolver(`
+    expect(_ => preSolver(`
       @custom var-strat throw
       : A [0 10]
       : B [20 30]
@@ -18,13 +18,13 @@ describe('specs/dsl.spec', function() {
   describe('@custom with comment at eof', function() {
 
     it('@custom with comment', function() { // tofix
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
       : A, B, C 1
       @custom noleaf A B C # this is the end`)).not.to.throw();
     });
 
     it('@custom with comment', function() { // tofix
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         : A, B, C 1
         @custom noleaf A B C # this is the end
       `)).not.to.throw();

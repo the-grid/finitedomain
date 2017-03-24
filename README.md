@@ -38,7 +38,7 @@ There are a few grunt tasks and bash scripts hooked up to npm. This repo also us
 
 As a general rule, `./build` is used for any temporary output, including code coverage reports and temporary build files when producing a dist.
 
-Then `./dist` only contains final builds (`./dist/finitedomain.dist.min.js` and for some tasks `./dist/browser.js`).
+Then `./dist` only contains final builds (`./dist/finitedomain.dist.min.js` and for most build tasks also `./dist/browser.js`).
 
 Note that both `./build` and `./dist` are cleared at the start of almost every (grunt) task.
 
@@ -48,17 +48,18 @@ Note that both `./build` and `./dist` are cleared at the start of almost every (
 
 - `grunt clean`: removes `./dist` and `./build`
 - `grunt build`: a direct alias for `dist`
-- `grunt dist`: lint, test, build, and minify to produce a real dist build
-- `grunt distq`: create a dist but skip linting, testing, and code coverage
-- `grunt distperf`: same as `grunt distq` but also copies the dist to `./dist/browser.js`, can be used in conjunction of `distheat` and `distbug` while maintaining the same path to `browser.js`.
-- `grunt distheat`: creates a dist but instead of minification as the last step it beautifies. Used for [HeatFiler](http://localhost/heatfiler/src/#run), a count based heatmap profiler. Copies to `browser.js`.
+- `grunt dist`: lint, test, build, and minify to produce a real dist build, has no source map
+- `grunt distq`: create a dist but skip linting, testing, and code coverage, include source map (inline), also copies dist to `dist/browser.js`
+- `grunt distheat`: removes the asserts but instead of minification as the last step it beautifies. Used for [HeatFiler](http://localhost/heatfiler/src/#run), a count based heatmap profiler. Copies to `dist/browser.js`.
+- `grunt distname`: removes the asserts and minifies except it doesnt mangle names. Used to help profiling where source maps aren't working. Copies to `dist/browser.js`.
 - `grunt distbug`: creates a build without removing test artifacts or minification. In case you need proper stack traces in other projects.
 - `grunt coverage`: runs all tests in the code coverage tool
 - `grunt test`: runs linting and all tests
 - `grunt testq`: runs tests without linting
 - `grunt watch:q`: runs `distq` whenever a file changes
 - `grunt watch:b`: runs `distbug` whenever a file changes
-- `grunt watch:p`: runs `distperf` whenever a file changes
+- `grunt watch:n`: runs `distname` whenever a file changes
+- `grunt watch:h`: runs `distheat` whenever a file changes
 
 ### Bash / npm scripts:
 

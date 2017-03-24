@@ -1,5 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 import {
   SUP,
 } from '../../src/helpers';
@@ -9,7 +9,7 @@ describe('specs/minimizer.spec', function() {
   describe('bool iseq', function() {
 
     it('should rewrite 01=01==?0 to A!=R', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : R [0 1]
@@ -20,7 +20,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite 01=01==?1 to A==R', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : R [0 1]
@@ -31,7 +31,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite 01=02==?0 to A!=R', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 2 2]
         : R [0 1]
@@ -43,7 +43,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite [01]=[00xx]==?x to XNOR', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 2 2]
         : R [0 1]
@@ -54,7 +54,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite [01]=[00xx]==?x to XNOR', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 2000 2000]
         : B = 2000
@@ -66,7 +66,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite [01]=[00xx]==?x to XNOR', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A = 2000
         : B [0 0 2000 2000]
@@ -78,7 +78,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not even consider weird domain values sans 1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A = [0 1]
         : B [0 0 2000 2000]
@@ -90,7 +90,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not even consider weird domain values lt 1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A = [0 1]
         : B [2 2000]
@@ -102,7 +102,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not even consider weird domain values sans 0', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A = [0 1]
         : B [1 2000]
@@ -114,7 +114,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not even consider weird domain values bool', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A = [0 1]
         : B [0 2000]
@@ -126,7 +126,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not rewrite to div because of this case', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 5]
         : C [0 1]
@@ -142,7 +142,7 @@ describe('specs/minimizer.spec', function() {
 
     it('should rewrite 12=01+01 to OR', function() {
       // if A and B are max 1 and C is 12 then one must be one but both may be on
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -154,7 +154,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not rewrite [01]=[12]+1 to LT', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : C [1 2]
@@ -165,7 +165,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not rewrite [0055]=[1166]+1 to LT lr', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : C [1 1 6 6]
@@ -176,7 +176,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not rewrite [0055]=[1166]+1 to LT rl', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : C [1 1 6 6]
@@ -187,7 +187,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not fall into this trap for [01]=[12]+1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : C [1 2]
@@ -201,7 +201,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not fall into this trap for [01]=1+[12]', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : C [1 2]
@@ -215,7 +215,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should not fall into this trap for [0055]=[1166]+1', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : C [1 1 6 6]
@@ -232,7 +232,7 @@ describe('specs/minimizer.spec', function() {
   describe('neq', function() {
 
     it('should fail contradictions', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         A != A
@@ -245,7 +245,7 @@ describe('specs/minimizer.spec', function() {
   describe('isall', function() {
 
     it('should solve if all args are non-zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -258,7 +258,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve if at least one arg is zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -271,7 +271,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve by defer if unsolved immediately R=[01]', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -284,7 +284,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve by defer if unsolved immediately R=*', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -300,7 +300,7 @@ describe('specs/minimizer.spec', function() {
   describe('isnall', function() {
 
     it('should solve if all args are non-zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -313,7 +313,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve if at least one arg is zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -326,7 +326,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve by defer if unsolved immediately R=[01]', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -339,7 +339,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve by defer if unsolved immediately R=*', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 6]
         : B [5 8 10 42]
@@ -355,7 +355,7 @@ describe('specs/minimizer.spec', function() {
   describe('nall', function() {
 
     it('should remove dupes', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 6]
         : B [5 8 10 42]
@@ -366,7 +366,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should resolve a nall with only a dupe', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 6]
         nall(A A)
@@ -376,7 +376,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should dedupe three dupes', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 6]
         nall(A A A)
@@ -386,7 +386,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should accept three dupes of zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0]
         nall(A A A)
@@ -396,7 +396,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should reject three dupes of non-zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [5 5]
         nall(A A A)
@@ -406,7 +406,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should properly remove resolved vars', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, C, D [0 5]
         : B 10
@@ -420,7 +420,7 @@ describe('specs/minimizer.spec', function() {
   describe('nand', function() {
 
     it('should solve reflective nand to zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 10]
         A !& A
@@ -430,7 +430,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should reject reflective nand if it has no zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 10]
         A !& A
@@ -440,7 +440,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should reject reflective nand if it must be non-zero', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 10]
         A !& A
@@ -456,7 +456,7 @@ describe('specs/minimizer.spec', function() {
     // (missing basic tests)
 
     it('should work with constants', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, C, E [0 10]
         : B 5
@@ -469,7 +469,7 @@ describe('specs/minimizer.spec', function() {
 
     it('should not trip up when R=0 already', function() {
 
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C, D, E [0 10]
         : R [0 0]
@@ -482,7 +482,7 @@ describe('specs/minimizer.spec', function() {
 
     it('should not trip up with same var arg twice becoming solved', function() {
 
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 10]
         : R [0 0]
@@ -506,7 +506,7 @@ describe('specs/minimizer.spec', function() {
     // (missing basic tests)
 
     it('should rewrite a product with R=0 to a nall', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, E [0 10]
         : R 0
@@ -516,7 +516,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should rewrite a product with a zero constants to let other args free', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, C, D, E [0 10]
         : B 0
@@ -529,7 +529,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should work with constants', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, C, E [1 10]
         : B 5
@@ -541,7 +541,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should solve at least one arg to zero to force result to zero', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 10]
         : D 0
@@ -554,7 +554,7 @@ describe('specs/minimizer.spec', function() {
   describe('distinct', function() {
 
     it('should work', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, E [0 10]
         distinct(A B C D E)
@@ -563,7 +563,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should prune constants', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, D, E [0 10]
         distinct(A B 5 D E)
@@ -572,7 +572,7 @@ describe('specs/minimizer.spec', function() {
     });
 
     it('should prune a var that becomes constant', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, D, E [0 10]
         : C [0 10]
@@ -587,7 +587,7 @@ describe('specs/minimizer.spec', function() {
 
     it('the extra math made it not solve', function() {
       // (the inverses of div were messed up)
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B = [0 0 10 10]
         : C = [0 0 100 100]

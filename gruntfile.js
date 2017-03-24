@@ -34,6 +34,38 @@ module.exports = function () {
           '-o', 'build/finitedomain-es5-beautified.js',
         ],
       },
+      minifydist: { // max compression, no source maps
+        cmd: 'node_modules/.bin/uglifyjs',
+        args: [
+          'build/finitedomain-es5.js',
+          '-c',
+          '-m',
+          '-o', 'build/finitedomain.dist.min.js',
+        ],
+      },
+      minifymapped: { // max compression, with source maps
+        cmd: 'node_modules/.bin/uglifyjs',
+        args: [
+          'build/finitedomain-es5.js',
+          '-c',
+          '-m',
+          '--source-map-inline',
+          '--source-map-include-sources',
+          '-o', 'build/finitedomain.dist.min.js',
+        ],
+      },
+      minifynamed: { // with compression without mangling, with source maps
+        cmd: 'node_modules/.bin/uglifyjs',
+        args: [
+          'build/finitedomain-es5.js',
+          '-c',
+          //'-m', NO! we want the names for debugging
+          '--keep-fnames',
+          '--source-map-inline',
+          '--source-map-include-sources',
+          '-o', 'build/finitedomain.dist.min.js',
+        ],
+      },
     },
 
     // we only use this babel for manual inspection. not part of build chain.
@@ -95,14 +127,6 @@ module.exports = function () {
     },
 
     watch: {
-      p: { // build for perf in browser
-        files: [
-          'src/**/*.js',
-        ],
-        tasks: [
-          'distperf',
-        ],
-      },
       q: { // quick dist, no linting, testing, or minifying. mostly for debugging quickly.
         files: [
           'src/**/*.js',
@@ -127,12 +151,12 @@ module.exports = function () {
           'distheat',
         ],
       },
-      d: { // quick dist with dsl, no linting, testing, or minifying. for tests that require the dsl api
+      n: { // quick dist with minification except no name mangling
         files: [
           'src/**/*.js',
         ],
         tasks: [
-          'distdsl',
+          'distname',
         ],
       },
     },
@@ -209,35 +233,12 @@ module.exports = function () {
       all: ['tests/mocha-runner.html'],
     },
 
-    uglify: {
-      dbg: {
-        options: {
-          report: 'gzip', // false, 'none', 'min', 'gzip'. gzip is a little slower but not significant and good to see.
-          sourceMap: true,
-          //sourceMapStyle: '', // embed link inline
-          //sourceMapIncludeSources: 'embed',
-        },
-        files: {
-          'dist/finitedomain.dist.min.js': ['build/finitedomain-es5.js'],
-        },
-      },
-      dist: {
-        options: {
-          report: 'gzip', // false, 'none', 'min', 'gzip'. gzip is a little slower but not significant and good to see.
-          sourceMap: false,
-        },
-        files: {
-          'dist/finitedomain.dist.min.js': ['build/finitedomain-es5.js'],
-        },
-      },
-    },
-
     concat: {
       build: {
         options: {
           // https://github.com/gruntjs/grunt-contrib-concat
-          banner: 'let Solver = (function(){',
-          footer: '\n  return Solver;\n})();\nexport default Solver;\n',
+          banner: 'let preSolver = (function(){',
+          footer: '\n  return preSolver;\n})();\nexport default preSolver;\n',
           sourceMap: true,
           sourceMapStyle: 'inline', // embed link inline
           process: function(code, path){
@@ -258,8 +259,8 @@ module.exports = function () {
       dsl: {
         options: {
           // https://github.com/gruntjs/grunt-contrib-concat
-          banner: 'let Solver = (function(){',
-          footer: '\n  return Solver;\n})();\nexport default Solver;\n',
+          banner: 'let preSolver = (function(){',
+          footer: '\n  return preSolver;\n})();\nexport default preSolver;\n',
           sourceMap: true,
           sourceMapStyle: 'inline', // embed link inline
           process: function(code, path){
@@ -280,7 +281,7 @@ module.exports = function () {
         options: {
           // https://github.com/gruntjs/grunt-contrib-concat
           banner: '',
-          footer: '\nexport default Solver;',
+          footer: '\nexport default preSolver;',
           sourceMap: true,
           sourceMapStyle: 'inline', // embed link inline
           process: function(code, path){
@@ -343,7 +344,6 @@ module.exports = function () {
 
   grunt.loadNpmTasks('grunt-babel'); // we dont really need this but can be handy for debugging
   grunt.loadNpmTasks('grunt-browserify'); // used to build packages for testing in phantomjs
-  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-mocha-phantomjs');
   grunt.loadNpmTasks('grunt-mocha-test');
@@ -355,6 +355,7 @@ module.exports = function () {
 
   grunt.registerTask('concat-dist-to-browserjs', function() {
     console.log('- Copying dist to browser.js');
+    grunt.file.copy('build/finitedomain.dist.min.js', 'dist/finitedomain.dist.min.js');
     grunt.file.copy('dist/finitedomain.dist.min.js', 'dist/browser.js');
   });
   grunt.registerTask('concat-bug-to-browserjs', function() {
@@ -365,11 +366,11 @@ module.exports = function () {
 
   grunt.registerTask('clean', ['remove']);
   grunt.registerTask('build', 'alias for dist', ['dist']);
-  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq', 'clean', 'concat:build', 'babel:concat', 'uglify:dist']);
-  grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dbg', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
-  grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('dist', 'lint, test, build, minify; actual dist', ['clean', 'run:lint', 'mochaTest:all', 'distq', 'clean', 'concat:build', 'babel:concat', 'run:minifydist']);
+  grunt.registerTask('distq', 'create proper dist without testing, with source maps', ['clean', 'concat:build', 'babel:concat', 'run:minifymapped', 'concat-dist-to-browserjs']);
+  grunt.registerTask('distbug', 'distq, without any minification, includes asserts (for debugging)', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('distname', 'create distq but without name mangling (for debugging)', ['clean', 'concat:build', 'babel:concat', 'run:minifynamed', 'concat-dist-to-browserjs']);
+  grunt.registerTask('distheat', 'without asserts, no other minification (for heatmap)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', 'lint then test', ['clean', 'run:lintdev', 'mochaTest:all']);
   grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:nobail']);

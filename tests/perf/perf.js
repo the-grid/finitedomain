@@ -13,30 +13,19 @@ grunt distdsl && tests/perf/curator-dsl/node.js
 */
 
 // run this from any of the subdirs (`./curator-dsl/node.js`)
-var Solver = (typeof require === 'function') ? require(__dirname + '/../../dist/browser').default : exports.default;
+var preSolver = require(__dirname + '/../../dist/browser').default;
 
-var perf = module.exports = function perf(config, max, _waited) {
+var perf = module.exports = function perf(dsl, max, _waited) {
 
   if (typeof location === 'object' && location.href.indexOf('wait=1') >= 0 && !_waited) {
     console.log('delaying start by five seconds');
-    return setTimeout(function(){ perf(config, max, true); }, 5000);
-  }
-
-  if (config.callbackTimeoutMax) {
-    var counter = config.callbackTimeoutMax;
-    config.timeoutCallback = function() {
-      if (--counter < 0) {
-        console.log('ABORTING');
-        return true;
-      }
-      return false;
-    };
+    return setTimeout(function(){ perf(dsl, max, true); }, 5000);
   }
 
   console.log('start test');
   console.time('test runtime');
-  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');
-  Solver(config);
+  if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profile && console.profile('pfd perf');
+  preSolver(dsl);
   //{
   //  log: 1,
   //  max: max,
@@ -45,6 +34,6 @@ var perf = module.exports = function perf(config, max, _waited) {
   //  _tostring: false, // requires dsl build
   //  exportBare: false, // does not require dsl build
   //});
-  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('fd perf');
+  if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('pfd perf');
   console.timeEnd('test runtime');
 };

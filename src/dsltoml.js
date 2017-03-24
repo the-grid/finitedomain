@@ -138,6 +138,9 @@ function dslToMl(dslStr, problem, _debug) {
   let mlBuffer = new Buffer(mlBufSize).fill(0); // 20% is arbitrary choice. grown dynamically when needed
   let mlPointer = 0;
 
+  let lastPointer = -1;
+  let lastChar = 0;
+
   // this is for a hack
   let lastAssignmentIndex = -1;
   let lastUnknownIndex = -1;
@@ -231,7 +234,9 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function read() {
-    return dslBuf[dslPointer];
+    if (dslPointer === lastPointer) return lastChar;
+    lastChar = dslBuf[dslPointer];
+    return lastChar;
   }
 
   function readD(delta) {

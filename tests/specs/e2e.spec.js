@@ -1,5 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 
 class MockSolver {
   imp() { return this; }
@@ -31,7 +31,7 @@ describe('specs/e2e.spec', function() {
 
       // this hack means we cant run concurrent solves. i think that's fine.
       MockSolver.prototype.solutions = [expecting];
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql(expecting);
       expect(solution).to.not.equal(expecting); // not by ref
@@ -54,7 +54,7 @@ describe('specs/e2e.spec', function() {
         $1$: 2,
         $2$: 3,
       }];
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: true});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: true});
 
       expect(solution).to.eql({
         A: 1,
@@ -79,7 +79,7 @@ describe('specs/e2e.spec', function() {
 
       MockSolver.prototype.solutions = [{A: 0, B: 1, C: 1, D: 0}];
 
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql({A: 0, B: 1, C: 1, D: 0, R: 2});
     });
@@ -100,7 +100,7 @@ describe('specs/e2e.spec', function() {
 
       MockSolver.prototype.solutions = [{A: 0, B: 1, C: 1}];
 
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql({A: 0, B: 1, C: 0});
     });
@@ -118,7 +118,7 @@ describe('specs/e2e.spec', function() {
 
       MockSolver.prototype.solutions = [{A: 0, B: 1, C: 1}];
 
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql({A: [1, 1, 5, 5], B: 5, C: 1});
     });
@@ -136,7 +136,7 @@ describe('specs/e2e.spec', function() {
 
       MockSolver.prototype.solutions = [{A: 0, B: 1, C: 1}];
 
-      let solution = solverSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql({A: 5, B: 5, C: 1});
     });
@@ -362,7 +362,7 @@ describe('specs/e2e.spec', function() {
         (S4 ==? blend) == (D3 ==? water)
       `;
 
-      expect(_ => solverSolver(dsl)).not.to.throw();
+      expect(_ => preSolver(dsl)).not.to.throw();
     });
   });
 });

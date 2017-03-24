@@ -62,7 +62,7 @@ import {
  * @property {boolean} [options.repeatUntilStable=false] Keep calling minimize/cutter per cycle until nothing changes?
  * @property {boolean} [options.debugDsl=false] Extended dsl output?
  */
-function solverSolver(dsl, Solver, options = {}) {
+function preSolver(dsl, Solver, options = {}) {
   let {
     singleCycle = false,
     repeatUntilStable = true,
@@ -70,8 +70,8 @@ function solverSolver(dsl, Solver, options = {}) {
     debugDsl = false,
   } = options;
 
-  console.log('<solverSolver>');
-  console.time('</solverSolver>');
+  console.log('<preSolver>');
+  console.time('</preSolver>');
   TRACE(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
   let problem = problem_create();
@@ -121,19 +121,19 @@ function solverSolver(dsl, Solver, options = {}) {
     console.timeEnd('- all run cycles');
   }
 
-  console.time('- generating solution');
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
   if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(mlConstraints))) {
+    console.time('- generating early solution');
     solution = createSolution(problem, null, options);
+    console.timeEnd('- generating early solution');
   }
-  console.timeEnd('- generating solution');
 
   console.time('ml->dsl');
   let newdsl = mlToDsl(mlConstraints, problem, counter(mlConstraints, problem), {debug: debugDsl, hashNames: hashNames, indexNames: !hashNames && debugDsl, groupedConstraints: true});
   console.timeEnd('ml->dsl');
 
-  console.timeEnd('</solverSolver>');
+  console.timeEnd('</preSolver>');
 
   if (newdsl.length < 1000 || !Solver) console.log('\nResult dsl:\n' + newdsl);
 
@@ -194,7 +194,6 @@ function solverSolver(dsl, Solver, options = {}) {
   TRACE('problem rejected!');
   return false;
 }
-let Solver = solverSolver; // TEMP
 
 function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops, problem) {
   console.time('- run_cycle #' + runLoops);
@@ -299,7 +298,4 @@ function createSolution(problem, fdsolution, options) {
 
 // BODY_STOP
 
-export default solverSolver;
-export {
-  Solver,
-};
+export default preSolver;

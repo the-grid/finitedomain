@@ -1,5 +1,5 @@
 import expect from '../fixtures/mocha_proxy.fixt';
-import solverSolver from '../../src/runner';
+import preSolver from '../../src/runner';
 import {
   SUP,
 } from '../../src/helpers';
@@ -10,7 +10,7 @@ describe('specs/cutter.spec', function() {
 
     it('should eq', function() {
       // note that this test doesnt even reach the cutter... eq makes A and alias of B and then removes the eq
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B *
         A == B
@@ -25,7 +25,7 @@ describe('specs/cutter.spec', function() {
   describe('neq', function() {
 
     it('should neq', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B *
         A != B
@@ -40,7 +40,7 @@ describe('specs/cutter.spec', function() {
   describe('lt', function() {
 
     it('should lt', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B *
         A < B
@@ -55,7 +55,7 @@ describe('specs/cutter.spec', function() {
   describe('lte', function() {
 
     it('should lte', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B *
         A <= B
@@ -70,7 +70,7 @@ describe('specs/cutter.spec', function() {
   describe('iseq', function() {
 
     it('should iseq vvv', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A *
         : B 11
@@ -84,7 +84,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should iseq v8v', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 2]
         : C [0 1]
@@ -99,7 +99,7 @@ describe('specs/cutter.spec', function() {
   describe('isneq', function() {
 
     it('should isneq', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, C *
         : B 11
@@ -115,7 +115,7 @@ describe('specs/cutter.spec', function() {
   describe('islt', function() {
 
     it('should islt', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, C *
         : B 11
@@ -130,7 +130,7 @@ describe('specs/cutter.spec', function() {
   describe('islte', function() {
 
     it('should islte', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, C *
         : B 11
@@ -145,7 +145,7 @@ describe('specs/cutter.spec', function() {
   describe('sum', function() {
 
     it('should remove simple bool case', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R [0 3]
@@ -158,7 +158,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should remove simple bool and constant case', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R [4 7]
@@ -171,7 +171,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should order sum args', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R *
@@ -184,7 +184,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should remove if R wraps whole range', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 0 2 2]
         : B, C, D [0 1]
@@ -198,7 +198,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should rewrite a leaf isnall to nall', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         : R [0 3] # n-1
@@ -208,7 +208,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should detect trivial isall patterns', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R *
@@ -222,7 +222,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should detect reverse trivial isall patterns', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R *
@@ -236,7 +236,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not derail on this input (regression)', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 10]
         : E, F *
@@ -250,7 +250,7 @@ describe('specs/cutter.spec', function() {
   describe('plus', function() {
 
     it('should rewrite combined isAll to a leaf var', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : R *
@@ -264,7 +264,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should isall leaf case be reversable', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : R *
@@ -281,7 +281,7 @@ describe('specs/cutter.spec', function() {
   describe('xnor booly', function() {
 
     it('should solve the base case', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -293,7 +293,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate xnor when the arg is booly', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -306,7 +306,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate xnor when the other arg is booly', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -319,7 +319,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate xnor when both args are booly 8', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -333,7 +333,7 @@ describe('specs/cutter.spec', function() {
 
     it('should eliminate xnor when both args are booly 5', function() {
       //why solve if iseq 8 but not when iseq 5?
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -346,7 +346,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not apply trick to non-boolys', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 0 5 5]
         : B [0 10]
@@ -361,7 +361,7 @@ describe('specs/cutter.spec', function() {
   describe('lte_rhs+isall_r trick', function() {
 
     it('should morph the basic case', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, R [0 1]
         R = all?(A B)
@@ -373,7 +373,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should work when isall args arent bool because thats fine too', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 10]
         : C, R [0 1]
@@ -387,7 +387,7 @@ describe('specs/cutter.spec', function() {
 
     it('should solve this and not try to rewrite it because that leads to rejection', function() {
       // pseudo-regression case
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B = 1
         : C = 100
@@ -408,7 +408,7 @@ describe('specs/cutter.spec', function() {
 
     it('should is this lossy?', function() {
       // pseudo-regression case
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B = [0 0 10 10]
         : C = [0 0 100 100]
@@ -438,7 +438,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should morph three args if there is enough space', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, X [0 1]
         : M = 1
@@ -454,7 +454,7 @@ describe('specs/cutter.spec', function() {
 
       function test(bools, nonbools) {
         it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
-          expect(_ => solverSolver(`
+          expect(_ => preSolver(`
             @custom var-strat throw
             : ${bools} [0 1]
             : ${nonbools} [0 10]
@@ -475,7 +475,7 @@ describe('specs/cutter.spec', function() {
 
       function test(bools, nonbools) {
         it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
-          expect(_ => solverSolver(`
+          expect(_ => preSolver(`
             @custom var-strat throw
             : ${bools} [0 1]
             : ${nonbools} [0 10]
@@ -496,7 +496,7 @@ describe('specs/cutter.spec', function() {
 
       function test(bools, nonbools) {
         it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
-          expect(_ => solverSolver(`
+          expect(_ => preSolver(`
             @custom var-strat throw
             : ${bools} [0 1]
             : ${nonbools} [0 10]
@@ -520,7 +520,7 @@ describe('specs/cutter.spec', function() {
 
       function test(bools, nonbools) {
         it('bools: ' + bools + ', nonbools: ' + nonbools, function() {
-          expect(_ => solverSolver(`
+          expect(_ => preSolver(`
             @custom var-strat throw
             : ${bools} [0 1]
             : ${nonbools} [0 10]
@@ -543,7 +543,7 @@ describe('specs/cutter.spec', function() {
   describe('lte_rhs+neq trick', function() {
 
     it('should rewrite base case of an lte and neq to a nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -556,7 +556,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should rewrite swapped base case of an lte and neq to a nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -569,7 +569,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not do lte+neq trick for non bools', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 2]
@@ -585,7 +585,7 @@ describe('specs/cutter.spec', function() {
   describe('lte_lhs+nand trick', function() {
 
     it('should eliminate base case of an lte and nand', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -600,7 +600,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case of an lte and nand', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -615,7 +615,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not do lte+neq trick for rhs of lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -628,7 +628,7 @@ describe('specs/cutter.spec', function() {
 
     it('should not do lte+neq trick if A has no value lower than min(B)', function() {
       // (this never even reaches the cutter because A<=B cant hold and minimizer will reject over that
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [11 11]
         : B [5 10]
@@ -644,7 +644,7 @@ describe('specs/cutter.spec', function() {
 
     it('should not do lte+neq trick if A has no zero and C isnt zero', function() {
       // wont even get to the cutter because the nand wont hold and minimizer will reject over that
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [1 1]
         : B [0 10]
@@ -662,7 +662,7 @@ describe('specs/cutter.spec', function() {
   describe.skip('lte_lhs+isall_r trick', function() {
 
     it('should eliminate base case of an lte-lhs and isall-r', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -676,7 +676,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case of an lte-lhs and isall-r', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -690,7 +690,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not do lte-lhs + isall-r trick for rhs of lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -703,7 +703,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not do lte_lhs+neq trick for non bools', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 2]
@@ -716,7 +716,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should work with more than two args to isall', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -732,7 +732,7 @@ describe('specs/cutter.spec', function() {
   describe('isall_r+nall trick', function() {
 
     it('should rewrite base case v1 of an isall and nall to a nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -753,7 +753,7 @@ describe('specs/cutter.spec', function() {
 
       function test(v1, v2, v3) {
         it('nall(' + v1 + ',' + v2 + ',' + v3 + ')', function() {
-          expect(_ => solverSolver(`
+          expect(_ => preSolver(`
           @custom var-strat throw
           : A [0 1]
           : B [0 1]
@@ -780,7 +780,7 @@ describe('specs/cutter.spec', function() {
   describe('isall+nand trick', function() {
 
     it('should eliminate base case of an isall and nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -796,7 +796,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case of an isall and reversed nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -812,7 +812,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case of an isall and nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -827,7 +827,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case of an isall and reversed nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R [0 1]
@@ -840,7 +840,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should rewrite isall nand nand to nall nall', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         : R [0 1]
@@ -854,7 +854,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should not rewrite if there is no space', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         : R [0 1]
@@ -868,7 +868,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should consider R a leaf after the rewrite', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R [0 1]
@@ -881,7 +881,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should still solve R wrt isall even after eliminating it', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : R [0 1]
@@ -903,7 +903,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should skip the trick if there are too many nands', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, R [0 1]
         : a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z [0 1] # the count needs to overflow the number of offsets tracked by bounty...
@@ -943,7 +943,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should skip the trick if another constraint was burried between too many nands', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, R [0 1]
         : a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z [0 1] # the count needs to overflow the number of offsets tracked by bounty...
@@ -986,7 +986,7 @@ describe('specs/cutter.spec', function() {
   describe('2xlte trick', function() {
 
     it('should eliminate base case a double lte', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -1001,7 +1001,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case a double lte', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -1019,7 +1019,7 @@ describe('specs/cutter.spec', function() {
   describe('lte_lhs+neq trick', function() {
 
     it('should eliminate base case an lte_lhs and neq', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -1032,7 +1032,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case an lte_lhs and neq', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
@@ -1048,7 +1048,7 @@ describe('specs/cutter.spec', function() {
   describe('nand+neq+lte_lhs trick', function() {
 
     it('should eliminate base case a nand, neq, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A !& B
@@ -1061,7 +1061,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case a reverse nand, neq, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         B !& A
@@ -1074,7 +1074,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case a nand, reverse neq, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A !& B
@@ -1087,7 +1087,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case a reverse nand, reverse neq, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         B !& A
@@ -1100,7 +1100,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case a neq, nand, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A != C
@@ -1113,7 +1113,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case a neq, lte, nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A != C
@@ -1126,7 +1126,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case a lte, neq, nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A <= D
@@ -1139,7 +1139,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate swapped base case a lte, nand, neq', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A <= D
@@ -1155,7 +1155,7 @@ describe('specs/cutter.spec', function() {
   describe('neq+lte_lhs+lte_rhs trick', function() {
 
     it('should eliminate base case neq, lte, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A != B
@@ -1168,7 +1168,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case reversed neq, lte, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         B != A
@@ -1181,7 +1181,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case lte, neq, lte', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         A <= C
@@ -1194,7 +1194,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should eliminate base case lte, lte, neq', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         D <= A
@@ -1210,7 +1210,7 @@ describe('specs/cutter.spec', function() {
   describe('neq+lte++ trick', function() {
 
     it('should morph neq, lte, lte with perfect fit', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : X, Y [0 1]
@@ -1224,7 +1224,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should morph neq, lte, lte with room to spare', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : X, Y [0 1]
@@ -1241,7 +1241,7 @@ describe('specs/cutter.spec', function() {
   describe('neq+nand trick', function() {
 
     it('should morph neq, nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         A != B
@@ -1256,7 +1256,7 @@ describe('specs/cutter.spec', function() {
   describe('neq+or trick', function() {
 
     it('should morph neq, or', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         A != B
@@ -1271,7 +1271,7 @@ describe('specs/cutter.spec', function() {
   describe('nands only trick', function() {
 
     it('should eliminate a var that is only used in nands', function() {
-      let solution = solverSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         A !& B
@@ -1288,7 +1288,7 @@ describe('specs/cutter.spec', function() {
   describe('nand+lte+or trick', function() {
 
     it('should morph nand, lte, or', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, X [0 1]
         A !& X
@@ -1302,7 +1302,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should morph nands, lte, or', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, E, X [0 1]
         A !& X
@@ -1320,7 +1320,7 @@ describe('specs/cutter.spec', function() {
   describe('trick lte+lte+or+nand', function() {
 
     it('should morph base case of lte_lhs, lte_rhs, or, nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D [0 1]
         : X [0 1]
@@ -1339,7 +1339,7 @@ describe('specs/cutter.spec', function() {
     });
 
     it('should morph base case of lte_lhs, lte_lhs, lte_rhs, or, nand', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C, D, E [0 1]
         : X [0 1]
@@ -1362,7 +1362,7 @@ describe('specs/cutter.spec', function() {
   describe('trick lte_lhs+isall with two shared vars', function() {
 
     it('should remove lte if isall subsumes it', function() {
-      expect(_ => solverSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : X [0 1]

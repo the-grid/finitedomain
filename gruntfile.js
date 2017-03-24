@@ -353,24 +353,31 @@ module.exports = function () {
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-contrib-concat');
 
-  grunt.registerTask('concat-dist-to-browserjs', function() {
+  grunt.registerTask('copy-dist-to-browserjs', function() {
     console.log('- Copying dist to browser.js');
     grunt.file.copy('build/finitedomain.dist.min.js', 'dist/finitedomain.dist.min.js');
     grunt.file.copy('dist/finitedomain.dist.min.js', 'dist/browser.js');
   });
-  grunt.registerTask('concat-bug-to-browserjs', function() {
+  grunt.registerTask('copy-bug-to-browserjs', function() {
     console.log('- Copying build to browser.js');
     grunt.file.copy('build/finitedomain-es5-beautified.js', 'dist/browser.js');
     grunt.file.copy('build/finitedomain-es5-beautified.js', 'dist/finitedomain.dist.min.js');
   });
+  grunt.registerTask('report-dist-size', function() {
+    console.log('- Comparing size between build and dist\n');
+    let maxmin = require('maxmin');
+    console.log('  Building build/finitedomain.es6.concat.js: ' + maxmin(grunt.file.read('build/finitedomain.es6.concat.js'), grunt.file.read('build/finitedomain-es5.js'), true));
+    console.log('  Minifying build/finitedomain-es5.js:       ' + maxmin(grunt.file.read('build/finitedomain-es5.js'), grunt.file.read('dist/finitedomain.dist.min.js'), true));
+  });
 
   grunt.registerTask('clean', ['remove']);
   grunt.registerTask('build', 'alias for dist', ['dist']);
-  grunt.registerTask('dist', 'lint, test, build, minify; actual dist', ['clean', 'run:lint', 'mochaTest:all', 'distq', 'clean', 'concat:build', 'babel:concat', 'run:minifydist']);
-  grunt.registerTask('distq', 'create proper dist without testing, with source maps', ['clean', 'concat:build', 'babel:concat', 'run:minifymapped', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distbug', 'distq, without any minification, includes asserts (for debugging)', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
-  grunt.registerTask('distname', 'create distq but without name mangling (for debugging)', ['clean', 'concat:build', 'babel:concat', 'run:minifynamed', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distheat', 'without asserts, no other minification (for heatmap)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
+  grunt.registerTask('dist', 'lint, test, build, minify; actual dist', ['clean', 'run:lint', 'mochaTest:all', 'clean', 'concat:build', 'babel:concat', 'run:minifydist', 'copy-dist-to-browserjs']);
+  grunt.registerTask('_dist', 'for commit script', ['clean', 'concat:build', 'babel:concat', 'run:minifydist', 'copy-dist-to-browserjs', 'report-dist-size']);
+  grunt.registerTask('distq', 'create proper dist without testing, with source maps', ['clean', 'concat:build', 'babel:concat', 'run:minifymapped', 'copy-dist-to-browserjs']);
+  grunt.registerTask('distbug', 'distq, without any minification, includes asserts (for debugging)', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'copy-bug-to-browserjs']);
+  grunt.registerTask('distname', 'create distq but without name mangling (for debugging)', ['clean', 'concat:build', 'babel:concat', 'run:minifynamed', 'copy-dist-to-browserjs']);
+  grunt.registerTask('distheat', 'without asserts, no other minification (for heatmap)', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'copy-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);
   grunt.registerTask('test', 'lint then test', ['clean', 'run:lintdev', 'mochaTest:all']);
   grunt.registerTask('testq', 'test without linting', ['clean', 'mochaTest:nobail']);

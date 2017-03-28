@@ -112,18 +112,20 @@ function mlToDsl(ml, problem, counts, options) {
     // first generate var decls for unsolved, unaliased vars
     domains.forEach((domain, index) => {
       let str = '';
-      if (domain === false) {
-        ++aliases;
+      if (domain === false || (counts && !counts[index])) {
+        // either solved, alias, or leaf. leafs still needs to be updated after the rest solves.
+        domain = getDomain(index);
+        if (domain_getValue(domain) >= 0) {
+          ++solved;
+        } else {
+          ++aliases;
+        }
       } else {
         ++varsLeft;
         ASSERT(domain === getDomain(index), 'if not aliased then it should return this', index, domain);
-        let v = domain_getValue(domain);
-        if (v >= 0 || (counts && !counts[index])) {
-          ++solved;
-        } else {
-          ++unsolved;
-          str = ': ' + toName(index) + ' [' + domain_toArr(domain) + ']';
-        }
+        ASSERT(domain_getValue(domain) < 0, 'solved vars should be aliased to their constant');
+        ++unsolved;
+        str = ': ' + toName(index) + ' [' + domain_toArr(domain) + ']';
       }
       varDecls[index] = str;
     });
@@ -138,11 +140,11 @@ function mlToDsl(ml, problem, counts, options) {
 
         return (
           decl +
-          (counts ? ' # counts: ' + counts[varIndex] : '') +
+          (counts ? ' # ocounts: ' + counts[varIndex] : '') +
           ((HASH_NAMES || !INDEX_NAMES) ? '  # index = ' + varIndex : '') +
           '  # ops (' + (ops.replace(/[^ ]/g, '').length + 1) + '): ' + ops + ' $' +
-          (ADD_GROUPED_CONSTRAINTS
-            ? '\n ## ' + (partsPerVar[varIndex] && (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## ')))
+          ((ADD_GROUPED_CONSTRAINTS && partsPerVar[varIndex])
+            ? '\n ## ' + (partsPerVar[varIndex].map(partIndex => allParts[partIndex]).join(' ## '))
             : ''
           )
         );
@@ -538,7 +540,7 @@ ${varDeclsString}
 
         case ML_SUM:
           TRACE(' ! sum');
-          part = m2d_listResult('product');
+          part = m2d_listResult('sum');
           break;
 
         case ML_PRODUCT:

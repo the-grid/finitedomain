@@ -39,9 +39,12 @@ import {
 
 const MAX_VAR_COUNT = 0xffff; // 16bit
 
-function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, name, domain, modifier, returnName, returnIndex) {
+function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, name, domain, modifier, returnName, returnIndex, _throw) {
   TRACE('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
-  if (modifier) THROW('implement me (var mod)');
+  if (modifier) {
+    if (_throw) _throw('implement me (var mod)');
+    THROW('implement me (var mod)');
+  }
   if (typeof name === 'number') {
     domain = name;
     name = undefined;
@@ -66,7 +69,10 @@ function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCount
 
     newIndex = $vars.length;
     let prev = trie_add($varTrie, name, newIndex);
-    if (prev >= 0) THROW('Dont declare a var after using it', name, prev);
+    if (prev >= 0) {
+      if (_throw) _throw('Dont declare a var after using it', name, prev);
+      THROW('Dont declare a var after using it', name, prev);
+    }
     $vars.push(name);
     $domains.push(domain);
   }
@@ -81,10 +87,7 @@ function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCount
 
   // deal with explicitly requested return values...
   if (returnIndex) return newIndex;
-  if (returnName) {
-    //if (v >= 0) THROW('cant get a name for constants');
-    return name;
-  }
+  if (returnName) return name;
 }
 function $name2index($varTrie, $getAlias, name, skipAliasCheck, scanOnly) {
   //ASSERT_LOG2('$name2index', name, skipAliasCheck);

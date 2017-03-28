@@ -372,14 +372,14 @@ function cutter(ml, problem, once) {
 
     if (countsA === 1) {
       // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexB, true))) {
+      if (domain_isSolved(getDomain(indexB, true))) {
         return leafIsNeqArg(ml, offset, indexA, indexB, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
       // note: B cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexA, true))) {
+      if (domain_isSolved(getDomain(indexA, true))) {
         return leafIsNeqArg(ml, offset, indexB, indexA, indexA, indexB, indexR);
       }
     }
@@ -408,14 +408,14 @@ function cutter(ml, problem, once) {
 
     if (countsA === 1) {
       // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexB, true))) {
+      if (domain_isSolved(getDomain(indexB, true))) {
         return leafIsLtLhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
       // note: B cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexA, true))) {
+      if (domain_isSolved(getDomain(indexA, true))) {
         return leafIsLtRhs(ml, offset, indexA, indexB, indexR);
       }
     }
@@ -444,14 +444,14 @@ function cutter(ml, problem, once) {
 
     if (countsA === 1) {
       // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexB, true))) {
+      if (domain_isSolved(getDomain(indexB, true))) {
         return leafIsLteLhs(ml, offset, indexA, indexB, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
       // note: B cannot be solved (bounty ignores it so count would be 0)
-      if (!domain_isSolved(getDomain(indexA, true))) {
+      if (domain_isSolved(getDomain(indexA, true))) {
         return leafIsLteRhs(ml, offset, indexB, indexA, indexA, indexB, indexR);
       }
     }

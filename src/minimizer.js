@@ -117,13 +117,14 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
   TRACE(problem.domains.length > 100 ? '' : '  <' + problem.domains.map((d, i) => i + ' : ' + problem.varNames[i] + ' : ' + domain__debug(problem.getDomain(i))).join('>, <') + '>');
   TRACE('minimize sweep, ml len=', ml.length, ', firstRun=', firstRun, 'once=', once);
   let varChanged = true;
-  let onlyJumps = true;
+  let onlyJumps = false;
   let emptyDomain = false;
   let lastPcOffset = 0;
   let lastOp = 0;
   let pc = 0;
   let loops = 0;
   let constraints = 0; // count a constraint going forward, ignore jumps, reduce when restarting from same pc
+  let restarted = false; // annoying, but restarted ops could mean more scrubbing is required. but it may not... (can be improved by detecting whether the op is a jump after a restart)
 
   let {
     addVar,
@@ -133,16 +134,18 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     setDomain,
   } = problem;
 
-  while (varChanged) {
+  while (!onlyJumps && (varChanged || restarted)) {
     ++loops;
     //console.log('- looping', loops);
     console.time('-> min_loop ' + loops);
     TRACE('min outer loop');
     varChanged = false;
+    onlyJumps = false;
+    restarted = false;
     pc = 0;
     constraints = 0;
     let ops = min_innerLoop();
-    TRACE('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain);
+    TRACE('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain, 'restarted?', restarted);
     if (emptyDomain) {
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, problem)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
@@ -393,6 +396,7 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
       }
       if (pc === pcStart) {
         TRACE(' - restarting op from same pc...');
+        restarted = true; // TODO: undo this particular step if the restart results in the offset becoming a jmp?
         --constraints; // constraint may have been eliminated
       }
     }

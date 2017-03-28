@@ -328,7 +328,7 @@ function cutter(ml, problem, once) {
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && bounty__debugMeta(getMeta(bounty, indexR)), countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsR === 1) {
       return leafIsEqR(ml, offset, indexA, indexB, indexR);
@@ -364,7 +364,7 @@ function cutter(ml, problem, once) {
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && bounty__debugMeta(getMeta(bounty, indexR)), countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsR === 1) {
       return leafIsNeqR(ml, offset, indexA, indexB, indexR);
@@ -400,7 +400,7 @@ function cutter(ml, problem, once) {
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && bounty__debugMeta(getMeta(bounty, indexR)), countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsR === 1) {
       leafIsLtR(ml, offset, indexA, indexB, indexR);
@@ -436,7 +436,7 @@ function cutter(ml, problem, once) {
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && bounty__debugMeta(getMeta(bounty, indexR)), countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     if (countsR === 1) {
       leafIsLteR(ml, offset, indexA, indexB, indexR);
@@ -472,7 +472,7 @@ function cutter(ml, problem, once) {
     ASSERT(!countsA || !domain_isSolved(getDomain(indexA, true)), 'if it has counts it shouldnt be solved', countsA, indexA, domain__debug(getDomain(indexA, true)));
     ASSERT(!countsB || !domain_isSolved(getDomain(indexB, true)), 'if it has counts it shouldnt be solved', countsB, indexB, domain__debug(getDomain(indexB, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
-    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && getMeta(bounty, indexR), countsA && getMeta(bounty, indexA), countsB && getMeta(bounty, indexB));
+    TRACE('  - counts:', countsR, countsA, countsB, ', meta:', countsR && bounty__debugMeta(getMeta(bounty, indexR)), countsA && bounty__debugMeta(getMeta(bounty, indexA)), countsB && bounty__debugMeta(getMeta(bounty, indexB)));
 
     // note: we cant simply eliminate leaf vars because they still constrain
     // the allowed distance between the other two variables and if you

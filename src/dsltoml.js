@@ -361,7 +361,7 @@ function dslToMl(dslStr, problem, _debug) {
 
     let varIndex;
     if (typeof nameNames === 'string') {
-      varIndex = addVar(nameNames, domain, mod, false, true);
+      varIndex = addVar(nameNames, domain, mod, false, true, THROW);
     } else {
       nameNames.map(name => addVar(name, domain, mod));
     }
@@ -370,7 +370,7 @@ function dslToMl(dslStr, problem, _debug) {
       // prevent `: A, B [0, 10] alias(C)` because is C an alias for A or B? certainly not both
       if (nameNames !== 'string') THROW('Cant use alias when declaring multiple vars at once (because which should be aliased?)');
 
-      alts.forEach(alt => addAlias(addVar(alt, false, false, false, true), varIndex));
+      alts.forEach(alt => addAlias(addVar(alt, false, false, false, true, THROW), varIndex));
     }
   }
 

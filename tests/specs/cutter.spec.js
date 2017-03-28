@@ -1399,6 +1399,18 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: isall2 #/);
     });
 
+    it('should isall base reverse case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : C [0 2]
+        : R [0 1]
+        R = C ==? 2
+        C = A + B
+        @custom noleaf A B R
+      `)).to.throw(/ops: isall2 #/);
+    });
+
     it('should isnone base case', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
@@ -1409,6 +1421,57 @@ describe('specs/cutter.spec', function() {
         R = C ==? 0
         @custom noleaf A B R
         @custom free 100
+      `)).to.throw(/ops: isnone #/);
+    });
+  });
+
+  describe('trick sum+iseq', function() {
+
+    it('should isall base case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 5]
+        : S [0 1]
+        R = sum(A B C D E)
+        S = R ==? 5
+        @custom noleaf A B C D E S
+      `)).to.throw(/ops: isall #/);
+    });
+
+    it('should isall base reverse case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 5]
+        : S [0 1]
+        S = R ==? 5
+        R = sum(A B C D E)
+        @custom noleaf A B C D E S
+      `)).to.throw(/ops: isall #/);
+    });
+
+    it('should isnone base case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 5]
+        : S [0 1]
+        R = sum(A B C D E)
+        S = R ==? 0
+        @custom noleaf A B C D E S
+      `)).to.throw(/ops: isnone #/);
+    });
+
+    it('should isnone reverse base case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 5]
+        : S [0 1]
+        S = R ==? 0
+        R = sum(A B C D E)
+        @custom noleaf A B C D E S
       `)).to.throw(/ops: isnone #/);
     });
   });

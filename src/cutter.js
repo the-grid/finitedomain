@@ -2830,64 +2830,67 @@ function cutter(ml, problem, once) {
 
     let argCount = ml_dec16(ml, sumOffset + 1);
 
-    let indexA = readIndex(ml, iseqOffset + 1);
-    let indexB = readIndex(ml, iseqOffset + 1);
-    let A = getDomain(indexA, true);
-    let B = getDomain(indexB, true);
-
-    let vA = domain_getValue(A);
-    let vB = domain_getValue(B);
-
-
-    if ((vA >= 0 && vA === argCount) || (vB >= 0 && vB === argCount)) {
-      // okay the iseq checks whether the sum equals the number of args. confirm that all args are bools to proceed
-
-      let args = [];
-      let allBools = true;
-      for (let i = 0; i < argCount; ++i) {
-        let index = readIndex(ml, sumOffset + SIZEOF_COUNT + i * 2);
-        let domain = getDomain(index, true);
-        if (!domain_isBool(domain)) {
-          allBools = false;
-          break;
-        }
-        args.push(index);
-        bounty_markVar(bounty, index);
-      }
-
-      if (allBools) {
-        TRACE(' - found isAll pattern, rewriting sum and eliminating isEq');
-
-        // ok, we replace the sum and isEq with `S = isAll(args)`
-        // the sum has the biggest footprint so the isall will fit with one byte to spare
-
-        let indexS = readIndex(ml, iseqOffset + 5);
-
-        solveStack.push((_, force, getDomain, setDomain) => {
-          TRACE(' - cut sum -> isAll');
-          let R = getDomain(indexR);
-          let vR = 0;
-          for (let i = 0; i < argCount; ++i) {
-            let vN = force(args[i]);
-            ASSERT(vN === 0 || vN === 1, 'should be booly');
-            if (vN) ++vR;
-          }
-          R = domain_intersectionValue(R, vR);
-          ASSERT(R, 'R should be able to reflect the solution');
-          setDomain(indexR, R);
-        });
-
-        ml_enc8(ml, sumOffset, ML_ISALL);
-        ml_enc16(ml, sumOffset + 1, argCount);
-        ml_enc16(ml, sumOffset + SIZEOF_COUNT + argCount * 2, indexS);
-
-        // remove the iseq, regardless
-        ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
-
-        bounty_markVar(bounty, indexR);
-        somethingChanged();
-      }
+    let R = getDomain(indexR, true);
+    if (R !== domain_createRange(0, argCount)) {
+      TRACE(' - R isnt counting all results, bailing');
+      return false;
     }
+
+    let indexA = readIndex(ml, iseqOffset + 1); // R or ?
+    let indexB = readIndex(ml, iseqOffset + 3); // R or ?
+    let indexS = readIndex(ml, iseqOffset + 5); // S
+    let indexABnotR = indexA === indexR ? indexB : indexA;
+    let ABnR = getDomain(indexABnotR, true);
+
+    let vABnR = domain_getValue(ABnR);
+    if (vABnR !== 0 && vABnR !== argCount) {
+      TRACE(' - the non-R iseq arg is not a constant that is 0 or the number of args, bailing', domain__debug(ABnR));
+      return false;
+    }
+
+    // the iseq looks okay. now confirm all sum args are strict bools
+    // (as we've confirmed R this is very likely to be the case, though it may still not be)
+
+    let args = [];
+    for (let i = 0; i < argCount; ++i) {
+      let index = readIndex(ml, sumOffset + SIZEOF_COUNT + i * 2);
+      let domain = getDomain(index, true);
+      if (!domain_isBool(domain)) {
+        TRACE(' - at least one sum arg wasnt bool, bailing');
+        return false;
+      }
+      // since it's very unlikely the args arent bool, collect and mark them right now instead of an extra loop
+      args.push(index);
+      bounty_markVar(bounty, index);
+    }
+
+    TRACE(' - found isAll/isNone pattern, morphing sum and eliminating isEq');
+
+    // sum will fit isall/isnone. it'll be exactly the same size
+    // only need to update the op code and the result index, as the rest remains the same
+    let targetOp = vABnR === argCount ? ML_ISALL : ML_ISNONE;
+    ml_enc8(ml, sumOffset, targetOp);
+    ml_enc16(ml, sumOffset + SIZEOF_COUNT + argCount * 2, indexS);
+
+    // note: either way, R must reflect the sum of its args. so its the same solve
+    solveStack.push((_, force, getDomain, setDomain) => {
+      TRACE(' - cut sum ->', targetOp === ML_ISALL ? 'isall' : 'isnone');
+      let oR = getDomain(indexR);
+      let vR = 0;
+      for (let i = 0; i < argCount; ++i) {
+        let vN = force(args[i]);
+        ASSERT(vN === 0 || vN === 1, 'should be bool');
+        if (vN) ++vR;
+      }
+      let R = domain_intersectionValue(oR, vR);
+      ASSERT(R, 'R should be able to reflect the solution');
+      if (oR !== R) setDomain(indexR, R);
+    });
+
+    ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
+
+    bounty_markVar(bounty, indexR);
+    somethingChanged();
   }
 
   function trickXnorPseudoEq(ml, offset, indexA, boolyA, indexB, boolyB) {

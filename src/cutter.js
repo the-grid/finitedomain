@@ -1810,7 +1810,7 @@ function cutter(ml, problem, once) {
 
     // compile A<=left and A<=right over the existing two offsets
     ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
-    ml_vvv2vv(ml, isallOffset, 2, ML_LTE, indexA, indexY);
+    ml_vvv2vv(ml, isallOffset, ML_LTE, indexA, indexY);
 
     // must mark all affected vars. their bounty data is probably obsolete now.
     bounty_markVar(bounty, indexA);

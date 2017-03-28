@@ -140,7 +140,7 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     console.time('-> min_loop ' + loops);
     TRACE('min outer loop');
     varChanged = false;
-    onlyJumps = false;
+    onlyJumps = true; // until proven otherwise
     restarted = false;
     pc = 0;
     constraints = 0;

@@ -83,6 +83,8 @@ const BOUNTY_OR_ONLY_FLAG = 1 << ++bounty_flagCounter;
 const BOUNTY_OR = BOUNTY_OR_ONLY_FLAG;
 const BOUNTY_SUM_RESULT_ONLY_FLAG = 1 << ++bounty_flagCounter;
 const BOUNTY_SUM_RESULT = BOUNTY_SUM_RESULT_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
+const BOUNTY_PLUS_RESULT_ONLY_FLAG = 1 << ++bounty_flagCounter;
+const BOUNTY_PLUS_RESULT = BOUNTY_PLUS_RESULT_ONLY_FLAG | BOUNTY_NOT_BOOLY_ONLY_FLAG;
 
 ASSERT(bounty_flagCounter <= 16, 'can only run with 16 flags, or must increase flag size');
 
@@ -268,6 +270,12 @@ function bounty_collect(ml, problem, bounty) {
           break;
 
         case ML_PLUS:
+          collect(1, BOUNTY_OTHER_NONBOOLY);
+          collect(3, BOUNTY_OTHER_NONBOOLY);
+          collect(5, BOUNTY_PLUS_RESULT);
+          pc += SIZEOF_VVV;
+          break;
+
         case ML_MINUS:
         case ML_MUL:
         case ML_DIV:
@@ -429,6 +437,7 @@ function bounty__debugMeta(meta) {
   if ((meta & BOUNTY_NAND_ONLY_FLAG) === BOUNTY_NAND_ONLY_FLAG) what.push('NAND');
   if ((meta & BOUNTY_NEQ_ONLY_FLAG) === BOUNTY_NEQ_ONLY_FLAG) what.push('NEQ');
   if ((meta & BOUNTY_OR_ONLY_FLAG) === BOUNTY_OR_ONLY_FLAG) what.push('OR');
+  if ((meta & BOUNTY_PLUS_RESULT_ONLY_FLAG) === BOUNTY_PLUS_RESULT_ONLY_FLAG) what.push('PLUS_RESULT');
   if ((meta & BOUNTY_SUM_RESULT_ONLY_FLAG) === BOUNTY_SUM_RESULT_ONLY_FLAG) what.push('SUM_RESULT');
 
   return '[ ' + s + ': ' + what.join(', ') + ' ]';
@@ -460,6 +469,8 @@ export {
   BOUNTY_NEQ_ONLY_FLAG,
   BOUNTY_OR,
   BOUNTY_OR_ONLY_FLAG,
+  BOUNTY_PLUS_RESULT,
+  BOUNTY_PLUS_RESULT_ONLY_FLAG,
   BOUNTY_SUM_RESULT,
   BOUNTY_SUM_RESULT_ONLY_FLAG,
 

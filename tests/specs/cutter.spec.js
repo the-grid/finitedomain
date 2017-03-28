@@ -98,7 +98,7 @@ describe('specs/cutter.spec', function() {
 
   describe('isneq', function() {
 
-    it('should isneq', function() {
+    it('should isneq base case', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A, C *
@@ -109,6 +109,18 @@ describe('specs/cutter.spec', function() {
       `);
 
       expect(solution).to.eql({A: 11, B: 11, C: 0});
+    });
+
+    it('should solve constant case', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [1 2]
+        : R [0 1]
+        R = A !=? 1
+        @custom noleaf R
+      `);
+
+      expect(solution).to.eql({A: 2, R: 0});
     });
   });
 
@@ -250,31 +262,27 @@ describe('specs/cutter.spec', function() {
   describe('plus', function() {
 
     it('should rewrite combined isAll to a leaf var', function() {
-      let solution = preSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : R *
         : S [0 1]
         R = A + B
         S = R ==? 2
-        @custom noleaf A B
-      `);
-
-      expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
+        @custom noleaf A B S
+      `)).to.throw(/ops: isall2 #/);
     });
 
     it('should isall leaf case be reversable', function() {
-      let solution = preSolver(`
+      expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
         : R *
         : S [0 1]
         S = R ==? 2
         R = A + B
-        @custom noleaf A B
-      `);
-
-      expect(solution).to.eql({A: 0, B: 0, R: 0, S: 0}); // implicit choices through the solveStack wont bother with 1121
+        @custom noleaf A B S
+      `)).to.throw(/ops: isall2 #/);
     });
   });
 
@@ -1374,6 +1382,34 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf A B C
       `)).to.throw(/ops: isall #/);
+    });
+  });
+
+  describe('trick plus+iseq', function() {
+
+    it('should isall base case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : C [0 2]
+        : R [0 1]
+        C = A + B
+        R = C ==? 2
+        @custom noleaf A B R
+      `)).to.throw(/ops: isall2 #/);
+    });
+
+    it('should isnone base case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : C [0 2]
+        : R [0 1]
+        C = A + B
+        R = C ==? 0
+        @custom noleaf A B R
+        @custom free 100
+      `)).to.throw(/ops: isnone #/);
     });
   });
 });

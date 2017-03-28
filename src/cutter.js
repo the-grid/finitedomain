@@ -58,6 +58,7 @@ import {
   ml_enc16,
   ml_eliminate,
   ml_getOpSizeSlow,
+  ml_getRecycleOffset,
   ml_getRecycleOffsets,
   ml_jump,
   ml_recycles,
@@ -84,7 +85,6 @@ import {
   domain_isZero,
   domain_min,
   domain_max,
-  domain_size,
   domain_getValue,
   domain_removeValue,
   domain_removeGte,
@@ -117,6 +117,8 @@ import {
   //BOUNTY_OTHER_ONLY_FLAG,
   //BOUNTY_OTHER_BOOLY,
   //BOUNTY_OTHER_NONBOOLY,
+  //BOUNTY_PLUS_RESULT_ONLY_FLAG,
+  BOUNTY_PLUS_RESULT,
   //BOUNTY_SUM_RESULT_ONLY_FLAG,
   BOUNTY_SUM_RESULT,
 
@@ -513,7 +515,8 @@ function cutter(ml, problem, once) {
     }
 
     if (countsR === 2) {
-      if (trickPlusIseq(ml, offset, indexA, indexB, indexR)) return;
+      let metaR = getMeta(bounty, indexR);
+      if (metaR === (BOUNTY_PLUS_RESULT | BOUNTY_ISEQ_ARG) && trickPlusIseq(ml, offset, indexA, indexB, indexR, countsR, metaR)) return;
     }
 
     if (countsA === 1 || countsB === 1) {
@@ -2691,7 +2694,7 @@ function cutter(ml, problem, once) {
     return true;
   }
 
-  function trickPlusIseq(ml, offset, indexA, indexB, indexR) {
+  function trickPlusIseq(ml, plusOffset, indexA, indexB, indexR, countsR, metaR) {
     // scan for pattern:
     //   (R = A+B) & (S = R==?2)   ->   S = isAll(A B)
     //   [0022]=[01]+[01] & [01]=[0022]==?2
@@ -2699,62 +2702,107 @@ function cutter(ml, problem, once) {
     // so there's a plus and then there's an iseq that checks whether the result is the
     // sum of the only two non-zero values. that's just an "are both set" check -> isall
 
-    TRACE('trickPlusIseq', ml, offset, indexA, indexB, indexR);
+    TRACE('trickPlusIseq', ml, plusOffset, indexA, indexB, indexR);
+    ASSERT(countsR === 2, 'R should be part of two constraints');
+    ASSERT(metaR === (BOUNTY_PLUS_RESULT | BOUNTY_ISEQ_ARG), 'R should be part of a sum and an iseq');
 
     // so R is used in two constraints. let's first determine the other one
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
-    ASSERT(offset1 && offset2 && (offset1 === offset || offset2 === offset), 'if there were two counts Bounty should have collected two offsets for it');
-    let otherOffset = offset1 === offset ? offset2 : offset1;
+    ASSERT(offset1 && offset2 && (offset1 === plusOffset || offset2 === plusOffset), 'if there were two counts Bounty should have collected two offsets for it');
+    let iseqOffset = offset1 === plusOffset ? offset2 : offset1;
+    ASSERT(ml_dec8(ml, iseqOffset) === ML_ISEQ, 'should have been asserted by the bounty hunter');
 
-    // now assert that the other offset is indeed an iseq
-    if (ml_dec8(ml, otherOffset) !== ML_ISEQ) return false;
+    // get iseq operands (let's use X,Y,Z). R should be X or Y and we must check if the other is a constant
+    let indexX = readIndex(ml, iseqOffset + 1); // R | ?
+    let indexY = readIndex(ml, iseqOffset + 3); // R | ?
+    let indexZ = readIndex(ml, iseqOffset + 5); // S
+    ASSERT((indexX === indexR) !== (indexY === indexR), 'R should be one of the args to the iseq');
+    let indexXyNotR = indexR === indexX ? indexY : indexX; // the X or Y arg that is not R
 
-    // get its operands (let's use X,Y,Z). R should be X or Y and the other should be a constant
-    let indexX = readIndex(ml, otherOffset + 1); // R | 2
-    let indexY = readIndex(ml, otherOffset + 1); // R | 2
-    let indexZ = readIndex(ml, otherOffset + 1); // S
+    // confirm that the domains are within the expected bounds
+    // A and B must be bools
+    // XY must be constant 2
+    // should be [0022] in that case
 
-    if (indexX !== indexR && indexY !== indexR) return false;
-    let v = domain_getValue(getDomain(indexX, true));
+    if (!domain_isBool(getDomain(indexA, true))) {
+      TRACE(' - A was not a bool, bailing', domain__debug(getDomain(indexA, true)));
+      return false;
+    }
+    if (!domain_isBool(getDomain(indexB, true))) {
+      TRACE(' - B was not a bool, bailing', domain__debug(getDomain(indexB, true)));
+      return false;
+    }
+    ASSERT(getDomain(indexR, true) === domain_createRange(0, 2), 'R should be [0 2] at this point due to the sum args');
+    let XYNR = getDomain(indexXyNotR, true);
+    TRACE(' - xynr index:', indexXyNotR, 'domain:', domain__debug(XYNR));
+    let v = domain_getValue(XYNR);
     if (v < 0) {
-      v = domain_getValue(getDomain(indexY, true));
-      if (v < 0) return false;
+      TRACE(' - The other iseq arg was not a constant, bailing', v, domain__debug(XYNR));
+      return false;
     }
 
-    // v should be the value of A+B if they are non-zero but we have to confirm that first
-    // A and B must be booly and have exactly two values (usually 0 and 1, but 0 and 5 is fine too)
+    // so now we know that there's a plus, and its args are strict bools, and R is [0 2]
+    // then there's an iseq that checks R with a constant
+    // we've confirmed all these details so it's time to merge them together and morph depending on the constant
 
-    let A = getDomain(indexA, true);
-    let B = getDomain(indexB, true);
+    if (v === 2) {
+      TRACE(' - found isAll pattern, morphing plus to isall and eliminating isEq');
 
-    if (domain_min(A) !== 0 || domain_size(A) !== 2) return false;
-    if (domain_min(B) !== 0 || domain_size(B) !== 2) return false;
+      // rewrite one into `Z = all?(A B)`, drop the other
 
-    // confirm that the two non-zero values sum to exactly v
-    if (v !== domain_max(A) + domain_max(B)) return false;
+      solveStack.push((_, force, getDomain, setDomain) => {
+        TRACE(' - cut plus -> isAll; plus+iseq->isall');
+        let R = getDomain(indexR);
+        let vS = force(indexZ);
+        setDomain(indexR, vS ? domain_intersectionValue(R, v) : domain_removeValue(R, v));
+        // or just this? ultimately, perhaps pick the way that forces the least? *shrug*
+        //setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
+      });
 
-    // so now we know that there's a plus, and its args have two values, each have at least a zero,
-    // and R is zero and the sum of non-zero values from the args.
-    // then there's an iseq that confirms whether R is in fact the only non-zero value it has
-    // we've confirmed all these details so it's time to merge them together and morph to an isall
+      // for the record, _this_ is why ML_ISALL2 exists at all. we can use recycle now though, but it's slow.
+      ml_vvv2vvv(ml, plusOffset, ML_ISALL2, indexA, indexB, indexZ);
+      ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
+    } else if (v === 1) {
+      TRACE(' - found isxor pattern, but since we dont have isxor and alternative rewrites are more expensive, we bail for now');
+      return false;
+    } else {
+      ASSERT(v === 0, 'only option left');
+      TRACE(' - found isnone pattern, morphing plus to xor and eliminating isEq');
 
-    TRACE(' - found isAll pattern, rewriting plus and eliminating isEq');
+      // R=[02], A=[01], B=[01], Z=R==?0
+      // Z is true if !A and !B
+      // Z = isnone(A B)
 
-    // rewrite one into `Z = all?(A B)`, drop the other
+      let bin = ml_getRecycleOffset(ml, 0, SIZEOF_COUNT + 2 * 2 + 2);
+      if (bin === undefined) {
+        TRACE(' - unable to recycle a space, bailing');
+        return false;
+      }
 
-    solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - cut plus -> isAll; plus+iseq->isall');
-      let R = getDomain(indexR);
-      let vS = force(indexZ);
-      setDomain(indexR, vS ? domain_intersectionValue(R, v) : domain_removeValue(R, v));
-      // or just this? ultimately, perhaps pick the way that forces the least? *shrug*
-      //setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
-    });
+      solveStack.push((_, force, getDomain, setDomain) => {
+        TRACE(' - cut plus -> isNone; plus+iseq->isnone');
+        let oR = getDomain(indexR);
+        let vA = force(indexA);
+        let vB = force(indexB);
+        let R = domain_intersectionValue(oR, vA + vB);
+        ASSERT(R, 'R should contain any A + B');
+        if (oR !== R) setDomain(indexR, R);
+      });
 
-    // for the record, _this_ is why ML_ISALL2 exists at all. we can use recycle now though, but it's slow.
-    ml_vvv2vvv(ml, offset, ML_ISALL2, indexA, indexB, indexZ);
-    ml_eliminate(ml, otherOffset, SIZEOF_VVV);
+      let binSize = ml_getOpSizeSlow(ml, bin);
+      let isnoneSize = SIZEOF_COUNT + 2 * 2 + 2;
+      ASSERT(binSize >= isnoneSize, 'should fit', binSize, isnoneSize);
+      ml_enc8(ml, bin, ML_ISNONE);
+      ml_enc16(ml, bin + 1, 2);
+      ml_enc16(ml, bin + SIZEOF_COUNT + 0, indexA);
+      ml_enc16(ml, bin + SIZEOF_COUNT + 2, indexB);
+      ml_enc16(ml, bin + SIZEOF_COUNT + 4, indexZ);
+      if (isnoneSize !== binSize) ml_jump(ml, bin + isnoneSize, binSize - isnoneSize);
+
+      ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
+      ml_eliminate(ml, plusOffset, SIZEOF_VVV); // this one last to ensure the current plus offset doesnt get clobbered, we need that to safely restart from this op
+    }
 
     bounty_markVar(bounty, indexA);
     bounty_markVar(bounty, indexB);

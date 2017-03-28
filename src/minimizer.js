@@ -1546,27 +1546,53 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     if (!A || !B || !R) return;
 
     let oR = R;
-    if (!domain_isSolved(R)) {
-      // if R isn't set you can't really update A or B. so we don't.
-      if (domain_max(A) <= domain_min(B)) R = domain_removeValue(R, 0);
-      else if (domain_min(A) > domain_max(B)) R = domain_removeGtUnsafe(R, 0);
+    TRACE(' - max(A) <= min(B)?', domain_max(A), '<=', domain_min(B));
+    TRACE(' - min(A) > max(B)?', domain_min(A), '>', domain_max(B));
+    // if R isn't resolved you can't really update A or B. so we don't.
+    if (domain_max(A) <= domain_min(B)) R = domain_removeValue(R, 0);
+    else if (domain_min(A) > domain_max(B)) R = domain_removeGtUnsafe(R, 0);
+    if (R !== oR) {
+      if (updateDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
     }
-    if (R !== oR && updateDomain(indexR, R, 'islte; solving R because A and B are solved')) return;
 
-    // if R is solved replace this isLt with an lt or "gt" and repeat.
+    let falsyR = domain_isZero(R);
+    let truthyR = falsyR ? false : domain_hasNoZero(R);
+
+    // if R is resolved replace this isLte with an lte or "gte" and repeat.
     // the appropriate op can then prune A and B accordingly.
-    // in this context, the inverse for lt is an lte with swapped args
+    // in this context, the logical inverse for lte is an lt with swapped args
 
-    if (domain_isZero(R)) {
+    if (falsyR) {
       TRACE(' ! result var solved to 0 so compiling an lt with swapped args in its place', indexB, 'and', indexA);
       ml_vvv2vv(ml, offset, ML_LT, indexB, indexA);
       return;
     }
 
-    if (domain_hasNoZero(R)) {
+    if (truthyR) {
       TRACE(' ! result var solved to 1 so compiling an lte in its place', indexA, 'and', indexB);
       ml_vvv2vv(ml, offset, ML_LTE, indexA, indexB);
       return;
+    }
+
+    if (domain_isBool(R) && domain_max(A) <= 1 && domain_max(B) <= 1) {
+      TRACE(' - R is bool and A and B are bool-bound so checking bool specific cases');
+      ASSERT(!domain_isZero(A) || !domain_isBool(B), 'this case should be caught by max<min checks above');
+
+      if (domain_isBool(A) && domain_isZero(B)) {
+        TRACE(' - [01] = [01] <=? 0; morphing to A != R');
+        ml_vvv2vv(ml, offset, ML_NEQ, indexA, indexR);
+        return;
+      }
+      if (domain_isBool(A) && B === domain_createValue(1)) {
+        TRACE(' - [01] = [01] <=? 1; morphing to A == R');
+        ml_vvv2vv(ml, offset, ML_EQ, indexA, indexR);
+        return;
+      }
+      if (A === domain_createValue(1) && domain_isBool(B)) {
+        TRACE(' - [01] = 1 <=? [01]; morphing to B == R');
+        ml_vvv2vv(ml, offset, ML_EQ, indexB, indexR);
+        return;
+      }
     }
 
     TRACE(' - not only jumps...');

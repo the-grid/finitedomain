@@ -30,6 +30,18 @@ describe('specs/minimizer.spec', function() {
       expect(solution).to.eql({A: 0, R: 0});
     });
 
+    it('should rewrite 01=1==?01 to A==R', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : R [0 1]
+        R = 1 ==? A
+        @custom noleaf A R
+      `);
+
+      expect(solution).to.eql({A: 0, R: 0});
+    });
+
     it('should rewrite 01=02==?0 to A!=R', function() {
       let solution = preSolver(`
         @custom var-strat throw
@@ -239,6 +251,67 @@ describe('specs/minimizer.spec', function() {
       `);
 
       expect(solution).to.eql(false);
+    });
+  });
+
+  describe('islte', function() {
+
+    it('should solve boolean constant case v1 (no cutter)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : R [0 1]
+        R = A <=? 0
+        @custom noleaf A R
+      `)).to.throw(/ops: neq #/); // islte gets morphed to neq
+    });
+
+    it('should solve boolean constant case v1 (with cutter)', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : R [0 1]
+        R = A <=? 0
+        @custom noleaf R
+      `);
+
+      expect(solution).to.eql({A: 1, R: 0});
+    });
+
+    it('should solve boolean constant case v2', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : R [0 1]
+        R = A <=? 1
+        @custom noleaf A R
+      `);
+
+      expect(solution).to.eql({A: [0, 1], R: 1});
+    });
+
+    it('should solve boolean constant case v3', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 1]
+        : R [0 1]
+        R = 0 <=? B
+        @custom noleaf B R
+      `);
+
+      expect(solution).to.eql({B: [0, 1], R: 1});
+    });
+
+    it('should solve boolean constant case v4', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 1]
+        : R [0 1]
+        R = 1 <=? B
+        @custom noleaf B R
+      `);
+
+      expect(solution).to.eql({B: 0, R: 0});
     });
   });
 

@@ -51,6 +51,59 @@ describe('specs/dsl.spec', function() {
     });
   });
 
+
+  describe('islte', function() {
+
+    describe('constants', function() {
+
+      it('should morph boolean constant case v1 to neq', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : R [0 1]
+          R = A <=? 0
+          @custom noleaf A R
+        `)).to.throw(/ops: neq #/);
+      });
+
+      it('should solve boolean constant case v2', function() {
+        let solution = preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : R [0 1]
+          R = A <=? 1
+          @custom noleaf A R
+        `);
+
+        expect(solution).to.eql({A: [0, 1], R: 1});
+      });
+
+      it('should solve boolean constant case v3', function() {
+        let solution = preSolver(`
+          @custom var-strat throw
+          : B [0 1]
+          : R [0 1]
+          R = 0 <=? B
+          @custom noleaf B R
+        `);
+
+        expect(solution).to.eql({B: [0, 1], R: 1});
+      });
+
+      it('should solve boolean constant case v4', function() {
+        let solution = preSolver(`
+          @custom var-strat throw
+          : B [0 1]
+          : R [0 1]
+          R = 1 <=? B
+          @custom noleaf B R
+        `);
+
+        expect(solution).to.eql({B: 0, R: 0});
+      });
+    });
+  });
+
   describe('custom noleaf', function() {
 
     it('should NOT eliminate the isall WITH the noleaf hint', function() {

@@ -524,12 +524,20 @@ function cutter(ml, problem, once) {
       if (metaR === (BOUNTY_PLUS_RESULT | BOUNTY_ISEQ_ARG) && trickPlusIseq(ml, offset, indexA, indexB, indexR, countsR, metaR)) return;
     }
 
-    if (countsA === 1 || countsB === 1) {
-      let A = getDomain(indexA, true);
+    if (countsA === 1) {
+      ASSERT(!domain_isSolved(getDomain(indexA, true)), 'a constant is ignored by bounty so cant have counts=1');
       let B = getDomain(indexB, true);
+      if (domain_getValue(B) >= 0) {
+        if (leafPlusArg(ml, offset, indexA, indexB, indexR, indexA, indexB)) return;
+      }
+    }
 
-      if (domain_getValue(A) >= 0 || domain_getValue(B) >= 0) {
-        leafPlusArg();
+    if (countsB === 1) {
+      ASSERT(!domain_isSolved(getDomain(indexB, true)), 'a constant is ignored by bounty so cant have counts=1');
+      let A = getDomain(indexA, true);
+      if (domain_getValue(A) >= 0) {
+        // I dont think code can reach here because args are ordered and constants always end up in B, but just in case that somewhere doesnt happen let's keep it in here
+        if (leafPlusArg(ml, offset, indexB, indexA, indexR, indexA, indexB)) return;
       }
     }
 
@@ -1108,30 +1116,25 @@ function cutter(ml, problem, once) {
     somethingChanged();
   }
 
-  function leafPlusArg(ml, offset, leafIndex, constIndex, indexR, indexA, indexB) {
-    TRACE('   - leafPlusArg;', leafIndex, 'is a leaf var, R = A + B,', indexR, '=', indexA, '+', indexB);
-    ASSERT(!domain_isSolved(getDomain(leafIndex)), 'A should not yet be solved at this point');
-    ASSERT(domain_isSolved(getDomain(constIndex)), 'B should be solved at this point');
+  function leafPlusArg(ml, plusOffset, leafIndex, constIndex, indexR, indexA, indexB) {
+    TRACE('   - leafPlusArg;', leafIndex, 'is a leaf var, the other arg a constant (', domain__debug(getDomain(constIndex, true)), '), R = A + B,', indexR, '=', indexA, '+', indexB);
+    ASSERT(!domain_isSolved(getDomain(leafIndex)), 'L should not yet be solved at this point');
+    ASSERT(domain_isSolved(getDomain(constIndex)), 'C should be solved at this point');
 
-    // B is solved, drop it from A. then defer R to resolve as an alias to A later
-    let B = domain_getValue(constIndex);
+    // remove the constant from the leaf, then alias the leaf to R
+    let oL = getDomain(leafIndex, true);
+    let C = getDomain(constIndex, true);
+    ASSERT(domain_getValue(C) >= 0, 'constant should be a solved domain', C);
+    let L = domain_minus(oL, C);
+    if (L !== oL && setDomain(leafIndex, L, true)) return;
+
     let oR = getDomain(indexR, true);
-    let R = domain_intersection(oR, domain_minus(oR, B));
-    if (R !== oR && setDomain(indexR, R)) return;
+    let R = domain_intersection(oR, L);
+    if (R !== oR && setDomain(indexR, R, true)) return;
 
-    solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - leafPlusArg;', indexR, '=', leafIndex, '<=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(leafIndex)), '+', domain__debug(getDomain(constIndex)));
-      let A = getDomain(leafIndex);
-      let vB = force(constIndex);
-      let vR = force(indexR);
-      let vA = vR - vB;
-      ASSERT(Number.isInteger(vA), 'should be integer result');
-      A = domain_intersectionValue(A, vA);
-      ASSERT(A, 'leaf var should contain solution value');
-      setDomain(leafIndex, A);
-    });
+    addAlias(leafIndex, indexR);
 
-    ml_eliminate(ml, offset, SIZEOF_VVV);
+    ml_eliminate(ml, plusOffset, SIZEOF_VVV);
     bounty_markVar(bounty, leafIndex);
     bounty_markVar(bounty, constIndex);
     bounty_markVar(bounty, indexR);

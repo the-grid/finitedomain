@@ -553,28 +553,86 @@ describe('specs/cutter.spec', function() {
 
   describe('plus', function() {
 
-    it('should rewrite combined isAll to a leaf var', function() {
-      expect(_ => preSolver(`
+    it('should cut leaf R from AB plus', function() {
+      let solution = preSolver(`
         @custom var-strat throw
-        : A, B [0 1]
+        : A [0 10]
+        : B [0 10]
         : R *
-        : S [0 1]
         R = A + B
-        S = R ==? 2
-        @custom noleaf A B S
-      `)).to.throw(/ops: isall2 #/);
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 0});
     });
 
-    it('should isall leaf case be reversable', function() {
+    it('should cut leaf R from BA plus', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 10]
+        : A [0 10]
+        : R *
+        R = B + A
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, R: 0});
+    });
+
+    it('should not cut leaf A from AB plus', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
-        : A, B [0 1]
+        : A [0 10]
+        : B [0 10]
         : R *
-        : S [0 1]
-        S = R ==? 2
         R = A + B
-        @custom noleaf A B S
-      `)).to.throw(/ops: isall2 #/);
+        @custom noleaf R A
+      `)).to.throw(/ops: plus #/);
+    });
+
+    it('should not cut leaf B from BA plus', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B [0 10]
+        : A [0 10]
+        : R *
+        R = B + A
+        @custom noleaf R B
+      `)).to.throw(/ops: plus #/);
+    });
+
+    it('should plus with a constant A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 10]
+        : R *
+        R = 5 + B
+        @custom noleaf R
+      `);
+
+      expect(solution).to.eql({B: 0, R: 5});
+    });
+
+    it('should plus with a constant B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : R *
+        R = A + 5
+        @custom noleaf R
+      `);
+
+      expect(solution).to.eql({A: 0, R: 5});
+    });
+
+    it('should plus with a constant R', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        5 = A + B
+        @custom noleaf A B
+      `)).to.throw(/ops: plus #/);
     });
   });
 
@@ -1809,6 +1867,33 @@ describe('specs/cutter.spec', function() {
         # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
 
         @custom noleaf A B C
+      `)).to.throw(/ops: isall2 #/);
+    });
+  });
+
+  describe('trick isall+plus', function() {
+
+    it('should rewrite combined isAll to a leaf var', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : R *
+        : S [0 1]
+        R = A + B
+        S = R ==? 2
+        @custom noleaf A B S
+      `)).to.throw(/ops: isall2 #/);
+    });
+
+    it('should isall leaf case be reversable', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : R *
+        : S [0 1]
+        S = R ==? 2
+        R = A + B
+        @custom noleaf A B S
       `)).to.throw(/ops: isall2 #/);
     });
   });

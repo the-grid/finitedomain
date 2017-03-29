@@ -35,6 +35,48 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: [11, 100000000], B: 0});
     });
+
+    it('should cut AB neq without bad ops', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        A != B
+        A <= C
+        @custom noleaf B C D E
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should not cut AB neq with bad ops', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        A != B
+        A <= C
+        A = D + E
+        @custom noleaf B C D E
+      `)).to.throw(/ops: lte,neq,plus #/);
+    });
+
+    it('should cut BA neq without bad ops', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A, C, D, E [0 1]
+        B != A
+        A <= C
+        @custom noleaf B C D E
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should not cut BA neq with bad ops', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A, C, D, E [0 1]
+        B != A
+        A <= C
+        A = D + E
+        @custom noleaf B C D E
+      `)).to.throw(/ops: lte,neq,plus #/);
+    });
   });
 
   describe('lt', function() {
@@ -1067,7 +1109,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick lte_lhs+neq', function() {
 
-    it('should eliminate base case an lte_lhs and neq', function() {
+    it('should eliminate base case an lte_lhs and AB neq', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -1080,13 +1122,39 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: or #/);
     });
 
-    it('should eliminate swapped base case an lte_lhs and neq', function() {
+    it('should eliminate swapped base case an lte_lhs and AB neq', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 1]
         : C [0 1]
         A != C
+        A <= B
+        # -> B | C, A is a leaf
+        @custom noleaf B C
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should eliminate base case an lte_lhs and BA neq', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : C [0 1]
+        : A [0 1]
+        : B [0 1]
+        A <= B
+        C != A
+        # -> B | C, A is a leaf
+        @custom noleaf B C
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should eliminate swapped base case an lte_lhs and BA neq', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B [0 1]
+        : C [0 1]
+        : A [0 1]
+        C != A
         A <= B
         # -> B | C, A is a leaf
         @custom noleaf B C
@@ -1258,7 +1326,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick neq+lte++', function() {
 
-    it('should morph neq, lte, lte with perfect fit', function() {
+    it('should morph AB neq, lte, lte with perfect fit', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
@@ -1272,7 +1340,7 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nand,nand #/);
     });
 
-    it('should morph neq, lte, lte with room to spare', function() {
+    it('should morph AB neq, lte, lte with room to spare', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B [0 1]
@@ -1280,6 +1348,34 @@ describe('specs/cutter.spec', function() {
         A <= X
         B <= X
         Y != X
+        # -> Y = none?(A B)  and X a leaf
+
+        @custom noleaf A B Y
+      `)).to.throw(/ops: nand,nand #/);
+    });
+
+    it('should morph BA neq, lte, lte with perfect fit', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : Y, X [0 1]
+        A <= X
+        B <= X
+        X != Y
+        # -> Y = none?(A B)  and X a leaf
+
+        @custom noleaf A B Y
+      `)).to.throw(/ops: nand,nand #/);
+    });
+
+    it('should morph BA neq, lte, lte with room to spare', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : Y, X [0 1]
+        A <= X
+        B <= X
+        X != Y
         # -> Y = none?(A B)  and X a leaf
 
         @custom noleaf A B Y
@@ -1289,7 +1385,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick neq+nand', function() {
 
-    it('should morph neq, nand', function() {
+    it('should morph AB neq, nand', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
@@ -1300,15 +1396,39 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B C
       `)).to.throw(/ops: lte #/);
     });
+
+    it('should morph BA neq, nand', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A, C [0 1]
+        B != A
+        A !& C
+        # -> C <= B, A leaf
+
+        @custom noleaf B C
+      `)).to.throw(/ops: lte #/);
+    });
   });
 
   describe('trick neq+or', function() {
 
-    it('should morph neq, or', function() {
+    it('should morph AB neq, or', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         A != B
+        A | C
+        # -> B <= C, A leaf
+
+        @custom noleaf B C
+      `)).to.throw(/ops: lte #/);
+    });
+
+    it('should morph BA neq, or', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A, C [0 1]
+        B != A
         A | C
         # -> B <= C, A leaf
 

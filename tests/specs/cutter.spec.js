@@ -286,7 +286,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('xnor booly', function() {
+  describe('trick xnor booly', function() {
 
     it('should solve the base case', function() {
       expect(_ => preSolver(`
@@ -366,7 +366,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte_rhs+isall_r trick', function() {
+  describe('trick lte_rhs+isall_r', function() {
 
     it('should morph the basic case', function() {
       expect(_ => preSolver(`
@@ -548,7 +548,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte_rhs+neq trick', function() {
+  describe('trick lte_rhs+neq', function() {
 
     it('should rewrite base case of an lte and neq to a nand', function() {
       expect(_ => preSolver(`
@@ -590,7 +590,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte_lhs+nand trick', function() {
+  describe('trick lte_lhs+nand', function() {
 
     it('should eliminate base case of an lte and nand', function() {
       let solution = preSolver(`
@@ -667,7 +667,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe.skip('lte_lhs+isall_r trick', function() {
+  describe.skip('trick lte_lhs+isall_r', function() {
 
     it('should eliminate base case of an lte-lhs and isall-r', function() {
       expect(_ => preSolver(`
@@ -737,7 +737,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('isall_r+nall trick', function() {
+  describe('trick isall_r+nall', function() {
 
     it('should rewrite base case v1 of an isall and nall to a nand', function() {
       expect(_ => preSolver(`
@@ -785,7 +785,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('isall+nand trick', function() {
+  describe('trick isall+nand', function() {
 
     it('should eliminate base case of an isall and nand', function() {
       expect(_ => preSolver(`
@@ -991,7 +991,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('2xlte trick', function() {
+  describe('trick 2xlte', function() {
 
     it('should eliminate base case a double lte', function() {
       let solution = preSolver(`
@@ -1024,7 +1024,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('lte_lhs+neq trick', function() {
+  describe('trick lte_lhs+neq', function() {
 
     it('should eliminate base case an lte_lhs and neq', function() {
       expect(_ => preSolver(`
@@ -1053,7 +1053,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('nand+neq+lte_lhs trick', function() {
+  describe('trick nand+neq+lte_lhs', function() {
 
     it('should eliminate base case a nand, neq, lte', function() {
       expect(_ => preSolver(`
@@ -1160,7 +1160,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('neq+lte_lhs+lte_rhs trick', function() {
+  describe('trick neq+lte_lhs+lte_rhs', function() {
 
     it('should eliminate base case neq, lte, lte', function() {
       expect(_ => preSolver(`
@@ -1215,7 +1215,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('neq+lte++ trick', function() {
+  describe('trick neq+lte++', function() {
 
     it('should morph neq, lte, lte with perfect fit', function() {
       expect(_ => preSolver(`
@@ -1246,7 +1246,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('neq+nand trick', function() {
+  describe('trick neq+nand', function() {
 
     it('should morph neq, nand', function() {
       expect(_ => preSolver(`
@@ -1261,7 +1261,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('neq+or trick', function() {
+  describe('trick neq+or', function() {
 
     it('should morph neq, or', function() {
       expect(_ => preSolver(`
@@ -1276,7 +1276,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('nands only trick', function() {
+  describe('trick nands only', function() {
 
     it('should eliminate a var that is only used in nands', function() {
       let solution = preSolver(`
@@ -1293,7 +1293,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('nand+lte+or trick', function() {
+  describe('trick nand+lte+or', function() {
 
     it('should morph nand, lte, or', function() {
       expect(_ => preSolver(`

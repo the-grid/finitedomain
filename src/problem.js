@@ -99,9 +99,10 @@ function $name2index($varTrie, $getAlias, name, skipAliasCheck, scanOnly) {
 function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin, noSolveStack) {
   if ($aliases[indexOld] === indexNew) return; // ignore constant (re)assignments. we may want to handle this more efficiently in the future
   TRACE(' - $addAlias' + (_origin ? ' (from ' + _origin + ')' : '') + ': Mapping index = ', indexOld, '(', domain__debug($domains[indexOld]), ') to index = ', indexNew, '(', indexNew >= $domains.length ? 'some constant' : domain__debug($domains[indexNew]), ')');
-  ASSERT(indexOld !== indexNew, 'cant make an alias for itself', indexOld, indexNew);
-  ASSERT(indexOld >= 0 && indexOld <= $domains.length, 'should be valid non-constant var index', indexOld);
-  ASSERT(indexNew >= 0, 'should be valid var index', indexNew);
+  ASSERT(indexOld !== indexNew, 'cant make an alias for itself', indexOld, indexNew, _origin);
+  ASSERT(indexOld >= 0 && indexOld <= $domains.length, 'should be valid non-constant var index', indexOld, _origin);
+  ASSERT(indexNew >= 0, 'should be valid var index', indexNew, _origin);
+  //ASSERT($domains[indexOld], 'current domain shouldnt be empty', _origin);
 
   let oldDomain = $domains[indexOld];
   $aliases[indexOld] = indexNew;
@@ -119,8 +120,8 @@ function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin,
       // ensure both indexes end up with the same value, regardless of how the target is reduced
       // only way to do that is to make sure the var is solved (otherwise two different values could be picked from the solution...)
       let v = force(indexNew);
-      ASSERT(domain_containsValue(oldDomain, v), 'old domain should contain resulting value');
-      ASSERT(getDomain(indexOld, true) === false, 'old index should be marked as an alias', 'old index:', indexOld, ', current old domain:', domain__debug(getDomain(indexOld, true)), 'or', domain__debug($domains[indexOld]), 'same $domains?', $domains === _);
+      ASSERT(domain_containsValue(oldDomain, v), 'old domain should contain resulting value', _origin);
+      ASSERT(getDomain(indexOld, true) === false, 'old index should be marked as an alias', 'old index:', indexOld, ', current old domain:', domain__debug(getDomain(indexOld, true)), 'or', domain__debug($domains[indexOld]), 'same $domains?', $domains === _, _origin);
       setDomain(indexOld, domain_createValue(v));
     });
   }
@@ -152,6 +153,8 @@ function $setDomain($domains, $constants, $addAlias, $getAlias, varIndex, domain
   ASSERT(typeof varIndex === 'number' && varIndex >= 0 && varIndex <= 0xffff, 'valid varindex', varIndex);
   ASSERT_NORDOM(domain);
   ASSERT(skipAliasCheck === undefined || skipAliasCheck === true || skipAliasCheck === false, 'valid skipAliasCheck', skipAliasCheck);
+  //ASSERT(forSolution || $domains[varIndex] !== false, 'index should be unaliased unless we are solving the var', varIndex, $domains[varIndex], forSolution);
+  ASSERT(!$domains[varIndex] || !domain_isSolved($domains[varIndex]), 'current domain should not be a constant');
 
   //ASSERT_LOG2(' - $setDomain', varIndex, domain__debug(domain), skipAliasCheck);
   let value = domain_getValue(domain);

@@ -823,6 +823,7 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by another trick
     });
 
+    // note: it's impossible to test both isall and isall2 because the trick only works with 2 isall args
     it('should not rewrite when isall has 3+ args', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
@@ -837,7 +838,7 @@ describe('specs/cutter.spec', function() {
         # when X is 1, A can't be 1 because then B is also one and the nall would break
         @custom noleaf A B C X
         # dont exclude R or the trick won't trigger (even when it's B that disappears from nall)
-      `)).to.throw(/ops: isall,nall #/); // isall+nand becomes nall by another trick
+      `)).to.throw(/ops: isall,nall #/);
     });
 
     describe('all variations of nall arg order', function() {
@@ -868,7 +869,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('trick isall+nand', function() {
+  describe('trick isall_r+nand', function() {
 
     it('should eliminate base case of an isall and nand', function() {
       expect(_ => preSolver(`
@@ -1071,6 +1072,22 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B C a b c d e f g h i j k l m n o p q r s t u v w x y z
         @custom free 1000
       `)).to.throw(/ops: isall2,lte,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
+    });
+
+    it('should eliminate base case of an isall with multiple args and two nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : a, b, c, d, e [0 1]
+        : X, Y [0 1]
+        : R [0 1]
+        R = all?(a b c d e)
+        R !& X
+        R !& Y
+        # -> nall(a b c d e)
+
+        @custom noleaf a b c d e X
+        @custom free 50
+      `)).to.throw(/ops: nall,nall #/);
     });
   });
 

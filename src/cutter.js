@@ -717,7 +717,7 @@ function cutter(ml, problem, once) {
       TRACE('   - metaR:', bounty__debugMeta(metaR));
 
       if (countsR === 2) {
-        if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall1Nall(ml, indexR, offset, countsR, metaR)) return;
+        if (metaR === (BOUNTY_NALL | BOUNTY_ISALL_RESULT) && trickIsall1Nall(ml, indexR, offset, countsR, metaR)) return;
       }
 
       if (metaR === (BOUNTY_NAND | BOUNTY_ISALL_RESULT) && trickNandIsall1(ml, indexR, offset, countsR, metaR)) return;
@@ -2022,7 +2022,7 @@ function cutter(ml, problem, once) {
     // R = all?(A B ...), R !& C  ->  nall(A B ... C)
     // note: this works for any nalls on one isall
 
-    TRACE('trickNandIsall1;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for any nand on one isall');
+    TRACE('trickNandIsall1;', indexR, '`R = all?(A B), R !& C  ->  nall(A B C)` for any nand on one isall, any arg count for either');
 
     // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
     ASSERT(meta === (BOUNTY_NAND | BOUNTY_ISALL_RESULT), 'the var should only be nand and isall', bounty__debugMeta(meta), counts);
@@ -2073,7 +2073,7 @@ function cutter(ml, problem, once) {
   }
   function trickNandIsallRest(ml, isallOffset, indexR, countsR, isallArgCount, isallSizeof, isallArgs) {
     // this is an abstraction to cover ML_ISALL and ML_ISALL2
-    TRACE(' - trickNandIsallRest; first confirming other offsets are nands; isallArgs:', isallArgs);
+    TRACE(' - trickNandIsallRest; first confirming other offsets are nands; isallArgs:', isallArgCount, 'x;', isallArgs);
 
     // first confirm the other offsets are all nands
 
@@ -2102,10 +2102,11 @@ function cutter(ml, problem, once) {
 
     TRACE(' - isall offset=', isallOffset, ', isall sizeof=', isallSizeof, ', size of nall is', sizeofNall, ', there are', nands, 'nands. so we need', nands - (isallSizeof < sizeofNall ? 0 : 1), 'spaces');
 
-    let spacesNeeded = nands - (isallSizeof < sizeofNall ? 0 : 1);
+    let nallSpacesNeeded = nands - (isallSizeof < sizeofNall ? 0 : 1);
+    TRACE(' - need to space to recycle', nallSpacesNeeded, 'nall of size=', sizeofNall);
     let bins;
-    if (spacesNeeded) {
-      bins = ml_getRecycleOffsets(ml, 0, spacesNeeded, sizeofNall);
+    if (nallSpacesNeeded) {
+      bins = ml_getRecycleOffsets(ml, 0, nallSpacesNeeded, sizeofNall);
       if (!bins) {
         TRACE(' - Was unable to find enough free space to fit', nands, 'nalls, bailing');
         return false;
@@ -2133,16 +2134,20 @@ function cutter(ml, problem, once) {
 
     // TODO: what if the same arg occurs in multiple nands? deduper should take care of this, but what if it doesnt (like in quick-unsound mode)
 
-    if (spacesNeeded) {
-      TRACE(' - now morphing the nands remaining (', spacesNeeded, ')');
+    if (nallSpacesNeeded) {
+      TRACE(' - now morphing the nands remaining (', nallSpacesNeeded, ')');
       ml_recycles(ml, bins, nands, sizeofNall, (recycledOffset, i, sizeLeft) => {
         TRACE('   - using: recycledOffset:', recycledOffset, ', i:', i, ', sizeLeft:', sizeLeft);
-        let offset = bounty_getOffset(bounty, indexR, offsetCounter++);
 
-        if (offset === isallOffset) {
-          TRACE('     - offset', offset, 'is isall, skipping');
-          return false;
-        }
+        let offset;
+        do {
+          if (offsetCounter >= countsR) {
+            TRACE(' - (last offset must have been offset)');
+            return true;
+          }
+          offset = bounty_getOffset(bounty, indexR, offsetCounter++);
+          TRACE('     - offset', offset, 'is isall?', offset === isallOffset);
+        } while (offset === isallOffset);
 
         TRACE('     - offset', offset, 'is not isall so it should be nand;', ml_dec8(ml, offset) === ML_NAND);
         ASSERT(ml_dec8(ml, offset) === ML_NAND, 'should be nand');
@@ -2150,7 +2155,8 @@ function cutter(ml, problem, once) {
         ASSERT(sizeLeft === ml_getOpSizeSlow(ml, recycledOffset), 'size left should be sizeof op');
         _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, offset, recycledOffset, sizeLeft);
         ASSERT(++rewrittenNands);
-        return true;
+
+        return false;
       });
       ASSERT(rewrittenNands === nands, 'should have processed all offsets for R', rewrittenNands, '==', nands, '(', offsetCounter, countsR, ')');
       TRACE(' - all nands should be morphed now');

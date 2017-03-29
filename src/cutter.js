@@ -311,7 +311,7 @@ function cutter(ml, problem, once) {
 
     if (countsB === 2) {
       let metaB = getMeta(bounty, indexB);
-      if ((metaB & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT && trickLteRhsIsallEntry(indexB, offset, metaB, countsB)) return;
+      if (metaB === (BOUNTY_LTE_RHS | BOUNTY_ISALL_RESULT) && trickLteRhsIsallEntry(indexB, offset, metaB, countsB)) return;
     }
 
     pc += SIZEOF_VV;
@@ -707,23 +707,12 @@ function cutter(ml, problem, once) {
     TRACE(' ! cutIsAll; R=', indexR, ', counts:', countsR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
-    if (countsR === 1) {
-      let R = getDomain(indexR, true);
-
-      // note: if R is solved to truthy, remove zero from all args (-> minimizer)
-      //       if R is solved to falsy, rewrite to a NALL (-> minimizer)
-      //       if R is undetermined the args can be anything because they are not bound
-      //       by leaf var R, in that case just eliminate the constraint and make R a leaf
-
-      // while it's possible for R to be unsolved, we only act on the unsolved case in the cutter (DRY)
-      // TODO: we could ignore the state of R completely. this probably leads to a regression in results... but if the minimizer isnt ran at full capacity anyways, at least you can have this
-      if (domain_min(R) === 0 && domain_max(R) > 0) {
+    if (countsR > 0) {
+      if (countsR === 1) {
         // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
         return leafIsall(ml, offset, argCount, indexR);
       }
-    }
 
-    if (countsR > 0) {
       let metaR = getMeta(bounty, indexR);
       TRACE('   - metaR:', bounty__debugMeta(metaR));
 
@@ -744,26 +733,19 @@ function cutter(ml, problem, once) {
     TRACE(' - cutIsAll2', indexR);
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
-    if (countsR === 1) {
-      let R = getDomain(indexR, true);
-      // note: if R is solved to truthy, remove zero from all args (-> minimizer)
-      //       if R is solved to falsy, rewrite to a NAND (-> minimizer)
-      //       if R is undetermined the args can be anything because they are not bound
-      //       by leaf var R, in that case just eliminate the constraint and make R a leaf
-      // while it's possible for R to be solved, we only act on the unsolved case in the cutter (DRY)
-      if (domain_isZero(R) && domain_hasNoZero(R)) {
+    if (countsR > 0) {
+      if (countsR === 1) {
+        // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
         let indexA = readIndex(ml, offset + 1);
         let indexB = readIndex(ml, offset + 3);
         // when R is a leaf, the isall args are not bound by it nor the reifier so they are free
         return leafIsall2(ml, offset, indexA, indexB, indexR);
       }
-    }
 
-    if (countsR > 0) {
       let metaR = getMeta(bounty, indexR);
 
       if (countsR === 2) {
-        if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall2Nall(ml, indexR, offset, metaR)) return;
+        if ((metaR & BOUNTY_NALL) === BOUNTY_NALL && trickIsall2Nall(ml, indexR, offset, countsR, metaR)) return;
       }
 
       if (metaR === (BOUNTY_NAND | BOUNTY_ISALL_RESULT) && trickNandIsall2(ml, indexR, offset, metaR, countsR)) return;
@@ -1560,10 +1542,9 @@ function cutter(ml, problem, once) {
     // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
     ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'lte offset should be an lte');
     ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL || ml_dec8(ml, isallOffset) === ML_ISALL2, 'isall offset should be either isall op');
-    ASSERT(meta === (BOUNTY_ISALL_RESULT | BOUNTY_LTE_RHS | BOUNTY_NOT_BOOLY_ONLY_FLAG), 'kind of redundant, but this is what bounty should have yielded for this var');
+    ASSERT(meta === (BOUNTY_LTE_RHS | BOUNTY_ISALL_RESULT), 'kind of redundant, but this is what bounty should have yielded for this var');
     ASSERT(counts === 2, 'S should only appear in two constraints');
-    ASSERT(readIndex(ml, lteOffset + 3) === indexS, 'S should be rhs of lte');
-    ASSERT((ml_dec8(ml, isallOffset) === ML_ISALL ? readIndex(ml, isallOffset + SIZEOF_COUNT + ml_dec16(ml, isallOffset + 1) * 2) : readIndex(ml, lteOffset + 5)) === indexS, 'S should the result of the isall');
+    ASSERT((ml_dec8(ml, isallOffset) === ML_ISALL ? readIndex(ml, isallOffset + SIZEOF_COUNT + ml_dec16(ml, isallOffset + 1) * 2) : readIndex(ml, isallOffset + 5)) === indexS, 'S should the result of the isall');
 
     // we can replace an isall and lte with ltes on the args of the isall
     // A <= S, S = isall(C D)   ->    A <= C, A <= D
@@ -1577,6 +1558,7 @@ function cutter(ml, problem, once) {
 
     let indexA = readIndex(ml, lteOffset + 1);
     let A = getDomain(indexA, true);
+    ASSERT(indexS === readIndex(ml, lteOffset + 3), 'S should be rhs of lte');
     let S = getDomain(indexS, true);
 
     // mostly A will be [01] but dont rule out valid cases when A=0 or A=1
@@ -1807,6 +1789,7 @@ function cutter(ml, problem, once) {
 
     let indexX = readIndex(ml, isallOffset + 1);
     let indexY = readIndex(ml, isallOffset + 3);
+    ASSERT(indexS === readIndex(ml, isallOffset + 5), 'the lte rhs should be the isall r');
 
     // compile A<=left and A<=right over the existing two offsets
     ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
@@ -1887,7 +1870,7 @@ function cutter(ml, problem, once) {
     let argCountNall = ml_dec16(ml, nallOffset + 1);
 
     // this stuff should have been checked by the bounty hunter, so we tuck them in ASSERTs
-    ASSERT(meta === (BOUNTY_NALL | BOUNTY_ISALL_RESULT), 'the var should only be part of a nall and the result of an isall');
+    ASSERT(meta === (BOUNTY_NALL | BOUNTY_ISALL_RESULT), 'the var should only be part of a nall and the result of an isall', bounty__debugMeta(meta));
     ASSERT(counts === 2, 'R should only appear in two constraints');
     ASSERT(isallOffset === offset1 || isallOffset === offset2, 'expecting current offset to be one of the two offsets found', isallOffset, indexR);
     ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL2, 'isall offset should be an isall2');

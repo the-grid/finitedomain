@@ -59,81 +59,48 @@ import {
  * @param {Object} options
  * @property {boolean} [options.singleCycle=false] Only do a single-nonloop minimization step before solving? Can be faster but sloppier.
  * @property {boolean} [options.hashNames=true] Hash names in the output dsl (passed on to finitedomain if it comes to that)
- * @property {boolean} [options.repeatUntilStable=false] Keep calling minimize/cutter per cycle until nothing changes?
+ * @property {boolean} [options.repeatUntilStable=true] Keep calling minimize/cutter per cycle until nothing changes?
  * @property {boolean} [options.debugDsl=false] Extended dsl output?
+ * @property {boolean} [options.indexNames=false] Use `_<index>_` for all var names instead of their original name?
  */
 function preSolver(dsl, Solver, options = {}) {
+  //options.hashNames = false;
+  //options.repeatUntilStable = true;
+  //options.debugDsl = false;
+  //options.singleCycle = true;
+  //options.indexNames = true;
+
   let {
-    singleCycle = false,
-    repeatUntilStable = true,
     hashNames = true,
     debugDsl = false,
+    indexNames = false,
   } = options;
+
+  let problem = problem_create();
+  let {
+    varNames,
+    domains,
+  } = problem;
 
   console.log('<preSolver>');
   console.time('</preSolver>');
   TRACE(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
-  let problem = problem_create();
-  // you can destructure it but this way is much easier to grep for usages... let the minifier minify it
-  let varNames = problem.varNames;
-  let domains = problem.domains;
-  let solveStack = problem.solveStack;
+  let state = crunch(dsl, problem, options);
 
-  let $addVar = problem.addVar;
-  let $getVar = problem.getVar;
-  let $addAlias = problem.addAlias;
-  let $getAlias = problem.getAlias;
+  console.time('ml->dsl');
+  let newdsl = mlToDsl(problem.ml, problem, counter(problem.ml, problem), {debug: debugDsl, hashNames: hashNames, indexNames: indexNames || (!hashNames && debugDsl), groupedConstraints: true, solvedVars: true});
+  console.timeEnd('ml->dsl');
 
-  console.time('- dsl->ml');
-  dslToMl(dsl, problem, $addVar, $getVar);
-  let mlConstraints = problem.ml;
-  console.timeEnd('- dsl->ml');
-
-  console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + mlConstraints.length + ' bytes)');
-
-  let state;
-  if (singleCycle) { // only single cycle? usually most dramatic reduction. only runs a single loop of every step.
-    console.time('- first minimizer cycle (single loop)');
-
-    state = min_run(mlConstraints, problem, domains, varNames, true, !repeatUntilStable);
-    console.timeEnd('- first minimizer cycle (single loop)');
-    TRACE('First minimize pass result:', state);
-
-    if (state !== $REJECTED) {
-      console.time('- deduper cycle #');
-      let deduperAddedAlias = deduper(mlConstraints, problem);
-      console.timeEnd('- deduper cycle #');
-
-      if (deduperAddedAlias >= 0) {
-        console.time('- cutter cycle #');
-        cutter(mlConstraints, problem, !repeatUntilStable);
-        console.timeEnd('- cutter cycle #');
-      }
-    }
-  } else { // multiple cycles? more expensive, may not be worth the gains
-    let runLoops = 0;
-    console.time('- all run cycles');
-    do {
-      TRACE('run loop...');
-      state = run_cycle(mlConstraints, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
-    } while (state === $CHANGED);
-    console.timeEnd('- all run cycles');
-  }
+  console.timeEnd('</preSolver>');
 
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
-  if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(mlConstraints))) {
+  if (state === $SOLVED || (state !== $REJECTED && !ml_hasConstraint(problem.ml))) {
     console.time('- generating early solution');
     solution = createSolution(problem, null, options);
     console.timeEnd('- generating early solution');
   }
-
-  console.time('ml->dsl');
-  let newdsl = mlToDsl(mlConstraints, problem, counter(mlConstraints, problem), {debug: debugDsl, hashNames: hashNames, indexNames: !hashNames && debugDsl, groupedConstraints: true});
-  console.timeEnd('ml->dsl');
-
-  console.timeEnd('</preSolver>');
 
   if (newdsl.length < 1000 || !Solver) console.log('\nResult dsl:\n' + newdsl);
 
@@ -150,7 +117,7 @@ function preSolver(dsl, Solver, options = {}) {
   if (problem.input.varstrat === 'throw') {
     // the stats are for tests. dist will never even have this so this should be fine.
     // it's very difficult to ensure optimizations work properly otherwise
-    ASSERT(false, `Forcing a choice with strat=throw; debug: ${varNames.length} vars, ${ml_countConstraints(mlConstraints)} constraints, current domain state: ${domains.map((d, i) => i + ':' + varNames[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(mlConstraints)} #`);
+    ASSERT(false, `Forcing a choice with strat=throw; debug: ${varNames.length} vars, ${ml_countConstraints(problem.ml)} constraints, current domain state: ${domains.map((d, i) => i + ':' + varNames[i] + ':' + domain__debug(d).replace(/[a-z()\[\]]/g, '')).join(': ')} ops: ${ml_getOpList(problem.ml)} #`);
     THROW('Forcing a choice with strat=throw');
   }
 
@@ -193,6 +160,61 @@ function preSolver(dsl, Solver, options = {}) {
   console.error('<rejected after finitedomain>');
   TRACE('problem rejected!');
   return false;
+}
+
+function crunch(dsl, problem, options = {}) {
+  let {
+    singleCycle = false,
+    repeatUntilStable = true,
+  } = options;
+
+  let {
+    varNames,
+    domains,
+    solveStack,
+    $addVar,
+    $getVar,
+    $addAlias,
+    $getAlias,
+  } = problem;
+
+  console.time('- dsl->ml');
+  dslToMl(dsl, problem);
+  let ml = problem.ml;
+  console.timeEnd('- dsl->ml');
+
+  console.log('Parsed dsl (' + dsl.length + ' bytes) into ml (' + ml.length + ' bytes)');
+
+  let state;
+  if (singleCycle) { // only single cycle? usually most dramatic reduction. only runs a single loop of every step.
+    console.time('- first minimizer cycle (single loop)');
+
+    state = min_run(ml, problem, domains, varNames, true, !repeatUntilStable);
+    console.timeEnd('- first minimizer cycle (single loop)');
+    TRACE('First minimize pass result:', state);
+
+    if (state !== $REJECTED) {
+      console.time('- deduper cycle #');
+      let deduperAddedAlias = deduper(ml, problem);
+      console.timeEnd('- deduper cycle #');
+
+      if (deduperAddedAlias >= 0) {
+        console.time('- cutter cycle #');
+        cutter(ml, problem, !repeatUntilStable);
+        console.timeEnd('- cutter cycle #');
+      }
+    }
+  } else { // multiple cycles? more expensive, may not be worth the gains
+    let runLoops = 0;
+    console.time('- all run cycles');
+    do {
+      TRACE('run loop...');
+      state = run_cycle(ml, $getVar, $addVar, domains, varNames, $addAlias, $getAlias, solveStack, runLoops++, problem);
+    } while (state === $CHANGED);
+    console.timeEnd('- all run cycles');
+  }
+
+  return state;
 }
 
 function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveStack, runLoops, problem) {

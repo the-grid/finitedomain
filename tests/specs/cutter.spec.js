@@ -1427,52 +1427,164 @@ describe('specs/cutter.spec', function() {
 
   describe('trick sum+iseq', function() {
 
-    it('should isall base case', function() {
-      expect(_ => preSolver(`
-        @custom var-strat throw
-        : A, B, C, D, E [0 1]
-        : R [0 5]
-        : S [0 1]
-        R = sum(A B C D E)
-        S = R ==? 5
-        @custom noleaf A B C D E S
-      `)).to.throw(/ops: isall #/);
+    describe('to isall', function() {
+
+      it('should isall base case', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isall #/);
+      });
+
+      it('should isall base reverse case', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 5
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isall #/);
+      });
+
+      it('should isall with a constant 1', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 1
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isall #/);
+      });
+
+      it('should isall with swapped a constant 1', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 1
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 5
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isall #/);
+      });
+
+      it('should isall with a constant 0', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0, S: 0});
+      });
+
+      it('should isall with swapped a constant 0', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 5
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0, S: 0});
+      });
+
+      it('should isall with a constant 0 and 1', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A, C, E [0 1]
+          : B 1
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.eql({A: 0, B: 1, C: 0, D: 0, E: 0, R: 1, S: 0});
+      });
+
+      it('should isall with swapped a constant 0 and 1', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A, C, E [0 1]
+          : B 1
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 5
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.eql({A: 0, B: 1, C: 0, D: 0, E: 0, R: 1, S: 0});
+      });
     });
 
-    it('should isall base reverse case', function() {
-      expect(_ => preSolver(`
-        @custom var-strat throw
-        : A, B, C, D, E [0 1]
-        : R [0 5]
-        : S [0 1]
-        S = R ==? 5
-        R = sum(A B C D E)
-        @custom noleaf A B C D E S
-      `)).to.throw(/ops: isall #/);
-    });
+    describe('to isnone', function() {
 
-    it('should isnone base case', function() {
-      expect(_ => preSolver(`
-        @custom var-strat throw
-        : A, B, C, D, E [0 1]
-        : R [0 5]
-        : S [0 1]
-        R = sum(A B C D E)
-        S = R ==? 0
-        @custom noleaf A B C D E S
-      `)).to.throw(/ops: isnone #/);
-    });
+      it('should isnone base case', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 0
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isnone #/);
+      });
 
-    it('should isnone reverse base case', function() {
-      expect(_ => preSolver(`
-        @custom var-strat throw
-        : A, B, C, D, E [0 1]
-        : R [0 5]
-        : S [0 1]
-        S = R ==? 0
-        R = sum(A B C D E)
-        @custom noleaf A B C D E S
-      `)).to.throw(/ops: isnone #/);
+      it('should isnone reverse base case', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 0
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isnone #/);
+      });
+
+      it('should isnone with a constant 0', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 0
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isnone #/);
+      });
+
+      it('should isnone with swapped a constant 0', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, E [0 1]
+          : D 0
+          : R [0 5]
+          : S [0 1]
+          S = R ==? 0
+          R = sum(A B C D E)
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isnone #/);
+      });
     });
   });
 });

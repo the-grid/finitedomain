@@ -2813,12 +2813,6 @@ function cutter(ml, problem, once) {
 
     let argCount = ml_dec16(ml, sumOffset + 1);
 
-    let R = getDomain(indexR, true);
-    if (R !== domain_createRange(0, argCount)) {
-      TRACE(' - R isnt counting all results, bailing');
-      return false;
-    }
-
     let indexA = readIndex(ml, iseqOffset + 1); // R or ?
     let indexB = readIndex(ml, iseqOffset + 3); // R or ?
     let indexS = readIndex(ml, iseqOffset + 5); // S
@@ -2827,24 +2821,42 @@ function cutter(ml, problem, once) {
 
     let vABnR = domain_getValue(ABnR);
     if (vABnR !== 0 && vABnR !== argCount) {
-      TRACE(' - the non-R iseq arg is not a constant that is 0 or the number of args, bailing', domain__debug(ABnR));
+      TRACE(' - the non-R iseq arg is not a constant that is 0 or the number of args, bailing', domain__debug(ABnR), '->', vABnR, ', args:', argCount);
       return false;
     }
 
-    // the iseq looks okay. now confirm all sum args are strict bools
+    // the iseq looks okay. now confirm all sum args are max 1
     // (as we've confirmed R this is very likely to be the case, though it may still not be)
+    // note that [0 0] should be pruned, [1 1] is okay to occur, most likely [0 1] though
+    // numdom([0,5]) = sum( numdom([0,1]) numdom([0,1]) numdom([0,1]) numdom([0,1]) soldom([0,1]) )
+    // numdom([1,5]) = sum( numdom([0,1]) numdom([0,1]) numdom([0,1]) numdom([0,1]) soldom([1,1]) )
+    // if sum had multiple [1 1] constants they will have been collapsed together and fail this test :(
 
     let args = [];
+    let min = 0;
+    let max = 0;
     for (let i = 0; i < argCount; ++i) {
       let index = readIndex(ml, sumOffset + SIZEOF_COUNT + i * 2);
       let domain = getDomain(index, true);
-      if (!domain_isBool(domain)) {
-        TRACE(' - at least one sum arg wasnt bool, bailing');
+      let minA = domain_min(domain);
+      let maxA = domain_max(domain);
+      if (domain_max(domain) > 1) {
+        TRACE(' - at least one sum arg wasnt bool, bailing', domain__debug(domain));
         return false;
       }
       // since it's very unlikely the args arent bool, collect and mark them right now instead of an extra loop
       args.push(index);
       bounty_markVar(bounty, index);
+      min += minA;
+      max += maxA;
+    }
+
+    TRACE(' - confirming R is bound to [', min, max, ']');
+    // note: every arg is max 1. we do take into account that an arg [1 1] would mean R is [1 5] instead of [0 5]
+    let R = getDomain(indexR, true);
+    if (R !== domain_createRange(min, max)) {
+      TRACE(' - R isnt counting all results, bailing');
+      return false;
     }
 
     TRACE(' - found isAll/isNone pattern, morphing sum and eliminating isEq');

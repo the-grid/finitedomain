@@ -510,11 +510,11 @@ function cutter(ml, problem, once) {
       // there are some other tricks possible on strictly bool domains
       if (domain_isBool(A) && domain_isBool(B)) {
         if (R === domain_createRange(1, 2)) {
-          return trickPlusOr(ml, offset, indexA, indexB, indexR); // [12]=[01]+[01] => A|B
+          return trickPlusIsOr(ml, offset, indexA, indexB, indexR); // [12]=[01]+[01] => A|B
         }
 
         if (domain_isBool(R)) {
-          return trickPlusNand(ml, offset, indexA, indexB, indexR); // [01]=[01]+[01] => A!&B
+          return trickPlusIsNand(ml, offset, indexA, indexB, indexR); // [01]=[01]+[01] => A!&B
         }
       }
     }
@@ -1174,12 +1174,24 @@ function cutter(ml, problem, once) {
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafOr; solving', indexA, '|', indexB, '  ->  ', domain__debug(getDomain(indexA)), '|', domain__debug(getDomain(indexB)));
-      let D = getDomain(leafIndex);
-      let v = force(otherIndex);
-      if (!v) {
-        let L = domain_booly(D, true);
-        ASSERT(L, 'defer solving A|B should not lead to an empty domain');
-        setDomain(leafIndex, L);
+
+      // check if either is solved to zero, in that case force the other to non-zero.
+      // if neither is zero and both have zero, force the leaf to non-zero.
+      // otherwise no change because OR will be satisfied.
+
+      let A = getDomain(otherIndex);
+      let B = getDomain(leafIndex);
+      if (domain_isZero(A)) {
+        TRACE(' - forcing the leaf index,', leafIndex, ', to non-zero because the other var is zero');
+        setDomain(leafIndex, domain_removeValue(B, 0));
+      } else if (domain_isZero(B)) {
+        TRACE(' - forcing the other index,', otherIndex, ', to non-zero because the leaf var was already zero');
+        setDomain(otherIndex, domain_removeValue(A, 0));
+      } else if (!domain_hasNoZero(A) && !domain_hasNoZero(A)) {
+        TRACE(' - neither was booly solved so forcing the leaf index,', leafIndex, ', to non-zero to satisfy the OR');
+        setDomain(leafIndex, domain_removeValue(B, 0));
+      } else {
+        TRACE(' - no change.');
       }
     });
 
@@ -1194,11 +1206,30 @@ function cutter(ml, problem, once) {
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafXor; solving', indexA, '^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '^', domain__debug(getDomain(indexB)));
-      let D = getDomain(leafIndex);
-      let v = force(otherIndex);
-      let L = domain_booly(D, !v);
-      ASSERT(L, 'defer solving A^B should not lead to an empty domain');
-      setDomain(leafIndex, L);
+
+      // check if either is solved to zero, in that case force the other to non-zero.
+      // check if either side is non-zero. in that case force the other to zero
+      // confirm that both sides are booly-solved, force them to if not.
+
+      let A = getDomain(indexA);
+      let B = getDomain(indexB);
+      if (domain_isZero(A)) {
+        TRACE(' - forcing B to non-zero because A is zero');
+        setDomain(indexB, domain_removeValue(B, 0));
+      } else if (domain_isZero(B)) {
+        TRACE(' - forcing A to non-zero because B was already zero');
+        setDomain(indexA, domain_removeValue(A, 0));
+      } else if (domain_hasNoZero(A)) {
+        TRACE(' - A was non-zero so forcing B to zero');
+        setDomain(indexB, domain_removeGtUnsafe(B, 0));
+      } else if (domain_hasNoZero(B)) {
+        TRACE(' - B was non-zero so forcing A to zero');
+        setDomain(indexA, domain_removeGtUnsafe(A, 0));
+      } else {
+        TRACE(' - neither was booly solved. forcing A to zero and B to non-zero');
+        setDomain(indexA, domain_removeValue(A, 0));
+        setDomain(indexB, domain_removeGtUnsafe(B, 0));
+      }
     });
 
     ml_eliminate(ml, offset, SIZEOF_VV);
@@ -1212,12 +1243,23 @@ function cutter(ml, problem, once) {
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafNand; solving', indexA, '!&', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!&', domain__debug(getDomain(indexB)));
-      let D = getDomain(leafIndex);
-      let v = force(otherIndex);
-      if (v) {
-        let L = domain_booly(D, false);
-        ASSERT(L, 'defer solving A!&B should not lead to an empty domain');
-        setDomain(leafIndex, L);
+
+      // check if either has no zero, in that case solve other to zero
+      // otherwise no change
+
+      let A = getDomain(otherIndex);
+      let B = getDomain(leafIndex);
+      if (domain_hasNoZero(A)) {
+        TRACE(' - A has no zero so B must be zero');
+        setDomain(leafIndex, domain_removeGtUnsafe(B, 0));
+      } else if (domain_hasNoZero(B)) {
+        TRACE(' - B has no zero so A must be zero');
+        setDomain(otherIndex, domain_removeGtUnsafe(A, 0));
+      } else if (!domain_isZero(A) && !domain_isZero(B)) {
+        TRACE(' - neither A nor B is zero or non-zero so force A to zero');
+        setDomain(indexA, domain_removeGtUnsafe(A, 0));
+      } else {
+        TRACE(' - no change.');
       }
     });
 
@@ -1232,11 +1274,31 @@ function cutter(ml, problem, once) {
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafXnor; solving', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)));
-      let D = getDomain(leafIndex);
-      let v = force(otherIndex);
-      let L = domain_booly(D, v);
-      ASSERT(L, 'defer solving A!^B should not lead to an empty domain');
-      setDomain(leafIndex, L);
+
+      // check if a var is solved to zero, if so solve the other var to zero as well
+      // check if a var is solved to non-zero, if so solve the other var to non-zero as well
+      // otherwise force(A), let B follow that result
+
+      let A = getDomain(indexA);
+      let B = getDomain(indexB);
+      if (domain_isZero(A)) {
+        TRACE(' - forcing B to zero because A is zero');
+        setDomain(indexB, domain_removeGtUnsafe(B, 0));
+      } else if (domain_isZero(B)) {
+        TRACE(' - forcing A to zero because B is zero');
+        setDomain(indexA, domain_removeGtUnsafe(A, 0));
+      } else if (domain_hasNoZero(A)) {
+        TRACE(' - forcing B to non-zero because A is non-zero');
+        setDomain(indexB, domain_removeValue(B, 0));
+      } else if (domain_hasNoZero(B)) {
+        TRACE(' - forcing A to non-zero because B is non-zero');
+        setDomain(indexA, domain_removeValue(A, 0));
+      } else {
+        // TODO: force() and repeat above steps
+        TRACE(' - neither was booly solved. forcing both to non-zero'); // non-zero gives more options? *shrug*
+        setDomain(indexA, domain_removeValue(A, 0));
+        setDomain(indexB, domain_removeValue(B, 0));
+      }
     });
 
     ml_eliminate(ml, offset, SIZEOF_VV);
@@ -1327,12 +1389,12 @@ function cutter(ml, problem, once) {
 
   // ##############
 
-  function trickPlusOr(ml, offset, indexA, indexB, indexR) {
+  function trickPlusIsOr(ml, offset, indexA, indexB, indexR) {
     // [12]=[01]+[01]   ->   A | B
-    TRACE('   - trickPlusOr; [12]=[01]+[01] is actually an OR');
+    TRACE('   - trickPlusIsOr; [12]=[01]+[01] is actually an OR');
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - trickPlusOr R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      TRACE(' - trickPlusIsOr R=A|B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let vR = vA + vB;
@@ -1353,12 +1415,12 @@ function cutter(ml, problem, once) {
     somethingChanged();
   }
 
-  function trickPlusNand(ml, offset, indexA, indexB, indexR) {
+  function trickPlusIsNand(ml, offset, indexA, indexB, indexR) {
     // [01]=[01]+[01]   ->   A !& B
-    TRACE('   - trickPlusNand; [01]=[01]+[01] is actually a NAND');
+    TRACE('   - trickPlusIsNand; [01]=[01]+[01] is actually a NAND');
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - trickPlusNand R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      TRACE(' - trickPlusIsNand R=A!&B;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
       let vA = force(indexA);
       let vB = force(indexB);
       let vR = vA + vB;
@@ -2439,13 +2501,9 @@ function cutter(ml, problem, once) {
       let indexA = readIndex(ml, offset + 1);
       let indexB = readIndex(ml, offset + 3);
 
-      let indexY = indexA;
-      if (indexY === indexX) {
-        indexY = indexB;
-      } else if (!indexB !== indexX) {
-        TRACE(' - a nand did not have the proper args (??), bailing');
-        return false;
-      }
+      ASSERT(indexA === indexX || indexB === indexX, 'bounty should have asserted that one of nand args is X');
+
+      let indexY = indexX === indexA ? indexB : indexA;
 
       offsets.push(offset);
       indexes.push(indexY);

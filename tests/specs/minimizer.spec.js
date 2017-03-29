@@ -62,7 +62,7 @@ describe('specs/minimizer.spec', function() {
         R = A ==? 2
       `);
 
-      expect(solution).to.eql({A: 0, R: 0});
+      expect(solution).to.eql({A: 2, R: 1});
     });
 
     it('should rewrite [01]=[00xx]==?x to XNOR', function() {
@@ -74,7 +74,7 @@ describe('specs/minimizer.spec', function() {
         R = A ==? B
       `);
 
-      expect(solution).to.eql({A: 0, B: 2000, R: 0});
+      expect(solution).to.eql({A: 2000, B: 2000, R: 1});
     });
 
     it('should rewrite [01]=[00xx]==?x to XNOR', function() {
@@ -86,7 +86,7 @@ describe('specs/minimizer.spec', function() {
         R = A ==? B
       `);
 
-      expect(solution).to.eql({A: 2000, B: 0, R: 0});
+      expect(solution).to.eql({A: 2000, B: 2000, R: 1});
     });
 
     it('should not even consider weird domain values sans 1', function() {

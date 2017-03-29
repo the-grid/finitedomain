@@ -634,6 +634,176 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `)).to.throw(/ops: plus #/);
     });
+
+    it('should rewrite a specific or case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : R [1 2]
+        R = A + B
+        @custom noleaf A B
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should rewrite a specific nand case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : R [0 1]
+        R = A + B
+        @custom noleaf A B
+      `)).to.throw(/ops: nand #/);
+    });
+  });
+
+  describe('or', function() {
+
+    it('should or AB', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A | B
+        @custom noleaf A B
+      `)).to.throw(/ops: or #/);
+    });
+
+    it('should or A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A | B
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: [0, 10]});
+    });
+
+    it('should or B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A | B
+        @custom noleaf A
+      `);
+
+      expect(solution).to.eql({A: [0, 10], B: [1, 10]});
+    });
+  });
+
+  describe('xor', function() {
+
+    it('should xor AB', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A ^ B
+        @custom noleaf A B
+      `)).to.throw(/ops: xor #/);
+    });
+
+    it('should xor A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A ^ B
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: 0});
+    });
+
+    it('should xor B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A ^ B
+        @custom noleaf A
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: 0});
+    });
+  });
+
+  describe('nand', function() {
+
+    it('should nand AB', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !& B
+        @custom noleaf A B
+      `)).to.throw(/ops: nand #/);
+    });
+
+    it('should nand A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !& B
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 10]});
+    });
+
+    it('should nand B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !& B
+        @custom noleaf A
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 10]});
+    });
+  });
+
+  describe('xnor', function() {
+
+    it('should xnor AB', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !^ B
+        @custom noleaf A B
+      `)).to.throw(/ops: xnor #/);
+    });
+
+    it('should xnor A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !^ B
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: [1, 10]});
+    });
+
+    it('should xnor B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        A !^ B
+        @custom noleaf A
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: [1, 10]});
+    });
   });
 
   describe('trick xnor booly', function() {
@@ -1764,12 +1934,26 @@ describe('specs/cutter.spec', function() {
 
   describe('trick nands only', function() {
 
-    it('should eliminate a var that is only used in nands', function() {
+    it('should eliminate a var that is only used in nands AB', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         A !& B
         A !& C
+        # -> A leaf, solved
+
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: 0, C: 0});
+    });
+
+    it('should eliminate a var that is only used in nands BA', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B, C, A [0 1]
+        B !& A
+        C !& A
         # -> A leaf, solved
 
         @custom noleaf B C
@@ -2099,5 +2283,20 @@ describe('specs/cutter.spec', function() {
         `)).to.throw(/ops: isnone #/);
       });
     });
+  });
+
+  describe('regressions', function() {
+
+    //it('adding all the vars except A fixes this', function() {
+    //  let solution = preSolver(`
+    //    @custom var-strat throw
+    //    : A, B, C, D, E *
+    //    A != B
+    //    A <= C
+    //    @custom noleaf B
+    //  `);
+    //
+    //  expect(solution).to.eql({A: [11, 100000000], B: 0});
+    //});
   });
 });

@@ -1273,7 +1273,7 @@ function cutter(ml, problem, once) {
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafIsall2;', indexR, '= all?(', indexA, indexB, ')  ->  ', domain__debug(getDomain(indexR)), '= all?(', domain__debug(getDomain(indexA)), domain__debug(getDomain(indexB)), ')');
       let vA = force(indexA);
-      let vB = force(indexB);
+      let vB = vA && force(indexB); // dont force B if A is already 0
       let R = getDomain(indexR);
       R = domain_booly(R, (vA & vB) > 0);
       ASSERT(R, 'leaf should at least have the resulting value');
@@ -1843,7 +1843,7 @@ function cutter(ml, problem, once) {
     // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from the nall)
 
     if (argCountNall !== 3 || argCountIsall !== 2) {
-      TRACE(' - fingerprint didnt match so bailing');
+      TRACE(' - fingerprint didnt match (', argCountNall, ' !== 3 || ', argCountIsall, ' !== 2) so bailing');
       return false;
     }
 
@@ -2066,13 +2066,14 @@ function cutter(ml, problem, once) {
 
     let isallArgs = [
       readIndex(ml, isallOffset + 1),
-      readIndex(ml, isallOffset + 2),
+      readIndex(ml, isallOffset + 3),
     ];
 
     return trickNandIsallRest(ml, isallOffset, indexR, counts, 2, SIZEOF_VVV, isallArgs);
   }
   function trickNandIsallRest(ml, isallOffset, indexR, countsR, isallArgCount, isallSizeof, isallArgs) {
     // this is an abstraction to cover ML_ISALL and ML_ISALL2
+    TRACE(' - trickNandIsallRest; first confirming other offsets are nands; isallArgs:', isallArgs);
 
     // first confirm the other offsets are all nands
 
@@ -2092,7 +2093,7 @@ function cutter(ml, problem, once) {
 
     // bounty asserted that all these nalls contain R, rewrite each such nall
 
-    TRACE('trickNandIsallRest; there are', nands, 'nands; for each nand: X !& B, X = all?(C D)   ->   nall(B C D)');
+    TRACE(' - trickNandIsallRest; there are', nands, 'nands; for each nand: X !& B, X = all?(C D)   ->   nall(B C D)');
 
     // we need to get enough space to write the nalls if there is more than one nand (the first fits in the isall)
 
@@ -2115,16 +2116,18 @@ function cutter(ml, problem, once) {
     let allArgs = isallArgs.slice(0);
 
     let offsetCounter = 0;
+    let rewrittenNands = 0; // only used in ASSERTs, minifier should eliminate this
 
     // immediately recycle the isall if it was large enough (ML_ISALL can fit a ML_NALL but ML_ISALL2 cannot)
+    // TODO: postpone elimination until the end to prevent accidental clobbering of current offset by jumps
     if (isallSizeof >= sizeofNall) {
       TRACE(' - recycling isall immediately');
       let nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
       if (nandOffset === isallOffset) nandOffset = bounty_getOffset(bounty, indexR, offsetCounter++);
       _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, nandOffset, isallOffset, isallSizeof);
+      ASSERT(++rewrittenNands);
     } else {
       TRACE(' - eliminating isall because it is too small');
-      TRACE('   - removing the (unrecycled) isall...');
       ml_eliminate(ml, isallOffset, isallSizeof);
     }
 
@@ -2135,14 +2138,22 @@ function cutter(ml, problem, once) {
       ml_recycles(ml, bins, nands, sizeofNall, (recycledOffset, i, sizeLeft) => {
         TRACE('   - using: recycledOffset:', recycledOffset, ', i:', i, ', sizeLeft:', sizeLeft);
         let offset = bounty_getOffset(bounty, indexR, offsetCounter++);
-        if (offset !== isallOffset) {
-          TRACE('   - offset', offset, 'is not isall so it should be nand');
-          ASSERT(ml_dec8(ml, offset) === ML_NAND, 'should be nand');
-          ASSERT(offset, 'the earlier loop counted the nands so it should still have that number of offsets now');
-          ASSERT(sizeLeft === ml_getOpSizeSlow(ml, recycledOffset), 'size left should be sizeof op');
-          _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, offset, recycledOffset, sizeLeft);
+
+        if (offset === isallOffset) {
+          TRACE('     - offset', offset, 'is isall, skipping');
+          return false;
         }
+
+        TRACE('     - offset', offset, 'is not isall so it should be nand;', ml_dec8(ml, offset) === ML_NAND);
+        ASSERT(ml_dec8(ml, offset) === ML_NAND, 'should be nand');
+        ASSERT(offset, 'the earlier loop counted the nands so it should still have that number of offsets now');
+        ASSERT(sizeLeft === ml_getOpSizeSlow(ml, recycledOffset), 'size left should be sizeof op');
+        _trickNandIsallCreateNallAndRemoveNand(ml, indexR, isallArgs.slice(0), allArgs, offset, recycledOffset, sizeLeft);
+        ASSERT(++rewrittenNands);
+        return true;
       });
+      ASSERT(rewrittenNands === nands, 'should have processed all offsets for R', rewrittenNands, '==', nands, '(', offsetCounter, countsR, ')');
+      TRACE(' - all nands should be morphed now');
     }
 
     TRACE('   - deferring', indexR, 'will be R = all?(', allArgs, ')');
@@ -2172,16 +2183,21 @@ function cutter(ml, problem, once) {
   }
   function _trickNandIsallCreateNallAndRemoveNand(ml, indexR, nallArgs, allArgs, nandOffset, recycleOffset, recycleSizeof) {
     TRACE(' - _trickNandIsallCreateNallAndRemoveNand: indexR:', indexR, 'nallArgs:', nallArgs, 'allArgs:', allArgs, 'nandOffset:', nandOffset, 'recycleOffset:', recycleOffset, 'recycleSizeof:', recycleSizeof);
+
     let indexX = readIndex(ml, nandOffset + 1);
     let indexY = readIndex(ml, nandOffset + 3);
+    ASSERT(indexX === indexR || indexY === indexR, 'expecting indexR to be part of the nand');
     let index = indexX === indexR ? indexY : indexX;
+    TRACE(' - other nand index is', index, domain__debug(getDomain(index, true)));
 
     nallArgs.push(index);
     allArgs.push(index);
     bounty_markVar(bounty, index);
 
+    TRACE(' - writing a new nall');
     ml_any2c(ml, recycleOffset, recycleSizeof, ML_NALL, nallArgs);
     if (nandOffset !== recycleOffset) {
+      TRACE(' - removing the nand because we didnt recycle it');
       ml_eliminate(ml, nandOffset, SIZEOF_VV);
     }
     ASSERT(ml_validateSkeleton(ml, '_trickNandIsallCreateNallAndRemoveNand'));

@@ -112,7 +112,7 @@ describe('specs/dsl.spec', function() {
         : A,B,C [0 1]
         A = all?(B C)
         @custom noleaf A
-      `)).to.throw(/ops: isall #/);
+      `)).to.throw(/ops: isall2 #/);
     });
 
     it('should eliminate the isall without the noleaf hint', function() {
@@ -134,7 +134,7 @@ describe('specs/dsl.spec', function() {
         : D,E,F [0 1]
         D = all?(E F)
         @custom noleaf A, D
-      `)).to.throw(/ops: isall,isall #/);
+      `)).to.throw(/ops: isall2,isall2 #/);
     });
 
     it('should eliminate the isalls without the noleaf hint', function() {

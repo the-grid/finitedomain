@@ -663,11 +663,13 @@ function ml_recycles(ml, bins, loops, sizeofOp, callback) {
     let sizeLeft = ml_getOpSizeSlow(ml, currentRecycleOffset);
     ASSERT(sizeLeft >= sizeofOp, 'this is what should have been asked for when getting recycled spaces');
     do {
-      callback(currentRecycleOffset, i, sizeLeft);
-
-      ++i;
-      sizeLeft -= sizeofOp;
-      currentRecycleOffset += sizeofOp;
+      let used = callback(currentRecycleOffset, i, sizeLeft);
+      ASSERT(typeof used === 'boolean', 'expecting callback to return true/false indicating the space was used', used);
+      if (used) {
+        ++i;
+        sizeLeft -= sizeofOp;
+        currentRecycleOffset += sizeofOp;
+      }
     } while (sizeLeft >= sizeofOp && i < loops);
     if (sizeLeft) ml_jump(ml, currentRecycleOffset, sizeLeft);
     ASSERT(ml_validateSkeleton(ml), 'trickNandIsall1 compiling loops'); // cant check earlier

@@ -515,7 +515,7 @@ describe('specs/cutter.spec', function() {
             C <= R
 
             @custom noleaf A B C
-          `)).to.throw(/ops: isall,lte #/);
+          `)).to.throw(/ops: isall2,lte #/);
         });
       }
 
@@ -763,7 +763,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick isall_r+nall', function() {
 
-    it('should rewrite base case v1 of an isall and nall to a nand', function() {
+    it('should rewrite base case v1 of an isall2 and nall to a nand', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -777,8 +777,25 @@ describe('specs/cutter.spec', function() {
         # when A is 0, B or C is 0, so the nall is resolved
         # when D is 1, A can't be 1 because then B is also one and the nall would break
         @custom noleaf B C D
-        # not A or the trick won't trigger (even when it's B that disappears)
-      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by another trick
+        # dont exclude A or the trick won't trigger (even when it's B that disappears)
+      `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by another trick
+    });
+
+    it('should not rewrite when isall has 3+ args', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+        : R [0 1]
+        R = all?(A B C)
+        nall(R B X)
+        # -> X = all?(A B C), R !& X
+        # when R is 1, A, B, and C are 1, so X must be 0 (for the nall)
+        # when A is 0, A, B, or C is 0, so the nall is resolved (because R=0)
+        # when X is 1, A can't be 1 because then B is also one and the nall would break
+        @custom noleaf A B C X
+        # dont exclude R or the trick won't trigger (even when it's B that disappears from nall)
+      `)).to.throw(/ops: isall,nall #/); // isall+nand becomes nall by another trick
     });
 
     describe('all variations of nall arg order', function() {
@@ -896,7 +913,7 @@ describe('specs/cutter.spec', function() {
         # -> same because there is no space for the rewrite
         @custom noleaf A B C D
         @custom free 0                 # redundant but for illustration
-      `)).to.throw(/ops: isall,nand,nand #/);
+      `)).to.throw(/ops: isall2,nand,nand #/);
     });
 
     it('should consider R a leaf after the rewrite', function() {
@@ -971,7 +988,7 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf A B C a b c d e f g h i j k l m n o p q r s t u v w x y z
         @custom free 1000
-      `)).to.throw(/ops: isall,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
+      `)).to.throw(/ops: isall2,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
     });
 
     it('should skip the trick if another constraint was burried between too many nands', function() {
@@ -1011,7 +1028,7 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf A B C a b c d e f g h i j k l m n o p q r s t u v w x y z
         @custom free 1000
-      `)).to.throw(/ops: isall,lte,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
+      `)).to.throw(/ops: isall2,lte,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
     });
   });
 
@@ -1405,7 +1422,7 @@ describe('specs/cutter.spec', function() {
         # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
 
         @custom noleaf A B C
-      `)).to.throw(/ops: isall #/);
+      `)).to.throw(/ops: isall2 #/);
     });
   });
 

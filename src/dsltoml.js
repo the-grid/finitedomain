@@ -19,6 +19,7 @@ import {
   ML_ISLTE,
   ML_NALL,
   ML_ISALL,
+  ML_ISALL2,
   ML_ISNALL,
   ML_ISNONE,
   ML_SUM,
@@ -1100,10 +1101,20 @@ function dslToMl(dslStr, problem, _debug) {
 
     TRACE('parseArgs refs:', resultIndex, ' = all(', refs, '), defaultBoolResult:', defaultBoolResult);
 
-    encode8bit(op);
-    encode16bit(refs.length); // count
-    refs.forEach(encode16bit);
-    encode16bit(resultIndex);
+    if (op === ML_ISALL && refs.length === 2) {
+      TRACE(' - special isall2 path');
+      // special isall2 path... ugh
+      encode8bit(ML_ISALL2);
+      encode16bit(refs[0] < refs[1] ? refs[0] : refs[1]);
+      encode16bit(refs[0] < refs[1] ? refs[1] : refs[0]);
+      encode16bit(resultIndex);
+    } else {
+      encode8bit(op);
+      encode16bit(refs.length); // count
+      refs.sort((a, b) => a - b);
+      refs.forEach(encode16bit);
+      encode16bit(resultIndex);
+    }
 
     skipWhitespaces();
     is($$RIGHTPAREN, 'args closer');

@@ -1593,9 +1593,8 @@ function cutter(ml, problem, once) {
     }
   }
   function trickLteRhsIsall1(ml, lteOffset, isallOffset, indexA, indexS) {
-    TRACE(' - trickLteRhsIsall1; an isall with 1 arg; rewriting A <= S, S=isall(X Y Z ...)  ->  A <= X, A <= Y, A <= Z, ...');
-
     let argCount = ml_dec16(ml, isallOffset + 1);
+    TRACE(' - trickLteRhsIsall1; an isall1 with', argCount, 'args; rewriting A <= S, S=isall(X Y Z ...)  ->  A <= X, A <= Y, A <= Z, ...');
 
     let A = getDomain(indexA, true);
     let maxA = domain_max(A);
@@ -1617,7 +1616,7 @@ function cutter(ml, problem, once) {
     if (argCount === 2) {
       trickLteRhsIsall1a2(ml, lteOffset, isallOffset, indexA, indexS);
     } else if (argCount === 3) {
-      trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS);
+      trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, 3);
     } else {
       let pass = trickLteRhsIsall1a4p(ml, lteOffset, isallOffset, argCount, indexA, indexS);
       if (!pass) return false;
@@ -1655,14 +1654,14 @@ function cutter(ml, problem, once) {
       setDomain(indexS, S);
     });
   }
-  function trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS) {
+  function trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, _argCount) {
     // isall has three args
     TRACE(' - trickLteRhsIsall1a3; an isall with 3 args; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS);
 
     let indexX = readIndex(ml, isallOffset + 3);
     let indexY = readIndex(ml, isallOffset + 5);
     let indexZ = readIndex(ml, isallOffset + 7);
-    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + 3 * 2 + 2);
+    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + _argCount * 2 + 2, _argCount);
 
     TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {
@@ -1677,10 +1676,11 @@ function cutter(ml, problem, once) {
       setDomain(indexS, S);
     });
   }
-  function _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, sizeofIsall) {
+  function _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, sizeofIsall, _argCount) {
     // isall has three args (left). it may have had more originally.
-    TRACE(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall);
+    TRACE(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall, '_argCount:', _argCount);
     ASSERT(sizeofIsall === ml_getOpSizeSlow(ml, isallOffset), 'should get correct isall sizeof');
+    ASSERT(sizeofIsall === (ml[isallOffset] === ML_ISALL ? SIZEOF_COUNT + _argCount * 2 + 2 : SIZEOF_VVV), 'just checking', ml[isallOffset] === ML_ISALL, _argCount, sizeofIsall);
 
     // the first lte replaces the existing lte
     ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
@@ -1703,9 +1703,7 @@ function cutter(ml, problem, once) {
     ml_enc16(ml, isallOffset + 3, indexZ);
 
     let left = sizeofIsall - (SIZEOF_VV + SIZEOF_VV);
-    TRACE(' - compiling jump starting at', isallOffset, 'for', left, 'bytes');
-    // should be one byte remaining
-    ASSERT(left === 1, 'just 1 byte left, not likely to change but if this fails check anyways');
+    TRACE(' - compiling jump starting at', isallOffset, 'for', left, 'bytes, old size was', sizeofIsall);
     ml_jump(ml, isallOffset + SIZEOF_VV, left);
 
     ASSERT(ml_validateSkeleton(ml, '_trickLteRhsIsall1a3'));
@@ -1750,6 +1748,7 @@ function cutter(ml, problem, once) {
       ASSERT(size >= SIZEOF_VV, 'this is what we asked for');
       do {
         let indexB = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+        TRACE('  - compiling lte:', indexA, '<=', indexB, ' -> ', domain__debug(getDomain(indexA, true)), '<=', domain__debug(getDomain(indexB, true)));
         bounty_markVar(bounty, indexB);
         args.push(indexB);
 
@@ -1766,11 +1765,11 @@ function cutter(ml, problem, once) {
     }
 
     // now burn off the last three isall args by recycling our existing isall+lte offsets
-    let indexX = readIndex(ml, SIZEOF_COUNT + argCount - 3);
-    let indexY = readIndex(ml, SIZEOF_COUNT + argCount - 2);
-    let indexZ = readIndex(ml, SIZEOF_COUNT + argCount - 1);
+    let indexX = readIndex(ml, isallOffset + SIZEOF_COUNT + (argCount - 3) * 2);
+    let indexY = readIndex(ml, isallOffset + SIZEOF_COUNT + (argCount - 2) * 2);
+    let indexZ = readIndex(ml, isallOffset + SIZEOF_COUNT + (argCount - 1) * 2);
     args.push(indexX, indexY, indexZ);
-    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + argCount * 2 + 2);
+    _trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, indexX, indexY, indexZ, SIZEOF_COUNT + argCount * 2 + 2, argCount);
 
     TRACE('   - deferring', indexS, 'will be gt', indexA, 'and the result of an isall');
     solveStack.push((_, force, getDomain, setDomain) => {

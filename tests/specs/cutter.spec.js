@@ -458,6 +458,30 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte,lte,lte #/);
     });
 
+    it('should morph four args if there is enough space', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E, X [0 1]
+        X = all?(A B C E)
+        D <= X
+        # -->  D <= A, D <= B, D <= C, D <= E
+        @custom noleaf A B C D E
+        @custom free 100
+      `)).to.throw(/ops: lte,lte,lte,lte #/);
+    });
+
+    it('should morph five args if there is enough space', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E, F, X [0 1]
+        X = all?(A B C E F)
+        D <= X
+        # -->  D <= A, D <= B, D <= C, D <= E, D <= F
+        @custom noleaf A B C D E F
+        @custom free 100
+      `)).to.throw(/ops: lte,lte,lte,lte,lte #/);
+    });
+
     describe('should morph the basic case as long as max(C) <= A,B,R', function() {
 
       function test(bools, nonbools) {

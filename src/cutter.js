@@ -287,7 +287,7 @@ function cutter(ml, problem, once) {
     }
 
     if (countsB === 1) {
-      return leafLteRhs(ml, indexA, indexB);
+      return leafLteRhs(ml, offset, indexA, indexB);
     }
 
     if (countsA > 0) {
@@ -337,14 +337,17 @@ function cutter(ml, problem, once) {
     }
 
     if (countsA === 1) {
-      // note: A cannot be solved (bounty ignores it so count would be 0)
+      ASSERT(!domain_isSolved(getDomain(indexA, true)), 'A cannot be solved (bounty ignores constants so count would be 0)');
       if (domain_isSolved(getDomain(indexB, true))) {
         return leafIsEqArg(ml, offset, indexA, indexB, indexR, indexA, indexB);
       }
     }
 
+    // of course, if something doesnt maintain the order ...
+    ASSERT(domain_isSolved(getDomain(indexA, true)) <= domain_isSolved(getDomain(indexA, true)), 'if A is solved, B must also be solved due to var ordering and constant indexes always being larger than regular indexes', domain__debug(getDomain(indexA, true)), domain__debug(getDomain(indexB, true)));
     if (countsB === 1) {
-      // note: B cannot be solved (bounty ignores it so count would be 0)
+      // not covered, kept here just in case the above assertion doesnt hold in prod
+      ASSERT(!domain_isSolved(getDomain(indexB, true)), 'B cannot be solved (bounty ignores constants so count would be 0)');
       if (domain_isSolved(getDomain(indexA, true))) {
         return leafIsEqArg(ml, offset, indexB, indexA, indexR, indexA, indexB);
       }
@@ -379,8 +382,10 @@ function cutter(ml, problem, once) {
       }
     }
 
+    ASSERT(domain_isSolved(getDomain(indexA, true)) <= domain_isSolved(getDomain(indexA, true)), 'if A is solved, B must also be solved due to var ordering and constant indexes always being larger than regular indexes', domain__debug(getDomain(indexA, true)), domain__debug(getDomain(indexB, true)));
     if (countsB === 1) {
-      // note: B cannot be solved (bounty ignores it so count would be 0)
+      // not covered, kept here just in case the above assertion doesnt hold in prod
+      ASSERT(!domain_isSolved(getDomain(indexB, true)), 'B cannot be solved (bounty ignores constants so count would be 0)');
       if (domain_isSolved(getDomain(indexA, true))) {
         return leafIsNeqArg(ml, offset, indexB, indexA, indexA, indexB, indexR);
       }
@@ -447,14 +452,14 @@ function cutter(ml, problem, once) {
     if (countsA === 1) {
       // note: A cannot be solved (bounty ignores it so count would be 0)
       if (domain_isSolved(getDomain(indexB, true))) {
-        return leafIsLteLhs(ml, offset, indexA, indexB, indexA, indexB, indexR);
+        return leafIsLteLhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
       // note: B cannot be solved (bounty ignores it so count would be 0)
       if (domain_isSolved(getDomain(indexA, true))) {
-        return leafIsLteRhs(ml, offset, indexB, indexA, indexA, indexB, indexR);
+        return leafIsLteRhs(ml, offset, indexA, indexB, indexR);
       }
     }
 

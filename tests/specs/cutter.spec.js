@@ -81,7 +81,7 @@ describe('specs/cutter.spec', function() {
 
   describe('lt', function() {
 
-    it('should lt', function() {
+    it('should AB lt', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A, B *
@@ -92,11 +92,23 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: 11, B: 12});
     });
+
+    it('should BA lt', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B, A *
+        B < A
+        A > 10
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: [11, SUP], B: 0});
+    });
   });
 
   describe('lte', function() {
 
-    it('should lte', function() {
+    it('should AB lte', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A, B *
@@ -107,11 +119,23 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: 11, B: 11});
     });
+
+    it('should BA lte', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B, A *
+        B <= A
+        A > 10
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({A: [11, SUP], B: 0});
+    });
   });
 
   describe('iseq', function() {
 
-    it('should iseq vvv', function() {
+    it('should iseq', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A *
@@ -125,7 +149,19 @@ describe('specs/cutter.spec', function() {
       expect(solution).to.eql({A: 11, B: 11, C: 1});
     });
 
-    it('should iseq v8v', function() {
+    it('should iseq with constant A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 2]
+        : C [0 1]
+        C = 2 ==? B
+        @custom noleaf B
+      `);
+
+      expect(solution).to.eql({B: 0, C: 0});
+    });
+
+    it('should iseq with constant B', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A [0 2]
@@ -136,15 +172,91 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: 0, C: 0});
     });
+
+    it('should iseq with constant C', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 2]
+        : B [0 1]
+        2 = A ==? B
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0});
+    });
+
+    it('should AB iseq with leaf A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 2]
+        : B 2
+        : C [0 1]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+    });
+
+    it('should AB iseq with leaf B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A 2
+        : B [0 2]
+        : C [0 1]
+        C = A ==? B
+        @custom noleaf C A
+      `);
+
+      expect(solution).to.eql({A: 2, B: [0, 1], C: 0});
+    });
+
+    it('shouldnt AB iseq with unsolved leaf B', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 2]
+        : C [0 1]
+        C = A ==? B
+        @custom noleaf C A
+      `)).to.throw(/ops: iseq #/);
+    });
+
+    it('should BA iseq with leaf A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B 2
+        : A [0 2]
+        : C [0 1]
+        C = B ==? A
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+    });
+
+    it('should BA iseq with leaf B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 2]
+        : A 2
+        : C [0 1]
+        C = B ==? A
+        @custom noleaf C A
+      `);
+
+      expect(solution).to.eql({A: 2, B: [0, 1], C: 0});
+    });
   });
 
   describe('isneq', function() {
 
-    it('should isneq base case', function() {
+    it('should AB isneq base case', function() {
       let solution = preSolver(`
         @custom var-strat throw
-        : A, C *
+        : A *
         : B 11
+        : C *
         C = A !=? B
         A > 10
         @custom noleaf A B
@@ -153,7 +265,21 @@ describe('specs/cutter.spec', function() {
       expect(solution).to.eql({A: 11, B: 11, C: 0});
     });
 
-    it('should solve constant case', function() {
+    it('should BA isneq base case', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B 11
+        : A *
+        : C *
+        C = B !=? A
+        A > 10
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 11, B: 11, C: 0});
+    });
+
+    it('should solve constant B', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A [1 2]
@@ -164,35 +290,159 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: 2, R: 0});
     });
+
+    it('should solve constant A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [1 2]
+        : R [0 1]
+        R = 1 !=? B
+        @custom noleaf R
+      `);
+
+      expect(solution).to.eql({B: 2, R: 0});
+    });
+
+    it('should solve constant R', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [1 2]
+        : B [0 1]
+        0 = A !=? B
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 1, B: 1});
+    });
   });
 
   describe('islt', function() {
 
-    it('should islt', function() {
+    it('should AB islt', function() {
       let solution = preSolver(`
         @custom var-strat throw
-        : A, C *
-        : B 11
+        : A [0 5]
+        : B [0 5]
+        : C [0 1]
         C = A <? B
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 0, B: 11, C: [1, SUP]});
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
+    });
+
+    it('should BA islt', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 5]
+        : A [0 5]
+        : C [0 1]
+        C = B <? A
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
+    });
+
+    it('should islt with constant A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 5]
+        : C [0 1]
+        C = 2 <? B
+        @custom noleaf C
+      `);
+
+      expect(solution).to.eql({B: [2, 5], C: 0});
+    });
+
+    it('should islt with constant B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 5]
+        : C [0 1]
+        C = A <? 2
+        @custom noleaf C
+      `);
+
+      expect(solution).to.eql({A: [2, 5], C: 0});
+    });
+
+    it('should islt with constant C', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [1 2]
+        : B [0 2]
+        2 = A <? B
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 1, B: 2});
     });
   });
 
   describe('islte', function() {
 
-    it('should islte', function() {
+    it('should AB islte', function() {
       let solution = preSolver(`
         @custom var-strat throw
-        : A, C *
-        : B 11
+        : A [0 5]
+        : B [0 5]
+        : C [0 1]
         C = A <=? B
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 0, B: 11, C: [1, SUP]});
+      expect(solution).to.eql({A: 0, B: 0, C: 1});
+    });
+
+    it('should BA islte', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 5]
+        : A [0 5]
+        : C [0 1]
+        C = B <=? A
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 1});
+    });
+
+    it('should islte with constant A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B [0 5]
+        : C [0 1]
+        C = 2 <=? B
+        @custom noleaf C
+      `);
+
+      expect(solution).to.eql({B: [0, 1], C: 0});
+    });
+
+    it('should islte with constant B', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 5]
+        : C [0 1]
+        C = A <=? 2
+        @custom noleaf C
+      `);
+
+      expect(solution).to.eql({A: [3, 5], C: 0});
+    });
+
+    it('should islte with constant C', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [2 3]
+        2 = A <=? B
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: [2, 3]});
     });
   });
 

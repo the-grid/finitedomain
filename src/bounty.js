@@ -286,15 +286,15 @@ function bounty_collect(ml, problem, bounty) {
           break;
 
         case ML_ISALL:
-        case ML_ISNALL:
           let ilen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < ilen; ++i) {
             collect(SIZEOF_COUNT + i * 2, BOUNTY_OTHER_BOOLY);
           }
-          collect(SIZEOF_COUNT + ilen * 2, op === ML_ISALL ? BOUNTY_ISALL_RESULT : BOUNTY_OTHER_BOOLY); // R
+          collect(SIZEOF_COUNT + ilen * 2, BOUNTY_ISALL_RESULT); // R
           pc += SIZEOF_COUNT + ilen * 2 + 2;
           break;
 
+        case ML_ISNALL:
         case ML_ISNONE:
           let mlen = ml_dec16(ml, pc + 1);
           for (let i = 0; i < mlen; ++i) {

@@ -185,7 +185,7 @@ describe('specs/cutter.spec', function() {
       expect(solution).to.eql({A: 0, B: 0});
     });
 
-    it('should AB iseq with leaf A', function() {
+    it('should AB iseq with leaf A v1', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A [0 2]
@@ -196,6 +196,82 @@ describe('specs/cutter.spec', function() {
       `);
 
       expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+    });
+
+    it('should AB iseq with leaf A v2', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        : C [1 10]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: [1, 10]});
+    });
+
+    it('should AB iseq with leaf A v3', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        : C [0 0]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: [1, 10], B: 0, C: 0});
+    });
+
+    it('should AB iseq with leaf A v4', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 10]
+        : C [0 10]
+        C = A ==? B
+        @custom noleaf C B
+      `)).to.throw(/ops: iseq #/);
+    });
+
+    it('should AB iseq with leaf A v5', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B 2
+        : C [0 10]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: [0, 1, 3, 10], B: 2, C: 0});
+    });
+
+    it('should AB iseq with leaf A v6', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B 2
+        : C [1 10]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: 2, B: 2, C: [1, 10]});
+    });
+
+    it('should AB iseq with leaf A', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [0 4 6 10]
+        : B 5
+        : C [0 10]
+        C = A ==? B
+        @custom noleaf C B
+      `);
+
+      expect(solution).to.eql({A: [0, 4, 6, 10], B: 5, C: 0});
     });
 
     it('should AB iseq with leaf B', function() {
@@ -212,10 +288,23 @@ describe('specs/cutter.spec', function() {
     });
 
     it('shouldnt AB iseq with unsolved leaf B', function() {
-      expect(_ => preSolver(`
+      let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
         : B [0 2]
+        : C [0 1]
+        C = A ==? B
+        @custom noleaf C A
+      `);
+
+      expect(solution).to.eql({A: 0, B: [1, 2], C: 0});
+    });
+
+    it('shouldnt blabla trying to proc a certain code branch v1', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 0 2 2]
         : C [0 1]
         C = A ==? B
         @custom noleaf C A
@@ -288,7 +377,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf R
       `);
 
-      expect(solution).to.eql({A: 2, R: 0});
+      expect(solution).to.eql({A: 1, R: 0});
     });
 
     it('should solve constant A', function() {
@@ -300,7 +389,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf R
       `);
 
-      expect(solution).to.eql({B: 2, R: 0});
+      expect(solution).to.eql({B: 1, R: 0});
     });
 
     it('should solve constant R', function() {
@@ -900,6 +989,18 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte,lte #/);
     });
 
+    it('should morph the swapped basic case', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, R [0 1]
+        C <= R
+        R = all?(A B)
+        # -->  C <= A, C <= B
+        @custom noleaf A B C
+        @custom free 0
+      `)).to.throw(/ops: lte,lte #/);
+    });
+
     it('should work when isall args arent bool because thats fine too', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
@@ -1319,6 +1420,18 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: isall,nall #/);
     });
 
+    it('trying to improve coverage :)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : R [0 1]
+        : X [0 1]
+        R = all?(A B C D)
+        nall(R B X)
+        @custom noleaf A B C D X
+      `)).to.throw(/ops: isall,nall #/);
+    });
+
     describe('all variations of nall arg order', function() {
 
       function test(v1, v2, v3) {
@@ -1569,7 +1682,7 @@ describe('specs/cutter.spec', function() {
     });
   });
 
-  describe('trick 2xlte', function() {
+  describe('trick 2xlte_lhs', function() {
 
     it('should eliminate base case a double lte', function() {
       let solution = preSolver(`
@@ -1599,6 +1712,51 @@ describe('specs/cutter.spec', function() {
       `);
 
       expect(solution).to.eql({A: 0, B: 0, C: 0});
+    });
+
+    it('should work with semi-overlapping ranges', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [0 8]
+        : C [8 11]
+        A <= C
+        A <= B
+        # -> A is a leaf var, eliminate the constraints
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+    });
+
+    it('should work with swapped semi-overlapping ranges', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [5 10]
+        : B [0 8]
+        : C [8 11]
+        A <= B
+        A <= C
+        # -> A is a leaf var, eliminate the constraints
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+    });
+
+    it('trying to proc code paths v1', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [3 4]
+        : B [0 5]
+        : C [0 5]
+        A <= C
+        A <= B
+        # -> A is a leaf var, eliminate the constraints
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: 3, B: 3, C: 3});
     });
   });
 
@@ -2039,8 +2197,8 @@ describe('specs/cutter.spec', function() {
 
   describe('trick lte_lhs+isall with two shared vars', function() {
 
-    it('should remove lte if isall subsumes it', function() {
-      expect(_ => preSolver(`
+    it('should remove lte if isall AB subsumes it', function() {
+      let solution = preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
         : X [0 1]
@@ -2051,7 +2209,142 @@ describe('specs/cutter.spec', function() {
         # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
 
         @custom noleaf A B C
-      `)).to.throw(/ops: isall2 #/);
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], X: 0});
+    });
+
+    it('should remove lte if isall BA subsumes it', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : B, A, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(B A)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C
+      `);
+
+      expect(solution).to.eql({A: [0, 1], B: 0, C: [0, 1], X: 0});
+    });
+
+    it('should take the isall 1 path', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(A B C)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], X: 0});
+    });
+
+    it('should take the isall 1 ABC path', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(B A C)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], X: 0});
+    });
+
+    it('should take the isall 1 BAC path', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(B A C)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], X: 0});
+    });
+
+    it('should take the isall 1 BCA path', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : X [0 1]
+
+        X <= A
+        X = all?(B C A)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B C
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 1], C: [0, 1], X: 0});
+    });
+
+    it('should not cut if shared var isnt a bool', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B [0 5]
+        : X [0 2]
+
+        X <= A
+        X = all?(A B)
+        # -> remove X <= A, it is subsumed by the isall
+        # (if B=0 then X=0, which is always <=A. if B=1, if A=1 then X=1, <= holds. if A=0 then X=0, <= holds.)
+
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 0, B: [0, 5], X: 0});
+    });
+
+    it('should cut even if shared var isnt booly', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A, B [1 5]
+        : X [0 2]
+
+        X <= A
+        X = all?(A B)
+
+        @custom noleaf A B
+      `);
+
+      expect(solution).to.eql({A: 1, B: [1, 5], X: 1});
+    });
+
+    it('should cut if shared var isnt booly', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [1 5]
+        : B 0
+        : X [0 2]
+
+        X <= A
+        X = all?(A B)
+
+        @custom noleaf A
+      `);
+
+      expect(solution).to.eql({A: [1, 5], B: 0, X: 0});
     });
   });
 

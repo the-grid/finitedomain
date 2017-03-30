@@ -75,6 +75,7 @@ import {
 import {
   domain__debug,
   domain_booly,
+  domain_createEmpty,
   domain_createValue,
   domain_createRange,
   domain_hasNoZero,
@@ -91,9 +92,9 @@ import {
   domain_removeLte,
   domain_removeGtUnsafe,
   domain_removeLtUnsafe,
+  domain_size,
 } from './domain';
 import domain_plus from './domain_plus';
-import domain_minus from './domain_minus';
 
 import {
   BOUNTY_MAX_OFFSETS_TO_TRACK,
@@ -338,22 +339,72 @@ function cutter(ml, problem, once) {
 
     if (countsA === 1) {
       ASSERT(!domain_isSolved(getDomain(indexA, true)), 'A cannot be solved (bounty ignores constants so count would be 0)');
-      if (domain_isSolved(getDomain(indexB, true))) {
-        return leafIsEqArg(ml, offset, indexA, indexB, indexR, indexA, indexB);
+      if (canCutIseqForArg(indexA, indexB, indexR)) {
+        leafIsEqArg(ml, offset, indexA, indexB, indexR, indexA, indexB);
       }
     }
 
-    // of course, if something doesnt maintain the order ...
-    ASSERT(domain_isSolved(getDomain(indexA, true)) <= domain_isSolved(getDomain(indexA, true)), 'if A is solved, B must also be solved due to var ordering and constant indexes always being larger than regular indexes', domain__debug(getDomain(indexA, true)), domain__debug(getDomain(indexB, true)));
     if (countsB === 1) {
       // not covered, kept here just in case the above assertion doesnt hold in prod
       ASSERT(!domain_isSolved(getDomain(indexB, true)), 'B cannot be solved (bounty ignores constants so count would be 0)');
-      if (domain_isSolved(getDomain(indexA, true))) {
+      if (canCutIseqForArg(indexB, indexA, indexR)) {
         return leafIsEqArg(ml, offset, indexB, indexA, indexR, indexA, indexB);
       }
     }
 
     pc = offset + SIZEOF_VVV;
+  }
+  function canCutIseqForArg(indexL, indexO, indexR) {
+    TRACE('   - canCutIseqForArg;', indexL, indexO, indexR, '->', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexL, true)), '==?', domain__debug(getDomain(indexO, true)));
+    // an iseq can only be leaf-cut on an arg if the leaf can represent all outcomes
+    // so if C is solved, solve as eq or neq.
+    // otherwise make sure the leaf contains all vars of the other var and at least one var that's not in there
+    // as long as that's impossible we can't cut it without implicitly forcing vars
+
+    // first check whether R is booly-solved, this would mean fewer values to check
+
+    let R = getDomain(indexR, true);
+    if (domain_isZero(R)) {
+      TRACE('    - R=0 and size(L)>2 so cuttable');
+      // L contains at least two values so regardless of the state of O, L can fulfill !=
+      ASSERT(domain_size(L) >= 2, 'see?');
+      return true;
+    }
+
+    // R=1 or R=booly is more involved because we at least
+    // need to know whether L contains all values in O
+
+    let L = getDomain(indexL, true);
+    let O = getDomain(indexO, true);
+    let LO = domain_intersection(L, O); // <-- this tells us that
+    TRACE('    - LO:', domain__debug(LO));
+
+    if (domain_hasNoZero(R)) {
+      // only cut if we are certain L can represent eq in any way O solves
+
+      if (!LO) {
+        TRACE('    - R>=1 and A contains no value in B so reject');
+        // no values in L and O match so reject
+        setDomain(indexL, domain_createEmpty());
+        return false;
+      }
+
+      if (LO === O) {
+        TRACE('    - R>=1 and A contains all values in B so cuttable');
+        // this means L contains all values in O (and maybe more, dont care)
+        // which means L can uphold the eq for any value of O
+        return true;
+      }
+
+      TRACE('    - R>=1 and A contains some but not all B so not cuttable, yet');
+      // there's no guarantee O solves to a value in L so we cant cut safely
+      return true;
+    }
+
+    TRACE('    - R unresolved, cuttable if L contains all values in O and then some;', LO === O, LO !== L, 'so:', LO === O && LO !== L);
+    // we dont know R so L should contain all values in O (LO==O) and at least
+    // one value not in O (LO != O), to consider this a safe cut. otherwise dont.
+    return LO === O && LO !== L;
   }
 
   function cutIsNeq(ml, offset) {
@@ -376,22 +427,72 @@ function cutter(ml, problem, once) {
     }
 
     if (countsA === 1) {
-      // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (domain_isSolved(getDomain(indexB, true))) {
-        return leafIsNeqArg(ml, offset, indexA, indexB, indexA, indexB, indexR);
+      ASSERT(!domain_isSolved(getDomain(indexA, true)), 'A cannot be solved (bounty ignores constants so count would be 0)');
+      if (canCutIsneqForArg(indexA, indexB, indexR)) {
+        leafIsNeqArg(ml, offset, indexA, indexB, indexR, indexA, indexB);
       }
     }
 
-    ASSERT(domain_isSolved(getDomain(indexA, true)) <= domain_isSolved(getDomain(indexA, true)), 'if A is solved, B must also be solved due to var ordering and constant indexes always being larger than regular indexes', domain__debug(getDomain(indexA, true)), domain__debug(getDomain(indexB, true)));
     if (countsB === 1) {
       // not covered, kept here just in case the above assertion doesnt hold in prod
       ASSERT(!domain_isSolved(getDomain(indexB, true)), 'B cannot be solved (bounty ignores constants so count would be 0)');
-      if (domain_isSolved(getDomain(indexA, true))) {
-        return leafIsNeqArg(ml, offset, indexB, indexA, indexA, indexB, indexR);
+      if (canCutIsneqForArg(indexB, indexA, indexR)) {
+        return leafIsNeqArg(ml, offset, indexB, indexA, indexR, indexA, indexB);
       }
     }
 
     pc = offset + SIZEOF_VVV;
+  }
+  function canCutIsneqForArg(indexL, indexO, indexR) {
+    TRACE('   - canCutIsneqForArg;', indexL, indexO, indexR, '->', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexL, true)), '!=?', domain__debug(getDomain(indexO, true)));
+    // an isneq can only be leaf-cut on an arg if the leaf can represent all outcomes
+    // so if C is solved, solve as eq or neq.
+    // otherwise make sure the leaf contains all vars of the other var and at least one var that's not in there
+    // as long as that's impossible we can't cut it without implicitly forcing vars
+
+    // first check whether R is booly-solved, this would mean fewer values to check
+
+    let R = getDomain(indexR, true);
+    if (domain_hasNoZero(R)) {
+      TRACE('    - R=0 and size(L)>2 so cuttable');
+      // L contains at least two values so regardless of the state of O, L can fulfill !=
+      ASSERT(domain_size(L) >= 2, 'see?');
+      return true;
+    }
+
+    // R=1 or R=booly is more involved because we at least
+    // need to know whether L contains all values in O
+
+    let L = getDomain(indexL, true);
+    let O = getDomain(indexO, true);
+    let LO = domain_intersection(L, O); // <-- this tells us that
+    TRACE('    - LO:', domain__debug(LO));
+    if (domain_isZero(R)) {
+      // only cut if we are certain L can represent eq in any way O solves
+
+      if (!LO) {
+        TRACE('    - R>=1 and A contains no value in B so reject');
+        // no values in L and O match so reject
+        setDomain(indexL, domain_createEmpty());
+        return false;
+      }
+
+      if (LO === O) {
+        TRACE('    - R>=1 and A contains all values in B so cuttable');
+        // this means L contains all values in O (and maybe more, dont care)
+        // which means L can uphold the eq for any value of O
+        return true;
+      }
+
+      TRACE('    - R>=1 and A contains some but not all B so not cuttable, yet');
+      // there's no guarantee O solves to a value in L so we cant cut safely
+      return true;
+    }
+
+    TRACE('    - R unresolved, cuttable if L contains all values in O and then some;', LO === O, LO !== L, 'so:', LO === O && LO !== L);
+    // we dont know R so L should contain all values in O (LO==O) and at least
+    // one value not in O (LO != O), to consider this a safe cut. otherwise dont.
+    return LO === O && LO !== L;
   }
 
   function cutIsLt(ml, offset) {
@@ -414,20 +515,59 @@ function cutter(ml, problem, once) {
     }
 
     if (countsA === 1) {
-      // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (domain_isSolved(getDomain(indexB, true))) {
+      if (canCutIsltForArg(indexA, indexB, indexR, indexA, indexB)) {
         return leafIsLtLhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
-      // note: B cannot be solved (bounty ignores it so count would be 0)
-      if (domain_isSolved(getDomain(indexA, true))) {
+      if (canCutIsltForArg(indexB, indexA, indexR, indexA, indexB)) {
         return leafIsLtRhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     pc = offset + SIZEOF_VVV;
+  }
+  function canCutIsltForArg(indexL, indexO, indexR, indexA, indexB) {
+    TRACE('   - canCutIsltForArg;', indexL, indexO, indexR, '->', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<?', domain__debug(getDomain(indexB, true)));
+    // an islt can only be leaf-cut on an arg if the leaf can represent all outcomes
+    // so if C is solved, solve as eq or neq.
+    // otherwise make sure the leaf contains all vars of the other var and at least one var that's not in there
+    // as long as that's impossible we can't cut it without implicitly forcing vars
+
+    // keep in mind A and B are ordered and cant be swapped
+
+    // first check whether R is booly-solved, this would mean fewer values to check
+
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+    let R = getDomain(indexR, true);
+
+    if (domain_hasNoZero(R)) {
+      TRACE('   - R>0');
+      // if L is A, O must have at least one value below min(B). otherwise it must have at least one value > max(A).
+      if (indexL === indexA) return domain_min(A) < domain_min(B);
+      else return domain_max(B) > domain_max(A);
+    }
+
+    if (domain_isZero(R)) {
+      TRACE('   - R=0');
+      // if L is A, O must have at least one value >= min(B). otherwise it must have at least one value <= max(A).
+      if (indexL === indexA) return domain_min(A) >= domain_min(B);
+      else return domain_max(B) <= domain_max(A);
+    }
+
+    // R unresolved. O must have at least both values to represent R=0 and R>=1
+
+    if (indexL === indexA) {
+      TRACE('   - R unresolved, L=A', domain_min(A) < domain_min(B), domain_max(A) >= domain_max(B));
+      // L must contain a value < min(B) and a value >= max(B)
+      return domain_min(A) < domain_min(B) && domain_max(A) >= domain_max(B);
+    }
+
+    TRACE('   - R unresolved, L=B', domain_max(B), '>', domain_max(A), '->', domain_max(B) > domain_max(A), domain_min(B), '<=', domain_min(A), '->', domain_min(B) <= domain_min(A));
+    // L is B, L must contain one value above max(A) and one value <= min(A)
+    return domain_max(B) > domain_max(A) && domain_min(B) <= domain_min(A);
   }
 
   function cutIsLte(ml, offset) {
@@ -450,20 +590,59 @@ function cutter(ml, problem, once) {
     }
 
     if (countsA === 1) {
-      // note: A cannot be solved (bounty ignores it so count would be 0)
-      if (domain_isSolved(getDomain(indexB, true))) {
+      if (canCutIslteForArg(indexA, indexB, indexR, indexA, indexB)) {
         return leafIsLteLhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     if (countsB === 1) {
-      // note: B cannot be solved (bounty ignores it so count would be 0)
-      if (domain_isSolved(getDomain(indexA, true))) {
+      if (canCutIslteForArg(indexB, indexA, indexR, indexA, indexB)) {
         return leafIsLteRhs(ml, offset, indexA, indexB, indexR);
       }
     }
 
     pc = offset + SIZEOF_VVV;
+  }
+  function canCutIslteForArg(indexL, indexO, indexR, indexA, indexB) {
+    TRACE('   - canCutIslteForArg;', indexL, indexO, indexR, '->', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '<=?', domain__debug(getDomain(indexB, true)));
+    // an islte can only be leaf-cut on an arg if the leaf can represent all outcomes
+    // so if C is solved, solve as eq or neq.
+    // otherwise make sure the leaf contains all vars of the other var and at least one var that's not in there
+    // as long as that's impossible we can't cut it without implicitly forcing vars
+
+    // keep in mind A and B are ordered and cant be swapped
+
+    // first check whether R is booly-solved, this would mean fewer values to check
+
+    let A = getDomain(indexA, true);
+    let B = getDomain(indexB, true);
+    let R = getDomain(indexR, true);
+
+    if (domain_hasNoZero(R)) {
+      TRACE('   - R>0');
+      // if L is A, O must have at least one value <= min(B). otherwise it must have at least one value gte max(A).
+      if (indexL === indexA) return domain_min(A) <= domain_min(B);
+      else return domain_max(B) >= domain_max(A);
+    }
+
+    if (domain_isZero(R)) {
+      TRACE('   - R=0');
+      // if L is A, O must have at least one value > min(B). otherwise it must have at least one value < max(A).
+      if (indexL === indexA) return domain_min(A) > domain_min(B);
+      else return domain_max(B) < domain_max(A);
+    }
+
+    // R unresolved. O must have at least both values to represent R=0 and R>=1
+
+    if (indexL === indexA) {
+      TRACE('   - R unresolved, L=A', domain_min(A) <= domain_min(B), domain_max(A) > domain_max(B));
+      // L must contain a value <= min(B) and a value > max(B)
+      return domain_min(A) <= domain_min(B) && domain_max(A) > domain_max(B);
+    }
+
+    TRACE('   - R unresolved, L=B', domain_max(B), '>=', domain_max(A), '->', domain_max(B) >= domain_max(A), domain_min(B), '<', domain_min(A), '->', domain_min(B) < domain_min(A));
+    // L is B, L must contain one value gte max(A) and one value below min(A)
+    return domain_max(B) >= domain_max(A) && domain_min(B) < domain_min(A);
   }
 
   function cutPlus(ml, offset) {
@@ -730,6 +909,7 @@ function cutter(ml, problem, once) {
       TRACE('   - metaR:', bounty__debugMeta(metaR));
 
       if (countsR === 2) {
+        // this path should only be taken in isall2 so its pretty redundant here. but maybe.
         if (metaR === (BOUNTY_NALL | BOUNTY_ISALL_RESULT) && trickIsall1Nall(ml, indexR, offset, countsR, metaR)) return;
       }
 
@@ -899,24 +1079,28 @@ function cutter(ml, problem, once) {
     somethingChanged();
   }
 
-  function leafIsEqArg(ml, offset, indexLeaf, indexConst, indexR, indexA, indexB) {
-    TRACE('   - leafIsEqArg;', indexLeaf, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
+  function leafIsEqArg(ml, offset, indexL, indexO, indexR, indexA, indexB) {
+    TRACE('   - leafIsEqArg;', indexL, 'is a leaf var, R = A ==? B,', indexR, '=', indexA, '==?', indexB);
 
-    ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
-    ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
+    ASSERT(!domain_isSolved(getDomain(indexL, true)), 'the leaf var shouldnt be solved yet', indexL);
 
     solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - leafIsEqArg;', indexR, '=', indexLeaf, '==? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '==?', domain__debug(getDomain(indexConst)));
-      let A = getDomain(indexLeaf);
-      let vB = force(indexConst);
+      TRACE(' - leafIsEqArg;', indexR, '=', indexL, '==? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexL)), '==?', domain__debug(getDomain(indexO)));
+      let L = getDomain(indexL);
+      let vO = force(indexO);
       let vR = force(indexR);
-      A = vR ? domain_intersectionValue(A, vB) : domain_removeValue(A, vB);
-      ASSERT(A, 'leaf should at least have the resulting value');
-      setDomain(indexLeaf, A);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        L = domain_intersectionValue(L, vO);
+      } else {
+        L = domain_removeValue(L, vO);
+      }
+      ASSERT(L, 'leaf should at least have the resulting value');
+      setDomain(indexL, L);
     });
 
     ml_eliminate(ml, offset, SIZEOF_VVV);
-    bounty_markVar(bounty, indexLeaf);
+    bounty_markVar(bounty, indexO);
+    bounty_markVar(bounty, indexL);
     bounty_markVar(bounty, indexR);
     somethingChanged();
   }
@@ -941,20 +1125,23 @@ function cutter(ml, problem, once) {
     somethingChanged();
   }
 
-  function leafIsNeqArg(ml, offset, indexLeaf, indexConst, indexA, indexB, indexR) {
+  function leafIsNeqArg(ml, offset, indexLeaf, indexConst, indexR, indexA, indexB) {
     TRACE('   - leafIsNeqArg;', indexLeaf, 'is a leaf var, R = A !=? B,', indexR, '=', indexA, '!=?', indexB);
 
     ASSERT(!domain_isSolved(getDomain(indexLeaf, true)), 'the leaf var shouldnt be solved yet', indexLeaf);
-    ASSERT(domain_isSolved(getDomain(indexConst, true)), 'the const should be solved', indexLeaf);
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - leafIsNeqArg;', indexR, '=', indexLeaf, '!=? c  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexLeaf)), '!=?', domain__debug(getDomain(indexConst)));
-      let A = getDomain(indexLeaf);
-      let vB = force(indexConst);
+      let L = getDomain(indexLeaf);
+      let vO = force(indexConst);
       let vR = force(indexR);
-      A = vR ? domain_intersectionValue(A, vB) : domain_removeValue(A, vB);
-      ASSERT(A, 'leaf should at least have the resulting value');
-      setDomain(indexLeaf, A);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        L = domain_removeValue(L, vO);
+      } else {
+        L = domain_intersectionValue(L, vO);
+      }
+      ASSERT(L, 'leaf should at least have the resulting value');
+      setDomain(indexLeaf, L);
     });
 
     ml_eliminate(ml, offset, SIZEOF_VVV);
@@ -995,7 +1182,12 @@ function cutter(ml, problem, once) {
       let A = getDomain(indexA);
       let vB = force(indexB);
       let vR = force(indexR);
-      A = vR ? domain_removeGte(A, vB) : domain_removeLtUnsafe(A, vB);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        A = domain_removeGte(A, vB);
+      } else {
+        A = domain_removeLtUnsafe(A, vB);
+      }
+
       ASSERT(A, 'leaf should at least have the resulting value');
       setDomain(indexA, A);
     });
@@ -1018,7 +1210,12 @@ function cutter(ml, problem, once) {
       let vA = force(indexA);
       let B = getDomain(indexB);
       let vR = force(indexR);
-      B = vR ? domain_removeGte(B, vA) : domain_removeLtUnsafe(B, vA);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        B = domain_removeGte(B, vA);
+      } else {
+        B = domain_removeLtUnsafe(B, vA);
+      }
+
       ASSERT(B, 'leaf should at least have the resulting value');
       setDomain(indexB, B);
     });
@@ -1061,7 +1258,11 @@ function cutter(ml, problem, once) {
       let A = getDomain(indexA);
       let vB = force(indexB);
       let vR = force(indexR);
-      A = vR ? domain_removeGtUnsafe(A, vB) : domain_removeLte(A, vB);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        A = domain_removeGtUnsafe(A, vB);
+      } else {
+        A = domain_removeLte(A, vB);
+      }
       ASSERT(A, 'leaf should at least have the resulting value');
       setDomain(indexA, A);
     });
@@ -1084,7 +1285,11 @@ function cutter(ml, problem, once) {
       let vA = force(indexA);
       let B = getDomain(indexB);
       let vR = force(indexR);
-      B = vR ? domain_removeLtUnsafe(B, vA) : domain_removeGte(B, vA);
+      if (vR) { // this case only hits by artifacts. code coverage tools giving me a hard time over it :(
+        B = domain_removeLtUnsafe(B, vA);
+      } else {
+        B = domain_removeGte(B, vA);
+      }
       ASSERT(B, 'leaf should at least have the resulting value');
       setDomain(indexB, B);
     });
@@ -1121,18 +1326,27 @@ function cutter(ml, problem, once) {
     ASSERT(!domain_isSolved(getDomain(leafIndex)), 'L should not yet be solved at this point');
     ASSERT(domain_isSolved(getDomain(constIndex)), 'C should be solved at this point');
 
-    // remove the constant from the leaf, then alias the leaf to R
-    let oL = getDomain(leafIndex, true);
-    let C = getDomain(constIndex, true);
-    ASSERT(domain_getValue(C) >= 0, 'constant should be a solved domain', C);
-    let L = domain_minus(oL, C);
-    if (L !== oL && setDomain(leafIndex, L, true)) return;
-
+    // remove values from R that are not in L+C. then alias
     let oR = getDomain(indexR, true);
-    let R = domain_intersection(oR, L);
-    if (R !== oR && setDomain(indexR, R, true)) return;
+    let L = getDomain(leafIndex, true);
+    let C = getDomain(constIndex, true);
+    let LC = domain_plus(L, C);
+    let R = domain_intersection(oR, LC);
+    if (R !== oR) {
+      // minifier should trim R down to the sum of its args...
+      if (setDomain(indexR, R, true)) return;
+    }
 
-    addAlias(leafIndex, indexR);
+    solveStack.push((_, force, getDomain, setDomain) => {
+      TRACE(' - leafPlusArg;', indexR, '=', indexA, '+', indexB, '  ->  ', domain__debug(getDomain(indexR)), '=', domain__debug(getDomain(indexA)), '+', domain__debug(getDomain(indexB)));
+      let oL = getDomain(leafIndex);
+      let vO = force(constIndex);
+      let vR = force(indexR);
+      ASSERT(vR - vO >= 0, 'shouldnt go OOB');
+      let L = domain_intersectionValue(oL, vR - vO);
+      ASSERT(L, 'leaf should contain the value');
+      if (L !== oL) setDomain(leafIndex, L);
+    });
 
     ml_eliminate(ml, plusOffset, SIZEOF_VVV);
     bounty_markVar(bounty, leafIndex);
@@ -1484,7 +1698,7 @@ function cutter(ml, problem, once) {
     // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
     ASSERT(counts === 2, 'the indexS should only be part of two constraints', counts, bounty__debugMeta(meta), 'wtf?', meta);
     ASSERT(meta === (BOUNTY_LTE_LHS | BOUNTY_NOT_BOOLY_ONLY_FLAG), 'in both constraints the shared index should be the lhs of an lte');
-    ASSERT(offset === offset1 || offset === offset2, 'expecting current offset to be one of the two offsets found', offset, indexS, meta); // not super important but ok
+    ASSERT(offset === offset1, 'expecting current offset to be the first recorded (because its the first visited and both are lte so both follow the same code path');
     ASSERT(ml_dec8(ml, offset1) === ML_LTE, 'offset1 should be lte');
     ASSERT(ml_dec8(ml, offset2) === ML_LTE, 'offset2 should be lte');
     ASSERT(ml_dec16(ml, offset1 + 1) === indexS, 'shared index should be lhs of offset1');
@@ -1505,6 +1719,7 @@ function cutter(ml, problem, once) {
 
     let minS = domain_min(S);
     let maxS = domain_max(S);
+    // this case shouldnt be possible if minimizer does its job properly
     if (domain_min(A) < minS || domain_min(B) < minS || domain_max(A) < maxS || domain_max(B) < maxS) {
       // leaf S can not (yet) reflect every value of A and B such that S<A and S<B at solve time is guaranteed to hold. postpone this cut.
       TRACE(' - the shared var can not yet reflect all values of A and B so cannot cut yet, bailing', domain__debug(S), domain__debug(A), domain__debug(B));
@@ -1536,19 +1751,19 @@ function cutter(ml, problem, once) {
     return true;
   }
 
-  function trickLteLhsIsall(ml, lteOffset, indexR, meta, countsR) {
+  function trickLteLhsIsall(ml, lteOffset, indexA, meta, countsR) {
     // S <= A, S = all?(A B)   ->   S = all?(A B)
     // (the isall subsumes the lte, regardless of other constraints)
 
-    TRACE('trickLteLhsTwice', indexR, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
+    TRACE('trickLteLhsTwice', indexA, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
 
     // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
-    ASSERT(countsR > 1, 'the indexR should only be part of two constraints', countsR, bounty__debugMeta(meta), 'wtf?', meta);
+    ASSERT(countsR > 1, 'the indexA should only be part of two constraints', countsR, bounty__debugMeta(meta), 'wtf?', meta);
     ASSERT((meta & BOUNTY_LTE_LHS) === BOUNTY_LTE_LHS && (meta & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT, 's must at least be an lte lhs and isall result var');
     ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'lteOffset should be lte');
-    ASSERT(ml_dec16(ml, lteOffset + 1) === indexR, 'shared index should be lhs of lteOffset');
+    ASSERT(ml_dec16(ml, lteOffset + 1) === indexA, 'shared index should be lhs of lteOffset');
 
-    let indexA = readIndex(ml, lteOffset + 3);
+    let indexB = readIndex(ml, lteOffset + 3);
 
     let toCheck = countsR <= BOUNTY_MAX_OFFSETS_TO_TRACK ? countsR : BOUNTY_MAX_OFFSETS_TO_TRACK;
 
@@ -1556,47 +1771,54 @@ function cutter(ml, problem, once) {
     // if countsR is higher than the max number of offsets tracked by bounty
     // in that case nothing happens and the redundant constraint persists. no biggie
     for (let i = 0; i < toCheck; ++i) {
-      let offset = bounty_getOffset(bounty, indexR, i);
+      let offset = bounty_getOffset(bounty, indexA, i);
       TRACE('   - #' + i, ', offset =', offset);
       if (offset !== lteOffset) {
         let op = ml_dec8(ml, offset);
         if (op === ML_ISALL) {
-          let count = ml_dec16(ml, offset + 1);
-          let index = readIndex(ml, offset + SIZEOF_COUNT + count * 2);
-          TRACE('     - isall 1 with an arg count of', count, ', result index=', index);
-          if (count === 2 && index === indexR) {
-            TRACE('     - result index is indexR, checking args for indexA', readIndex(ml, offset + SIZEOF_COUNT), readIndex(ml, offset + SIZEOF_COUNT + 2), '~', indexA);
-            // get the isall args and check if they are indexR and indexA
-            if (readIndex(ml, offset + SIZEOF_COUNT) === indexA || readIndex(ml, offset + SIZEOF_COUNT + 2) === indexA) {
-              TRACE('   - Match isall1! this is R <= A, R = all?(A B). proceding to eliminate the lte');
-              // match. this is R <= A, R = all?(A B)
-              // eliminate the lte
-              ml_eliminate(ml, lteOffset, SIZEOF_VV);
-              // note: only do this once! we only have one lte so no need to continue searching
-              return true;
-            }
-          }
+          _trickLteLhsIsall1(lteOffset, offset, indexA, indexB);
         } else if (op === ML_ISALL2) {
-          let index = readIndex(ml, offset + 5);
-          TRACE('     - isall 2, result index=', index);
-          if (index === indexR) {
-            TRACE('     - result index is indexR, checking args for indexA', readIndex(ml, offset + 1), readIndex(ml, offset + 3), '~', indexA);
-            // get the isall args and check if they are indexR and indexA
-            if (readIndex(ml, offset + 1) === indexA || readIndex(ml, offset + 3) === indexA) {
-              TRACE('   - Match isall2! this is R <= A, R = all?(A B). proceding to eliminate the lte');
-              // match. this is R <= A, R = all?(A B)
-              // eliminate the lte
-              ml_eliminate(ml, lteOffset, SIZEOF_VV);
-              // note: only do this once! we only have one lte so no need to continue searching
-              return true;
-            }
-          }
+          _trickLteLhsIsall2(lteOffset, offset, indexA, indexB);
         }
       }
     }
 
-    TRACE(' - did not find an isall on R so bailing');
+    TRACE(' - end of trickLteLhsIsall');
     return false;
+  }
+  function _trickLteLhsIsall1(lteOffset, isallOffset, indexA, indexB) {
+    // A <= B, A = all?(B C D ...) -> drop lte
+
+    let argCount = readIndex(ml, isallOffset + 1);
+    let indexR = readIndex(ml, isallOffset + SIZEOF_COUNT + argCount * 2);
+    TRACE('     - isall 1 with an argCount of', argCount, ', indexR=', indexR, '=indexA=', indexA, 'cross checking all args to match', indexB);
+    ASSERT(indexA === indexR, 'A should be R, should be asserted by bounty');
+
+    // scan for any arg index == B
+    for (let i = 0; i < argCount; ++i) {
+      let argIndex = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      if (argIndex === indexB) {
+        TRACE('     - arg index is indexB, match. this is R <= A, R = all?(A ...) so eliminate the lte');
+        ml_eliminate(ml, lteOffset, SIZEOF_VV);
+        bounty_markVar(bounty, indexA);
+        bounty_markVar(bounty, indexB);
+        somethingChanged();
+      }
+    }
+  }
+  function _trickLteLhsIsall2(lteOffset, isallOffset, indexA, indexB) {
+    // A <= B, A = all?(B C) -> drop lte
+
+    TRACE('     - isall 2;', readIndex(ml, isallOffset + 5), '= all?(', readIndex(ml, isallOffset + 1), readIndex(ml, isallOffset + 3), ') and ', indexA, '<=', indexB);
+    ASSERT(indexA === readIndex(ml, isallOffset + 5), 'A should be R, should be asserted by bounty');
+
+    if (readIndex(ml, isallOffset + 1) === indexB || readIndex(ml, isallOffset + 3) === indexB) { // doesnt really matter which arg matches
+      TRACE('     - indexX or indexY is indexB, match. this is R <= A, R = all?(A ...) so eliminate the lte');
+      ml_eliminate(ml, lteOffset, SIZEOF_VV);
+      bounty_markVar(bounty, indexA);
+      bounty_markVar(bounty, indexB);
+      somethingChanged();
+    }
   }
 
   function trickLteRhsIsallEntry(indexS, lteOffset, meta, counts) {

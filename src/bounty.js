@@ -405,8 +405,8 @@ function bounty_markVar(bounty, varIndex) {
   bounty[varIndex * BOUNTY_SIZEOF_VAR] = 0;
 }
 
-function bounty_getMeta(bounty, varIndex) {
-  ASSERT(bounty_getCounts(bounty, varIndex) > 0, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
+function bounty_getMeta(bounty, varIndex, _debug) {
+  ASSERT(bounty_getCounts(bounty, varIndex) > 0 || _debug, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
   return bounty.readUInt16BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT);
 }
 

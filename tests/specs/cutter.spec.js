@@ -973,6 +973,19 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B C
       `)).to.throw(/debug: .* ops: iseq,xnor #/);
     });
+
+    it('should keep B if its not a booly', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 0 5 5]
+        : C [0 1]
+        : X, Y [0 10]
+        A | Y
+        A !^ C
+        X = C + Y
+        @custom noleaf C X Y
+      `)).to.throw(/ops: or,plus #/);
+    });
   });
 
   describe('trick lte_rhs+isall_r', function() {
@@ -980,7 +993,7 @@ describe('specs/cutter.spec', function() {
     it('should morph the basic case', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
-        : A, B, C, D, R [0 1]
+        : A, B, C, R [0 1]
         R = all?(A B)
         C <= R
         # -->  C <= A, C <= B
@@ -992,13 +1005,37 @@ describe('specs/cutter.spec', function() {
     it('should morph the swapped basic case', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
-        : A, B, C, D, R [0 1]
+        : A, B, C, R [0 1]
         C <= R
         R = all?(A B)
         # -->  C <= A, C <= B
         @custom noleaf A B C
         @custom free 0
       `)).to.throw(/ops: lte,lte #/);
+    });
+
+    it('should not morph if there is no space', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : a, b, c, d, e, f [0 1]
+        : L, R [0 1]
+        L <= R
+        R = all?(L a b c d e f)
+        @custom noleaf L a b c d e f
+        @custom free 0
+      `)).to.throw(/ops: isall,lte #/);
+    });
+
+    it('should not morph if there isnt enough space', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : a, b, c, d, e, f [0 1]
+        : L, R [0 1]
+        L <= R
+        R = all?(L a b c d e f)
+        @custom noleaf L a b c d e f
+        @custom free 10
+      `)).to.throw(/ops: isall,lte #/);
     });
 
     it('should work when isall args arent bool because thats fine too', function() {
@@ -1101,6 +1138,19 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B C D E F
         @custom free 100
       `)).to.throw(/ops: lte,lte,lte,lte,lte #/);
+    });
+
+    it('should work when R=0', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C [0 1]
+        : R 0
+        C <= R
+        R = all?(A B)
+        # -->  C <= A, C <= B
+        @custom noleaf A B C
+        @custom free 0
+      `)).to.throw(/ops: nand #/); // by some other optims
     });
 
     describe('should morph the basic case as long as max(C) <= A,B,R', function() {
@@ -1237,7 +1287,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick lte_lhs+nand', function() {
 
-    it('should eliminate base case of an lte and nand', function() {
+    it('should eliminate base case of an lte and nand AC', function() {
       let solution = preSolver(`
         @custom var-strat throw
         : A [0 1]
@@ -1260,6 +1310,21 @@ describe('specs/cutter.spec', function() {
         : C [0 1]
         A !& C
         A <= B
+        # -> A is leaf var
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: 0, B: 0, C: 0});
+    });
+
+    it('should eliminate base case of an lte and nand CA', function() {
+      let solution = preSolver(`
+        @custom var-strat throw
+        : C [0 1]
+        : A [0 1]
+        : B [0 1]
+        A <= B
+        C !& A
         # -> A is leaf var
         @custom noleaf B C
       `);
@@ -1309,6 +1374,122 @@ describe('specs/cutter.spec', function() {
       `);
 
       expect(solution).to.eql(false);
+    });
+
+    it('should do lte+neq trick if A has no zero and C is zero', function() {
+      // nand is eliminated by minimizer and cutter only sees countsA==1..
+      let solution = preSolver(`
+        @custom var-strat throw
+        : A [1 10]
+        : B [0 10]
+        : C 0
+        A <= B
+        A !& C
+        # -> A !& C
+        @custom noleaf B C
+      `);
+
+      expect(solution).to.eql({A: 1, B: 1, C: 0});
+    });
+
+    it('should do the trick if there arent too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B, C, D [0 1]
+
+        A | B
+        A <= C
+        A !& D
+
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        # : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A !& x1
+        A !& x2
+        A !& x3
+        A !& x4
+        A !& x5
+        A !& x6
+        A !& x7
+        A !& x8
+        A !& x9
+        A !& x10
+        A !& x11
+        A !& x12
+        A !& x13
+        A !& x14
+        A !& x15
+        #A !& x16
+        #A !& x17
+        #A !& x18
+        #A !& x19
+        #A !& x20
+        #A !& x21
+        #A !& x22
+        #A !& x23
+        #A !& x24
+        #A !& x25
+        #A !& x26
+        #A !& x27
+        #A !& x28
+        #A !& x29
+        #A !& x30
+
+        @custom noleaf B C D
+        @custom noleaf x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        # @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,or #/);
+    });
+
+    it('should skip the trick if there are too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B, C, D [0 1]
+
+        A | B
+        A <= C
+        A !& D
+
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A !& x1
+        A !& x2
+        A !& x3
+        A !& x4
+        A !& x5
+        A !& x6
+        A !& x7
+        A !& x8
+        A !& x9
+        A !& x10
+        A !& x11
+        A !& x12
+        A !& x13
+        A !& x14
+        A !& x15
+        A !& x16
+        A !& x17
+        A !& x18
+        A !& x19
+        A !& x20
+        A !& x21
+        A !& x22
+        A !& x23
+        A !& x24
+        A !& x25
+        A !& x26
+        A !& x27
+        A !& x28
+        A !& x29
+        A !& x30
+
+        @custom noleaf B C D
+        @custom noleaf x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: lte,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,or #/);
     });
   });
 
@@ -1402,8 +1583,182 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by another trick
     });
 
-    // note: it's impossible to test both isall and isall2 because the trick only works with 2 isall args
-    it('should not rewrite when isall has 3+ args', function() {
+    it('should rewrite base case v1 of an swapped isall2 and nall to a nand', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        nall(A B D)
+        A = all?(B C)
+        # -> A = all?(B C), A !& D
+        # when A is 1, B and C are 1, so D must be 0 (for the nall)
+        # when A is 0, B or C is 0, so the nall is resolved
+        # when D is 1, A can't be 1 because then B is also one and the nall would break
+        @custom noleaf B C D
+        # dont exclude A or the trick won't trigger (even when it's B that disappears)
+      `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by another trick
+    });
+
+    describe('R in isall2 + nall arg check', function() {
+
+      // note: args are ordered by index and indexes are assigned in order of appearance so declarations must be changed as well
+      it('should rewrite isall2 nall arg 1', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : D [0 1]
+          : A [0 1]
+          : B [0 1]
+          : C [0 1]
+          A = all?(B C)
+          nall(A B D)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      it('should rewrite isall2 nall arg 2', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : D [0 1]
+          : B [0 1]
+          : A [0 1]
+          : C [0 1]
+          A = all?(B C)
+          nall(B A D)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      it('should rewrite isall2 nall arg 3', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : D [0 1]
+          : B [0 1]
+          : C [0 1]
+          : A [0 1]
+          A = all?(B C)
+          nall(B D A)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+    });
+
+    it('should rewrite when argcount > 2 (arg 1)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        nall(A B D)
+        A = all?(B C E)
+        @custom noleaf B C D E
+      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by other trick
+    });
+
+    describe('nall args that share isall arg per index', function() {
+
+      // note: args are ordered by index and indexes are assigned in order of appearance so declarations must be changed as well
+      it('should nall 1 with isall A==C', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B [0 1]
+          : C [0 1]
+          : D [0 1]
+          A = all?(B C)
+          nall(A B D)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      // note: args are ordered by index and indexes are assigned in order of appearance so declarations must be changed as well
+      it('should nall 1 with isall A==D', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : D [0 1]
+          : A [0 1]
+          : B [0 1]
+          : C [0 1]
+          A = all?(B C)
+          nall(D A B)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      // note: args are ordered by index and indexes are assigned in order of appearance so declarations must be changed as well
+      it('should nall 2 with isall B==C', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : B [0 1]
+          : A [0 1]
+          : C [0 1]
+          : D [0 1]
+          A = all?(B C)
+          nall(A C D)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      // note: args are ordered by index and indexes are assigned in order of appearance so declarations must be changed as well
+      it('should nall 2 with isall B==D', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B [0 1]
+          : D [0 1]
+          : C [0 1]
+          A = all?(B C)
+          nall(A D C)
+          @custom noleaf B C D
+        `)).to.throw(/ops: nall #/); // isall2+nand becomes nall by other trick
+      });
+
+      it('should nall 2 with isall none shared', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          : B [0 1]
+          : C [0 1]
+          : D [0 1]
+          : E [0 1]
+          A = all?(B C)
+          nall(A D E)
+          @custom noleaf B C D
+        `)).to.throw(/ops: isall2,nall #/); // isall2+nand becomes nall by other trick
+      });
+    });
+
+    it('should rewrite when argcount > 2 (arg 2)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        A = all?(B C E)
+        nall(A B D)
+        @custom noleaf B C D E
+      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by other trick
+    });
+
+    it('should rewrite when argcount > 2 (arg 3)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        A = all?(D C E)
+        nall(A B D)
+        @custom noleaf B C D E
+      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by other trick
+    });
+
+    it('should not rewrite when argcount > 2 but none shared', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E, F [0 1]
+        A = all?(D C E)
+        nall(A B F)
+        @custom noleaf B C D E F
+      `)).to.throw(/ops: isall,nall #/);
+    });
+
+    // cant test this on isnall2 because it only takes 2 arg (doh)
+    it('should also rewrite when isall has 3+ args', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
@@ -1417,7 +1772,7 @@ describe('specs/cutter.spec', function() {
         # when X is 1, A can't be 1 because then B is also one and the nall would break
         @custom noleaf A B C X
         # dont exclude R or the trick won't trigger (even when it's B that disappears from nall)
-      `)).to.throw(/ops: isall,nall #/);
+      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by other trick
     });
 
     it('trying to improve coverage :)', function() {
@@ -1428,6 +1783,20 @@ describe('specs/cutter.spec', function() {
         : X [0 1]
         R = all?(A B C D)
         nall(R B X)
+        @custom noleaf A B C D X
+      `)).to.throw(/ops: nall #/); // isall+nand becomes nall by other trick
+    });
+
+
+    it('should bail if nall has more than 3 args', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : R [0 1]
+        : X [0 1]
+        : z [0 1]
+        R = all?(A B C D)
+        nall(R B X z)
         @custom noleaf A B C D X
       `)).to.throw(/ops: isall,nall #/);
     });
@@ -1548,6 +1917,110 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B C D
         @custom free 0                 # redundant but for illustration
       `)).to.throw(/ops: isall2,nand,nand #/);
+    });
+
+    it('should not rewrite if R is part of too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R !& x1
+        R !& x2
+        R !& x3
+        R !& x4
+        R !& x5
+        R !& x6
+        R !& x7
+        R !& x8
+        R !& x9
+        R !& x10
+        R !& x11
+        R !& x12
+        R !& x13
+        R !& x14
+        R !& x15
+        R !& x16
+        R !& x17
+        R !& x18
+        R !& x19
+        R !& x20
+        R !& x21
+        R !& x22
+        R !& x23
+        R !& x24
+        R !& x25
+        R !& x26
+        R !& x27
+        R !& x28
+        R !& x29
+        R !& x30
+        R = all?(A B E)
+        @custom noleaf A B C D x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: isall,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
+    });
+
+    it('should not rewrite if there are two isall2s', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A B)
+        R = all?(A C)
+        # -> same because there is no space for the rewrite
+        @custom noleaf A B C D
+        @custom free 0                 # redundant but for illustration
+      `)).to.throw(/ops: isall2,isall2,nand,nand #/);
+    });
+
+    it('should not rewrite if there are two isalls', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A B E)
+        R = all?(A C E)
+        # -> same because there is no space for the rewrite
+        @custom noleaf A B C D E
+        @custom free 0                 # redundant but for illustration
+      `)).to.throw(/ops: isall,isall,nand,nand #/);
+    });
+
+    it('should two isall case mixed v1', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A B E)
+        R = all?(A C)
+        # -> same because there is no space for the rewrite
+        @custom noleaf A B C D E
+        @custom free 0                 # redundant but for illustration
+      `)).to.throw(/ops: isall,isall2,nand,nand #/);
+    });
+
+    it('should two isall case mixed v2', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D, E [0 1]
+        : R [0 1]
+        C !& R
+        D !& R
+        R = all?(A C)
+        R = all?(A B E)
+        # -> same because there is no space for the rewrite
+        @custom noleaf A B C D E
+        @custom free 0                 # redundant but for illustration
+      `)).to.throw(/ops: isall,isall2,nand,nand #/);
     });
 
     it('should consider R a leaf after the rewrite', function() {
@@ -1975,6 +2448,124 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B C D
       `)).to.throw(/ops: nand,or #/);
     });
+
+    it('should do the trick if there arent too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        D <= A
+        A <= C
+        A != B
+
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        # : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A <= x1
+        A <= x2
+        A <= x3
+        A <= x4
+        A <= x5
+        A <= x6
+        A <= x7
+        A <= x8
+        A <= x9
+        A <= x10
+        A <= x11
+        A <= x12
+        A <= x13
+        A <= x14
+        A <= x15
+        #A <= x16
+        #A <= x17
+        #A <= x18
+        #A <= x19
+        #A <= x20
+        #A <= x21
+        #A <= x22
+        #A <= x23
+        #A <= x24
+        #A <= x25
+        #A <= x26
+        #A <= x27
+        #A <= x28
+        #A <= x29
+        #A <= x30
+
+        @custom noleaf B C D x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        # @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: nand,or,or,or,or,or,or,or,or,or,or,or,or,or,or,or,or #/);
+    });
+
+    it('should skip the trick if there are too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        D <= A
+        A <= C
+        A != B
+
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A <= x1
+        A <= x2
+        A <= x3
+        A <= x4
+        A <= x5
+        A <= x6
+        A <= x7
+        A <= x8
+        A <= x9
+        A <= x10
+        A <= x11
+        A <= x12
+        A <= x13
+        A <= x14
+        A <= x15
+        A <= x16
+        A <= x17
+        A <= x18
+        A <= x19
+        A <= x20
+        A <= x21
+        A <= x22
+        A <= x23
+        A <= x24
+        A <= x25
+        A <= x26
+        A <= x27
+        A <= x28
+        A <= x29
+        A <= x30
+
+        @custom noleaf B C D x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,lte,neq #/);
+    });
+
+    it('should not do the trick if an lte arg is non-bool', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, D [0 1]
+        : C [0 10]
+        A <= C
+        A != B
+        D <= A
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,lte,neq #/);
+    });
+
+    it('should not do the trick with two neqs', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        A <= C
+        A != B
+        A != C
+        D <= A
+        @custom noleaf B C D
+      `)).to.throw(/ops: lte,lte,neq,neq #/);
+    });
   });
 
   describe('trick neq+lte++', function() {
@@ -2038,7 +2629,7 @@ describe('specs/cutter.spec', function() {
 
   describe('trick neq+nand', function() {
 
-    it('should morph AB neq, nand', function() {
+    it('should morph AB neq, AB nand', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
@@ -2050,7 +2641,7 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte #/);
     });
 
-    it('should morph BA neq, nand', function() {
+    it('should morph BA neq, AB nand', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : B, A, C [0 1]
@@ -2060,12 +2651,35 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf B C
       `)).to.throw(/ops: lte #/);
+    });
+
+    it('should morph AB neq, BA nand', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : C, A, B [0 1]
+        A != B
+        C !& A
+        # -> C <= B, A leaf
+
+        @custom noleaf B C
+      `)).to.throw(/ops: lte #/);
+    });
+
+    it('should not morph if nand arg isnt bool', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : C [0 10]
+        : A, B [0 1]
+        A != B
+        C !& A
+        @custom noleaf B C
+      `)).to.throw(/ops: nand,neq #/);
     });
   });
 
   describe('trick neq+or', function() {
 
-    it('should morph AB neq, or', function() {
+    it('should morph AB neq, AB or', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : A, B, C [0 1]
@@ -2077,7 +2691,7 @@ describe('specs/cutter.spec', function() {
       `)).to.throw(/ops: lte #/);
     });
 
-    it('should morph BA neq, or', function() {
+    it('should morph BA neq, AB or', function() {
       expect(_ => preSolver(`
         @custom var-strat throw
         : B, A, C [0 1]
@@ -2087,6 +2701,29 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf B C
       `)).to.throw(/ops: lte #/);
+    });
+
+    it('should morph AB neq, BA or', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, C, A [0 1]
+        A != B
+        C | A
+        # -> B <= C, A leaf
+
+        @custom noleaf B C
+      `)).to.throw(/ops: lte #/);
+    });
+
+    it('should not do anything if the or arg isnt bool', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : C [0 10]
+        : B, A [0 1]
+        A != B
+        C | A
+        @custom noleaf B C
+      `)).to.throw(/ops: neq,or #/);
     });
   });
 
@@ -2119,6 +2756,109 @@ describe('specs/cutter.spec', function() {
 
       expect(solution).to.eql({A: [0, 1], B: 0, C: 0});
     });
+
+    it('should do the trick if there arent too many nands', function() {
+      expect(preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        # : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A !& x1
+        A !& x2
+        A !& x3
+        A !& x4
+        A !& x5
+        A !& x6
+        A !& x7
+        A !& x8
+        A !& x9
+        A !& x10
+        A !& x11
+        A !& x12
+        A !& x13
+        A !& x14
+        A !& x15
+        #A !& x16
+        #A !& x17
+        #A !& x18
+        #A !& x19
+        #A !& x20
+        #A !& x21
+        #A !& x22
+        #A !& x23
+        #A !& x24
+        #A !& x25
+        #A !& x26
+        #A !& x27
+        #A !& x28
+        #A !& x29
+        #A !& x30
+
+        @custom noleaf x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        # @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.eql({
+        A: [0, 1],
+        x1: 0,
+        x2: 0,
+        x3: 0,
+        x4: 0,
+        x5: 0,
+        x6: 0,
+        x7: 0,
+        x8: 0,
+        x9: 0,
+        x10: 0,
+        x11: 0,
+        x12: 0,
+        x13: 0,
+        x14: 0,
+        x15: 0,
+      });
+    });
+
+    it('should skip the trick if there are too many nands', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15 [0 1]
+        : x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30 [0 1]
+        A !& x1
+        A !& x2
+        A !& x3
+        A !& x4
+        A !& x5
+        A !& x6
+        A !& x7
+        A !& x8
+        A !& x9
+        A !& x10
+        A !& x11
+        A !& x12
+        A !& x13
+        A !& x14
+        A !& x15
+        A !& x16
+        A !& x17
+        A !& x18
+        A !& x19
+        A !& x20
+        A !& x21
+        A !& x22
+        A !& x23
+        A !& x24
+        A !& x25
+        A !& x26
+        A !& x27
+        A !& x28
+        A !& x29
+        A !& x30
+
+        @custom noleaf x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15
+        @custom noleaf x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30
+        @custom free 1000
+      `)).to.throw(/ops: nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand,nand #/);
+    });
   });
 
   describe('trick nand+lte+or', function() {
@@ -2150,6 +2890,30 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf A B C D E
       `)).to.throw(/ops: lte,lte,lte,or #/);
+    });
+
+    it('should not do trick when there are two ors', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, X [0 1]
+        A !& X
+        X <= B
+        X | C
+        X | B
+        @custom noleaf A B C
+      `)).to.throw(/ops: lte,nand,or,or #/);
+    });
+
+    it('should not do trick when there are two ltes', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, X [0 1]
+        A !& X
+        X <= B
+        X <= C
+        X | C
+        @custom noleaf A B C
+      `)).to.throw(/ops: lte,lte,nand,or #/);
     });
   });
 
@@ -2192,6 +2956,140 @@ describe('specs/cutter.spec', function() {
 
         @custom noleaf A B C D
       `)).to.throw(/ops: lte,lte,nand,or #/);
+    });
+
+    it('should not do trick with double lte_rhs', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B <= X
+        B | X
+        C !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,lte,nand,or #/);
+    });
+
+    it('should not do trick with double lte_lhs', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        X <= B
+        B | X
+        C !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,lte,nand,or #/);
+    });
+
+    it('should not do trick with double or', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B | X
+        C | X
+        C !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,or,or #/);
+    });
+
+    it('should not do trick with double nand', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B | X
+        C !& X
+        D !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,nand,or #/);
+    });
+
+    it('should not accept the fourth op being another lte_rhs', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B <= X
+        B | X
+        C !& X
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,or #/);
+    });
+
+    it('should not accept the fourth op being another lte_rlhs', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        X <= B
+        B | X
+        C !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,lte,nand,or #/);
+    });
+
+    it('should not accept the fourth op being another or (1)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        B | X
+        C | X
+        C !& X
+        X <= D
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,nand,or,or #/);
+    });
+
+    it('should not accept the fourth op being another or (2)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B | X
+        C | X
+        C !& X
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,nand,or,or #/);
+    });
+
+    it('should not accept the fourth op being another nand (1)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D [0 1]
+        : X [0 1]
+        A <= X
+        B | X
+        C !& X
+        D !& X
+        @custom noleaf A B C D
+      `)).to.throw(/ops: lte,nand,nand,or #/);
+    });
+
+    it('should not accept the fourth op being another nand (2)', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B, C, D,E [0 1]
+        : X [0 1]
+        B | X
+        C !& X
+        E !& X
+        X <= D
+        @custom noleaf A B C D E
+      `)).to.throw(/ops: lte,lte,or #/); // different trick does apply :)
     });
   });
 
@@ -2413,13 +3311,91 @@ describe('specs/cutter.spec', function() {
         @custom free 100
       `)).to.throw(/ops: isnone #/);
     });
+
+    it('should not do anything if isall args arent solved', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A [0 1]
+        : C [0 2]
+        : R [0 1]
+        C = B + A
+        R = C ==? 2
+        @custom noleaf A B R
+      `)).to.throw(/ops: isall2 #/);
+    });
+
+    it('should not do trick if D isnt solved', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A [0 1]
+        : C [0 2]
+        : R [0 1]
+        : D [0 10]
+        C = B + A
+        R = C ==? D
+        @custom noleaf A B R D
+      `)).to.throw(/ops: iseq,plus #/);
+    });
+
+    it('should not do trick if A isnt bool', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 10]
+        : B [0 1]
+        : C [0 2]
+        : R [0 1]
+        : D [0 10]
+        C = B + A
+        R = C ==? D
+        @custom noleaf A B R D
+      `)).to.throw(/ops: iseq,plus #/);
+    });
+
+    it('should not do trick if B isnt bool', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        : B [0 10]
+        : C [0 2]
+        : R [0 1]
+        : D [0 10]
+        C = B + A
+        R = C ==? D
+        @custom noleaf A B R D
+      `)).to.throw(/ops: iseq,plus #/);
+    });
+
+    it('should ignore isxor pattern for now', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : B, A [0 1]
+        : C [0 2]
+        : R [0 1]
+        C = B + A
+        R = C ==? 1
+        @custom noleaf A B R
+      `)).to.throw(/ops: iseq,plus #/);
+    });
+
+    it('should bail if isnone case has no space', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A, B [0 1]
+        : C [0 2]
+        : R [0 1]
+        C = A + B
+        R = C ==? 0
+        @custom noleaf A B R
+        @custom free 0
+      `)).to.throw(/ops: iseq,plus #/);
+    });
   });
 
   describe('trick sum+iseq', function() {
 
     describe('to isall', function() {
 
-      it('should isall base case', function() {
+      it('should isall base case AB', function() {
         expect(_ => preSolver(`
           @custom var-strat throw
           : A, B, C, D, E [0 1]
@@ -2429,6 +3405,79 @@ describe('specs/cutter.spec', function() {
           S = R ==? 5
           @custom noleaf A B C D E S
         `)).to.throw(/ops: isall #/);
+      });
+
+      it('should isall base case BA', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: isall #/);
+      });
+
+      it('should bail if iseq args arent solved', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E, F [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? F
+          @custom noleaf A B C D E F S
+        `)).to.throw(/ops: iseq,sum #/);
+      });
+
+      it('should bail if isall const isnt zero nor argcount (1)', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 4
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: iseq,sum #/);
+      });
+
+      it('should bail if isall const isnt zero nor argcount (2)', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 100 # way out of range. solves before cutter
+          @custom noleaf A B C D E S
+        `)).to.eql({A: 0, B: 0, C: 0, D: 0, E: 0, R: 0, S: 0});
+      });
+
+      it('should bail if a sum arg isnt bool', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, D, E [0 1]
+          : C [0 10]
+          : R [0 5]
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: iseq,sum #/);
+      });
+
+      it('should isall base case BA', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C, D, E [0 1]
+          : R [0 3 5 5] # will contain the required 5, but misses 4, so range check should fail
+          : S [0 1]
+          R = sum(A B C D E)
+          S = R ==? 5
+          @custom noleaf A B C D E S
+        `)).to.throw(/ops: iseq,sum #/);
       });
 
       it('should isall base reverse case', function() {

@@ -75,6 +75,7 @@ import {
 import {
   domain__debug,
   domain_booly,
+  domain_containsValue,
   domain_createEmpty,
   domain_createValue,
   domain_createRange,
@@ -176,14 +177,14 @@ function cutter(ml, problem, once) {
   function readIndex(ml, offset) {
     ASSERT(ml instanceof Buffer, 'ml should be a buffer');
     ASSERT(typeof offset === 'number' && offset >= 0 && offset <= ml.length, 'expecting valid offset');
-    ASSERT(arguments.length === 2, 'no more than two args');
+    ASSERT(arguments.length === 2, 'only two args');
     return getAlias(ml_dec16(ml, offset));
   }
 
-  function getMeta(bounty, index) {
+  function getMeta(bounty, index, _debug) {
     ASSERT(typeof index === 'number' && index >= 0 && index <= 0xffff, 'expecting valid index');
-    ASSERT(arguments.length === 2, 'no more than two args');
-    if (!isConstant(index)) return bounty_getMeta(bounty, index);
+    ASSERT(arguments.length === 2 || arguments.length === 3, 'only two or three args');
+    if (!isConstant(index)) return bounty_getMeta(bounty, index, _debug);
     return 0;
   }
 
@@ -240,7 +241,9 @@ function cutter(ml, problem, once) {
       let hasGoodOps = m & TRICK_INV_NEQ_FLAGS;
       let hasBadOps = (m | TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG) ^ (TRICK_INV_NEQ_FLAGS | BOUNTY_NEQ_ONLY_FLAG);
 
-      if ((metaB & BOUNTY_NEQ) === BOUNTY_NEQ && hasGoodOps && !hasBadOps) {
+      TRACE('  - has good:', hasGoodOps, ', hasBad:', hasBadOps);
+
+      if (hasGoodOps && !hasBadOps) {
         if (trickNeqElimination(indexB, countsB)) return;
       }
     }
@@ -875,9 +878,11 @@ function cutter(ml, problem, once) {
       return leafXnor(ml, offset, indexB, indexA, indexA, indexB);
     }
 
+    // (do we care about constants here? technically the minimizer should eliminate xnors with constants... so, no?)
     if (countsA > 0 && countsB > 0) {
       let metaA = getMeta(bounty, indexA);
       let metaB = getMeta(bounty, indexB);
+      TRACE(' - considering whether A and B are xnor pseudo aliases; A:', bounty__debugMeta(metaA), 'B:', bounty__debugMeta(metaB));
       let boolyA = (metaA & BOUNTY_NOT_BOOLY_ONLY_FLAG) !== BOUNTY_NOT_BOOLY_ONLY_FLAG;
       let boolyB = (metaB & BOUNTY_NOT_BOOLY_ONLY_FLAG) !== BOUNTY_NOT_BOOLY_ONLY_FLAG;
       if (boolyA || boolyB) {
@@ -896,7 +901,7 @@ function cutter(ml, problem, once) {
     let indexR = readIndex(ml, argsOffset + argCount * 2);
     let countsR = getCounts(bounty, indexR);
 
-    TRACE(' ! cutIsAll; R=', indexR, ', counts:', countsR);
+    TRACE(' ! cutIsAll; R=', indexR, ', counts:', countsR, ', metaR:', bounty__debugMeta(getMeta(bounty, indexR, true)));
     ASSERT(!countsR || !domain_isSolved(getDomain(indexR, true)), 'if it has counts it shouldnt be solved', countsR, indexR, domain__debug(getDomain(indexR, true)));
 
     if (countsR > 0) {
@@ -906,7 +911,6 @@ function cutter(ml, problem, once) {
       }
 
       let metaR = getMeta(bounty, indexR);
-      TRACE('   - metaR:', bounty__debugMeta(metaR));
 
       if (countsR === 2) {
         // this path should only be taken in isall2 so its pretty redundant here. but maybe.
@@ -1862,12 +1866,14 @@ function cutter(ml, problem, once) {
     }
 
     if (domain_hasNoZero(S)) {
+      // (dead code because minifier should eliminate an isall when R>=1)
       TRACE('- S has no zero which it would need to reflect any solution as a leaf, bailing', domain__debug(S));
       // (unless the isall was already solved, but the minimizer should take care of that)
       return false;
     }
 
     if (domain_max(A) > domain_max(S)) {
+      // (dead code because minifier should eliminate an isall when R=0)
       TRACE(' - max(A) > max(S) so there is a value in A that S couldnt satisfy A<=S so we must bail', domain__debug(A), domain__debug(S));
       // we can only trick if S can represent any valuation of A and there is a reject possible so no
       // note that this shouldnt happen when the minimizer runs to the max, but could in single cycle mode
@@ -1905,7 +1911,7 @@ function cutter(ml, problem, once) {
     // four or more wont fit so for those we need to recycle spaces
 
     if (argCount <= 1) return false; // this is an alias or a bug, but ignore this case here
-    if (argCount === 2) {
+    if (argCount === 2) { // dead code since args=2 should become isall2 and this is isall1
       trickLteRhsIsall1a2(ml, lteOffset, isallOffset, indexA, indexS);
     } else if (argCount === 3) {
       trickLteRhsIsall1a3(ml, lteOffset, isallOffset, indexA, indexS, 3);
@@ -1972,7 +1978,8 @@ function cutter(ml, problem, once) {
     // isall has three args (left). it may have had more originally.
     TRACE(' - _trickLteRhsIsall1a3; lteOffset:', lteOffset, 'isallOffset:', isallOffset, 'indexA:', indexA, 'indexR:', indexS, 'indexX:', indexX, 'indexY:', indexY, 'indexZ:', indexZ, 'sizeofIsall:', sizeofIsall, '_argCount:', _argCount);
     ASSERT(sizeofIsall === ml_getOpSizeSlow(ml, isallOffset), 'should get correct isall sizeof');
-    ASSERT(sizeofIsall === (ml[isallOffset] === ML_ISALL ? SIZEOF_COUNT + _argCount * 2 + 2 : SIZEOF_VVV), 'just checking', ml[isallOffset] === ML_ISALL, _argCount, sizeofIsall);
+    ASSERT(ml[isallOffset] === ML_ISALL, '3 args means isall1 not isall2');
+    ASSERT(sizeofIsall === SIZEOF_COUNT + _argCount * 2 + 2, 'just checking', _argCount, sizeofIsall);
 
     // the first lte replaces the existing lte
     ml_vv2vv(ml, lteOffset, ML_LTE, indexA, indexX);
@@ -2114,7 +2121,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
 
-    TRACE('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+    TRACE('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR, true), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
 
     let nallOffset = offset1 === isallOffset ? offset2 : offset1;
     let argCountNall = ml_dec16(ml, nallOffset + 1);
@@ -2124,30 +2131,69 @@ function cutter(ml, problem, once) {
     ASSERT(meta === (BOUNTY_NALL | BOUNTY_ISALL_RESULT), 'the var should only be part of a nall and the result of an isall');
     ASSERT(counts === 2, 'R should only appear in two constraints');
     ASSERT(isallOffset === offset1 || isallOffset === offset2, 'expecting current offset to be one of the two offsets found', isallOffset, indexR);
-    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL, 'isall offset should be an isall');
+    ASSERT(ml_dec8(ml, isallOffset) === ML_ISALL, 'isall offset should be an isall (1)');
     ASSERT(ml_dec8(ml, nallOffset) === ML_NALL, 'other offset should be a nall');
     ASSERT(getAlias(indexR) === indexR, 'should be unaliased');
     ASSERT(readIndex(ml, isallOffset + SIZEOF_COUNT + argCountIsall * 2) === indexR, 'var should be R of isall');
 
-    // this should be `R = all?(A B), nall(R A D)`
-    // if R = 1 then A and B are 1, so the nall will have two 1's, meaning D must be 0
-    // if R = 0 then the nall is already satisfied. neither the nall nor the isall is not redundant
-    // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove B from the nall)
+    // this should be `R = all?(A B ...), nall(R A D)`
+    // if R = 1 then A and B (etc) are 1, so the nall will have two 1's, meaning D must be 0
+    // if R = 0 then the nall is already satisfied. neither the nall nor the isall is redundant
+    // because `R !& D` must be maintained, so rewrite it to a nand (or rather, remove the shared arg from the nall)
 
-    if (argCountNall !== 3 || argCountIsall !== 2) {
-      TRACE(' - fingerprint didnt match (', argCountNall, ' !== 3 || ', argCountIsall, ' !== 2) so bailing');
+    if (argCountNall !== 3) {
+      TRACE(' - fingerprint didnt match (', argCountNall, ' !== 3) so bailing');
       return false;
     }
 
-    TRACE(' - nall has 3 and isall 2 args, check if they share an arg');
+    // (this is kind of dead code since isall1 wont get 2 args and that's required for this trick)
+    TRACE(' - nall has 3 args, check if it shares an arg with the isall');
     // next; one of the two isalls must occur in the nall
     // R = all?(A B), nall(R A C)
     // R = all?(A B), nall(X Y Z)
 
-    let indexA = ml_dec16(ml, isallOffset + 3);
-    let indexB = ml_dec16(ml, isallOffset + 5);
+    // nall args
+    let indexX = readIndex(ml, nallOffset + SIZEOF_COUNT);
+    let indexY = readIndex(ml, nallOffset + SIZEOF_COUNT + 2);
+    let indexZ = readIndex(ml, nallOffset + SIZEOF_COUNT + 4);
+    TRACE(' - nall(' + [indexX, indexY, indexZ] + ') -> nall(', [domain__debug(getDomain(indexX, true)), domain__debug(getDomain(indexY)), domain__debug(getDomain(indexZ))], ')');
 
-    return trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall);
+    for (let i = 0; i < argCountIsall; ++i) {
+      let argIndex = readIndex(ml, isallOffset + SIZEOF_COUNT + i * 2);
+      if (argIndex === indexX) {
+        TRACE(' - isall arg', i, 'matches the first arg of nall. morphing nall to nand on the other two args (', indexY, indexZ, ') and returning');
+        ml_c2vv(ml, nallOffset, argCountNall, ML_NAND, indexY, indexZ);
+        // this only affected the nall and its args so no need to mark the isall vars
+        bounty_markVar(bounty, indexX);
+        bounty_markVar(bounty, indexY);
+        bounty_markVar(bounty, indexZ);
+        somethingChanged();
+        return true;
+      }
+      if (argIndex === indexY) {
+        TRACE(' - isall arg', i, 'matches the second arg of nall. morphing nall to nand on the other two args (', indexX, indexZ, ') and returning');
+        ml_c2vv(ml, nallOffset, argCountNall, ML_NAND, indexX, indexZ);
+        // this only affected the nall and its args so no need to mark the isall vars
+        bounty_markVar(bounty, indexX);
+        bounty_markVar(bounty, indexY);
+        bounty_markVar(bounty, indexZ);
+        somethingChanged();
+        return true;
+      }
+      if (argIndex === indexZ) {
+        TRACE(' - isall arg', i, 'matches the first arg of nall. morphing nall to nand on the other two args (', indexX, indexY, ') and returning');
+        ml_c2vv(ml, nallOffset, argCountNall, ML_NAND, indexX, indexY);
+        // this only affected the nall and its args so no need to mark the isall vars
+        bounty_markVar(bounty, indexX);
+        bounty_markVar(bounty, indexY);
+        bounty_markVar(bounty, indexZ);
+        somethingChanged();
+        return true;
+      }
+    }
+
+    TRACE(' - no shared args');
+    return false;
   }
   function trickIsall2Nall(ml, indexR, isallOffset, counts, meta) {
     // R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D
@@ -2155,7 +2201,7 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
 
-    TRACE('trickIsall1Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
+    TRACE('trickIsall2Nall', indexR, 'at', isallOffset, 'and', offset1, '/', offset2, 'metaFlags:', getMeta(bounty, indexR), '`R = all?(A B), nall(R A D)   ->    R = all?(A B), R !& D`');
 
     let nallOffset = offset1 === isallOffset ? offset2 : offset1;
     let argCountNall = ml_dec16(ml, nallOffset + 1);
@@ -2182,23 +2228,22 @@ function cutter(ml, problem, once) {
       return false;
     }
 
-    TRACE(' - nall has 3 and isall 2 args, check if they share an arg');
-    // next; one of the two isalls must occur in the nall
+    TRACE(' - nall has 3 and isall 2 args, R must be shared, now check if they share an arg');
+    // next; one of the two isall args must occur in the nall
     // R = all?(A B), nall(R A C)
     // R = all?(A B), nall(X Y Z)
 
     let indexA = ml_dec16(ml, isallOffset + 1);
     let indexB = ml_dec16(ml, isallOffset + 3);
 
-    return trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall);
-  }
-  function trickIsallNallRest(ml, indexR, indexA, indexB, bounty, nallOffset, argCountNall) {
     // R = all?(A B), nall(R A C)
     // R = all?(A B), nall(X Y Z)
 
-    let indexX = ml_dec16(ml, nallOffset + 3);
-    let indexY = ml_dec16(ml, nallOffset + 5);
-    let indexZ = ml_dec16(ml, nallOffset + 7);
+    let indexX = ml_dec16(ml, nallOffset + SIZEOF_COUNT);
+    let indexY = ml_dec16(ml, nallOffset + SIZEOF_COUNT + 2);
+    let indexZ = ml_dec16(ml, nallOffset + SIZEOF_COUNT + 4);
+
+    ASSERT(indexR === indexX || indexR === indexY || indexR === indexZ, 'bounty should assert that R of isall is a nall arg');
 
     let indexC;
     let indexD;
@@ -2208,13 +2253,10 @@ function cutter(ml, problem, once) {
     } else if (indexY === indexR) {
       indexC = indexX;
       indexD = indexZ;
-    } else if (indexZ === indexR) {
+    } else {
+      ASSERT(indexZ === indexR, 'kinda redundant');
       indexC = indexX;
       indexD = indexY;
-    } else {
-      TRACE(' - this is NOT the nall we were looking at before because the shared index is not part of it');
-      ASSERT(false, 'should not happen? bounty should have asserted this');
-      return false;
     }
 
     TRACE(' - nall(', indexR, indexC, indexD, ') and ', indexR, ' = all?(', indexA, indexB, ')');
@@ -2266,7 +2308,8 @@ function cutter(ml, problem, once) {
 
     let A = getDomain(indexA, true);
     if (domain_hasNoZero(A)) {
-      // ok, without a zero it must have a value lte min(B) and C must be solved to zero or this trick is unsafe
+      // redundant dead code. A is the lte lhs. if C was empty (only case where this now passes) then minimizer would eliminate the nand.
+      // without a zero A must have a value lte min(B) and C must be solved to zero or this trick is unsafe
       let B = getDomain(indexB, true);
       let C = getDomain(indexC, true);
       if (domain_min(A) >= domain_min(B) || !domain_isZero(C)) {
@@ -2372,10 +2415,12 @@ function cutter(ml, problem, once) {
     let nands = 0;
     for (let i = 0; i < countsR; ++i) {
       let offset = bounty_getOffset(bounty, indexR, i);
-      if (!offset) break;
+      ASSERT(offset, 'there should be as many offsets as counts unless that exceeds the max and that has been checked already');
       if (offset !== isallOffset) {
-        if (ml_dec8(ml, offset) !== ML_NAND) {
-          TRACE(' - at least one offset wasnt a nand, bailing');
+        let opcode = ml_dec8(ml, offset);
+        if (opcode !== ML_NAND) {
+          TRACE(' - found at least one other isall, bailing');
+          ASSERT(opcode === ML_ISALL2 || opcode === ML_ISALL, 'bounty should have asserted that the offsets can only be isall and nand');
           return false;
         }
         ++nands;
@@ -2522,10 +2567,7 @@ function cutter(ml, problem, once) {
 
     TRACE('trickNeqElimination; index:', indexX, ', counts:', countsX);
 
-    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      TRACE(' - the number of vars', indexX, 'touches is larger than the number of offsets tracked by bounty so we bail here');
-      return false;
-    }
+    ASSERT(countsX < BOUNTY_MAX_OFFSETS_TO_TRACK, 'this was already checked in cutneq');
 
     if (!domain_isBool(getDomain(indexX))) {
       TRACE(' - X is non-bool, bailing');
@@ -2549,17 +2591,19 @@ function cutter(ml, problem, once) {
       let indexB = readIndex(ml, offset + 3);
 
       let op = ml_dec8(ml, offset);
+
+      ASSERT(op === ML_LTE || op === ML_NEQ || op === ML_OR || op === ML_NAND, 'should be one of these four ops, bounty said so');
+
       if (op === ML_LTE) {
+        ASSERT(indexA === indexX || indexB === indexX, 'bounty should only track relevant ltes');
         let indexT;
         if (indexA === indexX) {
           lhsOffsets.push(offset);
           indexT = indexB;
-        } else if (indexB === indexX) {
+        } else {
+          ASSERT(indexB === indexX, 'as per previous assert');
           rhsOffsets.push(offset);
           indexT = indexA;
-        } else {
-          TRACE(' - lte without indexX (??), bailing');
-          return false;
         }
 
         if (!domain_isBool(getDomain(indexT, true))) {
@@ -2572,44 +2616,26 @@ function cutter(ml, problem, once) {
           return false;
         }
 
+        ASSERT(indexA === indexX || indexB === indexX, 'bounty should only track relevant ltes');
         if (indexA === indexX) {
           indexY = indexB;
-        } else if (indexB === indexX) {
-          indexY = indexA;
         } else {
-          return false;
+          ASSERT(indexB === indexX, 'as per previous assert');
+          indexY = indexA;
         }
 
         seenNeq = true;
         neqOffset = offset;
       } else if (op === ML_OR) {
+        ASSERT(indexA === indexX || indexB === indexX, 'bounty should only track relevant ltes');
         let indexT;
         if (indexA === indexX) {
           orOffsets.push(offset);
           indexT = indexB;
-        } else if (indexB === indexX) {
+        } else {
+          ASSERT(indexB === indexX, 'as per previous assert');
           orOffsets.push(offset);
           indexT = indexA;
-        } else {
-          TRACE(' - lte without indexX (??), bailing');
-          return false;
-        }
-
-        if (!domain_isBool(getDomain(indexT, true))) {
-          TRACE(' - found a non-bool or arg, bailing');
-          return false;
-        }
-      } else if (op === ML_NAND) {
-        let indexT;
-        if (indexA === indexX) {
-          nandOffsets.push(offset);
-          indexT = indexB;
-        } else if (indexB === indexX) {
-          nandOffsets.push(offset);
-          indexT = indexA;
-        } else {
-          TRACE(' - lte without indexX (??), bailing');
-          return false;
         }
 
         if (!domain_isBool(getDomain(indexT, true))) {
@@ -2617,17 +2643,28 @@ function cutter(ml, problem, once) {
           return false;
         }
       } else {
-        TRACE(' - found an op that wasnt neq or lte, bailing');
-        return false;
+        ASSERT(op === ML_NAND, 'see assert above');
+        ASSERT(indexA === indexX || indexB === indexX, 'bounty should only track relevant ltes');
+        let indexT;
+        if (indexA === indexX) {
+          nandOffsets.push(offset);
+          indexT = indexB;
+        } else {
+          ASSERT(indexB === indexX, 'as per previous assert');
+          nandOffsets.push(offset);
+          indexT = indexA;
+        }
+
+        if (!domain_isBool(getDomain(indexT, true))) {
+          TRACE(' - found a non-bool or arg, bailing');
+          return false;
+        }
       }
     }
 
     TRACE(' - collection complete; indexY =', indexY, ', neq offset =', neqOffset, ', lhs offsets:', lhsOffsets, ', rhs offsets:', rhsOffsets, ', or offsets:', orOffsets, ', nand offsets:', nandOffsets);
 
-    if (!seenNeq) {
-      TRACE(' - did not find neq, bailing');
-      return false;
-    }
+    ASSERT(seenNeq, 'should have seen a neq, bounty said there would be one');
 
     // okay. pattern matches. do the rewrite
 
@@ -2712,13 +2749,8 @@ function cutter(ml, problem, once) {
     let indexes = []; // to mark and to defer solve
     for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
-      if (!offset) break;
-
-      let opCode = ml_dec8(ml, offset);
-      if (opCode !== ML_NAND) {
-        TRACE(' - opcode wasnt nand but was expecting only nands, bailing');
-        return false;
-      }
+      ASSERT(offset, 'bounty should assert that there are counts offsets');
+      ASSERT(ml_dec8(ml, offset) === ML_NAND, 'bounty should assert that all ops are nands');
 
       let indexA = readIndex(ml, offset + 1);
       let indexB = readIndex(ml, offset + 3);
@@ -2789,18 +2821,16 @@ function cutter(ml, problem, once) {
       let offset = bounty_getOffset(bounty, indexX, i);
       if (!offset) break;
 
+      let opCode = ml_dec8(ml, offset);
+      ASSERT(opCode === ML_NAND || opCode === ML_OR || opCode === ML_LTE, 'bounty should assert it logged one of these three ops');
+
       let indexL = readIndex(ml, offset + 1);
       let indexR = readIndex(ml, offset + 3);
+      ASSERT(indexX === indexL || indexX === indexR, 'bounty should assert that x is part of this op');
 
       let indexY = indexL;
-      if (indexL === indexX) {
-        indexY = indexR;
-      } else if (indexR !== indexX) {
-        TRACE(' - op did not have our target var on either side, bailing');
-        return false;
-      }
+      if (indexL === indexX) indexY = indexR;
 
-      let opCode = ml_dec8(ml, offset);
       if (opCode === ML_NAND) {
         nandOffsets.push(offset);
         indexesA.push(indexY);
@@ -2811,13 +2841,11 @@ function cutter(ml, problem, once) {
         }
         orOffset = offset;
         indexB = indexY;
-      } else if (opCode === ML_LTE) {
+      } else {
+        ASSERT(opCode === ML_LTE, 'if not the others then this');
+        ASSERT(indexL === indexX, 'bounty should have asserted X must be lhs of LTE');
         if (lteOffset) {
           TRACE(' - trick only supported with one LTE, bailing');
-          return false;
-        }
-        if (indexL !== indexX) {
-          TRACE(' - X must be lhs of LTE, bailing');
           return false;
         }
         lteOffset = offset;
@@ -2877,10 +2905,14 @@ function cutter(ml, problem, once) {
     // if we can model `A !& C, A <= D` in one constraint then we should do so but I couldn't find one
     // (when more lte's are added, that's the pattern we add for each)
 
-    if (countsX >= BOUNTY_MAX_OFFSETS_TO_TRACK) {
-      TRACE(' - counts (', countsX, ') is higher than max number of offsets we track so we bail on this trick');
+    // we only want exactly four ops here... and if max is set to something lower then this trick has no chance at all
+    if (countsX > Math.min(4, BOUNTY_MAX_OFFSETS_TO_TRACK)) {
+      TRACE(' - we need exactly four constraints for this trick so', countsX, 'is incorrect, bailing');
       return false;
     }
+
+    // note: bounty tracks lte_rhs and lte_lhs separate so if we have four constraints
+    // here can trust bounty to assert they are all our targets, no more, no less.
 
     // we should have; lteRhs, lteLhs, nand, or
     let lteLhsOffset;
@@ -2895,52 +2927,38 @@ function cutter(ml, problem, once) {
 
     for (let i = 0; i < countsX; ++i) {
       let offset = bounty_getOffset(bounty, indexX, i);
-      if (!offset) break;
+      ASSERT(offset, 'bounty should assert to fetch as many offsets as there are counts');
 
+      let opCode = ml_dec8(ml, offset);
       let indexL = readIndex(ml, offset + 1);
       let indexR = readIndex(ml, offset + 3);
 
-      let indexY = indexL;
-      if (indexL === indexX) {
-        indexY = indexR;
-      } else if (indexR !== indexX) {
-        TRACE(' - op did not have our target var on either side, bailing');
-        return false;
-      }
+      ASSERT(opCode === ML_NAND || opCode === ML_OR || opCode === ML_LTE, 'bounty should assert the op is one of these');
+      ASSERT(indexX === indexL || indexX === indexR, 'bounty should assert X is one of the args');
 
-      let opCode = ml_dec8(ml, offset);
+      let indexY = indexL;
+      if (indexL === indexX) indexY = indexR;
+
       if (opCode === ML_NAND) {
-        if (nandOffset) {
-          TRACE(' - trick only supported with one NAND, bailing');
-          return false;
-        }
+        ASSERT(!nandOffset, 'cant have a second nand');
         nandOffset = offset;
         indexC = indexY;
       } else if (opCode === ML_OR) {
-        if (orOffset) {
-          TRACE(' - trick only supported with one OR, bailing');
-          return false;
-        }
+        ASSERT(!orOffset, 'cant have a second nand');
         orOffset = offset;
         indexB = indexY;
-      } else if (opCode === ML_LTE) {
+      } else {
+        ASSERT(opCode === ML_LTE, 'asserted by bounty see above');
+
         if (indexL === indexX) { // lte_lhs
-          if (lteLhsOffset) {
-            TRACE(' - trick only supported with one LTE_lhs, bailing');
-            return false;
-          }
+          ASSERT(!lteLhsOffset, 'cant have a second lte_lhs');
           lteLhsOffset = offset;
           indexD = indexY;
-        } else if (indexR === indexX) { // lte_rhs
-          if (lteRhsOffset) {
-            TRACE(' - trick only supported with one LTE_rhs, bailing');
-            return false;
-          }
+        } else { // lte_rhs
+          ASSERT(indexR === indexX, 'x already asserted to be one of the op args');
+          ASSERT(!lteRhsOffset, 'cant have a second lte_rhs');
           lteRhsOffset = offset;
           indexA = indexY;
-        } else {
-          TRACE(' - X not an arg of the lte, bailing');
-          return false;
         }
       }
     }
@@ -2994,9 +3012,25 @@ function cutter(ml, problem, once) {
     // so there's a plus and then there's an iseq that checks whether the result is the
     // sum of the only two non-zero values. that's just an "are both set" check -> isall
 
-    TRACE('trickPlusIseq', ml, plusOffset, indexA, indexB, indexR);
+    TRACE('trickPlusIseq', plusOffset, indexA, indexB);
+    TRACE(' - from plus:', indexR, '=', indexA, '+', indexB, '->', domain__debug(getDomain(indexR, true)), '=', domain__debug(getDomain(indexA, true)), '+', domain__debug(getDomain(indexB, true)));
     ASSERT(countsR === 2, 'R should be part of two constraints');
     ASSERT(metaR === (BOUNTY_PLUS_RESULT | BOUNTY_ISEQ_ARG), 'R should be part of a sum and an iseq');
+
+    // confirm that the domains are within the expected bounds
+    // A and B must be bools
+    // Y must be constant 2
+    // X should be [0022] in that case
+
+    if (!domain_isBool(getDomain(indexA, true))) {
+      TRACE(' - plus-A was not a bool, bailing', domain__debug(getDomain(indexA, true)));
+      return false;
+    }
+    if (!domain_isBool(getDomain(indexB, true))) {
+      TRACE(' - plus-B was not a bool, bailing', domain__debug(getDomain(indexB, true)));
+      return false;
+    }
+    ASSERT(getDomain(indexR, true) === domain_createRange(0, 2), 'R must be [0 2] at this point due to the plus args being [01]');
 
     // so R is used in two constraints. let's first determine the other one
     let offset1 = bounty_getOffset(bounty, indexR, 0);
@@ -3005,40 +3039,43 @@ function cutter(ml, problem, once) {
     let iseqOffset = offset1 === plusOffset ? offset2 : offset1;
     ASSERT(ml_dec8(ml, iseqOffset) === ML_ISEQ, 'should have been asserted by the bounty hunter');
 
-    // get iseq operands (let's use X,Y,Z). R should be X or Y and we must check if the other is a constant
+    // get iseq operands (let's use X,Y,Z). R should be X. but we must confirm that Y is a constant
+
     let indexX = readIndex(ml, iseqOffset + 1); // R | ?
     let indexY = readIndex(ml, iseqOffset + 3); // R | ?
+    let X = getDomain(indexX, true);
+    let Y = getDomain(indexY, true);
+    let vY = domain_getValue(Y);
+    TRACE(' - checking iseq args;', readIndex(ml, iseqOffset + 5), '=', indexX, '==?', indexY, '->', domain__debug(getDomain(readIndex(ml, iseqOffset + 5), true)), '=', domain__debug(X), '==?', domain__debug(Y));
+    if (vY < 0) {
+      //ASSERT(!domain_isSolved(X), 'if args are sorted constants always end up in the back, or Y in this case, so if Y is not solved, X should not be solved either', domain__debug(X), domain__debug(Y));
+      vY = domain_getValue(X);
+      if (vY >= 0) { // note: asserts are stripped from dist. this is a dist check.
+        // just in case. but probably dead code
+        let t = indexX;
+        indexX = indexY;
+        indexY = t;
+        // swap domains too!
+        let tt = X;
+        X = Y;
+        Y = tt;
+      } else {
+        TRACE(' - Y was not solved (and neither was X) so pattern match failed, bailing');
+        return false;
+      }
+    }
+    // X and Y could have been swapped, but probably arent, shouldnt matter
+    ASSERT(indexX === indexR, 'if Y is solved then it cant be R so X must be R. note R cant be solved because then counts would be 0 and they werent', indexX, indexY, indexR);
+    ASSERT(domain_isSolved(Y), 'and Y is solved');
+    ASSERT(vY === domain_getValue(Y), 'and vY was updated as well');
+
     let indexZ = readIndex(ml, iseqOffset + 5); // S
-    ASSERT((indexX === indexR) !== (indexY === indexR), 'R should be one of the args to the iseq');
-    let indexXyNotR = indexR === indexX ? indexY : indexX; // the X or Y arg that is not R
-
-    // confirm that the domains are within the expected bounds
-    // A and B must be bools
-    // XY must be constant 2
-    // should be [0022] in that case
-
-    if (!domain_isBool(getDomain(indexA, true))) {
-      TRACE(' - A was not a bool, bailing', domain__debug(getDomain(indexA, true)));
-      return false;
-    }
-    if (!domain_isBool(getDomain(indexB, true))) {
-      TRACE(' - B was not a bool, bailing', domain__debug(getDomain(indexB, true)));
-      return false;
-    }
-    ASSERT(getDomain(indexR, true) === domain_createRange(0, 2), 'R should be [0 2] at this point due to the sum args');
-    let XYNR = getDomain(indexXyNotR, true);
-    TRACE(' - xynr index:', indexXyNotR, 'domain:', domain__debug(XYNR));
-    let v = domain_getValue(XYNR);
-    if (v < 0) {
-      TRACE(' - The other iseq arg was not a constant, bailing', v, domain__debug(XYNR));
-      return false;
-    }
 
     // so now we know that there's a plus, and its args are strict bools, and R is [0 2]
     // then there's an iseq that checks R with a constant
     // we've confirmed all these details so it's time to merge them together and morph depending on the constant
 
-    if (v === 2) {
+    if (vY === 2) {
       TRACE(' - found isAll pattern, morphing plus to isall and eliminating isEq');
 
       // rewrite one into `Z = all?(A B)`, drop the other
@@ -3047,19 +3084,19 @@ function cutter(ml, problem, once) {
         TRACE(' - cut plus -> isAll; plus+iseq->isall');
         let R = getDomain(indexR);
         let vS = force(indexZ);
-        setDomain(indexR, vS ? domain_intersectionValue(R, v) : domain_removeValue(R, v));
+        setDomain(indexR, vS ? domain_intersectionValue(R, vY) : domain_removeValue(R, vY));
         // or just this? ultimately, perhaps pick the way that forces the least? *shrug*
         //setDomain(indexR, domain_intersection(R, domain_createValue(force(indexA) + force(indexB))));
       });
 
-      // for the record, _this_ is why ML_ISALL2 exists at all. we can use recycle now though, but it's slow.
+      // for the record, _this_ is why ML_ISALL2 exists at all. we can use recycle now though, but it's slow here
       ml_vvv2vvv(ml, plusOffset, ML_ISALL2, indexA, indexB, indexZ);
       ml_eliminate(ml, iseqOffset, SIZEOF_VVV);
-    } else if (v === 1) {
+    } else if (vY === 1) {
       TRACE(' - found isxor pattern, but since we dont have isxor and alternative rewrites are more expensive, we bail for now');
       return false;
     } else {
-      ASSERT(v === 0, 'only option left');
+      ASSERT(vY === 0, 'only option left');
       TRACE(' - found isnone pattern, morphing plus to xor and eliminating isEq');
 
       // R=[02], A=[01], B=[01], Z=R==?0
@@ -3111,31 +3148,53 @@ function cutter(ml, problem, once) {
     let offset1 = bounty_getOffset(bounty, indexR, 0);
     let offset2 = bounty_getOffset(bounty, indexR, 1);
     let iseqOffset = offset1 === sumOffset ? offset2 : offset1;
-    TRACE('trickSumIseq; sumOffset:', sumOffset, 'iseqOffset:', iseqOffset, 'indexR:', indexR);
+    TRACE('trickSumIseq; sumOffset:', sumOffset, ', iseqOffset:', iseqOffset, ', indexR:', indexR, ', countsR:', counts, ', metaR:', bounty__debugMeta(meta));
 
     ASSERT(iseqOffset > 0, 'offset should exist and cant be the first op');
     ASSERT(counts === 2, 'R should only be used in two constraints (sum and iseq)');
     ASSERT(meta === (BOUNTY_ISEQ_ARG | BOUNTY_SUM_RESULT), 'should be sum and iseq arg', counts, bounty__debugMeta(meta));
     ASSERT(ml_dec8(ml, sumOffset) === ML_SUM, 'check sum offset');
     ASSERT(ml_dec8(ml, iseqOffset) === ML_ISEQ, 'check iseq offset');
-    ASSERT(readIndex(ml, iseqOffset + 1) === indexR || readIndex(ml, iseqOffset + 3) === indexR, 'R should be an iseq arg');
 
     let argCount = ml_dec16(ml, sumOffset + 1);
 
     let indexA = readIndex(ml, iseqOffset + 1); // R or ?
     let indexB = readIndex(ml, iseqOffset + 3); // R or ?
     let indexS = readIndex(ml, iseqOffset + 5); // S
-    let indexABnotR = indexA === indexR ? indexB : indexA;
-    let ABnR = getDomain(indexABnotR, true);
 
-    let vABnR = domain_getValue(ABnR);
-    if (vABnR !== 0 && vABnR !== argCount) {
-      TRACE(' - the non-R iseq arg is not a constant that is 0 or the number of args, bailing', domain__debug(ABnR), '->', vABnR, ', args:', argCount);
+    // indexes should be sorted which puts constants to the back (B)
+    // however, if the index is not sorted, this might not be the case so we have to double check
+    if (!domain_isSolved(getDomain(indexB, true))) {
+      if (domain_isSolved(getDomain(indexA, true))) {
+        // this is dead code if the minimizer got to do its job (args should be sorted)
+        // swap A and B to normalize
+        ASSERT(indexB === indexR, 'if A is solved then B must be R because it must be an iseq arg and it cant be solved yet because counts>0');
+        let t = indexB;
+        indexB = indexA;
+        indexA = t;
+      } else {
+        TRACE(' - other iseq arg not solved, bailing');
+        return false;
+      }
+    }
+    ASSERT(indexA === indexR, '(normalized) the left should be indexR');
+    ASSERT(indexB !== indexR, 'would be a weird tautology'); // but it's possible minimizer didnt get to eliminate this...
+    ASSERT(domain_isSolved(getDomain(indexB, true)), 'at this point B should be solved');
+
+    let B = getDomain(indexB, true);
+    let vB = domain_getValue(B);
+    if (vB !== 0 && vB !== argCount) {
+      TRACE(' - indexB from iseq arg is a constant that is not 0 nor the number of args, bailing', domain__debug(B), '->', vB, ', args:', argCount);
+      return false;
+    }
+
+    let R = getDomain(indexR, true);
+    if (!domain_containsValue(R, vB)) {
+      TRACE(' - R didnt contain B so unsafe for leaf cutting, bailing');
       return false;
     }
 
     // the iseq looks okay. now confirm all sum args are max 1
-    // (as we've confirmed R this is very likely to be the case, though it may still not be)
     // note that [0 0] should be pruned, [1 1] is okay to occur, most likely [0 1] though
     // numdom([0,5]) = sum( numdom([0,1]) numdom([0,1]) numdom([0,1]) numdom([0,1]) soldom([0,1]) )
     // numdom([1,5]) = sum( numdom([0,1]) numdom([0,1]) numdom([0,1]) numdom([0,1]) soldom([1,1]) )
@@ -3162,7 +3221,6 @@ function cutter(ml, problem, once) {
 
     TRACE(' - confirming R is bound to [', min, max, ']');
     // note: every arg is max 1. we do take into account that an arg [1 1] would mean R is [1 5] instead of [0 5]
-    let R = getDomain(indexR, true);
     if (R !== domain_createRange(min, max)) {
       TRACE(' - R isnt counting all results, bailing');
       return false;
@@ -3172,18 +3230,18 @@ function cutter(ml, problem, once) {
 
     // sum will fit isall/isnone. it'll be exactly the same size
     // only need to update the op code and the result index, as the rest remains the same
-    let targetOp = vABnR === argCount ? ML_ISALL : ML_ISNONE;
+    let targetOp = vB === argCount ? ML_ISALL : ML_ISNONE;
     ml_enc8(ml, sumOffset, targetOp);
     ml_enc16(ml, sumOffset + SIZEOF_COUNT + argCount * 2, indexS);
 
     // note: either way, R must reflect the sum of its args. so its the same solve
     solveStack.push((_, force, getDomain, setDomain) => {
-      TRACE(' - cut sum ->', targetOp === ML_ISALL ? 'isall' : 'isnone');
+      TRACE(' - cut sum ->', targetOp === ML_ISALL);
       let oR = getDomain(indexR);
       let vR = 0;
       for (let i = 0; i < argCount; ++i) {
         let vN = force(args[i]);
-        ASSERT(vN === 0 || vN === 1, 'should be bool');
+        ASSERT((vN & 1) >= 0, 'should be bool');
         if (vN) ++vR;
       }
       let R = domain_intersectionValue(oR, vR);
@@ -3207,29 +3265,37 @@ function cutter(ml, problem, once) {
     // note that for a booly, the actual value is irrelevant. whether it's 1 or 5, the ops will normalize
     // this to zero and non-zero anyways. and by assertion the actual value is not used inside the problem
 
-    TRACE(' - trickXnorPseudoEq; found booly-eq in a xnor:', indexA, '!^', indexB);
+    TRACE(' - trickXnorPseudoEq; found booly-eq in a xnor:', indexA, '!^', indexB, ', A booly?', boolyA, ', B booly?', boolyB);
+    ASSERT(boolyA || boolyB, 'at least one of the args should be a real booly (as reported by bounty)');
 
     // ok, a little tricky, but we're going to consider the bool to be a full alias of the other var.
     // once we create a solution we will override the value and apply the booly constraint and assign
     // it either its zero or nonzero value(s) depending on the other value of this xnor.
 
-    let indexE = indexB;
-    let indexK = indexA;
-    if (!boolyB || (boolyA && domain_isBool(getDomain(indexA)))) { // if A wasnt booly use B, otherwise A must be booly
+    let indexE = indexB; // Eliminate
+    let indexK = indexA; // Keep
+
+    // keep the non-bool if possible
+    if (!boolyB) {
+      TRACE(' - keeping B instead because its not a booly');
       indexE = indexA;
       indexK = indexB;
     }
-    let E = getDomain(indexE, true); // remember what E was because it will be replaced by false to mark it an alias
+
+    let oE = getDomain(indexE, true); // remember what E was because it will be replaced by false to mark it an alias
     TRACE(' - pseudo-alias for booly xnor arg;', indexA, '!^', indexB, '  ->  ', domain__debug(getDomain(indexA)), '!^', domain__debug(getDomain(indexB)), 'replacing', indexE, 'with', indexK);
 
     solveStack.push((_, force, getDomain, setDomain) => {
       TRACE(' - resolve booly xnor arg;', indexK, '!^', indexE, '  ->  ', domain__debug(getDomain(indexK)), '!^', domain__debug(E));
-      ASSERT(domain_min(E) === 0 && domain_max(E) > 0, 'the E var should be a booly', indexE, domain__debug(E));
       let vK = force(indexK);
-      if (vK === 0) E = domain_removeGtUnsafe(E, 0);
-      else E = domain_removeValue(E, 0);
+      let E;
+      if (vK === 0) {
+        E = domain_removeGtUnsafe(oE, 0);
+      } else {
+        E = domain_removeValue(oE, 0);
+      }
       ASSERT(E, 'E should be able to reflect the solution');
-      setDomain(indexE, E);
+      if (E !== oE) setDomain(indexE, E);
     });
 
     // note: addAlias will push a defer as well. since the defers are resolved in reverse order,

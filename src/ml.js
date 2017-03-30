@@ -375,13 +375,13 @@ function ml_hasConstraint(ml) {
   THROW('ML OOB');
 }
 
-function ml_c2vv(ml, offset, len, opCode, indexA, indexB) {
+function ml_c2vv(ml, offset, argCount, opCode, indexA, indexB) {
   // "count without result" (distinct, nall, etc)
-  TRACE(' -| ml_c2vv | from', offset, ', len=', len, ', op=', opCode, indexA, indexB);
+  TRACE(' -| ml_c2vv | from', offset, ', argCount=', argCount, ', op=', opCode, indexA, indexB);
   ml_enc8(ml, offset, opCode);
   ml_enc16(ml, offset + 1, indexA);
   ml_enc16(ml, offset + 3, indexB);
-  let oldLen = SIZEOF_COUNT + len * 2;
+  let oldLen = SIZEOF_COUNT + argCount * 2;
   ml_skip(ml, offset + SIZEOF_VV, oldLen - SIZEOF_VV);
 }
 

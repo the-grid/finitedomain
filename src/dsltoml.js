@@ -105,6 +105,8 @@ const $$s = 115;
 const $$t = 116;
 const $$x = 120;
 const $$z = 122;
+const $$A = 65;
+const $$Z = 98;
 
 /**
  * Compile the constraint dsl to a bytecode
@@ -253,7 +255,8 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function is(c, desc) {
-    if (read() !== c) THROW('Expected ' + (desc + ' ' || '') + '`' + c + '`, found `' + read() + '`');
+    if (!desc) desc = '';
+    if (read() !== c) THROW('Expected ' + desc + ' `' + c + '`, found `' + read() + '`');
     skip();
   }
 
@@ -342,17 +345,17 @@ function dslToMl(dslStr, problem, _debug) {
     skipWhitespaces();
     if (read() === $$COMMA) {
       nameNames = [nameNames];
-      while (!isEof() && read() === $$COMMA) {
+      do {
         skip();
         skipWhitespaces();
         nameNames.push(parseIdentifier());
         skipWhitespaces();
-      }
+      } while (!isEof() && read() === $$COMMA);
     }
     let domain = parseDomain();
     skipWhitespaces();
     let alts;
-    while (readD(0) === $$a && readD(1) === $$l && readD(2) === $$i && readD(3) === $$a && readD(4) === $$a && readD(5) === $$s && readD(6) === $$LEFTPAREN) {
+    while (readD(0) === $$a && readD(1) === $$l && readD(2) === $$i && readD(3) === $$a && readD(4) === $$s && readD(5) === $$LEFTPAREN) {
       if (!alts) alts = [];
       alts.push(parseAlias(dslPointer += 6));
       skipWhitespaces();
@@ -369,9 +372,9 @@ function dslToMl(dslStr, problem, _debug) {
 
     if (alts) {
       // prevent `: A, B [0, 10] alias(C)` because is C an alias for A or B? certainly not both
-      if (nameNames !== 'string') THROW('Cant use alias when declaring multiple vars at once (because which should be aliased?)');
+      if (typeof nameNames !== 'string') THROW('Cant use alias when declaring multiple vars at once (because which should be aliased?)');
 
-      alts.forEach(alt => addAlias(addVar(alt, false, false, false, true, THROW), varIndex));
+      alts.forEach(alt => addAlias(addVar(alt, undefined, false, false, true, THROW), varIndex));
     }
   }
 
@@ -387,6 +390,7 @@ function dslToMl(dslStr, problem, _debug) {
     while (!isEof()) {
       let c = read();
       if (c === $$SQUOTE) break;
+      if (isLineEnd(c)) THROW('Quoted identifier must be closed');
       ident += String.fromCharCode(c);
       skip();
     }
@@ -427,6 +431,7 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function parseAlias() {
+    TRACE('parseAlias');
     skipWhitespaces();
 
     let alias = '';
@@ -470,7 +475,7 @@ function dslToMl(dslStr, problem, _debug) {
 
         domain = [];
 
-        if (read() === $$LEFTBRACK) {
+        if (read() === $$LEFTBRACK) { // range inside the domain that is wrapped in brakcets
           do {
             skip();
             skipWhitespaces();
@@ -492,8 +497,9 @@ function dslToMl(dslStr, problem, _debug) {
               skipWhitespaces();
             }
           } while (read() === $$LEFTBRACK);
-        } else if (read() !== $$RIGHTBRACK) {
-          do {
+        } else {
+          // individual ranges not wrapped
+          while (read() !== $$RIGHTBRACK) {
             skipWhitespaces();
             let lo = parseNumber();
             skipWhitespaces();
@@ -510,7 +516,7 @@ function dslToMl(dslStr, problem, _debug) {
               skip();
               skipWhitespaces();
             }
-          } while (read() !== $$RIGHTBRACK);
+          }
         }
 
         is($$RIGHTBRACK, 'domain-end');
@@ -547,7 +553,7 @@ function dslToMl(dslStr, problem, _debug) {
     let stratName = '';
     while (true) {
       let c = read();
-      if (c < $$a || c > $$z) break;
+      if (!((c >= $$a && c <= $$z) || (c >= $$A && c <= $$Z))) break;
       stratName += String.fromCharCode(c);
       skip();
     }
@@ -568,6 +574,7 @@ function dslToMl(dslStr, problem, _debug) {
       case 'naive':
       case 'splitMax':
       case 'splitMin':
+        mod.name = stratName;
         break;
 
       default:
@@ -587,11 +594,13 @@ function dslToMl(dslStr, problem, _debug) {
     }
 
     dslPointer += 5;
+    mod.name = 'list';
     mod.list = parseNumList();
     is($$RIGHTPAREN, 'list end');
   }
 
   function parseMarkov(mod) {
+    mod.name = 'markov';
     let repeat = true;
     while (repeat) {
       repeat = false;
@@ -768,6 +777,7 @@ function dslToMl(dslStr, problem, _debug) {
       }
     } else {
       let rop = parseRop();
+      if (!rop) THROW('Unknown result op parsed [' + rop + ']');
       skipWhitespaces();
       let indexB = parseVexpr();
       return compileValueConstraint(indexA, rop, indexB, indexC);
@@ -878,7 +888,7 @@ function dslToMl(dslStr, problem, _debug) {
           skip();
           return '!^';
         }
-        return '!';
+        return THROW('Unknown cop that starts with [!]');
       case $$LT:
         skip();
         if (read() === $$EQ) {
@@ -903,8 +913,7 @@ function dslToMl(dslStr, problem, _debug) {
         skip();
         return '^';
       case $$HASH:
-        THROW('Expected to parse a cop but found a comment instead');
-        break;
+        return THROW('Expected to parse a cop but found a comment instead');
       default:
         if (isEof()) THROW('Expected to parse a cop but reached eof instead');
         THROW('Unknown cop char: `' + c + '`');
@@ -1097,7 +1106,7 @@ function dslToMl(dslStr, problem, _debug) {
     skipWhitespaces();
     let refs = parseVexpList();
     if (resultIndex === undefined) resultIndex = addVar(undefined, defaultBoolResult ? [0, 1] : undefined, false, false, true);
-    else if (resultIndex === lastAssignmentIndex && resultIndex === lastUnknownIndex && defaultBoolResult) setDomain(resultIndex, [0, 1]);
+    else if (resultIndex === lastAssignmentIndex && resultIndex === lastUnknownIndex && defaultBoolResult) setDomain(resultIndex, domain_createRange(0, 1));
 
     TRACE('parseArgs refs:', resultIndex, ' = all(', refs, '), defaultBoolResult:', defaultBoolResult);
 

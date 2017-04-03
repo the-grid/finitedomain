@@ -35,14 +35,14 @@ describe('specs/dsl.spec', function() {
 
   describe('whitespace', function() {
 
-    it('should parse a comment', function() {
+    it('should parse a comment after a constraint', function() {
       expect(preSolver(`
         : A [0 10]
         A > 5 # should remove anything 5 and lower
       `)).to.eql({A: [6, 10]});
     });
 
-    it('should parse a comment', function() {
+    it('should throw for bad stuff', function() {
       expect(_ => preSolver(`
         : A [0 10]
         A > 5 x # should not have done that
@@ -225,6 +225,13 @@ describe('specs/dsl.spec', function() {
           `)).to.throw('implement me (var mod)');
         });
 
+        it('should have a list with at least one number', function() {
+          expect(_ => preSolver(`
+            : A [0 10] @list prio()
+            A > 5
+          `)).to.throw('Expected to parse a list of at least some numbers');
+        });
+
         it('should @list must have prio', function() {
           expect(_ => preSolver(`
             : A [0 10] @list
@@ -262,6 +269,16 @@ describe('specs/dsl.spec', function() {
           : A,B,C [0 1]
           A = none?(B C)
         `)).to.throw(/ops: isnone #/);
+      });
+    });
+
+    describe('distinct', function() {
+
+      it('should require at least a vexpr', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          distinct()
+        `)).to.throw('Expecting at least one expression');
       });
     });
 
@@ -384,6 +401,92 @@ describe('specs/dsl.spec', function() {
         `)).to.throw(/domain state: 0:A:0,10: 1:B:0,10: 2:__1:0,1: 3:__2:0,20 ops: iseq,neq,plus #/);
         // note: __1 and __2 should be bool and something non-bool
       });
+
+      it('should init the anonymous vars of grouped constraints properly', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 10]
+          C = (A + B)
+        `)).to.throw(/ops: plus #/);
+        // note: __1 and __2 should be bool and something non-bool
+      });
+
+      it('should allow wrapped single vexpr', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 10]
+          C = (A)
+        `)).not.to.throw();
+      });
+
+      it('should detect open ended group at eol', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 10]
+          C = (A
+        `)).to.throw('expecting right paren or rop');
+      });
+
+      it('should detect open ended group at eof', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 10]
+          C = (A`
+        )).to.throw('expecting right paren or rop');
+      });
+
+      it('should detect bad rop', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 10]
+          C = (A % B)
+        `)).to.throw('expecting right paren or rop');
+      });
+    });
+
+    describe('lists/args', function() {
+
+      it('should create a default parameter for lists', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 10]
+          R = sum(A B C)
+        `)).not.to.throw();
+      });
+
+      it('should create a nonbool default parameter for lists', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 10]
+          (sum(A B C)) > 10
+          @custom var-strat throw
+        `)).to.throw(/ops: sum #/);
+      });
+
+      it('should create a bool default parameter for lists v1', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 10]
+          (A ==? B) != C
+          @custom var-strat throw
+          @custom noleaf A B C
+        `)).to.throw(/ops: iseq,neq #/);
+      });
+
+      it('should create a bool default parameter for lists v2', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 10]
+          C != (A ==? B)
+          @custom var-strat throw
+          @custom noleaf A B C
+        `)).to.throw(/ops: iseq,neq #/);
+      });
+
+      it('should create a bool default parameter for lists v3', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 10]
+          C != (all?(A B))
+          @custom var-strat throw
+          @custom noleaf A B C
+        `)).to.throw(/ops: isall2,neq #/);
+      });
     });
 
     describe('edge cases', function() {
@@ -395,13 +498,13 @@ describe('specs/dsl.spec', function() {
         )).to.eql({A: [0, 10]});
       });
 
-
       it('should allow a simple literal at eof', function() {
         expect(preSolver(`
           : A [0 10]
           15`
         )).to.eql({A: [0, 10]});
       });
+
       it('should allow a simple domain at eof', function() {
         expect(preSolver(`
           : A [0 10]
@@ -762,6 +865,101 @@ describe('specs/dsl.spec', function() {
 
   describe('@custom', function() {
 
+    it('should allow an optional equal', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        @custom noleaf = A
+      `)).not.to.throw();
+    });
+
+    it('should throw for unknown custom names', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        @custom failme X
+      `)).to.throw('Unsupported custom rule');
+    });
+
+    it('should throw for unknown at names', function() {
+      expect(_ => preSolver(`
+        @custom var-strat throw
+        : A [0 1]
+        @doesnt exist
+      `)).to.throw('Unknown @ rule');
+    });
+
+    describe('var-strat', function() {
+
+      it('should support var-strat', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom val-strat = A
+        `)).not.to.throw();
+      });
+
+      it('should parse the json contents', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom var-strat = {"_class":"$var_strat_config","type":"naive","inverted":false}
+        `)).not.to.throw();
+      });
+
+      it('should throw for bad json contents', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom var-strat = {'a':"single quotes are not json"}
+        `)).to.throw('JSON');
+      });
+
+      it('should accept just an identifier', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom var-strat justaname
+        `)).not.to.throw();
+      });
+    });
+
+    describe('set-valdist', function() {
+
+      it('should not support set-valdist yet', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom set-valdist A {"valtype":"markov","matrix":[{"vector":[1,10000,1,1]}],"legend":[1,2,3,4]}
+        `)).not.to.throw();
+      });
+
+      it('should require valid json', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A [0 1]
+          @custom set-valdist A {'a':1}
+        `)).to.throw('JSON');
+      });
+
+      it('should set it twice', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 1]
+          @custom set-valdist A {"valtype":"markov","matrix":[{"vector":[1,10000,1,1]}],"legend":[1,2,3,4]}
+          @custom set-valdist C {"valtype":"markov","matrix":[{"vector":[1,10000,1,1]}],"legend":[1,2,3,4]}
+        `)).not.to.throw();
+      });
+
+      it('should allow optional eq sign', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A, B, C [0 1]
+          @custom set-valdist A = {"valtype":"markov","matrix":[{"vector":[1,10000,1,1]}],"legend":[1,2,3,4]}
+        `)).not.to.throw();
+      });
+    });
+
     describe('noleaf', function() {
 
       it('should NOT eliminate the isall WITH the noleaf hint', function() {
@@ -806,6 +1004,190 @@ describe('specs/dsl.spec', function() {
         `);
 
         expect(solution).to.eql({A: 0, B: 0, C: [0, 1], D: 0, E: 0, F: [0, 1]});
+      });
+
+      it('should require at least one ident', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(B C)
+          @custom noleaf
+        `)).to.throw('Expected to parse a list of at least some identifiers');
+      });
+
+      it('should not allow a leading comma', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(B C)
+          @custom noleaf , A
+        `)).to.throw('Leading comma not supported');
+      });
+    });
+
+    describe('targets', function() {
+
+      it('should parse an ident list', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(B C)
+          @custom targets(B C)
+        `)).to.eql({A: 0, B: 0, C: [0, 1]});
+      });
+
+      it('should allow optional commas', function() {
+        expect(preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(B , C)
+          @custom targets(B C)
+        `)).to.eql({A: 0, B: 0, C: [0, 1]});
+      });
+
+      it('should require at least one ident', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets()
+        `)).to.throw('Expected to parse a list of at least some identifiers');
+      });
+
+      it('should not allow a leading comma', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(, A B C)
+        `)).to.throw('Leading comma not supported');
+      });
+
+      it('should not allow a trailing comma at eol', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,
+        `)).to.throw('Expected to parse identifier');
+      });
+
+      it('should not allow a backtoback commas', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,,B)
+        `)).to.throw('Double comma not supported');
+      });
+
+      it('should not allow a backtoback comma at eol', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,,
+        `)).to.throw('Double comma not supported');
+      });
+
+      it('should not allow a trailing comma at eol', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,B,
+        `)).to.throw('Expected to parse identifier');
+      });
+
+      it('should not allow a trailing comma at eof', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,B,`
+        )).to.throw('Trailing comma not supported');
+      });
+
+      it('should not allow a backtoback comma at eof', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,,`
+        )).to.throw('Double comma not supported');
+      });
+
+      it('should expect paren at eol', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,B
+        `)).to.throw('Missing target char at eol/eof');
+      });
+
+      it('should expect paren at eof', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A,B,C [0 1]
+          A = all?(A B C)
+          @custom targets(A,B`
+        )).to.throw('Missing target char at eol/eof');
+      });
+
+      it('should allow = sign for `all`', function() {
+        expect(_ => preSolver(`
+          : A 1
+          @custom targets = all
+        `)).not.to.throw();
+      });
+
+      it('should not allow a double = sign', function() {
+        expect(_ => preSolver(`
+          : A 1
+          @custom targets = = all
+        `)).to.throw('Unexpected double eq sign');
+      });
+
+      it('should not require = sign for `all`', function() {
+        expect(_ => preSolver(`
+          : A 1
+          @custom targets all
+        `)).not.to.throw();
+      });
+
+      it('should allow = for parens', function() {
+        expect(_ => preSolver(`
+          : A,B,C [0 1]
+          @custom targets = (A,B)
+        `)).not.to.throw('iets');
+      });
+    });
+
+    describe('free', function() {
+
+      it('should allow free 0', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A 1
+          @custom free 0
+        `)).not.to.throw();
+      });
+
+      it('should allow free 1000', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A 1
+          @custom free 1000
+        `)).not.to.throw();
+      });
+
+      it('should allow free 100000', function() {
+        expect(_ => preSolver(`
+          @custom var-strat throw
+          : A 1
+          @custom free 100000
+        `)).not.to.throw();
       });
     });
   });

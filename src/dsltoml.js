@@ -141,9 +141,6 @@ function dslToMl(dslStr, problem, _debug) {
   let mlBuffer = new Buffer(mlBufSize).fill(0); // 20% is arbitrary choice. grown dynamically when needed
   let mlPointer = 0;
 
-  let lastPointer = -1;
-  let lastChar = 0;
-
   // this is for a hack
   let lastAssignmentIndex = -1;
   let lastUnknownIndex = -1;
@@ -237,9 +234,7 @@ function dslToMl(dslStr, problem, _debug) {
   }
 
   function read() {
-    if (dslPointer === lastPointer) return lastChar;
-    lastChar = dslBuf[dslPointer];
-    return lastChar;
+    return dslBuf[dslPointer];
   }
 
   function readD(delta) {
@@ -326,11 +321,10 @@ function dslToMl(dslStr, problem, _debug) {
 
     skipWhites();
 
+    ASSERT(read() !== $$HASH, 'comments should be parsed by skipWhites');
     switch (read()) {
       case $$COLON:
         return parseVar();
-      case $$HASH:
-        return skipComment();
       case $$AT:
         return parseAtRule();
       default:
@@ -684,7 +678,8 @@ function dslToMl(dslStr, problem, _debug) {
       if (cop === '=') {
         lastAssignmentIndex = indexA;
         parseAssignment(indexA);
-      } else if (cop) {
+      } else {
+        ASSERT(cop, 'the cop parser should require to parse a valid cop');
         let indexB = parseVexpr();
         compileVoidConstraint(indexA, cop, indexB);
       }
@@ -1026,6 +1021,8 @@ function dslToMl(dslStr, problem, _debug) {
         skipWhitespaces();
       }
     }
+
+    if (!list.length) THROW('Expecting at least one expression in the list');
     return list;
   }
 
@@ -1077,15 +1074,14 @@ function dslToMl(dslStr, problem, _debug) {
     let indexA = parseVexpr();
     skipWhitespaces();
 
-    // just wrapping a vexpr is okay
+    // just wrapping a vexpr is okay, otherwise it needs a rop
     if (read() !== $$RIGHTPAREN) {
       let rop = parseRop();
-      if (rop) {
-        skipWhitespaces();
-        let indexB = parseVexpr();
-        let indexC = addVar(undefined, rop[rop.length - 1] === '?' ? [0, 1] : undefined, false, false, true);
-        indexA = compileValueConstraint(indexA, rop, indexB, indexC);
-      }
+      if (!rop) THROW('expecting right paren or rop');
+      skipWhitespaces();
+      let indexB = parseVexpr();
+      let indexC = addVar(undefined, rop[rop.length - 1] === '?' ? [0, 1] : undefined, false, false, true);
+      indexA = compileValueConstraint(indexA, rop, indexB, indexC);
       skipWhitespaces();
     }
     is($$RIGHTPAREN, 'group closer');
@@ -1105,6 +1101,8 @@ function dslToMl(dslStr, problem, _debug) {
     is($$LEFTPAREN, 'args call opener');
     skipWhitespaces();
     let refs = parseVexpList();
+
+    // note: the var may not declared if the constraint was anonymously grouped (ie `(sum(A B)>10)`)
     if (resultIndex === undefined) resultIndex = addVar(undefined, defaultBoolResult ? [0, 1] : undefined, false, false, true);
     else if (resultIndex === lastAssignmentIndex && resultIndex === lastUnknownIndex && defaultBoolResult) setDomain(resultIndex, domain_createRange(0, 1));
 
@@ -1160,43 +1158,38 @@ function dslToMl(dslStr, problem, _debug) {
     return nums;
   }
 
-  function parseIdentList() {
-    let idents = [];
-
-    while (true) {
-      skipWhitespaces();
-      if (read() === $$RIGHTPAREN) break;
-      if (read() === $$COMMA) {
-        skip();
-        skipWhitespaces();
-      }
-      let ident = parseIdentifier();
-      idents.push(ident);
-    }
-
+  function parseIdentsTo(target) {
+    let idents = parseIdents(target);
     if (!idents.length) THROW('Expected to parse a list of at least some identifiers but found none');
     return idents;
   }
 
-  function parseIdentsToEol() {
+  function parseIdents(target) {
     let idents = [];
 
-    while (true) {
-      skipWhitespaces();
-
+    skipWhitespaces();
+    while (!isEof()) {
       let c = read();
+      if (c === target) return idents;
       if (isLineEnd(c)) break;
 
       if (c === $$COMMA) {
+        if (!idents.length) THROW('Leading comma not supported');
         skip();
         skipWhitespaces();
+        if (isEof()) THROW('Trailing comma not supported'); // mmmm or should we? dont believe it to be relevant for this language
+        c = read();
+        if (c === $$COMMA) THROW('Double comma not supported');
       }
+
       let ident = parseIdentifier();
       idents.push(ident);
+
+      skipWhitespaces();
     }
 
-    if (!idents.length) THROW('Expected to parse a list of at least some identifiers but found none');
-    return idents;
+    if (target === undefined) return idents;
+    THROW('Missing target char at eol/eof');
   }
 
   function readLineRest() {
@@ -1242,7 +1235,7 @@ function dslToMl(dslStr, problem, _debug) {
         case 'noleaf':
           skipWhitespaces();
 
-          let idents = parseIdentsToEol();
+          let idents = parseIdentsTo(undefined);
           for (let i = 0, len = idents.length; i < len; ++i) {
             // debug vars are never considered leaf vars until we change that (to something else and update this to something that still does the same thing)
             // this is for testing as a simple tool to prevent many trivial optimizations to kick in. it's not flawless.
@@ -1257,13 +1250,15 @@ function dslToMl(dslStr, problem, _debug) {
           freeDirective = size;
           break;
 
+        case 'targets':
+          parseTargets();
+          break;
+
         default:
           THROW('Unsupported custom rule: ' + ident);
       }
-    } else if (ruleName === 'targets') {
-      parseTargets();
     } else {
-      THROW('unknown @ rule [' + ruleName + ']');
+      THROW('Unknown @ rule [' + ruleName + ']');
     }
     expectEol();
   }
@@ -1272,7 +1267,7 @@ function dslToMl(dslStr, problem, _debug) {
     TRACE('compileJump(' + size + '), mlPointer=', mlPointer);
     ASSERT(size > 0, 'dont call this function on size=0');
     switch (size) {
-      case 0:
+      case 0: // dead code. test code should catch these cases at call site. runtime can still just ignore it.
         break; // ignore. only expliclty illustrates no free space
       case 1:
         encode8bit(ML_NOOP);
@@ -1310,7 +1305,7 @@ function dslToMl(dslStr, problem, _debug) {
 
   function parseVarStrat() {
     let json = readLineRest();
-    if (/\w+/.test(json)) problem.input.varstrat = json;
+    if (/^\w+$/.test(json)) problem.input.varstrat = json;
     else problem.input.varstrat = JSON.parse(json);
   }
 
@@ -1331,19 +1326,19 @@ function dslToMl(dslStr, problem, _debug) {
   function parseTargets() {
     skipWhitespaces();
     if (read() === $$EQ) {
-      skip();
-      skipWhitespaces();
-    }
-
-    THROW('implement me (targeted vars)');
-    if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
+      THROW('Unexpected double eq sign');
+    } else if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
       dslPointer += 3;
-      this.solver.config.targetedVars = 'all';
+      //this.solver.config.targetedVars = 'all';
     } else {
       is($$LEFTPAREN);
-      this.solver.config.targetedVars = parseIdentList();
+      let list = parseIdentsTo($$RIGHTPAREN);
+      console.error('FIXME', list);
+      //this.solver.config.targetedVars = list
       is($$RIGHTPAREN);
     }
+
+    //THROW('implement me (targeted vars)');
     expectEol();
   }
 

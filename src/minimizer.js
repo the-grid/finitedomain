@@ -431,11 +431,11 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     let indexA = readIndex(ml, offsetA);
     let indexB = readIndex(ml, offsetB);
 
+    TRACE(' = min_eq', indexA, '==', indexB, '   ->   ', domain__debug(getDomain(indexA, true)), '==', domain__debug(getDomain(indexB, true)));
+
     if (indexA !== indexB) {
       let A = getDomainFast(indexA, 1);
       let B = getDomainFast(indexB, 3);
-
-      TRACE(' = min_eq', indexA, '==', indexB, '   ->   ', domain__debug(A), '==', domain__debug(B));
       if (!A || !B) return;
 
       let R = domain_intersection(A, B);

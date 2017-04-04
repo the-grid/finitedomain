@@ -52,6 +52,9 @@ import {
 
   ml_throw,
 } from './ml';
+import {
+  bounty_getCounts,
+} from './bounty';
 
 // BODY_START
 
@@ -61,7 +64,7 @@ import {
  *
  * @param {Buffer} ml
  * @param {Object} problem
- * @param {number[]} [counts] Maps to var varNames, holds the sum of the number of times each var occurs in a constraint
+ * @param {number[]} [bounty]
  * @param {Object} [options]
  * @property {boolean} options.debug Enable debug output (adds lots of comments about vars)
  * @property {boolean} options.hashNames Replace original varNames with `$<base36(index)>$` of their index in the output
@@ -69,12 +72,18 @@ import {
  * @property {boolean} options.groupedConstraints When debugging only, add all constraints below a var decl where that var is used
  * @returns {string}
  */
-function mlToDsl(ml, problem, counts, options) {
+function mlToDsl(ml, problem, bounty, options) {
   TRACE('\n## mlToDsl');
-  const DEBUG = options ? options.debug : true; // add debugging help in comments (domains, related constraints, occurrences, etc)
-  const HASH_NAMES = options ? options.hashNames : true; // replace all var varNames with $index$ with index in base36
-  const INDEX_NAMES = options ? options.indexNames : false; // replace all var varNames with _index_ (ignored if HASH_NAMES is true)
-  const ADD_GROUPED_CONSTRAINTS = options ? options.groupedConstraints : true; // only used when debugging
+
+  ASSERT(typeof options.debug === 'boolean', 'all options should be defaulted by the runner');
+  ASSERT(typeof options.hashNames === 'boolean', 'all options should be defaulted by the runner');
+  ASSERT(typeof options.indexNames === 'boolean', 'all options should be defaulted by the runner');
+  ASSERT(typeof options.groupedConstraints === 'boolean', 'all options should be defaulted by the runner');
+
+  const DEBUG = options.debug; // add debugging help in comments (domains, related constraints, occurrences, etc)
+  const HASH_NAMES = options.hashNames; // replace all var varNames with $index$ with index in base36
+  const INDEX_NAMES = options.indexNames; // replace all var varNames with _index_ (ignored if HASH_NAMES is true)
+  const ADD_GROUPED_CONSTRAINTS = options.groupedConstraints; // only used when debugging
 
   let {
     varNames,
@@ -95,7 +104,15 @@ function mlToDsl(ml, problem, counts, options) {
     return varNames[index];
   }
 
-  //if (counts) console.error(counts.map((c, i) => [c, i]).sort((a, b) => b[0] - a[0]).slice(0, 40).map(a => [a[0], toName(a[1])]));
+  function valueOrName(a, vA) {
+    if (vA >= 0) return vA;
+    return toName(a);
+  }
+
+  function domainstr(A, vA) {
+    if (vA >= 0) return 'lit(' + vA + ')';
+    return domain__debug(A);
+  }
 
   let allParts = [];
   let partsPerVar = [];
@@ -112,7 +129,7 @@ function mlToDsl(ml, problem, counts, options) {
     // first generate var decls for unsolved, unaliased vars
     domains.forEach((domain, index) => {
       let str = '';
-      if (domain === false || (counts && !counts[index])) {
+      if (domain === false || (bounty && !bounty_getCounts(bounty, index))) {
         // either solved, alias, or leaf. leafs still needs to be updated after the rest solves.
         domain = getDomain(index);
         if (domain_getValue(domain) >= 0) {
@@ -132,15 +149,20 @@ function mlToDsl(ml, problem, counts, options) {
 
     let varDeclsString = domains
       .map((_, varIndex) => {
-        // ignore constants and aliased vars
-        let decl = varDecls[varIndex];
-        if (!decl) return '';
+        // ignore constants, aliases, and leafs
+        if (domains[varIndex] === false) return '';
+        let counts = bounty_getCounts(bounty, varIndex);
+        if (!counts) return '';
 
-        let ops = (varOps[varIndex] || '').split(/ /g).sort().join(' ');
+        let decl = varDecls[varIndex];
+        ASSERT(varOps[varIndex], 'anything that has counts should have varOps of those constraints', 'var index:', varIndex, 'counts:', counts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex], '->', partsPerVar[varIndex] && partsPerVar[varIndex].map(partIndex => allParts[partIndex]));
+        ASSERT(decl, 'anything that has counts should have that many constraints', 'var index:', varIndex, 'counts:', counts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex]);
+
+        let ops = varOps[varIndex].split(/ /g).sort().join(' ');
 
         return (
           decl +
-          (counts ? ' # ocounts: ' + counts[varIndex] : '') +
+          ' # ocounts: ' + counts +
           ((HASH_NAMES || !INDEX_NAMES) ? '  # index = ' + varIndex : '') +
           '  # ops (' + (ops.replace(/[^ ]/g, '').length + 1) + '): ' + ops + ' $' +
           ((ADD_GROUPED_CONSTRAINTS && partsPerVar[varIndex])
@@ -161,7 +183,7 @@ function mlToDsl(ml, problem, counts, options) {
 #    - Unsolved: ${unsolved} x
 #    - Solve stack: ${solveStack.length} x (or ${solveStack.length - aliases} x without aliases)
 `;
-    if (DEBUG) console.error(dsl);
+    console.error(dsl);
 
     dsl += `
 # Var decls:
@@ -170,7 +192,7 @@ ${varDeclsString}
 `;
   } else {
     dsl += '# vars:\n';
-    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !counts || counts[a[1]] > 0).map(a => ': ' + toName(a[1]) + ' [' + domain_toArr(a[0]) + ']').join('\n');
+    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !bounty || bounty_getCounts(bounty, a[1]) > 0).map(a => ': ' + toName(a[1]) + ' [' + domain_toArr(a[0]) + ']').join('\n');
     dsl += '\n\n';
   }
 
@@ -192,7 +214,7 @@ ${varDeclsString}
     return (ml[pc++] << 24) | (ml[pc++] << 16) | (ml[pc++] << 8) | ml[pc++];
   }
 
-  function m2d_decA() {
+  function m2d_decA(op) {
     let a = getAlias(m2d_dec16());
     let A = getDomain(a);
     let vA = domain_getValue(A);
@@ -201,20 +223,21 @@ ${varDeclsString}
       if (vA < 0) {
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
+        varOps[a] = (varOps[a] === undefined ? '' : varOps[a] + ' ') + op;
       }
 
-      let s = vA >= 0 ? vA : toName(a);
+      let s = valueOrName(a, vA);
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(getDomain(a)));
+      s += '# ' + domainstr(A, vA);
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += counts ? '# counts: ' + (counts[a] === undefined ? '-' : counts[a]) : '';
+      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, a) + ' ';
       s += ' \n';
 
       return s;
     } else {
-      return (vA >= 0 ? vA : toName(a));
+      return valueOrName(a, vA);
     }
   }
 
@@ -228,30 +251,30 @@ ${varDeclsString}
     let vB = domain_getValue(B);
 
     if (DEBUG) {
-      if (vA < 0) {
+      if (vA < 0) { // else is probably dead code; all binary void constraints with a constant get resolved immediately
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-        varOps[a] = (varOps[a] ? varOps[a] + ' ' : '') + op;
+        varOps[a] = ' ' + op;
       }
 
-      if (vB < 0) {
+      if (vB < 0) { // else is probably dead code; all binary void constraints with a constant get resolved immediately
         if (!partsPerVar[b]) partsPerVar[b] = [];
         partsPerVar[b].push(allParts.length);
-        varOps[b] = (varOps[b] ? varOps[b] + ' ' : '') + op;
+        varOps[b] += ' ' + op;
       }
 
-      let s = (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b));
+      let s = valueOrName(a, vA) + ' ' + op + ' ' + valueOrName(b, vB);
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(A)) + ' ' + op + ' ' + (vB >= 0 ? 'lit(' + vB + ')' : domain__debug(B));
+      s += '# ' + domainstr(A, vA) + ' ' + op + ' ' + domainstr(b, vB);
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a + ', ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + (counts[a] === undefined ? '-' : counts[a]) + ' ' + op + ' ' + (counts[b] === undefined ? '-' : counts[b]) : '');
+      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, a) + ' ' + op + ' ' + bounty_getCounts(bounty, b) + ' ';
       s += ' \n';
 
       return s;
     } else {
-      return (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b)) + '\n';
+      return valueOrName(a, vA) + ' ' + op + ' ' + valueOrName(b, vB) + '\n';
     }
   }
 
@@ -269,38 +292,39 @@ ${varDeclsString}
     let vC = domain_getValue(C);
 
     if (DEBUG) {
-      if (vA < 0) {
+      if (vA < 0) { // else is probably dead; args are ordered and A can only be solved if B is also solved or unordered.
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-        varOps[a] = (varOps[a] ? varOps[a] + ' ' : '') + op;
+        varOps[a] = ' ' + op;
       }
 
       if (vB < 0) {
         if (!partsPerVar[b]) partsPerVar[b] = [];
         partsPerVar[b].push(allParts.length);
-        varOps[b] = (varOps[b] ? varOps[b] + ' ' : '') + op;
+        varOps[b] = ' ' + op;
       }
 
       if (vC < 0) {
         if (!partsPerVar[c]) partsPerVar[c] = [];
         partsPerVar[c].push(allParts.length);
-        varOps[c] = (varOps[c] ? varOps[c] + ' ' : '') + op;
+        varOps[c] = ' ' + op;
       }
 
-      let s = (vC >= 0 ? vC : toName(c)) + ' = ' + (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b));
+      let s = valueOrName(c, vC) + ' = ' + valueOrName(a, vA) + ' ' + op + ' ' + valueOrName(b, vB);
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + (vC >= 0 ? 'lit(' + vC + ')' : domain__debug(C)) + ' = ' + (vA >= 0 ? 'lit(' + vA + ')' : domain__debug(A)) + ' ' + op + ' ' + (vB >= 0 ? 'lit(' + vB + ')' : domain__debug(B));
+      s += '# ' + domainstr(C, vC) + ' = ' + domainstr(A, vA) + ' ' + op + ' ' + domainstr(B, vB);
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# indexes: ' + c + ' = ' + a + ' ' + op + ' ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      if (counts) s += '# counts: ' + (counts[c] === undefined ? '-' : counts[c]) + ' = ' + (counts[a] === undefined ? '-' : counts[a]) + ' ' + op + ' ' + (counts[b] === undefined ? '-' : counts[b]) + ' ';
+      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, c) + ' = ' + bounty_getCounts(bounty, a) + ' ' + op + ' ' + bounty_getCounts(bounty, b) + ' ';
       s += '\n';
 
       return s;
     } else {
-      return (vC >= 0 ? vC : toName(c)) + ' = ' + (vA >= 0 ? vA : toName(a)) + ' ' + op + ' ' + (vB >= 0 ? vB : toName(b)) + '\n';
+      return valueOrName(c, vC) + ' = ' + valueOrName(a, vA) + ' ' + op + ' ' + valueOrName(b, vB) + '\n';
     }
   }
+
 
   function m2d_listVoid(callName) {
     let argCount = m2d_dec16();
@@ -314,17 +338,17 @@ ${varDeclsString}
       let D = getDomain(d);
       let vD = domain_getValue(D);
 
-      argNames += vD >= 0 ? vD : toName(d) + ' ';
+      argNames += valueOrName(d, vD) + ' ';
       if (DEBUG) {
         if (vD < 0) {
           if (!partsPerVar[d]) partsPerVar[d] = [];
           partsPerVar[d].push(allParts.length);
-          varOps[d] = (varOps[d] ? varOps[d] + ' ' : '') + callName;
+          varOps[d] = ' ' + callName;
         }
 
         indexes += d + ' ';
-        if (counts) counters += (counts[d] === undefined ? '-' : counts[d]) + ' ';
-        debugs += domain__debug(D) + ' ';
+        if (bounty) counters += bounty_getCounts(bounty, d) + ' ';
+        debugs += domainstr(D, vD) + ' ';
       }
     }
     if (DEBUG) {
@@ -334,7 +358,7 @@ ${varDeclsString}
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# indexes: ' + indexes;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + callName + '( ' + counters + ')' : '');
+      if (bounty) s += '# counts: ' + callName + '( ' + counters + ')';
       s += '\n';
 
       return s;
@@ -359,17 +383,17 @@ ${varDeclsString}
       let D = getDomain(d);
       let vD = domain_getValue(D);
 
-      argNames += vD >= 0 ? vD : toName(d) + ' ';
+      argNames += valueOrName(d, vD) + ' ';
       if (DEBUG) {
         if (vD < 0) {
           if (!partsPerVar[d]) partsPerVar[d] = [];
           partsPerVar[d].push(allParts.length);
-          varOps[d] = (varOps[d] ? varOps[d] + ' ' : '') + callName;
+          varOps[d] = ' ' + callName;
         }
 
         indexes += d + ' ';
-        if (counts) counters += (counts[d] === undefined ? '-' : counts[d]) + ' ';
-        debugs += domain__debug(D) + ' ';
+        if (bounty) counters += bounty_getCounts(bounty, d) + ' ';
+        debugs += domainstr(D, vD) + ' ';
       }
     }
 
@@ -378,25 +402,24 @@ ${varDeclsString}
     let vR = domain_getValue(R);
 
     if (DEBUG) {
-      varOps[r] = (varOps[r] ? varOps[r] + ' ' : '') + callName;
       if (vR < 0) {
         if (!partsPerVar[r]) partsPerVar[r] = [];
         partsPerVar[r].push(allParts.length);
-        varOps[r] = (varOps[r] ? varOps[r] + ' ' : '') + callName;
+        varOps[r] = ' ' + callName;
       }
 
-      let s = (vR >= 0 ? vR : toName(r)) + ' = ' + callName + '( ' + argNames + ')';
+      let s = valueOrName(r, vR) + ' = ' + callName + '( ' + argNames + ')';
       s += ' '.repeat(Math.max(45 - s.length, 3));
-      s += '# ' + domain__debug(R) + ' = ' + callName + '( ' + debugs + ') ';
+      s += '# ' + domainstr(R, vR) + ' = ' + callName + '( ' + debugs + ') ';
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# indexes: ' + r + ' = ' + indexes;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      s += (counts ? '# counts: ' + (counts[r] === undefined ? '-' : counts[r]) + ' = ' + callName + '( ' + counters + ')' : '');
+      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, r) + ' = ' + callName + '( ' + counters + ')';
       s += '\n';
 
       return s;
     } else {
-      return (vR >= 0 ? vR : toName(r)) + ' = ' + callName + '( ' + argNames + ')\n';
+      return valueOrName(r, vR) + ' = ' + callName + '( ' + argNames + ')\n';
     }
   }
 
@@ -406,8 +429,6 @@ ${varDeclsString}
 
       let op = ml[pc++];
       let part = '';
-
-      //console.log('->', pc, op);
 
       switch (op) {
         case ML_START:
@@ -572,8 +593,12 @@ ${varDeclsString}
         case ML_DEBUG:
           TRACE(' ! debug');
           // dont send this to finitedomain; it wont know what to do with it
-          if (DEBUG) part = '@custom noleaf ' + m2d_decA(2) + '\n';
-          else m2d_decA(); // skip
+          if (DEBUG) {
+            let i = m2d_decA('debug');
+            part = '@custom noleaf ' + i + '\n';
+          } else {
+            m2d_decA(); // skip
+          }
           break;
         case ML_NOOP:
           TRACE(' ! noop');

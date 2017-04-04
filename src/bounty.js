@@ -144,6 +144,7 @@ function bounty_collect(ml, problem, bounty) {
 
     let domain = getDomain(index, true);
     TRACE(' - index=', index, 'domain=', domain__debug(domain));
+    ASSERT(domain !== false, 'domain should be unaliased');
     if (domain_getValue(domain) >= 0) return; // ignore all constants. solved vars and constants are not relevant to bounty
 
     let varOffset = getBountyOffset(index);
@@ -178,7 +179,11 @@ function bounty_collect(ml, problem, bounty) {
       TRACE(' -- CT pc=' + pc + ', op: ' + ml__debug(ml, pc, 1, problem));
       switch (op) {
         case ML_EQ:
-          THROW('this should really already have been aliased elsewhere');
+          // should be aliased but if the problem rejected there may be eqs like this left
+          // (bounty is also used for generating the dsl problem)
+          collect(1, BOUNTY_OTHER_NONBOOLY);
+          collect(3, BOUNTY_OTHER_NONBOOLY);
+          pc += SIZEOF_VV;
           break;
 
         case ML_NEQ:

@@ -44,12 +44,12 @@ import {
   domain_arrToSmallest,
 } from './domain';
 import {
-  counter,
-} from './counter';
-import {
   problem_create,
   //problem_from,
 } from './problem';
+import {
+  bounty_collect,
+} from './bounty';
 
 // BODY_START
 
@@ -62,6 +62,7 @@ import {
  * @property {boolean} [options.repeatUntilStable=true] Keep calling minimize/cutter per cycle until nothing changes?
  * @property {boolean} [options.debugDsl=false] Extended dsl output?
  * @property {boolean} [options.indexNames=false] Use `_<index>_` for all var names instead of their original name?
+ * @property {boolean} [options.groupedConstraints=true] Only when debugDsl=true; below a var decl list all constraints it is part of (in comments)
  */
 function preSolver(dsl, Solver, options = {}) {
   //options.hashNames = false;
@@ -69,11 +70,13 @@ function preSolver(dsl, Solver, options = {}) {
   //options.debugDsl = false;
   //options.singleCycle = true;
   //options.indexNames = true;
+  //options.groupedConstraints = true;
 
   let {
     hashNames = true,
     debugDsl = false,
     indexNames = false,
+    groupedConstraints = true,
   } = options;
 
   let problem = problem_create();
@@ -89,7 +92,8 @@ function preSolver(dsl, Solver, options = {}) {
   let state = crunch(dsl, problem, options);
 
   console.time('ml->dsl');
-  let newdsl = mlToDsl(problem.ml, problem, counter(problem.ml, problem), {debug: debugDsl, hashNames: hashNames, indexNames: indexNames || (!hashNames && debugDsl), groupedConstraints: true, solvedVars: true});
+  let bounty = bounty_collect(problem.ml, problem);
+  let newdsl = mlToDsl(problem.ml, problem, bounty, {debug: debugDsl, hashNames, indexNames, groupedConstraints, solvedVars: true});
   console.timeEnd('ml->dsl');
 
   console.timeEnd('</preSolver>');
@@ -102,7 +106,7 @@ function preSolver(dsl, Solver, options = {}) {
     console.timeEnd('- generating early solution');
   }
 
-  if (newdsl.length < 1000 || !Solver) console.log('\nResult dsl:\n' + newdsl);
+  if (newdsl.length < 1000 || !Solver) console.log('\nResult dsl (debugDsl=' + debugDsl + ', hashNames=' + hashNames + ', indexNames=' + indexNames + '):\n' + newdsl);
 
   if (solution) {
     console.error('<solved without finitedomain>');
@@ -223,9 +227,6 @@ function run_cycle(ml, getVar, addVar, domains, vars, addAlias, getAlias, solveS
   console.time('- minimizer cycle #' + runLoops);
   let state = min_run(ml, problem, domains, vars, runLoops === 0);
   console.timeEnd('- minimizer cycle #' + runLoops);
-
-  //console.log(mlToDsl(ml, problem, counter(ml, problem), {debug: false, hashNames: false, indexNames: true, groupedConstraints: true}));
-  //throw 'stop now.';
 
   if (state === $SOLVED) return state;
   if (state === $REJECTED) return state;

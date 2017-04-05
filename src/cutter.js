@@ -124,6 +124,7 @@ import {
   //BOUNTY_SUM_RESULT_ONLY_FLAG,
   BOUNTY_SUM_RESULT,
 
+  bounty__debug,
   bounty__debugMeta,
   bounty_collect,
   bounty_getCounts,
@@ -1755,34 +1756,37 @@ function cutter(ml, problem, once) {
     return true;
   }
 
-  function trickLteLhsIsall(ml, lteOffset, indexA, meta, countsR) {
+  function trickLteLhsIsall(ml, lteOffset, indexA, meta, countsA) {
     // S <= A, S = all?(A B)   ->   S = all?(A B)
     // (the isall subsumes the lte, regardless of other constraints)
 
-    TRACE('trickLteLhsTwice', indexA, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B)   ->   S = all?(A B)`');
+    TRACE('trickLteLhsTwice', indexA, 'at', lteOffset, 'metaFlags:', bounty__debugMeta(meta), '`S <= A, S = all?(A B ...)   ->   S = all?(A B ...)`');
+    TRACE(' - lte:', readIndex(ml, lteOffset + 1), '<=', indexA, '->', domain__debug(getDomain(readIndex(ml, lteOffset + 1), true)), '<=', domain__debug(getDomain(indexA, true)));
 
     // the next asserts should have been verified by the bounty hunter, so they are only verified in ASSERTs
-    ASSERT(countsR > 1, 'the indexA should only be part of two constraints', countsR, bounty__debugMeta(meta), 'wtf?', meta);
+    ASSERT(countsA > 1, 'the indexA should only be part of two constraints', countsA, bounty__debugMeta(meta), 'wtf?', meta);
+    ASSERT(countsA === getCounts(bounty, indexA), 'correct value?', countsA === getCounts(bounty, indexA));
     ASSERT((meta & BOUNTY_LTE_LHS) === BOUNTY_LTE_LHS && (meta & BOUNTY_ISALL_RESULT) === BOUNTY_ISALL_RESULT, 's must at least be an lte lhs and isall result var');
     ASSERT(ml_dec8(ml, lteOffset) === ML_LTE, 'lteOffset should be lte');
     ASSERT(ml_dec16(ml, lteOffset + 1) === indexA, 'shared index should be lhs of lteOffset');
 
     let indexB = readIndex(ml, lteOffset + 3);
 
-    let toCheck = countsR <= BOUNTY_MAX_OFFSETS_TO_TRACK ? countsR : BOUNTY_MAX_OFFSETS_TO_TRACK;
+    let toCheck = Math.min(countsA, BOUNTY_MAX_OFFSETS_TO_TRACK);
 
     // note: it's not guaranteed that we'll actually see an isall in this loop
-    // if countsR is higher than the max number of offsets tracked by bounty
+    // if countsA is higher than the max number of offsets tracked by bounty
     // in that case nothing happens and the redundant constraint persists. no biggie
     for (let i = 0; i < toCheck; ++i) {
+      TRACE('   - fetching #', i, '/', toCheck, '(', countsA, '|', BOUNTY_MAX_OFFSETS_TO_TRACK, ')');
       let offset = bounty_getOffset(bounty, indexA, i);
       TRACE('   - #' + i, ', offset =', offset);
       if (offset !== lteOffset) {
         let op = ml_dec8(ml, offset);
         if (op === ML_ISALL) {
-          _trickLteLhsIsall1(lteOffset, offset, indexA, indexB);
+          if (_trickLteLhsIsall1(lteOffset, offset, indexA, indexB)) return true;
         } else if (op === ML_ISALL2) {
-          _trickLteLhsIsall2(lteOffset, offset, indexA, indexB);
+          if (_trickLteLhsIsall2(lteOffset, offset, indexA, indexB)) return true;
         }
       }
     }
@@ -1807,8 +1811,10 @@ function cutter(ml, problem, once) {
         bounty_markVar(bounty, indexA);
         bounty_markVar(bounty, indexB);
         somethingChanged();
+        return true;
       }
     }
+    return false;
   }
   function _trickLteLhsIsall2(lteOffset, isallOffset, indexA, indexB) {
     // A <= B, A = all?(B C) -> drop lte
@@ -1822,7 +1828,9 @@ function cutter(ml, problem, once) {
       bounty_markVar(bounty, indexA);
       bounty_markVar(bounty, indexB);
       somethingChanged();
+      return true;
     }
+    return false;
   }
 
   function trickLteRhsIsallEntry(indexS, lteOffset, meta, counts) {
@@ -2280,6 +2288,8 @@ function cutter(ml, problem, once) {
 
   function trickNandLteLhs(ml, indexA, lteOffset, meta, counts) {
     // A <= B, A !& C   ->   * (A leaf)
+
+    TRACE('trickNandLteLhs bounty__debug(bounty, indexA):', bounty__debug(bounty, indexA));
 
     let offset1 = bounty_getOffset(bounty, indexA, 0);
     let offset2 = bounty_getOffset(bounty, indexA, 1);
@@ -3253,6 +3263,7 @@ function cutter(ml, problem, once) {
 
     bounty_markVar(bounty, indexR);
     somethingChanged();
+    return true;
   }
 
   function trickXnorPseudoEq(ml, offset, indexA, boolyA, indexB, boolyB) {

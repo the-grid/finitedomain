@@ -178,6 +178,7 @@ function dslToMl(dslStr, problem, _debug) {
   ASSERT(mlPointer === mlBuffer.length, 'mlPointer should now be at the first unavailable cell of the buffer', mlPointer, mlBuffer.length, mlBuffer);
 
   problem.ml = mlBuffer;
+  if (!problem.input.targets) problem.input.targets = 'all';
 
   console.log('# dslToMl: parsed', constraintCount, 'constraints');
   return;
@@ -1325,20 +1326,17 @@ function dslToMl(dslStr, problem, _debug) {
 
   function parseTargets() {
     skipWhitespaces();
-    if (read() === $$EQ) {
-      THROW('Unexpected double eq sign');
-    } else if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
+    if (read() === $$EQ) THROW('Unexpected double eq sign');
+
+    if (read() === $$a && readD(1) === $$l && readD(2) === $$l) {
       dslPointer += 3;
-      //this.solver.config.targetedVars = 'all';
     } else {
       is($$LEFTPAREN);
       let list = parseIdentsTo($$RIGHTPAREN);
-      console.error('FIXME', list);
-      //this.solver.config.targetedVars = list
+      problem.freezeTargets(list);
       is($$RIGHTPAREN);
     }
 
-    //THROW('implement me (targeted vars)');
     expectEol();
   }
 

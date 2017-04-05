@@ -91,6 +91,7 @@ function mlToDsl(ml, problem, bounty, options) {
     getDomain,
     getAlias,
     solveStack,
+    targeted,
   } = problem;
 
 
@@ -162,6 +163,7 @@ function mlToDsl(ml, problem, bounty, options) {
 
         return (
           decl +
+          ' # T:' + targeted[varIndex] + ' ' +
           ' # ocounts: ' + counts +
           ((HASH_NAMES || !INDEX_NAMES) ? '  # index = ' + varIndex : '') +
           '  # ops (' + (ops.replace(/[^ ]/g, '').length + 1) + '): ' + ops + ' $' +
@@ -196,7 +198,12 @@ ${varDeclsString}
     dsl += '\n\n';
   }
 
-  dsl += '# Constraints:\n' + allParts.join('');
+  dsl += '\n# Constraints:\n' + allParts.join('');
+
+  dsl += '\n# Meta:\n' +
+    m2d_getTargetsDirective() +
+  '';
+
   return dsl;
 
   // ###########################################
@@ -622,6 +629,28 @@ ${varDeclsString}
       }
       allParts.push(part);
     }
+  }
+
+  function m2d_getTargetsDirective() {
+    let targets = [];
+    let targeted = problem.targeted;
+    let len = domains.length;
+    let total = 0;
+    let nontargets = 0;
+    for (let i = 0; i < len; ++i) {
+      if (domains[i] === false) continue;
+      if (!bounty_getCounts(bounty, i)) continue;
+
+      ++total;
+      if (!targeted[i]) {
+        ++nontargets; // we only care about this state for vars that will appear in the dsl.
+        continue;
+      }
+
+      targets.push(toName(i));
+    }
+
+    return '@custom targets' + (nontargets ? '( ' + targets.join(' ') + ' )' : ' all') + ' # ' + (total - nontargets) + ' / ' + total + '\n';
   }
 }
 

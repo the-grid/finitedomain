@@ -39,7 +39,7 @@ import {
 
 const MAX_VAR_COUNT = 0xffff; // 16bit
 
-function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, name, domain, modifier, returnName, returnIndex, _throw) {
+function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCounter, $targeted, $targetsFrozen, name, domain, modifier, returnName, returnIndex, _throw) {
   TRACE('addVar', name, domain, modifier, returnName ? '(return name)' : '', returnIndex ? '(return index)' : '');
   if (modifier) {
     if (_throw) _throw('implement me (var mod)');
@@ -62,19 +62,23 @@ function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCount
 
   let v = domain_getValue(domain);
   if (typeof name === 'string' || v < 0 || returnName) {
-    if (name === undefined) {
+    let wasAnon = name === undefined;
+    if (wasAnon) {
       name = '__' + $getAnonCounter();
       TRACE(' - Adding anonymous var for dom=', domain, '->', name);
     }
 
     newIndex = $vars.length;
+
     let prev = trie_add($varTrie, name, newIndex);
     if (prev >= 0) {
       if (_throw) _throw('Dont declare a var after using it', name, prev);
       THROW('Dont declare a var after using it', name, prev);
     }
+
     $vars.push(name);
     $domains.push(domain);
+    $targeted[newIndex] = wasAnon ? false : !$targetsFrozen(); // note: cannot override frozen values since all names must already be declared when using `@custom targets`
   }
   // note: if the name is string but domain is constant, we must add the name here as well and immediately alias it to a constant
   if (v >= 0 && !returnName) { // TODO: we'll phase out the second condition here soon, but right now constants can still end up as regular vars
@@ -92,7 +96,7 @@ function $addVar($varTrie, $vars, $domains, $constants, $addAlias, $getAnonCount
 function $name2index($varTrie, $getAlias, name, skipAliasCheck, scanOnly) {
   //ASSERT_LOG2('$name2index', name, skipAliasCheck);
   let varIndex = trie_get($varTrie, name);
-  if (!scanOnly && varIndex < 0) THROW('cant use this on constants', name, varIndex);
+  if (!scanOnly && varIndex < 0) THROW('cant use this on constants or vars that have not (yet) been declared', name, varIndex);
   if (!skipAliasCheck && varIndex >= 0) varIndex = $getAlias(varIndex);
   return varIndex;
 }
@@ -103,6 +107,7 @@ function $addAlias($domains, $aliases, $solveStack, indexOld, indexNew, _origin,
   ASSERT(indexOld >= 0 && indexOld <= $domains.length, 'should be valid non-constant var index', indexOld, _origin);
   ASSERT(indexNew >= 0, 'should be valid var index', indexNew, _origin);
   //ASSERT($domains[indexOld], 'current domain shouldnt be empty', _origin);
+  ASSERT(!indexOld || (indexOld - 1) in $domains, 'dont create gaps...', indexOld);
 
   let oldDomain = $domains[indexOld];
   $aliases[indexOld] = indexNew;
@@ -171,7 +176,13 @@ function $setDomain($domains, $constants, $addAlias, $getAlias, varIndex, domain
   }
 
   if (!skipAliasCheck) varIndex = $getAlias(varIndex);
-  $domains[varIndex] = domain;
+  if (domain === 0) {
+    // make sure we're not overriding a constant...
+    if (varIndex in $domains) $domains[varIndex] = domain;
+  } else {
+    ASSERT(!varIndex || varIndex in $domains, 'do not create gaps', varIndex, domain__debug(domain));
+    $domains[varIndex] = domain;
+  }
 }
 function value2index(constants, value) {
   //ASSERT_LOG2('value2index', value, '->', constants['v' + value]);
@@ -198,6 +209,10 @@ function problem_create() {
 
   let addAlias = $addAlias.bind(undefined, domains, aliases, solveStack);
   let getAlias = $getAlias.bind(undefined, aliases);
+  let name2index = $name2index.bind(undefined, varTrie, getAlias);
+
+  let targeted = [];
+  let targetsFrozen = false; // false once a targets directive is parsed
 
   return {
     varTrie,
@@ -215,14 +230,22 @@ function problem_create() {
     ml: undefined, // Buffer
     mapping: undefined, // var index in (this) child to var index of parent
 
-    addVar: $addVar.bind(undefined, varTrie, varNames, domains, constants, addAlias, _ => ++anonCounter),
-    getVar: $name2index.bind(undefined, varTrie, getAlias), // deprecated
-    name2index: $name2index.bind(undefined, varTrie, getAlias),
+    addVar: $addVar.bind(undefined, varTrie, varNames, domains, constants, addAlias, _ => ++anonCounter, targeted, _ => targetsFrozen),
+    getVar: name2index, // deprecated
+    name2index,
     addAlias,
     getAlias,
     getDomain: $getDomain.bind(undefined, domains, constants, getAlias),
     setDomain: $setDomain.bind(undefined, domains, constants, addAlias, getAlias),
     isConstant: index => constants[index] !== undefined,
+    freezeTargets: varNames => {
+      if (targetsFrozen) THROW('Only one `targets` directive supported');
+      targetsFrozen = true;
+      targeted.fill(false);
+      varNames.forEach(name => targeted[name2index(name, true)] = true);
+    },
+
+    targeted, // for each element in $domains; true if targeted, false if not targeted
   };
 }
 

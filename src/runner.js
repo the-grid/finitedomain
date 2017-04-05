@@ -63,8 +63,9 @@ import {
  * @property {boolean} [options.debugDsl=false] Extended dsl output?
  * @property {boolean} [options.indexNames=false] Use `_<index>_` for all var names instead of their original name?
  * @property {boolean} [options.groupedConstraints=true] Only when debugDsl=true; below a var decl list all constraints it is part of (in comments)
+ * @param {Object} solveOptions Passed on to Solver.solve directly
  */
-function preSolver(dsl, Solver, options = {}) {
+function preSolver(dsl, Solver, options = {}, solveOptions) {
   //options.hashNames = false;
   //options.repeatUntilStable = true;
   //options.debugDsl = false;
@@ -72,6 +73,13 @@ function preSolver(dsl, Solver, options = {}) {
   //options.indexNames = true;
   //options.groupedConstraints = true;
 
+  console.log('<preSolver>');
+  console.time('</preSolver>');
+  let r = _preSolver(dsl, Solver, options, solveOptions);
+  console.timeEnd('</preSolver>');
+  return r;
+}
+function _preSolver(dsl, Solver, options, solveOptions) {
   let {
     hashNames = true,
     debugDsl = false,
@@ -85,18 +93,23 @@ function preSolver(dsl, Solver, options = {}) {
     domains,
   } = problem;
 
-  console.log('<preSolver>');
-  console.time('</preSolver>');
   TRACE(dsl.slice(0, 1000) + (dsl.length > 1000 ? ' ... <trimmed>' : '') + '\n');
 
   let state = crunch(dsl, problem, options);
 
   console.time('ml->dsl');
   let bounty = bounty_collect(problem.ml, problem);
-  let newdsl = mlToDsl(problem.ml, problem, bounty, {debug: debugDsl, hashNames, indexNames, groupedConstraints, solvedVars: true});
+  let newdsl = mlToDsl(problem.ml, problem, bounty, {debug: debugDsl, hashNames, indexNames, groupedConstraints});
   console.timeEnd('ml->dsl');
 
-  console.timeEnd('</preSolver>');
+  //console.log(domains.map((d,i) => i+':'+problem.targeted[i]).join(', '));
+  // confirm domains has no gaps...
+  //console.log(problem.domains)
+  //for (let i=0; i<domains.length; ++i) {
+  //  ASSERT(i in domains, 'no gaps');
+  //  ASSERT(domains[i] !== undefined, 'no pseudo gaps');
+  //}
+
 
   // cutter cant reject, only reduce. may eliminate the last standing constraints.
   let solution;
@@ -131,9 +144,11 @@ function preSolver(dsl, Solver, options = {}) {
 
   console.log('<FD>');
   console.time('</FD>');
-  let fdsolutions = new Solver({log: 1})
+
+
+  let fdsolutions = new Solver(solveOptions || {log: 1})
     .imp(newdsl)
-    .solve({
+    .solve(solveOptions || {
       log: 1,
       max: 1,
       //vars: solver.config.allVarNames,

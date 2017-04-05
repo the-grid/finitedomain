@@ -411,7 +411,7 @@ function bounty_markVar(bounty, varIndex) {
 }
 
 function bounty_getMeta(bounty, varIndex, _debug) {
-  ASSERT(bounty_getCounts(bounty, varIndex) > 0 || _debug, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
+  ASSERT(bounty_getCounts(bounty, varIndex) > 0 || _debug, 'check caller (2), this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
   return bounty.readUInt16BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT);
 }
 
@@ -419,12 +419,17 @@ function bounty_updateMeta(bounty, varIndex, newFlags) {
   bounty[varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_LINK_COUNT] = newFlags;
 }
 
-function bounty_getOffset(bounty, varIndex, n) {
-  ASSERT(bounty_getCounts(bounty, varIndex) > 0, 'check caller, this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)');
+function bounty_getOffset(bounty, varIndex, n, _debug) {
+  ASSERT(bounty_getCounts(bounty, varIndex) > 0 || _debug, 'check caller (1), this is probably a bug (var did not appear in any constraint, or its a constant, or this data was marked as stale)', varIndex, n, bounty_getCounts(bounty, varIndex), _debug);
   ASSERT(n < bounty_getCounts(bounty, varIndex), 'check caller, this is probably a bug (should not get an offset beyond the count)');
   ASSERT(n < BOUNTY_MAX_OFFSETS_TO_TRACK, 'OOB, shouldnt exceed the max offset count');
   return bounty.readUInt32BE(varIndex * BOUNTY_SIZEOF_VAR + BOUNTY_SIZEOF_HEADER + n * BOUNTY_BYTES_PER_OFFSET);
 }
+
+function bounty__debug(bounty, varIndex) {
+  return `{B: index=${varIndex}, counts=${bounty_getCounts(bounty, varIndex)}, meta=${bounty__debugMeta(bounty_getMeta(bounty, varIndex, true))}}`;
+}
+
 
 function bounty__debugMeta(meta) {
   ASSERT(typeof meta === 'number', 'the meta should be a number', meta);
@@ -481,6 +486,7 @@ export {
 
   BOUNTY_MAX_OFFSETS_TO_TRACK,
 
+  bounty__debug,
   bounty__debugMeta,
   bounty_collect,
   bounty_getCounts,

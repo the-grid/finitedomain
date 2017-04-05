@@ -25,15 +25,23 @@ var perf = module.exports = function perf(dsl, max, _waited) {
   console.log('start test');
   console.time('test runtime');
   if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profile && console.profile('pfd perf');
-  preSolver(dsl);
-  //{
-  //  log: 1,
-  //  max: max,
-  //  vars: solver.config.allVarNames,
-  //  _debug: false,
-  //  _tostring: false, // requires dsl build
-  //  exportBare: false, // does not require dsl build
-  //});
+  preSolver(
+    dsl,
+    undefined,
+    { // presolver
+      hashNames: false,
+      indexNames: true,
+      debugDsl: true,
+      singleCycle: false,
+    },
+    { // FD
+      log: 1,
+      max: max,
+      _debug: false,
+      _tostring: false, // requires dsl build
+      exportBare: false, // does not require dsl build
+    }
+  );
   if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('pfd perf');
   console.timeEnd('test runtime');
 };

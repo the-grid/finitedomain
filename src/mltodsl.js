@@ -115,6 +115,12 @@ function mlToDsl(ml, problem, bounty, options) {
     return domain__debug(A);
   }
 
+  function counts(index) {
+    let c = bounty_getCounts(bounty, index);
+    if (c === undefined) return '-';
+    return c;
+  }
+
   let allParts = [];
   let partsPerVar = [];
   let varOps = [];
@@ -130,7 +136,7 @@ function mlToDsl(ml, problem, bounty, options) {
     // first generate var decls for unsolved, unaliased vars
     domains.forEach((domain, index) => {
       let str = '';
-      if (domain === false || (bounty && !bounty_getCounts(bounty, index))) {
+      if (domain === false || (bounty && !counts(index))) {
         // either solved, alias, or leaf. leafs still needs to be updated after the rest solves.
         domain = getDomain(index);
         if (domain_getValue(domain) >= 0) {
@@ -152,19 +158,19 @@ function mlToDsl(ml, problem, bounty, options) {
       .map((_, varIndex) => {
         // ignore constants, aliases, and leafs
         if (domains[varIndex] === false) return '';
-        let counts = bounty_getCounts(bounty, varIndex);
-        if (!counts) return '';
+        let cnts = counts(varIndex);
+        if (!cnts) return '';
 
         let decl = varDecls[varIndex];
-        ASSERT(varOps[varIndex], 'anything that has counts should have varOps of those constraints', 'var index:', varIndex, 'counts:', counts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex], '->', partsPerVar[varIndex] && partsPerVar[varIndex].map(partIndex => allParts[partIndex]));
-        ASSERT(decl, 'anything that has counts should have that many constraints', 'var index:', varIndex, 'counts:', counts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex]);
+        ASSERT(varOps[varIndex], 'anything that has counts should have varOps of those constraints', 'var index:', varIndex, 'counts:', cnts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex], '->', partsPerVar[varIndex] && partsPerVar[varIndex].map(partIndex => allParts[partIndex]));
+        ASSERT(decl, 'anything that has counts should have that many constraints', 'var index:', varIndex, 'counts:', cnts, ', varops:', varOps[varIndex], ', decls:', decl, ', name:', varNames[varIndex], ', ppv:', partsPerVar[varIndex]);
 
         let ops = varOps[varIndex].split(/ /g).sort().join(' ');
 
         return (
           decl +
           ' # T:' + targeted[varIndex] + ' ' +
-          ' # ocounts: ' + counts +
+          ' # ocounts: ' + cnts +
           ((HASH_NAMES || !INDEX_NAMES) ? '  # index = ' + varIndex : '') +
           '  # ops (' + (ops.replace(/[^ ]/g, '').length + 1) + '): ' + ops + ' $' +
           ((ADD_GROUPED_CONSTRAINTS && partsPerVar[varIndex])
@@ -194,7 +200,7 @@ ${varDeclsString}
 `;
   } else {
     dsl += '# vars:\n';
-    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !bounty || bounty_getCounts(bounty, a[1]) > 0).map(a => ': ' + toName(a[1]) + ' [' + domain_toArr(a[0]) + ']').join('\n');
+    dsl += domains.map((d, i) => [d, i]).filter(a => a[0] !== false).filter(a => !bounty || counts(a[1]) > 0).map(a => ': ' + toName(a[1]) + ' [' + domain_toArr(a[0]) + ']').join('\n');
     dsl += '\n\n';
   }
 
@@ -239,7 +245,7 @@ ${varDeclsString}
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, a) + ' ';
+      if (bounty) s += '# counts: ' + counts(a) + ' ';
       s += ' \n';
 
       return s;
@@ -261,7 +267,7 @@ ${varDeclsString}
       if (vA < 0) { // else is probably dead code; all binary void constraints with a constant get resolved immediately
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-        varOps[a] = ' ' + op;
+        varOps[a] += ' ' + op;
       }
 
       if (vB < 0) { // else is probably dead code; all binary void constraints with a constant get resolved immediately
@@ -276,7 +282,7 @@ ${varDeclsString}
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# args: ' + a + ', ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, a) + ' ' + op + ' ' + bounty_getCounts(bounty, b) + ' ';
+      if (bounty) s += '# counts: ' + counts(a) + ' ' + op + ' ' + counts(b) + ' ';
       s += ' \n';
 
       return s;
@@ -302,19 +308,19 @@ ${varDeclsString}
       if (vA < 0) { // else is probably dead; args are ordered and A can only be solved if B is also solved or unordered.
         if (!partsPerVar[a]) partsPerVar[a] = [];
         partsPerVar[a].push(allParts.length);
-        varOps[a] = ' ' + op;
+        varOps[a] += ' ' + op;
       }
 
       if (vB < 0) {
         if (!partsPerVar[b]) partsPerVar[b] = [];
         partsPerVar[b].push(allParts.length);
-        varOps[b] = ' ' + op;
+        varOps[b] += ' ' + op;
       }
 
       if (vC < 0) {
         if (!partsPerVar[c]) partsPerVar[c] = [];
         partsPerVar[c].push(allParts.length);
-        varOps[c] = ' ' + op;
+        varOps[c] += ' ' + op;
       }
 
       let s = valueOrName(c, vC) + ' = ' + valueOrName(a, vA) + ' ' + op + ' ' + valueOrName(b, vB);
@@ -323,7 +329,7 @@ ${varDeclsString}
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# indexes: ' + c + ' = ' + a + ' ' + op + ' ' + b;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, c) + ' = ' + bounty_getCounts(bounty, a) + ' ' + op + ' ' + bounty_getCounts(bounty, b) + ' ';
+      if (bounty) s += '# counts: ' + counts(c) + ' = ' + counts(a) + ' ' + op + ' ' + counts(b) + ' ';
       s += '\n';
 
       return s;
@@ -350,11 +356,11 @@ ${varDeclsString}
         if (vD < 0) {
           if (!partsPerVar[d]) partsPerVar[d] = [];
           partsPerVar[d].push(allParts.length);
-          varOps[d] = ' ' + callName;
+          varOps[d] += ' ' + callName;
         }
 
         indexes += d + ' ';
-        if (bounty) counters += bounty_getCounts(bounty, d) + ' ';
+        if (bounty) counters += counts(d) + ' ';
         debugs += domainstr(D, vD) + ' ';
       }
     }
@@ -395,11 +401,11 @@ ${varDeclsString}
         if (vD < 0) {
           if (!partsPerVar[d]) partsPerVar[d] = [];
           partsPerVar[d].push(allParts.length);
-          varOps[d] = ' ' + callName;
+          varOps[d] += ' ' + callName;
         }
 
         indexes += d + ' ';
-        if (bounty) counters += bounty_getCounts(bounty, d) + ' ';
+        if (bounty) counters += counts(d) + ' ';
         debugs += domainstr(D, vD) + ' ';
       }
     }
@@ -412,7 +418,7 @@ ${varDeclsString}
       if (vR < 0) {
         if (!partsPerVar[r]) partsPerVar[r] = [];
         partsPerVar[r].push(allParts.length);
-        varOps[r] = ' ' + callName;
+        varOps[r] += ' ' + callName;
       }
 
       let s = valueOrName(r, vR) + ' = ' + callName + '( ' + argNames + ')';
@@ -421,7 +427,7 @@ ${varDeclsString}
       s += ' '.repeat(Math.max(110 - s.length, 3));
       s += '# indexes: ' + r + ' = ' + indexes;
       s += ' '.repeat(Math.max(150 - s.length, 3));
-      if (bounty) s += '# counts: ' + bounty_getCounts(bounty, r) + ' = ' + callName + '( ' + counters + ')';
+      if (bounty) s += '# counts: ' + counts(r) + ' = ' + callName + '( ' + counters + ')';
       s += '\n';
 
       return s;
@@ -639,7 +645,7 @@ ${varDeclsString}
     let nontargets = 0;
     for (let i = 0; i < len; ++i) {
       if (domains[i] === false) continue;
-      if (!bounty_getCounts(bounty, i)) continue;
+      if (!counts(i)) continue;
 
       ++total;
       if (!targeted[i]) {

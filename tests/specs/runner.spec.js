@@ -1828,7 +1828,8 @@ describe('specs/runner.spec', function() {
           # the cutter will force A<R to A=0,B=1
         `);
 
-        expect(solution).to.eql({A: 0, B: 1, R: 1});
+        //expect(solution).to.eql({A: 0, B: 1, R: 1});
+        expect(solution).to.eql({A: 1, B: 1, R: 2});
       });
 
       it('should rewrite special case to B<R', function() {
@@ -1841,7 +1842,8 @@ describe('specs/runner.spec', function() {
           # see test above
         `);
 
-        expect(solution).to.eql({A: 1, B: 0, R: 1});
+        //expect(solution).to.eql({A: 1, B: 0, R: 1});
+        expect(solution).to.eql({A: 1, B: 1, R: 2});
       });
 
       it('should eliminate the zeroes that occur twice', function() {
@@ -1868,7 +1870,8 @@ describe('specs/runner.spec', function() {
           # cutter will force a solution on that
         `);
 
-        expect(solution).to.eql({A: 0, B: 0, C: 1, R: 1});
+        //expect(solution).to.eql({A: 0, B: 0, C: 1, R: 1});
+        expect(solution).to.eql({A: 1, B: 0, C: 1, R: 2});
       });
 
       it('should accept constants in sum', function() {

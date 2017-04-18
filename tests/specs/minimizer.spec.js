@@ -122,7 +122,8 @@ describe('specs/minimizer.spec', function() {
         R = A ==? B
       `);
 
-      expect(solution).to.eql({A: 0, B: 1, R: 0});
+      //expect(solution).to.eql({A: 0, B: 1, R: 0});
+      expect(solution).to.eql({A: 1, B: 1, R: 1});
     });
 
     it('should not even consider weird domain values bool', function() {
@@ -173,7 +174,8 @@ describe('specs/minimizer.spec', function() {
         C = A + 1
       `);
 
-      expect(solution).to.eql({A: 0, C: 1});
+      //expect(solution).to.eql({A: 0, C: 1});
+      expect(solution).to.eql({A: 1, C: 2});
     });
 
     it('should not rewrite [0055]=[1166]+1 to LT lr', function() {

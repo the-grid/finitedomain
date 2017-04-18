@@ -7,6 +7,9 @@ class MockSolver {
     return this.solutions;
   }
 }
+function poison() {
+  throw new Error('fail; not expecting to defer to solver');
+}
 
 describe('specs/e2e.spec', function() {
 
@@ -139,6 +142,133 @@ describe('specs/e2e.spec', function() {
       let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
 
       expect(solution).to.eql({A: 5, B: 5, C: 1});
+    });
+
+    it('should solve an xnor with different outcomes v1', function() {
+      let dsl = `
+        : A, B [0 10]
+        B !^ A
+        @custom noleaf A B
+      `;
+
+      MockSolver.prototype.solutions = [{A: 2, B: 5}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      // in particular this asserts that the post solving alias code doesnt
+      // enforce a strict alias (instead of the "xnor" alias we expect)
+      expect(solution).to.eql({A: 2, B: 5});
+    });
+
+    it('should solve an xnor with different outcomes v2', function() {
+      let dsl = `
+        : A, B [0 10]
+        : C [0 10]
+        B !^ A                      # this line should end up a pseudo alias. if one 0, both 0. else both any non-zero.
+        nall(A B C)                 # this should cause the mock solver to be hit
+        @custom noleaf C
+      `;
+
+      MockSolver.prototype.solutions = [{A: 1, B: 5, C: 0}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      // in particular this asserts that the post solving alias code doesnt
+      // enforce a strict alias (instead of the "xnor" alias we expect)
+      expect(solution).to.eql({A: 0, B: 0, C: [0, 10]});
+    });
+
+    it('should solve an xnor with different outcomes v3', function() {
+      let dsl = `
+        : A, B [0 10]
+        : C 0
+        B !^ A                      # this line should end up a pseudo alias. if one 0, both 0. else both any non-zero.
+        nall(A B C)                 # this should cause the mock solver to be hit
+        @custom noleaf C
+      `;
+
+      let solution = preSolver(dsl, poison, {singleCycle: false, hashNames: false});
+
+      // in particular this asserts that the post solving alias code doesnt
+      // enforce a strict alias (instead of the "xnor" alias we expect)
+      expect(solution).to.eql({A: [1, 10], B: [1, 10], C: 0});
+    });
+
+    it('should solve an xnor with different outcomes v4; should listen to solver result', function() {
+      let dsl = `
+        : A, B [0 10]
+        : C, D [0 10]
+        B !^ A                      # this line should end up a pseudo alias. if one 0, both 0. else both any non-zero.
+        nall(A B C D)               # this should cause the mock solver to be hit
+        @custom noleaf C
+      `;
+
+      MockSolver.prototype.solutions = [{A: 3, C: 0, D: 7}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      // in particular this asserts that the post solving alias code doesnt
+      // enforce a strict alias (instead of the "xnor" alias we expect)
+      expect(solution).to.eql({A: 3, B: [1, 10], C: 0, D: 7});
+    });
+
+    it('should solve an xnor with different outcomes v5; should not force alias', function() {
+      let dsl = `
+        : A [0 10]
+        : B [0 5 7 10]
+        : C, D [0 10]
+        B !^ A                      # this line should end up a pseudo alias. if one 0, both 0. else both any non-zero.
+        nall(A B C D)               # this should cause the mock solver to be hit
+        @custom noleaf C D
+      `;
+
+      MockSolver.prototype.solutions = [{A: 6, C: 0, D: 7}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      // in particular this asserts that the post solving alias code doesnt
+      // enforce a strict alias (instead of the "xnor" alias we expect)
+      // REGARDLESS: B CANNOT BE 6! the domain did not start with a 6
+      expect(solution).to.eql({A: 6, B: [1, 5, 7, 10], C: 0, D: 7});
+    });
+  });
+
+  describe('deduper', function() {
+
+    it('should properly alias a deduped reifier R=0', function() {
+
+      let dsl = `
+        : A, B [0 10]
+        : R, S [0 1]
+        R = A ==? B
+        S = A ==? B
+        # make sure R == S
+        @custom noleaf A B R S
+      `;
+
+      MockSolver.prototype.solutions = [{A: 1, B: 9, R: 0}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      expect(solution).to.eql({A: 1, B: 9, R: 0, S: 0});
+    });
+
+    it('should properly alias a deduped reifier with R=1', function() {
+
+      let dsl = `
+        : A, B [0 10]
+        : R, S [0 1]
+        R = A ==? B
+        S = A ==? B
+        # make sure R == S
+        @custom noleaf A B R S
+      `;
+
+      MockSolver.prototype.solutions = [{A: 1, B: 1, R: 1}]; // naive/min strat would solve S to 0 but we set R to 1 so S should also become 1
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      expect(solution).to.eql({A: 1, B: 1, R: 1, S: 1});
     });
   });
 

@@ -189,7 +189,8 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     TRACE(' - updateDomain; {', index, '} updated from', domain__debug(getDomain(index)), 'to', domain__debug(domain));
     ASSERT(!domain || domain_intersection(getDomain(index), domain), 'should never add new values to a domain, only remove them', 'index=', index, 'old=', domain__debug(getDomain(index)), 'new=', domain__debug(domain), 'desc=', desc);
 
-    setDomain(index, domain);
+
+    setDomain(index, domain, false, true);
 
     if (domain) varChanged = true;
     else emptyDomain = true;

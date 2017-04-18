@@ -33,7 +33,9 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({A: [11, 100000000], B: 0});
+      // two solutions possible; one where A is solved and one where B is solved
+      //expect(solution).to.eql({A: [11, SUP], B: 0});
+      expect(solution).to.eql({A: 11, B: [0, 10, 12, SUP]});
     });
 
     it('should cut AB neq without bad ops', function() {
@@ -90,7 +92,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({A: 11, B: 12});
+      expect(solution).to.eql({A: 11, B: [12, SUP]});
     });
 
     it('should BA lt', function() {
@@ -102,7 +104,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({A: [11, SUP], B: 0});
+      expect(solution).to.eql({A: [11, SUP], B: [0, 10]});
     });
   });
 
@@ -117,7 +119,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({A: 11, B: 11});
+      expect(solution).to.eql({A: 11, B: [11, SUP]});
     });
 
     it('should BA lte', function() {
@@ -129,7 +131,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({A: [11, SUP], B: 0});
+      expect(solution).to.eql({A: [11, SUP], B: [0, 11]});
     });
   });
 
@@ -147,6 +149,7 @@ describe('specs/cutter.spec', function() {
       `);
 
       expect(solution).to.eql({A: 11, B: 11, C: 1});
+      //expect(solution).to.eql({A: [11, SUP], B: 11, C: 0});
     });
 
     it('should iseq with constant A', function() {
@@ -158,7 +161,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B
       `);
 
-      expect(solution).to.eql({B: 0, C: 0});
+      //expect(solution).to.eql({B: 0, C: 0});
+      expect(solution).to.eql({B: 2, C: 1});
     });
 
     it('should iseq with constant B', function() {
@@ -170,7 +174,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A
       `);
 
-      expect(solution).to.eql({A: 0, C: 0});
+      //expect(solution).to.eql({A: 0, C: 0});
+      expect(solution).to.eql({A: 2, C: 1});
     });
 
     it('should iseq with constant C', function() {
@@ -195,7 +200,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C B
       `);
 
-      expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+      //expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+      expect(solution).to.eql({A: 2, B: 2, C: 1});
     });
 
     it('should AB iseq with leaf A v2', function() {
@@ -245,7 +251,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C B
       `);
 
-      expect(solution).to.eql({A: [0, 1, 3, 10], B: 2, C: 0});
+      //expect(solution).to.eql({A: [0, 1, 3, 10], B: 2, C: 0});
+      expect(solution).to.eql({A: 2, B: 2, C: [1, 10]});
     });
 
     it('should AB iseq with leaf A v6', function() {
@@ -284,7 +291,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C A
       `);
 
-      expect(solution).to.eql({A: 2, B: [0, 1], C: 0});
+      expect(solution).to.eql({A: 2, B: 2, C: 1});
     });
 
     it('shouldnt AB iseq with unsolved leaf B', function() {
@@ -297,7 +304,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C A
       `);
 
-      expect(solution).to.eql({A: 0, B: [1, 2], C: 0});
+      //expect(solution).to.eql({A: 0, B: [1, 2], C: 0});
+      expect(solution).to.eql({A: 0, B: 0, C: 1});
     });
 
     it('shouldnt blabla trying to proc a certain code branch v1', function() {
@@ -321,7 +329,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C B
       `);
 
-      expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+      //expect(solution).to.eql({A: [0, 1], B: 2, C: 0});
+      expect(solution).to.eql({A: 2, B: 2, C: 1});
     });
 
     it('should BA iseq with leaf B', function() {
@@ -334,7 +343,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C A
       `);
 
-      expect(solution).to.eql({A: 2, B: [0, 1], C: 0});
+      //expect(solution).to.eql({A: 2, B: [0, 1], C: 0});
+      expect(solution).to.eql({A: 2, B: 2, C: 1});
     });
   });
 
@@ -351,7 +361,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 11, B: 11, C: 0});
+      //expect(solution).to.eql({A: 11, B: 11, C: 0});
+      expect(solution).to.eql({A: [12, SUP], B: 11, C: [1, SUP]});
     });
 
     it('should BA isneq base case', function() {
@@ -365,7 +376,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 11, B: 11, C: 0});
+      //expect(solution).to.eql({A: 11, B: 11, C: 0});
+      expect(solution).to.eql({A: [12, SUP], B: 11, C: [1, SUP]});
     });
 
     it('should solve constant B', function() {
@@ -377,7 +389,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf R
       `);
 
-      expect(solution).to.eql({A: 1, R: 0});
+      //expect(solution).to.eql({A: 1, R: 0});
+      expect(solution).to.eql({A: 2, R: 1});
     });
 
     it('should solve constant A', function() {
@@ -389,7 +402,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf R
       `);
 
-      expect(solution).to.eql({B: 1, R: 0});
+      //expect(solution).to.eql({B: 1, R: 0});
+      expect(solution).to.eql({B: 2, R: 1});
     });
 
     it('should solve constant R', function() {
@@ -417,7 +431,7 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 0, B: 0, C: 0});
+      expect(solution).to.eql({A: [0, 5], B: 0, C: 0});
     });
 
     it('should BA islt', function() {
@@ -430,7 +444,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 0, B: 0, C: 0});
+      //expect(solution).to.eql({A: 0, B: 0, C: 0});
+      expect(solution).to.eql({A: 0, B: [0, 5], C: 0});
     });
 
     it('should islt with constant A', function() {
@@ -442,7 +457,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C
       `);
 
-      expect(solution).to.eql({B: [2, 5], C: 0});
+      //expect(solution).to.eql({B: [2, 5], C: 0});
+      expect(solution).to.eql({B: [3, 5], C: 1});
     });
 
     it('should islt with constant B', function() {
@@ -454,7 +470,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C
       `);
 
-      expect(solution).to.eql({A: [2, 5], C: 0});
+      //expect(solution).to.eql({A: [2, 5], C: 0});
+      expect(solution).to.eql({A: [0, 1], C: 1});
     });
 
     it('should islt with constant C', function() {
@@ -507,7 +524,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C
       `);
 
-      expect(solution).to.eql({B: [0, 1], C: 0});
+      //expect(solution).to.eql({B: [0, 1], C: 0});
+      expect(solution).to.eql({B: [2, 5], C: 1});
     });
 
     it('should islte with constant B', function() {
@@ -519,7 +537,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf C
       `);
 
-      expect(solution).to.eql({A: [3, 5], C: 0});
+      //expect(solution).to.eql({A: [3, 5], C: 0});
+      expect(solution).to.eql({A: [0, 2], C: 1});
     });
 
     it('should islte with constant C', function() {
@@ -1389,7 +1408,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B C
       `);
 
-      expect(solution).to.eql({A: 1, B: 1, C: 0});
+      //expect(solution).to.eql({A: 1, B: 1, C: 0});
+      expect(solution).to.eql({A: 1, B: [1, 10], C: 0});
     });
 
     it('should do the trick if there arent too many nands', function() {
@@ -2199,7 +2219,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B C
       `);
 
-      expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+      //expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+      expect(solution).to.eql({A: 5, B: [5, 8], C: [8, 11]});
     });
 
     it('should work with swapped semi-overlapping ranges', function() {
@@ -2214,7 +2235,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf B C
       `);
 
-      expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+      //expect(solution).to.eql({A: 5, B: 5, C: [8, 11]});
+      expect(solution).to.eql({A: 5, B: [5, 8], C: [8, 11]});
     });
 
     it('trying to proc code paths v1', function() {
@@ -3226,7 +3248,8 @@ describe('specs/cutter.spec', function() {
         @custom noleaf A B
       `);
 
-      expect(solution).to.eql({A: 1, B: [1, 5], X: 1});
+      //expect(solution).to.eql({A: 1, B: [1, 5], X: 1});
+      expect(solution).to.eql({A: [1, 5], B: [1, 5], X: 1});
     });
 
     it('should cut if shared var isnt booly', function() {
@@ -3638,7 +3661,7 @@ describe('specs/cutter.spec', function() {
     //    @custom noleaf B
     //  `);
     //
-    //  expect(solution).to.eql({A: [11, 100000000], B: 0});
+    //  expect(solution).to.eql({A: [11, SUP], B: 0});
     //});
   });
 });

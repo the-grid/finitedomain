@@ -352,7 +352,11 @@ function dslToMl(dslStr, problem, _debug) {
     let alts;
     while (readD(0) === $$a && readD(1) === $$l && readD(2) === $$i && readD(3) === $$a && readD(4) === $$s && readD(5) === $$LEFTPAREN) {
       if (!alts) alts = [];
-      alts.push(parseAlias(dslPointer += 6));
+      dslPointer += 6;
+      skipWhitespaces();
+      alts.push(parseIdentifier());
+      skipWhitespaces();
+      is($$RIGHTPAREN, 'Alias must be closed');
       skipWhitespaces();
     }
     let mod = parseModifier();
@@ -360,17 +364,23 @@ function dslToMl(dslStr, problem, _debug) {
 
     let varIndex;
     if (typeof nameNames === 'string') {
-      varIndex = addVar(nameNames, domain, mod, false, true, THROW);
+      varIndex = addParsedVar(nameNames, domain, mod);
     } else {
-      nameNames.map(name => addVar(name, domain, mod));
+      nameNames.forEach(name => addParsedVar(name, domain, mod));
     }
 
     if (alts) {
+      TRACE(' - This var has', alts.length, 'aliases;', alts);
       // prevent `: A, B [0, 10] alias(C)` because is C an alias for A or B? certainly not both
       if (typeof nameNames !== 'string') THROW('Cant use alias when declaring multiple vars at once (because which should be aliased?)');
 
-      alts.forEach(alt => addAlias(addVar(alt, undefined, false, false, true, THROW), varIndex));
+      alts.forEach(alt => addAlias(addVar(alt, undefined, mod, false, true, THROW), varIndex));
     }
+  }
+  function addParsedVar(name, domain, mod) {
+    let varIndex = addVar(name, domain, undefined, false, true, THROW);
+    setValDist(varIndex, mod);
+    return varIndex;
   }
 
   function parseIdentifier() {
@@ -423,27 +433,6 @@ function dslToMl(dslStr, problem, _debug) {
     }
     if (isWhite(c)) return false;
     return true;
-  }
-
-  function parseAlias() {
-    TRACE('parseAlias');
-    skipWhitespaces();
-
-    let alias = '';
-    while (true) {
-      let c = read();
-      if (c === $$RIGHTPAREN) break;
-      if (isLineEnd(c)) THROW('Alias must be closed with a `)` but wasnt (eol)');
-      if (isEof()) THROW('Alias must be closed with a `)` but wasnt (eof)');
-      alias += String.fromCharCode(c);
-      skip();
-    }
-    if (!alias) THROW('The alias() can not be empty but was');
-
-    skipWhitespaces();
-    is($$RIGHTPAREN, '`alias` to be closed by `)`');
-
-    return alias;
   }
 
   function parseDomain() {
@@ -569,7 +558,7 @@ function dslToMl(dslStr, problem, _debug) {
       case 'naive':
       case 'splitMax':
       case 'splitMin':
-        mod.name = stratName;
+        mod.valtype = stratName;
         break;
 
       default:
@@ -589,13 +578,13 @@ function dslToMl(dslStr, problem, _debug) {
     }
 
     dslPointer += 5;
-    mod.name = 'list';
+    mod.valtype = 'list';
     mod.list = parseNumList();
     is($$RIGHTPAREN, 'list end');
   }
 
   function parseMarkov(mod) {
-    mod.name = 'markov';
+    mod.valtype = 'markov';
     let repeat = true;
     while (repeat) {
       repeat = false;
@@ -1229,9 +1218,7 @@ function dslToMl(dslStr, problem, _debug) {
           skipWhitespaces();
           let target = parseIdentifier();
           let config = parseRestCustom();
-
-          if (!problem.input.valdist) problem.input.valdist = {};
-          problem.input.valdist[target] = JSON.parse(config);
+          setValDist(name2index(target, true), JSON.parse(config));
           break;
         case 'noleaf':
           skipWhitespaces();
@@ -1262,6 +1249,12 @@ function dslToMl(dslStr, problem, _debug) {
       THROW('Unknown @ rule [' + ruleName + ']');
     }
     expectEol();
+  }
+
+  function setValDist(varIndex, dist) {
+    ASSERT(typeof varIndex === 'number', 'expecting var indexes');
+    ASSERT(problem.valdist[varIndex] === undefined, 'not expecting valdists to be set twice for the same var');
+    problem.valdist[varIndex] = dist;
   }
 
   function compileJump(size) {

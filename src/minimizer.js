@@ -124,7 +124,7 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
   let pc = 0;
   let loops = 0;
   let constraints = 0; // count a constraint going forward, ignore jumps, reduce when restarting from same pc
-  let restarted = false; // annoying, but restarted ops could mean more scrubbing is required. but it may not... (can be improved by detecting whether the op is a jump after a restart)
+  let restartedRelevantOp = false; // annoying, but restartedRelevantOp could mean more scrubbing is required. but it may not...
 
   let {
     addVar,
@@ -134,18 +134,18 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
     setDomain,
   } = problem;
 
-  while (!onlyJumps && (varChanged || restarted)) {
+  while (!onlyJumps && (varChanged || restartedRelevantOp)) {
     ++loops;
     //console.log('- looping', loops);
     console.time('-> min_loop ' + loops);
     TRACE('min outer loop');
     varChanged = false;
     onlyJumps = true; // until proven otherwise
-    restarted = false;
+    restartedRelevantOp = false;
     pc = 0;
     constraints = 0;
     let ops = min_innerLoop();
-    TRACE('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain, 'restarted?', restarted);
+    TRACE('changed?', varChanged, 'only jumps?', onlyJumps, 'empty domain?', emptyDomain, 'restartedRelevantOp?', restartedRelevantOp);
     if (emptyDomain) {
       console.log('Empty domain at', lastPcOffset, 'for opcode', lastOp, [ml__debug(ml, lastPcOffset, 1, problem)], ml.slice(lastPcOffset, lastPcOffset + 10));
       console.error('Empty domain, problem rejected');
@@ -206,9 +206,11 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
   function min_innerLoop() {
     let ops = 0;
     onlyJumps = true;
+    let wasMetaOp = false; // jumps, start, stop, etc. not important if they "change"
     while (pc < ml.length && !emptyDomain) {
       ++ops;
       ++constraints;
+      wasMetaOp = false;
       let pcStart = pc;
       lastPcOffset = pc;
       let op = ml[pc];
@@ -221,12 +223,14 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
             TRACE('reading a op=zero at position ' + pc + ' which should not happen', ml.slice(Math.max(pc - 100, 0), pc), '<here>', ml.slice(pc, pc + 100));
             return THROW(' ! optimizer problem @', pc);
           }
+          wasMetaOp = true;
           ++pc;
           --constraints; // not a constraint
           break;
 
         case ML_STOP:
           TRACE(' ! good end @', pcStart);
+          wasMetaOp = true;
           --constraints; // not a constraint
           return ops;
 
@@ -358,37 +362,44 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
         case ML_DEBUG:
           TRACE('- debug @', pc);
           pc += SIZEOF_V;
+          wasMetaOp = true;
           break;
 
         case ML_NOOP:
           TRACE('- noop @', pc);
           min_moveTo(ml, pc, 1);
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
         case ML_NOOP2:
           TRACE('- noop2 @', pc);
           min_moveTo(ml, pc, 2);
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
         case ML_NOOP3:
           TRACE('- noop3 @', pc);
           min_moveTo(ml, pc, 3);
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
         case ML_NOOP4:
           TRACE('- noop4 @', pc);
           min_moveTo(ml, pc, 4);
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
         case ML_JMP:
           TRACE('- jmp @', pc);
           min_moveTo(ml, pc, SIZEOF_V + ml_dec16(ml, pc + 1));
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
         case ML_JMP32:
           TRACE('- jmp32 @', pc);
           min_moveTo(ml, pc, SIZEOF_W + ml_dec32(ml, pc + 1));
           --constraints; // not a constraint
+          wasMetaOp = true;
           break;
 
         default:
@@ -396,7 +407,7 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
       }
       if (pc === pcStart) {
         TRACE(' - restarting op from same pc...');
-        restarted = true; // TODO: undo this particular step if the restart results in the offset becoming a jmp?
+        if (!wasMetaOp) restartedRelevantOp = true; // TODO: undo this particular step if the restart results in the offset becoming a jmp?
         --constraints; // constraint may have been eliminated
       }
     }
@@ -1577,6 +1588,8 @@ function min_optimizeConstraints(ml, problem, domains, names, firstRun, once) {
       ml_vvv2vv(ml, offset, ML_LTE, indexA, indexB);
       return;
     }
+
+    // TODO: C=A<=?B   ->   [01] = [11] <=? [0 n]   ->   B !^ C
 
     if (domain_isBool(R) && domain_max(A) <= 1 && domain_max(B) <= 1) {
       TRACE(' - R is bool and A and B are bool-bound so checking bool specific cases');

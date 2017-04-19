@@ -41,7 +41,7 @@
     "grunt-contrib-uglify": "^1.0.1",
     "grunt-contrib-watch": "^1.0.0",
     "grunt-jsdoc": "^1.1.0",
-    "grunt-mocha-phantomjs": "^3.0.0",
+    "grunt-mocha-phantomjs": "^4.0.0",
     "grunt-mocha-test": "^0.12.7",
     "grunt-remove": "^0.1.0",
     "grunt-replace": "*",

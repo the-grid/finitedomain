@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Dropped exposed internal api `getDomain`. I can't tell why we needed this.
+- Dropped exposed api `offspring`, `propagate`, `checkStableSpace`, `createSpace`, `generateSolutions`, and `getTargetState`. IIRC they were leftovers from an experiment.
+- Added `Solver.dsl()` as a shorthand for creating a solver from dsl.
 
 ## v3.0.0 (beta)
 

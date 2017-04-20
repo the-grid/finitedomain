@@ -272,6 +272,25 @@ describe('specs/e2e.spec', function() {
     });
   });
 
+  describe('targets', function() {
+
+    it('should only return results asked for', function() {
+      let dsl = `
+        : A [0 0 2 2 5 5]
+        : B [0 10]
+        : C [0 1]
+        A = B + C
+        @custom targets(B)
+      `;
+
+      MockSolver.prototype.solutions = [{A: 2, B: 1, C: 1}];
+
+      let solution = preSolver(dsl, MockSolver, {singleCycle: false, hashNames: false});
+
+      expect(solution).to.eql({B: 1});
+    });
+  });
+
   describe('einstein', function() {
 
     it('the problem', function() {

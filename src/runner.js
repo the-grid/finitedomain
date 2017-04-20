@@ -280,6 +280,7 @@ function createSolution(problem, fdsolution, options, max) {
     solveStack,
     getAlias,
     setDomain,
+    targeted,
   } = problem;
 
   let _getDomain = problem.getDomain;
@@ -405,18 +406,20 @@ function createSolution(problem, fdsolution, options, max) {
     TRACE(' - generating regular FINAL solution', flattened);
     let solution = {};
     for (let index = 0; index < varNames.length; ++index) {
-      let name = varNames[index];
-      let d = getDomainFromFdOrLocal(index);
-      let v = domain_getValue(d);
-      if (v >= 0) {
-        d = v;
-      } else if (flattened) {
-        ASSERT(!problem.valdist[index], 'only vars without valdist may not be solved at this point');
-        d = domain_min(d);
-      } else {
-        d = domain_toArr(d);
+      if (targeted[index]) {
+        let name = varNames[index];
+        let d = getDomainFromFdOrLocal(index);
+        let v = domain_getValue(d);
+        if (v >= 0) {
+          d = v;
+        } else if (flattened) {
+          ASSERT(!problem.valdist[index], 'only vars without valdist may not be solved at this point');
+          d = domain_min(d);
+        } else {
+          d = domain_toArr(d);
+        }
+        solution[name] = d;
       }
-      solution[name] = d;
     }
     return solution;
   }

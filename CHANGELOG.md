@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+(Nothing here)
+
+## v3.0.0 (beta)
+
+This is kind of a major release so a major bump.  
+
 - Dropped support for `options.filter` and `options.var_filter_func`; simple truth is we weren't using them and they were causing overhead.
 - Cleaned up config (`config` being the argument to `new Solver({..})` or `config_setOptions(config, {...})`)
   - `config.var` 

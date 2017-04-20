@@ -218,7 +218,7 @@ function space_initializeUnsolvedVars(space, config) {
     for (let i = 0, n = targetVarNames.length; i < n; ++i) {
       let varName = targetVarNames[i];
       let varIndex = trie_get(varNamesTrie, varName);
-      if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW');
+      if (varIndex === TRIE_KEY_NOT_FOUND) THROW('E_TARGETED_VARS_SHOULD_EXIST_NOW [' + varName + ']');
       if (!domain_isSolved(vardoms[varIndex])) {
         unsolvedVarIndexes.push(varIndex);
       }

@@ -3,7 +3,9 @@ import {
   fixt_arrdom_empty,
   fixt_arrdom_solved,
 } from '../../fixtures/domain.fixt';
-
+import {
+  domain_toArr,
+} from '../../../src/domain';
 import {
   LOG_FLAG_PROPSTEPS,
   LOG_FLAG_NONE,
@@ -36,7 +38,7 @@ describe('propagators/markov.spec', function() {
 
       // A=0, which is in legend and has prob=1
       propagator_markovStepBare(solver._space, solver.config, Aindex);
-      expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_solved(0));
+      expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_solved(0));
     });
 
     it('should reject if solved value is not in legend', function() {
@@ -54,7 +56,7 @@ describe('propagators/markov.spec', function() {
 
       // A=0, which is not in legend
       propagator_markovStepBare(solver._space, solver.config, Aindex);
-      expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
+      expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_empty(1));
     });
 
     describe('matrix with one row', function() {
@@ -74,7 +76,7 @@ describe('propagators/markov.spec', function() {
 
         // A=0, which is in legend but has prob=0
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
+        expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_empty(1));
       });
 
       it('should pass if solved value does has prob>0', function() {
@@ -92,7 +94,7 @@ describe('propagators/markov.spec', function() {
 
         // A=0, which is in legend and has prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
+        expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_empty(1));
       });
     });
 
@@ -117,7 +119,7 @@ describe('propagators/markov.spec', function() {
         // A=0, which is in legend and has prob=0 in first row,
         // but only second row is considered which gives prob=1
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_solved(0));
+        expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_solved(0));
       });
 
       it('should reject if second row gives value prob=0', function() {
@@ -140,7 +142,7 @@ describe('propagators/markov.spec', function() {
         // A=0, which is in legend and has prob=1 in first row,
         // but only second row is considered which gives prob=0
         propagator_markovStepBare(solver._space, solver.config, Aindex);
-        expect(solver.getDomain(solver._space, Aindex)).to.eql(fixt_arrdom_empty(1));
+        expect(domain_toArr(solver._space.vardoms[Aindex])).to.eql(fixt_arrdom_empty(1));
       });
     });
   });

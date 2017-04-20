@@ -542,18 +542,6 @@ class Solver {
     solver_getSolutions(solvedSpaces, config, targetObject, log);
   }
 
-  /**
-   * Expose a method to normalize the internal representation
-   * of a domain to always return an array representation
-   *
-   * @param {$space} space
-   * @param {number} varIndex
-   * @returns {$arrdom}
-   */
-  getDomain(space, varIndex) {
-    return domain_toArr(space.vardoms[varIndex]);
-  }
-
   hasVar(varName) {
     return trie_get(this.config._varNamesTrie, varName) >= 0;
   }

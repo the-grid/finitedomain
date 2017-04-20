@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-(Nothing here)
+- Dropped exposed internal api `getDomain`. I can't tell why we needed this.
 
 ## v3.0.0 (beta)
 

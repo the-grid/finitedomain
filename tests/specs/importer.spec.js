@@ -842,18 +842,16 @@ let unitTests = [
     'targets',
     s => {},
     `
-    @targets all
+    @custom targets all
     |--
-    @targets = all
+    @custom targets = all
     `,
   ],
   [
     'targets',
     s => {},
     `
-    @targets (A B C)
-    |--
-    @targets = (A B C)
+    @custom targets (A B C)
     `,
   ],
   [

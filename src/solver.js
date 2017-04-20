@@ -357,15 +357,12 @@ class Solver {
     let max = options.max || 1000;
 
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
-
     this._prepare(options, log);
     let dbgCallback;
     if (options._tostring || options._debug || options._debugConfig || options._debugSpace || options._debugSolver) {
       dbgCallback = epoch => {
         if ((options._debugDelay | 0) >= epoch) {
-          // __REMOVE_BELOW_FOR_DSL__
           if (options._tostring) console.log(exporter_main(this.config));
-          // __REMOVE_ABOVE_FOR_DSL__
           if (options._debug) this._debugLegible();
           if (options._debugConfig) this._debugConfig();
           // __REMOVE_BELOW_FOR_DIST__
@@ -503,6 +500,7 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.log(`      - FD Var Count: ${this.config.allVarNames.length}`);
+      console.log(`      - FD Targeted: ${this.config.targetedVars === 'all' ? 'all' : this.config.targetedVars.length}`);
       console.log(`      - FD Constraint Count: ${this.config.allConstraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
@@ -696,8 +694,6 @@ class Solver {
     console.log('## _debugConfig:\n', getInspector()(config));
   }
 
-  // __REMOVE_BELOW_FOR_DSL__
-
   /**
    * Import from a dsl into this solver
    *
@@ -706,6 +702,10 @@ class Solver {
    * @returns {Solver} this
    */
   imp(s, _debug) {
+    //console.log('##x## Solver.imp(...)');
+    //console.log(s);
+    //console.log('##y##');
+
     if (this.logging) {
       console.log('      - FD Importing DSL; ' + s.length + ' bytes');
       console.time('      - FD Import Time:');
@@ -730,8 +730,6 @@ class Solver {
   exp(space, usePropagators, minimal, withDomainComments) {
     return exporter_main(this.config, space.vardoms, usePropagators, minimal, withDomainComments);
   }
-
-  // __REMOVE_ABOVE_FOR_DSL__
 
   /**
    * Exposes internal method domain_fromList for subclass

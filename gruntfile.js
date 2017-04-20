@@ -127,14 +127,6 @@ module.exports = function () {
           'distheat',
         ],
       },
-      d: { // quick dist with dsl, no linting, testing, or minifying. for tests that require the dsl api
-        files: [
-          'src/**/*.js',
-        ],
-        tasks: [
-          'distdsl',
-        ],
-      },
     },
 
     mochaTest: {
@@ -235,28 +227,6 @@ module.exports = function () {
             code = removeHeaderFooter(code);
             code = removeAsserts(code);
             code = removeDists(code);
-            code = removeDsls(code);
-
-            return concatFile(code, path);
-          },
-        },
-        files: {
-          'build/finitedomain.es6.concat.js': ['src/**/*'],
-        },
-      },
-      dsl: {
-        options: {
-          // https://github.com/gruntjs/grunt-contrib-concat
-          banner: 'let Solver = (function(){',
-          footer: '\n  return Solver;\n})();\nexport default Solver;\n',
-          sourceMap: true,
-          sourceMapStyle: 'inline', // embed link inline
-          process: function(code, path){
-            if (path === 'src/index.js') return '';
-            console.log('concatting', path);
-            code = removeHeaderFooter(code);
-            code = removeAsserts(code);
-            code = removeDists(code);
 
             return concatFile(code, path);
           },
@@ -310,13 +280,6 @@ module.exports = function () {
     });
     return code;
   }
-  function removeDsls(code) {
-    code = code.replace(/^\s*\/\/\s*__REMOVE_BELOW_FOR_DSL__[\s\S]*?__REMOVE_ABOVE_FOR_DSL__[\s\S]*?$/gm, function(match, before, after) {
-      console.log(' - removing ' + match.length + 'b/' + code.length + 'b for dist');
-      return '';
-    });
-    return code;
-  }
   function concatFile(code, path) {
     return '' +
       '\n// from: ' + path + '\n\n' +
@@ -349,10 +312,9 @@ module.exports = function () {
 
   grunt.registerTask('clean', ['remove']);
   grunt.registerTask('build', 'alias for dist', ['dist']);
-  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', 'distq']);
-  grunt.registerTask('distq', 'create dist without testing', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
-  grunt.registerTask('distdsl', 'distq for browser but includes the dsl import/export code', ['clean', 'concat:dsl', 'babel:concat', 'uglify:dist', 'concat-dist-to-browserjs']);
-  grunt.registerTask('distperf', 'create dist for browser perf tests', ['distq', 'concat-dist-to-browserjs']);
+  grunt.registerTask('dist', 'lint, test, build, minify', ['clean', 'run:lint', 'mochaTest:all', '_dist']);
+  grunt.registerTask('_dist', 'just build dist', ['clean', 'concat:build', 'babel:concat', 'uglify:dist']);
+  grunt.registerTask('distq', 'create dist (inc browser.js) without testing', ['_dist', 'concat-dist-to-browserjs']);
   grunt.registerTask('distbug', 'create dist for browser debugging, keeps asserts', ['clean', 'concat:test', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('distheat', 'create dist for heatmap inspection, no asserts', ['clean', 'concat:build', 'babel:concat', 'run:jsbeautify', 'concat-bug-to-browserjs']);
   grunt.registerTask('coverage', ['clean', 'run:coverage']);

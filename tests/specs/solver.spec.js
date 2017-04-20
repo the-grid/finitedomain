@@ -2320,7 +2320,7 @@ describe('solver.spec', function() {
       let VIEWPORT_HEIGHT = 800;
 
       let solver = new Solver();
-      solver.decls([
+      let targets = [
         // box1
         '#box1[x]',
         '#box1[width]',
@@ -2331,7 +2331,8 @@ describe('solver.spec', function() {
         '#box2[width]',
         '#box2[y]',
         '#box2[height]',
-      ]);
+      ];
+      solver.decls(targets);
 
       // simple constraints
       // #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
@@ -2362,7 +2363,7 @@ describe('solver.spec', function() {
       solver.minus(VIEWPORT_MIDDLE_HEIGHT, solver.div('#box1[height]', 2), '#box1[y]');
       solver.minus(VIEWPORT_MIDDLE_HEIGHT, solver.div('#box2[height]', 2), '#box2[y]');
 
-      let solutions = solver.solve({max: 3});
+      let solutions = solver.solve({max: 3, vars: targets});
 
       // viewport is 1200 x 800
       // boxes are 100x100

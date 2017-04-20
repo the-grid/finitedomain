@@ -842,12 +842,12 @@ function importer_main(str, solver, _debug) {
           let config = parseRestCustom();
           solver.setValueDistributionFor(target, JSON.parse(config));
           break;
+        case 'targets':
+          parseTargets();
+          break;
         default:
           THROW('Unsupported custom rule: ' + ident);
       }
-    } else if (str.slice(pointer, pointer + 7) === 'targets') {
-      pointer += 7;
-      parseTargets();
     } else if (str.slice(pointer, pointer + 4) === 'mode') {
       pointer += 4;
       parseMode();

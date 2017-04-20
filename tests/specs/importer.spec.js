@@ -1540,5 +1540,48 @@ distinct('item','item&n=1','item&n=2','item&n=3','item&n=4','item&n=5')         
       // there are 16 outcomes but because of the eq, only half of them are considered a solution, so 8
       expect(solver.solutions.length).to.equal(8);
     });
+
+    describe('should set anonymous reifier vars to strict bool domain (like multiverse expects)', function() {
+
+      // all reifiers have the same number of outcomes
+      function testBin(op) {
+        it(`for ${op}`, function() {
+          let solver = new Solver().imp(`
+            : A = [1,3,5,6]
+            R = A ${op} 3
+          `);
+
+          solver.solve({max: 10, _tostring: true});
+
+          expect(solver.solutions.length).to.equal(5); // one for each value of A. if you get more, R was not set to [0 1]
+        });
+      }
+
+      testBin('==?');
+      testBin('!=?');
+      testBin('<?');
+      testBin('<=?');
+      testBin('==?');
+      testBin('>?');
+      testBin('>=?');
+
+      // all reifiers have the same number of outcomes
+      function testCall(op) {
+        it(`for ${op}`, function() {
+          let solver = new Solver().imp(`
+            : A = [1,3,5,6]
+            R = ${op}(A 3)
+          `);
+
+          solver.solve({max: 10, _tostring: true});
+
+          expect(solver.solutions.length).to.equal(5); // one for each value of A. if you get more, R was not set to [0 1]
+        });
+      }
+
+      testCall('all?');
+      testCall('nall?');
+      testCall('none?');
+    });
   });
 });

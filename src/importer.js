@@ -437,30 +437,37 @@ function importer_main(str, solver, _debug) {
     // it should always return the "result var" var name or constant
     // (that would be C, but C may be undefined here and created by Solver)
 
-    if (typeof C === 'string' && !solver.hasVar(C)) C = solver.decl(C);
+    let freshVar = typeof C === 'string' && !solver.hasVar(C);
+    if (freshVar) C = solver.decl(C);
 
-    let A = parseVexpr(C);
+    let A = parseVexpr(C, freshVar);
     skipWhitespaces();
     let c = read();
     if (isEof() || isNewline(c) || isComment(c)) return A; // any group without "top-level" op (`A=(B+C)`), or sum() etc
-    return parseAssignRest(A, C);
+    return parseAssignRest(A, C, freshVar);
   }
 
-  function parseAssignRest(A, C) {
+  function parseAssignRest(A, C, freshVar) {
     let rop = parseRop();
     skipWhitespaces();
     switch (rop) {
       case '==?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isEq(A, parseVexpr(), C);
       case '!=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isNeq(A, parseVexpr(), C);
       case '<?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isLt(A, parseVexpr(), C);
       case '<=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isLte(A, parseVexpr(), C);
       case '>?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isGt(A, parseVexpr(), C);
       case '>=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isGte(A, parseVexpr(), C);
       case '+':
         return solver.plus(A, parseVexpr(), C);
@@ -619,7 +626,7 @@ function importer_main(str, solver, _debug) {
     return list;
   }
 
-  function parseVexpr(resultVar) {
+  function parseVexpr(resultVar, freshVar) {
     // valcall, ident, number, group
 
     let c = read();
@@ -635,12 +642,22 @@ function importer_main(str, solver, _debug) {
       let ident = parseIdentifier();
 
       if (read() === '(') {
-        if (ident === 'sum') v = parseSum(resultVar);
-        else if (ident === 'product') v = parseProduct(resultVar);
-        else if (ident === 'all?') v = parseIsAll(resultVar);
-        else if (ident === 'nall?') v = parseIsNall(resultVar);
-        else if (ident === 'none?') v = parseIsNone(resultVar);
-        else THROW('Unknown constraint func: ' + ident);
+        if (ident === 'sum') {
+          v = parseSum(resultVar);
+        } else if (ident === 'product') {
+          v = parseProduct(resultVar);
+        } else if (ident === 'all?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsAll(resultVar);
+        } else if (ident === 'nall?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsNall(resultVar);
+        } else if (ident === 'none?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsNone(resultVar);
+        } else {
+          THROW('Unknown constraint func: ' + ident);
+        }
       } else {
         v = ident;
       }

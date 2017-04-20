@@ -135,9 +135,10 @@ class Solver {
    * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
    * @param {boolean} [_allowEmpty=false] Temp (i hope) override for importer
+   * @param {boolean} [_override=false] Explicitly override the initial domain for an already existing var (for importer)
    * @returns {string}
    */
-  decl(varName, domainOrValue, distributionOptions, _allowEmpty) {
+  decl(varName, domainOrValue, distributionOptions, _allowEmpty, _override) {
     if (varName === '') THROW('Var name can not be the empty string');
     ASSERT(varName === undefined || typeof varName === 'string', 'var name should be undefined or a string');
     ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
@@ -149,7 +150,7 @@ class Solver {
     ASSERT_ARRDOM(arrdom);
 
     if (!arrdom.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty);
+    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty, _override);
     varName = this.config.allVarNames[varIndex];
 
     if (distributionOptions) {
@@ -361,7 +362,7 @@ class Solver {
     let dbgCallback;
     if (options._tostring || options._debug || options._debugConfig || options._debugSpace || options._debugSolver) {
       dbgCallback = epoch => {
-        if (options._debugDelay >= epoch) {
+        if ((options._debugDelay | 0) >= epoch) {
           // __REMOVE_BELOW_FOR_DSL__
           if (options._tostring) console.log(exporter_main(this.config));
           // __REMOVE_ABOVE_FOR_DSL__

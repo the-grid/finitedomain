@@ -218,10 +218,10 @@ function config_addVarRange(config, varName, lo, hi) {
  * @param {$arrdom} domain Small domain format not allowed here. this func is intended to be called from Solver, which only accepts arrdoms
  * @returns {number} varIndex
  */
-function config_addVarDomain(config, varName, domain, _allowEmpty) {
+function config_addVarDomain(config, varName, domain, _allowEmpty, _override) {
   ASSERT(domain instanceof Array, 'DOMAIN_MUST_BE_ARRAY_HERE');
 
-  return _config_addVar(config, varName, domain_anyToSmallest(domain), _allowEmpty);
+  return _config_addVar(config, varName, domain_anyToSmallest(domain), _allowEmpty, _override);
 }
 /**
  * @param {$config} config
@@ -260,11 +260,20 @@ function config_addVarConstant(config, varName, value) {
  * @param {$nordom} domain
  * @returns {number} varIndex
  */
-function _config_addVar(config, varName, domain, _allowEmpty) {
+function _config_addVar(config, varName, domain, _allowEmpty, _override = false) {
   ASSERT(config._class === '$config', 'EXPECTING_CONFIG');
   ASSERT(_allowEmpty || domain, 'NON_EMPTY_DOMAIN');
   ASSERT(_allowEmpty || domain_min(domain) >= SUB, 'domain lo should be >= SUB', domain);
   ASSERT(_allowEmpty || domain_max(domain) <= SUP, 'domain hi should be <= SUP', domain);
+
+  if (_override) {
+    ASSERT(trie_has(config._varNamesTrie, varName), 'Assuming var exists when explicitly overriding');
+    let index = trie_get(config._varNamesTrie, varName);
+    ASSERT(index >= 0, 'should exist');
+    ASSERT_NORDOM(domain, true, domain__debug);
+    config.initialDomains[index] = domain;
+    return;
+  }
 
   let allVarNames = config.allVarNames;
   let varIndex = allVarNames.length;

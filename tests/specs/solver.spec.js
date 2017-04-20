@@ -1323,7 +1323,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       let solutions = solver.solve({});
       // a, b, c are not constrained in any way, so 2^3=8
@@ -1356,7 +1356,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       let solutions = solver.solve({vars: ['A', 'B']});
       // A and B are targeted, they have [0,1] [0,1] so
@@ -1377,7 +1377,7 @@ describe('solver.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B');
 
       solver.solve({vars: ['B', 'C']});
       // B and C are targeted, they have [0,1] [0,1] so
@@ -2320,7 +2320,7 @@ describe('solver.spec', function() {
       let VIEWPORT_HEIGHT = 800;
 
       let solver = new Solver();
-      solver.decls([
+      let targets = [
         // box1
         '#box1[x]',
         '#box1[width]',
@@ -2331,7 +2331,8 @@ describe('solver.spec', function() {
         '#box2[width]',
         '#box2[y]',
         '#box2[height]',
-      ]);
+      ];
+      solver.decls(targets);
 
       // simple constraints
       // #box1 { width:== 100; height:== 100; } #box2 { width: == 100; height: == 100; }
@@ -2362,7 +2363,7 @@ describe('solver.spec', function() {
       solver.minus(VIEWPORT_MIDDLE_HEIGHT, solver.div('#box1[height]', 2), '#box1[y]');
       solver.minus(VIEWPORT_MIDDLE_HEIGHT, solver.div('#box2[height]', 2), '#box2[y]');
 
-      let solutions = solver.solve({max: 3});
+      let solutions = solver.solve({max: 3, vars: targets});
 
       // viewport is 1200 x 800
       // boxes are 100x100

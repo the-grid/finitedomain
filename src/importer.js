@@ -390,6 +390,41 @@ function importer_main(str, solver, _debug) {
         solver.gte(A, parseVexpr());
         break;
 
+      case '&':
+        // force A and B to non-zero (artifact)
+        // (could easily be done at compile time)
+        // for now we mul the args and force the result non-zero, this way neither arg can be zero
+        // TODO: this could be made "safer" with more work; `(A/A)+(B/B) > 0` doesnt risk going oob, i think. and otherwise we could sum two ==?0 reifiers to equal 2. just relatively very expensive.
+        solver.neq(solver.mul(A, parseVexpr()), solver.num(0));
+        break;
+
+      case '|':
+        // force at least one of A and B to be non-zero (both is fine too)
+        // if we add both args and check the result for non-zero then at least one arg must be non-zero
+        solver.neq(solver.plus(A, parseVexpr()), solver.num(0));
+        break;
+
+      case '^':
+        // force A zero and B nonzero or A nonzero and B zero (anything else rejects)
+        // this is more tricky/expensive to implement than AND and OR...
+        // x=A+B,x==A^x==B owait
+        // (A==?0)+(B==?0)==1
+        solver.eq(solver.plus(solver.isEq(A, 0), solver.isEq(parseVexpr(), 0)), 1);
+        break;
+
+      case '!&':
+        // nand is a nall with just two args...
+        // it is the opposite from AND, and so is the implementation
+        // (except since we can force to 0 instead of "nonzero" we can drop the eq wrapper)
+        solver.mul(A, parseVexpr(), solver.num(0));
+        break;
+
+      case '!^':
+        // xor means A and B both solve to zero or both to non-zero
+        // (A==?0)==(B==?0)
+        solver.eq(solver.isEq(A, solver.num(0)), solver.isEq(parseVexpr(), solver.num(0)));
+        break;
+
       default:
         if (cop) THROW('Unknown constraint op: [' + cop + ']');
     }
@@ -402,30 +437,37 @@ function importer_main(str, solver, _debug) {
     // it should always return the "result var" var name or constant
     // (that would be C, but C may be undefined here and created by Solver)
 
-    if (typeof C === 'string' && !solver.hasVar(C)) C = solver.decl(C);
+    let freshVar = typeof C === 'string' && !solver.hasVar(C);
+    if (freshVar) C = solver.decl(C);
 
-    let A = parseVexpr(C);
+    let A = parseVexpr(C, freshVar);
     skipWhitespaces();
     let c = read();
     if (isEof() || isNewline(c) || isComment(c)) return A; // any group without "top-level" op (`A=(B+C)`), or sum() etc
-    return parseAssignRest(A, C);
+    return parseAssignRest(A, C, freshVar);
   }
 
-  function parseAssignRest(A, C) {
+  function parseAssignRest(A, C, freshVar) {
     let rop = parseRop();
     skipWhitespaces();
     switch (rop) {
       case '==?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isEq(A, parseVexpr(), C);
       case '!=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isNeq(A, parseVexpr(), C);
       case '<?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isLt(A, parseVexpr(), C);
       case '<=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isLte(A, parseVexpr(), C);
       case '>?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isGt(A, parseVexpr(), C);
       case '>=?':
+        if (freshVar) solver.decl(C, [0, 1], undefined, false, true);
         return solver.isGte(A, parseVexpr(), C);
       case '+':
         return solver.plus(A, parseVexpr(), C);
@@ -453,9 +495,18 @@ function importer_main(str, solver, _debug) {
         return '=';
       case '!':
         skip();
-        if (read() === '=') {
+        c = read();
+        if (c === '=') {
           skip();
           return '!=';
+        }
+        if (c === '&') {
+          skip();
+          return '!&';
+        }
+        if (c === '^') {
+          skip();
+          return '!^';
         }
         return '!';
       case '<':
@@ -472,6 +523,11 @@ function importer_main(str, solver, _debug) {
           return '>=';
         }
         return '>';
+      case '&':
+      case '|':
+      case '^':
+        skip();
+        return c;
       case '#':
         THROW('Expected to parse a cop but found a comment instead');
         break;
@@ -538,6 +594,7 @@ function importer_main(str, solver, _debug) {
   function parseUexpr() {
     // it's not very efficient (we could parse an ident before and check that result here) but it'll work for now
     if (str.slice(pointer, pointer + 9) === 'distinct(') parseDistinct();
+    else if (str.slice(pointer, pointer + 5) === 'nall(') parseNall();
     else return false;
 
     return true;
@@ -569,7 +626,7 @@ function importer_main(str, solver, _debug) {
     return list;
   }
 
-  function parseVexpr(resultVar) {
+  function parseVexpr(resultVar, freshVar) {
     // valcall, ident, number, group
 
     let c = read();
@@ -585,9 +642,22 @@ function importer_main(str, solver, _debug) {
       let ident = parseIdentifier();
 
       if (read() === '(') {
-        if (ident === 'sum') v = parseSum(resultVar);
-        else if (ident === 'product') v = parseProduct(resultVar);
-        else THROW('Unknown constraint func: ' + ident);
+        if (ident === 'sum') {
+          v = parseSum(resultVar);
+        } else if (ident === 'product') {
+          v = parseProduct(resultVar);
+        } else if (ident === 'all?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsAll(resultVar);
+        } else if (ident === 'nall?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsNall(resultVar);
+        } else if (ident === 'none?') {
+          if (freshVar) solver.decl(resultVar, [0, 1], undefined, false, true);
+          v = parseIsNone(resultVar);
+        } else {
+          THROW('Unknown constraint func: ' + ident);
+        }
       } else {
         v = ident;
       }
@@ -650,6 +720,65 @@ function importer_main(str, solver, _debug) {
     skipWhitespaces();
     is(')', 'product closer');
     return r;
+  }
+
+  function parseIsAll(result) {
+    is('(', 'isall call opener');
+    skipWhitespaces();
+    let refs = parseVexpList();
+
+    // R = all?(A B C ...)   ->   X = A * B * C * ..., R = X !=? 0
+
+    let x = solver.decl(); // anon var [sub,sup]
+    solver.product(refs, x);
+    let r = solver.isNeq(x, solver.num(0), result);
+
+    skipWhitespaces();
+    is(')', 'isall closer');
+    return r;
+  }
+
+  function parseIsNall(result) {
+    is('(', 'isnall call opener');
+    skipWhitespaces();
+    let refs = parseVexpList();
+
+    // R = nall?(A B C ...)   ->   X = A * B * C * ..., R = X ==? 0
+
+    let x = solver.decl(); // anon var [sub,sup]
+    solver.product(refs, x);
+    let r = solver.isEq(x, solver.num(0), result);
+
+    skipWhitespaces();
+    is(')', 'isnall closer');
+    return r;
+  }
+
+  function parseIsNone(result) {
+    is('(', 'isnone call opener');
+    skipWhitespaces();
+    let refs = parseVexpList();
+
+    // R = none?(A B C ...)   ->   X = sum(A * B * C * ...), R = X ==? 0
+
+    let x = solver.decl(); // anon var [sub,sup]
+    solver.sum(refs, x);
+    let r = solver.isEq(x, solver.num(0), result);
+
+    skipWhitespaces();
+    is(')', 'isnone closer');
+    return r;
+  }
+
+  function parseNall() {
+    pointer += 5;
+    skipWhitespaces();
+    let refs = parseVexpList();
+    // TODO: could also sum reifiers but i think this is way more efficient. for the time being.
+    solver.product(refs, solver.num(0));
+    skipWhitespaces();
+    is(')', 'nall closer');
+    expectEol();
   }
 
   function parseNumstr() {
@@ -730,12 +859,12 @@ function importer_main(str, solver, _debug) {
           let config = parseRestCustom();
           solver.setValueDistributionFor(target, JSON.parse(config));
           break;
+        case 'targets':
+          parseTargets();
+          break;
         default:
           THROW('Unsupported custom rule: ' + ident);
       }
-    } else if (str.slice(pointer, pointer + 7) === 'targets') {
-      pointer += 7;
-      parseTargets();
     } else if (str.slice(pointer, pointer + 4) === 'mode') {
       pointer += 4;
       parseMode();
@@ -806,7 +935,7 @@ function importer_main(str, solver, _debug) {
     if (_debug) {
       console.log(str.slice(0, pointer) + '##|PARSER_IS_HERE[' + msg + ']|##' + str.slice(pointer));
     }
-    msg += ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
+    msg = 'Importer parser error: ' + msg + ', source at #|#: `' + str.slice(Math.max(0, pointer - 20), pointer) + '#|#' + str.slice(pointer, Math.min(str.length, pointer + 20)) + '`';
     throw new Error(msg);
   }
 }

@@ -14,6 +14,30 @@ import {
 } from '../../src/domain';
 import Solver from '../../src/solver';
 
+
+let INPUT_MAP = {
+  bool: {
+    F: [0, 0],
+    B: [0, 1],
+    T: [1, 1],
+  },
+  booly: {
+    F: [0, 0],
+    B: [0, 0, 5, 5],
+    T: [5, 5],
+  },
+};
+let OUTPUT_MAP = {
+  bool: {
+    F: 0,
+    T: 1,
+  },
+  booly: {
+    F: 0,
+    T: 5,
+  },
+};
+
 describe('src/constraint.spec', function() {
 
   describe('solver integration', function() {
@@ -666,7 +690,7 @@ describe('src/constraint.spec', function() {
       });
     });
 
-    describe('reifier', function() {
+    describe('reifier (conceptual)', function() {
 
       it('should find two solutions with a constant left', function() {
         let solver = new Solver();
@@ -708,6 +732,7 @@ describe('src/constraint.spec', function() {
           }
 
           [
+            // pure bools
             {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
             {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}]},
             {A: [0, 0], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
@@ -735,6 +760,34 @@ describe('src/constraint.spec', function() {
             {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
             {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 1}]},
             {A: [1, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+            // booly, same but with C = [0 0 5 5]
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 0], B: [0, 0], C: [5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 0], B: [1, 1], C: [5, 5], out: []},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 0}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [0, 1], C: [5, 5], out: [{A: 0, B: 0, C: 5}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 0, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 0}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [5, 5], out: [{A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [5, 5], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 1], C: [5, 5], out: [{A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [1, 1], C: [5, 5], out: [{A: 1, B: 1, C: 5}]},
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
 
@@ -754,6 +807,7 @@ describe('src/constraint.spec', function() {
           }
 
           [
+            // pure bools
             {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
             {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
             {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
@@ -781,6 +835,35 @@ describe('src/constraint.spec', function() {
             {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
             {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
             {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+            // booly, same but with C = [0 0 5 5]
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [5, 5], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [0, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 5}]},
+            {A: [0, 1], B: [0, 0], C: [5, 5], out: [{A: 1, B: 0, C: 5}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 5}, {A: 1, B: 0, C: 5}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}, {A: 1, B: 0, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: []},
+            {A: [1, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 5}]},
+            {A: [1, 1], B: [0, 0], C: [5, 5], out: [{A: 1, B: 0, C: 5}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 5}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [5, 5], out: [{A: 1, B: 0, C: 5}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [5, 5], out: []},
+
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
 
@@ -800,6 +883,7 @@ describe('src/constraint.spec', function() {
           }
 
           [
+            // pure bools
             {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
             {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 0}]},
             {A: [0, 0], B: [0, 0], C: [1, 1], out: []},
@@ -827,9 +911,36 @@ describe('src/constraint.spec', function() {
             {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
             {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 0}]},
             {A: [1, 1], B: [1, 1], C: [1, 1], out: []},
+            // booly, same but with C = [0 0 5 5]
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 0], C: [5, 5], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [0, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [5, 5], out: []},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 0, B: 0, C: 0}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 0}, {A: 0, B: 1, C: 5}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}, {A: 1, B: 1, C: 0}]},
+            {A: [0, 1], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [5, 5], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [5, 5], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 1, C: 0}]},
+            {A: [1, 1], B: [1, 1], C: [5, 5], out: []},
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
-
 
         describe('lte', function() {
 
@@ -847,6 +958,7 @@ describe('src/constraint.spec', function() {
           }
 
           [
+            // pure bools
             {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
             {A: [0, 0], B: [0, 0], C: [0, 1], out: [{A: 0, B: 0, C: 1}]},
             {A: [0, 0], B: [0, 0], C: [1, 1], out: [{A: 0, B: 0, C: 1}]},
@@ -874,6 +986,34 @@ describe('src/constraint.spec', function() {
             {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
             {A: [1, 1], B: [1, 1], C: [0, 1], out: [{A: 1, B: 1, C: 1}]},
             {A: [1, 1], B: [1, 1], C: [1, 1], out: [{A: 1, B: 1, C: 1}]},
+            // booly, same but with C = [0 0 5 5]
+            {A: [0, 0], B: [0, 0], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 0], B: [0, 0], C: [5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 0], B: [0, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [0, 1], C: [5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 0], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 0], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 0], C: [5, 5], out: [{A: 0, B: 0, C: 5}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [0, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 5}, {A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [0, 1], C: [5, 5], out: [{A: 0, B: 0, C: 5}, {A: 0, B: 1, C: 5}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [0, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 0, B: 1, C: 5}, {A: 1, B: 1, C: 5}]},
+            {A: [0, 1], B: [1, 1], C: [5, 5], out: [{A: 0, B: 1, C: 5}, {A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 0], C: [5, 5], out: []},
+            {A: [1, 1], B: [0, 1], C: [0, 0], out: [{A: 1, B: 0, C: 0}]},
+            {A: [1, 1], B: [0, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 0, C: 0}, {A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [0, 1], C: [5, 5], out: [{A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [1, 1], C: [0, 0], out: []},
+            {A: [1, 1], B: [1, 1], C: [0, 0, 5, 5], out: [{A: 1, B: 1, C: 5}]},
+            {A: [1, 1], B: [1, 1], C: [5, 5], out: [{A: 1, B: 1, C: 5}]},
           ].forEach(testCase => test(testCase.A, testCase.B, testCase.C, testCase.out));
         });
 
@@ -1552,6 +1692,33 @@ describe('src/constraint.spec', function() {
           {A: 72, B: 51},
           {A: 72, B: 52},
         ]);
+      });
+
+      it('should accept zero without args', function() {
+        let solver = new Solver();
+        solver.decl('C', fixt_arrdom_range(0, 0));
+        solver.sum([], 'C');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{C: 0}]);
+      });
+
+      it('should force zero without args', function() {
+        let solver = new Solver();
+        solver.decl('C', fixt_arrdom_range(0, 100));
+        solver.sum([], 'C');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([{C: 0}]);
+      });
+
+      it('should reject without args and result has no zero', function() {
+        let solver = new Solver();
+        solver.decl('C', fixt_arrdom_range(10, 100));
+        solver.sum([], 'C');
+        let solution = solver.solve({});
+
+        expect(stripAnonVarsFromArrays(solution)).to.eql([]);
       });
 
       it('should find a solution for A', function() {
@@ -2319,6 +2486,1120 @@ describe('src/constraint.spec', function() {
           {A: 0, B: 0, C: 1},
           {A: 1, B: 1, C: 1},
         ]);
+      });
+    });
+
+    describe('nall', function() {
+
+      it('should work with zeroes', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should work with A nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 10]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should work with B nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [1 8]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should reject both nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [18 20]
+          : B [50 100]
+          nall(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should work with zeroes', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : C [0 10]
+          nall(A B C)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, C: 0}]);
+      });
+
+      describe('brute force boolean tables should solve despite optimizations;', function() {
+
+        function test(resultA, resultB, resultC, out, desc, _input) {
+          //if (_input !== 'FFB') return;
+
+          // brute force bools and boolies "truth table" (in a way)
+          [
+            ['bool', 'bool', 'bool'],
+            ['booly', 'bool', 'bool'],
+            ['bool', 'booly', 'bool'],
+            ['bool', 'bool', 'booly'],
+            ['booly', 'booly', 'bool'],
+            ['bool', 'booly', 'booly'],
+            ['booly', 'bool', 'booly'],
+            ['booly', 'booly', 'booly'],
+          ].some(([typeA, typeB, typeC]) => {
+
+            let A = INPUT_MAP[typeA][resultA];
+            let B = INPUT_MAP[typeB][resultB];
+            let C = INPUT_MAP[typeC][resultC];
+            let outs = out.map((solution) => ({
+              A: OUTPUT_MAP[typeA][solution.A],
+              B: OUTPUT_MAP[typeB][solution.B],
+              C: OUTPUT_MAP[typeC][solution.C],
+            }));
+
+            let from = 'nall(' + [domain__debug(A), domain__debug(B), domain__debug(C)] + ')';
+            let to = 'nall(' + (JSON.stringify(outs).replace(/"/g, '')) + ')';
+            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+              let solver = new Solver().imp(`
+                : A [${A}]
+                : B [${B}]
+                : C [${C}]
+
+                nall(A B C)
+              `);
+
+              solver.solve({vars: ['A', 'B', 'C'], log: 1});
+              expect(stripAnonVarsFromArrays(solver.solutions)).to.eql(outs);
+            });
+          });
+        }
+
+        // (NOTE: order of solutions is not relevant to the test)
+        [
+          // false/bool/true. left is input for ABC, right is expected solution(s)
+          ['FFF', ['FFF']],
+          ['FFB', ['FFF', 'FFT']],
+          ['FFT', ['FFT']],
+          ['FBF', ['FFF', 'FTF']],
+          ['FBB', ['FFF', 'FFT', 'FTF', 'FTT']],
+          ['FBT', ['FFT', 'FTT']],
+          ['FTF', ['FTF']],
+          ['FTB', ['FTF', 'FTT']],
+          ['FTT', ['FTT']],
+          ['BFF', ['FFF', 'TFF']],
+          ['BFB', ['FFF', 'FFT', 'TFF', 'TFT']],
+          ['BFT', ['FFT', 'TFT']],
+          ['BBF', ['FFF', 'FTF', 'TFF', 'TTF']],
+          ['BBB', ['FFF', 'FFT', 'FTF', 'FTT', 'TFF', 'TFT', 'TTF']],
+          ['BBT', ['FFT', 'FTT', 'TFT']],
+          ['BTF', ['FTF', 'TTF']],
+          ['BTB', ['FTF', 'FTT', 'TTF']],
+          ['BTT', ['FTT']],
+          ['TFF', ['TFF']],
+          ['TFB', ['TFF', 'TFT']],
+          ['TFT', ['TFT']],
+          ['TBF', ['TFF', 'TTF']],
+          ['TBB', ['TFF', 'TFT', 'TTF']],
+          ['TBT', ['TFT']],
+          ['TTF', ['TTF']],
+          ['TTB', ['TTF']],
+          ['TTT', []],
+        ].some(([input, outs]) => {
+          let [A, B, C] = input.split('');
+          let out = outs.map(expected => {
+            // FTF => {A: F, B: T, C: F}
+            let [A, B, C] = expected.split('');
+            return {A, B, C};
+          });
+          return test(A, B, C, out, '(' + input + ' => ' + outs + ')', input);
+        });
+      });
+    });
+
+    describe('isall', function() {
+
+      it('should reject if R=1 and A!=B', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          : R [1 1]
+          R = A ==? B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should work with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should work with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10], R: 0}]);
+      });
+
+      it('should work with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should work with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [20 60]
+          : R [0 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 20, R: 1}]);
+      });
+
+      it('should force a pass when R is nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [1 10]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 23, R: [1, 10]}]);
+      });
+
+      it('should force a pass when R is zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [0 0]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 0}]);
+      });
+
+      it('should reject when R is zero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [23 60]
+          : R [0 0]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject when R is nonzero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [0 0]
+          : R [100 2000]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should not fail previous test because R didnt have a 1', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [0 0]
+          : R [1 1]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      // TODO: we can enable this test once isall (and friends) are properly implemented and not through product()
+      it.skip('should work with very high values that mul beyond sup', function() {
+        let solver = new Solver().imp(`
+          : A [100000 1000000]
+          : B [100000 1000000]
+          : R [1 1]
+          R = all?(A B)
+        `);
+        solver.solve({max: 1});
+        // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
+        // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 1}]);
+      });
+
+      describe('brute force boolean tables should solve despite optimizations;', function() {
+
+        function test(resultA, resultB, resultC, out, desc, _input) {
+          //if (_input !== 'FFB') return;
+
+          // brute force bools and boolies "truth table" (in a way)
+          [
+            ['bool', 'bool', 'bool'],
+            ['booly', 'bool', 'bool'],
+            ['bool', 'booly', 'bool'],
+            ['bool', 'bool', 'booly'],
+            ['booly', 'booly', 'bool'],
+            ['bool', 'booly', 'booly'],
+            ['booly', 'bool', 'booly'],
+            ['booly', 'booly', 'booly'],
+          ].some(([typeA, typeB, typeC]) => {
+
+            let A = INPUT_MAP[typeA][resultA];
+            let B = INPUT_MAP[typeB][resultB];
+            let C = INPUT_MAP[typeC][resultC];
+            let outs = out.map((solution) => ({
+              A: OUTPUT_MAP[typeA][solution.A],
+              B: OUTPUT_MAP[typeB][solution.B],
+              C: OUTPUT_MAP[typeC][solution.C],
+            }));
+
+            let from = domain__debug(C) + ' = ' + 'all?(' + [domain__debug(A), domain__debug(B)] + ')';
+            let to = JSON.stringify(outs).replace(/"/g, '');
+            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+              let solver = new Solver().imp(`
+                : A [${A}]
+                : B [${B}]
+                : C [${C}]
+
+                C = all?(A B)
+              `);
+
+              solver.solve({vars: ['A', 'B', 'C'], log: 1});
+              expect(stripAnonVarsFromArrays(solver.solutions)).to.eql(outs);
+            });
+          });
+        }
+
+        // (NOTE: order of solutions is not relevant to the test)
+        [
+          // false/bool/true. left is input for ABC, right is expected solution(s)
+          ['FFF', ['FFF']],
+          ['FFB', ['FFF']],
+          ['FFT', []],
+          ['FBF', ['FFF', 'FTF']],
+          ['FBB', ['FFF', 'FTF']],
+          ['FBT', []],
+          ['FTF', ['FTF']],
+          ['FTB', ['FTF']],
+          ['FTT', []],
+          ['BFF', ['FFF', 'TFF']],
+          ['BFB', ['FFF', 'TFF']],
+          ['BFT', []],
+          ['BBF', ['FFF', 'FTF', 'TFF']],
+          ['BBB', ['FFF', 'FTF', 'TFF', 'TTT']],
+          ['BBT', ['TTT']],
+          ['BTF', ['FTF']],
+          ['BTB', ['FTF', 'TTT']],
+          ['BTT', ['TTT']],
+          ['TFF', ['TFF']],
+          ['TFB', ['TFF']],
+          ['TFT', []],
+          ['TBF', ['TFF']],
+          ['TBB', ['TFF', 'TTT']],
+          ['TBT', ['TTT']],
+          ['TTF', []],
+          ['TTB', ['TTT']],
+          ['TTT', ['TTT']],
+        ].some(([input, outs]) => {
+          let [A, B, C] = input.split('');
+          let out = outs.map(expected => {
+            // FTF => {A: F, B: T, C: F}
+            let [A, B, C] = expected.split('');
+            return {A, B, C};
+          });
+          return test(A, B, C, out, '(' + input + ' => ' + outs + ')', input);
+        });
+      });
+    });
+
+    describe('isnall', function() {
+
+      it('should work with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10], R: 1}]);
+      });
+
+      it('should work with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [20 60]
+          : R [0 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 20, R: 0}]);
+      });
+
+      it('should force a pass when R is nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [1 10]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: [1, 10]}]);
+      });
+
+      it('should force a pass when R is zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 23, R: 0}]);
+      });
+
+      it('should reject when R is zero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [23 60]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject when R is nonzero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [450 2000]
+          : R [100 2000]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should not fail previous test because R didnt have a 1', function() {
+        let solver = new Solver().imp(`
+          : A [10 10]
+          : B [450 2000]
+          : R [1 1]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      // TODO: we can enable this test once isall (and friends) are properly implemented and not through product()
+      it.skip('should work with very high values that mul beyond sup', function() {
+        let solver = new Solver().imp(`
+          : A [100000 1000000]
+          : B [100000 1000000]
+          : R [0 0]
+          R = nall?(A B)
+        `);
+        solver.solve({max: 1});
+        // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
+        // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 0}]);
+      });
+
+      describe('brute force boolean tables should solve despite optimizations;', function() {
+
+        function test(resultA, resultB, resultC, out, desc, _input) {
+          //if (_input !== 'FFB') return;
+
+          // brute force bools and boolies "truth table" (in a way)
+          [
+            ['bool', 'bool', 'bool'],
+            ['booly', 'bool', 'bool'],
+            ['bool', 'booly', 'bool'],
+            ['bool', 'bool', 'booly'],
+            ['booly', 'booly', 'bool'],
+            ['bool', 'booly', 'booly'],
+            ['booly', 'bool', 'booly'],
+            ['booly', 'booly', 'booly'],
+          ].some(([typeA, typeB, typeC]) => {
+
+            let A = INPUT_MAP[typeA][resultA];
+            let B = INPUT_MAP[typeB][resultB];
+            let C = INPUT_MAP[typeC][resultC];
+            let outs = out.map((solution) => ({
+              A: OUTPUT_MAP[typeA][solution.A],
+              B: OUTPUT_MAP[typeB][solution.B],
+              C: OUTPUT_MAP[typeC][solution.C],
+            }));
+
+            let from = domain__debug(C) + ' = ' + 'nall?(' + [domain__debug(A), domain__debug(B)] + ')';
+            let to = JSON.stringify(outs).replace(/"/g, '');
+            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+              let solver = new Solver().imp(`
+                : A [${A}]
+                : B [${B}]
+                : C [${C}]
+
+                C = nall?(A B)
+              `);
+
+              solver.solve({vars: ['A', 'B', 'C'], log: 1});
+              expect(stripAnonVarsFromArrays(solver.solutions)).to.eql(outs);
+            });
+          });
+        }
+
+        // (NOTE: order of solutions is not relevant to the test)
+        [
+          // false/bool/true. left is input for ABC, right is expected solution(s)
+          ['FFF', []],
+          ['FFB', ['FFT']],
+          ['FFT', ['FFT']],
+          ['FBF', []],
+          ['FBB', ['FFT', 'FTT']],
+          ['FBT', ['FFT', 'FTT']],
+          ['FTF', []],
+          ['FTB', ['FTT']],
+          ['FTT', ['FTT']],
+          ['BFF', []],
+          ['BFB', ['FFT', 'TFT']],
+          ['BFT', ['FFT', 'TFT']],
+          ['BBF', ['TTF']],
+          ['BBB', ['FFT', 'FTT', 'TFT', 'TTF']],
+          ['BBT', ['FFT', 'FTT', 'TFT']],
+          ['BTF', ['TTF']],
+          ['BTB', ['FTT', 'TTF']],
+          ['BTT', ['FTT']],
+          ['TFF', []],
+          ['TFB', ['TFT']],
+          ['TFT', ['TFT']],
+          ['TBF', ['TTF']],
+          ['TBB', ['TFT', 'TTF']],
+          ['TBT', ['TFT']],
+          ['TTF', ['TTF']],
+          ['TTB', ['TTF']],
+          ['TTT', []],
+        ].some(([input, outs]) => {
+          let [A, B, C] = input.split('');
+          let out = outs.map(expected => {
+            // FTF => {A: F, B: T, C: F}
+            let [A, B, C] = expected.split('');
+            return {A, B, C};
+          });
+          return test(A, B, C, out, '(' + input + ' => ' + outs + ')', input);
+        });
+      });
+    });
+
+    describe('isnone', function() {
+
+      it('should work with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          : R [0 10]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          : R [0 10]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 10]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: 1}]);
+      });
+
+      it('should work with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [20 60]
+          : R [0 10]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 20, R: 0}]);
+      });
+
+      it('should force a pass when R is nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [1 10]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, R: [1, 10]}]);
+      });
+
+      it('should force a pass when R is zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0 23 60]
+          : R [0 0]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 23, R: 0}]);
+      });
+
+      it('should reject when R is zero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          : R [0 0]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject when R is nonzero and cant be fulfilled', function() {
+        let solver = new Solver().imp(`
+          : A [10 200]
+          : B [0 0]
+          : R [100 2000]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should not fail previous test because R didnt have a 1', function() {
+        let solver = new Solver().imp(`
+          : A [10 200]
+          : B [0 0]
+          : R [1 1]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      // TODO: we can enable this test once isall (and friends) are properly implemented and not through sum()
+      it.skip('should work with very high values that mul beyond sup', function() {
+        let solver = new Solver().imp(`
+          : A [100000 1000000]
+          : B [100000 1000000]
+          : R [0 0]
+          R = none?(A B)
+        `);
+        solver.solve({max: 1});
+        // internally isall is mapped to a multiply which will try 100000*100000 which is way beyond
+        // SUP and results in an empty domain which rejects the whole thing by default. tricky thing
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 0}]);
+      });
+
+      describe('brute force boolean tables should solve despite optimizations;', function() {
+
+        function test(resultA, resultB, resultC, out, desc, _input) {
+          //if (_input !== 'FFB') return;
+
+          // brute force bools and boolies "truth table" (in a way)
+          [
+            ['bool', 'bool', 'bool'],
+            ['booly', 'bool', 'bool'],
+            ['bool', 'booly', 'bool'],
+            ['bool', 'bool', 'booly'],
+            ['booly', 'booly', 'bool'],
+            ['bool', 'booly', 'booly'],
+            ['booly', 'bool', 'booly'],
+            ['booly', 'booly', 'booly'],
+          ].some(([typeA, typeB, typeC]) => {
+
+            let A = INPUT_MAP[typeA][resultA];
+            let B = INPUT_MAP[typeB][resultB];
+            let C = INPUT_MAP[typeC][resultC];
+            let outs = out.map((solution) => ({
+              A: OUTPUT_MAP[typeA][solution.A],
+              B: OUTPUT_MAP[typeB][solution.B],
+              C: OUTPUT_MAP[typeC][solution.C],
+            }));
+
+            let from = domain__debug(C) + ' = ' + 'nall?(' + [domain__debug(A), domain__debug(B)] + ')';
+            let to = JSON.stringify(outs).replace(/"/g, '');
+            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+              let solver = new Solver().imp(`
+                : A [${A}]
+                : B [${B}]
+                : C [${C}]
+
+                C = none?(A B)
+              `);
+
+              solver.solve({vars: ['A', 'B', 'C'], log: 1});
+              expect(stripAnonVarsFromArrays(solver.solutions)).to.eql(outs);
+            });
+          });
+        }
+
+        // (NOTE: order of solutions is not relevant to the test)
+        [
+          // false/bool/true. left is input for ABC, right is expected solution(s)
+          ['FFF', []],
+          ['FFB', ['FFT']],
+          ['FFT', ['FFT']],
+          ['FBF', ['FTF']],
+          ['FBB', ['FFT', 'FTF']],
+          ['FBT', ['FFT']],
+          ['FTF', ['FTF']],
+          ['FTB', ['FTF']],
+          ['FTT', []],
+          ['BFF', ['TFF']],
+          ['BFB', ['FFT', 'TFF']],
+          ['BFT', ['FFT']],
+          ['BBF', ['FTF', 'TFF', 'TTF']],
+          ['BBB', ['FFT', 'FTF', 'TFF', 'TTF']],
+          ['BBT', ['FFT']],
+          ['BTF', ['FTF', 'TTF']],
+          ['BTB', ['FTF', 'TTF']],
+          ['BTT', []],
+          ['TFF', ['TFF']],
+          ['TFB', ['TFF']],
+          ['TFT', []],
+          ['TBF', ['TFF', 'TTF']],
+          ['TBB', ['TFF', 'TTF']],
+          ['TBT', []],
+          ['TTF', ['TTF']],
+          ['TTB', ['TTF']],
+          ['TTT', []],
+        ].some(([input, outs]) => {
+          let [A, B, C] = input.split('');
+          let out = outs.map(expected => {
+            // FTF => {A: F, B: T, C: F}
+            let [A, B, C] = expected.split('');
+            return {A, B, C};
+          });
+          return test(A, B, C, out, '(' + input + ' => ' + outs + ')', input);
+        });
+      });
+    });
+
+    describe('and', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 1}]);
+      });
+
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 8}]);
+      });
+    });
+
+    describe('or', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should solve with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
+      });
+
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 5}]);
+      });
+
+      it('should solve with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A | B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 8}]);
+      });
+    });
+
+    describe('xor', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should reject with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A & B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
+      });
+
+      it('should solve with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
+      });
+
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 5}]);
+      });
+
+      it('should reject with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A ^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+    });
+
+    describe('nand', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10]}]);
+      });
+
+      it('should solve with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [0, 10], B: 0}]);
+      });
+
+      it('should solve with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [5, 10], B: 0}]);
+      });
+
+      it('should solve with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [5, 10]}]);
+      });
+
+      it('should reject with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A !& B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+    });
+
+    describe('xnor', function() {
+
+      it('should solve with boolies', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with zero/booly', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [0 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should solve with booly/zero', function() {
+        let solver = new Solver().imp(`
+          : A [0 10]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
+      });
+
+      it('should reject with nonzero/zero', function() {
+        let solver = new Solver().imp(`
+          : A [5 10]
+          : B [0 0]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should reject with zero/nonzero', function() {
+        let solver = new Solver().imp(`
+          : A [0 0]
+          : B [5 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
+      });
+
+      it('should solve with nonzeroes', function() {
+        let solver = new Solver().imp(`
+          : A [1 10]
+          : B [8 10]
+          A !^ B
+        `);
+        solver.solve({max: 1});
+        expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 8}]);
       });
     });
   });

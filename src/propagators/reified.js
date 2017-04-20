@@ -8,15 +8,13 @@ import {
 
 import {
   domain__debug,
-  domain_createRange,
-  domain_createValue,
-  domain_getValue,
+  domain_hasNoZero,
+  domain_isZero,
+  domain_removeGtUnchecked,
+  domain_removeValue,
 } from '../domain';
 
 // BODY_START
-
-let REIFIER_FAIL = 0;
-let REIFIER_PASS = 1;
 
 /**
  * A boolean variable that represents whether a comparison
@@ -47,12 +45,12 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
 
   ASSERT_LOG(LOG_FLAG_PROPSTEPS, log => log('propagator_reifiedStepBare; op:', opName, 'indexes:', leftVarIndex, rightVarIndex, resultVarIndex, 'doms before:', domain__debug(vardoms[leftVarIndex]), '?=' + opName, domain__debug(vardoms[rightVarIndex]), '->', domain__debug(vardoms[resultVarIndex])));
 
-  let value = domain_getValue(domResult);
-  ASSERT(value === REIFIER_FAIL || value === REIFIER_PASS || domResult === domain_createRange(0, 1), 'RESULT_DOM_SHOULD_BE_BOOL_BOUND [was' + domResult + ']');
+  // the result var is either ZERO (reified constraint must not hold) or NONZERO (reified constraint must hold)
+  // the actual nonzero value, if any, is irrelevant
 
-  if (value === REIFIER_FAIL) {
+  if (domain_isZero(domResult)) {
     nopFunc(space, config, leftVarIndex, rightVarIndex);
-  } else if (value === REIFIER_PASS) {
+  } else if (domain_hasNoZero(domResult)) {
     opFunc(space, config, leftVarIndex, rightVarIndex);
   } else {
     let domain1 = vardoms[leftVarIndex];
@@ -61,14 +59,14 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
     ASSERT_NORDOM(domain1);
     ASSERT_NORDOM(domain2);
     ASSERT(domain1 && domain2, 'SHOULD_NOT_BE_REJECTED');
-    ASSERT(domResult === domain_createRange(0, 1), 'result should be bool now because we already asserted it was either zero one or bool and it wasnt zero or one');
+    ASSERT(!domain_isZero(domResult) && !domain_hasNoZero(domResult), 'result should be booly now');
 
     if (nopRejectChecker(domain1, domain2)) {
       ASSERT(!opRejectChecker(domain1, domain2), 'with non-empty domains op and nop cant BOTH reject');
-      vardoms[resultVarIndex] = domain_createValue(REIFIER_PASS);
+      vardoms[resultVarIndex] = domain_removeValue(domResult, 0);
       opFunc(space, config, leftVarIndex, rightVarIndex);
     } else if (opRejectChecker(domain1, domain2)) {
-      vardoms[resultVarIndex] = domain_createValue(REIFIER_FAIL);
+      vardoms[resultVarIndex] = domain_removeGtUnchecked(domResult, 0);
       nopFunc(space, config, leftVarIndex, rightVarIndex);
     }
   }

@@ -12,6 +12,8 @@ import {
   fixt_dom_clone,
   fixt_dom_empty,
   fixt_dom_nums,
+  fixt_dom_range,
+  fixt_dom_solved,
   fixt_domainEql,
   fixt_numdom_empty,
   fixt_numdom_nums,
@@ -44,8 +46,10 @@ import {
   domain_fromListToArrdom,
   domain_getFirstIntersectingValue,
   domain_getValue,
+  domain_hasNoZero,
   domain_intersection,
   domain_isSolved,
+  domain_isZero,
   domain_max,
   _domain_str_mergeOverlappingRanges,
   //domain_middleElement,
@@ -56,6 +60,7 @@ import {
   domain_removeGte,
   domain_removeLte,
   domain_removeValue,
+  domain_resolveAsBooly,
   domain_sharesNoElements,
   domain_str_simplify,
   domain_size,
@@ -579,6 +584,16 @@ describe('src/domain.spec', function() {
           expect(domain_containsValue(fixt_numdom_solved(i), 1), 'i=' + i + ',q=1').to.equal(i === 1);
           expect(domain_containsValue(fixt_numdom_solved(i), SUP), 'i=' + i + ',q=SUP').to.equal(false);
         }
+      });
+    });
+
+    describe('large value in numdom range', function() {
+
+      it('should return false when numbers are oob for bitdom ranges', function() {
+        expect(domain_containsValue(fixt_numdom_range(0, 10), 10000)).to.equal(false);
+        expect(domain_containsValue(fixt_numdom_range(0, 10), 1760)).to.equal(false); // this value is a regression that uncovered a bug
+        expect(_ => domain_containsValue(fixt_numdom_range(0, 10), -1)).to.throw('OOB');
+        expect(_ => domain_containsValue(fixt_numdom_range(0, 10), -10000)).to.throw('OOB');
       });
     });
   });
@@ -1915,6 +1930,65 @@ describe('src/domain.spec', function() {
       domain__debug(fixt_strdom_nums(0, 2, 15, 200, SUP));
       domain__debug(fixt_arrdom_nums(0, 2, 15, 200));
       domain__debug(fixt_numdom_solved(100));
+    });
+  });
+
+  describe('domain_isZero', function() {
+
+    it('should return true if the domain is zero', function() {
+      expect(domain_isZero(fixt_dom_nums(0))).to.eql(true);
+    });
+
+    it('should return false if the domain is not zero', function() {
+      expect(domain_isZero(fixt_dom_nums(0, 1))).to.eql(false);
+      expect(domain_isZero(fixt_dom_nums(0, 1, 2, 3, 4, 5))).to.eql(false);
+    });
+
+    it('should return false if the domain has no zero', function() {
+      expect(domain_isZero(fixt_dom_nums(1))).to.eql(false);
+      expect(domain_isZero(fixt_dom_nums(1, 2, 3))).to.eql(false);
+    });
+
+    it('should return false if the domain is empty', function() {
+      expect(domain_isZero(fixt_dom_empty())).to.eql(false);
+    });
+  });
+
+  describe('domain_hasNoZero', function() {
+
+    it('should return false if the domain is zero', function() {
+      expect(domain_hasNoZero(fixt_dom_nums(0))).to.eql(false);
+    });
+
+    it('should return false if the domain is has zero', function() {
+      expect(domain_hasNoZero(fixt_dom_nums(0, 1))).to.eql(false);
+      expect(domain_hasNoZero(fixt_dom_nums(0, 1, 2, 3, 4, 5))).to.eql(false);
+    });
+
+    it('should return true if the domain has no zero', function() {
+      expect(domain_hasNoZero(fixt_dom_nums(1))).to.eql(true);
+      expect(domain_hasNoZero(fixt_dom_nums(1, 2, 3))).to.eql(true);
+    });
+
+    it('should return true if the domain is empty', function() {
+      expect(domain_hasNoZero(fixt_dom_empty())).to.eql(true);
+    });
+  });
+
+  describe('domain_resolveAsBooly', function() {
+
+    it('should remove the zero if result is true', function() {
+      expect(domain_resolveAsBooly(fixt_dom_solved(0), true)).to.eql(fixt_dom_empty());
+      expect(domain_resolveAsBooly(fixt_dom_range(0, 10), true)).to.eql(fixt_dom_range(1, 10));
+      expect(domain_resolveAsBooly(fixt_dom_range(1, 10), true)).to.eql(fixt_dom_range(1, 10));
+      expect(domain_resolveAsBooly(fixt_dom_empty(), true)).to.eql(fixt_dom_empty());
+    });
+
+    it('should remove the nonzeroes if result is false', function() {
+      expect(domain_resolveAsBooly(fixt_dom_solved(0), false)).to.eql(fixt_dom_solved(0));
+      expect(domain_resolveAsBooly(fixt_dom_range(0, 10), false)).to.eql(fixt_dom_solved(0));
+      expect(domain_resolveAsBooly(fixt_dom_range(1, 10), false)).to.eql(fixt_dom_empty());
+      expect(domain_resolveAsBooly(fixt_dom_empty(), false)).to.eql(fixt_dom_empty());
     });
   });
 });

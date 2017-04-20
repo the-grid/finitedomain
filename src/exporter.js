@@ -33,20 +33,22 @@ import {
  * @param {boolean} [usePropagators] Output the low-level propagators instead of the higher level constraints
  * @param {boolean} [minimal] Omit comments, use short var names, reduce whitespace where possible. etc
  * @param {boolean} [withDomainComments] Put the input domains behind each constraint even if minimal=true
+ * @param {boolean} [realName] Use the original var names?
  * @returns {string}
  */
-function exporter_main(config, vardoms, usePropagators, minimal, withDomainComments) {
+function exporter_main(config, vardoms, usePropagators, minimal, withDomainComments, realName) {
   // TODO: dont export contants that are not bound to constraints and not targeted explicitly
   // TODO: deal export->import better wrt anonymous vars
-  let indexToString = minimal ? exporter_varstrShort : exporter_varstrNum;
-
   let var_dist_options = config.varDistOptions;
   let domains = vardoms || config.initialDomains;
+  let varNames = config.allVarNames;
+
+  let indexToString = realName ? index => exporter_encodeVarName(varNames[index]) : minimal ? exporter_varstrShort : exporter_varstrNum;
 
   let vars = config.allVarNames.map((varName, varIndex) => {
     let domain = exporter_domstr(domains[varIndex]);
     let s = ': ' + indexToString(varIndex) + ' = ' + domain;
-    if (varName !== String(varIndex)) s += ' alias(' + exporter_encodeVarName(varName) + ')';
+    if (!realName && varName !== String(varIndex)) s += ' alias(' + exporter_encodeVarName(varName) + ')';
     let overrides = var_dist_options[varName];
     if (overrides && (overrides.valtype !== 'list' || (overrides.list && overrides.list.length))) {
       s += ' @' + overrides.valtype;
@@ -174,7 +176,7 @@ function exporter_main(config, vardoms, usePropagators, minimal, withDomainComme
     let t = s;
     // if a constraint has no vars, ignore it.
     // note: this assumes those constraints are not contradictions
-    if (s.indexOf('$') < 0 || (constraint.name === 'distinct' && aliases.length <= 1) || (((constraint.name === 'product' || constraint.name === 'sum') && aliases.length === 0))) {
+    if (s.indexOf(realName ? '\'' : '$') < 0 || (constraint.name === 'distinct' && aliases.length <= 1) || (((constraint.name === 'product' || constraint.name === 'sum') && aliases.length === 0))) {
       if (!minimal) {
         comment += (comment ? ', ' : ' # ') + 'dropped; constraint already solved (' + s + ') (' + indexes.map(indexToString) + ', ' + indexToString(constraint.param) + ')';
       }
@@ -313,14 +315,14 @@ function exporter_main(config, vardoms, usePropagators, minimal, withDomainComme
     '@custom val-strat = ' + config.valueStratName,
     vars.join('\n') || '# no vars',
     constraints.join('\n') || propagators.join('\n') || '# no constraints',
-    '@targets = ' + (config.targetedVars === 'all' ? 'all' : '[' + config.targetedVars.map(varName => indexToString(trie_get(config._varNamesTrie, varName))).join(' ') + ']'),
+    '@custom targets ' + (config.targetedVars === 'all' ? ' = all' : '(' + config.targetedVars.map(varName => indexToString(trie_get(config._varNamesTrie, varName))).join(' ') + ')'),
     '## end of export',
   ].join('\n\n');
 }
 
 function exporter_encodeVarName(varName) {
   if (typeof varName === 'number') return varName; // constant
-  return varName.replace(/^(\d)/, '___$1').replace(/[\(\)\[\]\*@\=\<\>\!, ]/g, '_');
+  return '\'' + varName + '\''; // "quoted var names" can contain any char.
 }
 
 function exporter_varstrNum(varIndex) {

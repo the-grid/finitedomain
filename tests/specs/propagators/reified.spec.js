@@ -146,7 +146,7 @@ describe('propagators/reified.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       solver.solve({});
 
@@ -166,7 +166,7 @@ describe('propagators/reified.spec', function() {
       solver.declRange('A', 0, 1);
       solver.declRange('B', 0, 1);
       solver.declRange('C', 0, 1);
-      solver.isEq('A', 'B', solver.decl('AnotB'));
+      solver.isEq('A', 'B', solver.decl('AnotB', [0, 1]));
 
       solver.solve({vars: ['A', 'B', 'C']});
 

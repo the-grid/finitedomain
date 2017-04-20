@@ -33,23 +33,28 @@ var perf = module.exports = function perf(config, max, _waited) {
     };
   }
 
+  console.log('<TEST>');
+  console.time('</TEST>');
+
+  let solver;
   if (typeof config === 'string') {
-    var solver = new Solver().imp(config);
+    console.log('Test type: DSL');
+    solver = new Solver({log: 1}).imp(config);
   } else {
-    var solver = new Solver({config: config});
+    console.log('Test type: Legacy');
+    solver = new Solver({config: config, log: 1});
   }
 
-  console.log('start test');
-  console.time('test runtime');
-  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');
+  if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profile && console.profile('fd perf');
   solver.solve({
     log: 1,
     max: max,
-    vars: solver.config.allVarNames,
+    vars: 'all',
     _debug: false,
-    _tostring: false, // requires dsl build
-    exportBare: false, // does not require dsl build
+    _tostring: false,
+    exportBare: false,
   });
-  if (typeof location === 'object' && location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('fd perf');
-  console.timeEnd('test runtime');
+  if (typeof location !== 'object' || location.href.indexOf('perf=0') < 0) console.profileEnd && console.profileEnd('fd perf');
+
+  console.timeEnd('</TEST>');
 };

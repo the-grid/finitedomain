@@ -135,9 +135,10 @@ class Solver {
    * @param {$arrdom|number} [domainOrValue] Note: if number, it is a constant (so [domain,domain]) not a $numdom! If omitted it becomes [SUB, SUP]
    * @param {Object} [distributionOptions] Var distribution options. A defined non-object here will throw an error to prevent doing declRange
    * @param {boolean} [_allowEmpty=false] Temp (i hope) override for importer
+   * @param {boolean} [_override=false] Explicitly override the initial domain for an already existing var (for importer)
    * @returns {string}
    */
-  decl(varName, domainOrValue, distributionOptions, _allowEmpty) {
+  decl(varName, domainOrValue, distributionOptions, _allowEmpty, _override) {
     if (varName === '') THROW('Var name can not be the empty string');
     ASSERT(varName === undefined || typeof varName === 'string', 'var name should be undefined or a string');
     ASSERT(distributionOptions === undefined || typeof distributionOptions === 'object', 'options must be omitted or an object');
@@ -149,7 +150,7 @@ class Solver {
     ASSERT_ARRDOM(arrdom);
 
     if (!arrdom.length && !_allowEmpty) THROW('EMPTY_DOMAIN_NOT_ALLOWED');
-    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty);
+    let varIndex = config_addVarDomain(this.config, varName || true, arrdom, _allowEmpty, _override);
     varName = this.config.allVarNames[varIndex];
 
     if (distributionOptions) {
@@ -356,15 +357,12 @@ class Solver {
     let max = options.max || 1000;
 
     ASSERT(!void (GENERATE_BARE_DSL && console.log('## bare export:\n@mode constraints\n' + this.exported + '## end of exported\n')));
-
     this._prepare(options, log);
     let dbgCallback;
     if (options._tostring || options._debug || options._debugConfig || options._debugSpace || options._debugSolver) {
       dbgCallback = epoch => {
-        if (options._debugDelay >= epoch) {
-          // __REMOVE_BELOW_FOR_DSL__
+        if ((options._debugDelay | 0) >= epoch) {
           if (options._tostring) console.log(exporter_main(this.config));
-          // __REMOVE_ABOVE_FOR_DSL__
           if (options._debug) this._debugLegible();
           if (options._debugConfig) this._debugConfig();
           // __REMOVE_BELOW_FOR_DIST__
@@ -502,6 +500,7 @@ class Solver {
 
     if (log >= LOG_STATS) {
       console.log(`      - FD Var Count: ${this.config.allVarNames.length}`);
+      console.log(`      - FD Targeted: ${this.config.targetedVars === 'all' ? 'all' : this.config.targetedVars.length}`);
       console.log(`      - FD Constraint Count: ${this.config.allConstraints.length}`);
       console.log(`      - FD Propagator Count: ${this.config._propagators.length}`);
       console.log('      - FD Solving...');
@@ -514,7 +513,7 @@ class Solver {
       if (domain_isEmpty(vardoms[i])) {
         alreadyRejected = true;
         if (log >= LOG_STATS) {
-          console.log('      - FD: rejected without propagation');
+          console.log('      - FD: rejected without propagation (' + this.config.allVarNames[i] + ' is empty)');
         }
         break;
       }
@@ -695,8 +694,6 @@ class Solver {
     console.log('## _debugConfig:\n', getInspector()(config));
   }
 
-  // __REMOVE_BELOW_FOR_DSL__
-
   /**
    * Import from a dsl into this solver
    *
@@ -705,6 +702,10 @@ class Solver {
    * @returns {Solver} this
    */
   imp(s, _debug) {
+    //console.log('##x## Solver.imp(...)');
+    //console.log(s);
+    //console.log('##y##');
+
     if (this.logging) {
       console.log('      - FD Importing DSL; ' + s.length + ' bytes');
       console.time('      - FD Import Time:');
@@ -729,8 +730,6 @@ class Solver {
   exp(space, usePropagators, minimal, withDomainComments) {
     return exporter_main(this.config, space.vardoms, usePropagators, minimal, withDomainComments);
   }
-
-  // __REMOVE_ABOVE_FOR_DSL__
 
   /**
    * Exposes internal method domain_fromList for subclass

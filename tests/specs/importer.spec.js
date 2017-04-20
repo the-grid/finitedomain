@@ -346,6 +346,31 @@ let unitTests = [
     `,
   ],
 
+  '  - nall',
+  [
+    'simple nalls',
+    s => {
+      s.declRange('A', 0, 10);
+      s.declRange('B', 0, 10);
+      s.declRange('C', 0, 10);
+      s.declRange('R', 0, 0);
+      s.product(['A', 'B', 'C'], 'R');
+    },
+    `
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    : R [0 0]
+    R = product(A B C)
+    |--
+    : A [0 10]
+    : B [0 10]
+    : C [0 10]
+    nall(A B C)
+    `,
+  ],
+
+
   '  - simply cops',
   ...[
     ['==', 'eq'],
@@ -817,18 +842,16 @@ let unitTests = [
     'targets',
     s => {},
     `
-    @targets all
+    @custom targets all
     |--
-    @targets = all
+    @custom targets = all
     `,
   ],
   [
     'targets',
     s => {},
     `
-    @targets (A B C)
-    |--
-    @targets = (A B C)
+    @custom targets (A B C)
     `,
   ],
   [
@@ -867,9 +890,10 @@ describe('src/importer.spec', function() {
 
   // to focus on a specific unit test find the `test #xxx` number from the target test
   // below in the inner forEach, return unless the index isn't that number.
-  describe('unit tests', function() {
+  describe.skip('unit tests (heavy! dont enable for travis!)', function() {
 
     let COMPARE_RESULT = false; // this is too heavy so disable it. still good to check every now and then.
+    let ONLY_TEST = 0;
 
     let section = '';
     let n = 0;
@@ -883,11 +907,13 @@ describe('src/importer.spec', function() {
       if (n1 >= 0) inputs = inputs.slice(n1 + 1, n2);
       inputs = inputs.split(/\n\s*?\|\-\-.*?\n/g);
 
-      it(section + ' | ' + i + ' should have proper test layout', function() {
-        expect((n1 >= 0) === (n2 >= 0), 'either no newlines or have trimmable bumper lines').to.eql(true);
-        expect(inputs.length, 'at least one test').to.be.above(0);
-        expect(inputs.filter(x => x.indexOf('|--') >= 0), 'no separators').to.eql([]);
-      });
+      if (!ONLY_TEST) {
+        it(section + ' | ' + i + ' should have proper test layout', function() {
+          expect((n1 >= 0) === (n2 >= 0), 'either no newlines or have trimmable bumper lines').to.eql(true);
+          expect(inputs.length, 'at least one test').to.be.above(0);
+          expect(inputs.filter(x => x.indexOf('|--') >= 0), 'no separators').to.eql([]);
+        });
+      }
 
       describe(section + ' | ' + desc, function() {
         let expectation;
@@ -900,13 +926,17 @@ describe('src/importer.spec', function() {
         inputs.forEach(input => {
           let ok = false;
           ++n;
-          if (n !== 230) return;
+
+          if (ONLY_TEST && n !== ONLY_TEST) return;
+
           it('[test #' + n + '] input=`' + input.replace(/[\n\r]/g, '\u23CE') + '`', function() {
             let output = importer(input);
             expect(output).to.be.an('object');
             if (COMPARE_RESULT) expect(output.solve()).to.eql(expectation);
             ok = true;
           });
+
+          if (ONLY_TEST) return;
 
           it('[test #' + n + '] with tabs', function() {
             if (!ok) return;
@@ -1480,6 +1510,76 @@ distinct('item','item&n=1','item&n=2','item&n=3','item&n=4','item&n=5')         
       // if this test blocks you check if mv is still relevant, the test may not be relevant anymore.
       // mv test: Harmonics - Clusterer | basics | rendering
       expect(solver.solutions.length).to.equal(360);
+    });
+
+    it('should solve an "anonymous" iseq comparison', function() {
+      let solver = new Solver().imp(`
+        : A [0 1]
+        : B [0 1]
+        : C [0 2]
+        (A ==? B) == C
+      `);
+      solver.solve({max: 9999});
+      // C should never be 2 because the iseq is anonymous and
+      // that should generate a [0 1] domain for its result
+      expect(solver.solutions.length).to.equal(4);
+      expect(solver.solutions.some(s => s.C >= 2), 'confirm that C is never 2').to.eql(false);
+    });
+
+    it('should solve an eq between two anonymous iseqs', function() {
+      let solver = new Solver().imp(`
+        : A [0 1]
+        : B [0 1]
+        : C [0 1]
+        : D [0 1]
+        (A ==? B) == (C ==? D)
+      `);
+      solver.solve({max: 9999});
+      // there are 16 outcomes but because of the eq, only half of them are considered a solution, so 8
+      expect(solver.solutions.length).to.equal(8);
+    });
+
+    describe('should set anonymous reifier vars to strict bool domain (like multiverse expects)', function() {
+
+      // all reifiers have the same number of outcomes
+      function testBin(op) {
+        it(`for ${op}`, function() {
+          let solver = new Solver().imp(`
+            : A = [1,3,5,6]
+            R = A ${op} 3
+          `);
+
+          solver.solve({max: 10, _tostring: true});
+
+          expect(solver.solutions.length).to.equal(5); // one for each value of A. if you get more, R was not set to [0 1]
+        });
+      }
+
+      testBin('==?');
+      testBin('!=?');
+      testBin('<?');
+      testBin('<=?');
+      testBin('==?');
+      testBin('>?');
+      testBin('>=?');
+
+      // all reifiers have the same number of outcomes
+      function testCall(op) {
+        it(`for ${op}`, function() {
+          let solver = new Solver().imp(`
+            : A = [1,3,5,6]
+            R = ${op}(A 3)
+          `);
+
+          solver.solve({max: 10, _tostring: true});
+
+          expect(solver.solutions.length).to.equal(5); // one for each value of A. if you get more, R was not set to [0 1]
+        });
+      }
+
+      testCall('all?');
+      testCall('nall?');
+      testCall('none?');
     });
   });
 });

@@ -59,6 +59,9 @@
   - `solver.<?` (-> `.isLt`)
 - Drop support for the `defaultDomain` option. The default is now a full domain (0 ... 1000000) and otherwise you'll have to explicitly declare it.
 - Renamed `solver.domain_fromList` to `Solver.domainFromList` (also promoted from method to static class function)
+- Added a DSL which will soon replace the exposed JS API
+- Added support for the following ops (DSL only): `nall(a b c)`, `r = all?(a b c)`, `r = nall?(a b c)`, `r = none?(a b c)`, `a & b`, `a | b`, `a ^ b`, `a !& b`, `a !^ b`. In all cases the vars are considered "booly", meaning zero or non-zero, for these operators. They may, of course, be regular booleans. Works all the same.
+- Reifier results are considered "booly" instead of "boolean". This means they should be zero or non-zero instead of zero or one. This may look confusing (`5 = 1 ==? 1`) but makes sense with the new logic ops.
 
 ## v2.3.4:
 

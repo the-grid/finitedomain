@@ -41,8 +41,8 @@ number:
   /\d+/
 atrule:
   `@custom` ident [`=`] *
-  `@targets all`
-  `@targets(` idents `)`
+  `@custom targets [`=`] all`
+  `@custom targets(` idents `)`
   `@mode` mode
 *:
   i'm just being lazy. parse through to eol. hand of to special handler for this @rule. todo
@@ -111,9 +111,13 @@ expressions:
   expr [[`,`] expressions]
 nulcall:
   `distinct(` expressions `)`
+  `nall(` expressions `)`
 valcall:
   `sum(` expressions `)`
   `product(` expressions `)`
+  `all?(` expressions `)`
+  `nall?(` expressions `)`
+  `none?(` expressions `)`
 rop: // reflecting op (not a constraint on its own, but enforces result var state)
   `==?`
   `!=?`
@@ -132,6 +136,7 @@ cop: // constraining op, has no result
   `<=`
   `>`
   `>=`
+  `&`
 grouping:
   `(` vexpr `)`
   `(` grouping `)`
@@ -187,7 +192,7 @@ v2 = v20 - v18                 # initial: [0 10000] = [400 400] - [0 100000000]
 v21 = v7 / v19                 # initial: [0 100000000] = [100 100] / [2 2]
 v6 = v20 - v21                 # initial: [0 10000] = [400 400] - [0 100000000]
 
-@targets = all
+@custom targets = all
 
 ## end of export
 
@@ -212,7 +217,7 @@ markov(v1)                     # initial: markov([0 100])
 v5 = v0 ==? v6                 # initial: [0 1] = [5 5] ==? [100 100]
 markov(v4)                     # initial: markov([0 100])
 
-@targets = all
+@custom targets = all
 
 ## end of export
 
@@ -231,6 +236,6 @@ markov(v4)                     # initial: markov([0 100])
 
 v0 < v1
 
-@targets = all
+@custom targets = all
 
 ## end of export

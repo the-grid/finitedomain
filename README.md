@@ -30,6 +30,24 @@ solver.solve();
 console.log(solver.solutions); // -> [{A: 15}]
 ```
 
+Or with a DSL:
+
+```es6
+import Solver from 'finitedomain';
+
+let solver = new Solver().imp(`
+  : A [10 20]
+  A > 14
+  A < 17
+  A != 16
+`);
+
+solver.solve();
+
+console.log(solver.solutions); // -> [{A: 15}]
+```
+
+For the DSL syntax see [the cfg](./docs/dsl.docs.txt).
 For other details see the extensive [test suite](./tests).
 
 ## Tasks
@@ -49,16 +67,15 @@ Note that both `./build` and `./dist` are cleared at the start of almost every (
 - `grunt clean`: removes `./dist` and `./build`
 - `grunt build`: a direct alias for `dist`
 - `grunt dist`: lint, test, build, and minify to produce a real dist build
-- `grunt distq`: create a dist but skip linting, testing, and code coverage
-- `grunt distperf`: same as `grunt distq` but also copies the dist to `./dist/browser.js`, can be used in conjunction of `distheat` and `distbug` while maintaining the same path to `browser.js`.
+- `grunt distq`: create a dist but skip linting, testing, and code coverage. Also produces a copy in `./dist/browser.js`
 - `grunt distheat`: creates a dist but instead of minification as the last step it beautifies. Used for [HeatFiler](http://localhost/heatfiler/src/#run), a count based heatmap profiler. Copies to `browser.js`.
 - `grunt distbug`: creates a build without removing test artifacts or minification. In case you need proper stack traces in other projects.
 - `grunt coverage`: runs all tests in the code coverage tool
 - `grunt test`: runs linting and all tests
 - `grunt testq`: runs tests without linting
 - `grunt watch:q`: runs `distq` whenever a file changes
+- `grunt watch:h`: runs `distheat` whenever a file changes
 - `grunt watch:b`: runs `distbug` whenever a file changes
-- `grunt watch:p`: runs `distperf` whenever a file changes
 
 ### Bash / npm scripts:
 

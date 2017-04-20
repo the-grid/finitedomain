@@ -96,13 +96,13 @@ describe('specs/dsl2ml.spec', function() {
         expect(_ => preSolver(`
           : 'A
           B' [0 10]
-        `)).to.throw('Quoted identifier must be closed');
+        `)).to.throw('Quoted identifier wasnt closed');
       });
 
       it('should throw on eof midway a squoted var', function() {
         expect(_ => preSolver(`
           : 'A B`
-        )).to.throw('Quoted identifier must be closed');
+        )).to.throw('Quoted identifier wasnt closed');
       });
 
       it('should throw on empty string as var', function() {

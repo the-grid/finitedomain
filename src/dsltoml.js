@@ -395,11 +395,11 @@ function dslToMl(dslStr, problem, _debug) {
     while (!isEof()) {
       let c = read();
       if (c === $$SQUOTE) break;
-      if (isLineEnd(c)) THROW('Quoted identifier must be closed');
+      if (c !== $$HASH && isLineEnd(c)) THROW('Quoted identifier wasnt closed at eol');
       ident += String.fromCharCode(c);
       skip();
     }
-    if (isEof()) THROW('Quoted identifier must be closed');
+    if (isEof()) THROW('Quoted identifier wasnt closed at eof');
     if (!ident) THROW('Expected to parse identifier, found none');
     skip(); // quote
     return ident; // return unquoted ident

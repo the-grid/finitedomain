@@ -48,6 +48,8 @@ import {
   trie_get,
 } from './trie';
 
+import preSolver from './pre/runner';
+
 // BODY_START
 
 let GENERATE_BARE_DSL = false;
@@ -494,7 +496,6 @@ class Solver {
   }
 
   /**
-   * Exposed for multiverse as a legacy api.
    * Sets the value distribution options for a var after declaring it.
    *
    * @param {string} varName
@@ -666,6 +667,19 @@ class Solver {
    */
   static dsl(dsl) {
     return new Solver().imp(dsl);
+  }
+
+  /**
+   * Solve a problem using a presolver to scrub the problem before running it through regular FD.
+   *
+   * @param {string} dsl
+   * @param {Object} [options] For the presolver
+   * @property {Function} [options.Solver = Solver] Allows you to pass on a custom Solver (or a mocked one for tests) to defer to
+   * @param {Object} [solveOptions] Solve options
+   */
+  static pre(dsl, options = {}, solveOptions) {
+    let S = options.Solver === undefined ? Solver : options.Solver;
+    return preSolver(dsl, S, options, solveOptions);
   }
 }
 

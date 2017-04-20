@@ -474,7 +474,7 @@ function importer_main(str, solver, _debug) {
       case '-':
         return solver.minus(A, parseVexpr(), C);
       case '*':
-        return solver.times(A, parseVexpr(), C);
+        return solver.mul(A, parseVexpr(), C);
       case '/':
         return solver.div(A, parseVexpr(), C);
       default:

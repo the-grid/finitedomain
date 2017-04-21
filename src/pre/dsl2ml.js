@@ -7,7 +7,7 @@ import {
   SUP,
   ASSERT,
   TRACE,
-} from './helpers';
+} from '../helpers';
 import {
   ML_EQ,
   ML_NEQ,

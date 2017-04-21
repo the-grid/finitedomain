@@ -2,7 +2,7 @@ import {
   ASSERT,
   TRACE,
   THROW,
-} from './helpers';
+} from '../helpers';
 import {
   domain__debug,
 } from '../domain';

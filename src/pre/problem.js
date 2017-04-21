@@ -6,7 +6,7 @@ import {
   TRACE,
   ASSERT_NORDOM,
   THROW,
-} from './helpers';
+} from '../helpers';
 import {
   domain__debug,
   domain_createRange,

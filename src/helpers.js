@@ -34,6 +34,11 @@ const SMALL_MAX_NUM = 30;
 // (oh and; 1<<31 is negative. >>>0 makes it unsigned. this is why 30 is max.)
 const SOLVED_FLAG = 1 << 31 >>> 0; // the >>> makes it unsigned, we dont really need it but it may help perf a little (unsigned vs signed)
 
+const $STABLE = 0;
+const $CHANGED = 1;
+const $SOLVED = 2;
+const $REJECTED = 3;
+
 // __REMOVE_BELOW_FOR_ASSERTS__
 
 ASSERT(SMALL_MAX_NUM <= 30, 'cant be larger because then shifting fails above and elsewhere');
@@ -164,6 +169,11 @@ function ASSERT_LOG(flags, func) {
   }
 }
 
+function TRACE(...args) {
+  if (false) console.log(...args);
+  return false;
+}
+
 // __REMOVE_ABOVE_FOR_ASSERTS__
 
 // Abstraction for throwing because throw statements cause deoptimizations
@@ -177,6 +187,11 @@ function THROW(...msg) {
 // BODY_STOP
 
 export {
+  $CHANGED,
+  $REJECTED,
+  $SOLVED,
+  $STABLE,
+
   LOG_FLAG_CHOICE,
   LOG_FLAG_NONE,
   LOG_FLAG_PROPSTEPS,
@@ -205,4 +220,5 @@ export {
   ASSERT_STRDOM,
   ASSERT_VARDOMS_SLOW,
   THROW,
+  TRACE,
 };

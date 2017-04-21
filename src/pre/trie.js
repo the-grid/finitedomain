@@ -5,7 +5,7 @@
 import {
   ASSERT,
   THROW,
-} from './helpers';
+} from '../helpers';
 
 // BODY_START
 

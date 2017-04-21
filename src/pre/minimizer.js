@@ -12,7 +12,7 @@ import {
   TRACE,
   ASSERT_NORDOM,
   THROW,
-} from './helpers';
+} from '../helpers';
 import {
   ML_START,
   ML_EQ,

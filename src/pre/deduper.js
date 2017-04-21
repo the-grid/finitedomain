@@ -1,7 +1,7 @@
 import {
   ASSERT,
   TRACE,
-} from './helpers';
+} from '../helpers';
 
 import {
   ML_START,

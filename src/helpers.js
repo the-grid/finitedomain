@@ -17,8 +17,6 @@
 
 let SUB = 0; // WARNING: adjusting SUB to something negative means adjusting all tests. probably required for any change actually.
 let SUP = 100000000;
-let SOLVED = 1;
-let UNDETERMINED = 0;
 let NOT_FOUND = -1;
 
 let LOG_NONE = 0;
@@ -29,9 +27,6 @@ let LOG_MAX = LOG_SOLVES;
 // different from NOT_FOUND in that NOT_FOUND must be -1 because of the indexOf api
 // while NO_SUCH_VALUE must be a value that cannot be a legal domain value (<SUB or >SUP)
 let NO_SUCH_VALUE = Math.min(0, SUB) - 1; // make sure NO_SUCH_VALUE is a value that may be neither valid in a domain nor >=0
-let ENABLED = true; // override for most tests (but not regular ASSERTs) like full domains and space validations
-let ENABLE_DOMAIN_CHECK = false; // also causes unrelated errors because mocha sees the expandos
-let ENABLE_EMPTY_CHECK = false; //  also causes unrelated errors because mocha sees the expandos
 let ARR_RANGE_SIZE = 2;
 
 const SMALL_MAX_NUM = 30;
@@ -52,7 +47,7 @@ function ASSERT(bool, msg = '', ...args) {
     return;
   }
 
-  if (!msg) msg = new Error('trace').stack;
+  if (!msg) msg = '(no desc)'; //msg = new Error('trace').stack;
 
   console.error(`Assertion fail: ${msg}`);
   if (args) {
@@ -182,12 +177,6 @@ function THROW(...msg) {
 // BODY_STOP
 
 export {
-  // __REMOVE_BELOW_FOR_DIST__
-  ENABLED,
-  ENABLE_DOMAIN_CHECK,
-  ENABLE_EMPTY_CHECK,
-  // __REMOVE_ABOVE_FOR_DIST__
-
   LOG_FLAG_CHOICE,
   LOG_FLAG_NONE,
   LOG_FLAG_PROPSTEPS,
@@ -200,11 +189,9 @@ export {
   NO_SUCH_VALUE,
   ARR_RANGE_SIZE,
   SMALL_MAX_NUM,
-  SOLVED,
   SOLVED_FLAG,
   SUB,
   SUP,
-  UNDETERMINED,
 
   ASSERT,
   ASSERT_ANYDOM,

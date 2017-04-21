@@ -49,6 +49,7 @@ const EMPTY = 0;
 const EMPTY_STR = '';
 
 let DOM_ZERO; // created on first use
+let DOM_BOOL;
 
 /**
  * Append given range to the end of given domain. Does not
@@ -131,8 +132,8 @@ function domain_bit_containsValue(domain, value) {
 function domain_str_containsValue(domain, value) {
   ASSERT_STRDOM(domain);
   ASSERT(typeof value === 'number', 'A_VALUE_SHOULD_BE_NUMBER');
-  ASSERT(value >= SUB);
-  ASSERT(value <= SUP);
+  ASSERT(value >= SUB, 'value must be >=SUB', value);
+  ASSERT(value <= SUP, 'value must be <=SUP', value);
 
   return domain_str_rangeIndexOf(domain, value) !== NOT_FOUND;
 }
@@ -636,6 +637,22 @@ function domain_strstr_intersection(domain1, domain2) {
 
   if (newDomain === EMPTY_STR) return EMPTY;
   return domain_toSmallest(newDomain);
+}
+
+/**
+ * Check if domain contains value, if so, return a domain with
+ * just given value. Otherwise return the empty domain.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_intersectionValue(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(value >= SUB && value <= SUP, 'Expecting valid value');
+
+  if (domain_containsValue(domain, value)) return domain_createValue(value);
+  return domain_createEmpty();
 }
 
 /**
@@ -1356,6 +1373,7 @@ function domain_isSolved(domain) {
 
   return typeof domain === 'number' && domain >= SOLVED_FLAG;
 }
+
 /**
  * Purely checks whether given domain is solved to zero
  *
@@ -1375,9 +1393,19 @@ function domain_isZero(domain) {
  */
 function domain_hasNoZero(domain) {
   ASSERT_NORDOM(domain);
-  return !(domain_min(domain) === 0); // note: should return true for empty domain...
+  return !(domain_min(domain) === 0); // this roundabout way of checking ensures true when the domain is empty
 }
 /**
+ * Is the var strictly the domain [0, 1] ?
+ *
+ * @param {$nordom} domain
+ * @returns {boolean}
+ */
+function domain_isBool(domain) {
+  if (DOM_BOOL === undefined) DOM_BOOL = domain_createRange(0, 1);
+  return domain === DOM_BOOL;
+}
+ /**
  * Treat domain as booly ("zero or nonzero")
  * If result then remove the zero, otherwise remove anything nonzero
  * The result should be either the domain solved to zero or any domain that contains no zero. Well or the empty domain.
@@ -1387,7 +1415,7 @@ function domain_hasNoZero(domain) {
  * @returns {$nordom}
  */
 function domain_resolveAsBooly(domain, result) {
-  return result ? domain_removeValue(domain, 0) : domain_removeGtUnchecked(domain, 0);
+  return result ? domain_removeValue(domain, 0) : domain_removeGtUnsafe(domain, 0);
 }
 
 /**
@@ -1432,14 +1460,14 @@ function domain_sol_removeGte(domain, value) {
   if (solvedValue >= value) return EMPTY;
   return domain; // no change
 }
-  /**
-   * Remove all values from domain that are greater
-   * than or equal to given value
-   *
-   * @param {$numdom} domain
-   * @param {number} value NOT a flag
-   * @returns {$numdom}
-*/
+/**
+ * Remove all values from domain that are greater
+ * than or equal to given value
+ *
+ * @param {$numdom} domain
+ * @param {number} value NOT a flag
+ * @returns {$numdom}
+ */
 function domain_bit_removeGte(domain, value) {
   switch (value) {
     case 0:
@@ -1562,43 +1590,6 @@ function domain_str_removeGte(strdom, value) {
     }
   }
   return strdom; // 012 -> 012
-}
-
-/**
- * Removes all values lower than value.
- * Only "unchecked" in the sense that no flag is raised
- * for oob values (<-1 or >sup+1) or non-numeric values.
- * This unsafeness simplifies other code significantly.
- *
- * @param {$nordom} domain
- * @param {number} value
- * @returns {$nordom}
- */
-function domain_removeLtUnchecked(domain, value) {
-  ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number', 'Expecting a numerical value');
-
-  if (value <= SUB) return domain;
-  if (value > SUP) return domain_createEmpty();
-  return domain_removeLte(domain, value - 1);
-}
-/**
- * Removes all values lower than value.
- * Only "unchecked" in the sense that no flag is raised
- * for oob values (<-1 or >sup+1) or non-numeric values
- * This unsafeness simplifies other code significantly.
- *
- * @param {$nordom} domain
- * @param {number} value
- * @returns {$nordom}
- */
-function domain_removeGtUnchecked(domain, value) {
-  ASSERT_NORDOM(domain);
-  ASSERT(typeof value === 'number', 'Expecting a numerical value');
-
-  if (value >= SUP) return domain;
-  if (value < SUB) return domain_createEmpty();
-  return domain_removeGte(domain, value + 1);
 }
 
 /**
@@ -1756,6 +1747,43 @@ function domain_str_removeLte(strdom, value) {
     }
   }
   return EMPTY; // 012 -> empty
+}
+
+/**
+ * Removes all values lower than value.
+ * Only "unsafe" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values.
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeLtUnsafe(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value <= SUB) return domain;
+  if (value > SUP) return domain_createEmpty();
+  return domain_removeLte(domain, value - 1);
+}
+/**
+ * Removes all values lower than value.
+ * Only "unsafe" in the sense that no flag is raised
+ * for oob values (<-1 or >sup+1) or non-numeric values
+ * This unsafeness simplifies other code significantly.
+ *
+ * @param {$nordom} domain
+ * @param {number} value
+ * @returns {$nordom}
+ */
+function domain_removeGtUnsafe(domain, value) {
+  ASSERT_NORDOM(domain);
+  ASSERT(typeof value === 'number', 'Expecting a numerical value');
+
+  if (value >= SUP) return domain;
+  if (value < SUB) return domain_createEmpty();
+  return domain_removeGte(domain, value + 1);
 }
 
 /**
@@ -2023,15 +2051,15 @@ function domain_strstr_sharesNoElements(domain1, domain2) {
  * @returns {$domain} will be a soldom
  */
 function domain_createValue(value) {
-  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range');
-  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range');
+  ASSERT(value >= SUB, 'domain_createValue: value should be within valid range', SUB, '<=', value);
+  ASSERT(value <= SUP, 'domain_createValue: value should be within valid range', SUP, '>=', value);
 
   return (value | SOLVED_FLAG) >>> 0;
 }
 /**
  * @param {number} lo
  * @param {number} hi
- * @returns {$domain}
+ * @returns {$nordom}
  */
 function domain_createRange(lo, hi) {
   ASSERT(lo >= SUB, 'lo should be >= SUB', lo, hi);
@@ -2040,6 +2068,19 @@ function domain_createRange(lo, hi) {
   if (lo === hi) return domain_createValue(lo);
   if (hi <= SMALL_MAX_NUM) return domain_num_createRange(lo, hi);
   return domain_str_encodeRange(lo, hi);
+}
+/**
+ * Create a new domain by passing on the bounds. If the bounds are OOB they
+ * are trimmed. This can return the empty domain if both lo and hi are OOB.
+ *
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {$nordom}
+ */
+function domain_createRangeTrimmed(lo, hi) {
+  ASSERT(lo <= hi, 'should be lo<=hi', lo, hi);
+  if (hi < SUB || lo > SUP) return EMPTY;
+  return domain_createRange(Math.max(SUB, lo), Math.min(SUP, hi));
 }
 /**
  * @param {number} lo
@@ -2365,6 +2406,10 @@ function _domain_arrToBit(domain, len) {
   return out;
 }
 
+function domain_booly(domain, value) {
+  return value ? domain_removeValue(domain, 0) : domain_removeGtUnsafe(domain, 0);
+}
+
 // BODY_STOP
 
 export {
@@ -2381,11 +2426,13 @@ export {
 
   //domain_appendRange,
   domain_arrToSmallest,
+  domain_booly,
   domain_str_closeGaps,
   domain_containsValue,
   domain_num_containsValue,
   domain_createEmpty,
   domain_createRange,
+  domain_createRangeTrimmed,
   domain_numnum_createRangeZeroToMax,
   domain_num_createRange,
   domain_createValue,
@@ -2397,8 +2444,10 @@ export {
   domain_getValue,
   domain_hasNoZero,
   domain_intersection,
+  domain_intersectionValue,
   domain_invMul,
   domain_invMulValue,
+  domain_isBool,
   domain_isEmpty,
   domain_isSolved,
   domain_isZero,
@@ -2409,9 +2458,9 @@ export {
   domain_mulByValue,
   domain_numToStr,
   domain_removeGte,
-  domain_removeGtUnchecked,
+  domain_removeGtUnsafe,
   domain_removeLte,
-  domain_removeLtUnchecked,
+  domain_removeLtUnsafe,
   domain_removeValue,
   domain_resolveAsBooly,
   domain_sharesNoElements,

@@ -63,7 +63,7 @@ import {
   domain_intersection,
   domain_isSolved,
   domain_removeValue,
-} from './domain';
+} from '../domain';
 
 // BODY_START
 

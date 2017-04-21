@@ -54,7 +54,7 @@ import {
 import {
   domain__debug,
   domain_getValue,
-} from './domain';
+} from '../domain';
 
 // BODY_START
 

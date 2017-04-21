@@ -91,9 +91,9 @@ import {
   domain_removeValue,
   domain_sharesNoElements,
   domain_size,
-} from './domain';
-import domain_plus from './domain_plus';
-import domain_minus from './domain_minus';
+} from '../domain';
+import domain_plus from '../doms/domain_plus';
+import domain_minus from '../doms/domain_minus';
 
 // BODY_START
 

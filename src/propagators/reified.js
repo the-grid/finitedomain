@@ -10,7 +10,7 @@ import {
   domain__debug,
   domain_hasNoZero,
   domain_isZero,
-  domain_removeGtUnchecked,
+  domain_removeGtUnsafe,
   domain_removeValue,
 } from '../domain';
 
@@ -66,7 +66,7 @@ function propagator_reifiedStepBare(space, config, leftVarIndex, rightVarIndex, 
       vardoms[resultVarIndex] = domain_removeValue(domResult, 0);
       opFunc(space, config, leftVarIndex, rightVarIndex);
     } else if (opRejectChecker(domain1, domain2)) {
-      vardoms[resultVarIndex] = domain_removeGtUnchecked(domResult, 0);
+      vardoms[resultVarIndex] = domain_removeGtUnsafe(domResult, 0);
       nopFunc(space, config, leftVarIndex, rightVarIndex);
     }
   }

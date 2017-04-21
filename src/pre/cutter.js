@@ -74,7 +74,7 @@ import {
 } from './ml';
 import {
   domain__debug,
-  domain_booly,
+  domain_resolveAsBooly,
   domain_containsValue,
   domain_createEmpty,
   domain_createValue,
@@ -94,8 +94,8 @@ import {
   domain_removeGtUnsafe,
   domain_removeLtUnsafe,
   domain_size,
-} from './domain';
-import domain_plus from './domain_plus';
+} from '../domain';
+import domain_plus from '../doms/domain_plus';
 
 import {
   BOUNTY_MAX_OFFSETS_TO_TRACK,
@@ -1080,21 +1080,21 @@ function cutter(ml, problem, once) {
         let AB = domain_intersection(A, B);
         if (!AB) {
           TRACE('   - A&B is empty so R=0');
-          R = domain_booly(R, false);
+          R = domain_resolveAsBooly(R, false);
         } else if (domain_isSolved(A)) {
           TRACE('   - A is solved so R=A==B', A === B);
-          R = domain_booly(R, A === B);
+          R = domain_resolveAsBooly(R, A === B);
         } else if (domain_isSolved(B)) {
           TRACE('   - B is solved and A wasnt. A&B wasnt empty so we can set A=B');
           setDomain(indexA, B);
-          R = domain_booly(R, true);
+          R = domain_resolveAsBooly(R, true);
         } else {
           TRACE('   - some values overlap between A and B and neither is solved.. force all');
           let v = domain_min(AB);
           let V = domain_createValue(v);
           setDomain(indexA, V);
           setDomain(indexB, V);
-          R = domain_booly(R, true);
+          R = domain_resolveAsBooly(R, true);
         }
       }
 
@@ -1129,7 +1129,7 @@ function cutter(ml, problem, once) {
 
       if (!AB) {
         TRACE('   - AB is empty so R>0');
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
         return;
       }
 
@@ -1137,13 +1137,13 @@ function cutter(ml, problem, once) {
       if (vA >= 0) {
         if (A === B) {
           TRACE('   - A is solved and ==B so R=0');
-          setDomain(indexR, domain_booly(R, false));
+          setDomain(indexR, domain_resolveAsBooly(R, false));
           return;
         }
 
         TRACE('   - A is solved and !=B so remove it from B and set R>0');
         setDomain(indexB, domain_removeValue(B, vA)); // either B is solved to not-A or it has multiple values. either way this is safe.
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
         return;
       }
 
@@ -1151,14 +1151,14 @@ function cutter(ml, problem, once) {
       if (vB >= 0) {
         TRACE('   - B is solved and A wasnt so remove B from A and set R>0');
         setDomain(indexA, domain_removeValue(A, vB));
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
         return;
       }
 
       TRACE('   - A and B werent solved so forcing B and removing it from A and setting R>0');
       vB = force(indexB);
       setDomain(indexA, domain_removeValue(A, vB));
-      setDomain(indexR, domain_booly(R, true));
+      setDomain(indexR, domain_resolveAsBooly(R, true));
     });
 
     ml_eliminate(ml, offset, SIZEOF_VVV);
@@ -1184,13 +1184,13 @@ function cutter(ml, problem, once) {
 
       if (maxA < minB) {
         TRACE('   - A already < B so R>0');
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
         return;
       }
 
       if (minA >= maxB) {
         TRACE('   - A already >= B so R=0');
-        setDomain(indexR, domain_booly(R, false));
+        setDomain(indexR, domain_resolveAsBooly(R, false));
         return;
       }
 
@@ -1200,20 +1200,20 @@ function cutter(ml, problem, once) {
       if (vA >= 0) {
         if (vB >= 0) {
           TRACE('   - A and B solved', vA < vB);
-          setDomain(indexR, domain_booly(R, vA < vB));
+          setDomain(indexR, domain_resolveAsBooly(R, vA < vB));
           return;
         }
 
         TRACE('   - A solved, forcing state to R>0');
         setDomain(indexB, domain_removeLte(B, vA));
-        setDomain(indexR, domain_booly(R, true)); // arbitrary choice
+        setDomain(indexR, domain_resolveAsBooly(R, true)); // arbitrary choice
         return;
       }
 
       if (vB >= 0) {
         TRACE('   - B solved, forcing state to R>0');
         setDomain(indexA, domain_removeGte(A, vB));
-        setDomain(indexR, domain_booly(R, true)); // arbitrary choice
+        setDomain(indexR, domain_resolveAsBooly(R, true)); // arbitrary choice
         return;
       }
 
@@ -1223,10 +1223,10 @@ function cutter(ml, problem, once) {
       let nA = domain_removeGte(A, vB);
       if (nA) {
         setDomain(indexA, nA);
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
       } else {
         ASSERT(domain_min(A) >= vB, 'if we cant remove gte values then we must only contain gte values');
-        setDomain(indexR, domain_booly(R, false));
+        setDomain(indexR, domain_resolveAsBooly(R, false));
       }
     });
 
@@ -1253,13 +1253,13 @@ function cutter(ml, problem, once) {
 
       if (maxA <= minB) {
         TRACE('   - A already <= B so R>0');
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
         return;
       }
 
       if (minA > maxB) {
         TRACE('   - A already > B so R=0');
-        setDomain(indexR, domain_booly(R, false));
+        setDomain(indexR, domain_resolveAsBooly(R, false));
         return;
       }
 
@@ -1269,20 +1269,20 @@ function cutter(ml, problem, once) {
       if (vA >= 0) {
         if (vB >= 0) {
           TRACE('   - A and B solved', vA < vB);
-          setDomain(indexR, domain_booly(R, vA <= vB));
+          setDomain(indexR, domain_resolveAsBooly(R, vA <= vB));
           return;
         }
 
         TRACE('   - A solved, forcing state to R>0');
         setDomain(indexB, domain_removeLtUnsafe(B, vA));
-        setDomain(indexR, domain_booly(R, true)); // arbitrary choice
+        setDomain(indexR, domain_resolveAsBooly(R, true)); // arbitrary choice
         return;
       }
 
       if (vB >= 0) {
         TRACE('   - B solved, forcing state to R>0');
         setDomain(indexA, domain_removeGtUnsafe(A, vB));
-        setDomain(indexR, domain_booly(R, true)); // arbitrary choice
+        setDomain(indexR, domain_resolveAsBooly(R, true)); // arbitrary choice
         return;
       }
 
@@ -1292,10 +1292,10 @@ function cutter(ml, problem, once) {
       let nA = domain_removeGtUnsafe(A, vB);
       if (nA) {
         setDomain(indexA, nA);
-        setDomain(indexR, domain_booly(R, true));
+        setDomain(indexR, domain_resolveAsBooly(R, true));
       } else {
         ASSERT(domain_min(A) >= vB, 'if we cant remove gt values then we must only contain gt values');
-        setDomain(indexR, domain_booly(R, false));
+        setDomain(indexR, domain_resolveAsBooly(R, false));
       }
     });
 
@@ -1548,7 +1548,7 @@ function cutter(ml, problem, once) {
         }
       }
       let oR = getDomain(indexR);
-      let R = domain_booly(oR, vR);
+      let R = domain_resolveAsBooly(oR, vR);
       ASSERT(R, 'R should be able to at least represent the solution');
       setDomain(indexR, R);
     });
@@ -1566,7 +1566,7 @@ function cutter(ml, problem, once) {
       let vA = force(indexA);
       let vB = vA && force(indexB); // dont force B if A is already 0
       let R = getDomain(indexR);
-      R = domain_booly(R, (vA & vB) > 0);
+      R = domain_resolveAsBooly(R, (vA & vB) > 0);
       ASSERT(R, 'leaf should at least have the resulting value');
       setDomain(indexR, R);
     });
@@ -1598,7 +1598,7 @@ function cutter(ml, problem, once) {
         }
       }
       let oR = getDomain(indexR);
-      let R = domain_booly(oR, vR);
+      let R = domain_resolveAsBooly(oR, vR);
       ASSERT(R, 'R should be able to at least represent the solution');
       setDomain(indexR, R);
     });
@@ -1957,7 +1957,7 @@ function cutter(ml, problem, once) {
       let vY = force(indexY);
       let oS = getDomain(indexS);
       ASSERT(domain_isBool(oS), 'S was a strict bool, right');
-      let S = domain_booly(oS, vX && vY); // note: S was a strict bool so this should be fine
+      let S = domain_resolveAsBooly(oS, vX && vY); // note: S was a strict bool so this should be fine
       ASSERT(S, 'S should not be empty here');
       setDomain(indexS, S);
     });
@@ -1979,7 +1979,7 @@ function cutter(ml, problem, once) {
       let vZ = force(indexZ);
       let oS = getDomain(indexS);
       ASSERT(domain_isBool(oS), 'S was a strict bool, right');
-      let S = domain_booly(oS, vX && vY && vZ); // note: S was a strict bool so this should be fine
+      let S = domain_resolveAsBooly(oS, vX && vY && vZ); // note: S was a strict bool so this should be fine
       ASSERT(S, 'S should not be empty here');
       setDomain(indexS, S);
     });
@@ -2087,7 +2087,7 @@ function cutter(ml, problem, once) {
       let result = args.reduce((prev, now) => prev && now) > 0; // true if every arg was non-zero
       let oS = getDomain(indexS);
       ASSERT(domain_isBool(oS), 'S was a strict bool, right');
-      let S = domain_booly(oS, result); // note: S was a strict bool so this should be fine
+      let S = domain_resolveAsBooly(oS, result); // note: S was a strict bool so this should be fine
       ASSERT(S, 'S should not be empty here');
       setDomain(indexS, S);
     });
@@ -2117,7 +2117,7 @@ function cutter(ml, problem, once) {
       let vY = force(indexY);
       let oS = getDomain(indexS);
       ASSERT(domain_isBool(oS), 'S was a strict bool, right');
-      let S = domain_booly(oS, vX && vY); // note: S was a strict bool so this should be fine
+      let S = domain_resolveAsBooly(oS, vX && vY); // note: S was a strict bool so this should be fine
       ASSERT(S, 'S should not be empty here');
       setDomain(indexS, S);
     });

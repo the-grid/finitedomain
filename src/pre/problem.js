@@ -14,7 +14,7 @@ import {
   domain_getValue,
   domain_intersection,
   domain_arrToSmallest,
-} from './domain';
+} from '../domain';
 import {
   ML_JMP,
   ML_NOOP,

@@ -5,7 +5,7 @@ import {
 } from './helpers';
 import {
   domain__debug,
-} from './domain';
+} from '../domain';
 
 // BODY_START
 

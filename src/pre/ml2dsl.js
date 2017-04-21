@@ -13,7 +13,7 @@ import {
   domain__debug,
   domain_getValue,
   domain_toArr,
-} from './domain';
+} from '../domain';
 import {
   ML_START,
   ML_EQ,

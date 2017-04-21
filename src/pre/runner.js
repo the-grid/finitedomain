@@ -45,7 +45,7 @@ import {
   domain_min,
   domain_toArr,
   domain_arrToSmallest,
-} from './domain';
+} from '../domain';
 import {
   problem_create,
   //problem_from,

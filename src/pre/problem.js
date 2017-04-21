@@ -32,7 +32,7 @@ import {
   trie_add,
   trie_create,
   trie_get,
-} from './trie';
+} from '../trie';
 
 // BODY_START
 

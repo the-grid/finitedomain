@@ -38,113 +38,132 @@ let OUTPUT_MAP = {
   },
 };
 
+/**
+ * Expect given dsl to expectSolve with and without the preSolver.
+ * Solution may differ depending on whether preSolver is used.
+ *
+ * @param {string} dsl
+ * @param {Object} imp
+ * @param {Object} [pre = imp]
+ * @param {Object} [solveOptions = {max: 1}]
+ * @param {Object} [preOptions]
+ */
+function expectSolve(dsl, imp, pre = imp, solveOptions = {max: 1}, preOptions) {
+  expect(new Solver().imp(dsl).solve(solveOptions), 'imp').to.eql(imp === false ? imp : imp instanceof Array ? imp : [imp]);
+  expect(Solver.pre(dsl, preOptions, solveOptions), 'pre').to.eql(pre);
+}
+///**
+// * Expect given dsl to throw an expectThrow.
+// * Actual expectThrow may differ depending on whether preSolver is used.
+// *
+// * @param {string} dsl
+// * @param {Object} imp
+// * @param {Object} pre
+// * @param {Object} [solveOptions]
+// */
+//function expectThrow(dsl, imp, pre = imp, solveOptions) {
+//  expect(_ => new Solver().imp(dsl).solve(solveOptions), 'imp').to.throw(imp);
+//  expect(_ => Solver.pre(dsl, undefined, solveOptions), 'pre').to.throw(pre);
+//}
+
 describe('src/constraint.spec', function() {
 
   describe('solver integration', function() {
 
     it('should work without constraints (FIX THIS ONE FIRST)', function() {
       // if this test fails the problem is _probably_ unrelated to constraints... :)
-      let solver = new Solver();
-      solver.decl('A', 100);
-      solver.decl('B', 100);
-      let solution = solver.solve();
-
-      expect(solution).to.eql([{A: 100, B: 100}]);
+      expectSolve(`
+        : A, B 100
+      `, {
+        A: 100,
+        B: 100,
+      });
     });
 
     describe('eq', function() {
 
       it('should work with a simple solved vars', function() {
-        let solver = new Solver();
-        solver.decl('A', 100);
-        solver.decl('B', 100);
-        solver.eq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 100}]);
+        let dsl = `
+          : A, B 100
+          A == B
+        `;
+        expectSolve(dsl, {A: 100, B: 100});
       });
 
       it('should work with a simple solved and unsolved vars', function() {
-        let solver = new Solver();
-        solver.decl('A', 100);
-        solver.decl('B', fixt_arrdom_range(100, 101));
-        solver.eq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 100}]);
+        let dsl = `
+          : A 100
+          : B [100 101]
+          A == B
+        `;
+        expectSolve(dsl, {A: 100, B: 100});
       });
 
       it('should work with a simple unsolved vars that do not reject', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 101));
-        solver.decl('B', fixt_arrdom_range(100, 101));
-        solver.eq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 100}, {A: 101, B: 101}]);
+        let dsl = `
+          : A, B [100 101]
+          A == B
+        `;
+        expectSolve(dsl, {A: 100, B: 100});
       });
 
       it('should work with a simple unsolved vars that reduce but do not reject', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 101));
-        solver.decl('B', fixt_arrdom_range(100, 102));
-        solver.eq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 100}, {A: 101, B: 101}]);
+        let dsl = `
+          : A [100 101]
+          : B [100 102]
+          A == B
+        `;
+        expectSolve(dsl, {A: 100, B: 100});
       });
 
       it('should work with a simple unsolved vars that reject', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 101));
-        solver.decl('B', fixt_arrdom_range(200, 201));
-        solver.eq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([]);
+        let dsl = `
+          : A [100 101]
+          : B [200 201]
+          A == B
+        `;
+        expectSolve(dsl, false);
       });
 
-      describe('pre-computable', function() {
+      describe('pre-computable without propagation', function() {
 
         function preEq(desc, A, B, out) {
           it(desc, function() {
-            let solver = new Solver();
-            solver.decl('A', A);
-            solver.decl('B', B);
-            solver.eq('A', 'B');
-            let solution = solver.solve({});
-
-            expect(solution).to.eql(out);
-            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
+            let dsl = `
+              : A ${A}
+              : B ${B}
+              A == B
+            `;
+            expectSolve(dsl, out);
           });
         }
 
-        preEq('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 101}]);
-        preEq('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 101}]);
-        preEq('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 101, B: 101}]);
-        preEq('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 101, B: 101}]);
-        preEq('should not create a constraint if A and B solved as number and reject', 100, 99, []);
-        preEq('should not create a constraint if A and B solved as number and pass', 101, 101, [{A: 101, B: 101}]);
-        preEq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), []);
-        preEq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), [{A: 101, B: 101}]);
+        preEq('should not create a constraint if A is solved', 101, '[100, 102]', {A: 101, B: 101});
+        preEq('should not create a constraint if B is solved', '[100, 102]', 101, {A: 101, B: 101});
+        preEq('should not create a constraint if A and B solved and reject', 100, 99, false);
+        preEq('should not create a constraint if A and B solved and pass', 101, 101, {A: 101, B: 101});
       });
 
       describe('brute force bool table', function() {
 
         function test(A, B, out) {
           it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
-            let solver = new Solver();
-            solver.decl('A', A);
-            solver.decl('B', B);
-            solver.eq('A', 'B');
-            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
-
-            expect(solver.solutions).to.eql(out);
+            let dsl = `
+              : A [${A}]
+              : B [${B}]
+              A == B
+            `;
+            expectSolve(
+              dsl,
+              out,
+              out && out[0],
+              {max: 5} // only 4 possible outcomes; 00 01 10 11 or none (only works without presolver)
+            );
           });
         }
 
         test([0, 0], [0, 0], [{A: 0, B: 0}]);
-        test([0, 1], [0, 0], [{A: 0, B: 0}]); // doe dit voor alle propagators. en zoek uit waarom deze niet werkt.
+        test([0, 1], [0, 0], [{A: 0, B: 0}]);
         test([1, 1], [0, 0], []);
         test([0, 0], [0, 1], [{A: 0, B: 0}]);
         test([0, 1], [0, 1], [{A: 0, B: 0}, {A: 1, B: 1}]);
@@ -158,71 +177,65 @@ describe('src/constraint.spec', function() {
     describe('neq', function() {
 
       it('should work with a simple solved vars', function() {
-        let solver = new Solver();
-        solver.decl('A', 100);
-        solver.decl('B', 100);
-        solver.neq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([]);
+        let dsl = `
+          : A, B 100
+          A != B
+        `;
+        expectSolve(dsl, false);
       });
 
       it('should work with a simple solved and unsolved vars', function() {
-        let solver = new Solver();
-        solver.decl('A', 100);
-        solver.decl('B', fixt_arrdom_range(100, 101));
-        solver.neq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 101}]);
+        let dsl = `
+          : A 100
+          : B [100 101]
+          A != B
+        `;
+        expectSolve(dsl, {A: 100, B: 101});
       });
 
       it('should work with a simple unsolved vars', function() {
-        let solver = new Solver();
-        solver.decl('A', fixt_arrdom_range(100, 101));
-        solver.decl('B', fixt_arrdom_range(100, 101));
-        solver.neq('A', 'B');
-        let solution = solver.solve({});
-
-        expect(solution).to.eql([{A: 100, B: 101}, {A: 101, B: 100}]);
+        let dsl = `
+          : A [100 101]
+          : B [100 101]
+          A != B
+        `;
+        expectSolve(dsl, {A: 100, B: 101}, {A: 101, B: 100});
       });
 
       describe('pre-computable', function() {
 
-        function preNeq(desc, A, B, out) {
+        function preNeq(desc, A, B, out, pre = out) {
           it(desc, function() {
-            let solver = new Solver();
-            solver.decl('A', A);
-            solver.decl('B', B);
-            solver.neq('A', 'B');
-            let solution = solver.solve({});
-
-            expect(solution).to.eql(out);
-            expect(solver.config.allConstraints.length, 'constraint count').to.eql(0);
+            let dsl = `
+              : A ${A}
+              : B ${B}
+              A != B
+            `;
+            expectSolve(dsl, out, pre, undefined, {flattened: true});
           });
         }
 
-        preNeq('should not create a constraint if A is solved as number', 101, fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
-        preNeq('should not create a constraint if A is solved as array', fixt_arrdom_range(101, 101), fixt_arrdom_range(100, 102), [{A: 101, B: 100}, {A: 101, B: 102}]);
-        preNeq('should not create a constraint if B is solved as number', fixt_arrdom_range(100, 102), 101, [{A: 100, B: 101}, {A: 102, B: 101}]);
-        preNeq('should not create a constraint if B is solved as array', fixt_arrdom_range(100, 102), fixt_arrdom_range(101, 101), [{A: 100, B: 101}, {A: 102, B: 101}]);
-        preNeq('should not create a constraint if A and B solved as number and reject', 101, 101, []);
-        preNeq('should not create a constraint if A and B solved as number and pass', 100, 99, [{A: 100, B: 99}]);
-        preNeq('should not create a constraint if A and B solved as array and reject', fixt_arrdom_range(101, 101), fixt_arrdom_range(101, 101), []);
-        preNeq('should not create a constraint if A and B solved as array and pass', fixt_arrdom_range(100, 100), fixt_arrdom_range(99, 99), [{A: 100, B: 99}]);
+        preNeq('should not create a constraint if A is solved', 101, '[100, 102]', {A: 101, B: 100});
+        preNeq('should not create a constraint if B is solved', '[100, 102]', 101, {A: 100, B: 101});
+        preNeq('should not create a constraint if A and B solved and reject', 101, 101, false);
+        preNeq('should not create a constraint if A and B solved and pass', 100, 99, {A: 100, B: 99});
       });
 
       describe('brute force bool table', function() {
 
-        function test(A, B, out) {
+        function test(A, B, out, pre = out && out[0]) {
           it('test: A=[' + A + '] B=[' + B + '] out=' + JSON.stringify(out).replace(/"/g, ''), function() {
-            let solver = new Solver();
-            solver.decl('A', A);
-            solver.decl('B', B);
-            solver.neq('A', 'B');
-            solver.solve({max: 5}); // only 4 possible outcomes; 00 01 10 11 or none
-
-            expect(solver.solutions).to.eql(out);
+            let dsl = `
+              : A [${A}]
+              : B [${B}]
+              A != B
+            `;
+            expectSolve(
+              dsl,
+              out,
+              pre,
+              {max: 5} // only 4 possible outcomes; 00 01 10 11 or none (only works without presolver)
+            );
           });
         }
 
@@ -230,7 +243,7 @@ describe('src/constraint.spec', function() {
         test([0, 1], [0, 0], [{A: 1, B: 0}]);
         test([1, 1], [0, 0], [{A: 1, B: 0}]);
         test([0, 0], [0, 1], [{A: 0, B: 1}]);
-        test([0, 1], [0, 1], [{A: 0, B: 1}, {A: 1, B: 0}]);
+        test([0, 1], [0, 1], [{A: 0, B: 1}, {A: 1, B: 0}], {A: 1, B: 0});
         test([1, 1], [0, 1], [{A: 1, B: 0}]);
         test([0, 0], [1, 1], [{A: 0, B: 1}]);
         test([0, 1], [1, 1], [{A: 0, B: 1}]);
@@ -719,7 +732,7 @@ describe('src/constraint.spec', function() {
         describe('eq', function() {
 
           function test(domain1, domain2, domain3, out, desc) {
-            it('should solve despite optimizations. ' + [domain__debug(domain1), '==', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+            it('should expectSolve despite optimizations. ' + [domain__debug(domain1), '==', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
               let A = solver.decl('A', domain1);
               let B = solver.decl('B', domain2);
@@ -794,7 +807,7 @@ describe('src/constraint.spec', function() {
         describe('neq', function() {
 
           function test(domain1, domain2, domain3, out, desc) {
-            it('should solve despite optimizations. ' + [domain__debug(domain1), '!=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+            it('should expectSolve despite optimizations. ' + [domain__debug(domain1), '!=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
               let A = solver.decl('A', domain1);
               let B = solver.decl('B', domain2);
@@ -870,7 +883,7 @@ describe('src/constraint.spec', function() {
         describe('lt-', function() {
 
           function test(domain1, domain2, domain3, out, desc) {
-            it('should solve despite optimizations. ' + [domain__debug(domain1), '<', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+            it('should expectSolve despite optimizations. ' + [domain__debug(domain1), '<', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
               let A = solver.decl('A', domain1);
               let B = solver.decl('B', domain2);
@@ -945,7 +958,7 @@ describe('src/constraint.spec', function() {
         describe('lte', function() {
 
           function test(domain1, domain2, domain3, out, desc) {
-            it('should solve despite optimizations. ' + [domain__debug(domain1), '<=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
+            it('should expectSolve despite optimizations. ' + [domain__debug(domain1), '<=', domain__debug(domain2), '->', domain__debug(domain3)] + ' solves to: ' + (JSON.stringify(out).replace(/"/g, '')) + (desc ? '; ' + desc : ''), function() {
               let solver = new Solver();
               let A = solver.decl('A', domain1);
               let B = solver.decl('B', domain2);
@@ -1266,7 +1279,7 @@ describe('src/constraint.spec', function() {
               expect(solver.solutions).to.eql(out);
             } else {
               // difficult. find the anonymous var and test it.
-              expect(solver.solutions.length, 'solve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
+              expect(solver.solutions.length, 'expectSolve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
               solver.solutions.forEach((solution, i) => {
                 let foundAnon = false;
                 for (let key in solution) {
@@ -1405,7 +1418,7 @@ describe('src/constraint.spec', function() {
               expect(solver.solutions).to.eql(out);
             } else {
               // difficult. find the anonymous var and test it.
-              expect(solver.solutions.length, 'solve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
+              expect(solver.solutions.length, 'expectSolve count (solution=' + JSON.stringify(solver.solutions) + ')').to.eql(out.length);
               solver.solutions.forEach((solution, i) => {
                 let foundAnon = false;
                 for (let key in solution) {
@@ -1475,7 +1488,7 @@ describe('src/constraint.spec', function() {
     //    solver.decl('B', 10);
     //    solver.decl('C', 5);
     //    solver.ring_div('A', 'B', 'C');
-    //    let solution = solver.solve({});
+    //    let solution = solver.expectSolve({});
     //
     //    expect(solution).to.eql([{A: 50, B: 10, C: 5}]);
     //  });
@@ -1487,7 +1500,7 @@ describe('src/constraint.spec', function() {
     //      solver.decl('B', B);
     //      solver.decl('C', C);
     //      solver.ring_div('A', 'B', 'C');
-    //      let solution = solver.solve({});
+    //      let solution = solver.expectSolve({});
     //
     //      expect(solution).to.eql(solves);
     //    });
@@ -1514,7 +1527,7 @@ describe('src/constraint.spec', function() {
     //    solver.decl('A', specDomainCreateRange(70, 75));
     //    solver.decl('B', specDomainCreateRange(5, 10));
     //    solver.ring_div('A', 'B');
-    //    let solution = solver.solve({});
+    //    let solution = solver.expectSolve({});
     //
     //    expect(stripAnonVarsFromArrays(solution)).to.eql([
     //      // Note: order is not relevant to the test!
@@ -1533,7 +1546,7 @@ describe('src/constraint.spec', function() {
     //    solver.decl('B', specDomainCreateRange(10, SUP));
     //    solver.decl('C', 10);
     //    solver.ring_div('A', 'B', 'C');
-    //    let solution = solver.solve({});
+    //    let solution = solver.expectSolve({});
     //
     //    expect(solution).to.eql([
     //      {A: 100, B: 10, C: 10},
@@ -1603,7 +1616,7 @@ describe('src/constraint.spec', function() {
         expect(solution).to.eql([{A: 100, B: 10, C: 1000}]);
       });
 
-      it('should solve this old test case', function() {
+      it('should expectSolve this old test case', function() {
         let solver = new Solver({});
 
         solver.decl('A', [0, 10]);
@@ -1809,7 +1822,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solution)).to.eql([{A: 50, B: 10, C: 500, S: 250000}]);
       });
 
-      it('should solve a simple case', function() {
+      it('should expectSolve a simple case', function() {
         let solver = new Solver();
         solver.decl('A', 50);
         solver.decl('B', 10);
@@ -2459,7 +2472,7 @@ describe('src/constraint.spec', function() {
         solver.solve();
 
         // the order is irrelevant..
-        // unlike before, C and D can solve now
+        // unlike before, C and D can expectSolve now
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([
           {A: 0, B: 0, C: 1, D: 1},
           {A: 0, B: 1, C: 0, D: 1},
@@ -2542,7 +2555,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0, C: 0}]);
       });
 
-      describe('brute force boolean tables should solve despite optimizations;', function() {
+      describe('brute force boolean tables should expectSolve despite optimizations;', function() {
 
         function test(resultA, resultB, resultC, out, desc, _input) {
           //if (_input !== 'FFB') return;
@@ -2570,7 +2583,7 @@ describe('src/constraint.spec', function() {
 
             let from = 'nall(' + [domain__debug(A), domain__debug(B), domain__debug(C)] + ')';
             let to = 'nall(' + (JSON.stringify(outs).replace(/"/g, '')) + ')';
-            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+            it(from + ' should expectSolve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
               let solver = new Solver().imp(`
                 : A [${A}]
                 : B [${B}]
@@ -2753,7 +2766,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 1}]);
       });
 
-      describe('brute force boolean tables should solve despite optimizations;', function() {
+      describe('brute force boolean tables should expectSolve despite optimizations;', function() {
 
         function test(resultA, resultB, resultC, out, desc, _input) {
           //if (_input !== 'FFB') return;
@@ -2781,7 +2794,7 @@ describe('src/constraint.spec', function() {
 
             let from = domain__debug(C) + ' = ' + 'all?(' + [domain__debug(A), domain__debug(B)] + ')';
             let to = JSON.stringify(outs).replace(/"/g, '');
-            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+            it(from + ' should expectSolve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
               let solver = new Solver().imp(`
                 : A [${A}]
                 : B [${B}]
@@ -2953,7 +2966,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 0}]);
       });
 
-      describe('brute force boolean tables should solve despite optimizations;', function() {
+      describe('brute force boolean tables should expectSolve despite optimizations;', function() {
 
         function test(resultA, resultB, resultC, out, desc, _input) {
           //if (_input !== 'FFB') return;
@@ -2981,7 +2994,7 @@ describe('src/constraint.spec', function() {
 
             let from = domain__debug(C) + ' = ' + 'nall?(' + [domain__debug(A), domain__debug(B)] + ')';
             let to = JSON.stringify(outs).replace(/"/g, '');
-            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+            it(from + ' should expectSolve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
               let solver = new Solver().imp(`
                 : A [${A}]
                 : B [${B}]
@@ -3153,7 +3166,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 100000, B: 100000, R: 0}]);
       });
 
-      describe('brute force boolean tables should solve despite optimizations;', function() {
+      describe('brute force boolean tables should expectSolve despite optimizations;', function() {
 
         function test(resultA, resultB, resultC, out, desc, _input) {
           //if (_input !== 'FFB') return;
@@ -3181,7 +3194,7 @@ describe('src/constraint.spec', function() {
 
             let from = domain__debug(C) + ' = ' + 'nall?(' + [domain__debug(A), domain__debug(B)] + ')';
             let to = JSON.stringify(outs).replace(/"/g, '');
-            it(from + ' should solve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
+            it(from + ' should expectSolve to: ' + to + ' ' + desc + ' types = <' + [typeA, typeB, typeC] + '>', function() {
               let solver = new Solver().imp(`
                 : A [${A}]
                 : B [${B}]
@@ -3240,7 +3253,7 @@ describe('src/constraint.spec', function() {
 
     describe('and', function() {
 
-      it('should solve with boolies', function() {
+      it('should expectSolve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -3300,7 +3313,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should solve with nonzeroes', function() {
+      it('should expectSolve with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]
@@ -3313,7 +3326,7 @@ describe('src/constraint.spec', function() {
 
     describe('or', function() {
 
-      it('should solve with boolies', function() {
+      it('should expectSolve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -3333,7 +3346,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should solve with zero/booly', function() {
+      it('should expectSolve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -3343,7 +3356,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
       });
 
-      it('should solve with booly/zero', function() {
+      it('should expectSolve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -3353,7 +3366,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
       });
 
-      it('should solve with nonzero/zero', function() {
+      it('should expectSolve with nonzero/zero', function() {
         let solver = new Solver().imp(`
           : A [5 10]
           : B [0 0]
@@ -3363,7 +3376,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
       });
 
-      it('should solve with zero/nonzero', function() {
+      it('should expectSolve with zero/nonzero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [5 10]
@@ -3373,7 +3386,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 5}]);
       });
 
-      it('should solve with nonzeroes', function() {
+      it('should expectSolve with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]
@@ -3386,7 +3399,7 @@ describe('src/constraint.spec', function() {
 
     describe('xor', function() {
 
-      it('should solve with boolies', function() {
+      it('should expectSolve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -3406,7 +3419,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should solve with zero/booly', function() {
+      it('should expectSolve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -3416,7 +3429,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 1}]);
       });
 
-      it('should solve with booly/zero', function() {
+      it('should expectSolve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -3426,7 +3439,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 1, B: 0}]);
       });
 
-      it('should solve with nonzero/zero', function() {
+      it('should expectSolve with nonzero/zero', function() {
         let solver = new Solver().imp(`
           : A [5 10]
           : B [0 0]
@@ -3436,7 +3449,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 5, B: 0}]);
       });
 
-      it('should solve with zero/nonzero', function() {
+      it('should expectSolve with zero/nonzero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [5 10]
@@ -3459,7 +3472,7 @@ describe('src/constraint.spec', function() {
 
     describe('nand', function() {
 
-      it('should solve with boolies', function() {
+      it('should expectSolve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -3469,7 +3482,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
       });
 
-      it('should solve with zero/zero', function() {
+      it('should expectSolve with zero/zero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 0]
@@ -3479,7 +3492,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
       });
 
-      it('should solve with zero/booly', function() {
+      it('should expectSolve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -3489,7 +3502,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: [0, 10]}]);
       });
 
-      it('should solve with booly/zero', function() {
+      it('should expectSolve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -3499,7 +3512,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [0, 10], B: 0}]);
       });
 
-      it('should solve with nonzero/zero', function() {
+      it('should expectSolve with nonzero/zero', function() {
         let solver = new Solver().imp(`
           : A [5 10]
           : B [0 0]
@@ -3509,7 +3522,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: [5, 10], B: 0}]);
       });
 
-      it('should solve with zero/nonzero', function() {
+      it('should expectSolve with zero/nonzero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [5 10]
@@ -3532,7 +3545,7 @@ describe('src/constraint.spec', function() {
 
     describe('xnor', function() {
 
-      it('should solve with boolies', function() {
+      it('should expectSolve with boolies', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 10]
@@ -3542,7 +3555,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
       });
 
-      it('should solve with zero/zero', function() {
+      it('should expectSolve with zero/zero', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 0]
@@ -3552,7 +3565,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
       });
 
-      it('should solve with zero/booly', function() {
+      it('should expectSolve with zero/booly', function() {
         let solver = new Solver().imp(`
           : A [0 0]
           : B [0 10]
@@ -3562,7 +3575,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([{A: 0, B: 0}]);
       });
 
-      it('should solve with booly/zero', function() {
+      it('should expectSolve with booly/zero', function() {
         let solver = new Solver().imp(`
           : A [0 10]
           : B [0 0]
@@ -3592,7 +3605,7 @@ describe('src/constraint.spec', function() {
         expect(stripAnonVarsFromArrays(solver.solutions)).to.eql([]);
       });
 
-      it('should solve with nonzeroes', function() {
+      it('should expectSolve with nonzeroes', function() {
         let solver = new Solver().imp(`
           : A [1 10]
           : B [8 10]

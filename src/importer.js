@@ -101,22 +101,44 @@ function importer_main(str, solver, _debug) {
   function parseVar() {
     skip(); // is(':')
     skipWhitespaces();
-    let name = parseIdentifier();
+
+    let nameNames = parseIdentifier();
     skipWhitespaces();
+    if (read() === ',') {
+      nameNames = [nameNames];
+      do {
+        skip();
+        skipWhitespaces();
+        nameNames.push(parseIdentifier());
+        skipWhitespaces();
+      } while (!isEof() && read() === ',');
+    }
+
     let domain = parseDomain();
     skipWhitespaces();
+
     let alts;
     while (str.slice(pointer, pointer + 6) === 'alias(') {
       if (!alts) alts = [];
       alts.push(parseAlias(pointer += 6));
       skipWhitespaces();
     }
+
     let mod = parseModifier();
     expectEol();
 
-    solver.decl(name, domain, mod, true);
-    // TODO: properly map the alts to the same var index...
-    if (alts) alts.map(name => solver.decl(name, domain, mod, true));
+    if (typeof nameNames === 'string') {
+      solver.decl(nameNames, domain, mod, true);
+      if (alts) {
+        alts.map(alt => {
+          solver.decl(alt, domain, mod, true);
+          solver.eq(nameNames, alt);
+        });
+      }
+    } else {
+      if (alts) THROW('Can not use alias() with multiple declarations');
+      nameNames.forEach(name => solver.decl(name, domain, mod, true));
+    }
   }
 
   function parseIdentifier() {

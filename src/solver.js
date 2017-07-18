@@ -33,18 +33,13 @@ import {
   domain_createEmpty,
   domain_fromListToArrdom,
   domain_isEmpty,
-  domain_toArr,
   domain_anyToSmallest,
 } from './domain';
 
-import search_depthFirst, {
-  search_afterPropagation,
-  search_createNextSpace,
-} from './search';
+import search_depthFirst from './search';
 
 import {
   space_createFromConfig,
-  space_propagate,
   space_solution,
   space_toConfig,
 } from './space';
@@ -52,6 +47,8 @@ import {
 import {
   trie_get,
 } from './trie';
+
+import preSolver from './pre/runner';
 
 // BODY_START
 
@@ -383,41 +380,6 @@ class Solver {
   }
 
   /**
-   * Generate the next child from given space. Or none if there isn't any.
-   *
-   * @param {$space} space
-   * @returns {$space|undefined}
-   */
-  offspring(space) {
-    return search_createNextSpace(space, this.config);
-  }
-
-  /**
-   * Propagate the given space to stability.
-   * Returns whether this ended in a reject.
-   *
-   * @param {$space} space
-   * @returns {boolean}
-   */
-  propagate(space) {
-    return space_propagate(space, this.config);
-  }
-
-  /**
-   * Checks the state of a space (search node).
-   * Basically one depth first search loop step
-   * without the propagation. Returns true if
-   * the space was solved, false if the space
-   * was rejected, and undefined otherwise.
-   *
-   * @param {$space} space
-   * @returns {boolean|undefined} true=solved, false=rejected, undefined=neither
-   */
-  checkStableSpace(space) {
-    return search_afterPropagation(false, space, this.config, this.state.stack, this.state);
-  }
-
-  /**
    * Prepare internal configuration before actually solving
    * Collects one-time config data and sets up defaults
    *
@@ -434,7 +396,7 @@ class Solver {
     this._prepareConfig(options, log);
 
     // create the root node of the search tree (each node is a Space)
-    let rootSpace = this.createSpace();
+    let rootSpace = space_createFromConfig(this.config);
 
     // __REMOVE_BELOW_FOR_DIST__
     this._space = rootSpace; // only exposed for easy access in tests, and so only available after .prepare()
@@ -445,15 +407,6 @@ class Solver {
 
     this._prepared = true;
     if (log >= LOG_STATS) console.timeEnd('      - FD Prepare Time');
-  }
-
-  /**
-   * Create the root space using the config of this solver as its base.
-   *
-   * @returns {$space}
-   */
-  createSpace() {
-    return space_createFromConfig(this.config);
   }
 
   /**
@@ -538,50 +491,11 @@ class Solver {
     solver_getSolutions(solvedSpaces, this.config, this.solutions, log);
   }
 
-  generateSolutions(solvedSpaces, config, targetObject, log) {
-    solver_getSolutions(solvedSpaces, config, targetObject, log);
-  }
-
-  /**
-   * Expose a method to normalize the internal representation
-   * of a domain to always return an array representation
-   *
-   * @param {$space} space
-   * @param {number} varIndex
-   * @returns {$arrdom}
-   */
-  getDomain(space, varIndex) {
-    return domain_toArr(space.vardoms[varIndex]);
-  }
-
   hasVar(varName) {
     return trie_get(this.config._varNamesTrie, varName) >= 0;
   }
 
   /**
-   * Get the current domains for all targeted vars (only)
-   * Heavy operation.
-   *
-   * @param {$space} space
-   * @returns {Object.<string,$arrdom>}
-   */
-  getTargetState(space) {
-    let result = {};
-    let targets = this.config.targetedVars;
-    if (targets === 'all') {
-      targets = this.config.allVarNames;
-    }
-    let varNamesTrie = this.config._varNamesTrie;
-    for (let i = 0, n = targets.length; i < n; ++i) {
-      let varName = targets[i];
-      let varIndex = trie_get(varNamesTrie, varName);
-      result[varName] = domain_toArr(space.vardoms[varIndex]);
-    }
-    return result;
-  }
-
-  /**
-   * Exposed for multiverse as a legacy api.
    * Sets the value distribution options for a var after declaring it.
    *
    * @param {string} varName
@@ -743,6 +657,29 @@ class Solver {
    */
   static domainFromList(list) {
     return domain_fromListToArrdom(list);
+  }
+
+  /**
+   * Shorthand for processing a dsl
+   *
+   * @param {string} dsl
+   * @returns {Solver}
+   */
+  static dsl(dsl) {
+    return new Solver().imp(dsl);
+  }
+
+  /**
+   * Solve a problem using a presolver to scrub the problem before running it through regular FD.
+   *
+   * @param {string} dsl
+   * @param {Object} [options] For the presolver
+   * @property {Function} [options.Solver = Solver] Allows you to pass on a custom Solver (or a mocked one for tests) to defer to
+   * @param {Object} [solveOptions] Solve options
+   */
+  static pre(dsl, options = {}, solveOptions) {
+    let S = options.Solver === undefined ? Solver : options.Solver;
+    return preSolver(dsl, S, options, solveOptions);
   }
 }
 

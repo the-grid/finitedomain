@@ -1,0 +1,137 @@
+// these are some advanced DSL tricks that we could investigate
+
+let cases = `
+: A,B *
+C = A ==? B
+A != B
+# -> C=0
+
+
+
+nall(A B)
+nall(A B C)
+# -> the first nall subsumes the second one because the first alrady enforces A or B to be off.
+# -> that means in the second, A or B will be off and C can be whatever it wants to be.
+# -> works for any nall that is a subset of another nall
+
+
+
+R = all?(A B)
+S = all?(A B C)
+# -> R = all?(A B), S = all?(R C)   but i'm not sure whether that's really that helpful
+# -> similar for isnall
+
+
+
+
+A = all?(a b c)
+B = all?(x y z)
+nall(A B)
+# -> nall(a b c x y z)    The nall requires at least one element A or B to be zero
+# -> so at least one of the lower case vars must be zero
+
+
+
+: A [0 1]
+: B [0 1]
+A ^ B  # -> A != B
+A !^ B # -> A == B
+# only when A and B are size=2, contain zero, and equal
+
+
+
+
+
+A = all?(X a)
+B = all?(X b)
+C = all?(X c)
+# -> _kle_
+m = product(A B C) # do not equal X. not even when bool. this way X wont be 0 when A=0
+m = X * m # here X can be zero or one, regardless of the value of m
+A !^ a
+B !^ b
+C !^ c
+
+
+
+
+
+: _q38_ [0,1] alias(_q47_ _q48_) # counts = 2  # ops: <= <= $
+ ## _q38_ <= _oer_                               # numdom([0,1]) <= numdom([0,1])                                 # args: 33812, 31635                    # counts: 2 <= 6
+ ## _q38_ <= _kni_                               # numdom([0,1]) <= numdom([0,1])                                 # args: 33812, 26766                    # counts: 2 <= 4
+
+
+X = A ==? 5
+Y = all?(X B)
+# =>   (Y|B) ? (A=5) : (A != 5)
+
+
+X = A ==? 5
+Y <= X
+# =>   Y ? (A = 5) : A != 5
+
+
+X = A ==? 5
+Y !& B
+# =>   Y ? (A != 5) : (A = 5)
+
+
+
+X = A ==? 4
+R = all?(X B)
+# => also means R <= B. which is the case regardless. (R <= X as well)
+
+# R = all?(A B C ...)
+# => R <= A, R <= B, R <= C, ...
+
+
+A != B
+A | C
+# => B <= C, A leaf
+
+
+
+
+A <= X
+B | X
+C !& X
+X <= D
+# -> A <= D, A !& C, X is leaf
+
+
+
+X <= Y
+X = all?(A Y)
+# -> eliminate X <= Y because it is redundant (difficult to search for efficiently)
+
+
+#oer
+(A <= X) & (B <= X) & (C <= X) & (D | X) & !(E & X) & (X <= F)
+
+
+#kmg
+# A <= X, B<= X, C<=X, !(D & E & X), F|X
+# ->
+# !(D&E) == !((!A) & (!B) & (!C) & D & E & F)
+# !(D&E) == !(!(A | B)&(!C)&D&E&F)
+# !(D&E) == (A | B | C | (!D) | (!E) | (!F))
+# !(D&E) == (A | B | (x == !(D&E&F)))
+tmp = nall?(D E F)
+tmp2 = nall?(D E)
+tmp2 = A * B * tmp
+
+
+
+
+
+X !& A
+X = all?(A B)
+# -> A !& B, X leaf. works for any additional X <= Y and X !& Y
+
+
+
+
+
+`;
+
+void (cases);

@@ -2523,4 +2523,15 @@ describe('solver.spec', function() {
       expect(true).to.eql(true);
     });
   });
+
+  describe('Solver.dsl()', function() {
+
+    it('should work', function() {
+      expect(_ => Solver.dsl(`
+        : A [0 10]
+        : B [0 10]
+        A != B
+      `).solve()).not.to.throw();
+    });
+  });
 });
